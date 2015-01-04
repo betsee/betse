@@ -1,0 +1,11 @@
+# ====================[ .gitignore                         ]====================
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Paths matching the following glob expressions are *NOT* committed by default.
+
+# ....................{ DIRECTORIES                        }....................
+/output/
+
+# ....................{ FILES ~ temporary                  }....................
+*~
+*.sw?
