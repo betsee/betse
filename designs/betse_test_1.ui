@@ -1,0 +1,736 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowModality">
+   <enum>Qt::NonModal</enum>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>818</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>BETSE 0.1</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>../../BioE/test/owl.svg</normaloff>../../BioE/test/owl.svg</iconset>
+  </property>
+  <property name="toolTip">
+   <string>BioElectric Tissue Simulation Engine</string>
+  </property>
+  <property name="iconSize">
+   <size>
+    <width>50</width>
+    <height>50</height>
+   </size>
+  </property>
+  <property name="tabShape">
+   <enum>QTabWidget::Rounded</enum>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>801</width>
+      <height>511</height>
+     </rect>
+    </property>
+    <property name="tabPosition">
+     <enum>QTabWidget::West</enum>
+    </property>
+    <property name="currentIndex">
+     <number>1</number>
+    </property>
+    <property name="tabsClosable">
+     <bool>false</bool>
+    </property>
+    <property name="movable">
+     <bool>false</bool>
+    </property>
+    <widget class="QWidget" name="tab_param">
+     <attribute name="title">
+      <string>Parameters</string>
+     </attribute>
+     <widget class="QWidget" name="formLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>10</y>
+        <width>321</width>
+        <height>195</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout">
+       <property name="fieldGrowthPolicy">
+        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+       </property>
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_PNamem">
+         <property name="toolTip">
+          <string>Na+ membrane permeability</string>
+         </property>
+         <property name="text">
+          <string>PNa_mem [m/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="le_PNamem">
+         <property name="text">
+          <string notr="true">1e-10</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_PKmem">
+         <property name="toolTip">
+          <string>K+ membrane permeability</string>
+         </property>
+         <property name="text">
+          <string>PK_mem [m/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="le_PKmem">
+         <property name="text">
+          <string notr="true">1e-10</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_PClmem">
+         <property name="toolTip">
+          <string>Cl- membrane permeability</string>
+         </property>
+         <property name="text">
+          <string>PCl_mem [m/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="le_PClmem">
+         <property name="text">
+          <string notr="true">1e-10</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_PHmem">
+         <property name="toolTip">
+          <string>H+ membrane permeability</string>
+         </property>
+         <property name="text">
+          <string>PH_mem [m/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="le_PHmem">
+         <property name="text">
+          <string notr="true">1e-10</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="lbl_Camem">
+         <property name="toolTip">
+          <string>Ca2+ membrane permeability</string>
+         </property>
+         <property name="text">
+          <string>PCa_mem [m/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="le_PCamem">
+         <property name="text">
+          <string notr="true">1e-10</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="lbl_DiffConsts">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Membrane Permeability</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="formLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>10</y>
+        <width>321</width>
+        <height>262</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_3">
+       <property name="fieldGrowthPolicy">
+        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+       </property>
+       <item row="1" column="1">
+        <widget class="QLabel" name="lbl_CellGenProp">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Cell General Properties</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignHCenter|Qt::AlignTop</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_rcell">
+         <property name="toolTip">
+          <string>cell radius</string>
+         </property>
+         <property name="text">
+          <string>r_cell [m]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="le_rcell">
+         <property name="text">
+          <string notr="true">5e-6</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_tcellcell">
+         <property name="toolTip">
+          <string>cell-cell separation</string>
+         </property>
+         <property name="text">
+          <string>t_cellcell [m]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="le_tcellcell">
+         <property name="text">
+          <string notr="true">26e-9</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_Pgj">
+         <property name="toolTip">
+          <string>Gap junction permeability</string>
+         </property>
+         <property name="text">
+          <string>P_gj [m/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="le_Pgj">
+         <property name="text">
+          <string notr="true">1e-8</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="lbl_Dadh">
+         <property name="toolTip">
+          <string>extracellular space diffusion constant</string>
+         </property>
+         <property name="text">
+          <string>D_adh [m2/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="le_Dadh">
+         <property name="text">
+          <string notr="true">1e-16</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="lbl_vER">
+         <property name="toolTip">
+          <string>volume of endoplasmic reticulum</string>
+         </property>
+         <property name="text">
+          <string>v_ER [m3]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="le_vER">
+         <property name="text">
+          <string notr="true">1e-25</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="lbl_saER">
+         <property name="toolTip">
+          <string>surface area of endoplasmic reticulum</string>
+         </property>
+         <property name="text">
+          <string>sa_ER [m2]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLineEdit" name="le_saER">
+         <property name="text">
+          <string notr="true">1e-15</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="formLayoutWidget_4">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>230</y>
+        <width>321</width>
+        <height>271</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_4">
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_wrldx">
+         <property name="toolTip">
+          <string>world x-dimension</string>
+         </property>
+         <property name="text">
+          <string>world_x [m]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_wrldy">
+         <property name="toolTip">
+          <string>world y-dimension</string>
+         </property>
+         <property name="text">
+          <string>world_y [m]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_Naenv">
+         <property name="text">
+          <string>cNa_env [mol/m3]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_Kenv">
+         <property name="text">
+          <string>cK_env [mol/m3]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="lbl_Clenv">
+         <property name="text">
+          <string>cCl_env [mol/m3]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="lbl_Caenv">
+         <property name="text">
+          <string>cCa_env [mol/m3]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="lbl_Henv">
+         <property name="text">
+          <string>cH_env [mol/m3]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="le_wrldx">
+         <property name="text">
+          <string notr="true">200e-6</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="le_wrldy">
+         <property name="text">
+          <string notr="true">200e-6</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="le_Naenv">
+         <property name="text">
+          <string notr="true">145.0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="le_Kenv">
+         <property name="text">
+          <string notr="true">5.0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="le_Clenv">
+         <property name="text">
+          <string notr="true">105.0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="le_Caenv">
+         <property name="text">
+          <string notr="true">1.0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLineEdit" name="le_Henv">
+         <property name="text">
+          <string notr="true">1.0e-7</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="lbl_WorldProperties">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>World Properties</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="formLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>300</y>
+        <width>321</width>
+        <height>195</height>
+       </rect>
+      </property>
+      <layout class="QFormLayout" name="formLayout_2">
+       <property name="fieldGrowthPolicy">
+        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+       </property>
+       <item row="1" column="0">
+        <widget class="QLabel" name="lbl_alphaNaK">
+         <property name="toolTip">
+          <string>rate constant Na-K-ATPase pump</string>
+         </property>
+         <property name="text">
+          <string>alpha_NaKATPase [1/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="le_alphaNaK">
+         <property name="text">
+          <string notr="true">1.0e-17</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="lbl_CaATPase">
+         <property name="toolTip">
+          <string>rate constant Ca-ATPase pump</string>
+         </property>
+         <property name="text">
+          <string>alpha_CaATPase [1/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="le_alphaCa">
+         <property name="text">
+          <string notr="true">1.0e-17</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="lbl_alphaER">
+         <property name="toolTip">
+          <string>rate constant for Ca2+ pump in ER</string>
+         </property>
+         <property name="text">
+          <string>alpha_ER [1/s]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="le_alphaER">
+         <property name="text">
+          <string notr="true">1.0e-17</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="lbl_GATP">
+         <property name="toolTip">
+          <string>free energy in ATP hydrolysis</string>
+         </property>
+         <property name="text">
+          <string>deltaG_ATP [kJ/mol]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="le_deltaGATP">
+         <property name="text">
+          <string notr="true">-55</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="lbl_T">
+         <property name="toolTip">
+          <string>Temperature</string>
+         </property>
+         <property name="text">
+          <string>T [K]</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="le_temp">
+         <property name="text">
+          <string notr="true">310</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Active Transport</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_geom">
+     <attribute name="title">
+      <string>Geometry</string>
+     </attribute>
+     <widget class="QGraphicsView" name="graphicsView_Geom">
+      <property name="geometry">
+       <rect>
+        <x>360</x>
+        <y>10</y>
+        <width>400</width>
+        <height>400</height>
+       </rect>
+      </property>
+      <property name="cursor" stdset="0">
+       <cursorShape>ArrowCursor</cursorShape>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_tiss">
+     <attribute name="title">
+      <string>Tissues</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab_dyna">
+     <attribute name="title">
+      <string>Dynamics</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab_simu">
+     <attribute name="title">
+      <string>Simulation</string>
+     </attribute>
+     <widget class="QWidget" name="verticalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>0</y>
+        <width>701</width>
+        <height>491</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QGraphicsView" name="graphicsView_simu"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="btn_pause">
+           <property name="text">
+            <string>Pause</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_go">
+           <property name="text">
+            <string>Go</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_stop">
+           <property name="text">
+            <string>Stop</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_resu">
+     <attribute name="title">
+      <string>Results</string>
+     </attribute>
+     <widget class="QComboBox" name="comboBox_results">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>70</y>
+        <width>151</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <item>
+       <property name="text">
+        <string>Vmem</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Voltage</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Current</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>P_gj</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>cNa</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>cK</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>cCl</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>cCa</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>cH</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>E-field</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>H-field</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QLabel" name="lbl_comboboxtitle">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>50</y>
+        <width>91</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Choose plot:</string>
+      </property>
+     </widget>
+     <widget class="QGraphicsView" name="graphicsView_tissue">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>10</y>
+        <width>541</width>
+        <height>431</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>818</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

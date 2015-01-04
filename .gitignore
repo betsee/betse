@@ -4,8 +4,17 @@
 # Paths matching the following glob expressions are *NOT* committed by default.
 
 # ....................{ DIRECTORIES                        }....................
+# Ignore the top-level "output" directory.
 /output/
 
-# ....................{ FILES ~ temporary                  }....................
+# Ignore all PyCharm-specific ".idea" subdirectories.
+.idea/
+
+# ....................{ FILES                              }....................
+# Ignore all binary Python-specific files.
+*.pyc
+*.pyo
+
+# Ignore all temporary files.
 *~
 *.sw?
