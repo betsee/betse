@@ -5,13 +5,11 @@
 # FIXME add in assertions for various methods
 # FIXME redesign for non-equal x and y world dimensions
 # FIXME method to create a hexagonal lattice base
-# FIXME every once in a while the closed Voronoi cluster is f*c!&ed -- what's wrong with it?
 # FIXME figure out how to scale each voronoi polygon to um instead of m dimensions when plotting
-# FIXME figure out how to produce plot objects suitable for Qt GUIs...
 # FIXME need nx,ny (normal) and tx,ty (tangent) to each cell edge
 # FIXME need midpoints (cell_mids, ecm_mids) for line segments of ecm_verts and cell_verts
 # FIXME need boundary flags for cell_mids and ecm_verts
-# FIXME convex hull outer boundary detection not the best...
+# FIXME define concave hull for boundary flagging
 
 """
 The world module contains the class World, which holds
@@ -83,21 +81,21 @@ class World(object):
 
     self.bound_flags    a numpy array flagging cells on the envirnomental boundary with 1
 
-    self.cell_edges     a python nested listing of two point line segments of each membrane domain for each cell
+    self.ecm_edges     a python nested listing of two point line segments of each membrane domain for each cell
 
 
     Methods
     -------
-    makeSeeds(nx,ny,dc,ac,nl,wsx,wsy)           Create an irregular lattice of seed points in 2d space
-    cropSeeds(crop_mask)                        Crop the points cluster to a polygonal shape (circle)
-    makeVoronoi(clust_xy, vorclose = None)      Make and clip/close a Voronoi diagram from the seed points
-    clip(subjectPolygon, clipPolygon)           The Sutherland-Hodgman polygon clipping algorithm
-    area(p)                                     Find the area of a polygon defined by a list of [x,y] points
-    vor_area(ecm_verts)                         Returns the area of each polygon in the closed Voronoi diagram
-    cell_index(ecm_verts)                       Returns a list of [x,y] points defining the cell centres in order
-    near_neigh(cell_centres,search_d,d_cell)    Calculate the nearest neighbour (nn) array for each cell
-    cellEdges(reg_verts)                   List of membrane domains as two-point line segments for each cell
-    plotPolyData(vor_verts,zdata = None,clrmap = None)  Plot cell polygons with data attached
+    makeSeeds()                             Create an irregular lattice of seed points in 2d space
+    cropSeeds(crop_mask)                    Crop the points cluster to a polygonal shape (circle)
+    makeVoronoi(vorclose = None)            Make and clip/close a Voronoi diagram from the seed points
+    clip(subjectPolygon, clipPolygon)       The Sutherland-Hodgman polygon clipping algorithm
+    area(p)                                 Find the area of a polygon defined by a list of [x,y] points
+    vor_area()                              Returns the area of each polygon in the closed Voronoi diagram
+    cell_index()                            Returns a list of [x,y] points defining the cell centres in order
+    near_neigh()                            Calculate the nearest neighbour (nn) array for each cell
+    cellEdges()                             List of membrane domains as two-point line segments for each cell
+    plotPolyData(zdata = None,clrmap = None)  Plot cell polygons with data attached
 
     Notes
     -------
@@ -106,38 +104,36 @@ class World(object):
 
     """
 
-    def __init__(self,constants,crop_mask=None, vorclose=None, simpleWorld=False):
-        d_cell = constants.dc  # diameter of single cell
-        nx = constants.nx   # number of lattice sites in world x index
-        ny = constants.ny   # number of lattice sites in world y index
-        ac = constants.ac  # cell-cell separation
-        nl = constants.nl  # noise level for the lattice
-        wsx = constants.wsx  # World size
-        wsy = constants.wsy # World size
-        search_d = constants.search_d  # distance to search for nearest neighbours (relative to d_cell)
-        sf = constants.sf              # scale factor to take cell vertices in from extracellular space
+    def __init__(self,constants,crop_mask=None, vorclose=None):
 
-        if simpleWorld==False:
+        self.vorclose = vorclose
+        self.crop_mask = crop_mask
 
-            self.makeSeeds(nx,ny,d_cell,ac,nl,wsx,wsy)    # Create the grid for the system (irregular)
-            self.cropSeeds(crop_mask)                   # Crop the grid to a geometric shape to define the cell cluster
-            self.makeVoronoi(self.clust_xy,vorclose)    # Make, close, and clip the Voronoi diagram
-            self.vor_area(self.ecm_verts)              # Calculate the area of each Voronoi polygon (cell)
-            self.cell_index(self.ecm_verts)            # Calculate the correct centre and index for each cell
-            self.near_neigh(self.cell_centres,search_d,d_cell)    # Calculate the nn array for each cell
-            self.boundTag(self.cell_centres)   # flag cells laying on the environmental boundary
-            self.cellEdges(self.ecm_verts)    # create a nested list of all membrane domains for each cell
-            self.cellVerts(self.cell_centres,self.ecm_verts,sf)   # create individual cell polygon vertices
-
-        elif simpleWorld==True:
-
-            self.makeSeeds(nx,ny,d_cell,ac,nl,wsx,wsy)    # Create the grid for the system (irregular)
-            self.cropSeeds(crop_mask)                   # Crop the grid to a geometric shape to define the cell cluster
-            self.near_neigh(self.clust_xy,search_d,d_cell)    # Calculate the nn array for each cell
-            self.boundTag(self.clust_xy)   # flag cells laying on the environmental boundary
+        self.d_cell = constants.dc  # diameter of single cell
+        self.nx = constants.nx   # number of lattice sites in world x index
+        self.ny = constants.ny   # number of lattice sites in world y index
+        self.ac = constants.ac  # cell-cell separation
+        self.nl = constants.nl  # noise level for the lattice
+        self.wsx = constants.wsx  # World size
+        self.wsy = constants.wsy # World size
+        self.search_d = constants.search_d  # distance to search for nearest neighbours (relative to d_cell)
+        self.sf = constants.sf              # scale factor to take cell vertices in from extracellular space
+        self.cell_sides = constants.cell_sides # minimum number of membrane domains per cell
 
 
-    def makeSeeds(self,nx,ny,dc,ac,nl,wsx,wsy):
+        self.makeSeeds()    # Create the grid for the system (irregular)
+        self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
+        self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
+        self.cell_index()            # Calculate the correct centre and index for each cell
+        self.cellVerts()   # create individual cell polygon vertices
+        self.vor_area()              # Calculate the area of each cell polygon
+        self.cell_index()            # Calculate the correct centre and index for each cell
+        self.near_neigh()    # Calculate the nn array for each cell
+        self.boundTag()   # flag cells laying on the environmental boundary
+        self.cellEdges()    # create a nested list of all membrane and ecm domains for each cell
+
+
+    def makeSeeds(self):
 
         """
         makeSeeds returns an irregular scatter
@@ -148,13 +144,6 @@ class World(object):
         grid is specified by nl, defined from
         0 (perfect square grid) to 1 (full noise).
 
-        Parameters
-        ----------
-        nx, ny          number of cells in x and y dimensions
-        dc              average cell diameter  [m]
-        ac              cell-cell separation   [m]
-        nl              lattice noise level (0 none to 1 full)
-        wsx, wsy        world dimensions in x and y directions
 
         Creates
         -------
@@ -178,15 +167,15 @@ class World(object):
         """
 
         # first begin with linear vectors which are the "ticks" of the x and y dimensions
-        self.x_v = np.linspace(0, (nx - 1) * (dc + ac), nx)  # create lattice vector x
-        self.y_v = np.linspace(0, (ny - 1) * (dc + ac), ny)  # create lattice vector y
+        self.x_v = np.linspace(0, (self.nx - 1) * (self.d_cell + self.ac), self.nx)  # create lattice vector x
+        self.y_v = np.linspace(0, (self.ny - 1) * (self.d_cell + self.ac), self.ny)  # create lattice vector y
 
         # next define a 2d array of lattice points using the x- and y- vectors
         x_2d, y_2d = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
 
         # now create a matrix of points that will add a +/- deviation to each point centre
-        x_rnd = nl * dc * (np.random.rand(ny, nx) - 0.5)  # create a mix of random deltas x dir
-        y_rnd = nl * dc * (np.random.rand(ny, nx) - 0.5)  # create a mix of random deltas x dir
+        x_rnd = self.nl * self.d_cell * (np.random.rand(self.ny, self.nx) - 0.5)  # create a mix of random deltas x dir
+        y_rnd = self.nl * self.d_cell * (np.random.rand(self.ny, self.nx) - 0.5)  # create a mix of random deltas x dir
 
         # add the noise effect to the world point matrices and redefine the results
         self.x_2d = x_2d + x_rnd
@@ -233,8 +222,8 @@ class World(object):
 
         elif crop_mask =='circle': # if 'circle' is specified:
 
-            cres = 50  # how many points desired in polygon
-            d_circ = self.xmax - self.xmin  # diameter of circle in x-direction  TODO try coding in an ellipse!
+            cres = 15  # how many points desired in polygon
+            d_circ = self.xmax - self.xmin  # diameter of circle in x-direction
             r_circ = d_circ / 2  # radius of circle
             ind1 = np.linspace(0, 1, cres + 1)  # indices of angles defining circle points
 
@@ -266,7 +255,7 @@ class World(object):
 
             self.clust_xy = np.delete(self.clust_xy, 0, 0)    # delete the initialization value.
 
-    def makeVoronoi(self, clust_xy, vorclose = None):
+    def makeVoronoi(self, vorclose = None):
 
         """
         makeVoronoi calculates the Voronoi diagram for an input
@@ -300,15 +289,15 @@ class World(object):
 
         """
 
-        vor = sps.Voronoi(clust_xy)
+        self.vor = sps.Voronoi(self.clust_xy)
 
-        self.cluster_axis = vor.points.ptp(axis=0)
-        self.cluster_center = vor.points.mean(axis=0)
+        self.cluster_axis = self.vor.points.ptp(axis=0)
+        self.cluster_center = self.vor.points.mean(axis=0)
 
         # complete the Voronoi diagram by adding in undefined vertices to ridges and regions
         i = -1   # enumeration index
 
-        for pnt_indx, vor_edge in zip(vor.ridge_points, vor.ridge_vertices):
+        for pnt_indx, vor_edge in zip(self.vor.ridge_points, self.vor.ridge_vertices):
             vor_edge = np.asarray(vor_edge)
 
             i = i+1 # update the count-through index
@@ -318,66 +307,90 @@ class World(object):
                 # find the ridge vertice that's not equal to -1
                     new_edge = vor_edge[vor_edge >= 0][0]
                 # calculate the tangent of two seed points sharing that ridge
-                    tang = vor.points[pnt_indx[1]] - vor.points[pnt_indx[0]]
+                    tang = self.vor.points[pnt_indx[1]] - self.vor.points[pnt_indx[0]]
                     tang /= np.linalg.norm(tang)  # make the tangent a unit vector
                     norml = np.array([-tang[1], tang[0]])  # calculate the normal of the two points sharing the ridge
 
                     # calculate the midpoint between the two points of the ridge
-                    midpoint = vor.points[pnt_indx].mean(axis=0)
+                    midpoint = self.vor.points[pnt_indx].mean(axis=0)
                     # now there's enough information to calculate the missing direction and location of missing point
                     direction = np.sign(np.dot(midpoint - self.cluster_center, norml)) * norml
-                    far_point = vor.vertices[new_edge] + direction * self.cluster_axis.max()
+                    #far_point = self.vor.vertices[new_edge] + direction * self.cluster_axis.max()
+                    far_point = self.vor.vertices[new_edge] + direction * self.d_cell
 
                     # get the current size of the voronoi vertices array, this will be the n+1 index after adding point
-                    vor_ind = vor.vertices.shape[0]
+                    vor_ind = self.vor.vertices.shape[0]
 
-                    vor.vertices = np.vstack((vor.vertices,far_point)) # add the new point to the vertices array
-                    vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
+                    self.vor.vertices = np.vstack((self.vor.vertices,far_point)) # add the new point to the vertices array
+                    self.vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
 
-                    j=-1 # initialize another index for altering regions
-                    for region in vor.regions:    # step through each polygon region
-                        j = j+1  # update the index
-                        if -1 in region and new_edge in region:  # if the region has edge of interest...
-                            a = region.index(-1)              # find index in the region that is undefined (-1)
-                            vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
-                            verts = vor.vertices[region]   # get the vertices for this region
+                    for j, region in enumerate(self.vor.regions):    # step through each polygon region
+
+                        if len(region):
+
+                            if -1 in region and new_edge in region:  # if the region has edge of interest...
+                                a = region.index(-1)              # find index in the region that is undefined (-1)
+                                self.vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
+
+                            verts = self.vor.vertices[region]   # get the vertices for this region
                             region = np.asarray(region)      # convert region to a numpy array so it can be sorted
                             cent = verts.mean(axis=0)     # calculate the centre point
                             angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
-                            vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+                            #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+                            sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
+                            sorted_region_b = sorted_region.tolist()
+                            self.vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
+
 
         # finally, clip the Voronoi diagram to polygon, if user-specified by vorclose option
         if vorclose==None:
-            self.ecm_verts = []
+            self.ecm_verts=[]
+            for region in self.vor.regions:
+                if len(region):
+                    cell_poly = self.vor.vertices[region]
+                    if len(cell_poly)>3:
+                        self.ecm_verts.append(self.vor.vertices[region])
+
 
         elif vorclose=='circle':
-            cluster_axis = vor.points.ptp(axis=0)    # calculate the extent of the cell points
-            centx = vor.points.mean(axis=0)       # calculate the centre of the cell points
+            #cluster_axis = vor.points.ptp(axis=0)    # calculate the extent of the cell points
+            #centx = vor.points.mean(axis=0)       # calculate the centre of the cell points
 
             cres = 15  # how many points desired in cropping polygon
-            d_circ = cluster_axis.max()  # diameter of cropping polygon
-            r_circ = 1.08*(d_circ / 2)  # radius of cropping polygon
+            #d_circ = cluster_axis.max()  # diameter of cropping polygon
+            d_circ = self.xmax - self.xmin
+            r_circ = 1.01*(d_circ / 2)  # radius of cropping polygon
             ind1 = np.linspace(0, 1, cres + 1)  # indices of angles defining polygon points
             angs = ind1 * 360 * (np.pi / 180)  # angles in radians defining polygon points
-            circ_ptsx = r_circ * np.cos(angs) + centx[0]  # points of the polygon
-            circ_ptsy = r_circ * np.sin(angs) + centx[1]  # points of the polygon
+            #circ_ptsx = r_circ * np.cos(angs) + centx[0]  # points of the polygon
+            #circ_ptsy = r_circ * np.sin(angs) + centx[1]  # points of the polygon
+            circ_ptsx = r_circ * np.cos(angs) + self.centre[0]  # points of the polygon
+            circ_ptsy = r_circ * np.sin(angs) + self.centre[1]  # points of the polygon
 
-            crop_pts = np.vstack((circ_ptsx, circ_ptsy)).T  # reorganize polygon points as [x,y] pairs
+            self.crop_pts = np.vstack((circ_ptsx, circ_ptsy)).T  # reorganize polygon points as [x,y] pairs
+            crop_path = Path(self.crop_pts, closed=True)  # transform cropping points to a functional path
+
+            crop_ptsa = self.crop_pts.tolist()   # a python list version to use with the clipping algorithm
 
             # Now clip the voronoi diagram to the cropping polygon
             self.ecm_verts = []
 
-            i=-1 # counting index
+            for poly_ind in self.vor.regions:  # step through each cell's polygonal regions...
 
-            for poly_ind in vor.regions:  # step through each cell's polygonal regions...
-                i = i+1                     # update the enumeration index
-                cell_poly = vor.vertices[poly_ind]  # get the coordinates of the polygon vertices
-                cell_polya = cell_poly.tolist()  # convert data structures to python lists for cropping algorithm...
-                crop_ptsa = crop_pts.tolist()
+                if len(poly_ind) >= self.cell_sides: # check to make sure we're defining a polygon
 
-                if len(cell_poly)>=3:                     # if the polygon region has at least 3 vertices
-                    aa=self.clip(cell_polya,crop_ptsa)        # then send it to the clipping algorithm
-                    self.ecm_verts.append(aa)     # append points to new region point list
+                    cell_poly = self.vor.vertices[poly_ind]  # get the coordinates of the polygon vertices
+
+                    inpath = crop_path.contains_points(cell_poly)    # get a boolean matrix
+
+                    if inpath.all() == False:
+                        pass
+
+                    else:
+                        cell_polya = cell_poly.tolist()  # convert data structures to python lists for cropping algorithm...
+                        aa=self.clip(cell_polya,crop_ptsa)        # then send it to the clipping algorithm
+                        if len(aa) >= self.cell_sides:                        # check to make sure result is still a polygon
+                            self.ecm_verts.append(aa)     # append points to new region point list
 
     def clip(self, subjectPolygon, clipPolygon):  # This is the Sutherland-Hodgman polygon clipping algorithm
 
@@ -442,7 +455,7 @@ class World(object):
 
         return 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(p, p[1:] + [p[0]])))
 
-    def vor_area(self,vor_verts):
+    def vor_area(self):
 
         """
         Calculates the area of each cell in a closed 2D Voronoi diagram.
@@ -462,10 +475,10 @@ class World(object):
 
         """
         self.cell_area = []
-        for poly in vor_verts:
+        for poly in self.cell_verts:
             self.cell_area.append(self.area(poly))
 
-    def cell_index(self,vor_verts):
+    def cell_index(self):
 
         """
         Calculate the cell centre for each voronoi polygon and return a list
@@ -488,14 +501,14 @@ class World(object):
 
         self.cell_centres = np.array([0,0])
 
-        for poly in vor_verts:
+        for poly in self.ecm_verts:
             aa = np.asarray(poly)
             aa = np.mean(aa,axis=0)
             self.cell_centres = np.vstack((self.cell_centres,aa))
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
-    def near_neigh(self,cell_centres,search_d,cell_d):
+    def near_neigh(self):
 
         """
         Calculate the nearest neighbours for each cell centre in the cluster and return a numpy
@@ -520,16 +533,16 @@ class World(object):
 
         """
 
-        cell_tree = sps.KDTree(cell_centres)
-        self.cell_nn=cell_tree.query_ball_point(cell_centres,search_d*cell_d)
+        cell_tree = sps.KDTree(self.cell_centres)
+        self.cell_nn=cell_tree.query_ball_point(self.cell_centres,self.search_d*self.d_cell)
 
         # define a listing of all cell-neighbour line segments
         self.con_segs = []
-        for centre, indices in zip(cell_centres,self.cell_nn):
+        for centre, indices in zip(self.cell_centres,self.cell_nn):
             for pt in indices:
-                self.con_segs.append([centre,cell_centres[pt]])
+                self.con_segs.append([centre,self.cell_centres[pt]])
 
-    def boundTag(self,cell_centres):
+    def boundTag(self):
 
         """
 
@@ -550,11 +563,11 @@ class World(object):
 
         """
 
-        bcells = sps.ConvexHull(cell_centres)   # calculate the convex hull for the cell centre points
-        self.bound_flag = np.zeros([cell_centres.shape[0]])  # initialize an array to flag cells on the boundary
+        bcells = sps.ConvexHull(self.cell_centres)   # calculate the convex hull for the cell centre points
+        self.bound_flag = np.zeros([self.cell_centres.shape[0]])  # initialize an array to flag cells on the boundary
         self.bound_flag[bcells.vertices] = 1      # each cell that's on the boundary the flag is set to 1
 
-    def cellEdges(self,reg_verts):
+    def cellEdges(self):
         """
 
         Flag cells that are on the boundary to the environment by calculating the convex hull
@@ -568,29 +581,37 @@ class World(object):
         -------
         self.cell_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
                             domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
+        self.cell_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
+                            domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
 
         """
 
+        self.ecm_edges = []
+        for poly in self.ecm_verts:
+            edge =[]
+            for i in range(0,len(poly)):
+                edge.append([poly[i-1],poly[i]])
+
+            self.ecm_edges.append(edge)
+
         self.cell_edges = []
-        for poly in reg_verts:
+        for poly in self.cell_verts:
             edge =[]
             for i in range(0,len(poly)):
                 edge.append([poly[i-1],poly[i]])
 
             self.cell_edges.append(edge)
 
-    def cellVerts(self,cell_cent,reg_verts,sf):
+    def cellVerts(self):
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
         of the closed & clipped Voronoi diagram.
 
         Parameters
         ----------
-        reg_verts            A nested python list of the [x,y] co-ordinates of each Voronoi polygon in the cluster
-        cell_cent            A list of cell centre point [x,y] co-ordinates
         sf                   The scale factor by which the vertices are dilated (must be less than 1.0!)
 
-        Returns
+        Creates
         -------
         self.cell_verts      A nested python list of the [x,y] point pairs defining vertices of each individual cell
                             polygon. The points of each polygon are arranged in a counterclockwise manner.
@@ -602,11 +623,11 @@ class World(object):
         """
         self.cell_verts = []
 
-        for centre,poly in zip(cell_cent,reg_verts):
+        for centre,poly in zip(self.cell_centres,self.ecm_verts):
             pt_scale = []
             for vert in poly:
                 pt_zero = vert - centre
-                pt_scale.append(sf*pt_zero + centre)
+                pt_scale.append(self.sf*pt_zero + centre)
             self.cell_verts.append(pt_scale)
 
     def plotPolyData(self,zdata = None,clrmap = None):
@@ -654,13 +675,14 @@ class World(object):
 
         coll = PolyCollection(self.cell_verts, array=z, cmap=clrmap, edgecolors='none')
         ax.add_collection(coll)
+        ax.axis('equal')
 
         # Add a colorbar for the PolyCollection
         if zdata != None:
             fig.colorbar(coll, ax=ax)
 
         ax.autoscale_view()
-        ax.axis('equal')
+
 
         return fig,ax
 
@@ -716,6 +738,7 @@ class World(object):
         sc = 1e6
 
         triplt = ax.tripcolor(self.cell_centres[:, 0], self.cell_centres[:, 1], z,shading='gouraud', cmap=clrmap)
+        ax.axis('equal')
 
         # Add a colorbar for the z-data
         if zdata != None:
@@ -730,8 +753,8 @@ class World(object):
                     edge = np.asarray(edge)
                     ax.plot(edge[:,0],edge[:,1],color='k',alpha=0.5)
 
-        ax.axis('equal')
         ax.autoscale_view()
+
 
         return fig, ax
 
@@ -772,8 +795,7 @@ class World(object):
         plotting data on large collectives
         """
 
-        vor_verts_flat = [val for sublist in vor_verts for val in sublist]
-        vor_verts_flat = np.asarray(vor_verts_flat)
+        vor_verts_flat = self.flatten(vor_verts)
 
         if zdata == None:  # if user doesn't supply data
             z = np.ones(len(vor_verts_flat)) # create flat data for plotting
@@ -792,6 +814,7 @@ class World(object):
         sc = 1e6
 
         triplt = ax.tripcolor(vor_verts_flat[:, 0], vor_verts_flat[:, 1], z,shading='gouraud', cmap=clrmap)
+        ax.axis('equal')
 
         # Add a colorbar for the z-data
         if zdata != None:
@@ -806,8 +829,9 @@ class World(object):
                     edge = np.asarray(edge)
                     ax.plot(edge[:,0],edge[:,1],color='k',alpha=0.5)
 
-        ax.axis('equal')
+
         ax.autoscale_view()
+
         return fig, ax
 
 
@@ -854,6 +878,8 @@ class World(object):
 
             coll = LineCollection(cell, array=z, cmap=clrmap)
             ax.add_collection(coll)
+
+        ax.axis('equal')
 
         # Add a colorbar for the Line Collection
         if zdata != None:
@@ -913,12 +939,14 @@ class World(object):
         # Plot the cell centres
         ax.plot(self.cell_centres[:,0],self.cell_centres[:,1],'ko')
 
+        ax.axis('equal')
+
         # Add a colorbar for the Line Collection
         if zdata != None:
             fig.colorbar(coll, ax=ax)
 
         ax.autoscale_view()
-        ax.axis('equal')
+
 
         return fig, ax
 
@@ -937,10 +965,19 @@ class World(object):
             if flag == 1:
                 ax.plot(cell[0],cell[1],'ro')
 
-        ax.autoscale_view()
         ax.axis('equal')
 
+        ax.autoscale_view()
+
+
         return fig, ax
+
+    def flatten(self,ls_of_ls):
+        ls_flat = [val for sublist in ls_of_ls for val in sublist]
+        ls_flat = np.asarray(ls_flat)
+        return ls_flat
+
+
 
 
 
