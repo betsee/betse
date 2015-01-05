@@ -9,7 +9,7 @@
 # FIXME need nx,ny (normal) and tx,ty (tangent) to each cell edge
 # FIXME need midpoints (cell_mids, ecm_mids) for line segments of ecm_verts and cell_verts
 # FIXME need boundary flags for cell_mids and ecm_verts
-# FIXME define concave hull for boundary flagging
+# FIXME documentation (especially alpha shape and concave hull) not up to date!
 
 """
 The world module contains the class World, which holds
@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.collections import PolyCollection
 import matplotlib.cm as cm
+import math
 
 
 class World(object):
@@ -976,6 +977,88 @@ class World(object):
         ls_flat = [val for sublist in ls_of_ls for val in sublist]
         ls_flat = np.asarray(ls_flat)
         return ls_flat
+
+    def alpha_shape(points, alpha):
+        """
+        Calculate the alpha_shape of a cluster of points in 2D.
+
+        Parameters
+        ----------
+        points              A numpy array listing [[x1,y1],[x2,y2]...] for a collection of 2D points
+
+        alpha               The filtering parameter (which triangles to remove from Delaunay triangulation)
+                            Note, for this application alpha = d_cell
+
+        Returns
+        --------
+        concave_hull    A list of the indices to vertices in the points structure which define the concave hull
+                        (these are all of the points on the boundary, but the algorithm works for complex shapes).
+
+        """
+
+        tri = sps.Delaunay(points)
+        tri_edges = []
+        circum_r_list = []
+
+        # loop over triangles:
+        # ia, ib, ic = indices of corner points of the
+        # triangle
+        for ia, ib, ic in tri.vertices:
+            pa = points[ia]
+            pb = points[ib]
+            pc = points[ic]
+
+            # Lengths of sides of triangle
+            a = math.sqrt((pa[0]-pb[0])**2 + (pa[1]-pb[1])**2)
+            b = math.sqrt((pb[0]-pc[0])**2 + (pb[1]-pc[1])**2)
+            c = math.sqrt((pc[0]-pa[0])**2 + (pc[1]-pa[1])**2)
+
+            # Semiperimeter of triangle
+            s = (a + b + c)/2.0
+
+            # Area of triangle by Heron's formula
+            area = math.sqrt(s*(s-a)*(s-b)*(s-c))
+            circum_r = a*b*c/(4.0*area)
+            circum_r_list.append(circum_r)
+
+            # Here's the radius filter:
+
+            if circum_r < 1.0/alpha:
+                tri_edges.append([ia, ib])
+                tri_edges.append([ib, ic])
+                tri_edges.append([ia, ic])
+
+        # Now remove any edge that has a duplicate as this indicates an internal triangle
+
+        for i, edge in enumerate(tri_edges):  # First organize the list so that all [i,j] and [j,i] are equalized
+            pt1 = edge[0]
+            pt2 = edge[1]
+            if pt1 > pt2:
+                tri_edges[i]=[pt2,pt1]
+
+        tri_edges.sort()
+
+        tri_edges_len = len(tri_edges)
+        concave_hull = []
+
+        i = 1
+        # Now step through to find and remove all duplicating entities and add them to a new list
+        while i < tri_edges_len:
+            j = i + 1
+            tri_edge_i = tri_edges[i]
+
+            while j < tri_edges_len and tri_edge_i == tri_edges[j]:
+                j += 1
+
+            if i == j - 1:
+                concave_hull.append(tri_edge_i)
+                i += 1
+            else:
+                i = j
+
+        return concave_hull
+
+
 
 
 
