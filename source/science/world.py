@@ -7,9 +7,10 @@
 # FIXME method to create a hexagonal lattice base
 # FIXME figure out how to scale each voronoi polygon to um instead of m dimensions when plotting
 # FIXME need nx,ny (normal) and tx,ty (tangent) to each cell edge
-# FIXME need midpoints (cell_mids, ecm_mids) for line segments of ecm_verts and cell_verts
 # FIXME need boundary flags for cell_mids and ecm_verts
 # FIXME documentation (especially alpha shape and concave hull) not up to date!
+# FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle funciton)
+# FIXME update the concave hull to be Sess' faster algorithm
 
 """
 The world module contains the class World, which holds
@@ -128,10 +129,11 @@ class World(object):
         self.cell_index()            # Calculate the correct centre and index for each cell
         self.cellVerts()   # create individual cell polygon vertices
         self.vor_area()              # Calculate the area of each cell polygon
-        self.cell_index()            # Calculate the correct centre and index for each cell
+       # self.cell_index()            # Calculate the correct centre and index for each cell
         self.near_neigh()    # Calculate the nn array for each cell
-        self.boundTag()   # flag cells laying on the environmental boundary
         self.cellEdges()    # create a nested list of all membrane and ecm domains for each cell
+        self.cellMids()    # calculate the midpoint of membrane domains and ecm segments
+        self.boundTag()   # flag cells, ecm, and mem domains on the environmental boundary
 
 
     def makeSeeds(self):
@@ -552,21 +554,46 @@ class World(object):
 
         Parameters
         ----------
-        cell_centres            A numpy array listing the [x,y] co-ordinates of each cell in the cluster
+        points            A python list of the [x,y] co-ordinates of a 2D points cluster
+
+        alpha             The alpha parameter used to calculate the concave hull -- should be equal
+                            to the average spacing between points in the cluster, which is d_cell
 
         Returns
         -------
-        self.bound_flag         A numpy array with 0 indicating cell not on boundary and 1 indicating boundary
+        bound_flags       A python list with 0 indicating cell not on boundary and 1 indicating boundary
                                 cell
         Notes
         -------
         Uses numpy arrays
+        Uses alpha_shape function to calculate the concave hull
 
         """
+        # initialize the boundary flag structure
+        self.bound_flag = []
+        for cellvals in self.ecm_verts:
+            hoo = []
+            for pts in cellvals:
+                hoo.append(0)
+            self.bound_flag.append(hoo)
 
-        bcells = sps.ConvexHull(self.cell_centres)   # calculate the convex hull for the cell centre points
-        self.bound_flag = np.zeros([self.cell_centres.shape[0]])  # initialize an array to flag cells on the boundary
-        self.bound_flag[bcells.vertices] = 1      # each cell that's on the boundary the flag is set to 1
+        # get a points cluster and a map back to the original indices
+        self.ecm_flat,indmap_ecm = self.flatten(self.ecm_verts)
+        self.ecm_flat = np.asarray(self.ecm_flat)  # convert to numpy array for plotting, etc
+
+        self.con_hull = self.alpha_shape(self.ecm_flat, 1/self.d_cell)  # get the concave hull for the membrane midpoints
+
+        #bmems = np.asarray(bmems)
+        #bmems_f = np.unique(bmems)                    # instead of a list of edges, get list of unique points
+
+        for indis in self.con_hull:
+            for val in indis:
+                org_ind = indmap_ecm[val]
+                self.bound_flag[org_ind[0]][org_ind[1]]=1  # set the boundary flag in the original data format to 1
+
+        # self.tri_edges = self.alpha_shape(self.clust_xy,1/self.d_cell)
+        # self.con_hull = self.concave_hull(self.tri_edges)
+
 
     def cellEdges(self):
         """
@@ -580,7 +607,7 @@ class World(object):
 
         Returns
         -------
-        self.cell_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
+        self.ecm_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
                             domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
         self.cell_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
                             domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
@@ -602,6 +629,30 @@ class World(object):
                 edge.append([poly[i-1],poly[i]])
 
             self.cell_edges.append(edge)
+
+    def cellMids(self):
+
+        self.mem_mids = []
+
+        for edges in self.cell_edges:
+            hoo = []
+            for edge in edges:
+                pt1 = edge[0]
+                pt2 = edge[1]
+                mid = (pt1 + pt2)/2
+                hoo.append(mid)
+            self.mem_mids.append(hoo)
+
+        self.ecm_mids = np.array([0,0])
+        for edges in self.ecm_edges:
+            for edge in edges:
+                pt1 = edge[0]
+                pt2 = edge[1]
+                pt1 = np.asarray(pt1)
+                pt2= np.asarray(pt2)
+                mid = (pt1 + pt2)/2
+                self.ecm_mids = np.vstack((self.ecm_mids,mid))
+        self.ecm_mids = np.delete(self.ecm_mids,0,0)
 
     def cellVerts(self):
         """
@@ -796,7 +847,7 @@ class World(object):
         plotting data on large collectives
         """
 
-        vor_verts_flat = self.flatten(vor_verts)
+        vor_verts_flat,_ = self.flatten(vor_verts)
 
         if zdata == None:  # if user doesn't supply data
             z = np.ones(len(vor_verts_flat)) # create flat data for plotting
@@ -834,7 +885,6 @@ class World(object):
         ax.autoscale_view()
 
         return fig, ax
-
 
     def plotMemData(self,zdata=None,clrmap=None):
         """
@@ -960,11 +1010,20 @@ class World(object):
         """
         fig, ax = plt.subplots()
 
-        for flag,cell in zip(self.bound_flag,self.cell_centres):
-            if flag == 0:
-                ax.plot(cell[0],cell[1],'ko')
-            if flag == 1:
-                ax.plot(cell[0],cell[1],'ro')
+        for flagset,cellset in zip(self.bound_flag,self.ecm_verts):
+            for flag, cell, in zip(flagset,cellset):
+                if flag == 0:
+                    ax.plot(cell[0],cell[1],'ko')
+                if flag == 1:
+                    ax.plot(cell[0],cell[1],'ro')
+
+        # ax.plot(self.clust_xy[:,0],self.clust_xy[:,1],'ko')
+        #
+        # for inds in self.con_hull:
+        #     point = self.clust_xy[inds]
+        #     ax.plot(point[:,0],point[:,1],'ro')
+
+
 
         ax.axis('equal')
 
@@ -974,11 +1033,19 @@ class World(object):
         return fig, ax
 
     def flatten(self,ls_of_ls):
-        ls_flat = [val for sublist in ls_of_ls for val in sublist]
-        ls_flat = np.asarray(ls_flat)
-        return ls_flat
+        # ls_flat = [val for sublist in ls_of_ls for val in sublist]
+        # ls_flat = np.asarray(ls_flat)
 
-    def alpha_shape(points, alpha):
+        ls_flat = []
+        ind_map =[]
+        for i, sublist in enumerate(ls_of_ls):
+            for j, val in enumerate(sublist):
+                ls_flat.append(val)
+                ind_map.append([i,j])
+
+        return ls_flat, ind_map
+
+    def alpha_shape(self,points, alpha):
         """
         Calculate the alpha_shape of a cluster of points in 2D.
 
@@ -992,7 +1059,12 @@ class World(object):
         Returns
         --------
         concave_hull    A list of the indices to vertices in the points structure which define the concave hull
-                        (these are all of the points on the boundary, but the algorithm works for complex shapes).
+                        (these are all of the points on the boundary).
+
+        Notes
+        --------
+        Unlike the convex hull, the alpha shape method and concave hull work for complex, concave geometries.
+        The result depends on the alpha parameter. A value of alpha = 1/d_cell gives suitable results.
 
         """
 
@@ -1018,8 +1090,15 @@ class World(object):
 
             # Area of triangle by Heron's formula
             area = math.sqrt(s*(s-a)*(s-b)*(s-c))
-            circum_r = a*b*c/(4.0*area)
-            circum_r_list.append(circum_r)
+
+            if area > 0:
+                circum_r = a*b*c/(4.0*area)
+
+            if area == 0:
+                circum_r = a*b*c/(4.0*1e-25)
+
+            # circum_r = a*b*c/(4.0*area)
+            # circum_r_list.append(circum_r)
 
             # Here's the radius filter:
 
@@ -1027,8 +1106,6 @@ class World(object):
                 tri_edges.append([ia, ib])
                 tri_edges.append([ib, ic])
                 tri_edges.append([ia, ic])
-
-        # Now remove any edge that has a duplicate as this indicates an internal triangle
 
         for i, edge in enumerate(tri_edges):  # First organize the list so that all [i,j] and [j,i] are equalized
             pt1 = edge[0]
