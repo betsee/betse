@@ -7,23 +7,24 @@
 # FIXME method to create a hexagonal lattice base
 # FIXME figure out how to scale each voronoi polygon to um instead of m dimensions when plotting
 # FIXME need nx,ny (normal) and tx,ty (tangent) to each cell edge
-# FIXME need boundary flags for cell_mids and ecm_verts
-# FIXME documentation (especially alpha shape and concave hull) not up to date!
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle funciton)
-# FIXME update the concave hull to be Sess' faster algorithm
+# FIXME take out redundant edges in ecm_edges field
+
 
 """
-The world module contains the class World, which holds
+This module contains the class World, which holds
 all data structures relating to the size of the environment,
-the extent of the cell cluster, and the co-ordinates of cell
-centre points.
+the extent of the cell cluster, the co-ordinates of cell
+centre points, and all kinds of data relating to individual cell properties.
 
 The initialization method of the World class sets-up
 and crops the cell cluster to an optional user-defined geometry input
 as a set of points arranged in counter-clockwise order and
 defining a closed polygon. Other methods define the cell centres of each
 cell polygon, their area, and create nearest neighbour and edge matrices
-for each cell.
+for each cell. Finally, a suite of methods facilitate adding data (as colour)
+to the various geometrical aspects of the cell cluster and return plot objects
+that can be integrated into the QT (i.e. PySide) Gui.
 
 """
 
@@ -35,6 +36,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.collections import PolyCollection
 import matplotlib.cm as cm
 import math
+from science import toolbox as tb
 
 
 class World(object):
@@ -68,22 +70,35 @@ class World(object):
     self.clust_xy   numpy array of [x,y] points corresponding to only those of
                     the cropped cell cluster
 
-    self.cluster_axis       maximum breadth and centre (as [x,y] point) of cropped cell cluster
-    self.cluster_center
-
     self.ecm_verts     a nested python list containing Voronoi cell regions which specify [x,y] points of region
                         vertices for a clipped Voronoi diagram (arranged to cell index)
 
-    self.cell_area     a list of areas of each Voronoi polygon (arranged to cell index)
+    self.cell_verts     a nested python list specifying coordinates of verticies for each unique cell in the cluster
+
+    self.cell_area     a list of areas of each cell (arranged to consistent cell index)
 
     self.cell_centres    a list of [x,y] points defining the cell centre (arranged to cell index)
 
     self.cell_nn         a nested array of integer indices of each nearest neighbour for a particular cell (arranged
                         to cell index)
 
-    self.bound_flags    a numpy array flagging cells on the envirnomental boundary with 1
+    self.con_segs       a list of two [x,y] points defining line segments that join cells in the cluster
 
-    self.ecm_edges     a python nested listing of two point line segments of each membrane domain for each cell
+    self.ecm_edges     a python list of two point line segments of the ecm
+
+    self.cell_edges    a python nested list of line segments defining each membrane domain of a cell (cc arrangement)
+
+    self.mem_mids       a nest python list of [x,y] coordinates defining the midpoint of each membrane for each cell
+
+    self.ecm_mids       a python list defining the [x,y] coordinates of the midpoint of each ecm segment
+
+    self.bflags_mems    a list flagging cell membrane domains on the envirnomental boundary with 1
+
+    self.bflags_ecm     a list flagging ecm domains on the environmental boundary with 1
+
+    self.normals        a list of [nx,ny] coordinates specifying the normal to each membrane domain of a cell
+
+    self.tangents       a list of [tx,ty] coordinates specifying the tangent to each membrane domain of a cell
 
 
     Methods
@@ -91,25 +106,38 @@ class World(object):
     makeSeeds()                             Create an irregular lattice of seed points in 2d space
     cropSeeds(crop_mask)                    Crop the points cluster to a polygonal shape (circle)
     makeVoronoi(vorclose = None)            Make and clip/close a Voronoi diagram from the seed points
-    clip(subjectPolygon, clipPolygon)       The Sutherland-Hodgman polygon clipping algorithm
-    area(p)                                 Find the area of a polygon defined by a list of [x,y] points
     vor_area()                              Returns the area of each polygon in the closed Voronoi diagram
     cell_index()                            Returns a list of [x,y] points defining the cell centres in order
     near_neigh()                            Calculate the nearest neighbour (nn) array for each cell
+    boundTag(points)                        Creates index-matched boolean lists identifying elements on environ bound
     cellEdges()                             List of membrane domains as two-point line segments for each cell
-    plotPolyData(zdata = None,clrmap = None)  Plot cell polygons with data attached
+    cellMids()                              Creates coordinate lists of membrane and ecm segment midpoints
+    cellVerts()                             Creates unique vertices defining each cell from the Voronoi diagram
+    cellVects()                             Creates normals and tangents to each cell membrane
+
+    Plotting methods:
+
+    plotPolyData(zdata = None,clrmap = None)                                   Plot cell polygons with data as colour
+    plotCellData(zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None)  Plot smoothed cell-centre data as colour
+    plotVertData(vor_verts,zdata=None,clrmap=None,edgeOverlay=None,pointOverlay=None)       Plot smoothed nested data
+    plotMemData(zdata=None,clrmap=None)                                      Plot membrane domains with data as colour
+    plotConnectionData(zdata=None,clrmap=None)                      Plot GJ connections with data as colour
+    plotBoundCells()                                    Plot points flagged as existing on the environmental boundary
+    plotVectData()                                  Plot directional data corresponding to cell or matrix fluxes
+
 
     Notes
     -------
     Uses Numpy
     Uses Scipy spatial
+    Uses BETSE-specific toolbox
 
     """
 
     def __init__(self,constants,crop_mask=None, vorclose=None):
-
-        self.vorclose = vorclose
-        self.crop_mask = crop_mask
+        # Extract the constants from the input object:
+        self.vorclose = vorclose   # whether or not to close the voronoi
+        self.crop_mask = crop_mask # whether or not to clip the cluster
 
         self.d_cell = constants.dc  # diameter of single cell
         self.nx = constants.nx   # number of lattice sites in world x index
@@ -122,19 +150,19 @@ class World(object):
         self.sf = constants.sf              # scale factor to take cell vertices in from extracellular space
         self.cell_sides = constants.cell_sides # minimum number of membrane domains per cell
 
-
+        # call internal methods to set up the cell cluster:
         self.makeSeeds()    # Create the grid for the system (irregular)
         self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
         self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
         self.cell_index()            # Calculate the correct centre and index for each cell
         self.cellVerts()   # create individual cell polygon vertices
         self.vor_area()              # Calculate the area of each cell polygon
-       # self.cell_index()            # Calculate the correct centre and index for each cell
         self.near_neigh()    # Calculate the nn array for each cell
         self.cellEdges()    # create a nested list of all membrane and ecm domains for each cell
         self.cellMids()    # calculate the midpoint of membrane domains and ecm segments
-        self.boundTag()   # flag cells, ecm, and mem domains on the environmental boundary
-
+        self.bflags_mems = self.boundTag(self.mem_mids)   # flag ecm, and mem domains on the environmental boundary
+        self.bflags_ecm = self.boundTag(self.ecm_verts)
+        self.cellVects()          # calculate the normals and tangents to each membrane domain of each cell
 
     def makeSeeds(self):
 
@@ -158,10 +186,10 @@ class World(object):
         self.x_v        linear numpy vectors as 'tick marks' of x and y
         self.y_v        axes
 
-        self.xmin, self.xmax      dimensions of world grid (after noise, before cropping)
+        self.xmin, self.xmax      dimensions of world grid (after noise)
         self.ymin, self.ymax
 
-        self.centre     [x,y] coordinate of world centre (after noise, before cropping)
+        self.centre     [x,y] coordinate of world centre (after noise)
 
         Notes
         -------
@@ -216,7 +244,11 @@ class World(object):
                             in the cropped cluster
         Notes
         -------
-        Uses Numpy arrays
+        Uses Numpy arrays.
+
+        Important: bug found that if points are cropped first, and then a Voronoi is created and closed,
+        the result is sporadically totally messed up. Therefore, the points are not being pre-cropped and
+        crop_mask is always = None in the instancing of this World class!
 
         """
 
@@ -271,36 +303,30 @@ class World(object):
 
         Parameters
         ----------
-        clust_xy            a numpy array listing [x,y] of seed points
         vorclose            None = no cropping, 'circle'= crop to circle
 
-        Returns
+        Creates
         -------
-        self.cells          a scipy spatial Voronoi diagram instance
         self.ecm_verts      nested python list specifying polygonal region
                             and vertices as [x,y] for each Voronoi cell in the
-                            clipped/closed Voronoi diagram.
+                            clipped/closed Voronoi diagram. Arranged as: [ [ [a,b],[c,d],[e,f]],[[g,h],[i,j],[k,l] ] ]
+                            These represent the vertices of the extracellular space around each cell.
 
         Notes
         -------
         Uses Numpy arrays
         Uses Scipy spatial
 
-        Uses clip(subjectPolygon, clipPolygon) a method defining
-        the Sutherland-Hodgman polygon clipping algorithm -- courtesy of Rosetta Code:
-        http://rosettacode.org/wiki/Sutherland-Hodgman_polygon_clipping#Python
-
         """
 
-        self.vor = sps.Voronoi(self.clust_xy)
+        vor = sps.Voronoi(self.clust_xy)
 
-        self.cluster_axis = self.vor.points.ptp(axis=0)
-        self.cluster_center = self.vor.points.mean(axis=0)
+        cluster_center = vor.points.mean(axis=0)
 
         # complete the Voronoi diagram by adding in undefined vertices to ridges and regions
         i = -1   # enumeration index
 
-        for pnt_indx, vor_edge in zip(self.vor.ridge_points, self.vor.ridge_vertices):
+        for pnt_indx, vor_edge in zip(vor.ridge_points, vor.ridge_vertices):
             vor_edge = np.asarray(vor_edge)
 
             i = i+1 # update the count-through index
@@ -310,49 +336,49 @@ class World(object):
                 # find the ridge vertice that's not equal to -1
                     new_edge = vor_edge[vor_edge >= 0][0]
                 # calculate the tangent of two seed points sharing that ridge
-                    tang = self.vor.points[pnt_indx[1]] - self.vor.points[pnt_indx[0]]
+                    tang = vor.points[pnt_indx[1]] - vor.points[pnt_indx[0]]
                     tang /= np.linalg.norm(tang)  # make the tangent a unit vector
                     norml = np.array([-tang[1], tang[0]])  # calculate the normal of the two points sharing the ridge
 
                     # calculate the midpoint between the two points of the ridge
-                    midpoint = self.vor.points[pnt_indx].mean(axis=0)
+                    midpoint = vor.points[pnt_indx].mean(axis=0)
                     # now there's enough information to calculate the missing direction and location of missing point
-                    direction = np.sign(np.dot(midpoint - self.cluster_center, norml)) * norml
+                    direction = np.sign(np.dot(midpoint - cluster_center, norml)) * norml
                     #far_point = self.vor.vertices[new_edge] + direction * self.cluster_axis.max()
-                    far_point = self.vor.vertices[new_edge] + direction * self.d_cell
+                    far_point = vor.vertices[new_edge] + direction * self.d_cell
 
                     # get the current size of the voronoi vertices array, this will be the n+1 index after adding point
-                    vor_ind = self.vor.vertices.shape[0]
+                    vor_ind = vor.vertices.shape[0]
 
-                    self.vor.vertices = np.vstack((self.vor.vertices,far_point)) # add the new point to the vertices array
-                    self.vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
+                    vor.vertices = np.vstack((vor.vertices,far_point)) # add the new point to the vertices array
+                    vor.ridge_vertices[i] = [new_edge,vor_ind]  # add the new index at the right spot
 
-                    for j, region in enumerate(self.vor.regions):    # step through each polygon region
+                    for j, region in enumerate(vor.regions):    # step through each polygon region
 
                         if len(region):
 
                             if -1 in region and new_edge in region:  # if the region has edge of interest...
                                 a = region.index(-1)              # find index in the region that is undefined (-1)
-                                self.vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
+                                vor.regions[j][a] = vor_ind # add in the new vertex index to the appropriate region
 
-                            verts = self.vor.vertices[region]   # get the vertices for this region
+                            verts = vor.vertices[region]   # get the vertices for this region
                             region = np.asarray(region)      # convert region to a numpy array so it can be sorted
                             cent = verts.mean(axis=0)     # calculate the centre point
                             angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
                             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
                             sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
                             sorted_region_b = sorted_region.tolist()
-                            self.vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
+                            vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
 
 
         # finally, clip the Voronoi diagram to polygon, if user-specified by vorclose option
         if vorclose==None:
             self.ecm_verts=[]
-            for region in self.vor.regions:
+            for region in vor.regions:
                 if len(region):
-                    cell_poly = self.vor.vertices[region]
+                    cell_poly = vor.vertices[region]
                     if len(cell_poly)>3:
-                        self.ecm_verts.append(self.vor.vertices[region])
+                        self.ecm_verts.append(vor.vertices[region])
 
 
         elif vorclose=='circle':
@@ -378,11 +404,11 @@ class World(object):
             # Now clip the voronoi diagram to the cropping polygon
             self.ecm_verts = []
 
-            for poly_ind in self.vor.regions:  # step through each cell's polygonal regions...
+            for poly_ind in vor.regions:  # step through each cell's polygonal regions...
 
                 if len(poly_ind) >= self.cell_sides: # check to make sure we're defining a polygon
 
-                    cell_poly = self.vor.vertices[poly_ind]  # get the coordinates of the polygon vertices
+                    cell_poly = vor.vertices[poly_ind]  # get the coordinates of the polygon vertices
 
                     inpath = crop_path.contains_points(cell_poly)    # get a boolean matrix
 
@@ -391,95 +417,27 @@ class World(object):
 
                     else:
                         cell_polya = cell_poly.tolist()  # convert data structures to python lists for cropping algorithm...
-                        aa=self.clip(cell_polya,crop_ptsa)        # then send it to the clipping algorithm
+                        aa=tb.clip(cell_polya,crop_ptsa)        # then send it to the clipping algorithm
                         if len(aa) >= self.cell_sides:                        # check to make sure result is still a polygon
                             self.ecm_verts.append(aa)     # append points to new region point list
-
-    def clip(self, subjectPolygon, clipPolygon):  # This is the Sutherland-Hodgman polygon clipping algorithm
-
-       def inside(p):
-          return(cp2[0]-cp1[0])*(p[1]-cp1[1]) > (cp2[1]-cp1[1])*(p[0]-cp1[0])
-
-       def computeIntersection():
-          dc = [ cp1[0] - cp2[0], cp1[1] - cp2[1] ]
-          dp = [ s[0] - e[0], s[1] - e[1] ]
-          n1 = cp1[0] * cp2[1] - cp1[1] * cp2[0]
-          n2 = s[0] * e[1] - s[1] * e[0]
-          n3 = 1.0 / (dc[0] * dp[1] - dc[1] * dp[0])
-          return [(n1*dp[0] - n2*dc[0]) * n3, (n1*dp[1] - n2*dc[1]) * n3]
-
-       assert isinstance(subjectPolygon, list)
-       assert isinstance(clipPolygon, list)
-       assert len(subjectPolygon)
-       assert len(clipPolygon)
-
-       outputList = subjectPolygon
-       cp1 = clipPolygon[-1]
-
-       for clipVertex in clipPolygon:
-          cp2 = clipVertex
-          inputList = outputList
-          outputList = []
-          s = inputList[-1]
-
-          for subjectVertex in inputList:
-             e = subjectVertex
-             if inside(e):
-                if not inside(s):
-                   outputList.append(computeIntersection())
-                outputList.append(e)
-             elif inside(s):
-                outputList.append(computeIntersection())
-             s = e
-          cp1 = cp2
-       return(outputList)
-
-    def area(self, p):
-
-        """
-        Calculates the area of an arbitrary polygon defined by a
-        set of counter-clockwise oriented points in 2D.
-
-        Parameters
-        ----------
-        p               xy list of polygon points
-
-
-        Returns
-        -------
-        area            area of a polygon in square meters
-
-        Notes
-        -------
-        The algorithm is an application of Green's theorem for the functions -y and x,
-        exactly in the way a planimeter works.
-
-        """
-
-        return 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(p, p[1:] + [p[0]])))
 
     def vor_area(self):
 
         """
         Calculates the area of each cell in a closed 2D Voronoi diagram.
 
-        Parameters
-        ----------
-        ecm_verts               nested list of [x,y] points defining each polygon
-
-
         Returns
         -------
-        self.v_area            area of all polygons of the Voronoi diagram in square meters
+        self.cell_area            area of all polygons of the Voronoi diagram in square meters
 
         Notes
         -------
-        Uses area(p) function. The Voronoi diagram must be closed (no outer edges extending to infinity!!!)
+        Uses area(p) function.
 
         """
         self.cell_area = []
         for poly in self.cell_verts:
-            self.cell_area.append(self.area(poly))
+            self.cell_area.append(tb.area(poly))
 
     def cell_index(self):
 
@@ -487,18 +445,17 @@ class World(object):
         Calculate the cell centre for each voronoi polygon and return a list
         with an index consistent with all other data lists for the cell cluster.
 
-        Parameters
-        ----------
-        vor_verts               nested list of [x,y] points defining each closed polygon in the
-                                Voronoi diagram
 
-        Returns
+        Creates
         -------
         self.cell_centres      [x,y] coordinate of the centre of each cell as a numpy array
 
         Notes
         -------
-        The Voronoi diagram must be closed (no outer edges extending to infinity!!!)
+        After the Voronoi diagram has been created,closed, and clipped, this method is required to
+        create an ordering of cells that is consistent with the Voronoi polygons, membrane domains, and ecm polygons
+        and segments.
+
 
         """
 
@@ -517,14 +474,7 @@ class World(object):
         Calculate the nearest neighbours for each cell centre in the cluster and return a numpy
         array of nn indices with an index consistent with all other data lists for the cluster.
 
-        Parameters
-        ----------
-        cell_centres            A numpy array listing the [x,y] co-ordinates of each cell in the cluster
-        search_d                Value defining the search distance to find nearest neighbours (search_d > cell_d)
-        cell_d                  The average diameter of a cell
-
-
-        Returns
+        Creates
         -------
         self.cell_nn            A nested list defining the indices of all nearest neighbours to each cell
         self.con_segs           A nested list defining the two [x,y] points for all cell-neighbour line connections
@@ -545,70 +495,61 @@ class World(object):
             for pt in indices:
                 self.con_segs.append([centre,self.cell_centres[pt]])
 
-    def boundTag(self):
+    def boundTag(self,points):
 
         """
 
-        Flag cells that are on the boundary to the environment by calculating the convex hull
-        for the cell centre points cluster.
+        Flag elements that are on the boundary to the environment by calculating the convex hull
+        for a points cluster.
 
         Parameters
         ----------
-        points            A python list of the [x,y] co-ordinates of a 2D points cluster
+        points          A nested set of [x,y] points as a list-of-lists
 
-        alpha             The alpha parameter used to calculate the concave hull -- should be equal
-                            to the average spacing between points in the cluster, which is d_cell
 
         Returns
         -------
-        bound_flags       A python list with 0 indicating cell not on boundary and 1 indicating boundary
-                                cell
+        bflags       A python list with 0 indicating point not on boundary and 1 indicating boundary
+
         Notes
         -------
         Uses numpy arrays
         Uses alpha_shape function to calculate the concave hull
+        Requires a nested input such as self.mem_mids or self.ecm_verts
 
         """
         # initialize the boundary flag structure
-        self.bound_flag = []
-        for cellvals in self.ecm_verts:
+        bflags = []
+        for cellvals in points:
             hoo = []
             for pts in cellvals:
                 hoo.append(0)
-            self.bound_flag.append(hoo)
+            bflags.append(hoo)
 
         # get a points cluster and a map back to the original indices
-        self.ecm_flat,indmap_ecm = self.flatten(self.ecm_verts)
-        self.ecm_flat = np.asarray(self.ecm_flat)  # convert to numpy array for plotting, etc
+        points_flat, indmap = tb.flatten(points)
+        points_flat = np.asarray(points_flat)  # convert to numpy array for plotting, etc
 
-        self.con_hull = self.alpha_shape(self.ecm_flat, 1/self.d_cell)  # get the concave hull for the membrane midpoints
+        con_hull = tb.alpha_shape(points_flat, 1/self.d_cell)  # get the concave hull for the membrane midpoints
 
-        #bmems = np.asarray(bmems)
-        #bmems_f = np.unique(bmems)                    # instead of a list of edges, get list of unique points
+        for inds in con_hull:
+            for val in inds:
+                org_ind = indmap[val]
+                bflags[org_ind[0]][org_ind[1]]=1  # set the boundary flag in the original data format to 1
 
-        for indis in self.con_hull:
-            for val in indis:
-                org_ind = indmap_ecm[val]
-                self.bound_flag[org_ind[0]][org_ind[1]]=1  # set the boundary flag in the original data format to 1
-
-        # self.tri_edges = self.alpha_shape(self.clust_xy,1/self.d_cell)
-        # self.con_hull = self.concave_hull(self.tri_edges)
-
+        return bflags
 
     def cellEdges(self):
+        # FIXME the ecm edges will be redundant and must be made unique!
         """
 
         Flag cells that are on the boundary to the environment by calculating the convex hull
         for the cell centre points cluster.
 
-        Parameters
-        ----------
-        reg_verts            A nested python list of the [x,y] co-ordinates of each cell polygon in the cluster
-
         Returns
         -------
-        self.ecm_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
-                            domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
+        self.ecm_edges      A python list of the [x,y] point pairs defining line segments of the ecm
+
         self.cell_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
                             domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
 
@@ -618,9 +559,8 @@ class World(object):
         for poly in self.ecm_verts:
             edge =[]
             for i in range(0,len(poly)):
-                edge.append([poly[i-1],poly[i]])
-
-            self.ecm_edges.append(edge)
+                edge = ([poly[i-1],poly[i]])
+                self.ecm_edges.append(edge)
 
         self.cell_edges = []
         for poly in self.cell_verts:
@@ -632,36 +572,45 @@ class World(object):
 
     def cellMids(self):
 
+        """
+
+        The midpoint between line segments defining the ecm and the cell membrane domains.
+
+        Returns
+        -------
+        self.mem_mids       A nested python list of the [x,y] points defining the midpoint of each membrain domain
+                            around a cell. Arranged counterclockwise rotation.
+        self.ecm_mids      A nested python list of the [x,y] points defining the midpoint of each ecm segment around a
+                            cell.
+
+        """
+
         self.mem_mids = []
+        self.ecm_mids = []
 
         for edges in self.cell_edges:
             hoo = []
             for edge in edges:
                 pt1 = edge[0]
                 pt2 = edge[1]
+                pt1 = np.asarray(pt1)
+                pt2 = np.asarray(pt2)
                 mid = (pt1 + pt2)/2
                 hoo.append(mid)
             self.mem_mids.append(hoo)
 
-        self.ecm_mids = np.array([0,0])
         for edges in self.ecm_edges:
-            for edge in edges:
-                pt1 = edge[0]
-                pt2 = edge[1]
-                pt1 = np.asarray(pt1)
-                pt2= np.asarray(pt2)
-                mid = (pt1 + pt2)/2
-                self.ecm_mids = np.vstack((self.ecm_mids,mid))
-        self.ecm_mids = np.delete(self.ecm_mids,0,0)
+            pt1 = edge[0]
+            pt2 = edge[1]
+            pt1 = np.asarray(pt1)
+            pt2 = np.asarray(pt2)
+            mid = (pt1 + pt2)/2
+            self.ecm_mids.append(mid)
 
     def cellVerts(self):
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
         of the closed & clipped Voronoi diagram.
-
-        Parameters
-        ----------
-        sf                   The scale factor by which the vertices are dilated (must be less than 1.0!)
 
         Creates
         -------
@@ -670,6 +619,8 @@ class World(object):
 
         Notes
         -------
+        The Voronoi diagram returns a connected graph. For this simulation, each cell needs unique vertices and edges.
+        This method takes the vertices of the original diagram and scales them in to make unique cells.
 
 
         """
@@ -681,6 +632,12 @@ class World(object):
                 pt_zero = vert - centre
                 pt_scale.append(self.sf*pt_zero + centre)
             self.cell_verts.append(pt_scale)
+
+    def cellVects(self):
+        """
+
+        """
+        pass
 
     def plotPolyData(self,zdata = None,clrmap = None):
         """
@@ -847,7 +804,9 @@ class World(object):
         plotting data on large collectives
         """
 
-        vor_verts_flat,_ = self.flatten(vor_verts)
+        vor_verts_flat, _ = tb.flatten(vor_verts)
+
+        vor_verts_flat = np.asarray(vor_verts_flat)
 
         if zdata == None:  # if user doesn't supply data
             z = np.ones(len(vor_verts_flat)) # create flat data for plotting
@@ -1001,29 +960,29 @@ class World(object):
 
         return fig, ax
 
-    def plotBoundCells(self):
+    def plotBoundCells(self, points, bflags):
         """
+        Plot elements tagged on the boundary as red points.
 
-        :param cell_verts:
-        :param cdata:
-        :return:
+        Parameters
+        ----------
+        points          A nested array of points corresponding to the bflags data structure
+
+        bflags          A nested array of boolean flags indicating boundary tagging
+
+        Returns
+        -------
+        fig, ax         Matplotlib plotting objects
+
         """
         fig, ax = plt.subplots()
 
-        for flagset,cellset in zip(self.bound_flag,self.ecm_verts):
+        for flagset,cellset in zip(bflags,points):
             for flag, cell, in zip(flagset,cellset):
                 if flag == 0:
                     ax.plot(cell[0],cell[1],'ko')
                 if flag == 1:
                     ax.plot(cell[0],cell[1],'ro')
-
-        # ax.plot(self.clust_xy[:,0],self.clust_xy[:,1],'ko')
-        #
-        # for inds in self.con_hull:
-        #     point = self.clust_xy[inds]
-        #     ax.plot(point[:,0],point[:,1],'ro')
-
-
 
         ax.axis('equal')
 
@@ -1032,108 +991,12 @@ class World(object):
 
         return fig, ax
 
-    def flatten(self,ls_of_ls):
-        # ls_flat = [val for sublist in ls_of_ls for val in sublist]
-        # ls_flat = np.asarray(ls_flat)
-
-        ls_flat = []
-        ind_map =[]
-        for i, sublist in enumerate(ls_of_ls):
-            for j, val in enumerate(sublist):
-                ls_flat.append(val)
-                ind_map.append([i,j])
-
-        return ls_flat, ind_map
-
-    def alpha_shape(self,points, alpha):
-        """
-        Calculate the alpha_shape of a cluster of points in 2D.
-
-        Parameters
-        ----------
-        points              A numpy array listing [[x1,y1],[x2,y2]...] for a collection of 2D points
-
-        alpha               The filtering parameter (which triangles to remove from Delaunay triangulation)
-                            Note, for this application alpha = d_cell
-
-        Returns
-        --------
-        concave_hull    A list of the indices to vertices in the points structure which define the concave hull
-                        (these are all of the points on the boundary).
-
-        Notes
-        --------
-        Unlike the convex hull, the alpha shape method and concave hull work for complex, concave geometries.
-        The result depends on the alpha parameter. A value of alpha = 1/d_cell gives suitable results.
-
+    def plotVectData(self):
         """
 
-        tri = sps.Delaunay(points)
-        tri_edges = []
-        circum_r_list = []
 
-        # loop over triangles:
-        # ia, ib, ic = indices of corner points of the
-        # triangle
-        for ia, ib, ic in tri.vertices:
-            pa = points[ia]
-            pb = points[ib]
-            pc = points[ic]
-
-            # Lengths of sides of triangle
-            a = math.sqrt((pa[0]-pb[0])**2 + (pa[1]-pb[1])**2)
-            b = math.sqrt((pb[0]-pc[0])**2 + (pb[1]-pc[1])**2)
-            c = math.sqrt((pc[0]-pa[0])**2 + (pc[1]-pa[1])**2)
-
-            # Semiperimeter of triangle
-            s = (a + b + c)/2.0
-
-            # Area of triangle by Heron's formula
-            area = math.sqrt(s*(s-a)*(s-b)*(s-c))
-
-            if area > 0:
-                circum_r = a*b*c/(4.0*area)
-
-            if area == 0:
-                circum_r = a*b*c/(4.0*1e-25)
-
-            # circum_r = a*b*c/(4.0*area)
-            # circum_r_list.append(circum_r)
-
-            # Here's the radius filter:
-
-            if circum_r < 1.0/alpha:
-                tri_edges.append([ia, ib])
-                tri_edges.append([ib, ic])
-                tri_edges.append([ia, ic])
-
-        for i, edge in enumerate(tri_edges):  # First organize the list so that all [i,j] and [j,i] are equalized
-            pt1 = edge[0]
-            pt2 = edge[1]
-            if pt1 > pt2:
-                tri_edges[i]=[pt2,pt1]
-
-        tri_edges.sort()
-
-        tri_edges_len = len(tri_edges)
-        concave_hull = []
-
-        i = 1
-        # Now step through to find and remove all duplicating entities and add them to a new list
-        while i < tri_edges_len:
-            j = i + 1
-            tri_edge_i = tri_edges[i]
-
-            while j < tri_edges_len and tri_edge_i == tri_edges[j]:
-                j += 1
-
-            if i == j - 1:
-                concave_hull.append(tri_edge_i)
-                i += 1
-            else:
-                i = j
-
-        return concave_hull
+        """
+        pass
 
 
 

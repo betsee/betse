@@ -50,20 +50,23 @@ cells = world.World(const, crop_mask=None, vorclose='circle')
 # plt.show(block=False)
 
 
-# fig2,ax2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata='random')
-# ax2.plot(cells.crop_pts[:,0],cells.crop_pts[:,1])
-# plt.show(block=False)
-#
-# fig3, ax3 = cells.plotMemData(clrmap = cm.coolwarm,zdata='random')
-# plt.show(block=False)
-#
-# fig4, ax4 =cells.plotConnectionData(zdata='random', clrmap=None)
-# plt.show(block=False)
-#
-# fig5, ax5 = cells.plotVertData(cells.cell_verts,zdata='random',pointOverlay=None,edgeOverlay=None)
-# plt.show(block=False)
+fig2,ax2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata='random')
+ax2.plot(cells.crop_pts[:,0],cells.crop_pts[:,1])
+plt.show(block=False)
 
-fig6, ax6 = cells.plotBoundCells()
+fig3, ax3 = cells.plotMemData(clrmap = cm.coolwarm,zdata='random')
+plt.show(block=False)
+
+fig4, ax4 =cells.plotConnectionData(zdata='random', clrmap=None)
+plt.show(block=False)
+
+fig5, ax5 = cells.plotVertData(cells.cell_verts,zdata='random',pointOverlay=None,edgeOverlay=None)
+plt.show(block=False)
+
+fig6, ax6 = cells.plotBoundCells(cells.mem_mids,cells.bflags_mems)
+plt.show(block=False)
+
+fig7, ax7 = cells.plotBoundCells(cells.ecm_verts,cells.bflags_ecm)
 plt.show(block=False)
 
 
