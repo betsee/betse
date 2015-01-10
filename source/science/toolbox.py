@@ -11,7 +11,6 @@ the Sutherland-Hodgman polygon clipping algorithm -- this is courtesy of Rosetta
 http://rosettacode.org/wiki/Sutherland-Hodgman_polygon_clipping#Python.
 """
 
-# FIXME update the concave hull to be Sess' faster algorithm!!!
 
 import numpy as np
 import scipy.spatial as sps
@@ -29,6 +28,9 @@ def flatten(ls_of_ls):
     Returns
     -------
     ls_flat        a flattened version of the input list, as in: [a,b,c,d,e,f,g,h,i]
+
+    ind_map        returns the indices of the original nested list-of-lists at the index of the new list, as in:
+                    ind_map[5] = [0,5]   which would yield the same value for ls_flat[5] and ls_of_ls[0][5]
 
     Notes
     -------

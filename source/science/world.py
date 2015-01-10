@@ -2,13 +2,9 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME add in assertions for various methods
-# FIXME redesign for non-equal x and y world dimensions
 # FIXME method to create a hexagonal lattice base
 # FIXME figure out how to scale each voronoi polygon to um instead of m dimensions when plotting
-# FIXME need nx,ny (normal) and tx,ty (tangent) to each cell edge
-# FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle funciton)
-# FIXME take out redundant edges in ecm_edges field
+# FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
 
 
 """
@@ -41,16 +37,17 @@ from science import toolbox as tb
 
 class World(object):
     """
-    The WorldSeeds object stores data structures relating to
+    The WorldSeeds object creates and stores data structures relating to
     the geometric properties of the environmental grid and cell
-    centre points.
+    centre points and provides functions to facilitate data plotting on
+    the geometric structures (cell areas, membranes, ect)
 
     Parameters
     ----------
     WorldSeeds requires an instance of NumVars, see the Parameters module.
     Optional: crop_mask (default = None) a set of counter-clockwise
     arranged points defining a closed polygon to clip the cluster of
-    cell seed points
+    cell seed points.
 
     Fields
     -------
@@ -84,21 +81,22 @@ class World(object):
 
     self.con_segs       a list of two [x,y] points defining line segments that join cells in the cluster
 
-    self.ecm_edges     a python list of two point line segments of the ecm
+    self.ecm_edges_i     a python list of two point line segments of the ecm
 
     self.cell_edges    a python nested list of line segments defining each membrane domain of a cell (cc arrangement)
 
     self.mem_mids       a nest python list of [x,y] coordinates defining the midpoint of each membrane for each cell
 
-    self.ecm_mids       a python list defining the [x,y] coordinates of the midpoint of each ecm segment
+    self.ecm_mids_i       a python list defining the [x,y] coordinates of the midpoint of each ecm segment
 
     self.bflags_mems    a list flagging cell membrane domains on the envirnomental boundary with 1
 
     self.bflags_ecm     a list flagging ecm domains on the environmental boundary with 1
 
-    self.normals        a list of [nx,ny] coordinates specifying the normal to each membrane domain of a cell
+    self.cell_vects     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
+                        domain of a cell. Normals point into the cell when positive.
 
-    self.tangents       a list of [tx,ty] coordinates specifying the tangent to each membrane domain of a cell
+    self.ecm_vects      a numpy array specifying [x,y,tx,ty] the tangent to each unique ecm segment
 
 
     Methods
@@ -123,7 +121,7 @@ class World(object):
     plotMemData(zdata=None,clrmap=None)                                      Plot membrane domains with data as colour
     plotConnectionData(zdata=None,clrmap=None)                      Plot GJ connections with data as colour
     plotBoundCells()                                    Plot points flagged as existing on the environmental boundary
-    plotVectData()                                  Plot directional data corresponding to cell or matrix fluxes
+    plotVects()                                  Plot unit vectors corresponding to cell membrane and ecm
 
 
     Notes
@@ -147,22 +145,34 @@ class World(object):
         self.wsx = constants.wsx  # World size
         self.wsy = constants.wsy # World size
         self.search_d = constants.search_d  # distance to search for nearest neighbours (relative to d_cell)
-        self.sf = constants.sf              # scale factor to take cell vertices in from extracellular space
+        self.sf = constants.scale_cell              # scale factor to take cell vertices in from extracellular space
         self.cell_sides = constants.cell_sides # minimum number of membrane domains per cell
+        self.sa = constants.scale_alpha        # amount to scale (1/d_cell) in boundary search algorithm (alpha_shape)
 
-        # call internal methods to set up the cell cluster:
+        #self.makeWorld()
+
+    def makeWorld(self):
+
+        """
+        Call internal methods to set up the cell cluster.
+
+        """
+
         self.makeSeeds()    # Create the grid for the system (irregular)
         self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
         self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
+        self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)   #  a flat list and ind map to ecm verts
         self.cell_index()            # Calculate the correct centre and index for each cell
         self.cellVerts()   # create individual cell polygon vertices
         self.vor_area()              # Calculate the area of each cell polygon
         self.near_neigh()    # Calculate the nn array for each cell
         self.cellEdges()    # create a nested list of all membrane and ecm domains for each cell
         self.cellMids()    # calculate the midpoint of membrane domains and ecm segments
-        self.bflags_mems = self.boundTag(self.mem_mids)   # flag ecm, and mem domains on the environmental boundary
-        self.bflags_ecm = self.boundTag(self.ecm_verts)
+        self.bflags_mems = self.boundTag(self.mem_mids)   # flag mem domains on the environmental boundary
+        self.bflags_ecm = self.boundTag(self.ecm_verts)   # flag ecm domains on the environmental boundary
         self.cellVects()          # calculate the normals and tangents to each membrane domain of each cell
+
+        self.cell_number = self.cell_centres.shape[0]
 
     def makeSeeds(self):
 
@@ -491,9 +501,14 @@ class World(object):
 
         # define a listing of all cell-neighbour line segments
         self.con_segs = []
+        len_ind = []  # initialize a list that will hold number of nns to a cell
+
         for centre, indices in zip(self.cell_centres,self.cell_nn):
+            len_ind.append(len(indices))
             for pt in indices:
                 self.con_segs.append([centre,self.cell_centres[pt]])
+
+        self.average_nn = sum(len_ind)/len(len_ind)
 
     def boundTag(self,points):
 
@@ -530,7 +545,7 @@ class World(object):
         points_flat, indmap = tb.flatten(points)
         points_flat = np.asarray(points_flat)  # convert to numpy array for plotting, etc
 
-        con_hull = tb.alpha_shape(points_flat, 1/self.d_cell)  # get the concave hull for the membrane midpoints
+        con_hull = tb.alpha_shape(points_flat, self.sa/self.d_cell)  # get the concave hull for the membrane midpoints
 
         for inds in con_hull:
             for val in inds:
@@ -540,34 +555,56 @@ class World(object):
         return bflags
 
     def cellEdges(self):
-        # FIXME the ecm edges will be redundant and must be made unique!
+
         """
 
-        Flag cells that are on the boundary to the environment by calculating the convex hull
-        for the cell centre points cluster.
+        Calculate line segments corresponding to a cell's unique membrane domains or shared extracellular edge.
+        These are arranged in a manner consistent with the cell index.
 
         Returns
         -------
-        self.ecm_edges      A python list of the [x,y] point pairs defining line segments of the ecm
+        self.ecm_edges_i      A python list of the indices to point pairs in self.ecm_verts_flat, which define unique
+                            line segments of the ecm upon calling self.ecm_verts_flat[self.ecm_edges_i].
 
         self.cell_edges      A nested python list of the [x,y] point pairs defining line segments of each membrane
                             domain in a cell polygon. The list has segments arranged in a counterclockwise manner.
 
         """
 
-        self.ecm_edges = []
-        for poly in self.ecm_verts:
-            edge =[]
-            for i in range(0,len(poly)):
-                edge = ([poly[i-1],poly[i]])
-                self.ecm_edges.append(edge)
+        ecm_edge_ind = []     # this will hold the indices to the self.ecm_verts_flat [x,y] points
+        ecm_edges_unique = set()   # a set that will contain only the unique indices so no edges are repeated.
 
+        for poly in self.ecm_verts:  # for every polygon defined in the self.ecm_verts data structure
+            for i in range(0,len(poly)):   # for every vertice defining the polygon...
+                edge_pt1 = poly[i-1]    # first point of line segment
+                edge_pt2 = poly[i]      # second point of line segment
+                edge_ind1 = self.ecm_verts_flat.index(edge_pt1)   # get the indices of the [x,y] points
+                edge_ind2 = self.ecm_verts_flat.index(edge_pt2)
+                ecm_edge_ind.append([edge_ind1,edge_ind2])      # append the indices to the list
+
+        for i, edge in enumerate(ecm_edge_ind):  # re-jigger the list to make sure that all [a,b] == [b,a] elements
+            pt1 = edge[0]
+            pt2 = edge[1]
+            if pt1 > pt2:
+                ecm_edge_ind[i]=[pt2,pt1]
+
+        ecm_edge_ind.sort()
+
+        for edge in ecm_edge_ind:    # for each edge indices [a,b] convert into a tuple (a,b) and add to set
+            edge_tuple = tuple(edge)
+            ecm_edges_unique.add(edge_tuple)  # the set makes sure only one copy of (a,b) is stored...
+
+        self.ecm_edges_i = []
+        for edge_tuple in ecm_edges_unique:
+            self.ecm_edges_i.append(list(edge_tuple))   # reconvert everything into a usable python list defining edges
+                                                        # note: to go to the cell-specific edges use the indmap_ecm
+
+        # now get edges which correspond to the unique membrane domains of each cell (these are automatically unique)
         self.cell_edges = []
         for poly in self.cell_verts:
             edge =[]
             for i in range(0,len(poly)):
                 edge.append([poly[i-1],poly[i]])
-
             self.cell_edges.append(edge)
 
     def cellMids(self):
@@ -580,32 +617,55 @@ class World(object):
         -------
         self.mem_mids       A nested python list of the [x,y] points defining the midpoint of each membrain domain
                             around a cell. Arranged counterclockwise rotation.
-        self.ecm_mids      A nested python list of the [x,y] points defining the midpoint of each ecm segment around a
+        self.ecm_mids_i      A nested python list of the [x,y] points defining the midpoint of each ecm segment around a
                             cell.
 
         """
 
         self.mem_mids = []
-        self.ecm_mids = []
+        self.ecm_mids_i = []
 
-        for edges in self.cell_edges:
+        for celledges in self.cell_edges:
             hoo = []
-            for edge in edges:
-                pt1 = edge[0]
-                pt2 = edge[1]
-                pt1 = np.asarray(pt1)
-                pt2 = np.asarray(pt2)
-                mid = (pt1 + pt2)/2
+            for celledge in celledges:
+                cellpt1 = celledge[0]
+                cellpt2 = celledge[1]
+                cellpt1 = np.asarray(cellpt1)
+                cellpt2 = np.asarray(cellpt2)
+                mid = (cellpt1 + cellpt2)/2
                 hoo.append(mid)
             self.mem_mids.append(hoo)
 
-        for edges in self.ecm_edges:
-            pt1 = edge[0]
-            pt2 = edge[1]
-            pt1 = np.asarray(pt1)
-            pt2 = np.asarray(pt2)
-            mid = (pt1 + pt2)/2
-            self.ecm_mids.append(mid)
+        # ecm_mids_i are a bit more complex. First go through and calculate all midpoints from the cell-specific
+        # self.ecm_verts data structure points. Then, flatten the resulting list-of-lists and get an indices map.
+        # Finally, find the unique midpoints and store the result as indices to the flattened list of points.
+
+        mids_list_nested = []
+
+        for poly in self.ecm_verts:
+            mids_list = []
+            for i in range(0,len(poly)):
+                edge_pt1 = poly[i-1]    # first point of line segment
+                edge_pt2 = poly[i]      # second point of line segment
+                edge_pt1 = np.asarray(edge_pt1)
+                edge_pt2 = np.asarray(edge_pt2)
+                midpoint = (edge_pt1 + edge_pt2)/2   # find the midpoint...
+                midpoint = midpoint.tolist()   # convert it back to a python list...
+                mids_list.append(midpoint)    # append the midpoint [x,y] to a list...
+            mids_list_nested.append(mids_list)  # append the previous list to get cell-organized data
+
+        self.ecm_mids_flat, self.indmap_mids = tb.flatten(mids_list_nested)   # get the flattened version and ind map
+
+        mids_unique = set()   # a set that will contain only the unique indices so no mids are repeated.
+
+        for poly in mids_list_nested:  # step through the nested list of points (which contain redundancies)
+            for pt in poly:
+                m_index = self.ecm_mids_flat.index(pt)  # get the index of the flattened midpoints list
+                mids_unique.add(m_index)  # add it to the set (will only be added once if it's duplicate)
+
+        for el in mids_unique:
+            self.ecm_mids_i.append(el)     # get a python list of the unique indices for the ecm midpoints
+                                            # note: can get cell-organized indices by using self.indmap_mids
 
     def cellVerts(self):
         """
@@ -635,9 +695,52 @@ class World(object):
 
     def cellVects(self):
         """
+        Calculates unit vectors that are normal and tangent to each cell's membrane domain.
+        Calculates unit vectors that are tangent to each ecm line segment.
 
         """
-        pass
+
+        cv_x=[]
+        cv_y=[]
+        cv_nx=[]
+        cv_ny=[]
+        cv_tx=[]
+        cv_ty=[]
+
+        ev_x=[]
+        ev_y=[]
+        ev_tx=[]
+        ev_ty=[]
+
+        for pnt_list in self.cell_edges:
+            for pt1,pt2 in pnt_list:
+                tang_a = pt2 - pt1
+                tang = tang_a/np.linalg.norm(tang_a)
+                normal = np.array([-tang[1],tang[0]])
+                midpoint = (pt1 +pt2)/2
+                cv_x.append(midpoint[0])
+                cv_y.append(midpoint[1])
+                cv_nx.append(normal[0])
+                cv_ny.append(normal[1])
+                cv_tx.append(tang[0])
+                cv_ty.append(tang[1])
+
+        self.cell_vects = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+
+        for ind_list in self.ecm_edges_i:
+            pt1 = self.ecm_verts_flat[ind_list[0]]
+            pt2 = self.ecm_verts_flat[ind_list[1]]
+            pt1 = np.asarray(pt1)
+            pt2 = np.asarray(pt2)
+            tang_a = pt2 - pt1
+            tang = tang_a/np.linalg.norm(tang_a)
+            midpoint = (pt1 +pt2)/2
+            ev_x.append(midpoint[0])
+            ev_y.append(midpoint[1])
+            ev_tx.append(tang[0])
+            ev_ty.append(tang[1])
+
+        self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
 
     def plotPolyData(self,zdata = None,clrmap = None):
         """
@@ -690,7 +793,7 @@ class World(object):
         if zdata != None:
             fig.colorbar(coll, ax=ax)
 
-        ax.autoscale_view()
+        ax.autoscale_view(tight=True)
 
 
         return fig,ax
@@ -762,7 +865,7 @@ class World(object):
                     edge = np.asarray(edge)
                     ax.plot(edge[:,0],edge[:,1],color='k',alpha=0.5)
 
-        ax.autoscale_view()
+        ax.autoscale_view(tight=True)
 
 
         return fig, ax
@@ -770,12 +873,12 @@ class World(object):
     def plotVertData(self,vor_verts,zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None):
         """
         The work-horse of pre-defined plotting methods, this method assigns color-data to each node in cell_verts,
-        ecm_verts, cell_mids, or ecm_mids data structures and interpolates data to generate a smooth surface plot.
+        ecm_verts, cell_mids, or ecm_mids_i data structures and interpolates data to generate a smooth surface plot.
         The method returns a plot instance (fig, axes)
 
         Parameters
         ----------
-        vor_verts              An instance of cell_verts, ecm_verts, cell_mids, or ecm_mids
+        vor_verts              An instance of cell_verts, ecm_verts, cell_mids, or ecm_mids_i
 
         zdata                  A data array with each scalar entry corresponding to a point in
                                cell_centres. If not specified the default is z=1. If 'random'
@@ -841,7 +944,7 @@ class World(object):
                     ax.plot(edge[:,0],edge[:,1],color='k',alpha=0.5)
 
 
-        ax.autoscale_view()
+        ax.autoscale_view(tight=True)
 
         return fig, ax
 
@@ -895,8 +998,8 @@ class World(object):
         if zdata != None:
             fig.colorbar(coll, ax=ax)
 
-        ax.autoscale_view()
         ax.axis('equal')
+        ax.autoscale_view(tight=True)
 
         return fig, ax
 
@@ -947,7 +1050,7 @@ class World(object):
         ax.add_collection(coll)
 
         # Plot the cell centres
-        ax.plot(self.cell_centres[:,0],self.cell_centres[:,1],'ko')
+        ax.plot(self.cell_centres[:,0],self.cell_centres[:,1],'k.')
 
         ax.axis('equal')
 
@@ -955,7 +1058,7 @@ class World(object):
         if zdata != None:
             fig.colorbar(coll, ax=ax)
 
-        ax.autoscale_view()
+        ax.autoscale_view(tight=True)
 
 
         return fig, ax
@@ -974,6 +1077,10 @@ class World(object):
         -------
         fig, ax         Matplotlib plotting objects
 
+        Note
+        ------
+        This particular plot is extremely slow -- intended for cross-checking purposes only!
+
         """
         fig, ax = plt.subplots()
 
@@ -986,17 +1093,36 @@ class World(object):
 
         ax.axis('equal')
 
-        ax.autoscale_view()
-
+        ax.autoscale_view(tight=True)
 
         return fig, ax
 
-    def plotVectData(self):
+    def plotVects(self):
         """
+        This function plots all unit vectors in the tissue system as a cross-check.
+        Normals to cell membranes are shown as red arrows.
+        Tangents to cell membranes are black arrows.
+        Tangents to ecm edges are shown as green arrows.
+        Cell membrane edges are drawn as blue lines.
 
+        To plot streamline and vector plots with data use the pyplot quiver and streamplot functions, respectively.
 
         """
-        pass
+        fig, ax = plt.subplots()
+
+        ax.quiver(self.cell_vects[:,0],self.cell_vects[:,1],self.cell_vects[:,4],self.cell_vects[:,5],color='k')
+        ax.quiver(self.cell_vects[:,0],self.cell_vects[:,1],self.cell_vects[:,2],self.cell_vects[:,3],color='r')
+        ax.quiver(self.ecm_vects[:,0],self.ecm_vects[:,1],self.ecm_vects[:,2],self.ecm_vects[:,3],color='g')
+
+        for cell in self.cell_edges:
+            coll = LineCollection(cell)
+            ax.add_collection(coll)
+
+        ax.axis('equal')
+
+        ax.autoscale_view(tight=True)
+
+        return fig, ax
 
 
 
