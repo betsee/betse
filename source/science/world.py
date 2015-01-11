@@ -2,9 +2,11 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME method to create a hexagonal lattice base
-# FIXME figure out how to scale each voronoi polygon to um instead of m dimensions when plotting
+# FIXME add in assertions
+# FIXME scale each voronoi polygon to um instead of m dimensions when plotting
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
+# FIXME outer ecm edges need to be removed and boundary flags re-done on the result
+# FIXME plots need to call error or do blank behaviour if basic world called and their quantity is null
 
 
 """
@@ -15,9 +17,9 @@ centre points, and all kinds of data relating to individual cell properties.
 
 The initialization method of the World class sets-up
 and crops the cell cluster to an optional user-defined geometry input
-as a set of points arranged in counter-clockwise order and
-defining a closed polygon. Other methods define the cell centres of each
-cell polygon, their area, and create nearest neighbour and edge matrices
+(a set of points arranged in counter-clockwise order and
+defining a closed polygon). Other methods define the cell centres of each
+cell polygon, their volume, and create cell-cell gap junctions (GJs) and membrane domains
 for each cell. Finally, a suite of methods facilitate adding data (as colour)
 to the various geometrical aspects of the cell cluster and return plot objects
 that can be integrated into the QT (i.e. PySide) Gui.
@@ -37,17 +39,24 @@ from science import toolbox as tb
 
 class World(object):
     """
-    The WorldSeeds object creates and stores data structures relating to
+    The World object creates and stores data structures relating to
     the geometric properties of the environmental grid and cell
     centre points and provides functions to facilitate data plotting on
     the geometric structures (cell areas, membranes, ect)
 
     Parameters
     ----------
-    WorldSeeds requires an instance of NumVars, see the Parameters module.
-    Optional: crop_mask (default = None) a set of counter-clockwise
-    arranged points defining a closed polygon to clip the cluster of
-    cell seed points.
+    constants                           World requires an instance of NumVars, see the Parameters module.
+
+    vorclose (default = None)           a set of counter-clockwise arranged points defining a closed
+                                        polygon to clip the cluster of cells.
+
+    worldtype (default = None)          'full' creates a complex world with individual membrane domains, extracellular
+                                        matrix points, boundary flags, and normal and tangent vectors to each membrane
+                                        domain and ecm edge, in addition to cell-cell GJ connections.
+
+                                        'basic' creates a simple world with cell-cell GJ connections.
+
 
     Fields
     -------
@@ -70,16 +79,16 @@ class World(object):
     self.ecm_verts     a nested python list containing Voronoi cell regions which specify [x,y] points of region
                         vertices for a clipped Voronoi diagram (arranged to cell index)
 
-    self.cell_verts     a nested python list specifying coordinates of verticies for each unique cell in the cluster
+    self.cell_verts     a nested python list specifying coordinates of vertices for each unique cell in the cluster
 
-    self.cell_area     a list of areas of each cell (arranged to consistent cell index)
+    self.cell_vol     a list of volumes of each cell (arranged to consistent cell index)
 
     self.cell_centres    a list of [x,y] points defining the cell centre (arranged to cell index)
 
     self.cell_nn         a nested array of integer indices of each nearest neighbour for a particular cell (arranged
                         to cell index)
 
-    self.con_segs       a list of two [x,y] points defining line segments that join cells in the cluster
+    self.gap_jun_i      a list of index pairs [a,b] to self.cell_centres points defining unique cell-cell GJ connections
 
     self.ecm_edges_i     a python list of two point line segments of the ecm
 
@@ -102,7 +111,7 @@ class World(object):
     Methods
     -------
     makeSeeds()                             Create an irregular lattice of seed points in 2d space
-    cropSeeds(crop_mask)                    Crop the points cluster to a polygonal shape (circle)
+    cropSeeds(crop_mask =None)              Crop the points cluster to a polygonal shape (circle)
     makeVoronoi(vorclose = None)            Make and clip/close a Voronoi diagram from the seed points
     vor_area()                              Returns the area of each polygon in the closed Voronoi diagram
     cell_index()                            Returns a list of [x,y] points defining the cell centres in order
@@ -132,10 +141,11 @@ class World(object):
 
     """
 
-    def __init__(self,constants,crop_mask=None, vorclose=None):
+    def __init__(self,constants,crop_mask=None, vorclose=None, worldtype = None):
         # Extract the constants from the input object:
         self.vorclose = vorclose   # whether or not to close the voronoi
         self.crop_mask = crop_mask # whether or not to clip the cluster
+        self.worldtype = worldtype # the complexity of cluster to create
 
         self.d_cell = constants.dc  # diameter of single cell
         self.nx = constants.nx   # number of lattice sites in world x index
@@ -148,8 +158,9 @@ class World(object):
         self.sf = constants.scale_cell              # scale factor to take cell vertices in from extracellular space
         self.cell_sides = constants.cell_sides # minimum number of membrane domains per cell
         self.sa = constants.scale_alpha        # amount to scale (1/d_cell) in boundary search algorithm (alpha_shape)
+        self.cell_height = constants.cell_height  # cell height in the z-direction (for volume calculations) in [m]
 
-        #self.makeWorld()
+        self.um = 1e6    # multiplication factor to convert m to um
 
     def makeWorld(self):
 
@@ -158,19 +169,30 @@ class World(object):
 
         """
 
-        self.makeSeeds()    # Create the grid for the system (irregular)
-        self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
-        self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
-        self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)   #  a flat list and ind map to ecm verts
-        self.cell_index()            # Calculate the correct centre and index for each cell
-        self.cellVerts()   # create individual cell polygon vertices
-        self.vor_area()              # Calculate the area of each cell polygon
-        self.near_neigh()    # Calculate the nn array for each cell
-        self.cellEdges()    # create a nested list of all membrane and ecm domains for each cell
-        self.cellMids()    # calculate the midpoint of membrane domains and ecm segments
-        self.bflags_mems = self.boundTag(self.mem_mids)   # flag mem domains on the environmental boundary
-        self.bflags_ecm = self.boundTag(self.ecm_verts)   # flag ecm domains on the environmental boundary
-        self.cellVects()          # calculate the normals and tangents to each membrane domain of each cell
+        if self.worldtype == None or self.worldtype == 'full':
+            self.makeSeeds()    # Create the grid for the system (irregular)
+            self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
+            self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
+            self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)   #  a flat list and ind map to ecm verts
+            self.cell_index()            # Calculate the correct centre and index for each cell
+            self.cellVerts()   # create individual cell polygon vertices
+            self.vor_area()              # Calculate the area of each cell polygon
+            self.near_neigh()    # Calculate the nn array for each cell
+            self.cellEdges()    # create a nested list of all membrane and ecm domains for each cell
+            self.cellMids()    # calculate the midpoint of membrane domains and ecm segments
+            self.bflags_mems = self.boundTag(self.mem_mids)   # flag mem domains on the environmental boundary
+            self.bflags_ecm = self.boundTag(self.ecm_verts)   # flag ecm domains on the environmental boundary
+            self.cellVects()          # calculate the normals and tangents to each membrane domain of each cell
+
+        elif self.worldtype == 'basic':
+            self.makeSeeds()    # Create the grid for the system (irregular)
+            self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
+            self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
+            self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)   #  a flat list and ind map to ecm verts
+            self.cell_index()            # Calculate the correct centre and index for each cell
+            self.cellVerts()   # create individual cell polygon vertices
+            self.vor_area()              # Calculate the area of each cell polygon
+            self.near_neigh()    # Calculate the nn array for each cell
 
         self.cell_number = self.cell_centres.shape[0]
 
@@ -434,20 +456,20 @@ class World(object):
     def vor_area(self):
 
         """
-        Calculates the area of each cell in a closed 2D Voronoi diagram.
+        Calculates the area of each cell in a closed 2D Voronoi diagram, and multiplying by height, returns cell volume
 
         Returns
         -------
-        self.cell_area            area of all polygons of the Voronoi diagram in square meters
+        self.cell_vol            stores volume of each cell polygon of the Voronoi diagram in cubic meters
 
         Notes
         -------
         Uses area(p) function.
 
         """
-        self.cell_area = []
+        self.cell_vol = []
         for poly in self.cell_verts:
-            self.cell_area.append(tb.area(poly))
+            self.cell_vol.append(self.cell_height*tb.area(poly))
 
     def cell_index(self):
 
@@ -488,6 +510,7 @@ class World(object):
         -------
         self.cell_nn            A nested list defining the indices of all nearest neighbours to each cell
         self.con_segs           A nested list defining the two [x,y] points for all cell-neighbour line connections
+        self.gap_jun_i          A list of index pairs to self.cell_centres, each pair defining a unique cell-cell GJ
 
         Notes
         -------
@@ -499,16 +522,28 @@ class World(object):
         cell_tree = sps.KDTree(self.cell_centres)
         self.cell_nn=cell_tree.query_ball_point(self.cell_centres,self.search_d*self.d_cell)
 
-        # define a listing of all cell-neighbour line segments
-        self.con_segs = []
         len_ind = []  # initialize a list that will hold number of nns to a cell
 
-        for centre, indices in zip(self.cell_centres,self.cell_nn):
-            len_ind.append(len(indices))
-            for pt in indices:
-                self.con_segs.append([centre,self.cell_centres[pt]])
+        for indices in self.cell_nn:
+            len_ind.append(len(indices) -1)  # minus one because query cell is included in each nn list
 
-        self.average_nn = sum(len_ind)/len(len_ind)
+        self.average_nn = (sum(len_ind)/len(len_ind))
+
+        GJs = set()
+        for cell1_ind, nn_inds in enumerate(self.cell_nn):
+            for cell2_ind in nn_inds:
+                if cell1_ind == cell2_ind:
+                    pass
+                elif cell1_ind < cell2_ind:
+                    indpair = (cell1_ind,cell2_ind)
+                    GJs.add(indpair)
+                elif cell1_ind > cell2_ind:
+                    indpair = (cell2_ind, cell1_ind)
+                    GJs.add(indpair)
+        self.gap_jun_i = []
+        for val in GJs:
+            vallist = list(val)
+            self.gap_jun_i.append(vallist)
 
     def boundTag(self,points):
 
@@ -791,12 +826,12 @@ class World(object):
 
         # Add a colorbar for the PolyCollection
         if zdata != None:
-            fig.colorbar(coll, ax=ax)
+            ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.autoscale_view(tight=True)
 
 
-        return fig,ax
+        return fig,ax,ax_cb
 
     def plotCellData(self,zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None):
         """
@@ -840,7 +875,7 @@ class World(object):
             z = np.random.random(len(self.cell_centres)) # create some random data for plotting
 
         else:
-            z = zdata
+            z = zdata   # FIXME make an assertion to check for right data input
 
         if clrmap == None:
             clrmap = cm.rainbow
@@ -849,26 +884,28 @@ class World(object):
 
         sc = 1e6
 
-        triplt = ax.tripcolor(self.cell_centres[:, 0], self.cell_centres[:, 1], z,shading='gouraud', cmap=clrmap)
+        triplt = ax.tripcolor(self.um*self.cell_centres[:, 0], self.um*self.cell_centres[:, 1], z,shading='gouraud', cmap=clrmap)
         ax.axis('equal')
 
         # Add a colorbar for the z-data
         if zdata != None:
-            fig.colorbar(triplt, ax=ax)
+            ax_cb = fig.colorbar(triplt, ax=ax)
 
         if pointOverlay == True:
-            ax.plot(self.cell_centres[:,0],self.cell_centres[:,1],'k.',alpha=0.5)
+            ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.',alpha=0.5)
 
         if edgeOverlay == True:
-            for poly in self.cell_edges:
-                for edge in poly:
-                    edge = np.asarray(edge)
-                    ax.plot(edge[:,0],edge[:,1],color='k',alpha=0.5)
+            cell_edges_flat, _ = tb.flatten(self.cell_edges)
+            cell_edges_flat = self.um*np.asarray(cell_edges_flat)
+            coll = LineCollection(cell_edges_flat,colors='k')
+            coll.set_alpha(0.5)
+            ax.add_collection(coll)
+
 
         ax.autoscale_view(tight=True)
 
 
-        return fig, ax
+        return fig, ax, ax_cb
 
     def plotVertData(self,vor_verts,zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None):
         """
@@ -925,28 +962,26 @@ class World(object):
 
         fig, ax = plt.subplots()    # define the figure and axes instances
 
-        sc = 1e6
-
-        triplt = ax.tripcolor(vor_verts_flat[:, 0], vor_verts_flat[:, 1], z,shading='gouraud', cmap=clrmap)
+        triplt = ax.tripcolor(self.um*vor_verts_flat[:, 0], self.um*vor_verts_flat[:, 1], z,shading='gouraud', cmap=clrmap)
         ax.axis('equal')
 
         # Add a colorbar for the z-data
         if zdata != None:
-            fig.colorbar(triplt, ax=ax)
+            ax_cb = fig.colorbar(triplt, ax=ax)
 
         if pointOverlay == True:
-            ax.plot(self.cell_centres[:,0],self.cell_centres[:,1],'k.',alpha=0.5)
+            ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.',alpha=0.5)
 
         if edgeOverlay == True:
-            for poly in self.cell_edges:
-                for edge in poly:
-                    edge = np.asarray(edge)
-                    ax.plot(edge[:,0],edge[:,1],color='k',alpha=0.5)
-
+            cell_edges_flat, _ = tb.flatten(self.cell_edges)
+            cell_edges_flat = self.um*np.asarray(cell_edges_flat)
+            coll = LineCollection(cell_edges_flat,colors='k')
+            coll.set_alpha(0.5)
+            ax.add_collection(coll)
 
         ax.autoscale_view(tight=True)
 
-        return fig, ax
+        return fig, ax, ax_cb
 
     def plotMemData(self,zdata=None,clrmap=None):
         """
@@ -977,31 +1012,33 @@ class World(object):
         """
         fig, ax = plt.subplots()
 
-        # Make a line collection for each cell and add it to the plot.
-        for cell in self.cell_edges:
-            if zdata == None:
-                z = np.ones(len(cell))
-            elif zdata == 'random':
-                z = np.random.random(len(cell))
-            else:
-                z = zdata
+        cell_edges_flat, _ = tb.flatten(self.cell_edges)
 
-            if clrmap == None:
-                clrmap = cm.rainbow
+        cell_edges_flat = self.um*np.asarray(cell_edges_flat)
 
-            coll = LineCollection(cell, array=z, cmap=clrmap)
-            ax.add_collection(coll)
+        if zdata == None:
+            z = np.ones(len(cell_edges_flat))
+        elif zdata == 'random':
+            z = np.random.random(len(cell_edges_flat))
+        else:
+            z = zdata  # FIXME assert this is in proper format
+
+        if clrmap == None:
+            clrmap = cm.rainbow
+
+        coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap)
+        ax.add_collection(coll)
 
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
         if zdata != None:
-            fig.colorbar(coll, ax=ax)
+            ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.axis('equal')
         ax.autoscale_view(tight=True)
 
-        return fig, ax
+        return fig, ax, ax_cb
 
     def plotConnectionData(self,zdata=None,clrmap=None):
         """
@@ -1027,16 +1064,15 @@ class World(object):
         Notes
         -------
         Uses matplotlib.collections LineCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
-        Computationally slow -- not recommended for large collectives (500 x 500 um max)
 
         """
         fig, ax = plt.subplots()
 
         if zdata == None:
-            z = np.ones(len(self.con_segs))
+            z = np.ones(len(self.gap_jun_i))
 
         elif zdata == 'random':
-            z = np.random.random(len(self.con_segs))
+            z = np.random.random(len(self.gap_jun_i))
 
         else:
             z = zdata
@@ -1044,24 +1080,28 @@ class World(object):
         if clrmap == None:
             clrmap = cm.rainbow
 
-         # Make a line collection for each cell and add it to the plot.
+         # Make a line collection and add it to the plot.
 
-        coll = LineCollection(self.con_segs, array=z, cmap=clrmap)
+        con_segs = self.cell_centres[self.gap_jun_i]
+
+        connects = self.um*np.asarray(con_segs)
+
+        coll = LineCollection(connects, array=z, cmap=clrmap)
         ax.add_collection(coll)
 
         # Plot the cell centres
-        ax.plot(self.cell_centres[:,0],self.cell_centres[:,1],'k.')
+        ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.')
 
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
         if zdata != None:
-            fig.colorbar(coll, ax=ax)
+            ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.autoscale_view(tight=True)
 
 
-        return fig, ax
+        return fig, ax, ax_cb
 
     def plotBoundCells(self, points, bflags):
         """
@@ -1087,9 +1127,15 @@ class World(object):
         for flagset,cellset in zip(bflags,points):
             for flag, cell, in zip(flagset,cellset):
                 if flag == 0:
-                    ax.plot(cell[0],cell[1],'ko')
+                    ax.plot(self.um*cell[0],self.um*cell[1],'k.')
                 if flag == 1:
-                    ax.plot(cell[0],cell[1],'ro')
+                    ax.plot(self.um*cell[0],self.um*cell[1],'r.')
+
+        cell_edges_flat, _ = tb.flatten(self.cell_edges)
+        cell_edges_flat = self.um*np.asarray(cell_edges_flat)
+        coll = LineCollection(cell_edges_flat,colors='k')
+        coll.set_alpha(0.5)
+        ax.add_collection(coll)
 
         ax.axis('equal')
 
@@ -1110,13 +1156,16 @@ class World(object):
         """
         fig, ax = plt.subplots()
 
-        ax.quiver(self.cell_vects[:,0],self.cell_vects[:,1],self.cell_vects[:,4],self.cell_vects[:,5],color='k')
-        ax.quiver(self.cell_vects[:,0],self.cell_vects[:,1],self.cell_vects[:,2],self.cell_vects[:,3],color='r')
-        ax.quiver(self.ecm_vects[:,0],self.ecm_vects[:,1],self.ecm_vects[:,2],self.ecm_vects[:,3],color='g')
+        s = self.um
 
-        for cell in self.cell_edges:
-            coll = LineCollection(cell)
-            ax.add_collection(coll)
+        ax.quiver(s*self.cell_vects[:,0],s*self.cell_vects[:,1],s*self.cell_vects[:,4],s*self.cell_vects[:,5],color='b')
+        ax.quiver(s*self.cell_vects[:,0],s*self.cell_vects[:,1],s*self.cell_vects[:,2],s*self.cell_vects[:,3],color='g')
+        #ax.quiver(self.ecm_vects[:,0],self.ecm_vects[:,1],self.ecm_vects[:,2],self.ecm_vects[:,3],color='g')
+
+        cell_edges_flat, _ = tb.flatten(self.cell_edges)
+        cell_edges_flat = self.um*np.asarray(cell_edges_flat)
+        coll = LineCollection(cell_edges_flat,colors='k')
+        ax.add_collection(coll)
 
         ax.axis('equal')
 
