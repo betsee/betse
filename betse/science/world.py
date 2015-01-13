@@ -10,7 +10,6 @@
 # FIXME cells need to know which ecm segments they belong with
 # FIXME ecm segments shouldn't be connected if they are both on the boundary -- perhaps do need boundary boolean flags
 
-
 """
 This module contains the class World, which holds
 all data structures relating to the size of the environment,
@@ -25,19 +24,16 @@ cell polygon, their volume, and create cell-cell gap junctions (GJs) and membran
 for each cell. Finally, a suite of methods facilitate adding data (as colour)
 to the various geometrical aspects of the cell cluster and return plot objects
 that can be integrated into the QT (i.e. PySide) Gui.
-
 """
 
 import numpy as np
 import scipy.spatial as sps
-from matplotlib.path import Path
-import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
-from matplotlib.collections import PolyCollection
 import matplotlib.cm as cm
-import math
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+from matplotlib.collections import LineCollection, PolyCollection
+#import math
 from science import toolbox as tb
-
 
 class World(object):
     """
@@ -1184,17 +1180,3 @@ class World(object):
         ax.autoscale_view(tight=True)
 
         return fig, ax
-
-
-
-
-
-
-
-
-
-
-
-
-
-

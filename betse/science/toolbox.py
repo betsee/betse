@@ -3,16 +3,11 @@
 # See "LICENSE" for further details.
 
 """
-The toolbox module contains a number of functions that are used throughout the BETSE project.
-
-
-Note the clip(subjectPolygon, clipPolygon) is a function defining
-the Sutherland-Hodgman polygon clipping algorithm -- this is courtesy of Rosetta Code:
-http://rosettacode.org/wiki/Sutherland-Hodgman_polygon_clipping#Python.
+The toolbox module contains a number of functions that are used throughout the
+BETSE project.
 """
 
-
-import numpy as np
+#import numpy as np
 import scipy.spatial as sps
 import math
 
@@ -24,22 +19,23 @@ def flatten(ls_of_ls):
     ----------
     ls_of_ls        a nested list of lists, as in: [[a,b,c],[d,e,f],[g,h,i]]
 
-
     Returns
     -------
-    ls_flat        a flattened version of the input list, as in: [a,b,c,d,e,f,g,h,i]
+    ls_flat        a flattened version of the input list, as in:
+                   [a,b,c,d,e,f,g,h,i]
 
-    ind_map        returns the indices of the original nested list-of-lists at the index of the new list, as in:
+    ind_map        returns the indices of the original nested list-of-lists at
+                   the index of the new list, as in:
                     ind_map[5] = [0,5]   which would yield the same value for ls_flat[5] and ls_of_ls[0][5]
 
     Notes
     -------
-    Requires python nested lists of lists. Numpy arrays have their own tools for this.
-
+    Requires python nested lists of lists. Numpy arrays have their own tools for
+    this.
     """
-
     ls_flat = []
     ind_map =[]
+
     for i, sublist in enumerate(ls_of_ls):
         for j, val in enumerate(sublist):
             ls_flat.append(val)
@@ -47,18 +43,14 @@ def flatten(ls_of_ls):
 
     return ls_flat, ind_map
 
-
-
 def area(p):
-
     """
-    Calculates the area of an arbitrarily shaped polygon defined by a
-    set of counter-clockwise oriented points in 2D.
+    Calculates the area of an arbitrarily shaped polygon defined by a set of
+    counter-clockwise oriented points in 2D.
 
     Parameters
     ----------
     p               xy list of polygon points
-
 
     Returns
     -------
@@ -66,55 +58,58 @@ def area(p):
 
     Notes
     -------
-    The algorithm is an application of Green's theorem for the functions -y and x,
-    exactly in the way a planimeter works.
-
+    The algorithm is an application of Green's theorem for the functions -y and
+    x, exactly in the way a planimeter works.
     """
-
     return 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(p, p[1:] + [p[0]])))
 
+def clip(subjectPolygon, clipPolygon):
+    '''
+    Clips the subject polygon to the boundary defined by the clip polygon.
 
+    Notes
+    -------
+    This function implements the Sutherland-Hodgman polygon clipping algorithm,
+    and largely comes courtesy Rosetta Code:
+    http://rosettacode.org/wiki/Sutherland-Hodgman_polygon_clipping#Python
+    '''
+    def inside(p):
+        return(cp2[0]-cp1[0])*(p[1]-cp1[1]) > (cp2[1]-cp1[1])*(p[0]-cp1[0])
+ 
+    def computeIntersection():
+        dc = [ cp1[0] - cp2[0], cp1[1] - cp2[1] ]
+        dp = [ s[0] - e[0], s[1] - e[1] ]
+        n1 = cp1[0] * cp2[1] - cp1[1] * cp2[0]
+        n2 = s[0] * e[1] - s[1] * e[0]
+        n3 = 1.0 / (dc[0] * dp[1] - dc[1] * dp[0])
+        return [(n1*dp[0] - n2*dc[0]) * n3, (n1*dp[1] - n2*dc[1]) * n3]
 
-def clip(subjectPolygon, clipPolygon):  # This is the Sutherland-Hodgman polygon clipping algorithm
+    assert isinstance(subjectPolygon, list)
+    assert isinstance(clipPolygon, list)
+    assert len(subjectPolygon)
+    assert len(clipPolygon)
 
-   def inside(p):
+    outputList = subjectPolygon
+    cp1 = clipPolygon[-1]
 
-      return(cp2[0]-cp1[0])*(p[1]-cp1[1]) > (cp2[1]-cp1[1])*(p[0]-cp1[0])
+    for clipVertex in clipPolygon:
+        cp2 = clipVertex
+        inputList = outputList
+        outputList = []
+        s = inputList[-1]
 
-   def computeIntersection():
-      dc = [ cp1[0] - cp2[0], cp1[1] - cp2[1] ]
-      dp = [ s[0] - e[0], s[1] - e[1] ]
-      n1 = cp1[0] * cp2[1] - cp1[1] * cp2[0]
-      n2 = s[0] * e[1] - s[1] * e[0]
-      n3 = 1.0 / (dc[0] * dp[1] - dc[1] * dp[0])
-      return [(n1*dp[0] - n2*dc[0]) * n3, (n1*dp[1] - n2*dc[1]) * n3]
+        for subjectVertex in inputList:
+            e = subjectVertex
+            if inside(e):
+                if not inside(s):
+                    outputList.append(computeIntersection())
+                outputList.append(e)
+            elif inside(s):
+                outputList.append(computeIntersection())
+            s = e
+        cp1 = cp2
 
-   assert isinstance(subjectPolygon, list)
-   assert isinstance(clipPolygon, list)
-   assert len(subjectPolygon)
-   assert len(clipPolygon)
-
-   outputList = subjectPolygon
-   cp1 = clipPolygon[-1]
-
-   for clipVertex in clipPolygon:
-      cp2 = clipVertex
-      inputList = outputList
-      outputList = []
-      s = inputList[-1]
-
-      for subjectVertex in inputList:
-         e = subjectVertex
-         if inside(e):
-            if not inside(s):
-               outputList.append(computeIntersection())
-            outputList.append(e)
-         elif inside(s):
-            outputList.append(computeIntersection())
-         s = e
-      cp1 = cp2
-   return(outputList)
-
+    return(outputList)
 
 def alpha_shape(points, alpha):
     """
