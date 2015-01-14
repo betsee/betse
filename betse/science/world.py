@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.collections import LineCollection, PolyCollection
 #import math
-from science import toolbox as tb
+from betse.science import toolbox as tb
 
 class World(object):
     """

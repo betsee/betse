@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
@@ -43,7 +44,7 @@ import matplotlib.pyplot as plt
 #import math
 import time
 #from matplotlib import collections as col
-from science import parameters, world
+from betse.science import parameters, world
 import matplotlib.cm as cm
 
 def main():

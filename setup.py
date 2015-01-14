@@ -6,7 +6,9 @@
 import setuptools
 
 # ....................{ SETUP                              }....................
-#FIXME: Implement me, clearly.
+#FIXME; Add dependencies.
+#FIXME; Add "pyside-uic" integration.
+#FIXME; Add "pytest" integration. ("tox" as well, mayhaps?)
 setuptools.setup()
 
 # --------------------( WASTELANDS                         )--------------------

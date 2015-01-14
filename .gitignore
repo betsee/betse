@@ -1,7 +1,13 @@
-# ====================[ .gitignore                         ]====================
-#
 # --------------------( SYNOPSIS                           )--------------------
 # Paths matching the following glob expressions are *NOT* committed by default.
+#
+# --------------------( SEE ALSO                           )--------------------
+# For further details, see:
+#
+# * "man gitignore" for high-level commentary.
+# * "man 7 glob" for low-level commentary on glob syntax. Note, in particular,
+#   that glob() and hence ".gitignore" files support only a proper subset of
+#   bash- or zsh-style glob syntax.
 
 # ....................{ DIRECTORIES                        }....................
 # Ignore the top-level "output" directory.
@@ -17,4 +23,5 @@
 
 # Ignore all temporary files.
 *~
+*.log
 *.sw?
