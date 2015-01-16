@@ -6,9 +6,8 @@
 # FIXME scale each voronoi polygon to um instead of m dimensions when plotting
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
 # FIXME plots need to call error or do blank behaviour if basic world called and their quantity is null
-# FIXME vector data on mems and ecms needs to be nested to respective cell and membrane domain
 # FIXME cells need to know which ecm segments they belong with
-# FIXME ecm segments shouldn't be connected if they are both on the boundary -- perhaps do need boundary boolean flags
+# FIXME the ecm vectors don't match up with the cell call...!
 
 """
 This module contains the class World, which holds
@@ -32,7 +31,8 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.collections import LineCollection, PolyCollection
-#import math
+import copy
+import math
 from betse.science import toolbox as tb
 
 class World(object):
@@ -100,7 +100,7 @@ class World(object):
 
     self.bflags_ecm     a list flagging ecm domains on the environmental boundary with 1
 
-    self.mem_vects     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
+    self.mem_vects_flat     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
                         domain of a cell. Normals point into the cell when positive.
 
     self.ecm_vects      a numpy array specifying [x,y,tx,ty] the tangent to each unique ecm segment
@@ -172,21 +172,25 @@ class World(object):
             self.makeSeeds()    # Create the grid for the system (irregular)
             self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
-            self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)   #  a flat list and ind map to ecm verts
+            self.ecm_verts_flat, self.indmap_ecm, self.rindmap_ecm = tb.flatten(self.ecm_verts)
             self.ecm_verts_flat = np.asarray(self.ecm_verts_flat)  # convert the data structure to an array
             self.cell_index()            # Calculate the correct centre and index for each cell
             self.cellVerts()   # create individual cell polygon vertices
-            self.clean_ecm()  # pop ecm vertices around the outer cell membranes
-            self.cellGeo() # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
-            self.near_neigh()    # Calculate the nn array for each cell
-            self.bflags_mems = self.boundTag(self.mem_mids)   # flag mem domains on the environmental boundary
-            self.bflags_ecm = self.boundTag(self.ecm_verts)   # flag ecm domains on the environmental boundary
 
-        elif self.worldtype == 'basic':
+            self.clean_ecm()  # pop ecm vertices around the outer cell membranes
+
+            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_flat)   # flag ecm domains on the env bound
+            self.cellGeo() # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+            self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
+            self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+            self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat)   # flag mem domains on the env bound
+            self.near_neigh()    # Calculate the nn array for each cell
+
+        elif self.worldtype == 'basic': # FIXME this needs to be checked & finished with new mods
             self.makeSeeds()    # Create the grid for the system (irregular)
             self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
-            self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)   #  a flat list and ind map to ecm verts
+            self.ecm_verts_flat, self.indmap_ecm, self.rindmap_ecm = tb.flatten(self.ecm_verts)
             self.ecm_verts_flat = np.asarray(self.ecm_verts_flat)  # convert the data structure to an array
             self.cell_index()            # Calculate the correct centre and index for each cell
             self.cellVerts()   # create individual cell polygon vertices
@@ -562,6 +566,21 @@ class World(object):
 
         self.gj_vects = np.array([gv_x,gv_y,gv_tx,gv_ty]).T
 
+        self.cell2GJ_map = []
+
+        for i, neighs in enumerate(self.cell_nn):
+            holdgj = []
+            for j, ns in enumerate(neighs):
+                if i < ns:
+                    gj_ind = self.gap_jun_i.index([i,ns])
+                    holdgj.append(gj_ind)
+                if i > ns:
+                    gj_ind = self.gap_jun_i.index([ns,i])
+                    holdgj.append(gj_ind)
+            self.cell2GJ_map.append(holdgj)
+
+        self.gap_jun_i = np.asarray(self.gap_jun_i)
+
     def clean_ecm(self):
 
         poppers = []  # initialize a list of points in the ecm_verts to get rid of
@@ -585,7 +604,7 @@ class World(object):
 
         self.ecm_verts = self.ecm_verts2
         self.ecm_verts2 = None
-        self.ecm_verts_flat, self.indmap_ecm = tb.flatten(self.ecm_verts)
+        self.ecm_verts_flat, self.indmap_ecm, self.rindmap_ecm = tb.flatten(self.ecm_verts)
 
         self.ecm_verts_flat = np.asarray(self.ecm_verts_flat)
 
@@ -598,12 +617,13 @@ class World(object):
 
         Parameters
         ----------
-        points          A nested set of [x,y] points as a list-of-lists
+        points          A numpy array of [x,y] points. This may be ecm_verts_flat, cell_centres, or mem_mids_flat.
 
 
         Returns
         -------
-        bflags       A python list with 0 indicating point not on boundary and 1 indicating boundary
+        bflags       A python list of indices of points that are on the boundary
+        bmask        A numpy array of boolean flags of points that are on the boundary (order indexed to points_Flat)
 
         Notes
         -------
@@ -616,16 +636,20 @@ class World(object):
         bflags = []
 
         # get a points cluster and a map back to the original indices
-        points_flat, indmap = tb.flatten(points)
-        points_flat = np.asarray(points_flat)  # convert to numpy array for plotting, etc
+        #points_flat, indmap = tb.flatten(points)
+        #points_flat = np.asarray(points_flat)  # convert to numpy array for plotting, etc
 
-        con_hull = tb.alpha_shape(points_flat, self.sa/self.d_cell)  # get the concave hull for the membrane midpoints
+        con_hull = tb.alpha_shape(points, self.sa/self.d_cell)  # get the concave hull for the membrane midpoints
 
         for inds in con_hull:
             for val in inds:
                 bflags.append(val)
 
-        return bflags
+        bmask = np.array((points[:,0]))
+        bmask[:] = 0
+        bmask[bflags] = 1
+
+        return bflags, bmask
 
     def cellVerts(self):
         """
@@ -680,6 +704,7 @@ class World(object):
             edge = []
             mps = []
             surfa = []
+
             for i in range(0,len(poly)):
                 pt1 = poly[i-1]
                 pt2 = poly[i]
@@ -707,23 +732,12 @@ class World(object):
             self.mem_mids.append(mps)
             self.mem_area.append(surfa)
 
-        self.mem_vects = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T   # FIXME the vectors need indices to ref to cell and mem
+        self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
 
         # Extracellular matrix specific data
-        # FIXME figure out how to map ecm segments to cell that share the segment
 
         ecm_edge_ind = set()     # this will hold the unique index pairs to the self.ecm_verts_flat [x,y] points
-        self.ecm_mids = []
-        self.ecm_vol = []
 
-        ev_x=[]
-        ev_y=[]
-        ev_tx=[]
-        ev_ty=[]
-
-        volecm = []
-
-        # FIXME I think if this is k, poly in enumerate then we can get cell index data stored...
 
         ecmverts_list = self.ecm_verts_flat.tolist()
 
@@ -735,47 +749,89 @@ class World(object):
                 edge_pt2 = poly[i]      # second point of line segment
                 edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
                 edge_ind2 = ecmverts_list.index(edge_pt2)
-                edge_pt1 = np.asarray(edge_pt1)
-                edge_pt2 = np.asarray(edge_pt2)
-                midpoint = (edge_pt1 + edge_pt2)/2   # find the midpoint...
-                lgth = np.sqrt((edge_pt2[0] - edge_pt1[0])**2 + (edge_pt2[1]-edge_pt1[1])**2)  # length of membrane domain
-                vol = lgth*self.cell_height*self.cell_space
+                ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
+                ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
 
-                if edge_ind1 ==edge_ind2:   # if the two indices are equal not an edge; don't add it to list
-                    pass
+                # in the case that both ecm points are not on the non-boundary (but one may be):
+                if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1) or (ind1_flag ==1 and ind2_flag == 0):
 
-                if edge_ind1 < edge_ind2:
+                    if edge_ind1 < edge_ind2:
+                        edgepair = (edge_ind1,edge_ind2)
+                        ecm_edge_ind.add(edgepair)      # append the indices to the list
 
-                    edgepair = (edge_ind1,edge_ind2)
-                    ecm_edge_ind.add(edgepair)      # append the indices to the list
-                    self.ecm_mids.append(midpoint)  # add the midpoint to its list, keeping the same ordering
-                    self.ecm_vol.append(vol)
-                    tang_a = edge_pt2 - edge_pt1
-                    tang = tang_a/np.linalg.norm(tang_a)
-                    ev_x.append(midpoint[0])
-                    ev_y.append(midpoint[1])
-                    ev_tx.append(tang[0])
-                    ev_ty.append(tang[1])
+                    if edge_ind1 > edge_ind2:
+                        edgepair = (edge_ind2, edge_ind1)
+                        ecm_edge_ind.add(edgepair)        # append the indices to the list
 
-
-                if edge_ind1 > edge_ind2:
-
-                    edgepair = (edge_ind2, edge_ind1)
-                    ecm_edge_ind.add(edgepair)        # append the indices to the list
-                    self.ecm_mids.append(midpoint)   # add the midpoint to its list, keeping the same ordering
-                    self.ecm_vol.append(vol)        # add the volume
-                    tang_a = edge_pt1 - edge_pt2      # calculate the tangent and add to list, keeping ordering
-                    tang = tang_a/np.linalg.norm(tang_a)
-                    ev_x.append(midpoint[0])
-                    ev_y.append(midpoint[1])
-                    ev_tx.append(tang[0])
-                    ev_ty.append(tang[1])
-
-        self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
-
-        self.ecm_edges_i = []
+        self.ecm_edges_i = []   # reconvert everything into a usable python list defining edges
         for edge_tuple in ecm_edge_ind:
-            self.ecm_edges_i.append(list(edge_tuple))   # reconvert everything into a usable python list defining edges
+            self.ecm_edges_i.append(list(edge_tuple))
+
+        self.cell2ecm_map = []
+
+        len_unique_edges = len(self.ecm_edges_i)
+
+        self.ecm_mids = [0]*len_unique_edges
+        self.ecm_vol = [0]*len_unique_edges
+
+        ev_x=[0]*len_unique_edges
+        ev_y=[0]*len_unique_edges
+        ev_tx=[0]*len_unique_edges
+        ev_ty=[0]*len_unique_edges
+
+        for i, poly in enumerate(self.ecm_verts):
+            holdinds = []
+            for j in range(0, len(poly)):
+                edge_pt1 = poly[j-1]    # first point of line segment
+                edge_pt2 = poly[j]      # second point of line segment
+                edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
+                edge_ind2 = ecmverts_list.index(edge_pt2)
+                ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
+                ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
+
+                # if both of the points are not on the boundary it's a connector
+                if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag == 1 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1):
+
+                    if edge_ind1 < edge_ind2:
+                        mapval = self.ecm_edges_i.index([edge_ind1,edge_ind2])   # get the index to the unique ecm edge
+                        holdinds.append(mapval)
+                        pnt1 = self.ecm_verts_flat[edge_ind1]
+                        pnt2 = self.ecm_verts_flat[edge_ind2]
+                        midpoint = (pnt1 + pnt2)/2   # find the midpoint...
+                        lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
+                        vol = lgth*self.cell_height*self.cell_space
+                        self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
+                        self.ecm_vol[mapval] = vol
+                        tang_a = pnt2 - pnt1
+                        tang = tang_a/np.linalg.norm(tang_a)
+                        ev_x[mapval] = midpoint[0]
+                        ev_y[mapval] = midpoint[1]
+                        ev_tx[mapval] = tang[0]
+                        ev_ty[mapval] = tang[1]
+
+                    if edge_ind2 < edge_ind1:
+                        mapval = self.ecm_edges_i.index([edge_ind2,edge_ind1])
+                        holdinds.append(mapval)
+                        pnt1 = self.ecm_verts_flat[edge_ind2]
+                        pnt2 = self.ecm_verts_flat[edge_ind1]
+                        midpoint = (pnt1 + pnt2)/2   # find the midpoint...
+                        lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
+                        vol = lgth*self.cell_height*self.cell_space
+                        self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
+                        self.ecm_vol[mapval] = vol
+                        tang_a = pnt2 - pnt1
+                        tang = tang_a/np.linalg.norm(tang_a)
+                        ev_x[mapval] = midpoint[0]
+                        ev_y[mapval] = midpoint[1]
+                        ev_tx[mapval] = tang[0]
+                        ev_ty[mapval] = tang[1]
+
+            self.cell2ecm_map.append(holdinds)
+
+        self.ecm_vects_flat = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
+        self.ecm_mids = np.array(self.ecm_mids)
+        self.ecm_edges_i = np.asarray(self.ecm_edges_i)
+
 
     def plotPolyData(self,zdata = None,clrmap = None):
         """
@@ -895,7 +951,7 @@ class World(object):
             ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.',alpha=0.5)
 
         if edgeOverlay == True:
-            cell_edges_flat, _ = tb.flatten(self.mem_edges)
+            cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
             cell_edges_flat = self.um*np.asarray(cell_edges_flat)
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
@@ -944,7 +1000,7 @@ class World(object):
         plotting data on large collectives
         """
 
-        vor_verts_flat, _ = tb.flatten(vor_verts)
+        vor_verts_flat, _ , _= tb.flatten(vor_verts)
 
         vor_verts_flat = np.asarray(vor_verts_flat)
 
@@ -973,7 +1029,7 @@ class World(object):
             ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.',alpha=0.5)
 
         if edgeOverlay == True:
-            cell_edges_flat, _ = tb.flatten(self.mem_edges)
+            cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
             cell_edges_flat = self.um*np.asarray(cell_edges_flat)
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
@@ -1012,7 +1068,7 @@ class World(object):
         """
         fig, ax = plt.subplots()
 
-        cell_edges_flat, _ = tb.flatten(self.mem_edges)
+        cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
 
         cell_edges_flat = self.um*np.asarray(cell_edges_flat)
 
@@ -1028,6 +1084,8 @@ class World(object):
 
         coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap)
         ax.add_collection(coll)
+
+        #print(cell_edges_flat)
 
         ax.axis('equal')
 
@@ -1128,7 +1186,7 @@ class World(object):
         """
         fig, ax = plt.subplots()
 
-        points_flat, _ = tb.flatten(points)
+        points_flat, _ , _= tb.flatten(points)
 
         points_flat = np.asarray(points_flat)
         bflags = np.asarray(bflags)
@@ -1139,7 +1197,7 @@ class World(object):
 
         ax.plot(self.um*bpoints[:,0],self.um*bpoints[:,1],'r.')
 
-        cell_edges_flat, _ = tb.flatten(self.mem_edges)
+        cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
         cell_edges_flat = self.um*np.asarray(cell_edges_flat)
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.5)
@@ -1166,11 +1224,11 @@ class World(object):
 
         s = self.um
 
-        ax.quiver(s*self.mem_vects[:,0],s*self.mem_vects[:,1],s*self.mem_vects[:,4],s*self.mem_vects[:,5],color='b')
-        ax.quiver(s*self.mem_vects[:,0],s*self.mem_vects[:,1],s*self.mem_vects[:,2],s*self.mem_vects[:,3],color='g')
-        ax.quiver(s*self.ecm_vects[:,0],s*self.ecm_vects[:,1],s*self.ecm_vects[:,2],s*self.ecm_vects[:,3],color='r')
+        ax.quiver(s*self.mem_vects_flat[:,0],s*self.mem_vects_flat[:,1],s*self.mem_vects_flat[:,4],s*self.mem_vects_flat[:,5],color='b')
+        ax.quiver(s*self.mem_vects_flat[:,0],s*self.mem_vects_flat[:,1],s*self.mem_vects_flat[:,2],s*self.mem_vects_flat[:,3],color='g')
+        ax.quiver(s*self.ecm_vects_flat[:,0],s*self.ecm_vects_flat[:,1],s*self.ecm_vects_flat[:,2],s*self.ecm_vects_flat[:,3],color='r')
 
-        cell_edges_flat, _ = tb.flatten(self.mem_edges)
+        cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
         cell_edges_flat = self.um*np.asarray(cell_edges_flat)
         coll = LineCollection(cell_edges_flat,colors='k')
         ax.add_collection(coll)

@@ -7,9 +7,12 @@ The toolbox module contains a number of functions that are used throughout the
 BETSE project.
 """
 
-#import numpy as np
+# FIXME there are almost always 2 points left in the interior for the alpha shape function!
+
+import numpy as np
 import scipy.spatial as sps
 import math
+import copy
 
 def flatten(ls_of_ls):
     """
@@ -35,13 +38,20 @@ def flatten(ls_of_ls):
     """
     ls_flat = []
     ind_map =[]
+    rind_map = copy.deepcopy(ls_of_ls)   # make a deepcopy of the nested list to get the right shape
 
-    for i, sublist in enumerate(ls_of_ls):
+    for i, sublist in enumerate(ls_of_ls):    # flatten the array and make a mapping: inds nest --> inds flat
         for j, val in enumerate(sublist):
             ls_flat.append(val)
             ind_map.append([i,j])
 
-    return ls_flat, ind_map
+    for j, vals in enumerate(ind_map):   # go through the mapping and create a reverse mapping: ind flat --> inds nest
+        rind_map[vals[0]][vals[1]] = j
+
+    return ls_flat, ind_map, rind_map   # return the flattened list and the map and reverse map
+
+
+
 
 def area(p):
     """

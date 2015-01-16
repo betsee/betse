@@ -102,7 +102,7 @@ class World(object):
 
     self.bflags_ecm     a list flagging ecm domains on the environmental boundary with 1
 
-    self.mem_vects     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
+    self.mem_vects_flat     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
                         domain of a cell. Normals point into the cell when positive.
 
     self.ecm_vects      a numpy array specifying [x,y,tx,ty] the tangent to each unique ecm segment
