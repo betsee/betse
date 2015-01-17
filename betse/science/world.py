@@ -3,11 +3,12 @@
 # See "LICENSE" for further details.
 
 # FIXME add in assertions
+# FIXME update documentation
 # FIXME scale each voronoi polygon to um instead of m dimensions when plotting
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
 # FIXME plots need to call error or do blank behaviour if basic world called and their quantity is null
-# FIXME cells need to know which ecm segments they belong with
-# FIXME the ecm vectors don't match up with the cell call...!
+# FIXME the ecm vertices are not unique. This means computations are f_cked when doing the simu on ecm. Needs to be
+# fixed in boundary flags as well.
 
 """
 This module contains the class World, which holds
@@ -58,12 +59,6 @@ class World(object):
 
     Fields
     -------
-    self.x_v        linear numpy vectors as 'tick marks' of x and y
-    self.y_v        axes
-
-    self.x_2d       numpy 2d arrays of x or y gridded points
-    self.y_2d       (irregular lattice)
-
     self.xmin, self.xmax      dimensions of world grid (after noise, before cropping)
     self.ymin, self.ymax
 
@@ -71,54 +66,91 @@ class World(object):
 
     self.xypts      numpy array holding [x,y] points of irregular world grid
 
-    self.clust_xy   numpy array of [x,y] points corresponding to only those of
-                    the cropped cell cluster
-
     self.ecm_verts     a nested python list containing Voronoi cell regions which specify [x,y] points of region
                         vertices for a clipped Voronoi diagram (arranged to cell index)
 
-    self.cell_verts     a nested python list specifying coordinates of vertices for each unique cell in the cluster
+    self.ecm_verts_flat   a numpy array listing [x,y] coordinates of ecm vertices (flattened from ecm_verts)
 
-    self.cell_vol     a list of volumes of each cell (arranged to consistent cell index)
+    self.indmap_ecm     a python list returning [n,m] indices into ecm_verts for each index k of ecm_verts_flat
 
-    self.cell_centres    a list of [x,y] points defining the cell centre (arranged to cell index)
+    self.rindmap_ecm    a python list-of-lists returning indek k of ecm_verts at [n][m] indices
+
+    self.ecm_edges_i    a list of [n,m] indices into ecm_verts_flat which return two points defining a unique ecm
+                        segment. Note the index of ecm_edges_i is *the* ecm index: ecm_i
+
+    self.ecm_mids       a python list of midpoint [x,y] for each unique ecm segment (in ecm_i order)
+
+    self.ecm_length     a python list of the length of each ecm segment (in ecm_i order)
+
+    self.ecm_vects      a numpy array of [x, y, tx, ty] for each ecm segment (in ecm_i order)
+
+    self.cell2ecm_map   a nested numpy array returns the k-ecm indices given the cell [cell_i] and membrane [mem_j] inds
+
+    self.bflags_ecm     a python list of indices to ecm vertices on the env bound (ordered to ecm_verts_flat)
+
+    self.bmask_ecm      a python list of boolean flags to ecm verts on the env bound = 1 (ordered to ecm_verts_flat)
+
+    self.cell_verts     a nested python list specifying [x,y] of verts for each unique cell (arranged to cell_i)
+
+    self.cell_vol     a list of volumes of each cell (arranged to cell_i)
+
+    self.cell_centres    a numpy array of [x,y] points defining the cell centre (arranged to cell_i)
 
     self.cell_nn         a nested array of integer indices of each nearest neighbour for a particular cell (arranged
-                        to cell index)
+                        to cell_i)
+
+    self.cell_number    a single value reporting the total number of cells in the cluster
+
+    self.average_nn     a single value reporting the average number of nearest neighbour connections per cell
 
     self.gap_jun_i      a list of index pairs [a,b] to self.cell_centres points defining unique cell-cell GJ connections
+                        arranged to gap junction index: gj_i
 
-    self.ecm_edges_i     a python list of two point line segments of the ecm
+    self.gj_vects       a numpy array of [x,y,tx,ty] defining tangent vectors to each unique gj (arranged to gj_i)
 
-    self.mem_edges    a python nested list of line segments defining each membrane domain of a cell (cc arrangement)
+    self.cell2GJ_map    a nested list of indices to gj_i given a particular cell_i
 
-    self.mem_mids       a nest python list of [x,y] coordinates defining the midpoint of each membrane for each cell
+    self.mem_edges     nested python list of segments defining each membrane domain of a cell (arranged cc to cell_i)
 
-    self.ecm_mids_i       a python list defining the [x,y] coordinates of the midpoint of each ecm segment
+    self.mem_length       the length of each membrane domain
 
-    self.bflags_mems    a list flagging cell membrane domains on the envirnomental boundary with 1
+    self.mem_mids       nested python list of [x,y] coordinates defining midpoint of each membrane (arranged to cell_i)
 
-    self.bflags_ecm     a list flagging ecm domains on the environmental boundary with 1
+    self.mem_mids_flat  numpy array of [x,y] coordinates as flattened version of mem_mids
+
+    self.indmap_mem     returns indices to mem_mids from index in mem_mids_flat
+
+    self.rindmap_mem    returns incice to mem_mids_flat from nested indices corresponding to mem_mids
+
+    self.bflags_mems    a list of membrane midpoints on the boundary (indices to mem_mids_flat)
+
+    self.bmask_mems     a list of booleans with midpoints on boundary = 1 (arranged to mem_mids_flat)
 
     self.mem_vects_flat     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
                         domain of a cell. Normals point into the cell when positive.
 
-    self.ecm_vects      a numpy array specifying [x,y,tx,ty] the tangent to each unique ecm segment
+    self.cell_i         a python list of indices to cell data arrays (cell_i)
+
+    self.ecm_i          a python list of indices to ecm data arrays (ecm_i)
+
+    self.gj_i           a python list of indices to gj data arrays (gj_i)
+
 
 
     Methods
     -------
+    makeWorld()                             Create a cell cluster for simulation
     makeSeeds()                             Create an irregular lattice of seed points in 2d space
     cropSeeds(crop_mask =None)              Crop the points cluster to a polygonal shape (circle)
     makeVoronoi(vorclose = None)            Make and clip/close a Voronoi diagram from the seed points
     vor_area()                              Returns the area of each polygon in the closed Voronoi diagram
     cell_index()                            Returns a list of [x,y] points defining the cell centres in order
     near_neigh()                            Calculate the nearest neighbour (nn) array for each cell
+    clean_ecm()                             Open ecm cells at the environmental boundary and reformulate data structs
     boundTag(points)                        Creates index-matched boolean lists identifying elements on environ bound
-    cellEdges()                             List of membrane domains as two-point line segments for each cell
-    cellMids()                              Creates coordinate lists of membrane and ecm segment midpoints
-    cellVerts()                             Creates unique vertices defining each cell from the Voronoi diagram
-    cellVects()                             Creates normals and tangents to each cell membrane
+    cellVerts()                             Copy & scale in points from the ecm matrix to create unique polygonal cells
+    cellGeo()                               Creates midpoints, lengths, volumes, normal and tangent vectors + more
+    cleanUp()                               After computations, null unimportant fields to free up memory
 
     Plotting methods:
 
@@ -176,17 +208,16 @@ class World(object):
             self.ecm_verts_flat = np.asarray(self.ecm_verts_flat)  # convert the data structure to an array
             self.cell_index()            # Calculate the correct centre and index for each cell
             self.cellVerts()   # create individual cell polygon vertices
-
             self.clean_ecm()  # pop ecm vertices around the outer cell membranes
-
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_flat)   # flag ecm domains on the env bound
             self.cellGeo() # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
             self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
             self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat)   # flag mem domains on the env bound
             self.near_neigh()    # Calculate the nn array for each cell
+            self.cleanUp()       # Free up memory...
 
-        elif self.worldtype == 'basic': # FIXME this needs to be checked & finished with new mods
+        elif self.worldtype == 'basic':
             self.makeSeeds()    # Create the grid for the system (irregular)
             self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
@@ -196,6 +227,7 @@ class World(object):
             self.cellVerts()   # create individual cell polygon vertices
             self.vor_area()              # Calculate the area of each cell polygon
             self.near_neigh()    # Calculate the nn array for each cell
+            self.cleanUp()      # Free up memory...
 
         self.cell_number = self.cell_centres.shape[0]
 
@@ -214,12 +246,6 @@ class World(object):
         Creates
         -------
         self.xypts      numpy array listing [x,y] of world seed points
-
-        self.x_2d       numpy 2d arrays of x or y gridded points
-        self.y_2d       (irregular lattice)
-
-        self.x_v        linear numpy vectors as 'tick marks' of x and y
-        self.y_v        axes
 
         self.xmin, self.xmax      dimensions of world grid (after noise)
         self.ymin, self.ymax
@@ -328,8 +354,7 @@ class World(object):
     def makeVoronoi(self, vorclose = None):
 
         """
-        makeVoronoi calculates the Voronoi diagram for an input
-        of cell seed points.
+        Calculates, closes and clips the Voronoi diagram to cell seed points.
 
         The option vorclose specifies the Voronoi diagram to be clipped (closed)
         to a polygon (circle) corresponding to the seed cluster maximum breadth.
@@ -510,8 +535,8 @@ class World(object):
         Creates
         -------
         self.cell_nn            A nested list defining the indices of all nearest neighbours to each cell
-        self.con_segs           A nested list defining the two [x,y] points for all cell-neighbour line connections
         self.gap_jun_i          A list of index pairs to self.cell_centres, each pair defining a unique cell-cell GJ
+        self.cell2GJ_map        Returns a list of indices to gap junctions for each cell index
 
         Notes
         -------
@@ -583,6 +608,12 @@ class World(object):
 
     def clean_ecm(self):
 
+        """
+        Calculates ecm points on the environmental boundary using the alpha-shape concave hull method,
+        deletes these points, and updates data structures referring to the ecm vertices.
+
+        """
+
         poppers = []  # initialize a list of points in the ecm_verts to get rid of
 
         con_hull = tb.alpha_shape(self.ecm_verts_flat, self.sa/self.d_cell)  # get the concave hull for the membrane midpoints
@@ -632,12 +663,7 @@ class World(object):
         Requires a nested input such as self.mem_mids or self.ecm_verts
 
         """
-        # initialize the boundary flag structure
         bflags = []
-
-        # get a points cluster and a map back to the original indices
-        #points_flat, indmap = tb.flatten(points)
-        #points_flat = np.asarray(points_flat)  # convert to numpy array for plotting, etc
 
         con_hull = tb.alpha_shape(points, self.sa/self.d_cell)  # get the concave hull for the membrane midpoints
 
@@ -681,12 +707,25 @@ class World(object):
         """
          Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
 
+        Creates
+        --------
+        self.cell_vol
+        self.mem_edges
+        self.mem_length
+        self.mem_mids
+        self.mem_vects_flat
+        self.ecm_length
+        self.ecm_edges_i
+        self.ecm_mids
+        self.ecm_vects
+        self.cell2ecm_map
+
         """
 
         self.cell_vol = []   # storage for cell volumes
 
         self.mem_edges = []  # storage for membrane edge points
-        self.mem_area = []   # storage for membrane surface area values
+        self.mem_length = []   # storage for membrane surface area values
         self.mem_mids = []   # storage for membrane midpoints
 
         # storage for various vector properties of membrane
@@ -716,7 +755,7 @@ class World(object):
 
                 lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
                 sa = lgth*self.cell_height    # surface area
-                surfa.append(sa)
+                surfa.append(lgth)
 
                 tang_a = pt2 - pt1       # tangent
                 tang = tang_a/np.linalg.norm(tang_a)
@@ -730,7 +769,7 @@ class World(object):
 
             self.mem_edges.append(edge)
             self.mem_mids.append(mps)
-            self.mem_area.append(surfa)
+            self.mem_length.append(surfa)
 
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
 
@@ -755,6 +794,9 @@ class World(object):
                 # in the case that both ecm points are not on the non-boundary (but one may be):
                 if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1) or (ind1_flag ==1 and ind2_flag == 0):
 
+                    if edge_ind1 == edge_ind2: # if the indices are equal, it's not an edge so pass
+                        pass
+
                     if edge_ind1 < edge_ind2:
                         edgepair = (edge_ind1,edge_ind2)
                         ecm_edge_ind.add(edgepair)      # append the indices to the list
@@ -772,7 +814,7 @@ class World(object):
         len_unique_edges = len(self.ecm_edges_i)
 
         self.ecm_mids = [0]*len_unique_edges
-        self.ecm_vol = [0]*len_unique_edges
+        self.ecm_length = [0]*len_unique_edges
 
         ev_x=[0]*len_unique_edges
         ev_y=[0]*len_unique_edges
@@ -792,6 +834,9 @@ class World(object):
                 # if both of the points are not on the boundary it's a connector
                 if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag == 1 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1):
 
+                    if edge_ind1 == edge_ind2: # if the indices are equal, it's not an edge so pass
+                        pass
+
                     if edge_ind1 < edge_ind2:
                         mapval = self.ecm_edges_i.index([edge_ind1,edge_ind2])   # get the index to the unique ecm edge
                         holdinds.append(mapval)
@@ -801,7 +846,7 @@ class World(object):
                         lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
                         vol = lgth*self.cell_height*self.cell_space
                         self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
-                        self.ecm_vol[mapval] = vol
+                        self.ecm_length[mapval] = lgth
                         tang_a = pnt2 - pnt1
                         tang = tang_a/np.linalg.norm(tang_a)
                         ev_x[mapval] = midpoint[0]
@@ -818,7 +863,7 @@ class World(object):
                         lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
                         vol = lgth*self.cell_height*self.cell_space
                         self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
-                        self.ecm_vol[mapval] = vol
+                        self.ecm_length[mapval] = lgth
                         tang_a = pnt2 - pnt1
                         tang = tang_a/np.linalg.norm(tang_a)
                         ev_x[mapval] = midpoint[0]
@@ -828,10 +873,30 @@ class World(object):
 
             self.cell2ecm_map.append(holdinds)
 
-        self.ecm_vects_flat = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
+        self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
         self.ecm_mids = np.array(self.ecm_mids)
         self.ecm_edges_i = np.asarray(self.ecm_edges_i)
 
+    def cleanUp(self):
+
+        """
+        Nulls unused data structures to free up memory.
+        Creates index data structures for unique cell, gap junction and ecm segments (used in simulation during
+        randomization of progression through the data structure).
+
+        """
+
+        self.x_v = None
+        self.y_v = None
+        self.x_2d = None
+        self.y_2d = None
+        self.clust_xy = None
+
+        self.cell_i = [x for x in range(0,len(self.cell_centres))]
+        self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
+        self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
+
+        self.cell_vol = np.asarray(self.cell_vol)
 
     def plotPolyData(self,zdata = None,clrmap = None):
         """
@@ -1159,6 +1224,8 @@ class World(object):
         # Add a colorbar for the Line Collection
         if zdata != None:
             ax_cb = fig.colorbar(coll, ax=ax)
+        else:
+            ax_cb = None
 
         ax.autoscale_view(tight=True)
 
@@ -1226,7 +1293,7 @@ class World(object):
 
         ax.quiver(s*self.mem_vects_flat[:,0],s*self.mem_vects_flat[:,1],s*self.mem_vects_flat[:,4],s*self.mem_vects_flat[:,5],color='b')
         ax.quiver(s*self.mem_vects_flat[:,0],s*self.mem_vects_flat[:,1],s*self.mem_vects_flat[:,2],s*self.mem_vects_flat[:,3],color='g')
-        ax.quiver(s*self.ecm_vects_flat[:,0],s*self.ecm_vects_flat[:,1],s*self.ecm_vects_flat[:,2],s*self.ecm_vects_flat[:,3],color='r')
+        ax.quiver(s*self.ecm_vects[:,0],s*self.ecm_vects[:,1],s*self.ecm_vects[:,2],s*self.ecm_vects[:,3],color='r')
 
         cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
         cell_edges_flat = self.um*np.asarray(cell_edges_flat)

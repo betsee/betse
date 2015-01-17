@@ -164,7 +164,7 @@ def main():
 
     ecmvects = []
     for val in cellecms_inds:
-        ecmvects.append(cells.ecm_vects_flat[val])
+        ecmvects.append(cells.ecm_vects[val])
 
     memvects = np.asarray(memvects)
     ecmvects = np.asarray(ecmvects)
