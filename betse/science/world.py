@@ -24,6 +24,7 @@ to the various geometrical aspects of the cell cluster and return plot objects
 that can be integrated into the QT (i.e. PySide) Gui.
 """
 
+
 import numpy as np
 import scipy.spatial as sps
 import matplotlib.cm as cm
@@ -90,7 +91,9 @@ class World(object):
 
     self.cell_verts     a nested python list specifying [x,y] of verts for each unique cell (arranged to cell_i)
 
-    self.cell_vol     a list of volumes of each cell (arranged to cell_i)
+    self.cell_vol     a list of volumes of each cell (arranged to cell_i)  [m3]
+
+    self.cell_sa     a list of total surface area of each cell (arranged to cell_i) [m2]
 
     self.cell_centres    a numpy array of [x,y] points defining the cell centre (arranged to cell_i)
 
@@ -190,9 +193,9 @@ class World(object):
             self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
             self.cell_index()            # Calculate the correct centre and index for each cell
             self.cellVerts()   # create individual cell polygon vertices
-            self.clean_ecm()  # pop ecm vertices around the outer cell membranes
+            self.clean_ecm(clean='no')  # pop ecm vertices around the outer cell membranes
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique)   # flag ecm domains on the env bound
-            self.cellGeo() # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+            self.cellGeo(close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
             self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
             self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat)   # flag mem domains on the env bound
@@ -476,6 +479,10 @@ class World(object):
 
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert back to numpy array
 
+        # now find the unique vertices used in the cell structure
+
+        #self.ecm_polyinds = np.asarray(self.ecm_polyinds)
+
     def vor_area(self):
 
         """
@@ -603,7 +610,7 @@ class World(object):
 
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
-    def clean_ecm(self):
+    def clean_ecm(self,clean=None):
 
         """
         Calculates ecm points on the environmental boundary using the alpha-shape concave hull method,
@@ -613,34 +620,39 @@ class World(object):
 
         # get the concave hull for ecm vertices on the outer boundary of the cluster
 
-        con_hull = tb.alpha_shape(self.ecm_verts_unique, p.scale_alpha/p.d_cell)
-        con_hull = np.asarray(con_hull)
+        if clean == None or clean == 'yes':
 
-        boundverts = np.unique(con_hull)    # get the value of unique indices from segments
+            con_hull = tb.alpha_shape(self.ecm_verts_unique, p.scale_alpha/p.d_cell)
+            con_hull = np.asarray(con_hull)
 
-         # Re-do indicies for ecm polygons in terms of revised unique vertices list
+            boundverts = np.unique(con_hull)    # get the value of unique indices from segments
 
-        ecm_polyinds2 =[]
+             # Re-do indicies for ecm polygons in terms of revised unique vertices list
 
-        b=set(boundverts)
+            ecm_polyinds2 =[]
 
-        for i, polyinds in enumerate(self.ecm_polyinds):
-            a = set(polyinds)
-            ans = list(a & b)
-            if len(ans)>0:
-                for val in ans:
-                    eind = polyinds.index(val)
-                    self.ecm_polyinds[i][eind] = False   # flag value to be removed
+            b=set(boundverts)
 
-        for i, poly in enumerate(self.ecm_polyinds):
-            holdval = []
-            for j, val in enumerate(poly):
-                if val != False:
-                    holdval.append(val)
-            ecm_polyinds2.append(holdval)
+            for i, polyinds in enumerate(self.ecm_polyinds):
+                a = set(polyinds)
+                ans = list(a & b)
+                if len(ans)>0:
+                    for val in ans:
+                        eind = polyinds.index(val)
+                        self.ecm_polyinds[i][eind] = False   # flag value to be removed
 
-        self.ecm_polyinds =[]
-        self.ecm_polyinds = copy.deepcopy(ecm_polyinds2)
+            for i, poly in enumerate(self.ecm_polyinds):
+                holdval = []
+                for j, val in enumerate(poly):
+                    if val != False:
+                        holdval.append(val)
+                ecm_polyinds2.append(holdval)
+
+            self.ecm_polyinds =[]
+            self.ecm_polyinds = copy.deepcopy(ecm_polyinds2)
+
+        elif clean == 'no':
+            pass
 
         # Now re-do the ecm_verts
 
@@ -650,7 +662,8 @@ class World(object):
             verts = self.ecm_verts_unique[poly]  # [x,y] coordinates of polygon
             self.ecm_verts.append(verts)
 
-        self.ecm_verts_unique = np.delete(self.ecm_verts_unique,boundverts,0)   # delete indices from ecm verts list
+        if clean == None or clean == 'yes':
+            self.ecm_verts_unique = np.delete(self.ecm_verts_unique,boundverts,0)   # delete indices from ecm verts list
 
         self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function
 
@@ -738,7 +751,7 @@ class World(object):
 
         self.cell_verts = np.asarray(self.cell_verts)
 
-    def cellGeo(self):
+    def cellGeo(self,close_ecm=None):
         """
          Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
 
@@ -758,6 +771,7 @@ class World(object):
         """
 
         self.cell_vol = []   # storage for cell volumes
+        self.cell_sa = []    # whole cell surface areas
 
         self.mem_edges = []  # storage for membrane edge points
         self.mem_length = []   # storage for membrane surface area values
@@ -771,9 +785,12 @@ class World(object):
         cv_tx=[]
         cv_ty=[]
 
+        perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
+
         for poly in self.cell_verts:
             # First calculate individual cell volumes from cell vertices:
             self.cell_vol.append(p.cell_height*tb.area(poly))
+            self.cell_sa = 2*tb.area(poly) + perim   # surface area of whole cell [m2]
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []
@@ -825,6 +842,10 @@ class World(object):
                 ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
                 ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
 
+                if close_ecm == 'yes':  # if we want a closed ecm then artificially mark both cells as off bounds
+                    ind1_flag = 0
+                    ind2_flag = 0
+
                 # in the case that both ecm points are not on the non-boundary (but one may be):
                 if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1) or (ind1_flag ==1 and ind2_flag == 0):
 
@@ -864,6 +885,10 @@ class World(object):
                 edge_ind2 = ecmverts_list.index(edge_pt2)
                 ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
                 ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
+
+                if close_ecm == 'yes':  # if we want a closed ecm then artificially mark both cells as off bounds
+                    ind1_flag = 0
+                    ind2_flag = 0
 
                 # if both of the points are not on the boundary it's a connector
                 if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag == 1 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1):
