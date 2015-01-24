@@ -41,6 +41,7 @@ from matplotlib.path import Path
 import math
 import time
 from betse.science.world import World
+from betse.science.compute import Simulator
 import matplotlib.cm as cm
 from matplotlib.collections import LineCollection, PolyCollection
 
@@ -51,16 +52,16 @@ def main():
     cells = World(vorclose='circle',worldtype='full')
     cells.makeWorld()
 
+    sim = Simulator(cells,trueVol=1,method='Euler')
+    sim.runSim(5000)
 
+    vdata = sim.vm_time[-1]*1000
 
-
-
-
-    fig2, ax2, axcb2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata='random')
+    fig2, ax2, axcb2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=vdata)
     ax2.set_ylabel('Spatial y [m]')
     ax2.set_xlabel('Spatial x [m]')
-    ax2.set_title('Concentration of Foo Ion in Each Discrete Cell')
-    axcb2.set_label('Foo concentration [mol/m3]')
+    ax2.set_title('Voltage in Each Discrete Cell')
+    axcb2.set_label('Voltage [mV]')
     plt.show(block=False)
 
     fig3, ax3, axcb3 = cells.plotMemData(clrmap = cm.coolwarm,zdata='random')

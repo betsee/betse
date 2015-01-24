@@ -11,6 +11,7 @@
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
 import numpy as np
+import math
 
 # define the basic class that holds variables
 class Parameters(object):
@@ -48,6 +49,10 @@ class Parameters(object):
         self.cm = 0.010            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.um = 1e6    # multiplication factor to convert m to um
+
+        # gap junction constants
+        self.gjl = 2*self.tm + self.cell_space     # gap junction length
+        self.gjsa = math.pi*(50e-9)**2              # gap junction x-sectional surface area
 
         # diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]

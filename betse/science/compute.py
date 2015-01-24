@@ -6,17 +6,13 @@
 A toolbox of workhorse functions routinely used in simulation.
 
 """
-#FIXME check total concentration is conserved in diffuse and implement stability check to % change threshhold
+# FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
+# FIXME think about testing python loop (with numba jit) versus numpy matrix versions regarding speed...
 
 import math
 import numpy as np
 from betse.science.parameters import params as p
 from numba import jit
-
-EULER = 0
-RK4 = 1
-
-TRUESIZE = 1
 
 
 class Simulator(object):
@@ -24,19 +20,31 @@ class Simulator(object):
 
     def __init__(self,cells,trueVol=None,method=None):   # FIXME Sess says faster to use constants and not strings
 
-        self.mthd = method
-        self.trueVol = trueVol
+        if method == 'Euler':
+            self.mthd = 0
+        elif method == 'RK4':
+            self.mthd = 1
+        elif method == None:
+            self.mthd =0
 
-        self.initialize(cells)
+        self.trueVol = trueVol
+        self.initData(cells)
 
 
     def initData(self,cells):
+        """
+        Creates a host of initialized data matrices for the main simulation,
+        including intracellular and environmental concentrations, voltages, and specific
+        diffusion constants.
 
+        """
+        # initialization of data-arrays holding time-related information
         self.cc_time = []  # data array holding the concentrations at time points
         self.vm_time = []  # data array holding voltage at time points
         self.time = []     # time values of the simulation
 
-        if self.trueVol == None:
+        # whether to use the unique volume and surface area of cells or a single average value:
+        if self.trueVol == None or self.trueVol==0:
 
             self.volcelli = np.mean(cells.cell_vol,axis=0)
             self.sacelli = np.mean(cells.cell_sa,axis=0)
@@ -47,11 +55,12 @@ class Simulator(object):
             self.sacell = np.zeros(len(cells.cell_i))
             self.sacell[:]=self.sacelli
 
-        elif self.trueVol == TRUESIZE:
+        elif self.trueVol == 1:
 
             self.volcell = cells.cell_vol
             self.sacell = cells.cell_sa
 
+        # Initialize cellular concentrations of ions:
         cNa_cells = np.zeros(len(cells.cell_i))
         cNa_cells[:]=p.cNa_cell
 
@@ -73,7 +82,7 @@ class Simulator(object):
         cM_cells = np.zeros(len(cells.cell_i))
         cM_cells[:]=p.cM_cell
 
-        #**************Env concentrations
+        # Initialize environmental ion concentrations:
         cNa_env = np.zeros(len(cells.cell_i))
         cNa_env[:]=p.cNa_env
 
@@ -95,8 +104,7 @@ class Simulator(object):
         cM_env = np.zeros(len(cells.cell_i))
         cM_env[:]=p.cM_env
 
-        # membrane diffusion constants
-
+        # Initialize membrane diffusion co-efficients:
         DmNa = np.zeros(len(cells.cell_i))
         DmNa[:] = p.Dm_Na
 
@@ -118,18 +126,22 @@ class Simulator(object):
         DmM = np.zeros(len(cells.cell_i))
         DmM[:] = p.Dm_M
 
+        # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
         self.tm[:] = p.tm
 
+        # Initialize environmental volume:
         self.envV = np.zeros(len(cells.cell_i))
         self.envV[:] = p.vol_env
 
+
+        # Create vectors holding a range of ion-matched data
         self.cc_cells = [cNa_cells,cK_cells,cCl_cells,cCa_cells,cH_cells,cP_cells,cM_cells]  # cell concentrations
         self.cc_env = [cNa_env,cK_env,cCl_env,cCa_env,cH_env,cP_env,cM_env]   # environmental concentrations
         self.zs = [p.z_Na, p.z_K, p.z_Cl, p.z_Ca, p.z_H, p.z_P, p.z_M]   # matched ion valence state
         self.Dm_cells = [DmNa, DmK, DmCl,DmCa,DmH,DmP,DmM]              # matched membrane diffusion constants
 
-        self.iNa=0     # indices to each ion
+        self.iNa=0     # indices to each ion for use in above arrays
         self.iK = 1
         self.iCl=2
         self.iCa = 3
@@ -137,19 +149,33 @@ class Simulator(object):
         self.iP = 5
         self.iM = 6
 
-    def runSim(self,timesteps):
+        # Initialize gap-junction data
 
+    def runSim(self,timesteps):
+        """
+        Drives the actual time-loop iterations for the simulation.
+        """
+        # create a time-steps vector:
         tt = np.linspace(0,timesteps*p.dt,timesteps)
 
-        for t in tt:
+        # report
+        print('Your simulation is running from',0,'to',timesteps*p.dt,'seconds.')
+        # FIXME would be nice to have a time estimate for the simulation
 
+        for t in tt:   # run through the loop
+
+            # get the net, unbalanced charge in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,self.volcell)
 
+            # calculate the voltage in the cell (which is also Vmem as environment is zero):
             vm = get_volt(q_cells,self.sacell)
 
+            # run the Na-K-ATPase pump:  # FIXME would be nice to track ATP use
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     self.volcell,self.envV,vm,method=self.mthd)
+
+            # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
             self.cc_env[self.iNa],self.cc_cells[self.iNa],fNa = \
                 electrofuse(self.cc_env[self.iNa],self.cc_cells[self.iNa],self.Dm_cells[self.iNa],self.tm,self.sacell,
@@ -175,6 +201,7 @@ class Simulator(object):
                 electrofuse(self.cc_env[self.iM],self.cc_cells[self.iM],self.Dm_cells[self.iM],self.tm,self.sacell,
                     self.envV,self.volcell,self.zs[self.iM],vm,method=self.mthd)
 
+            # add the new concentration and voltage data to the time-storage matrices:
             self.cc_time.append(self.cc_cells)
             self.vm_time.append(vm)
             self.time.append(t)
@@ -214,7 +241,7 @@ def diffuse(cA,cB,Dc,d,sa,vola,volb,method=None):
 
     flux = -sa*Dc*(cB - cA)/d
 
-    if method == None or method == EULER:
+    if method == None or method == 0:
 
         dmol = sa*p.dt*Dc*(cB - cA)/d
 
@@ -224,7 +251,7 @@ def diffuse(cA,cB,Dc,d,sa,vola,volb,method=None):
         cA2 = check_c(cA2)
         cB2 = check_c(cB2)
 
-    elif method == RK4:
+    elif method == 1:
 
         k1 = sa*Dc*(cB - cA)/d
 
@@ -308,7 +335,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
              # calculate the flux for those elements:
             flux[izero] = -sa[izero]*p.dt*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
 
-            if method == None or method == EULER:
+            if method == None or method == 0:
 
                 dmol[izero] = sa[izero]*p.dt*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
 
@@ -318,7 +345,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
                 cA2[izero] = check_c(cA2[izero])
                 cB2[izero] = check_c(cB2[izero])
 
-            elif method == RK4:
+            elif method == 1:
 
                 k1[izero] = sa[izero]*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
 
@@ -342,7 +369,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
             flux[inzero] = -(sa[inzero]*Dc[inzero]/d[inzero])*alpha[inzero]*\
                            ((cB[inzero] - cA[inzero]*np.exp(-alpha[inzero]))/deno[inzero])
 
-            if method == None or method == EULER:
+            if method == None or method == 0:
 
                 dmol[inzero] = (sa[inzero]*p.dt*Dc[inzero]/d[inzero])*alpha[inzero]*\
                                ((cB[inzero] - cA[inzero]*np.exp(-alpha[inzero]))/deno[inzero])
@@ -353,7 +380,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
                 cA2[inzero] = check_c(cA2[inzero])
                 cB2[inzero] = check_c(cB2[inzero])
 
-            elif method == RK4:
+            elif method == 1:
 
                 k1[inzero] = (sa[inzero]*Dc[inzero]/d[inzero])*alpha[inzero]*\
                              (cB[inzero] - cA[inzero]*np.exp(-alpha[inzero]))/deno[inzero]
@@ -383,7 +410,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
 
             flux = -sa*p.dt*Dc*(cB - cA)/d
 
-            if method == None or method == EULER:
+            if method == None or method == 0:
 
                 dmol = sa*p.dt*Dc*(cB - cA)/d
 
@@ -393,7 +420,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
                 cA2 = check_c(cA2)
                 cB2 = check_c(cB2)
 
-            elif method == RK4:
+            elif method == 1:
 
                 k1 = sa*Dc*(cB - cA)/d
 
@@ -415,7 +442,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
 
             flux = -(sa*Dc/d)*alpha*((cB - cA*np.exp(-alpha))/deno)
 
-            if method == None or method == EULER:
+            if method == None or method == 0:
 
                 dmol = (sa*p.dt*Dc/d)*alpha*((cB - cA*np.exp(-alpha))/deno)
 
@@ -425,7 +452,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
                 cA2 = check_c(cA2)
                 cB2 = check_c(cB2)
 
-            elif method == RK4:
+            elif method == 1:
 
                 k1 = (sa*Dc/d)*alpha*(cB - cA*np.exp(-alpha))/deno
 
@@ -481,7 +508,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,method=None):
     f_Na  = -alpha*cNai*cKo      #flux as [mol/s]
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
-    if method == None or method == EULER:
+    if method == None or method == 0:
 
         dmol = -alpha*cNai*cKo*p.dt
 
@@ -496,7 +523,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,method=None):
         cKi2 = check_c(cKi2)
         cKo2 = check_c(cKo2)
 
-    elif method == RK4:
+    elif method == 1:
 
         k1 = alpha*cNai*cKo
 
