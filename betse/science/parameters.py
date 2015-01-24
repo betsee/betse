@@ -12,11 +12,10 @@
 
 import numpy as np
 
-
 # define the basic class that holds variables
 class Parameters(object):
     """
-    For now, a very simple object that stores simulation constants
+    For now, a very simple object that stores simulation constants.
 
     """
     def __init__(self,profile=None):
@@ -39,13 +38,14 @@ class Parameters(object):
         self.nl = 0.8  # noise level for the lattice
         self.wsx = self.wsx + 5 * self.nl * self.d_cell  # readjust the world size for noise
         self.wsy = self.wsy + 5 * self.nl * self.d_cell
+        self.vol_env = 1        # volume of the environmental space [m3]
         self.search_d =1.5     # distance to search for nearest neighbours (relative to cell diameter dc) min 1.0 max 5.0
         self.scale_cell = 0.9          # the amount to scale cell membranes in from ecm edges (only affects drawing)
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
         self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
         self.cell_height = 5.0e-6  # the height of a cell in the z-direction (for volume and surface area calculations)
         self.cell_space = 26.0e-9  # the true cell-cell spacing (width of extracellular space)
-        self.cm = 0.022            # patch capacitance of cell membrane [F/m2]
+        self.cm = 0.010            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.um = 1e6    # multiplication factor to convert m to um
 
@@ -87,11 +87,11 @@ class Parameters(object):
             self.cP_env = 9.0
 
             conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
-            #self.cM_env, self.z_M_env = comp.bal_charge(conc_env,zs)
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
 
-            self.cNa_cell = 12.0
-            self.cK_cell = 135.0
-            self.cCl_cell = 5.0
+            self.cNa_cell = 17.0
+            self.cK_cell = 131.0
+            self.cCl_cell = 6.0
             self.cCa_cell = 1.0e-6
             self.cH_cell = 6.3e-8
             self.cP_cell = 138.0
@@ -123,7 +123,7 @@ class Parameters(object):
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
-        self.alpha_NaK = 1.0e-8 # rate constant sodium-potassium ATPase [m3/mols]
+        self.alpha_NaK = 5.0e-17 # rate constant sodium-potassium ATPase [m3/mols]  range 1.0e-9 to 1.0e-10 for dt =1e-2
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
 

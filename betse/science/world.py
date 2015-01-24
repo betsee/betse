@@ -104,7 +104,7 @@ class World(object):
 
     self.average_nn     a single value reporting the average number of nearest neighbour connections per cell
 
-    self.gap_jun_i      a list of index pairs [a,b] to self.cell_centres points defining unique cell-cell GJ connections
+    self.gap_jun_i      a list of index pairs [a,b] to self.cell_i points defining unique cell-cell GJ connections
                         arranged to gap junction index: gj_i
 
     self.gj_vects       a numpy array of [x,y,tx,ty] defining tangent vectors to each unique gj (arranged to gj_i)
@@ -616,6 +616,8 @@ class World(object):
         Calculates ecm points on the environmental boundary using the alpha-shape concave hull method,
         deletes these points, and updates data structures referring to the ecm vertices.
 
+        Note: if clean = 'no' this function returns data structures without deleting ecm verticies.
+
         """
 
         # get the concave hull for ecm vertices on the outer boundary of the cluster
@@ -753,7 +755,12 @@ class World(object):
 
     def cellGeo(self,close_ecm=None):
         """
-         Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
+        Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
+
+        Parameters
+        ----------
+        close_ecm           Default = None. If close_ecm = 'yes' then ecm segments around boundary cells remain
+                            unbroken.
 
         Creates
         --------
@@ -790,7 +797,7 @@ class World(object):
         for poly in self.cell_verts:
             # First calculate individual cell volumes from cell vertices:
             self.cell_vol.append(p.cell_height*tb.area(poly))
-            self.cell_sa = 2*tb.area(poly) + perim   # surface area of whole cell [m2]
+            self.cell_sa.append(2*tb.area(poly) + perim)   # surface area of whole cell [m2]
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []
@@ -824,6 +831,7 @@ class World(object):
             self.mem_length.append(surfa)
 
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+        self.cell_sa = np.asarray(self.cell_sa)
 
         # Extracellular matrix specific data
 

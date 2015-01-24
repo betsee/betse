@@ -51,6 +51,11 @@ def main():
     cells = World(vorclose='circle',worldtype='full')
     cells.makeWorld()
 
+
+
+
+
+
     fig2, ax2, axcb2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata='random')
     ax2.set_ylabel('Spatial y [m]')
     ax2.set_xlabel('Spatial x [m]')
