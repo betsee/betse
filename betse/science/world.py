@@ -8,6 +8,7 @@
 # FIXME create a plotting method that plots individual cell data
 # FIXME create a plotting method for ecm data
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
+# FIXME allow plots to accept a fig and ax instance or to create them if none supplied.
 
 """
 This module contains the class World, which holds

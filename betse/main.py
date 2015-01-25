@@ -33,29 +33,44 @@
 #What's sweet about this is that we can define additional separate scripts with
 #deeper entry points if we need and or want to.
 
-import numpy as np
-import scipy as sp
-import scipy.spatial as sps
+#import numpy as np
+#import scipy as sp
+#import scipy.spatial as sps
 import matplotlib.pyplot as plt
-from matplotlib.path import Path
-import math
+#from matplotlib.path import Path
+#import math
 import time
 from betse.science.world import World
 from betse.science.compute import Simulator
+from betse.science.parameters import Parameters
 import matplotlib.cm as cm
-from matplotlib.collections import LineCollection, PolyCollection
+#from matplotlib.collections import LineCollection, PolyCollection
+#import os, os.path
+#import pickle
+#import copy
 
 def main():
 
     start_time = time.time()  # get a start value for timing the simulation
 
-    cells = World(vorclose='circle',worldtype='full')
-    cells.makeWorld()
+    # cells = World(vorclose='circle',worldtype='full')
+    # cells.makeWorld()
+    #
+    # p = Parameters()
 
-    sim = Simulator(cells,trueVol=1,method='Euler')
-    sim.runSim(5000)
+    sim = Simulator()
 
-    vdata = sim.vm_time[-1]*1000
+#    sim.baseInit(cells,p)
+#    sim.runInit(cells,p)
+    cells, p = sim.loadInit()
+
+    p.sim_tsteps = 5000
+
+    sim.runSim(cells,p)
+#    cells,p = sim.loadSim()
+
+    #vdata = sim.vm_time[-1]*1000
+    vdata =sim.vm_check*1000
 
     fig2, ax2, axcb2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=vdata)
     ax2.set_ylabel('Spatial y [m]')

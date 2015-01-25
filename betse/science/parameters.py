@@ -3,8 +3,7 @@
 # See "LICENSE" for further details.
 
 # FIXME this module will load parameters from a yaml file!
-# FIXME put all constants in as fields of the structure then from science.parameters import Parameters as p wherever
-#they're needed
+# FIXME put *all* constants and options in here, including plotting colormaps, etc...
 
 # Lodish H, Berk A, Zipursky SL, et al. Molecular Cell Biology. 4th edition. New York: W. H. Freeman;
 # 2000. Section 15.4, Intracellular Ion Environment and Membrane Electric Potential.
@@ -22,6 +21,11 @@ class Parameters(object):
     def __init__(self,profile=None):
 
         self.dt = 1e-2    # Simulation step-size [s]
+        self.init_tsteps = 200000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
+        self.sim_tsteps = 1000    # Number of timesteps for the simulation
+        self.t_resample = 10         # resample the time vector every x steps
+        self.true_volume = 1       # use the true cell volume and surface area (=1) or the averages (=0)
+        self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # basic constants
         self.F = 96485 # Faraday constant [J/V*mol]
@@ -56,9 +60,9 @@ class Parameters(object):
         self.gj_vthresh = 20e-3              # voltage threshhold gj closing [V]
         self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
 
-        # diffusion constants
+        # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1.0e-16      # membrane diffusion constant potassium [m2/s]
+        self.Dm_K = 1.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
