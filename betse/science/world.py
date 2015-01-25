@@ -7,6 +7,7 @@
 # FIXME plots need to call error or do blank behaviour if basic world called and their quantity is null
 # FIXME create a plotting method that plots individual cell data
 # FIXME create a plotting method for ecm data
+# FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 """
 This module contains the class World, which holds
@@ -1015,6 +1016,7 @@ class World(object):
         ax.add_collection(coll)
         ax.axis('equal')
 
+
         # Add a colorbar for the PolyCollection
         if zdata != None:
             ax_cb = fig.colorbar(coll, ax=ax)
@@ -1279,7 +1281,7 @@ class World(object):
 
         connects = self.um*np.asarray(con_segs)
 
-        coll = LineCollection(connects, array=z, cmap=clrmap)
+        coll = LineCollection(connects, array=z, cmap=clrmap, linewidths=3.0)
         ax.add_collection(coll)
 
         # Plot the cell centres
@@ -1287,7 +1289,7 @@ class World(object):
 
         s = self.um
 
-        ax.quiver(s*self.gj_vects[:,0],s*self.gj_vects[:,1],s*self.gj_vects[:,2],s*self.gj_vects[:,3],z,zorder=5)
+        #ax.quiver(s*self.gj_vects[:,0],s*self.gj_vects[:,1],s*self.gj_vects[:,2],s*self.gj_vects[:,3],z,zorder=5)
 
         ax.axis('equal')
 

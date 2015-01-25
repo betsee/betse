@@ -3,16 +3,15 @@
 # See "LICENSE" for further details.
 
 """
-A toolbox of workhorse functions routinely used in simulation.
+A toolbox of workhorse functions and routines used in the main simulation. This is the matrix version, which
+implements the simulation in terms of Numpy arrays.
 
 """
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
 # FIXME think about testing python loop (with numba jit) versus numpy matrix versions regarding speed...
 
-import math
 import numpy as np
 from betse.science.parameters import params as p
-from numba import jit
 
 
 class Simulator(object):
@@ -149,8 +148,9 @@ class Simulator(object):
         self.iP = 5
         self.iM = 6
 
-        # Initialize gap-junction data
+        self.movingIons = [self.iNa,self.iK,self.iCl,self.iCa,self.iH,self.iM]
 
+        # Initialize gap-junction data
     def runSim(self,timesteps):
         """
         Drives the actual time-loop iterations for the simulation.
@@ -177,29 +177,31 @@ class Simulator(object):
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
-            self.cc_env[self.iNa],self.cc_cells[self.iNa],fNa = \
-                electrofuse(self.cc_env[self.iNa],self.cc_cells[self.iNa],self.Dm_cells[self.iNa],self.tm,self.sacell,
-                    self.envV,self.volcell,self.zs[self.iNa],vm,method=self.mthd)
+            for i in self.movingIons:
 
-            self.cc_env[self.iK],self.cc_cells[self.iK],fK =\
-                electrofuse(self.cc_env[self.iK],self.cc_cells[self.iK],self.Dm_cells[self.iK],self.tm,self.sacell,
-                    self.envV,self.volcell,self.zs[self.iK],vm,method=self.mthd)
+                self.cc_env[i],self.cc_cells[i],fNa = \
+                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
+                        self.envV,self.volcell,self.zs[i],vm,method=self.mthd)
 
-            self.cc_env[self.iCl],self.cc_cells[self.iCl],fCl = \
-                electrofuse(self.cc_env[self.iCl],self.cc_cells[self.iCl],self.Dm_cells[self.iCl],self.tm,self.sacell,
-                    self.envV,self.volcell,self.zs[self.iCl],vm,method=self.mthd)
-
-            self.cc_env[self.iCa],self.cc_cells[self.iCa],fCa =\
-                electrofuse(self.cc_env[self.iCa],self.cc_cells[self.iCa],self.Dm_cells[self.iCa],self.tm,self.sacell,
-                    self.envV,self.volcell,self.zs[self.iCa],vm,method=self.mthd)
-
-            self.cc_env[self.iH],self.cc_cells[self.iH],fH = \
-                electrofuse(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,self.sacell,
-                    self.envV,self.volcell,self.zs[self.iH],vm,method=self.mthd)
-
-            self.cc_env[self.iM],self.cc_cells[self.iM],fM = \
-                electrofuse(self.cc_env[self.iM],self.cc_cells[self.iM],self.Dm_cells[self.iM],self.tm,self.sacell,
-                    self.envV,self.volcell,self.zs[self.iM],vm,method=self.mthd)
+            # self.cc_env[self.iK],self.cc_cells[self.iK],fK =\
+            #     electrofuse(self.cc_env[self.iK],self.cc_cells[self.iK],self.Dm_cells[self.iK],self.tm,self.sacell,
+            #         self.envV,self.volcell,self.zs[self.iK],vm,method=self.mthd)
+            #
+            # self.cc_env[self.iCl],self.cc_cells[self.iCl],fCl = \
+            #     electrofuse(self.cc_env[self.iCl],self.cc_cells[self.iCl],self.Dm_cells[self.iCl],self.tm,self.sacell,
+            #         self.envV,self.volcell,self.zs[self.iCl],vm,method=self.mthd)
+            #
+            # self.cc_env[self.iCa],self.cc_cells[self.iCa],fCa =\
+            #     electrofuse(self.cc_env[self.iCa],self.cc_cells[self.iCa],self.Dm_cells[self.iCa],self.tm,self.sacell,
+            #         self.envV,self.volcell,self.zs[self.iCa],vm,method=self.mthd)
+            #
+            # self.cc_env[self.iH],self.cc_cells[self.iH],fH = \
+            #     electrofuse(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,self.sacell,
+            #         self.envV,self.volcell,self.zs[self.iH],vm,method=self.mthd)
+            #
+            # self.cc_env[self.iM],self.cc_cells[self.iM],fM = \
+            #     electrofuse(self.cc_env[self.iM],self.cc_cells[self.iM],self.Dm_cells[self.iM],self.tm,self.sacell,
+            #         self.envV,self.volcell,self.zs[self.iM],vm,method=self.mthd)
 
             # add the new concentration and voltage data to the time-storage matrices:
             self.cc_time.append(self.cc_cells)
@@ -335,6 +337,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
              # calculate the flux for those elements:
             flux[izero] = -sa[izero]*p.dt*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
 
+
             if method == None or method == 0:
 
                 dmol[izero] = sa[izero]*p.dt*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
@@ -368,6 +371,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,method=None):
             # calculate the flux for those elements:
             flux[inzero] = -(sa[inzero]*Dc[inzero]/d[inzero])*alpha[inzero]*\
                            ((cB[inzero] - cA[inzero]*np.exp(-alpha[inzero]))/deno[inzero])
+
 
             if method == None or method == 0:
 

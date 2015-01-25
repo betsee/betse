@@ -52,12 +52,14 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gjsa = math.pi*(50e-9)**2              # gap junction x-sectional surface area
+        self.gjsa = math.pi*(1.5e-9)**2          # total gap junction x-sectional surface area [m2] with r=1 to 5 nm
+        self.gj_vthresh = 20e-3              # voltage threshhold gj closing [V]
+        self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
         self.Dm_K = 1.0e-16      # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = 1.0e-17     # membrane diffusion constant chloride [m2/s]
+        self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
