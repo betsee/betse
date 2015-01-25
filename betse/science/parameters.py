@@ -56,8 +56,8 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gjsa = math.pi*(1.5e-9)**2          # total gap junction x-sectional surface area [m2] with r=1 to 5 nm
-        self.gj_vthresh = 20e-3              # voltage threshhold gj closing [V]
+        self.gjsa = math.pi*(5.0e-9)**2          # total gap junction x-sectional surface area [m2] with r=1 to 5 nm
+        self.gj_vthresh = 50e-3              # voltage threshhold gj closing [V]
         self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # default diffusion constants

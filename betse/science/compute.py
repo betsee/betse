@@ -9,7 +9,9 @@ implements the simulation in terms of Numpy arrays.
 """
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
 # FIXME think about testing python loop (with numba jit) versus numpy matrix versions regarding speed...
-# FIXME sometimes would be nice to have gap junctions in initialization -- user specified?
+# FIXME what if only some ions are desired instead of all 7 ???
+# FIXME instead of saving lots of fields from Simulator, save the whole object + cells + p
+# FIXME would be nice to have a time estimate for the simulation
 
 import numpy as np
 import os, os.path
@@ -18,8 +20,6 @@ import copy
 from random import shuffle
 import warnings
 from numba import jit
-
-#from betse.science.parameters import params as p   # FIXME this is convenient but maybe better to have a passed instance?
 
 
 class Simulator(object):
@@ -164,7 +164,7 @@ class Simulator(object):
         self.Dm_cells = [DmNa, DmK, DmCl,DmCa,DmH,DmP,DmM]              # matched membrane diffusion constants
 
         self.iNa=0     # indices to each ion for use in above arrays
-        self.iK = 1     # FIXME what if only some ions were desired, instead of all 7 ???
+        self.iK = 1
         self.iCl=2
         self.iCa = 3
         self.iH = 4
@@ -182,8 +182,8 @@ class Simulator(object):
         self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
         self.gjl[:] = p.gjl
 
-        gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
-        gjsa[:] = p.gjsa
+        self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
+        self.gjsa[:] = p.gjsa
 
         # initialization of data-arrays holding time-related information
         self.cc_time = []  # data array holding the concentrations at time points
@@ -215,7 +215,7 @@ class Simulator(object):
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
         # report
         print('Your sim initialization is running for', int((p.init_tsteps*p.dt)/60),'minutes of in-world time.')
-        # FIXME would be nice to have a time estimate for the simulation
+
 
         for t in tt:   # run through the loop
 
@@ -229,6 +229,10 @@ class Simulator(object):
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     self.volcell,self.envV,vm,p)
+
+             # recalculate the net, unbalanced charge and voltage in each cell:
+            q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
+            vm = get_volt(q_cells,self.sacell,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -312,7 +316,14 @@ class Simulator(object):
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     self.volcell,self.envV,vm,p)
 
+             # recalculate the net, unbalanced charge and voltage in each cell:
+            q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
+            vm = get_volt(q_cells,self.sacell,p)
+
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
+
+            shuffle(cells.gj_i)
+            shuffle(self.movingIons)
 
             for i in self.movingIons:
 
@@ -320,14 +331,40 @@ class Simulator(object):
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
                         self.envV,self.volcell,self.zs[i],vm,p)
 
+                 # recalculate the net, unbalanced charge and voltage in each cell:
+                q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
+                vm = get_volt(q_cells,self.sacell,p)
+
+                vmA,vmB = vm[cells.gap_jun_i][:,0], vm[cells.gap_jun_i][:,1]
+                vgj = vmB - vmA
+
+                self.gjopen = (1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad))
+
+                _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
+                    self.gjopen*p.Do_Na,self.gjl,self.gjsa,self.volcell[cells.gap_jun_i][:,0],
+                    self.volcell[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
+
+
+                for igj in cells.gj_i:
+                    cellAi,cellBi = cells.gap_jun_i[igj]
+                    flux = fgj[igj]
+                    volA, volB = self.volcell[cellAi],self.volcell[cellBi]
+                    self.cc_cells[i][cellAi] = self.cc_cells[i][cellAi] - flux*p.dt/volA
+                    self.cc_cells[i][cellBi] = self.cc_cells[i][cellBi] + flux*p.dt/volB
+
+                self.fluxes_gj[i] = fgj
+
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
+                flxs = copy.deepcopy(self.fluxes_gj)
                 self.cc_time.append(concs)
                 self.vm_time.append(vm)
                 self.time.append(t)
+                self.fgj_time.append(flxs)
+                self.gjopen_time.append(self.gjopen)
 
-        # Save core data of simulation to file
+        # Save core data of simulation to file   # FIXME just save the whole sim object + cells + p!
         with open(self.cellConc_sim, 'wb') as f:
             pickle.dump(self.cc_cells, f)
         with open(self.envConc_sim, 'wb') as f:

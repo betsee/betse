@@ -33,21 +33,14 @@
 #What's sweet about this is that we can define additional separate scripts with
 #deeper entry points if we need and or want to.
 
-#import numpy as np
-#import scipy as sp
-#import scipy.spatial as sps
 import matplotlib.pyplot as plt
-#from matplotlib.path import Path
-#import math
+import math
 import time
 from betse.science.world import World
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 import matplotlib.cm as cm
-#from matplotlib.collections import LineCollection, PolyCollection
-#import os, os.path
-#import pickle
-#import copy
+
 
 def main():
 
@@ -56,27 +49,51 @@ def main():
     # cells = World(vorclose='circle',worldtype='full')
     # cells.makeWorld()
     #
-    # p = Parameters()
+    p = Parameters()
 
     sim = Simulator()
 
 #    sim.baseInit(cells,p)
 #    sim.runInit(cells,p)
-    cells, p = sim.loadInit()
+    cells, _ = sim.loadInit()
 
-    p.sim_tsteps = 5000
+    # p.sim_tsteps = 1000
+    # p.gjsa = math.pi*(2.5e-9)**2
 
     sim.runSim(cells,p)
 #    cells,p = sim.loadSim()
 
-    #vdata = sim.vm_time[-1]*1000
-    vdata =sim.vm_check*1000
+    vdata = sim.vm_time[-1]*1000
+
+    #vdata =sim.vm_check*1000
 
     fig2, ax2, axcb2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=vdata)
     ax2.set_ylabel('Spatial y [m]')
     ax2.set_xlabel('Spatial x [m]')
     ax2.set_title('Voltage in Each Discrete Cell')
     axcb2.set_label('Voltage [mV]')
+    plt.show(block=False)
+
+    ioni = sim.iNa
+    cdata = sim.cc_time[-1][ioni]
+    ionname = sim.ionlabel[ioni]
+
+    fig3, ax3, axcb3 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=cdata)
+    ax3.set_ylabel('Spatial y [m]')
+    ax3.set_xlabel('Spatial x [m]')
+    ax3.set_title((ionname,'Concentration in Cells'))
+    axcb3.set_label((ionname,'[mol/m3]'))
+    plt.show(block=False)
+
+    ioni = sim.iK
+    cdata = sim.cc_time[-1][ioni]
+    ionname = sim.ionlabel[ioni]
+
+    fig4, ax4, axcb4 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=cdata)
+    ax4.set_ylabel('Spatial y [m]')
+    ax4.set_xlabel('Spatial x [m]')
+    ax4.set_title((ionname,'Concentration in Cells'))
+    axcb4.set_label((ionname,'[mol/m3]'))
     plt.show(block=False)
 
     # fig3, ax3, axcb3 = cells.plotMemData(clrmap = cm.coolwarm,zdata='random')
