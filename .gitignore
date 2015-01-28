@@ -13,8 +13,11 @@
 # Ignore the top-level "output" directory.
 /output/
 
-# Ignore all PyCharm-specific ".idea" subdirectories.
+# Ignore all PyCharm-specific subdirectories.
 .idea/
+
+# Ignore all Rope-specific subdirectories.
+.ropeproject/
 
 # ....................{ FILES                              }....................
 # Ignore all binary Python-specific files.
