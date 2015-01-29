@@ -62,7 +62,7 @@ class Parameters(object):
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1.0e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_K = 1.0e-16      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
