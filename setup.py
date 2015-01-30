@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
+
+'''betse's setuptools-based makefile.'''
 
 # ....................{ IMPORTS                            }....................
 import setuptools

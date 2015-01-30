@@ -36,6 +36,22 @@ the current `${PATH}`:
 * `betse-qt`, a high-level graphical user interface (GUI) implemented in the
   cross-platform windowing toolkit Qt4.
 
+## Usage
+
+`betse`'s CLI is intended to be run from both interactive shells and non-
+interactive shell scripts as follows, where `$` signifies an ignorable shell
+prompt (for readability):
+
+    # Assuming either "./setup.py install" or "./setup.py develop" have been
+    # run, the following command suffices.
+    $ betse
+
+    # Regardless of whether such "setup.py" tasks have been run, the following
+    # pair of commands also suffices, where ${BETSE_PATH} should be replaced by
+    # the top-level betse directory (e.g., containing the ".git/" subdirectory).
+    $ cd "${BETSE_PATH}"
+    $ python -m betse
+
 ## Development
 
 For development purposes, `betse` is installable in symbolically linked fashion
