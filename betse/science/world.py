@@ -2,13 +2,9 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME add in assertions
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
-# FIXME plots need to call error or do blank behaviour if basic world called and their quantity is null
-# FIXME create a plotting method that plots individual cell data
-# FIXME create a plotting method for ecm data
+
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
-# FIXME allow plots to accept a fig and ax instance or to create them if none supplied.
 # FIXME allow user to save and load a world
 
 """
@@ -30,10 +26,7 @@ that can be integrated into the QT (i.e. PySide) Gui.
 
 import numpy as np
 import scipy.spatial as sps
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 from matplotlib.path import Path
-from matplotlib.collections import LineCollection, PolyCollection
 import copy
 import math
 from betse.science import toolbox as tb
@@ -139,6 +132,8 @@ class World(object):
 
     self.gj_i           a python list of indices to gj data arrays (gj_i)
 
+    self.gjMatrix       a matrix allowing a quantity, such as flux, to be properly distributed to cells in network
+
 
 
     Methods
@@ -155,16 +150,6 @@ class World(object):
     cellVerts()                             Copy & scale in points from the ecm matrix to create unique polygonal cells
     cellGeo()                               Creates midpoints, lengths, volumes, normal and tangent vectors + more
     cleanUp()                               After computations, null unimportant fields to free up memory
-
-    Plotting methods:
-
-    plotPolyData(zdata = None,clrmap = None)                                   Plot cell polygons with data as colour
-    plotCellData(zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None)  Plot smoothed cell-centre data as colour
-    plotVertData(vor_verts,zdata=None,clrmap=None,edgeOverlay=None,pointOverlay=None)       Plot smoothed nested data
-    plotMemData(zdata=None,clrmap=None)                                      Plot membrane domains with data as colour
-    plotConnectionData(zdata=None,clrmap=None)                      Plot GJ connections with data as colour
-    plotBoundCells()                                    Plot points flagged as existing on the environmental boundary
-    plotVects()                                  Plot unit vectors corresponding to cell membrane and ecm
 
 
     Notes
@@ -778,6 +763,7 @@ class World(object):
         self.ecm_vects
         self.cell2ecm_map
 
+
         """
 
         self.cell_vol = []   # storage for cell volumes
@@ -969,411 +955,10 @@ class World(object):
 
         self.cell_vol = np.asarray(self.cell_vol)
 
-    def plotPolyData(self,zdata = None,clrmap = None):
-        """
-        Assigns color-data to each polygon in a 2D Voronoi diagram and returns a plot instance (fig, axes)
+        self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
+        for igj, pair in enumerate(self.gap_jun_i):
+            ci = pair[0]
+            cj = pair[1]
+            self.gjMatrix[igj,ci] = -1
+            self.gjMatrix[igj,cj] = 1
 
-        Parameters
-        ----------
-        vor_verts              Nested list of [x,y] points defining each polygon. May be ecm_verts or
-                               cell_verts
-
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
-                               vor_verts. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
-
-
-        Returns
-        -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
-
-        Notes
-        -------
-        Uses matplotlib.collections PolyCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
-        Computationally slow -- not recommended for large collectives (500 x 500 um max)
-        """
-        if zdata == None:  # if user doesn't supply data
-            z = np.ones(len(self.cell_verts)) # create flat data for plotting
-
-        elif zdata == 'random':  # if user doesn't supply data
-            z = np.random.random(len(self.cell_verts)) # create some random data for plotting
-
-        else:
-            z = zdata
-
-        fig, ax = plt.subplots()    # define the figure and axes instances
-
-        # Make the polygon collection and add it to the plot.
-        if clrmap == None:
-            clrmap = cm.rainbow
-
-        points = np.multiply(self.cell_verts, self.um)
-
-        coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
-        ax.add_collection(coll)
-        ax.axis('equal')
-
-
-        # Add a colorbar for the PolyCollection
-        if zdata != None:
-            ax_cb = fig.colorbar(coll, ax=ax)
-
-        ax.autoscale_view(tight=True)
-
-
-        return fig,ax,ax_cb
-
-    def plotCellData(self,zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None):
-        """
-        The work-horse of pre-defined plotting methods, this method assigns color-data to each node in cell_centres
-        and interpolates data to generate a smooth surface plot. The method returns a plot instance (fig, axes)
-
-        Parameters
-        ----------
-        zdata                  A data array with each scalar entry corresponding to a point in
-                               cell_centres. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
-
-        edgeOverlay             This option allows the user to specify whether or not they want cell edges overlayed.
-                                Default is False, set to True to use.
-
-        pointOverlay            This option allows user to specify whether or not they want cell_centre points plotted
-                                Default is False, set to True to use.
-
-
-        Returns
-        -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
-
-        Notes
-        -------
-        Uses matplotlib.pyplot and numpy arrays
-        With edgeOverlay and pointOverlay == None, this is computationally fast and *is* recommended for plotting data
-        on large collectives.
-
-
-        """
-        if zdata == None:  # if user doesn't supply data
-            z = np.ones(len(self.cell_centres)) # create flat data for plotting
-
-        elif zdata == 'random':  # if user doesn't supply data
-            z = np.random.random(len(self.cell_centres)) # create some random data for plotting
-
-        else:
-            z = zdata   # FIXME make an assertion to check for right data input
-
-        if clrmap == None:
-            clrmap = cm.rainbow
-
-        fig, ax = plt.subplots()    # define the figure and axes instances
-
-        sc = 1e6
-
-        triplt = ax.tripcolor(self.um*self.cell_centres[:, 0], self.um*self.cell_centres[:, 1], z,shading='gouraud', cmap=clrmap)
-        ax.axis('equal')
-
-        # Add a colorbar for the z-data
-        if zdata != None:
-            ax_cb = fig.colorbar(triplt, ax=ax)
-
-        if pointOverlay == True:
-            ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.',alpha=0.5)
-
-        if edgeOverlay == True:
-            cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
-            cell_edges_flat = self.um*np.asarray(cell_edges_flat)
-            coll = LineCollection(cell_edges_flat,colors='k')
-            coll.set_alpha(0.5)
-            ax.add_collection(coll)
-
-
-        ax.autoscale_view(tight=True)
-
-
-        return fig, ax, ax_cb
-
-    def plotVertData(self,vor_verts,zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None): # FIXME have this work on flattened data!
-        """
-        The work-horse of pre-defined plotting methods, this method assigns color-data to each node in cell_verts,
-        ecm_verts, cell_mids, or ecm_mids_i data structures and interpolates data to generate a smooth surface plot.
-        The method returns a plot instance (fig, axes)
-
-        Parameters
-        ----------
-        vor_verts              An instance of cell_verts, ecm_verts, cell_mids, or ecm_mids_i
-
-        zdata                  A data array with each scalar entry corresponding to a point in
-                               cell_centres. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
-
-        edgeOverlay             This option allows the user to specify whether or not they want cell edges overlayed.
-                                Default is False, set to True to use.
-
-        pointOverlay            This option allows user to specify whether or not they want cell_centre points plotted
-                                Default is False, set to True to use.
-
-
-        Returns
-        -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
-
-        Notes
-        -------
-        Uses matplotlib.pyplot and numpy arrays
-        With edgeOverlay and pointOverlay == None, this is computationally fast and *is* recommended for
-        plotting data on large collectives
-        """
-
-        vor_verts_flat, _ , _= tb.flatten(vor_verts)
-
-        vor_verts_flat = np.asarray(vor_verts_flat)
-
-        if zdata == None:  # if user doesn't supply data
-            z = np.ones(len(vor_verts_flat)) # create flat data for plotting
-
-        elif zdata == 'random':  # if user doesn't supply data
-            z = np.random.random(len(vor_verts_flat)) # create some random data for plotting
-
-        else:
-            z = zdata
-
-        if clrmap == None:
-            clrmap = cm.rainbow
-
-        fig, ax = plt.subplots()    # define the figure and axes instances
-
-        triplt = ax.tripcolor(self.um*vor_verts_flat[:, 0], self.um*vor_verts_flat[:, 1], z,shading='gouraud', cmap=clrmap)
-        ax.axis('equal')
-
-        # Add a colorbar for the z-data
-        if zdata != None:
-            ax_cb = fig.colorbar(triplt, ax=ax)
-
-        if pointOverlay == True:
-            ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.',alpha=0.5)
-
-        if edgeOverlay == True:
-            cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
-            cell_edges_flat = self.um*np.asarray(cell_edges_flat)
-            coll = LineCollection(cell_edges_flat,colors='k')
-            coll.set_alpha(0.5)
-            ax.add_collection(coll)
-
-        ax.autoscale_view(tight=True)
-
-        return fig, ax, ax_cb
-
-    def plotMemData(self,zdata=None,clrmap=None):
-        """
-
-        Assigns color-data to edges in a 2D Voronoi diagram and returns a plot instance (fig, axes)
-
-        Parameters
-        ----------
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
-                               vor_verts. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
-
-
-        Returns
-        -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
-
-        Notes
-        -------
-        Uses matplotlib.collections LineCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
-        Computationally slow -- not recommended for large collectives (500 x 500 um max)
-
-        """
-        fig, ax = plt.subplots()
-
-        cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
-
-        cell_edges_flat = self.um*np.asarray(cell_edges_flat)
-
-        if zdata == None:
-            z = np.ones(len(cell_edges_flat))
-        elif zdata == 'random':
-            z = np.random.random(len(cell_edges_flat))
-        else:
-            z = zdata  # FIXME assert this is in proper format
-
-        if clrmap == None:
-            clrmap = cm.rainbow
-
-        coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap)
-        ax.add_collection(coll)
-
-        #print(cell_edges_flat)
-
-        ax.axis('equal')
-
-        # Add a colorbar for the Line Collection
-        if zdata != None:
-            ax_cb = fig.colorbar(coll, ax=ax)
-
-        ax.axis('equal')
-        ax.autoscale_view(tight=True)
-
-        return fig, ax, ax_cb
-
-    def plotConnectionData(self,zdata=None,clrmap=None):
-        """
-        Assigns color-data to connections between a cell and its nearest neighbours and returns plot instance
-
-        Parameters
-        ----------
-
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
-                               vor_verts. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
-
-
-        Returns
-        -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
-
-        Notes
-        -------
-        Uses matplotlib.collections LineCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
-
-        """
-        fig, ax = plt.subplots()
-
-        if zdata == None:
-            z = np.ones(len(self.gap_jun_i))
-
-        elif zdata == 'random':
-            z = np.random.random(len(self.gap_jun_i))
-
-        else:
-            z = zdata
-
-        if clrmap == None:
-            clrmap = cm.rainbow
-
-         # Make a line collection and add it to the plot.
-
-        con_segs = self.cell_centres[self.gap_jun_i]
-
-        connects = self.um*np.asarray(con_segs)
-
-        coll = LineCollection(connects, array=z, cmap=clrmap, linewidths=3.0)
-        ax.add_collection(coll)
-
-        # Plot the cell centres
-        ax.plot(self.um*self.cell_centres[:,0],self.um*self.cell_centres[:,1],'k.')
-
-        s = self.um
-
-        #ax.quiver(s*self.gj_vects[:,0],s*self.gj_vects[:,1],s*self.gj_vects[:,2],s*self.gj_vects[:,3],z,zorder=5)
-
-        ax.axis('equal')
-
-        # Add a colorbar for the Line Collection
-        if zdata != None:
-            ax_cb = fig.colorbar(coll, ax=ax)
-        else:
-            ax_cb = None
-
-        ax.autoscale_view(tight=True)
-
-
-        return fig, ax, ax_cb
-
-    def plotBoundCells(self, points_flat, bflags):
-        """
-        Plot elements tagged on the boundary as red points.
-
-        Parameters
-        ----------
-        points_flat          A flat array of points corresponding to the bflags data structure
-
-        bflags          A nested array of boolean flags indicating boundary tagging
-
-        Returns
-        -------
-        fig, ax         Matplotlib plotting objects
-
-        Note
-        ------
-        This particular plot is extremely slow -- intended for cross-checking purposes only!
-
-        """
-        fig, ax = plt.subplots()
-
-        points_flat = np.asarray(points_flat)
-        bflags = np.asarray(bflags)
-
-        bpoints = points_flat[bflags]
-
-        ax.plot(self.um*points_flat[:,0],self.um*points_flat[:,1],'k.')
-
-        ax.plot(self.um*bpoints[:,0],self.um*bpoints[:,1],'r.')
-
-        cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
-        cell_edges_flat = self.um*np.asarray(cell_edges_flat)
-        coll = LineCollection(cell_edges_flat,colors='k')
-        coll.set_alpha(0.5)
-        ax.add_collection(coll)
-
-        ax.axis('equal')
-
-        ax.autoscale_view(tight=True)
-
-        return fig, ax
-
-    def plotVects(self):
-        """
-        This function plots all unit vectors in the tissue system as a cross-check.
-        Normals to cell membranes are shown as red arrows.
-        Tangents to cell membranes are black arrows.
-        Tangents to ecm edges are shown as green arrows.
-        Cell membrane edges are drawn as blue lines.
-
-        To plot streamline and vector plots with data use the pyplot quiver and streamplot functions, respectively.
-
-        """
-        fig, ax = plt.subplots()
-
-        s = self.um
-
-        ax.quiver(s*self.mem_vects_flat[:,0],s*self.mem_vects_flat[:,1],s*self.mem_vects_flat[:,4],s*self.mem_vects_flat[:,5],color='b')
-        ax.quiver(s*self.mem_vects_flat[:,0],s*self.mem_vects_flat[:,1],s*self.mem_vects_flat[:,2],s*self.mem_vects_flat[:,3],color='g')
-        ax.quiver(s*self.ecm_vects[:,0],s*self.ecm_vects[:,1],s*self.ecm_vects[:,2],s*self.ecm_vects[:,3],color='r')
-
-        cell_edges_flat, _ , _= tb.flatten(self.mem_edges)
-        cell_edges_flat = self.um*np.asarray(cell_edges_flat)
-        coll = LineCollection(cell_edges_flat,colors='k')
-        ax.add_collection(coll)
-
-        ax.axis('equal')
-
-        ax.autoscale_view(tight=True)
-
-        return fig, ax

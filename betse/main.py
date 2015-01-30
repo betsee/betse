@@ -3,6 +3,7 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+
 '''`betse`'s command line interface (CLI).'''
 
 #FIXME SES: Refactor to leverage argparse.
@@ -10,11 +11,12 @@
 # ....................{ IMPORTS                            }....................
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import math
 import sys, time
 from betse.science.world import World
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
+from betse.science import interact
+from betse.science import visualize as viz
 
 # ....................{ MAIN                               }....................
 def main(args = None):
@@ -36,18 +38,15 @@ def main(args = None):
 
     start_time = time.time()  # get a start value for timing the simulation
 
-    # cells = World(vorclose='circle',worldtype='full')
-    # cells.makeWorld()
+    cells = World(vorclose='circle',worldtype='full')
+    cells.makeWorld()
     #
     p = Parameters()
     sim = Simulator()
-
-#    sim.baseInit(cells,p)
-#    sim.runInit(cells,p)
-    cells, _ = sim.loadInit()
-
-    # p.sim_tsteps = 1000
-    # p.gjsa = math.pi*(2.5e-9)**2
+    #
+    sim.baseInit(cells,p)
+    # sim.runInit(cells,p)
+    #cells, _ = sim.loadInit()
 
     sim.runSim(cells,p)
 #    cells,p = sim.loadSim()
@@ -55,74 +54,79 @@ def main(args = None):
     vdata = sim.vm_time[-1]*1000
     #vdata =sim.vm_check*1000
 
-    fig2, ax2, axcb2 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=vdata)
-    ax2.set_ylabel('Spatial y [m]')
-    ax2.set_xlabel('Spatial x [m]')
-    ax2.set_title('Voltage in Each Discrete Cell')
-    axcb2.set_label('Voltage [mV]')
+    figV, axV, axcbV = viz.plotPolyData(cells,clrmap = cm.coolwarm,zdata=vdata)
+    figV, axV, _ = viz.plotConnectionData(cells, fig=figV, ax = axV, zdata=sim.gjopen, pickable=False)
+    axV.set_ylabel('Spatial y [um]')
+    axV.set_xlabel('Spatial x [um]')
+    axV.set_title('Voltage in Each Discrete Cell')
+    axcbV.set_label('Voltage [mV]')
+    figV.canvas.mpl_connect('pick_event', interact.get_inds)
     plt.show(block=False)
 
     ioni = sim.iNa
     cdata = sim.cc_time[-1][ioni]
     ionname = sim.ionlabel[ioni]
 
-    fig3, ax3, axcb3 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=cdata)
-    ax3.set_ylabel('Spatial y [m]')
-    ax3.set_xlabel('Spatial x [m]')
-    ax3.set_title((ionname,'Concentration in Cells'))
-    axcb3.set_label((ionname,'[mol/m3]'))
+    figNa, axNa, axcbNa = viz.plotPolyData(cells, clrmap = cm.coolwarm,zdata=cdata)
+    figNa, axNa, _ = viz.plotConnectionData(cells, fig=figNa, ax = axNa, zdata=sim.gjopen)
+    axNa.set_ylabel('Spatial y [um]')
+    axNa.set_xlabel('Spatial x [um]')
+    tit = ionname + ' ' + 'Concentration in Cells'
+    lab = ionname + ' ' + '[mol/m3]'
+    axNa.set_title(tit)
+    axcbNa.set_label(lab)
     plt.show(block=False)
 
     ioni = sim.iK
     cdata = sim.cc_time[-1][ioni]
     ionname = sim.ionlabel[ioni]
 
-    fig4, ax4, axcb4 = cells.plotPolyData(clrmap = cm.coolwarm,zdata=cdata)
-    ax4.set_ylabel('Spatial y [m]')
-    ax4.set_xlabel('Spatial x [m]')
-    ax4.set_title((ionname,'Concentration in Cells'))
-    axcb4.set_label((ionname,'[mol/m3]'))
+    figK, axK, axcbK = viz.plotPolyData(cells, clrmap = cm.coolwarm,zdata=cdata)
+    figK, axK, _ = viz.plotConnectionData(cells, fig=figK, ax = axK, zdata=sim.gjopen)
+    axK.set_ylabel('Spatial y [um]')
+    axK.set_xlabel('Spatial x [um]')
+    tit = ionname + ' ' + 'Concentration in Cells'
+    lab = ionname + ' ' + '[mol/m3]'
+    axK.set_title(tit)
+    axcbK.set_label(lab)
     plt.show(block=False)
 
-    # fig3, ax3, axcb3 = cells.plotMemData(clrmap = cm.coolwarm,zdata='random')
-    # ax3.set_ylabel('Spatial y [um]')
-    # ax3.set_xlabel('Spatial x [um]')
-    # ax3.set_title('Foo Voltage on Discrete Membrane Domains')
-    # axcb3.set_label('Foo membrane voltage [V]')
+    figGJ, axGJ, axcbGJ =viz.plotConnectionData(cells, zdata=sim.gjopen, colorbar=1, pickable =True)
+    axGJ.set_ylabel('Spatial y [um]')
+    axGJ.set_xlabel('Spatial x [um]')
+    axGJ.set_title('Gap Junction Open Fraction')
+    axcbGJ.set_label('Gap Junction Open Fraction (1.0 = open, 0.0 = closed)')
+    figGJ.canvas.mpl_connect('pick_event', interact.get_inds)
+    plt.show(block=False)
+
+    # fig1, ax1, axcb1 = viz.plotMemData(cells, clrmap = cm.coolwarm,zdata='random')
+    # ax1.set_ylabel('Spatial y [um]')
+    # ax1.set_xlabel('Spatial x [um]')
+    # ax1.set_title('Foo Voltage on Discrete Membrane Domains')
+    # axcb1.set_label('Foo membrane voltage [V]')
     # plt.show(block=False)
+
+
     #
-    # fig4, ax4, axcb4 =cells.plotConnectionData(zdata='random', clrmap=None)
-    # ax4.set_ylabel('Spatial y [um]')
-    # ax4.set_xlabel('Spatial x [um]')
-    # ax4.set_title('Foo GJ permeability on Cell-Cell Connections')
-    # axcb4.set_label('Foo GJ permeability [m/s]')
-    # plt.show(block=False)
     #
-    # fig5, ax5, axcb5 = cells.plotVertData(cells.cell_verts,zdata='random',pointOverlay=True,edgeOverlay=True)
-    # ax5.set_ylabel('Spatial y [um]')
-    # ax5.set_xlabel('Spatial x [um]')
-    # ax5.set_title('Foo Voltage of Membrane Domains Interpolated to Surface Plot')
-    # axcb5.set_label('Foo membrane voltage [V]')
-    # plt.show(block=False)
-    #
-    # fig6, ax6 = cells.plotBoundCells(cells.mem_mids_flat,cells.bflags_mems)
+    # fig6, ax6 = viz.plotBoundCells(cells.mem_mids_flat,cells.bflags_mems)
     # ax6.set_ylabel('Spatial y [um]')
     # ax6.set_xlabel('Spatial x [um]')
     # ax6.set_title('Membrane Domains Flagged at Cluster Boundary (red points)')
     # plt.show(block=False)
     #
-    # fig7, ax7 = cells.plotBoundCells(cells.ecm_verts_unique,cells.bflags_ecm)
+    # fig7, ax7 = viz.plotBoundCells(cells.ecm_verts_unique,cells.bflags_ecm)
     # ax7.set_ylabel('Spatial y [um]')
     # ax7.set_xlabel('Spatial x [um]')
     # plt.show(block=False)
     #
-    # fig8,ax8 = cells.plotVects()
+    # fig8,ax8 = viz.plotVects()
     # ax8.set_ylabel('Spatial y [um]')
     # ax8.set_xlabel('Spatial x [um]')
     # ax8.set_title('Normal and Tangent Vectors to Membrane Domains')
     # plt.show(block=False)
     #
-    # fig9, ax9, axcb9 = cells.plotCellData(zdata='random',pointOverlay=False,edgeOverlay=False)
+    # fig9, ax9, axcb9 = viz.plotCellData(zdata='random',pointOverlay=False,edgeOverlay=False)
     # ax9.set_ylabel('Spatial y [um]')
     # ax9.set_xlabel('Spatial x [um]')
     # ax9.set_title('Foo Concentration in Cells Interpolated to Surface Plot')

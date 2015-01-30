@@ -21,7 +21,7 @@ class Parameters(object):
     def __init__(self,profile=None):
 
         self.dt = 1e-2    # Simulation step-size [s]
-        self.init_tsteps = 200000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
+        self.init_tsteps = 100000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
         self.sim_tsteps = 1000    # Number of timesteps for the simulation
         self.t_resample = 10         # resample the time vector every x steps
         self.true_volume = 1       # use the true cell volume and surface area (=1) or the averages (=0)
@@ -57,7 +57,7 @@ class Parameters(object):
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
         self.gjsa = math.pi*(5.0e-9)**2          # total gap junction x-sectional surface area [m2] with r=1 to 5 nm
-        self.gj_vthresh = 50e-3              # voltage threshhold gj closing [V]
+        self.gj_vthresh = 40e-3              # voltage threshhold gj closing [V]
         self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # default diffusion constants

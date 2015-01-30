@@ -8,10 +8,13 @@ implements the simulation in terms of Numpy arrays.
 
 """
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
-# FIXME think about testing python loop (with numba jit) versus numpy matrix versions regarding speed...
 # FIXME what if only some ions are desired instead of all 7 ???
 # FIXME instead of saving lots of fields from Simulator, save the whole object + cells + p
 # FIXME would be nice to have a time estimate for the simulation
+
+# FIXME Ion channels
+# FIXME Calcium dynamics
+# FIXME ECM diffusion and discrete membrane domains?
 
 import numpy as np
 import os, os.path
@@ -230,22 +233,20 @@ class Simulator(object):
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     self.volcell,self.envV,vm,p)
 
-             # recalculate the net, unbalanced charge and voltage in each cell:
-            q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
-            vm = get_volt(q_cells,self.sacell,p)
+
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
 
             for i in self.movingIons:
 
-                self.cc_env[i],self.cc_cells[i],fNa = \
-                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
-                        self.envV,self.volcell,self.zs[i],vm,p)
-
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
                 vm = get_volt(q_cells,self.sacell,p)
+
+                self.cc_env[i],self.cc_cells[i],fNa = \
+                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
+                        self.envV,self.volcell,self.zs[i],vm,p)
 
             self.vm_check = vm
 
@@ -301,7 +302,6 @@ class Simulator(object):
 
         # report
         print('Your simulation is running from',0,'to',p.sim_tsteps*p.dt,'seconds, in-world time.')
-        # FIXME would be nice to have a time estimate for the simulation
 
         for t in tt:   # run through the loop
 
@@ -316,10 +316,6 @@ class Simulator(object):
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     self.volcell,self.envV,vm,p)
 
-             # recalculate the net, unbalanced charge and voltage in each cell:
-            q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
-            vm = get_volt(q_cells,self.sacell,p)
-
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
             shuffle(cells.gj_i)
@@ -327,11 +323,15 @@ class Simulator(object):
 
             for i in self.movingIons:
 
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
+                vm = get_volt(q_cells,self.sacell,p)
+
                 self.cc_env[i],self.cc_cells[i],fNa = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
                         self.envV,self.volcell,self.zs[i],vm,p)
 
-                 # recalculate the net, unbalanced charge and voltage in each cell:
+                # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
                 vm = get_volt(q_cells,self.sacell,p)
 
@@ -344,13 +344,7 @@ class Simulator(object):
                     self.gjopen*p.Do_Na,self.gjl,self.gjsa,self.volcell[cells.gap_jun_i][:,0],
                     self.volcell[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
 
-
-                for igj in cells.gj_i:
-                    cellAi,cellBi = cells.gap_jun_i[igj]
-                    flux = fgj[igj]
-                    volA, volB = self.volcell[cellAi],self.volcell[cellBi]
-                    self.cc_cells[i][cellAi] = self.cc_cells[i][cellAi] - flux*p.dt/volA
-                    self.cc_cells[i][cellBi] = self.cc_cells[i][cellBi] + flux*p.dt/volB
+                self.cc_cells[i] = self.cc_cells[i] + np.dot(fgj, cells.gjMatrix)
 
                 self.fluxes_gj[i] = fgj
 
@@ -415,7 +409,6 @@ class Simulator(object):
         params = self.params
 
         return cells,params
-
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
@@ -533,10 +526,13 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
     cA2 = np.zeros(deno.shape)
     cB2 = np.zeros(deno.shape)
     flux = np.zeros(deno.shape)
-    k1 = np.zeros(deno.shape)
-    k2 = np.zeros(deno.shape)
-    k3 = np.zeros(deno.shape)
-    k4 = np.zeros(deno.shape)
+
+    if p.method == 1:
+
+        k1 = np.zeros(deno.shape)
+        k2 = np.zeros(deno.shape)
+        k3 = np.zeros(deno.shape)
+        k4 = np.zeros(deno.shape)
 
     if len(deno[izero]):   # if there's anything in the izero array:
          # calculate the flux for those elements [mol/s]:
@@ -550,9 +546,6 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
 
             cA2[izero] = cA[izero] + dmol[izero]/vola[izero]
             cB2[izero] = cB[izero] - dmol[izero]/volb[izero]
-
-            #cA2[izero] = check_c(cA2[izero])
-            #cB2[izero] = check_c(cB2[izero])
 
         elif p.method == 1:
 
@@ -569,8 +562,6 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
             cA2[izero] = cA[izero] + dmol[izero]/vola[izero]
             cB2[izero] = cB[izero] - dmol[izero]/volb[izero]
 
-            #cA2[izero] = check_c(cA2[izero])
-            #cB2[izero] = check_c(cB2[izero])
 
     if len(deno[inzero]):   # if there's any indices in the inzero array:
 
@@ -586,8 +577,6 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
             cA2[inzero] = cA[inzero] + dmol[inzero]/vola[inzero]
             cB2[inzero] = cB[inzero] - dmol[inzero]/volb[inzero]
 
-            #cA2[inzero] = check_c(cA2[inzero])
-            #cB2[inzero] = check_c(cB2[inzero])
 
         elif p.method == 1:
 
@@ -606,9 +595,6 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
 
             cA2[inzero] = cA[inzero] + dmol[inzero]/vola[inzero]
             cB2[inzero] = cB[inzero] - dmol[inzero]/volb[inzero]
-
-            #cA2[inzero] = check_c(cA2[inzero])
-            #cB2[inzero] = check_c(cB2[inzero])
 
 
     return cA2, cB2, flux
@@ -658,11 +644,6 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
         cKi2 = cKi - (2/3)*dmol/voli
         cKo2 = cKo + (2/3)*dmol/volo
 
-        #cNai2 = check_c(cNai2)
-       # cNao2 = check_c(cNao2)
-        #cKi2 = check_c(cKi2)
-        #cKo2 = check_c(cKo2)
-
     elif p.method == 1:
 
         k1 = alpha*cNai*cKo
@@ -681,10 +662,6 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
         cKi2 = cKi + (2/3)*dmol/voli
         cKo2 = cKo - (2/3)*dmol/volo
 
-       # cNai2 = check_c(cNai2)
-       # cNao2 = check_c(cNao2)
-       # cKi2 = check_c(cKi2)
-       # cKo2 = check_c(cKo2)
 
     return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
 
@@ -734,7 +711,6 @@ def check_c(cA):
             cA[isubzeros] = 0.0
 
     return cA
-
 
 def sigmoid(x,g,y_sat):
     """

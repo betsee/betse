@@ -1,7 +1,7 @@
 betse
 ===========
 
-`betse` (Bioelectric Tissue Simulation Environment) simulates propagation of
+`betse` (BioElectric Tissue Simulation Engine) simulates propagation of
 electrical phenomena within biological tissue (e.g., ion channel-gated current
 flow).
 
