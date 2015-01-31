@@ -24,8 +24,11 @@ class Parameters(object):
         self.init_tsteps = 100000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
         self.sim_tsteps = 1000    # Number of timesteps for the simulation
         self.t_resample = 10         # resample the time vector every x steps
-        self.true_volume = 1       # use the true cell volume and surface area (=1) or the averages (=0)
+        self.true_volume = 0       # use the true cell volume and surface area (=1) or the averages (=0)
         self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+        # File saving
+        self.cache_path = "~/.betse/cache/sim1"  # world, inits, and sims are saved and read to/from this directory.
 
         # basic constants
         self.F = 96485 # Faraday constant [J/V*mol]
@@ -100,6 +103,8 @@ class Parameters(object):
             conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
 
+            assert self.z_M_env == -1
+
             self.cNa_cell = 17.0
             self.cK_cell = 131.0
             self.cCl_cell = 6.0
@@ -110,17 +115,21 @@ class Parameters(object):
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
+            assert self.z_M_cell == -1
+
          # default environmental and initial values invertebrate cells and plasma
         if profile == 'invertebrate':
             self.cNa_env = 440.0
             self.cK_env = 20.0
-            self.cCl_env = 560.0
+            self.cCl_env = 460.0
             self.cCa_env = 10.0
             self.cH_env = 4.0e-8
             self.cP_env = 7.0
 
             conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
 
             self.cNa_cell = 50.0
             self.cK_cell = 400.0
@@ -131,6 +140,8 @@ class Parameters(object):
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
@@ -149,6 +160,8 @@ def bal_charge(concentrations,zs):
         to_zero = -q
         bal_conc = abs(to_zero)
         valance = np.sign(to_zero)
+
+        assert bal_conc >= 0
 
     return bal_conc,valance
 

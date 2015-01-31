@@ -4,68 +4,82 @@
 # See "LICENSE" for further details.
 
 
-'''`betse`'s command line interface (CLI).'''
-
-#FIXME SES: Refactor to leverage argparse.
-# FIXME: This no longer runs, even with the call to main!!!!
-
-# ....................{ IMPORTS                            }....................
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import sys, time
+# from matplotlib.patches import Polygon
+import time
 from betse.science.world import World
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science import interact
 from betse.science import visualize as viz
+import matplotlib.cm as cm
+from betse.science import filehandling as fh
+import numpy as np
 
-# ....................{ MAIN                               }....................
-def main(args = None):
-    '''Run betse`'s command line interface (CLI).
 
-    Parameters
-    ----------
-    args : list, optional
-        List of zero or more arguments passed to such interface (e.g., from the
-        command line) or `None` if called as the entry point in an external
-        script installed by `setuptools`.
-    '''
-    # If called from a setuptools-installed script, copy such arguments from the
-    # argument list excluding the first item of such list. By cross-platform
-    # agreement, such item is *ALWAYS* the command name of the current process
-    # (e.g., "betse") and hence ignorable.
-    if args is None:
-        args = sys.argv[1:]
+def main():
 
     start_time = time.time()  # get a start value for timing the simulation
 
-    cells = World(vorclose='circle',worldtype='full')
-    cells.makeWorld()
-    #
-    p = Parameters()
-    sim = Simulator()
-    #
-    sim.baseInit(cells,p)
-    # sim.runInit(cells,p)
-    #cells, _ = sim.loadInit()
+    #FIXME get the params out of world call and into params file!
 
-    sim.runSim(cells,p)
-#    cells,p = sim.loadSim()
+    cells = World(vorclose='circle',worldtype='full')  # always need instance of world
+    cells.makeWorld()     # call functions to create the world
 
+    fh.saveSim(cells.savedWorld,cells)   # save the world to cache
+
+    #cells = fh.loadWorld(cells.savedWorld)   # load a previously defined world from cache
+
+    p = Parameters(profile='invertebrate')
+
+    sim = Simulator(p)   # whether running from scratch or loading, instance needs to be called
+
+    #sim.baseInit(cells, p)   # initialize data if working from scratch
+
+    #sim.runInit(cells,p)     # run and save an initialization if working from scratch
+
+    sim,cells, p = fh.loadSim(sim.savedInit)  # load an initialization from cache
+
+    print(sim.cc_cells)
+
+    sim.runSim(cells,p,save=False)   # run and save the simulation
+
+    print(sim.cc_cells)
+
+    #sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
+
+    vdata0 =sim.vm_to*1000
     vdata = sim.vm_time[-1]*1000
-    #vdata =sim.vm_to*1000
+    #
+    # print(vdata0)
+    # print(vdata)
+
+    figI, axI, axcbI = viz.plotPolyData(cells,clrmap = cm.coolwarm,zdata=vdata0)
+    figI, axI, _ = viz.plotConnectionData(cells, fig=figI, ax = axI, zdata=sim.gjopen, pickable=False)
+    axI.set_ylabel('Spatial y [um]')
+    axI.set_xlabel('Spatial x [um]')
+    axI.set_title('Cell voltage at time zero')
+    if axcbI != None:
+        axcbI.set_label('Voltage [mV]')
+    # if axcbI == None:
+    #     md = np.mean(vdata0,axis=0)
+    #     axI.text(0,0,md)
+    plt.show(block=False)
 
     figV, axV, axcbV = viz.plotPolyData(cells,clrmap = cm.coolwarm,zdata=vdata)
     figV, axV, _ = viz.plotConnectionData(cells, fig=figV, ax = axV, zdata=sim.gjopen, pickable=False)
     axV.set_ylabel('Spatial y [um]')
     axV.set_xlabel('Spatial x [um]')
     axV.set_title('Voltage in Each Discrete Cell')
-    axcbV.set_label('Voltage [mV]')
-    figV.canvas.mpl_connect('pick_event', interact.get_inds)
+    if axcbV != None:
+        axcbV.set_label('Voltage [mV]')
+    # if axcbV == None:
+    #     md = np.mean(vdata,axis=0)
+    #     axV.text(0,0,md)
     plt.show(block=False)
 
     # boo = interact.PickObject(cells,p)
-
+    #
     # ioni = sim.iNa
     # cdata = sim.cc_time[-1][ioni]
     # ionname = sim.ionlabel[ioni]
@@ -99,7 +113,6 @@ def main(args = None):
     # axGJ.set_xlabel('Spatial x [um]')
     # axGJ.set_title('Gap Junction Open Fraction')
     # axcbGJ.set_label('Gap Junction Open Fraction (1.0 = open, 0.0 = closed)')
-    # figGJ.canvas.mpl_connect('pick_event', interact.get_inds)
     # plt.show(block=False)
 
     # fig1, ax1, axcb1 = viz.plotMemData(cells, clrmap = cm.coolwarm,zdata='random')
@@ -108,9 +121,6 @@ def main(args = None):
     # ax1.set_title('Foo Voltage on Discrete Membrane Domains')
     # axcb1.set_label('Foo membrane voltage [V]')
     # plt.show(block=False)
-
-
-    #
     #
     # fig6, ax6 = viz.plotBoundCells(cells.mem_mids_flat,cells.bflags_mems)
     # ax6.set_ylabel('Spatial y [um]')
@@ -193,38 +203,7 @@ def main(args = None):
 
     plt.show()
 
-
+if __name__ == '__main__':
+    main()
 
 # --------------------( WASTELANDS                         )--------------------
-# if __name__ == '__main__':
-#     main()
-
-#FUXME; Configure me for CLI usage. Note that I'm no longer convinced that the
-#way we launched "yppy" (e.g., "bin/yppy.bash") was ideal. We really want to do
-#the "Pythonic" thing here. ruamel.yaml, for example, installs a Python wrapper
-#"/usr/lib/yaml" which (in order):
-#
-#* Finds an appropriate Python interpreter.
-#* Replaces the current process with the result of interpreting
-#  "/usr/lib/python-exec/python${PYTHON_VERSION}/yaml". Such file appears to be
-#  autogenerated by setuptools at installation time.
-#FUXME; Hmm: it looks like we want a new file "betse/__main__.py" resembling:
-#    from betse.main import main
-#    main()
-#This then permits betse to be run as follows:
-#    # Yes, you either have to be in the parent directory of the directory
-#    # containing such "__main__.py" file *OR* you have to fiddle with
-#    # ${PYTHONPATH}.
-#    >>> cd ~/py/betse
-#    >>> python -m betse
-#Naturally, this lends itself well to shell scripting. (Yay!)
-#FUXME; Wo! Even nicer. setuptools has implicit support for "__main__.py"-style
-#entry points. We just need a "setup.py" resembling:
-#    setup(
-#        # [...]
-#        entry_points={
-#            'betse': ['betse = betse.main:main'],
-#        },
-#    )
-#What's sweet about this is that we can define additional separate scripts with
-#deeper entry points if we need and or want to.

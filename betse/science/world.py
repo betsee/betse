@@ -3,9 +3,7 @@
 # See "LICENSE" for further details.
 
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
-
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
-# FIXME allow user to save and load a world
 
 """
 This module contains the class World, which holds
@@ -31,6 +29,7 @@ import copy
 import math
 from betse.science import toolbox as tb
 from betse.science.parameters import params as p
+import os, os.path
 
 class World(object):
     """
@@ -165,8 +164,25 @@ class World(object):
         self.vorclose = vorclose   # whether or not to close the voronoi
         self.crop_mask = crop_mask # whether or not to clip the cluster
         self.worldtype = worldtype # the complexity of cluster to create
+        self.fileInit()
 
         self.um = 1e6    # multiplication factor to convert m to um
+
+    def fileInit(self):
+
+        """
+        Initializes file saving and loading directory as the betse cach.
+        For now, automatically assigns file names, but later, will allow
+        user-specified file names.
+
+        """
+
+        # Make the BETSE-specific cache directory if not found.
+        betse_cache_dir = os.path.expanduser(p.cache_path)
+        os.makedirs(betse_cache_dir, exist_ok=True)
+
+        # Define data paths for saving an initialization and simulation run:
+        self.savedWorld = os.path.join(betse_cache_dir, 'saved_world.pickle')
 
     def makeWorld(self):
 

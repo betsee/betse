@@ -69,8 +69,12 @@ def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
 
 
         # Add a colorbar for the PolyCollection
-        if zdata != None:
+        std = np.std(zdata,axis=0)
+
+        if zdata != None and std !=0.0:
             ax_cb = fig.colorbar(coll, ax=ax)
+        else:
+            ax_cb = None
 
         ax.autoscale_view(tight=True)
 

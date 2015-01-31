@@ -9,7 +9,6 @@ implements the simulation in terms of Numpy arrays.
 """
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
 # FIXME what if only some ions are desired instead of all 7 ???
-# FIXME instead of saving lots of fields from Simulator, save the whole object + cells + p
 # FIXME would be nice to have a time estimate for the simulation
 
 # FIXME Ion channels
@@ -23,16 +22,17 @@ import copy
 from random import shuffle
 import warnings
 from numba import jit
+from betse.science import filehandling as fh
 
 
 class Simulator(object):
 
 
-    def __init__(self):
+    def __init__(self,p):
 
-        self.fileHandling()
+        self.fileInit(p)
 
-    def fileHandling(self):
+    def fileInit(self,p):
 
         """
         Initializes file saving and loading directory as the betse cach.
@@ -42,24 +42,13 @@ class Simulator(object):
         """
 
         # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser("~/.betse/cache")
+        betse_cache_dir = os.path.expanduser(p.cache_path)
         os.makedirs(betse_cache_dir, exist_ok=True)
 
-        # Pickle initial data files into cache directory:
-        self.cellConc_init = os.path.join(betse_cache_dir, 'cellConc_init.pickle')
-        self.envConc_init = os.path.join(betse_cache_dir, 'envConc_init.pickle')
-        self.cellGeom_init = os.path.join(betse_cache_dir, 'cellgeom_init.pickle')
-        self.params_init = os.path.join(betse_cache_dir, 'params_init.pickle')
+        # Define data paths for saving an initialization and simulation run:
+        self.savedInit = os.path.join(betse_cache_dir, 'saved_init.pickle')
+        self.savedSim = os.path.join(betse_cache_dir, 'saved_sim.pickle')
 
-        # Pickle simulation data files into cache directory:
-        self.cellConc_sim = os.path.join(betse_cache_dir, 'cellConc_sim.pickle')
-        self.envConc_sim = os.path.join(betse_cache_dir, 'envConc_sim.pickle')
-        self.cellGeom_sim = os.path.join(betse_cache_dir, 'cellgeom_sim.pickle')
-        self.params_sim = os.path.join(betse_cache_dir, 'params_sim.pickle')
-
-        self.cellConc_attimes = os.path.join(betse_cache_dir, 'cellConc_attimes.pickle')
-        self.cellVm_attimes = os.path.join(betse_cache_dir, 'cellVm_attimes.pickle')
-        self.storedtimes = os.path.join(betse_cache_dir, 'storedtimes.pickle')
 
     def baseInit(self,cells,p):
         """
@@ -200,6 +189,8 @@ class Simulator(object):
         self.Igj =[]            # current for each gj
         self.Igj_time = []      # current for each gj at each time
 
+        self.vm_to = np.zeros(len(cells.cell_i))
+
     def runInit(self,cells,p):
         """
         Runs an initialization simulation from the existing data state of the Simulation object,
@@ -234,7 +225,6 @@ class Simulator(object):
                     self.volcell,self.envV,vm,p)
 
 
-
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
 
@@ -248,44 +238,14 @@ class Simulator(object):
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
                         self.envV,self.volcell,self.zs[i],vm,p)
 
-            self.vm_check = vm
+            self.vm_to = copy.deepcopy(vm)
 
-        # Save core data to initialization to file
-        with open(self.cellConc_init, 'wb') as f:
-            pickle.dump(self.cc_cells, f)
-        with open(self.envConc_init, 'wb') as f:
-            pickle.dump(self.cc_env, f)
-        with open(self.cellGeom_init, 'wb') as f:
-            pickle.dump(cells, f)
-        with open(self.params_init, 'wb') as f:
-            pickle.dump(p, f)
+        celf = copy.deepcopy(self)
 
-    def loadInit(self):
-        # Initialize geometry from file
-        with open(self.cellGeom_init, 'rb') as f:
-            cells = pickle.load(f)
+        datadump = [celf,cells,p]
+        fh.saveSim(self.savedInit,datadump)
 
-        with open(self.params_init, 'rb') as f:
-            self.params = pickle.load(f)
-
-        self.baseInit(cells,self.params)
-
-        # Initialize from a file
-        with open(self.cellConc_init, 'rb') as f:
-            self.cc_cells = pickle.load(f)
-
-        with open(self.envConc_init, 'rb') as f:
-            self.cc_env = pickle.load(f)
-
-        q_cells = get_charge(self.cc_cells,self.zs,self.volcell,self.params)
-        vm = get_volt(q_cells,self.sacell,self.params)
-        self.vm_check = vm
-
-        params = self.params
-
-        return cells, params
-
-    def runSim(self,cells,p):
+    def runSim(self,cells,p,save=None):
         """
         Drives the actual time-loop iterations for the simulation.
         """
@@ -348,6 +308,8 @@ class Simulator(object):
 
                 self.fluxes_gj[i] = fgj
 
+                # self.cc_cells[i] = check_c(self.cc_cells[i])
+
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
@@ -358,57 +320,10 @@ class Simulator(object):
                 self.fgj_time.append(flxs)
                 self.gjopen_time.append(self.gjopen)
 
-        # Save core data of simulation to file   # FIXME just save the whole sim object + cells + p!
-        with open(self.cellConc_sim, 'wb') as f:
-            pickle.dump(self.cc_cells, f)
-        with open(self.envConc_sim, 'wb') as f:
-            pickle.dump(self.cc_env, f)
-        with open(self.cellGeom_sim, 'wb') as f:
-            pickle.dump(cells, f)
-        with open(self.params_sim, 'wb') as f:
-            pickle.dump(p, f)
-
-        # save time-dependent data
-        with open(self.cellConc_attimes, 'wb') as f:
-            pickle.dump(self.cc_time, f)
-        with open(self.cellVm_attimes, 'wb') as f:
-            pickle.dump(self.vm_time, f)
-        with open(self.storedtimes, 'wb') as f:
-            pickle.dump(self.time, f)
-
-    def loadSim(self):
-        # Initialize geometry from file
-        with open(self.cellGeom_sim, 'rb') as f:
-            cells = pickle.load(f)
-
-        with open(self.params_sim, 'rb') as f:
-            self.params = pickle.load(f)
-
-        self.baseInit(cells,self.params)
-
-        # Initialize from a file
-        with open(self.cellConc_sim, 'rb') as f:
-            self.cc_cells = pickle.load(f)
-
-        with open(self.envConc_sim, 'rb') as f:
-            self.cc_env = pickle.load(f)
-
-        with open(self.cellConc_attimes, 'rb') as f:
-            self.cc_time = pickle.load(f)
-
-        with open(self.cellVm_attimes, 'rb') as f:
-            self.vm_time = pickle.load(f)
-
-        with open(self.storedtimes, 'rb') as f:
-            self.time = pickle.load(f)
-
-        q_cells = get_charge(self.cc_cells,self.zs,self.volcell,self.params)
-        vm = get_volt(q_cells,self.sacell,self.params)
-        self.vm_check = vm
-
-        params = self.params
-
-        return cells,params
+        if save==True or save==None:
+            celf = copy.deepcopy(self)
+            datadump = [celf,cells,p]
+            fh.saveSim(self.savedSim,datadump)
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
@@ -701,14 +616,14 @@ def check_c(cA):
     and sets one to zero if it is below zero.
 
     """
-    if isinstance(cA,np.float64):  # if we just have a singular value
-        if cA < 0.0:
-            cA2 = 0.0
-
-    elif isinstance(cA,np.ndarray): # if we have matrix data
-        isubzeros = (cA<0).nonzero()
-        if isubzeros:  # if there's anything in the isubzeros matrix...
-            cA[isubzeros] = 0.0
+    # if isinstance(cA,np.float64):  # if we just have a singular value
+    #     if cA < 0.0:
+    #         cA2 = 0.0
+    #
+    # elif isinstance(cA,np.ndarray): # if we have matrix data
+    isubzeros = (cA<0).nonzero()
+    if isubzeros:  # if there's anything in the isubzeros matrix...
+        cA[isubzeros] = 0.0
 
     return cA
 
