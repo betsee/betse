@@ -3,28 +3,39 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''betse's setuptools-based makefile.'''
+'''`betse`'s `setuptools`-centric makefile.'''
 
 # ....................{ IMPORTS                            }....................
 import setuptools
 
+# Import all constants defined by "betse.info" into the current namespace. This
+# awkward (albeit increasingly commonplace) snippet is required for reliable
+# importation of program metadata declared in the main codebase.  Unfortunately,
+# such metadata is *NOT* reliably importably with conventional syntax (e.g., as
+# "from betse import info"). The reasons, of course, are subtle.
+#
+# Importing packages in the main codebase implicitly imports the top-level
+# "__init__.py" module provided by such codebase. If such module imports from at
+# least one package *NOT* provided by stock Python installations (e.g., from
+# packages installed as mandatory dependencies by this makefile), such
+# importation will fail for users lacking such packages. While such module
+# currently imports from no such packages, this race condition is sufficiently
+# horrible as to warrant explicit circumvention: namely, by manually reading and
+# evaluating the module defining such constants.
+#
+# This is horrible, but coding gets like that sometimes. We blame Guido.
+with open('betse/info.py') as betse_info:
+    exec(betse_info.read())
+
 # ....................{ SETUP                              }....................
-#FIXME; Add dependencies.
 #FIXME; Add "pyside-uic" integration.
-#FIXME; Add "py.test" integration. ("tox" as well, mayhaps?) For "py.test", see
-#the following URL:
-#    http://pytest.org/latest/goodpractises.html#integrating-with-distutils-python-setup-py-test
-#Not terribly arduous, but we'll need to leverage some unctuous boilerplate.
 
 setuptools.setup(
     # ..................{ CORE                               }..................
     # Self-explanatory metadata.
     name = 'betse',
-    version = '0.0.1',
-    description = (
-        'betse (Bioelectric Tissue Simulation Environment) simulates '
-        'propagation of electrical phenomena within biological tissue (e.g., '
-        'ion channel-gated current flow).'),
+    version = __version__,
+    description = DESCRIPTION,
 
     # ..................{ PATH                               }..................
     # List of all Python packages (i.e., directories containing zero or more
@@ -84,3 +95,7 @@ setuptools.setup(
 )
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME; Add "py.test" integration. ("tox" as well, mayhaps?) For "py.test", see
+#the following URL:
+#    http://pytest.org/latest/goodpractises.html#integrating-with-distutils-python-setup-py-test
+#Not terribly arduous, but we'll need to leverage some unctuous boilerplate.
