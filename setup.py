@@ -37,20 +37,30 @@ setuptools.setup(
     packages = setuptools.find_packages(
         exclude=['betse.test', 'betse.test.*', 'test', 'ui',]),
 
+    #FIXME; This isn't quite true. Undesirable files are excludable via the
+    #whitelist approach of "package_data" and/or blacklist approach of
+    #"exclude_package_data". Such functionality may or may not require the
+    #external "setuptools-git" plugin, but is certainly feasible. See also the
+    #comprehensive documentation at:
+    #https://pythonhosted.org/setuptools/setuptools.html#including-data-files
+
     # If True, *ALL* non-Python files will be installed as well. Unlike Python
     # packages, undesirable files are excludable from such installation via the
     # external "MANIFEST.in" file. (Inconvenient, but here we are.)
     include_package_data = True,
 
+    # Install to an uncompressed directory rather than a compressed archive.
+    # (While the latter could be made to work, we've yet to invest the effort.)
+    zip_safe = False,
+
     # Cross-platform executable scripts dynamically created by setuptools at
     # installation time.
     entry_points = {
-        #FIXME: Shift to "betse.cli.cli".
         # CLI-specific scripts.
-        'console_scripts': ['betse = betse.main:main',],
+        'console_scripts': ['betse = betse.cli.cli:main',],
         #FIXME: Create "betse.gui.gui".
         # GUI-specific scripts.
-        'gui_scripts':     ['betse-qt = betse.gui.gui:main',],
+        'gui_scripts':  ['betse-qt = betse.gui.gui:main',],
     },
 
     # ..................{ DEPENDENCY                         }..................
