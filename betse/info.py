@@ -17,14 +17,21 @@
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ CONSTANTS                          }....................
-# Version specifier. For PEP 8 compliance, such specifier is stored in the
-# canonical variable "__variable__" rather than as a constant "VARIABLE".
 __version__ = '0.0.1'
+'''
+Version specifier. For PEP 8 compliance, such specifier is stored in the
+canonical variable `__variable__` rather than as a constant `VARIABLE`.
+'''
 
-# Program description.
-DESCRIPTION = (
-    'betse (Bioelectric Tissue Simulation Environment) simulates '
-    'propagation of electrical phenomena in biological tissue (e.g., ion '
-    'channel-gated current flow).')
+NAME = 'BETSE'
+'''Program name.'''
+
+DESCRIPTION = ''.join((
+    NAME, ' ',
+    '(Bioelectric Tissue Simulation Environment) simulates propagation of ',
+    'electrical phenomena in biological tissue (e.g., ion channel-gated ',
+    'current flow).',
+))
+'''Program description.'''
 
 # --------------------( WASTELANDS                         )--------------------

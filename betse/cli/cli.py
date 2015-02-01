@@ -102,14 +102,16 @@ class CLI(object):
         # all subparsers, added below).
         parser = argparse.ArgumentParser(
             # Program name and description.
-            prog = 'BETSE ' + info.__version__,
-            description = info.DESCRIPTION,)
+            prog = info.NAME + info.__version__,
+            description = info.DESCRIPTION,
+        )
         self._add_parser_common_args(parser)
 
         # Define argument subparsers (i.e., actions).
         subparsers = parser.add_subparsers(
             title = 'actions',
-            description = 'Actions to be performed.',)
+            description = 'Actions to be performed.',
+        )
 
         #FIXME: Not entirely clear as to why we require or want this dictionary.
 
