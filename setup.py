@@ -5,6 +5,19 @@
 
 '''`betse`'s `setuptools`-centric makefile.'''
 
+# ....................{ PYTHON                             }....................
+# Validate the version of the active Python interpreter. While the nearly
+# decade-old and officially accepted PEP 345 proposed a new field
+# "requires_python" (e.g., "requires_python = ['>=2.2.1'],"), such field has yet
+# to be integrated into either disutils or setuputils. Hence, we validate such
+# field manually in the standard way.
+#
+# Behead the infidel setuptools!
+import sys
+if sys.hexversion < 0x03300000:
+    raise RuntimeError(
+        'BETSE requires Python 3.3 or newer. (We feel sadness for you.)')
+
 # ....................{ IMPORTS                            }....................
 import setuptools
 
