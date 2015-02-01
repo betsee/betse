@@ -18,17 +18,19 @@ class Parameters(object):
     For now, a very simple object that stores simulation constants.
 
     """
-    def __init__(self,profile=None):
+    def __init__(self):
 
         self.dt = 1e-2    # Simulation step-size [s]
-        self.init_tsteps = 100000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
+        self.init_tsteps = 1000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
         self.sim_tsteps = 1000    # Number of timesteps for the simulation
         self.t_resample = 10         # resample the time vector every x steps
-        self.true_volume = 0       # use the true cell volume and surface area (=1) or the averages (=0)
+        self.true_volume = 1       # use the true cell volume and surface area (=1) or the averages (=0)
         self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
         self.cache_path = "~/.betse/cache/sim1"  # world, inits, and sims are saved and read to/from this directory.
+
+        self.profile = 'mammalian' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
 
         # basic constants
         self.F = 96485 # Faraday constant [J/V*mol]
@@ -63,6 +65,8 @@ class Parameters(object):
         self.gj_vthresh = 40e-3              # voltage threshhold gj closing [V]
         self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
 
+
+
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
         self.Dm_K = 1.0e-16      # membrane diffusion constant potassium [m2/s]
@@ -89,16 +93,40 @@ class Parameters(object):
         self.z_P = -1
         self.z_M = -1
 
-        zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
+
+        if self.profile == 'basic':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+
+            zs = [self.z_Na, self.z_K]
+
+            conc_env = [self.cNa_env,self.cK_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 17.0
+            self.cK_cell = 131.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell]
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':0,'M':1}
 
         # default environmental and initial values mammalian cells and plasma
-        if profile == 'mammalian' or profile == None:
+        if self.profile == 'mammalian':
+
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cCl_env = 105.0
             self.cCa_env = 1.0
             self.cH_env = 4.0e-8
             self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
 
             conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
@@ -117,14 +145,18 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
          # default environmental and initial values invertebrate cells and plasma
-        if profile == 'invertebrate':
+        if self.profile == 'invertebrate':
             self.cNa_env = 440.0
             self.cK_env = 20.0
             self.cCl_env = 460.0
             self.cCa_env = 10.0
             self.cH_env = 4.0e-8
             self.cP_env = 7.0
+
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
 
             conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
@@ -142,6 +174,8 @@ class Parameters(object):
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
@@ -166,4 +200,4 @@ def bal_charge(concentrations,zs):
     return bal_conc,valance
 
 
-params = Parameters(profile=None)
+params = Parameters()

@@ -2,6 +2,12 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+"""
+
+A number of functions used to save and load worlds and simulations.
+
+"""
+
 import pickle
 
 

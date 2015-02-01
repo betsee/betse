@@ -5,6 +5,7 @@
 # FIXME create a plotting method that plots individual cell data
 # FIXME create a plotting method for ecm data
 # FIXME work on the vector plotting -- perhaps interpolating data to grid?
+# FIXME do something about colorbars
 
 import numpy as np
 import matplotlib.pyplot as plt

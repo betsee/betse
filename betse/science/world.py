@@ -4,6 +4,7 @@
 
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
+# FIXME get all parameters into the parameters file (i.e. vorclose, etc)!
 
 """
 This module contains the class World, which holds

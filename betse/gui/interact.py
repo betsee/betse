@@ -2,18 +2,28 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME make the selection of points a blocking function...somehow...
 
 import matplotlib.pyplot as plt
 
-class PickObject(object):
+class PolyPicker(object):
+    """
+    Allows the user to interactively select cell polygons from a graph.
+    Once selected, polygons turn bright blue.
+    The process is complete when the figure window is closed.
+    Returns a list of indices to cells, which will have properties
+    changed (e.g. ion channels added) depending on how the polypicker
+    is used in the main script.
 
-    def __init__(self,cells,p):
+    """
 
+    def __init__(self,cells,p,resume_after_picking):
+
+        self.resume_after_picking = resume_after_picking
         self.picked_indices = []
         self.plotPatch(cells,p)
       #  self.fig.canvas.mpl_connect('pick_event', self.get_inds)
-        self.fig.canvas.mpl_connect('pick_event', self)
+        self.cidpick = self.fig.canvas.mpl_connect('pick_event', self)
+        self.cidclose = self.fig.canvas.mpl_connect('close_event', self.on_close)
 
     def plotPatch(self,cells,p):
 
@@ -33,19 +43,23 @@ class PickObject(object):
         self.ax.axis('equal')
         self.ax.autoscale_view()
 
-        #self.fig.canvas.draw()
         plt.show(block=False)
 
-
-    def get_inds(self,event):
+    def on_pick(self,event):
 
         patch = event.artist
         patch.set_alpha(1.0)
         self.index = patch.ind
         self.fig.canvas.draw()
         self.picked_indices.append(self.index)
-        print(self.picked_indices)
+
+    def on_close(self, event):
+        self.fig.canvas.mpl_disconnect(self.cidclose)
+        self.fig.canvas.mpl_disconnect(self.cidpick)
+        self.resume_after_picking(self)
 
     def __call__(self, event):
-        self.get_inds(event)
+            self.on_pick(event)
+
+
 

@@ -2,18 +2,13 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-"""
-A toolbox of workhorse functions and routines used in the main simulation. This is the matrix version, which
-implements the simulation in terms of Numpy arrays.
 
-"""
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
-# FIXME what if only some ions are desired instead of all 7 ???
 # FIXME would be nice to have a time estimate for the simulation
-
 # FIXME Ion channels
 # FIXME Calcium dynamics
 # FIXME ECM diffusion and discrete membrane domains?
+# FIXME there seems to be some kind of aliasing from one side to the other?
 
 import numpy as np
 import os, os.path
@@ -26,6 +21,42 @@ from betse.science import filehandling as fh
 
 
 class Simulator(object):
+    """
+    Contains the main routines used in the simulation of networked cell bioelectrical activity.
+    All methods are based on matrix mathematics and are implemented in Numpy for speed.
+
+    Fields
+    ------
+    self.savedInit      path and filename for saving an initialization sim
+    self.savedSim       path and filename for saving a sim
+    self.volcell        actual cell volume list used in sim
+    self.sacell         actual cell surface area list used in sim
+
+    self.cc_cells       nested list of each sim ion concentration for each cell
+    self.cc_env         nested list of each sim ion concentration in the environment
+    self.zs             list of valence state of each sim ion
+    self.Dm_cells       list of membrane diffusion constant of each ion
+    self.movingIons     list of electro-diffusing ions in sim
+    self.ionlabel       label of electro-diffusing ions in sim
+    self.gjopen_time    nested list of gap junction open state for each cell for each sampled time in sim
+    self.cc_time        nested list of each sim ion concentration for each cell at each sampled time in sim
+    self.vm_time        nested list of voltage for each cell at each sampled time in sim
+    self.vm_to          initial voltage of cells in simulation (typically values returned from an initialization run)
+    self.fgj_time       nested list of ion fluxes through gap junctions at each sampled time in sim
+    self.time           sampled time for sim
+
+    Methods
+    -------
+    fileInit(p)                 Prepares save paths for initialization and simulation runs.
+
+    baseInit(cells,p)           Prepares zeroed or base-initialized data structures for a full init or sim run.
+
+    runInit(cells,p)            Runs and saves an initialization for world specified by cells and parameters in p.
+
+    runSim(cells,p,save=True)   Runs a simulation for world specified by cells and parameters in p.
+                                Optional save for save=True (default).
+
+    """
 
 
     def __init__(self,p):
@@ -48,7 +79,6 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, 'saved_init.pickle')
         self.savedSim = os.path.join(betse_cache_dir, 'saved_sim.pickle')
-
 
     def baseInit(self,cells,p):
         """
@@ -75,71 +105,169 @@ class Simulator(object):
             self.volcell = cells.cell_vol
             self.sacell = cells.cell_sa
 
+        self.cc_cells = []  # cell concentrations initialized
+        self.cc_env = []   # environmental concentrations initialized
+        self.zs = []   # ion valence state initialized
+        self.Dm_cells = []              # membrane diffusion constants initialized
+        self.movingIons = []            # moving ions indices
+        self.ionlabel = {}              # dictionary to hold label names
+
+        i = -1                           # an index to track place in ion list
+
         # Initialize cellular concentrations of ions:
-        cNa_cells = np.zeros(len(cells.cell_i))
-        cNa_cells[:]=p.cNa_cell
+        if p.ions_dict['Na'] == 1:
 
-        cK_cells = np.zeros(len(cells.cell_i))
-        cK_cells[:]=p.cK_cell
+            i = i+1
 
-        cCl_cells = np.zeros(len(cells.cell_i))
-        cCl_cells[:]=p.cCl_cell
+            self.iNa = i
+            self.movingIons.append(self.iNa)
+            self.ionlabel[self.iNa] = 'sodium'
 
-        cCa_cells = np.zeros(len(cells.cell_i))
-        cCa_cells[:]=p.cCa_cell
+            cNa_cells = np.zeros(len(cells.cell_i))
+            cNa_cells[:]=p.cNa_cell
 
-        cH_cells = np.zeros(len(cells.cell_i))
-        cH_cells[:]=p.cH_cell
+            cNa_env = np.zeros(len(cells.cell_i))
+            cNa_env[:]=p.cNa_env
 
-        cP_cells = np.zeros(len(cells.cell_i))
-        cP_cells[:]=p.cP_cell
+            DmNa = np.zeros(len(cells.cell_i))
+            DmNa[:] = p.Dm_Na
 
-        cM_cells = np.zeros(len(cells.cell_i))
-        cM_cells[:]=p.cM_cell
+            self.cc_cells.append(cNa_cells)
+            self.cc_env.append(cNa_env)
+            self.zs.append(p.z_Na)
+            self.Dm_cells.append(DmNa)
 
-        # Initialize environmental ion concentrations:
-        cNa_env = np.zeros(len(cells.cell_i))
-        cNa_env[:]=p.cNa_env
+        if p.ions_dict['K'] == 1:
 
-        cK_env = np.zeros(len(cells.cell_i))
-        cK_env[:]=p.cK_env
+            i= i+ 1
 
-        cCl_env = np.zeros(len(cells.cell_i))
-        cCl_env[:]=p.cCl_env
+            self.iK = i
+            self.movingIons.append(self.iK)
+            self.ionlabel[self.iK] = 'potassium'
 
-        cCa_env = np.zeros(len(cells.cell_i))
-        cCa_env[:]=p.cCa_env
+            cK_cells = np.zeros(len(cells.cell_i))
+            cK_cells[:]=p.cK_cell
 
-        cH_env = np.zeros(len(cells.cell_i))
-        cH_env[:]=p.cH_env
+            cK_env = np.zeros(len(cells.cell_i))
+            cK_env[:]=p.cK_env
 
-        cP_env = np.zeros(len(cells.cell_i))
-        cP_env[:]=p.cP_env
+            DmK = np.zeros(len(cells.cell_i))
+            DmK[:] = p.Dm_K
 
-        cM_env = np.zeros(len(cells.cell_i))
-        cM_env[:]=p.cM_env
+            self.cc_cells.append(cK_cells)
+            self.cc_env.append(cK_env)
+            self.zs.append(p.z_K)
+            self.Dm_cells.append(DmK)
 
-        # Initialize membrane diffusion co-efficients:
-        DmNa = np.zeros(len(cells.cell_i))
-        DmNa[:] = p.Dm_Na
+        if p.ions_dict['Cl'] == 1:
 
-        DmK = np.zeros(len(cells.cell_i))
-        DmK[:] = p.Dm_K
+            i =i+1
 
-        DmCl = np.zeros(len(cells.cell_i))
-        DmCl[:] = p.Dm_Cl
+            self.iCl = i
+            self.movingIons.append(self.iCl)
+            self.ionlabel[self.iCl] = 'chlorine'
 
-        DmCa = np.zeros(len(cells.cell_i))
-        DmCa[:] = p.Dm_Ca
+            cCl_cells = np.zeros(len(cells.cell_i))
+            cCl_cells[:]=p.cCl_cell
 
-        DmH = np.zeros(len(cells.cell_i))
-        DmH[:] = p.Dm_H
+            cCl_env = np.zeros(len(cells.cell_i))
+            cCl_env[:]=p.cCl_env
 
-        DmP = np.zeros(len(cells.cell_i))
-        DmP[:] = p.Dm_P
+            DmCl = np.zeros(len(cells.cell_i))
+            DmCl[:] = p.Dm_Cl
 
-        DmM = np.zeros(len(cells.cell_i))
-        DmM[:] = p.Dm_M
+            self.cc_cells.append(cCl_cells)
+            self.cc_env.append(cCl_env)
+            self.zs.append(p.z_Cl)
+            self.Dm_cells.append(DmCl)
+
+        if p.ions_dict['Ca'] == 1:
+
+            i =i+1
+
+            self.iCa = i
+            self.movingIons.append(self.iCa)
+            self.ionlabel[self.iCa] = 'calcium'
+
+            cCa_cells = np.zeros(len(cells.cell_i))
+            cCa_cells[:]=p.cCa_cell
+
+            cCa_env = np.zeros(len(cells.cell_i))
+            cCa_env[:]=p.cCa_env
+
+            DmCa = np.zeros(len(cells.cell_i))
+            DmCa[:] = p.Dm_Ca
+
+            self.cc_cells.append(cCa_cells)
+            self.cc_env.append(cCa_env)
+            self.zs.append(p.z_Ca)
+            self.Dm_cells.append(DmCa)
+
+        if p.ions_dict['H'] == 1:
+
+            i =i+1
+
+            self.iH = i
+            self.movingIons.append(self.iH)
+            self.ionlabel[self.iH] = 'protons'
+
+            cH_cells = np.zeros(len(cells.cell_i))
+            cH_cells[:]=p.cH_cell
+
+            cH_env = np.zeros(len(cells.cell_i))
+            cH_env[:]=p.cH_env
+
+            DmH = np.zeros(len(cells.cell_i))
+            DmH[:] = p.Dm_H
+
+            self.cc_cells.append(cH_cells)
+            self.cc_env.append(cH_env)
+            self.zs.append(p.z_H)
+            self.Dm_cells.append(DmH)
+
+        if p.ions_dict['P'] == 1:
+
+            i =i+1
+
+            self.iP = i
+            self.ionlabel[self.iP] = 'proteins'
+
+            cP_cells = np.zeros(len(cells.cell_i))
+            cP_cells[:]=p.cP_cell
+
+            cP_env = np.zeros(len(cells.cell_i))
+            cP_env[:]=p.cP_env
+
+            DmP = np.zeros(len(cells.cell_i))
+            DmP[:] = p.Dm_P
+
+            self.cc_cells.append(cP_cells)
+            self.cc_env.append(cP_env)
+            self.zs.append(p.z_P)
+            self.Dm_cells.append(DmP)
+
+        if p.ions_dict['M'] == 1:
+
+            i =i+1
+
+            self.iM = i
+            self.movingIons.append(self.iM)
+            self.ionlabel[self.iM] = 'charge balance anion'
+
+            cM_cells = np.zeros(len(cells.cell_i))
+            cM_cells[:]=p.cM_cell
+
+            cM_env = np.zeros(len(cells.cell_i))
+            cM_env[:]=p.cM_env
+
+            DmM = np.zeros(len(cells.cell_i))
+            DmM[:] = p.Dm_M
+
+            self.cc_cells.append(cM_cells)
+            self.cc_env.append(cM_env)
+            self.zs.append(p.z_M)
+            self.Dm_cells.append(DmM)
+
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -150,23 +278,23 @@ class Simulator(object):
         self.envV[:] = p.vol_env
 
         # Create vectors holding a range of ion-matched data
-        self.cc_cells = [cNa_cells,cK_cells,cCl_cells,cCa_cells,cH_cells,cP_cells,cM_cells]  # cell concentrations
-        self.cc_env = [cNa_env,cK_env,cCl_env,cCa_env,cH_env,cP_env,cM_env]   # environmental concentrations
-        self.zs = [p.z_Na, p.z_K, p.z_Cl, p.z_Ca, p.z_H, p.z_P, p.z_M]   # matched ion valence state
-        self.Dm_cells = [DmNa, DmK, DmCl,DmCa,DmH,DmP,DmM]              # matched membrane diffusion constants
+        # self.cc_cells = [cNa_cells,cK_cells,cCl_cells,cCa_cells,cH_cells,cP_cells,cM_cells]  # cell concentrations
+        # self.cc_env = [cNa_env,cK_env,cCl_env,cCa_env,cH_env,cP_env,cM_env]   # environmental concentrations
+        # self.zs = [p.z_Na, p.z_K, p.z_Cl, p.z_Ca, p.z_H, p.z_P, p.z_M]   # matched ion valence state
+        # self.Dm_cells = [DmNa, DmK, DmCl,DmCa,DmH,DmP,DmM]              # matched membrane diffusion constants
 
-        self.iNa=0     # indices to each ion for use in above arrays
-        self.iK = 1
-        self.iCl=2
-        self.iCa = 3
-        self.iH = 4
-        self.iP = 5
-        self.iM = 6
+        # self.iNa=0     # indices to each ion for use in above arrays
+        # self.iK = 1
+        # self.iCl=2
+        # self.iCa = 3
+        # self.iH = 4
+        # self.iP = 5
+        # self.iM = 6
 
-        self.movingIons = [self.iNa,self.iK,self.iCl,self.iCa,self.iH,self.iM]
+        # self.movingIons = [self.iNa,self.iK,self.iCl,self.iCa,self.iH,self.iM]
 
-        self.ionlabel = {self.iNa:'Sodium',self.iK:'Potassium',self.iCl:'Chloride',self.iCa:'Calcium',self.iH:'Proton',
-            self.iP:'Protein',self.iM:'Charge Balance Anion'}
+        # self.ionlabel = {self.iNa:'Sodium',self.iK:'Potassium',self.iCl:'Chloride',self.iCa:'Calcium',self.iH:'Proton',
+        #     self.iP:'Protein',self.iM:'Charge Balance Anion'}
 
         # gap junction specific arrays:
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
@@ -413,10 +541,8 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
     volb        volume of region B [m3]
     zc          valence of ionic species c
     Vba         voltage between B and A as Vb - Va  [V]
-    dt          time step   [s]
-    method      EULER or RK4 for Euler and Runge-Kutta 4
-                integration methods, respectively. 'RK4_AB' is an
-                alternative implementation of RK4.
+    p           an instance of the Parameters class
+
 
     Returns
     --------
@@ -526,8 +652,8 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
     voli            Volume of the cell [m3]
     volo            Volume outside the cell [m3]
     Vm              Voltage across cell membrane [V]
-    sa              Surface area of membrane
-    method          EULER or RK4 solver
+    p               An instance of Parameters object
+
 
     Returns
     -------

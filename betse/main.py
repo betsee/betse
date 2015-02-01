@@ -13,10 +13,10 @@
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import sys, time
+from betse.gui import interact
 from betse.science.world import World
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
-from betse.science import interact
 from betse.science import visualize as viz
 
 # ....................{ MAIN                               }....................
@@ -43,13 +43,13 @@ def main(args = None):
     cells.makeWorld()
     #
     p = Parameters()
-    sim = Simulator()
+    sim = Simulator(p)
     #
     sim.baseInit(cells,p)
-    # sim.runInit(cells,p)
+    #sim.runInit(cells,p)
     #cells, _ = sim.loadInit()
 
-    sim.runSim(cells,p)
+    sim.runSim(cells,p,save=False)
 #    cells,p = sim.loadSim()
 
     vdata = sim.vm_time[-1]*1000
@@ -61,7 +61,6 @@ def main(args = None):
     axV.set_xlabel('Spatial x [um]')
     axV.set_title('Voltage in Each Discrete Cell')
     axcbV.set_label('Voltage [mV]')
-    figV.canvas.mpl_connect('pick_event', interact.get_inds)
     plt.show(block=False)
 
     # boo = interact.PickObject(cells,p)
@@ -99,7 +98,6 @@ def main(args = None):
     # axGJ.set_xlabel('Spatial x [um]')
     # axGJ.set_title('Gap Junction Open Fraction')
     # axcbGJ.set_label('Gap Junction Open Fraction (1.0 = open, 0.0 = closed)')
-    # figGJ.canvas.mpl_connect('pick_event', interact.get_inds)
     # plt.show(block=False)
 
     # fig1, ax1, axcb1 = viz.plotMemData(cells, clrmap = cm.coolwarm,zdata='random')
