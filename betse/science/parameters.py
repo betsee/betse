@@ -21,16 +21,16 @@ class Parameters(object):
     def __init__(self):
 
         self.dt = 1e-2    # Simulation step-size [s]
-        self.init_tsteps = 1000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
+        self.init_tsteps = 200000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
         self.sim_tsteps = 1000    # Number of timesteps for the simulation
-        self.t_resample = 10         # resample the time vector every x steps
+        self.t_resample = 7         # resample the time vector every x steps
         self.true_volume = 1       # use the true cell volume and surface area (=1) or the averages (=0)
         self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
-        self.cache_path = "~/.betse/cache/sim1"  # world, inits, and sims are saved and read to/from this directory.
+        self.cache_path = "~/.betse/cache/basicInit"  # world, inits, and sims are saved and read to/from this directory.
 
-        self.profile = 'mammalian' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
+        self.profile = 'basic' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
 
         # basic constants
         self.F = 96485 # Faraday constant [J/V*mol]
@@ -69,7 +69,7 @@ class Parameters(object):
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1.0e-16      # membrane diffusion constant potassium [m2/s]
+        self.Dm_K = 1.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]

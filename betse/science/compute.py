@@ -8,7 +8,6 @@
 # FIXME Ion channels
 # FIXME Calcium dynamics
 # FIXME ECM diffusion and discrete membrane domains?
-# FIXME there seems to be some kind of aliasing from one side to the other?
 
 import numpy as np
 import os, os.path
@@ -277,25 +276,6 @@ class Simulator(object):
         self.envV = np.zeros(len(cells.cell_i))
         self.envV[:] = p.vol_env
 
-        # Create vectors holding a range of ion-matched data
-        # self.cc_cells = [cNa_cells,cK_cells,cCl_cells,cCa_cells,cH_cells,cP_cells,cM_cells]  # cell concentrations
-        # self.cc_env = [cNa_env,cK_env,cCl_env,cCa_env,cH_env,cP_env,cM_env]   # environmental concentrations
-        # self.zs = [p.z_Na, p.z_K, p.z_Cl, p.z_Ca, p.z_H, p.z_P, p.z_M]   # matched ion valence state
-        # self.Dm_cells = [DmNa, DmK, DmCl,DmCa,DmH,DmP,DmM]              # matched membrane diffusion constants
-
-        # self.iNa=0     # indices to each ion for use in above arrays
-        # self.iK = 1
-        # self.iCl=2
-        # self.iCa = 3
-        # self.iH = 4
-        # self.iP = 5
-        # self.iM = 6
-
-        # self.movingIons = [self.iNa,self.iK,self.iCl,self.iCa,self.iH,self.iM]
-
-        # self.ionlabel = {self.iNa:'Sodium',self.iK:'Potassium',self.iCl:'Chloride',self.iCa:'Calcium',self.iH:'Proton',
-        #     self.iP:'Protein',self.iM:'Charge Balance Anion'}
-
         # gap junction specific arrays:
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
 
@@ -336,7 +316,7 @@ class Simulator(object):
 
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
         # report
-        print('Your sim initialization is running for', int((p.init_tsteps*p.dt)/60),'minutes of in-world time.')
+        print('Your sim initialization is running for', round((p.init_tsteps*p.dt)/60,2),'minutes of in-world time.')
 
 
         for t in tt:   # run through the loop

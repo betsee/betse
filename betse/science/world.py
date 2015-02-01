@@ -785,6 +785,7 @@ class World(object):
 
         self.cell_vol = []   # storage for cell volumes
         self.cell_sa = []    # whole cell surface areas
+        self.cell_area = []
 
         self.mem_edges = []  # storage for membrane edge points
         self.mem_length = []   # storage for membrane surface area values
@@ -800,10 +801,12 @@ class World(object):
 
         perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
 
-        for poly in self.cell_verts:
+        for polyc in self.cell_verts:
             # First calculate individual cell volumes from cell vertices:
+            poly = [x for x in reversed(polyc)]
             self.cell_vol.append(p.cell_height*tb.area(poly))
-            self.cell_sa.append(2*tb.area(poly) + perim)   # surface area of whole cell [m2]
+            self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
+            self.cell_area.append(tb.area(poly))
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []

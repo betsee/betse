@@ -5,7 +5,8 @@
 # FIXME create a plotting method that plots individual cell data
 # FIXME create a plotting method for ecm data
 # FIXME work on the vector plotting -- perhaps interpolating data to grid?
-# FIXME do something about colorbars
+# FIXME saving animations doesn't work
+# FIXME do an animation for smoothed 'vert' data and gap junctions (with fluxes)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,6 +14,72 @@ from matplotlib.collections import LineCollection, PolyCollection
 import matplotlib.cm as cm
 from betse.science import toolbox as tb
 from betse.science.parameters import params as p
+from matplotlib import animation
+
+class AnimateCellData(object):
+    """
+    Animate color data on a plot of cells.
+
+    """
+
+    def __init__(self,cells,zdata_t,tvect,p,colormap=cm.rainbow, save=False,ani_repeat=False):
+
+        self.zdata_t = zdata_t
+        self.colormap = colormap
+        self.time = tvect
+
+        # define a polygon collection based on individual cell polygons
+        self.points = np.multiply(cells.cell_verts, p.um)
+        self.collection =  PolyCollection(self.points, cmap=self.colormap, edgecolors='none')
+        self.collection.set_array(zdata_t[0])
+
+        # set range of the colormap
+        self.cmean = np.mean(self.zdata_t)
+        self.cmin = np.min(self.zdata_t)
+        self.cmax = np.max(self.zdata_t)
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+        self.collection.set_clim(self.cmin,self.cmax)
+
+        self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
+
+        self.ax.add_collection(self.collection)
+
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+
+        # sanorm = cells.cell_area/np.linalg.norm(cells.cell_area)
+        #
+        # for sa,pt in zip(sanorm,cells.cell_centres):
+        #     sa = round(sa,2)
+        #     self.ax.text(pt[0]*p.um,pt[1]*p.um,sa)
+
+        self.ax.autoscale_view()
+
+        self.frames = len(self.zdata_t)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+               frames=self.frames, interval=66, repeat=ani_repeat)
+
+        if save == True:
+
+            ani.save('basic_animation.mp4')
+            print('Animation saved to file.')
+
+        plt.show()
+
+
+
+    def aniFunc(self,i):
+
+        zz = self.zdata_t[i]
+
+        self.collection.set_array(zz)
+        tit = 'Simulation time' + ' ' + str(round(self.time[i],1)) + ' ' + 's'
+        self.ax.set_title(tit)
+
+        return self.collection
 
 def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
         """
@@ -23,7 +90,7 @@ def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
         vor_verts              Nested list of [x,y] points defining each polygon. May be ecm_verts or
                                cell_verts
 
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
+        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
                                vor_verts. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -64,18 +131,30 @@ def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
         points = np.multiply(cells.cell_verts, p.um)
 
         coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
-        coll.set_picker(True)
+        # coll.set_picker(True)
         ax.add_collection(coll)
         ax.axis('equal')
 
-
         # Add a colorbar for the PolyCollection
         std = np.std(zdata,axis=0)
+        mean = np.mean(zdata,axis=0)
 
-        if zdata != None and std !=0.0:
-            ax_cb = fig.colorbar(coll, ax=ax)
-        else:
-            ax_cb = None
+        if zdata != None and std > 1e-13:
+            ax_cb = fig.colorbar(coll,ax=ax)
+
+        elif std<1e-13:
+
+            if mean < 0:
+                coll.set_clim(mean,0)
+            if mean > 0:
+                coll.set_clim(0,mean)
+
+            ax_cb = fig.colorbar(coll,ax=ax)
+
+        elif zdata == None:
+            coll.set_clim(0,1)
+            ax_cb = fig.colorbar(coll,ax=ax)
+
 
         ax.autoscale_view(tight=True)
 
@@ -89,7 +168,7 @@ def plotCellData(cells, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay = 
 
         Parameters
         ----------
-        zdata                  A data array with each scalar entry corresponding to a point in
+        zdata_t                  A data array with each scalar entry corresponding to a point in
                                cell_centres. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -169,7 +248,7 @@ def plotMemData(cells, fig= None, ax = None, zdata=None,clrmap=None):
 
         Parameters
         ----------
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
+        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
                                vor_verts. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -231,7 +310,7 @@ def plotConnectionData(cells, fig = None, ax=None, zdata=None,clrmap=None,colorb
         Parameters
         ----------
 
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
+        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
                                vor_verts. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 

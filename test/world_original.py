@@ -124,11 +124,11 @@ class World(object):
 
     Plotting methods:
 
-    plotPolyData(zdata = None,clrmap = None)                                   Plot cell polygons with data as colour
-    plotCellData(zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None)  Plot smoothed cell-centre data as colour
-    plotVertData(vor_verts,zdata=None,clrmap=None,edgeOverlay=None,pointOverlay=None)       Plot smoothed nested data
-    plotMemData(zdata=None,clrmap=None)                                      Plot membrane domains with data as colour
-    plotConnectionData(zdata=None,clrmap=None)                      Plot GJ connections with data as colour
+    plotPolyData(zdata_t = None,clrmap = None)                                   Plot cell polygons with data as colour
+    plotCellData(zdata_t=None,clrmap=None,edgeOverlay = None,pointOverlay=None)  Plot smoothed cell-centre data as colour
+    plotVertData(vor_verts,zdata_t=None,clrmap=None,edgeOverlay=None,pointOverlay=None)       Plot smoothed nested data
+    plotMemData(zdata_t=None,clrmap=None)                                      Plot membrane domains with data as colour
+    plotConnectionData(zdata_t=None,clrmap=None)                      Plot GJ connections with data as colour
     plotBoundCells()                                    Plot points flagged as existing on the environmental boundary
     plotVects()                                  Plot unit vectors corresponding to cell membrane and ecm
 
@@ -898,7 +898,7 @@ class World(object):
         vor_verts              Nested list of [x,y] points defining each polygon. May be ecm_verts or
                                cell_verts
 
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
+        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
                                vor_verts. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -952,7 +952,7 @@ class World(object):
 
         Parameters
         ----------
-        zdata                  A data array with each scalar entry corresponding to a point in
+        zdata_t                  A data array with each scalar entry corresponding to a point in
                                cell_centres. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -1029,7 +1029,7 @@ class World(object):
         ----------
         vor_verts              An instance of cell_verts, ecm_verts, cell_mids, or ecm_mids_i
 
-        zdata                  A data array with each scalar entry corresponding to a point in
+        zdata_t                  A data array with each scalar entry corresponding to a point in
                                cell_centres. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -1102,7 +1102,7 @@ class World(object):
 
         Parameters
         ----------
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
+        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
                                vor_verts. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 
@@ -1159,7 +1159,7 @@ class World(object):
         Parameters
         ----------
 
-        zdata                  A data array with each scalar entry corresponding to a polygon entry in
+        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
                                vor_verts. If not specified the default is z=1. If 'random'
                                is specified the method creates random vales from 0 to 1..
 

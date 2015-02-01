@@ -3,7 +3,6 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME do something about case where data doesn't vary so colorbar isn't useless
 
 import matplotlib.pyplot as plt
 import time
@@ -15,6 +14,7 @@ from betse.science import visualize as viz
 import matplotlib.cm as cm
 from betse.science import filehandling as fh
 import numpy as np
+from matplotlib import animation
 
 class MainDriver(object):
 
@@ -22,8 +22,8 @@ class MainDriver(object):
 
         self.start_time = time.time()  # get a start value for timing the simulation
 
-        self.cells = World(vorclose='circle',worldtype='full')  # always need instance of world
-        self.cells.makeWorld()     # call functions to create the world
+        #self.cells = World(vorclose='circle',worldtype='full')  # always need instance of world
+        #self.cells.makeWorld()     # call functions to create the world
 
         #fh.saveSim(self.cells.savedWorld,self.cells)   # save the world to cache
 
@@ -33,11 +33,11 @@ class MainDriver(object):
 
         self.sim = Simulator(self.p)   # whether running from scratch or loading, instance needs to be called
 
-        self.sim.baseInit(self.cells, self.p)   # initialize data if working from scratch
+        #self.sim.baseInit(self.cells, self.p)   # initialize data if working from scratch
 
-        self.sim.runInit(self.cells,self.p)     # run and save an initialization if working from scratch
+        #self.sim.runInit(self.cells,self.p)     # run and save an initialization if working from scratch
 
-        #self.sim,self.cells, self.p = fh.loadSim(self.sim.savedInit)  # load an initialization from cache
+        self.sim,self.cells, _ = fh.loadSim(self.sim.savedInit)  # load an initialization from cache
 
         self.sim.runSim(self.cells,self.p,save=False)   # run and save the simulation
 
@@ -45,35 +45,37 @@ class MainDriver(object):
 
         vdata0 =self.sim.vm_to*1000
         vdata = self.sim.vm_time[-1]*1000
+        # print('vdata0',vdata0)
+        # print('vdata',vdata)
+        self.meanV0 = round(np.mean(vdata0,axis=0),2)
+        self.meanV = round(np.mean(vdata,axis=0),2)
+
+        vdata_t = np.multiply(self.sim.vm_time,1000)
+
+        viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=False, ani_repeat=True)
+        # a.cb.set_label('Voltage [mV]')
+
+
+
+
+
+        # figI, axI, axcbI = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata0)
+        # figI, axI, _ = viz.plotConnectionData(self.cells, fig=figI, ax = axI, zdata=self.sim.gjopen, pickable=False)
+        # axI.set_ylabel('Spatial y [um]')
+        # axI.set_xlabel('Spatial x [um]')
+        # tit = 'Cell voltage at time zero'+' '+'(average ' + str(self.meanV0) + ' ' + 'mV' + ')'
+        # axI.set_title(tit)
+        # axcbI.set_label('Voltage [mV]')
+        # plt.show(block=True)
         #
-        # print(vdata0)
-        # print(vdata)
-
-        figI, axI, axcbI = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata0)
-        figI, axI, _ = viz.plotConnectionData(self.cells, fig=figI, ax = axI, zdata=self.sim.gjopen, pickable=False)
-        axI.set_ylabel('Spatial y [um]')
-        axI.set_xlabel('Spatial x [um]')
-        axI.set_title('Cell voltage at time zero')
-        if axcbI != None:
-            axcbI.set_label('Voltage [mV]')
-        # for i, pt in enumerate(self.cells.cell_centres):
-        #     axI.text(self.p.um*pt[0],self.p.um*pt[1],i)
-        # if axcbI == None:
-        #     md = np.mean(vdata0,axis=0)
-        #     axI.text(0,0,md)
-        plt.show(block=False)
-
-        figV, axV, axcbV = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata)
-        figV, axV, _ = viz.plotConnectionData(self.cells, fig=figV, ax = axV, zdata=self.sim.gjopen, pickable=False)
-        axV.set_ylabel('Spatial y [um]')
-        axV.set_xlabel('Spatial x [um]')
-        axV.set_title('Voltage in Each Discrete Cell')
-        if axcbV != None:
-            axcbV.set_label('Voltage [mV]')
-        # if axcbV == None:
-        #     md = np.mean(vdata,axis=0)
-        #     axV.text(0,0,md)
-        plt.show(block=False)
+        # figV, axV, axcbV = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata)
+        # figV, axV, _ = viz.plotConnectionData(self.cells, fig=figV, ax = axV, zdata=self.sim.gjopen, pickable=False)
+        # axV.set_ylabel('Spatial y [um]')
+        # axV.set_xlabel('Spatial x [um]')
+        # tit = 'Cell voltage at time zero'+' '+'(average ' + str(self.meanV) + ' ' + 'mV' + ')'
+        # axV.set_title(tit)
+        # axcbV.set_label('Voltage [mV]')
+        # plt.show(block=True)
 
         # interact.PolyPicker(self.cells,self.p,self.resume_after_picking)
 
@@ -92,8 +94,8 @@ class MainDriver(object):
         # cdata = sim.cc_time[-1][ioni]
         # ionname = sim.ionlabel[ioni]
         #
-        # figNa, axNa, axcbNa = viz.plotPolyData(cells, clrmap = cm.coolwarm,zdata=cdata)
-        # figNa, axNa, _ = viz.plotConnectionData(cells, fig=figNa, ax = axNa, zdata=sim.gjopen)
+        # figNa, axNa, axcbNa = viz.plotPolyData(cells, clrmap = cm.coolwarm,zdata_t=cdata)
+        # figNa, axNa, _ = viz.plotConnectionData(cells, fig=figNa, ax = axNa, zdata_t=sim.gjopen)
         # axNa.set_ylabel('Spatial y [um]')
         # axNa.set_xlabel('Spatial x [um]')
         # tit = ionname + ' ' + 'Concentration in Cells'
@@ -106,8 +108,8 @@ class MainDriver(object):
         # cdata = sim.cc_time[-1][ioni]
         # ionname = sim.ionlabel[ioni]
         #
-        # figK, axK, axcbK = viz.plotPolyData(cells, clrmap = cm.coolwarm,zdata=cdata)
-        # figK, axK, _ = viz.plotConnectionData(cells, fig=figK, ax = axK, zdata=sim.gjopen)
+        # figK, axK, axcbK = viz.plotPolyData(cells, clrmap = cm.coolwarm,zdata_t=cdata)
+        # figK, axK, _ = viz.plotConnectionData(cells, fig=figK, ax = axK, zdata_t=sim.gjopen)
         # axK.set_ylabel('Spatial y [um]')
         # axK.set_xlabel('Spatial x [um]')
         # tit = ionname + ' ' + 'Concentration in Cells'
@@ -116,14 +118,14 @@ class MainDriver(object):
         # axcbK.set_label(lab)
         # plt.show(block=False)
         #
-        # figGJ, axGJ, axcbGJ =viz.plotConnectionData(cells, zdata=sim.gjopen, colorbar=1, pickable =True)
+        # figGJ, axGJ, axcbGJ =viz.plotConnectionData(cells, zdata_t=sim.gjopen, colorbar=1, pickable =True)
         # axGJ.set_ylabel('Spatial y [um]')
         # axGJ.set_xlabel('Spatial x [um]')
         # axGJ.set_title('Gap Junction Open Fraction')
         # axcbGJ.set_label('Gap Junction Open Fraction (1.0 = open, 0.0 = closed)')
         # plt.show(block=False)
 
-        # fig1, ax1, axcb1 = viz.plotMemData(cells, clrmap = cm.coolwarm,zdata='random')
+        # fig1, ax1, axcb1 = viz.plotMemData(cells, clrmap = cm.coolwarm,zdata_t='random')
         # ax1.set_ylabel('Spatial y [um]')
         # ax1.set_xlabel('Spatial x [um]')
         # ax1.set_title('Foo Voltage on Discrete Membrane Domains')
@@ -147,7 +149,7 @@ class MainDriver(object):
         # ax8.set_title('Normal and Tangent Vectors to Membrane Domains')
         # plt.show(block=False)
         #
-        # fig9, ax9, axcb9 = viz.plotCellData(zdata='random',pointOverlay=False,edgeOverlay=False)
+        # fig9, ax9, axcb9 = viz.plotCellData(zdata_t='random',pointOverlay=False,edgeOverlay=False)
         # ax9.set_ylabel('Spatial y [um]')
         # ax9.set_xlabel('Spatial x [um]')
         # ax9.set_title('Foo Concentration in Cells Interpolated to Surface Plot')
