@@ -3,52 +3,68 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''`betse`'s `setuptools`-centric makefile.'''
+'''`betse`'s `setuptools`-based makefile.'''
 
-# ....................{ PYTHON                             }....................
-# Validate the version of the active Python interpreter. While the nearly
-# decade-old and officially accepted PEP 345 proposed a new field
-# "requires_python" (e.g., "requires_python = ['>=2.2.1'],"), such field has yet
-# to be integrated into either disutils or setuputils. Hence, we validate such
-# field manually in the standard way.
+#FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
+#following URL, which appears to be the only online reference to such practice.
+#We could leverage such logic by defining a new "setup_pyside.py" file in the
+#same directory as this file containing the class defined by:
 #
-# Behead the infidel setuptools!
-import sys
-if sys.hexversion < 0x03300000:
-    raise RuntimeError(
-        'BETSE requires Python 3.3 or newer. (We feel sadness for you.)')
-
-# ....................{ IMPORTS                            }....................
-import setuptools
-
-# Import all constants defined by "betse.info" into the current namespace. This
-# awkward (albeit increasingly commonplace) snippet is required for reliable
-# importation of program metadata declared in the main codebase.  Unfortunately,
-# such metadata is *NOT* reliably importably with conventional syntax (e.g., as
-# "from betse import info"). The reasons, of course, are subtle.
+#   https://gist.github.com/ivanalejandro0/6758741
 #
-# Importing packages in the main codebase implicitly imports the top-level
-# "__init__.py" module provided by such codebase. If such module imports from at
-# least one package *NOT* provided by stock Python installations (e.g., from
-# packages installed as mandatory dependencies by this makefile), such
-# importation will fail for users lacking such packages. While such module
-# currently imports from no such packages, this race condition is sufficiently
-# horrible as to warrant explicit circumvention: namely, by manually reading and
-# evaluating the module defining such constants.
+#We'll want to retain the "pyside-rcc"-specific portion of that code as well,
+#which compiles ".qrc" resource files (...in XML format, of course) to ".py"
+#files. See the useful answer here concerning usage from the Python perspective:
+#
+#    https://stackoverflow.com/questions/22508491/a-py-file-which-compiled-from-qrc-file-using-pyside-rcc-does-not-work
+
+# ....................{ START                              }....................
+# Import all constants defined by "betse.info" into the current namespace
+# *BEFORE* subsequent logic possibly depending on the the version of the active
+# Python interpreter, which such importation also validates.
+#
+# This awkward (albeit increasingly commonplace) snippet is required for
+# reliable importation of metadata declared by and hence shared with the main
+# codebase. Unfortunately, such metadata is *NOT* reliably importably via the
+# conventional syntax (e.g., "from betse import info"). The reason is subtle.
+#
+# Importing packages from the main codebase implicitly imports such codebase's
+# top-level "__init__.py" module. If such module imports from at least one
+# package *NOT* provided by stock Python installations (e.g., from packages
+# installed as mandatory dependencies by this makefile), such importation will
+# fail for users lacking such packages. While such module currently imports from
+# no such packages, this race condition is sufficiently horrible as to warrant
+# explicit circumvention: namely, by manually reading and evaluating the module
+# defining such constants.
 #
 # This is horrible, but coding gets like that sometimes. We blame Guido.
 with open('betse/info.py') as betse_info:
     exec(betse_info.read())
 
-# ....................{ SETUP                              }....................
-#FIXME; Add "pyside-uic" integration.
+# ....................{ IMPORTS                            }....................
+import setuptools
 
+# ....................{ SETUP                              }....................
 setuptools.setup(
     # ..................{ CORE                               }..................
-    # Self-explanatory metadata.
-    name = 'betse',
+    # Self-explanatory metadata. Since the "NAME" constant provided by
+    # "betse.info" is uppercase *AND* since setuptools-installed package names
+    # are commonly lowercase, such constant is coerced to lowercase.
+    name = NAME.lower(),
     version = __version__,
     description = DESCRIPTION,
+    author = AUTHORS,
+    author_email='alexis.pietak@gmail.com',
+
+    # PyPi-specific metadata.
+    classifiers=[
+        'Intended Audience :: Science/Research',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Topic :: Scientific/Engineering :: Visualization',
+        # 'License :: ???',
+    ],
 
     # ..................{ PATH                               }..................
     # List of all Python packages (i.e., directories containing zero or more
