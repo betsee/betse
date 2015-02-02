@@ -8,6 +8,7 @@
 # FIXME Ion channels
 # FIXME Calcium dynamics
 # FIXME ECM diffusion and discrete membrane domains?
+ # FIXME would be nice to track ATP use
 
 import numpy as np
 import os, os.path
@@ -28,8 +29,6 @@ class Simulator(object):
     ------
     self.savedInit      path and filename for saving an initialization sim
     self.savedSim       path and filename for saving a sim
-    self.volcell        actual cell volume list used in sim
-    self.sacell         actual cell surface area list used in sim
 
     self.cc_cells       nested list of each sim ion concentration for each cell
     self.cc_env         nested list of each sim ion concentration in the environment
@@ -86,23 +85,6 @@ class Simulator(object):
         diffusion constants.
 
         """
-
-        # whether to use the unique volume and surface area of cells or a single average value:
-        if p.true_volume == None or p.true_volume==0:
-
-            self.volcelli = np.mean(cells.cell_vol,axis=0)
-            self.sacelli = np.mean(cells.cell_sa,axis=0)
-
-            self.volcell = np.zeros(len(cells.cell_i))
-            self.volcell[:]=self.volcelli
-
-            self.sacell = np.zeros(len(cells.cell_i))
-            self.sacell[:]=self.sacelli
-
-        elif p.true_volume == 1:
-
-            self.volcell = cells.cell_vol
-            self.sacell = cells.cell_sa
 
         self.cc_cells = []  # cell concentrations initialized
         self.cc_env = []   # environmental concentrations initialized
@@ -312,9 +294,23 @@ class Simulator(object):
                             interval is specified as dt in the parameters module.
 
         """
-
+        # Reinitialize data structures that hold time data
+        self.cc_time = []  # data array holding the concentrations at time points
+        self.vm_time = []  # data array holding voltage at time points
+        self.time = []     # time values of the simulation
 
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
+
+
+        i = 0 # resample the time vector to save data at specific times:
+        tsamples =[]
+        resample = p.t_resample
+        while i < len(tt)-resample:
+            i = i + resample
+            tsamples.append(tt[i])
+        tsamples = set(tsamples)
+
+
         # report
         print('Your sim initialization is running for', round((p.init_tsteps*p.dt)/60,2),'minutes of in-world time.')
 
@@ -322,15 +318,15 @@ class Simulator(object):
         for t in tt:   # run through the loop
 
             # get the net, unbalanced charge in each cell:
-            q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
+            q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
 
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
-            vm = get_volt(q_cells,self.sacell,p)
+            vm = get_volt(q_cells,cells.cell_sa,p)
 
             # run the Na-K-ATPase pump:   # FIXME there may be other pumps!
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    self.volcell,self.envV,vm,p)
+                    cells.cell_vol,self.envV,vm,p)
 
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
@@ -339,14 +335,22 @@ class Simulator(object):
             for i in self.movingIons:
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
-                vm = get_volt(q_cells,self.sacell,p)
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                vm = get_volt(q_cells,cells.cell_sa,p)
 
                 self.cc_env[i],self.cc_cells[i],fNa = \
-                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
-                        self.envV,self.volcell,self.zs[i],vm,p)
+                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
+                        self.envV,cells.cell_vol,self.zs[i],vm,p)
 
             self.vm_to = copy.deepcopy(vm)
+
+            if t in tsamples:
+                # add the new concentration and voltage data to the time-storage matrices:
+                concs = copy.deepcopy(self.cc_cells)
+                self.cc_time.append(concs)
+                vmm = copy.deepcopy(vm)
+                self.vm_time.append(vmm)
+                self.time.append(t)
 
         celf = copy.deepcopy(self)
 
@@ -357,6 +361,13 @@ class Simulator(object):
         """
         Drives the actual time-loop iterations for the simulation.
         """
+        # Reinitialize all time-data structures
+        self.cc_time = []  # data array holding the concentrations at time points
+        self.vm_time = []  # data array holding voltage at time points
+        self.time = []     # time values of the simulation
+        self.fgj_time = []      # stores the gj fluxes for each ion at each time
+        self.Igj_time = []      # current for each gj at each time
+
         # create a time-steps vector:
         tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
 
@@ -369,20 +380,20 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        print('Your simulation is running from',0,'to',p.sim_tsteps*p.dt,'seconds, in-world time.')
+        print('Your simulation is running from',0,'to',p.sim_tsteps*p.dt,'seconds of in-world time.')
 
         for t in tt:   # run through the loop
 
             # get the net, unbalanced charge in each cell:
-            q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
+            q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
 
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
-            vm = get_volt(q_cells,self.sacell,p)
+            vm = get_volt(q_cells,cells.cell_sa,p)
 
-            # run the Na-K-ATPase pump:  # FIXME would be nice to track ATP use
+            # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    self.volcell,self.envV,vm,p)
+                    cells.cell_vol,self.envV,vm,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
@@ -392,16 +403,16 @@ class Simulator(object):
             for i in self.movingIons:
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
-                vm = get_volt(q_cells,self.sacell,p)
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                vm = get_volt(q_cells,cells.cell_sa,p)
 
                 self.cc_env[i],self.cc_cells[i],fNa = \
-                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.sacell,
-                        self.envV,self.volcell,self.zs[i],vm,p)
+                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
+                        self.envV,cells.cell_vol,self.zs[i],vm,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.zs,self.volcell,p)
-                vm = get_volt(q_cells,self.sacell,p)
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                vm = get_volt(q_cells,cells.cell_sa,p)
 
                 vmA,vmB = vm[cells.gap_jun_i][:,0], vm[cells.gap_jun_i][:,1]
                 vgj = vmB - vmA
@@ -409,8 +420,8 @@ class Simulator(object):
                 self.gjopen = (1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad))
 
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-                    self.gjopen*p.Do_Na,self.gjl,self.gjsa,self.volcell[cells.gap_jun_i][:,0],
-                    self.volcell[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
+                    self.gjopen*p.Do_Na,self.gjl,self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+                    cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
 
                 self.cc_cells[i] = self.cc_cells[i] + np.dot(fgj, cells.gjMatrix)
 
@@ -422,11 +433,22 @@ class Simulator(object):
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 flxs = copy.deepcopy(self.fluxes_gj)
+                vmm = copy.deepcopy(vm)
                 self.cc_time.append(concs)
-                self.vm_time.append(vm)
+                self.vm_time.append(vmm)
                 self.time.append(t)
                 self.fgj_time.append(flxs)
                 self.gjopen_time.append(self.gjopen)
+
+        # End off by calculating the current through the gap junctions:
+        self.Igj_time =[]
+        for tflux in self.fgj_time:
+            igj=0
+            for zi, flx in zip(self.zs,tflux):
+                igj = igj+ zi*flx
+
+            igj = p.F*igj
+            self.Igj_time.append(igj)
 
         if save==True or save==None:
             celf = copy.deepcopy(self)

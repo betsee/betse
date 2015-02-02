@@ -22,16 +22,16 @@ class AnimateCellData(object):
 
     """
 
-    def __init__(self,cells,zdata_t,tvect,p,colormap=cm.rainbow, save=False,ani_repeat=False):
+    def __init__(self,cells,zdata_t,time,p,colormap=cm.rainbow, save=False,ani_repeat=False):
 
         self.zdata_t = zdata_t
         self.colormap = colormap
-        self.time = tvect
+        self.time = time
 
         # define a polygon collection based on individual cell polygons
         self.points = np.multiply(cells.cell_verts, p.um)
         self.collection =  PolyCollection(self.points, cmap=self.colormap, edgecolors='none')
-        self.collection.set_array(zdata_t[0])
+        self.collection.set_array(self.zdata_t[0])
 
         # set range of the colormap
         self.cmean = np.mean(self.zdata_t)
@@ -49,12 +49,6 @@ class AnimateCellData(object):
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
 
-        # sanorm = cells.cell_area/np.linalg.norm(cells.cell_area)
-        #
-        # for sa,pt in zip(sanorm,cells.cell_centres):
-        #     sa = round(sa,2)
-        #     self.ax.text(pt[0]*p.um,pt[1]*p.um,sa)
-
         self.ax.autoscale_view()
 
         self.frames = len(self.zdata_t)
@@ -70,7 +64,6 @@ class AnimateCellData(object):
         plt.show()
 
 
-
     def aniFunc(self,i):
 
         zz = self.zdata_t[i]
@@ -79,7 +72,128 @@ class AnimateCellData(object):
         tit = 'Simulation time' + ' ' + str(round(self.time[i],1)) + ' ' + 's'
         self.ax.set_title(tit)
 
-        return self.collection
+
+class AnimateGJData(object):
+    """
+    Animate the gap junction open state as a function of time.
+    """
+
+    def __init__(self,cells,sim,p,colormap=cm.coolwarm, save=False,ani_repeat=False):
+
+        self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
+        self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
+        self.colormap = colormap
+        self.time = sim.time
+
+        self.gjI_t = np.sign(sim.Igj_time)
+        self.gjvects = cells.gj_vects
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
+        con_segs = cells.cell_centres[cells.gap_jun_i]
+        connects = p.um*np.asarray(con_segs)
+        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap=cm.bone_r, linewidths=3.0, zorder=5)
+        self.collection.set_clim(0.0,1.0)
+        self.ax.add_collection(self.collection)
+
+        # Next add a collection of cell polygons, with aimated voltage data
+        points = np.multiply(cells.cell_verts, p.um)
+        self.coll2 =  PolyCollection(points, array=self.vdata_t[0], edgecolors='none', cmap=self.colormap)
+        self.coll2.set_alpha(1.0)
+         # set range of the colormap
+        self.cmean = np.mean(self.vdata_t)
+        self.cmin = np.min(self.vdata_t)
+        self.cmax = np.max(self.vdata_t)
+        self.coll2.set_clim(self.cmin,self.cmax)
+        self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
+        self.ax.add_collection(self.coll2)
+
+        # Next add in gap junction current direction
+        vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
+        vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
+
+        self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
+            vx,vy,self.zdata_t[0],zorder=10, cmap=cm.bone_r,clim=[0,1])
+
+        self.cb.set_label('Voltage [mV]')
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+
+        self.ax.autoscale_view()
+
+        self.frames = len(self.zdata_t)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+               frames=self.frames, interval=100, repeat=ani_repeat)
+
+        if save == True:
+
+            ani.save('basic_animation.mp4')
+            print('Animation saved to file.')
+
+        plt.show()
+
+
+
+    def aniFunc(self,i):
+
+        zz = self.zdata_t[i]
+        zv = self.vdata_t[i]
+
+        vx = np.multiply(self.gjI_t[i],self.gjvects[:,2])
+        vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
+
+        self.collection.set_array(zz)
+        self.coll2.set_array(zv)
+
+        self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
+            vx,vy,zz,zorder=10, cmap=cm.bone_r,clim=[0,1])
+
+        tit = 'Simulation time' + ' ' + str(round(self.time[i],1)) + ' ' + 's'
+        self.ax.set_title(tit)
+
+
+def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
+
+    tvect_data=[x[celli]*1000 for x in simdata_time]
+
+    if fig==None:
+        fig = plt.figure()# define the figure and axes instances
+    if ax == None:
+        ax = plt.subplot(111)
+        #ax = plt.axes()
+
+    ax.plot(simtime, tvect_data,lncolor)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Voltage [mV]')
+    #ax.axis('equal')
+
+    return fig, ax
+
+
+def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
+
+    # ccIon = [arr[ion] for arr in simdata_time]  # get all cells at all times at one ion
+    # ccIon_cell = [x[0] for x in ccIon]  # get one cell at all times at one ion
+
+    ccIon_cell = [round(arr[ioni][celli],2) for arr in simdata_time]
+
+    if fig==None:
+        fig = plt.figure()# define the figure and axes instances
+    if ax == None:
+        ax = plt.subplot(111)
+        #ax = plt.axes()
+
+    lab = ionname
+
+    ax.plot(simtime, ccIon_cell,lncolor,label=lab)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Concentration [mol/m3]')
+    #ax.axis('equal')
+
+    return fig, ax
+
 
 def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
         """

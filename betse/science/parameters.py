@@ -21,10 +21,9 @@ class Parameters(object):
     def __init__(self):
 
         self.dt = 1e-2    # Simulation step-size [s]
-        self.init_tsteps = 200000 # Number of timesteps for an initialization from scratch (range 50000 to 200000)
+        self.init_tsteps = 50000 # Number of timesteps for an initialization from scratch (range 50000 to 100000)
         self.sim_tsteps = 1000    # Number of timesteps for the simulation
         self.t_resample = 7         # resample the time vector every x steps
-        self.true_volume = 1       # use the true cell volume and surface area (=1) or the averages (=0)
         self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
