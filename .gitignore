@@ -24,6 +24,9 @@
 *.pyc
 *.pyo
 
+# Ignore all binary audio and video files.
+*.mp4
+
 # Ignore all temporary files.
 *~
 *.log

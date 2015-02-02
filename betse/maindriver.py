@@ -69,13 +69,9 @@ class MainDriver(object):
 
         # ANIMATING DATA
 
-        viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=False, ani_repeat=True,colormap=cm.Blues)
+        viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=True, ani_repeat=True,colormap=cm.Blues)
 
-        viz.AnimateGJData(self.cells, self.sim, self.p, save=False, ani_repeat=True)
-
-
-
-
+        # viz.AnimateGJData(self.cells, self.sim, self.p, save=False, ani_repeat=True)
 
         # figI, axI, axcbI = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata0)
         # figI, axI, _ = viz.plotConnectionData(self.cells, fig=figI, ax = axI, zdata=self.sim.gjopen, pickable=False)

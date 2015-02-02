@@ -8,6 +8,7 @@
 # FIXME saving animations doesn't work
 # FIXME do an animation for smoothed 'vert' data and gap junctions (with fluxes)
 
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
@@ -54,11 +55,29 @@ class AnimateCellData(object):
         self.frames = len(self.zdata_t)
 
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
-               frames=self.frames, interval=66, repeat=ani_repeat)
+            frames=self.frames, interval=66, repeat=ani_repeat)
 
         if save == True:
+            # Encode such animation to disk. Naturally, this requires external
+            # dependencies (e.g., "ffmpeg"). Unfortunately, the save() method
+            # only prints non-fatal warnings rather than raising fatal
+            # exceptions when such dependencies are not installed. We correct
+            # this by temporarily converting warnings to exceptions for the
+            # duration of such call. See also:
+            #     https://docs.python.org/3/library/warnings.html
+            with warnings.catch_warnings():
+                warnings.simplefilter('error')
 
-            ani.save('basic_animation.mp4')
+                #FIXME: Ideally, save() should detect which of ffmpeg and avconv
+                #is installed and enable the appropriate writer. Unfortunately,
+                #it currently requires we manually specify such backend as below.
+                #This is bad, as Sess uses ffmpeg whereas Ally uses avconv (due
+                #to differences between Linux distributions). Correct this by
+                #manually detecting which of the two (if any) is in the current
+                #$PATH and enabling the appropriate writer. Annoying, but trivial.
+
+                ani.save('basic_animation.mp4', writer='avconv')
+
             print('Animation saved to file.')
 
         plt.show()
