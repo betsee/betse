@@ -9,23 +9,34 @@
 #   that glob() and hence ".gitignore" files support only a proper subset of
 #   bash- or zsh-style glob syntax.
 
-# ....................{ DIRECTORIES                        }....................
+# ....................{ DIRECTORIES ~ top-level            }....................
 # Ignore the top-level "output" directory.
 /output/
 
+# Ignore all top-level setuptools-specific egg directories.
+/*.egg-info/
+
+# ....................{ DIRECTORIES ~ general              }....................
 # Ignore all PyCharm-specific subdirectories.
 .idea/
 
 # Ignore all Rope-specific subdirectories.
 .ropeproject/
 
-# ....................{ FILES                              }....................
-# Ignore all binary Python-specific files.
-*.pyc
-*.pyo
+# ....................{ FILES ~ top-level                  }....................
+# Ignore all top-level Nose-specific output files.
+/nosetests.xml
 
-# Ignore all binary audio and video files.
+# Ignore all top-level PyInstaller-specific output files.
+/*.manifest
+/*.spec
+
+# ....................{ FILES ~ general                    }....................
+# Ignore all audio and video files.
 *.mp4
+
+# Ignore all Python-specific cache files.
+*.py[cod]
 
 # Ignore all temporary files.
 *~
