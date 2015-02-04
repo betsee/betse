@@ -5,6 +5,15 @@
 
 '''`betse`'s `setuptools`-based makefile.'''
 
+#FIXME: Define a new "symlink" setuptools command, strongly inspired by the
+#IPython command of the same name. See:
+#    https://github.com/ipython/ipython/blob/master/setupbase.py
+#    https://github.com/ipython/ipython/blob/master/setup.py
+#To support such cruft, we probably want a new setuptools-specific package tree
+#(e.g., a new top-level directory "setup" containing at least files
+#"__init__.py" and "symlink.py", the latter implementing the "symlink" and
+#"unsymlink" commands).
+
 #FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
 #following URL, which appears to be the only online reference to such practice.
 #We could leverage such logic by defining a new "setup_pyside.py" file in the
@@ -42,10 +51,11 @@ with open('betse/info.py') as betse_info:
     exec(betse_info.read())
 
 # ....................{ IMPORTS                            }....................
+from setup import symlink
 import setuptools
 
-# ....................{ SETUP                              }....................
-setuptools.setup(
+# ....................{ OPTIONS                            }....................
+setup_options = {
     # ..................{ CORE                               }..................
     # Self-explanatory metadata. Since the "NAME" constant provided by
     # "betse.info" is uppercase *AND* since setuptools-installed package names
@@ -54,10 +64,10 @@ setuptools.setup(
     version = __version__,
     description = DESCRIPTION,
     author = AUTHORS,
-    author_email='alexis.pietak@gmail.com',
+    author_email = 'alexis.pietak@gmail.com',
 
     # PyPi-specific metadata.
-    classifiers=[
+    classifiers = [
         'Intended Audience :: Science/Research',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.3',
@@ -65,6 +75,11 @@ setuptools.setup(
         'Topic :: Scientific/Engineering :: Visualization',
         # 'License :: ???',
     ],
+
+    # ..................{ COMMAND                            }..................
+    # Custom commands specific to this makefile called in the customary way
+    # (e.g., "sudo python3 setup.py symlink").
+    cmdclass = {}
 
     # ..................{ PATH                               }..................
     # List of all Python packages (i.e., directories containing zero or more
@@ -75,7 +90,8 @@ setuptools.setup(
     #   *NOT* intended to be installed with betse.
     # * "test", providing ad-hoc tests intended for developer use only.
     packages = setuptools.find_packages(
-        exclude=['betse.test', 'betse.test.*', 'test', 'ui',]),
+        exclude = ['betse.test', 'betse.test.*', 'test', 'ui',],
+    ),
 
     #FIXME; This isn't quite true. Undesirable files are excludable via the
     #whitelist approach of "package_data" and/or blacklist approach of
@@ -94,14 +110,15 @@ setuptools.setup(
     zip_safe = False,
 
     # Cross-platform executable scripts dynamically created by setuptools at
-    # installation time.
+    # both installation and symlink time.
     entry_points = {
         # CLI-specific scripts.
         'console_scripts': ['betse = betse.cli.cli:main',],
+
         #FIXME: Create "betse.gui.gui".
         # GUI-specific scripts.
         'gui_scripts':  ['betse-qt = betse.gui.gui:main',],
-    },
+    }
 
     # ..................{ DEPENDENCY                         }..................
     # Runtime dependencies. See "README.md".
@@ -121,9 +138,39 @@ setuptools.setup(
     # ..................{ TEST                               }..................
     # Name of the package running unit tests.
     test_suite = 'nose.collector',
-)
+}
+'''
+Dictionary passed to the subsequent call to `setup()`.
+
+This dictionary signifies the set of all `betse`-specific `setuptools` options.
+Modules in the `betse`-specific `setup` package customize such options (e.g., by
+defining custom commands).
+'''
+
+# ....................{ COMMANDS                           }....................
+# Define custom commands.
+symlink.add_commands(setup_options)
+
+# ....................{ SETUP                              }....................
+setuptools.setup(**setup_options)
 
 # --------------------( WASTELANDS                         )--------------------
+# ENTRY_POINTS = {
+#     # CLI-specific scripts.
+#     'console_scripts': ['betse = betse.cli.cli:main',],
+#
+#     #FUXME: Create "betse.gui.gui".
+#     # GUI-specific scripts.
+#     'gui_scripts':  ['betse-qt = betse.gui.gui:main',],
+# }
+# '''
+# Dictionary defining cross-platform executable scripts dynamically created by
+# `setuptools` at both installation and symlink time.
+#
+# For `setuptools` compatibility, this dictionary assumes the same structure as
+# the `entry_points` field passed to `setup()`.
+# '''
+
 #FUXME; Add "py.test" integration. ("tox" as well, mayhaps?) For "py.test", see
 #the following URL:
 #    http://pytest.org/latest/goodpractises.html#integrating-with-distutils-python-setup-py-test

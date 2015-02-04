@@ -3,6 +3,11 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: Define a new module "betse/dependency.py" performing validation of
+#external dependencies, both Python and non-Python. Although we believe "yppy"
+#implemented such functionality, google about for the optimum Python 3 solution
+#to this presumably commonplace problem.
+
 #FIXME; The following snippet courtesy Matthew Leingan affords an elegant means
 #of integrating built-in Python argument parsing and logging;
 #

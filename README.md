@@ -74,8 +74,15 @@ absolute path of the directory containing this file.
 
 `betse` is installable into a system-wide directory as follows:
 
+* **(Optional).** Set the current umask to "002", permitting subsequently
+  installed paths to be read by non-superusers. Since this is usually the
+  default, this command is required only for users explicitly changing the umask
+  (e.g., via shell startup scripts).
+    >>> umask 002
+* Compile `betse`. 
     >>> cd "${BETSE_DIR}"
     >>> python3 setup.py build
+* Install `betse`. 
     >>> sudo python3 setup.py easy_install --no-deps .
 
 Curiously, although the `develop` command for `setuptools` provides a
@@ -132,32 +139,70 @@ Python 3 interpreter as follows:
 
 ## Development
 
-For development purposes, `betse` is installable **editably** (i.e., as a
-symbolic link rather than physical copy). As the name implies, editable
-installations are modifiable at runtime and hence suitable for development.
-Thanks to the magic of symbolic links, changes to the copy of `betse` from which
-an editable installation was installed will be silently prograpagated back to
-such installation.
+For development purposes, `betse` is *editably installable* (i.e., as a symbolic
+link rather than physical copy). As the name implies, editable installations are
+modifiable at runtime and hence suitable for development. Thanks to the magic
+of symbolic links, changes to the copy of `betse` from which an editable
+installation was installed will be silently prograpagated back to such
+installation.
 
-`betse` is installable editably via both `pip` and `setuptools`. While there
-appears to be no particular advantage to using one over the other, it remains
-helpful to note that both apply. In either case, external executables (e.g.,
-`betse`, `betse-qt`) will also be installed and usable in the expected manner.
+### System-wide
 
-### pip
+`betse` is installable into a system-wide directory as follows:
 
-`betse` is installable editably to a system-wide directory via `pip` as follows:
+* **(Optional).** Set the current umask to "002" as above.
+    >>> umask 002
+* Editably install `betse`.
+    >>> cd "${BETSE_DIR}"
+    >>> sudo python3 setup.py symlink
+
+The `symlink` command is a `betse`-specific `setuptools` command inspired by the
+IPython `setuptools` command of the same name, generalizing the behaviour of the
+default `develop` command to system-wide editable installations.
+
+Why? Because the `develop` command is suitable *only* for user-specific editable
+installations. While both `pip` and `setuptools` provide commands for performing
+editable installations (e.g., `sudo pip3 install --no-deps --editable .` and
+`sudo python3 setup.py develop --no-deps`, respectively), executable scripts
+installed by such commands raise fatal exceptions on failing to find
+`setuptools`-installed dependencies regardless of whether such dependencies have
+already been installed in a system-wide manner. To quote [IPython developer
+MinRK](http://mail.scipy.org/pipermail/ipython-dev/2014-February/013209.html):
+
+    So much hate for setuptools right now.  I can't believe `--no-deps` skips
+    dependency installation, but still adds a redundant check to entry points.
+
+### User-specific
+
+`betse` is editably installable into a user-specific venv via either `pip` or
+`setuptools` **from within such venv.** While there appears to be no particular
+advantage to using one over the other, it remains helpful to note that both
+apply. In either case, external executables (e.g., `betse`, `betse-qt`) will
+also be installed and usable in the expected manner.
+
+#### pip
+
+`betse` is editably installable into a user-specific venv via `pip` as follows:
 
     >>> cd "${BETSE_DIR}"
-    >>> sudo pip3 install --editable --no-deps .
+    >>> pip3 install --no-deps --editable .
 
-### setuptools
+Such installation is uninstallable as follows:
 
-`betse` is installable editably to a system-wide directory via `setuptools` as
+    >>> pip3 uninstall betse
+
+#### setuptools
+
+`betse` is editably installable into a user-specific venv via `setuptools` as
 follows:
 
     >>> cd "${BETSE_DIR}"
-    >>> sudo python3 setup.py develop --no-deps
+    >>> ./setup.py develop --no-deps
+
+Such installation is uninstallable as follows:
+
+    >>> cd "${BETSE_DIR}"
+    >>> ./setup.py develop --uninstall
 
 ## Testing
 
