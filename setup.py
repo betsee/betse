@@ -60,14 +60,14 @@ setup_options = {
     # Self-explanatory metadata. Since the "NAME" constant provided by
     # "betse.info" is uppercase *AND* since setuptools-installed package names
     # are commonly lowercase, such constant is coerced to lowercase.
-    name = NAME.lower(),
-    version = __version__,
-    description = DESCRIPTION,
-    author = AUTHORS,
-    author_email = 'alexis.pietak@gmail.com',
+    'name': NAME.lower(),
+    'version': __version__,
+    'description': DESCRIPTION,
+    'author': AUTHORS,
+    'author_email': 'alexis.pietak@gmail.com',
 
     # PyPi-specific metadata.
-    classifiers = [
+    'classifiers': [
         'Intended Audience :: Science/Research',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.3',
@@ -79,7 +79,7 @@ setup_options = {
     # ..................{ COMMAND                            }..................
     # Custom commands specific to this makefile called in the customary way
     # (e.g., "sudo python3 setup.py symlink").
-    cmdclass = {}
+    'cmdclass': {},
 
     # ..................{ PATH                               }..................
     # List of all Python packages (i.e., directories containing zero or more
@@ -88,9 +88,10 @@ setup_options = {
     #
     # * "betse.test" and all subpackages of such package, providing unit tests
     #   *NOT* intended to be installed with betse.
+    # * "setup", providing setuptools-specific packages.
     # * "test", providing ad-hoc tests intended for developer use only.
-    packages = setuptools.find_packages(
-        exclude = ['betse.test', 'betse.test.*', 'test', 'ui',],
+    'packages': setuptools.find_packages(
+        exclude = ['betse.test', 'betse.test.*', 'setup', 'test', 'ui',],
     ),
 
     #FIXME; This isn't quite true. Undesirable files are excludable via the
@@ -103,26 +104,26 @@ setup_options = {
     # If True, *ALL* non-Python files will be installed as well. Unlike Python
     # packages, undesirable files are excludable from such installation via the
     # external "MANIFEST.in" file. (Inconvenient, but here we are.)
-    include_package_data = True,
+    'include_package_data': True,
 
     # Install to an uncompressed directory rather than a compressed archive.
     # (While the latter could be made to work, we've yet to invest the effort.)
-    zip_safe = False,
+    'zip_safe': False,
 
     # Cross-platform executable scripts dynamically created by setuptools at
     # both installation and symlink time.
-    entry_points = {
+    'entry_points': {
         # CLI-specific scripts.
         'console_scripts': ['betse = betse.cli.cli:main',],
 
         #FIXME: Create "betse.gui.gui".
         # GUI-specific scripts.
         'gui_scripts':  ['betse-qt = betse.gui.gui:main',],
-    }
+    },
 
     # ..................{ DEPENDENCY                         }..................
     # Runtime dependencies. See "README.md".
-    install_requires = [
+    'install_requires': [
         'numpy >= 1.9.0',
         'pyside >= 1.1.0',
         'pyyaml >= 3.10',
@@ -133,11 +134,11 @@ setup_options = {
     # Unit test-specific dependencies. While such tests should also be runnable
     # under "py.test", "py.test" does *NOT* provide out-of-the-box support for
     # setuptools and hence is non-ideal.
-    tests_require = ['nose >= 1.3.0'],
+    'tests_require': ['nose >= 1.3.0'],
 
     # ..................{ TEST                               }..................
     # Name of the package running unit tests.
-    test_suite = 'nose.collector',
+    'test_suite': 'nose.collector',
 }
 '''
 Dictionary passed to the subsequent call to `setup()`.
