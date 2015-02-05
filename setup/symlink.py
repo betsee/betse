@@ -6,18 +6,18 @@
 '''`betse`-specific `symlink` command for `setuptools`.'''
 
 # ....................{ IMPORTS                            }....................
-# from setuptools import Command
+from setup import error
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
 from setuptools.command.install_scripts import install_scripts
-from distutils.errors import (DistutilsFileError, DistutilsPlatformError,)
+from distutils.errors import DistutilsFileError
 import os
 
 # ....................{ COMMANDS                           }....................
 def add_commands(setup_options):
     '''
-    Add custom symbolic link-specific commands to the passed dictionary of
-    `setuptools` options.
+    Add symbolic link-specific commands to the passed dictionary of `setuptools`
+    options.
     '''
     # For the name of each command class to be registered as a new command...
     for command_class_name in (
@@ -47,7 +47,7 @@ class unsymlink(install):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is *NOT* POSIX-compatible, such system
         # does *NOT* provide conventional symbolic links. Raise an exception.
-        raise_exception_if_os_non_posix()
+        error.raise_exception_if_os_non_posix()
 
         # Absolute path of such symbolic link.
         symlink_filename = os.path.join(
@@ -83,7 +83,7 @@ class symlink(install):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is *NOT* POSIX-compatible, such system
         # does *NOT* provide conventional symbolic links. Raise an exception.
-        raise_exception_if_os_non_posix()
+        error.raise_exception_if_os_non_posix()
 
         # Run all subcommands.
         for subcommand_name in self.get_sub_commands():
@@ -113,7 +113,7 @@ class symlink_lib(install_lib):
             'symlink', ('install_lib', 'install_dir'))
 
     def run(self):
-        raise_exception_if_os_non_posix()
+        error.raise_exception_if_os_non_posix()
 
         # Absolute path of betse's top-level Python package in the current
         # directory.
@@ -170,20 +170,6 @@ def remove_symlink(filename):
     # Remove such link.
     print('Removing symbolic link "{}".'.format(filename))
     os.unlink(filename)
-
-# ....................{ EXCEPTIONS                         }....................
-def raise_exception_if_os_non_posix():
-    '''
-    Raise a fatal exception if the current operating system does `not` comply
-    with POSIX standards (e.g., as required for symbolic link manipulation).
-
-    Typically, this implies such system to be Windows.
-    '''
-    if os.name != 'posix':
-        raise DistutilsPlatformError(
-            'This command requires POSIX compliance. However, the current '
-            'operating system is POSIX-noncompliant (e.g., Windows).'
-        )
 
 # --------------------( WASTELANDS                         )--------------------
 # ....................{ GETTERS                            }....................

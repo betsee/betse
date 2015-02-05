@@ -18,6 +18,9 @@
 /*.egg-info/
 
 # ....................{ DIRECTORIES ~ general              }....................
+# Ignore all Python-specific cache directories.
+__pycache__/
+
 # Ignore all PyCharm-specific subdirectories.
 .idea/
 

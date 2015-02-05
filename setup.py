@@ -51,7 +51,7 @@ with open('betse/info.py') as betse_info:
     exec(betse_info.read())
 
 # ....................{ IMPORTS                            }....................
-from setup import symlink
+from setup import scripts, symlink
 import setuptools
 
 # ....................{ OPTIONS                            }....................
@@ -149,8 +149,9 @@ defining custom commands).
 '''
 
 # ....................{ COMMANDS                           }....................
-# Define custom commands.
-symlink.add_commands(setup_options)
+# Define all BETSE-specific setuptools commands.
+for setup_module in (scripts, symlink):
+    setup_module.add_commands(setup_options)
 
 # ....................{ SETUP                              }....................
 setuptools.setup(**setup_options)
