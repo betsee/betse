@@ -22,8 +22,8 @@ class MainDriver(object):
 
         self.start_time = time.time()  # get a start value for timing the simulation
 
-     #   self.cells = World(vorclose='circle',worldtype='full')  # always need instance of world
-      #  self.cells.makeWorld()     # call functions to create the world
+        #self.cells = World(vorclose='circle',worldtype='full')  # always need instance of world
+        #self.cells.makeWorld()     # call functions to create the world
 
         #fh.saveSim(self.cells.savedWorld,self.cells)   # save the world to cache
 
@@ -33,15 +33,18 @@ class MainDriver(object):
 
         self.sim = Simulator(self.p)   # whether running from scratch or loading, instance needs to be called
 
-      #  self.sim.baseInit(self.cells, self.p)   # initialize data if working from scratch
-        #
-      #  self.sim.runInit(self.cells,self.p)     # run and save an initialization if working from scratch
+        #self.sim.baseInit(self.cells, self.p)   # initialize data if working from scratch
 
-        #self.sim,self.cells, _ = fh.loadSim(self.sim.savedInit)  # load an initialization from cache
+        #self.sim.runInit(self.cells,self.p)     # run and save an initialization if working from scratch
+
+        self.sim,self.cells, _ = fh.loadSim(self.sim.savedInit)  # load an initialization from cache
 
         self.sim.runSim(self.cells,self.p,save=False)   # run and save the simulation
 
         #sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
+
+        print('final cell concentrations',self.sim.cc_cells)
+        print('final env concentrations',self.sim.cc_env)
 
         vdata0 =self.sim.vm_to*1000
         vdata = self.sim.vm_time[-1]*1000
@@ -66,6 +69,9 @@ class MainDriver(object):
             ax=axC,lncolor='b',ionname='K+')
         figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iM,self.p.target_cell,fig=figC,
              ax=axC,lncolor='r',ionname='M-')
+
+        figCa, axCa = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iCa,self.p.target_cell,
+            lncolor='r',ionname='Ca2+')
 
         lg = axC.legend()
         lg.draw_frame(True)

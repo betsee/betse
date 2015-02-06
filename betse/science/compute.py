@@ -249,6 +249,28 @@ class Simulator(object):
             self.zs.append(p.z_M)
             self.Dm_cells.append(DmM)
 
+        # if p.ions_dict['Mp'] == 1:
+        #
+        #     i =i+1
+        #
+        #     self.iMp = i
+        #     self.movingIons.append(self.iMp)
+        #     self.ionlabel[self.iMp] = 'charge balance cation'
+        #
+        #     cMp_cells = np.zeros(len(cells.cell_i))
+        #     cMp_cells[:]=p.cMp_cell
+        #
+        #     cMp_env = np.zeros(len(cells.cell_i))
+        #     cMp_env[:]=p.cMp_env
+        #
+        #     DmMp = np.zeros(len(cells.cell_i))
+        #     DmMp[:] = p.Dm_Mp
+        #
+        #     self.cc_cells.append(cMp_cells)
+        #     self.cc_env.append(cMp_env)
+        #     self.zs.append(p.z_Mp)
+        #     self.Dm_cells.append(DmMp)
+
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -267,6 +289,8 @@ class Simulator(object):
         self.Igj_time = []      # current for each gj at each time
 
         self.vm_to = np.zeros(len(cells.cell_i))
+
+        print(self.ionlabel)
 
     def runInit(self,cells,p):
         """
@@ -307,10 +331,15 @@ class Simulator(object):
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
             self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-            # run the Na-K-ATPase pump:   # FIXME there may be other pumps!
+            # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
+
+            if p.ions_dict['Ca'] == 1:
+
+                self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -337,6 +366,8 @@ class Simulator(object):
 
         datadump = [celf,cells,p]
         fh.saveSim(self.savedInit,datadump)
+        message_1 = 'Initialization run saved to' + ' ' + p.cache_path
+        print(message_1)
 
         self.vm_to = copy.deepcopy(self.vm)
 
@@ -388,10 +419,15 @@ class Simulator(object):
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
             self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-            # run the Na-K-ATPase pump: # FIXME add in Calcium pump
+            # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
+
+            if p.ions_dict['Ca'] == 1:
+
+                self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
@@ -470,6 +506,8 @@ class Simulator(object):
             celf = copy.deepcopy(self)
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
+            message_2 = 'Simulation run saved to' + ' ' + p.cache_path
+            print(message_2)
 
     def scheduledChanges(self,target_specifier,t,p):
 
@@ -796,7 +834,61 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
         cKo2 = cKo - (2/3)*dmol/volo
 
 
-    return cNai2,cNao2,cKi2,cKo2, f_Na, f_K, delG, alpha
+    return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
+
+def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
+
+    """
+    Parameters
+    ----------
+    cCai            Concentration of Ca2+ inside the cell
+    cCao            Concentration of Ca2+ outside the cell
+    voli            Volume of the cell [m3]
+    volo            Volume outside the cell [m3]
+    Vm              Voltage across cell membrane [V]
+    p               An instance of Parameters object
+
+
+    Returns
+    -------
+    cCai2           Updated Ca2+ inside cell
+    cCao2           Updated Ca2+ outside cell
+    f_Ca            Ca2+ flux (into cell +)
+    """
+
+    delG_Ca = p.R*p.T*np.log(cCao/cCai) - 2*p.F*Vm
+    delG_CaATP = p.deltaGATP - (delG_Ca)
+    delG = (delG_CaATP/1000)
+
+    alpha = p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+
+    f_Ca  = -alpha*cCai      #flux as [mol/s]
+
+    if p.method == 0:
+
+        dmol = f_Ca*p.dt
+
+        cCai2 = cCai + dmol/voli
+        cCao2 = cCao - dmol/volo
+
+    elif p.method == 1:
+
+        k1 = alpha*cCai
+
+        k2 = alpha*(cCai+(1/2)*k1*p.dt)
+
+        k3 = alpha*(cCai+(1/2)*k2*p.dt)
+
+        k4 = alpha*(cCai+ k3*p.dt)
+
+        dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+        cCai2 = cCai - dmol/voli
+        cCao2 = cCao + dmol/volo
+
+
+    return cCai2, cCao2, f_Ca
+
 
 def get_volt(q,sa,p):
 

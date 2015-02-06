@@ -20,10 +20,10 @@ class Parameters(object):
     """
     def __init__(self):
 
-        self.dt = 1e-2    # Simulation step-size [s]
-        self.init_end = 10*60      # world time to end the initialization simulation time [s]
-        self.sim_end = 10         # world time to end the simulation
-        self.resamp = 0.1         # time to resample in world time
+        self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
+        self.init_end = 20*60      # world time to end the initialization simulation time [s]
+        self.sim_end = 100         # world time to end the simulation
+        self.resamp = 0.5         # time to resample in world time
 
         self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
         self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
@@ -33,7 +33,7 @@ class Parameters(object):
         # File saving
         self.cache_path = "~/.betse/cache/basicInit"  # world, inits, and sims are saved and read to/from this directory.
 
-        self.profile = 'mammalian' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
+        self.profile = 'scratch' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
 
         # basic constants
         self.F = 96485 # Faraday constant [J/V*mol]
@@ -71,9 +71,12 @@ class Parameters(object):
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
-        self.alpha_NaK = 1.0e-17 # rate constant sodium-potassium ATPase [m3/mols]  range 1.0e-9 to 1.0e-10 for dt =1e-2
-        self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ] (12)
-        self.slope_NaK = 12  # the energy window width of the NaK-ATPase pump [kJ] (24)
+        self.alpha_NaK = 5.0e-17 # rate constant sodium-potassium ATPase [m3/mols]  range 1.0e-9 to 1.0e-10 for dt =1e-2
+        self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
+        self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
+        self.alpha_Ca = 1.0e-17 # pump rate for calcium ATPase [m3/mols]
+        self.halfmax_Ca = 12
+        self.slope_Ca = 24
 
         # Scheduled Interventions
 
@@ -82,24 +85,24 @@ class Parameters(object):
 
         # [time on, time off, rate of change, multiplier]
         #self.ion_options = {'Na_mem':[3,6,0.5,50],'K_mem':0}
-        self.ion_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':[3,7,1,6]}
+        self.ion_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1.0e-17      # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
-        self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
+        self.Dm_K = 1e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
+        self.Dm_Ca = 5.0e-20     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]
 
-        self.Do_Na = 1.0e-9      # free diffusion constant sodium [m2/s]
-        self.Do_K = 1.0e-9      # free diffusion constant potassium [m2/s]
-        self.Do_Cl = 1.0e-9     # free diffusion constant chloride [m2/s]
+        self.Do_Na = 1.33e-9      # free diffusion constant sodium [m2/s]
+        self.Do_K = 1.96e-9      # free diffusion constant potassium [m2/s]
+        self.Do_Cl = 2.03e-9     # free diffusion constant chloride [m2/s]
         self.Do_Ca = 1.0e-9     # free diffusion constant calcium [m2/s]
-        self.Do_H = 1.0e-9      # free diffusion constant hydrogen [m2/s]
+        self.Do_H = 2.5e-9      # free diffusion constant hydrogen [m2/s]
         self.Do_M = 1.0e-9     # free diffusion constant mystery anchor ion [m2/s]
-        self.Do_P = 5.0e-9      # free diffusion constant protein [m2/s]
+        self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
 
         # charge states of ions
         self.z_Na = 1
@@ -109,6 +112,51 @@ class Parameters(object):
         self.z_H = 1
         self.z_P = -1
         self.z_M = -1
+
+        if self.profile == 'scratch':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+            self.cCa_env = 1.0
+            self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_Ca, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cCa_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+
+            # if self.z_M_env == -1:
+            #     self.cMn_env = self.cM_env
+            #     self.cMp_env = 0
+            #
+            # if self.z_M_env == 1:
+            #     self.cMp_env = self.cM_env
+            #     self.cMn_env = 0
+
+            self.cNa_cell = 5.4
+            self.cK_cell = 140.44
+            self.cCa_cell = 1.69
+            self.cP_cell = 138.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
+
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            # if self.z_M_cell == -1:
+            #     self.cMn_cell = self.cM_cell
+            #     self.cMp_cell = 0
+            #
+            # if self.z_M_cell == 1:
+            #     self.cMp_cell = self.cM_cell
+            #     self.cMn_cell = 0
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
+
 
 
         if self.profile == 'basic':
