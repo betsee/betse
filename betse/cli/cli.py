@@ -3,10 +3,12 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-#FIXME: Define a new module "betse/dependency.py" performing validation of
-#external dependencies, both Python and non-Python. Although we believe "yppy"
-#implemented such functionality, google about for the optimum Python 3 solution
-#to this presumably commonplace problem.
+#FIXME: Improve output on uncatched exceptions by wrapping all CLI operations in
+#a try-except block that:
+#
+#* Catches all exceptions.
+#* Improves such output.
+#* Exits the current process with status 1.
 
 #FIXME; The following snippet courtesy Matthew Leingan affords an elegant means
 #of integrating built-in Python argument parsing and logging;
@@ -53,7 +55,7 @@
 '''`betse`'s command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
-from betse import info
+from betse import dependency, metadata
 import argparse, logging, os, sys
 
 # ....................{ MAIN                               }....................
@@ -90,6 +92,9 @@ class CLI(object):
             integer in `[0, 255]`, where 0 signifies success and all other
             values failure.
         '''
+        # If at least one mandatory BETSE dependency is missing, fail.
+        dependency.die_if_dependencies_unmet()
+
         # Parse command-line arguments into object attributes.
         self._parse_args()
         # self._parse_common_args()
@@ -107,8 +112,8 @@ class CLI(object):
         # all subparsers, added below).
         parser = argparse.ArgumentParser(
             # Program name and description.
-            prog = info.NAME + info.__version__,
-            description = info.DESCRIPTION,
+            prog = metadata.NAME + metadata.__version__,
+            description = metadata.DESCRIPTION,
         )
         self._add_parser_common_args(parser)
 
@@ -137,6 +142,11 @@ class CLI(object):
         parser.parse_args(namespace=self)
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Define a new module "betse/dependency.py" performing validation of
+#external dependencies, both Python and non-Python. Although we believe "yppy"
+#implemented such functionality, google about for the optimum Python 3 solution
+#to this presumably commonplace problem.
+
     # _args : list
     #     List of zero or more arguments passed to such interface (e.g., from the
     #     command line).

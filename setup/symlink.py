@@ -14,11 +14,14 @@ from distutils.errors import DistutilsFileError
 import os
 
 # ....................{ COMMANDS                           }....................
-def add_commands(setup_options):
+def add_commands(setup_options: dict) -> None:
     '''
     Add symbolic link-specific commands to the passed dictionary of `setuptools`
     options.
     '''
+    assert isinstance(setup_options, dict),\
+        '"{}" not a dict'.format(setup_options)
+
     # For the name of each command class to be registered as a new command...
     for command_class_name in (
         'symlink', 'symlink_lib', 'symlink_scripts', 'unsymlink'):
@@ -47,7 +50,7 @@ class unsymlink(install):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is *NOT* POSIX-compatible, such system
         # does *NOT* provide conventional symbolic links. Raise an exception.
-        error.raise_exception_if_os_non_posix()
+        error.die_if_os_non_posix()
 
         # Absolute path of such symbolic link.
         symlink_filename = os.path.join(
@@ -83,7 +86,7 @@ class symlink(install):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is *NOT* POSIX-compatible, such system
         # does *NOT* provide conventional symbolic links. Raise an exception.
-        error.raise_exception_if_os_non_posix()
+        error.die_if_os_non_posix()
 
         # Run all subcommands.
         for subcommand_name in self.get_sub_commands():
@@ -95,14 +98,6 @@ class symlink_lib(install_lib):
     usually to a system-wide `site-packages` directory for the active Python 3
     interpreter.
     '''
-    # user_options = [('install-dir=', 'd', 'directory to install to'),]
-    # '''List of command-specific options.'''
-
-    # def initialize_options(self):
-    #     '''
-    #     Initialize command-specific options.
-    #     '''
-    #     self.install_dir = None
 
     def finalize_options(self):
         '''
@@ -113,7 +108,7 @@ class symlink_lib(install_lib):
             'symlink', ('install_lib', 'install_dir'))
 
     def run(self):
-        error.raise_exception_if_os_non_posix()
+        error.die_if_os_non_posix()
 
         # Absolute path of betse's top-level Python package in the current
         # directory.
@@ -153,15 +148,17 @@ class symlink_scripts(install_scripts):
         )
 
 # ....................{ REMOVERS                           }....................
-def remove_symlink(filename):
+def remove_symlink(filename: str) -> None:
     '''
     Remove the passed symbolic link.
 
     Parameters
     ----------
-    filename : str
+    filename
         Absolute path of such link.
     '''
+    assert isinstance(filename, str), '"{}" not a str'.format(filename)
+
     # If such path is *NOT* a symbolic link, raise an exception.
     if not os.path.islink(filename):
         raise DistutilsFileError(
@@ -172,6 +169,14 @@ def remove_symlink(filename):
     os.unlink(filename)
 
 # --------------------( WASTELANDS                         )--------------------
+    # user_options = [('install-dir=', 'd', 'directory to install to'),]
+    # '''List of command-specific options.'''
+
+    # def initialize_options(self):
+    #     '''
+    #     Initialize command-specific options.
+    #     '''
+    #     self.install_dir = None
 # ....................{ GETTERS                            }....................
 # def get_command_symlink_filename(setuptools_command):
 #     '''

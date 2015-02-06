@@ -10,7 +10,7 @@ from distutils.errors import DistutilsPlatformError
 import os
 
 # ....................{ EXCEPTIONS                         }....................
-def raise_exception_if_os_non_posix():
+def die_if_os_non_posix():
     '''
     Raise a fatal exception if the current operating system does `not` comply
     with POSIX standards (e.g., as required for symbolic link manipulation).

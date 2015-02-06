@@ -3,20 +3,23 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''Metadata constants describing high-level `betse` behaviour.'''
+'''
+Metadata constants synopsizing high-level `betse` behaviour.
+
+Unrelatedly, this module also validates the version of the active Python 3
+interpreter. An exception is raised if such version is insufficient.
+'''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from packages guaranteed to exist at installation
-# time (e.g., stock Python packages). In particular, this implies that
-# packages possibly installed by such installation (e.g., mandatory
-# dependencies) must *NOT* be imported from.
-#
-# Yes, this is terrible. No, we didn't make the ad-hoc rules.
+# time (e.g., stock Python packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# ....................{ CONSTANTS                          }....................
+# ....................{ METADATA                           }....................
+# General-purpose metadata.
+
 __version__ = '0.0.1'
 '''
 Version specifier.
@@ -38,6 +41,28 @@ DESCRIPTION = ''.join((
 
 AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
 '''Program authors as a comma-delimited list.'''
+
+# ....................{ METADATA ~ setuptools              }....................
+# setuptools-specific metadata required outside of setuptools-based
+# installations, typically for performing runtime validation of the current
+# Python environment.
+
+REQUIREMENTS = [
+    'numpy >= 1.9.0',
+    'pyside >= 1.1.0',
+    'pyyaml >= 3.10',
+    'scipy >= 0.12.0',
+    'matplotlib >= 1.3.0',
+]
+'''
+List of `setuptools`-specific requirements strings, signifying the set of all
+mandatory runtime dependencies for `betse`.
+
+See Also
+----------
+README.md
+    Human-readable list of such dependencies.
+'''
 
 # ....................{ PYTHON ~ version                   }....................
 # Validate the version of the active Python interpreter *BEFORE* subsequent code
@@ -79,6 +104,12 @@ if sys.hexversion < 0x03030000:
     )))
 
 # --------------------( WASTELANDS                         )--------------------
+#  In particular, this implies that
+# packages possibly installed by such installation (e.g., mandatory
+# dependencies) must *NOT* be imported from.
+#
+# Yes, this is terrible. No, we didn't make the ad-hoc rules.
+
 # Such type is validated by comparison of
 # And yes: this *IS* the typical way
 # for validating Python versions. Note that

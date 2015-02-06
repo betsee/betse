@@ -28,14 +28,15 @@
 #    https://stackoverflow.com/questions/22508491/a-py-file-which-compiled-from-qrc-file-using-pyside-rcc-does-not-work
 
 # ....................{ START                              }....................
-# Import all constants defined by "betse.info" into the current namespace
+# Import all constants defined by "betse.metadata" into the current namespace
 # *BEFORE* subsequent logic possibly depending on the the version of the active
 # Python interpreter, which such importation also validates.
 #
 # This awkward (albeit increasingly commonplace) snippet is required for
 # reliable importation of metadata declared by and hence shared with the main
 # codebase. Unfortunately, such metadata is *NOT* reliably importably via the
-# conventional syntax (e.g., "from betse import info"). The reason is subtle.
+# conventional syntax (e.g., "from betse import metadata"). The reason is
+# subtle.
 #
 # Importing packages from the main codebase implicitly imports such codebase's
 # top-level "__init__.py" module. If such module imports from at least one
@@ -47,8 +48,8 @@
 # defining such constants.
 #
 # This is horrible, but coding gets like that sometimes. We blame Guido.
-with open('betse/info.py') as betse_info:
-    exec(betse_info.read())
+with open('betse/metadata.py') as betse_metadata:
+    exec(betse_metadata.read())
 
 # ....................{ IMPORTS                            }....................
 from setup import scripts, symlink
@@ -123,13 +124,7 @@ setup_options = {
 
     # ..................{ DEPENDENCY                         }..................
     # Runtime dependencies. See "README.md".
-    'install_requires': [
-        'numpy >= 1.9.0',
-        'pyside >= 1.1.0',
-        'pyyaml >= 3.10',
-        'scipy >= 0.12.0',
-        'matplotlib >= 1.3.0',
-    ],
+    'install_requires': REQUIREMENTS,
 
     # Unit test-specific dependencies. While such tests should also be runnable
     # under "py.test", "py.test" does *NOT* provide out-of-the-box support for
@@ -157,6 +152,14 @@ for setup_module in (scripts, symlink):
 setuptools.setup(**setup_options)
 
 # --------------------( WASTELANDS                         )--------------------
+    # 'install_requires': [
+    #     'numpy >= 1.9.0',
+    #     'pyside >= 1.1.0',
+    #     'pyyaml >= 3.10',
+    #     'scipy >= 0.12.0',
+    #     'matplotlib >= 1.3.0',
+    # ],
+
 # ENTRY_POINTS = {
 #     # CLI-specific scripts.
 #     'console_scripts': ['betse = betse.cli.cli:main',],

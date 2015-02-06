@@ -9,6 +9,18 @@
 from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter
 
+# ....................{ COMMANDS                           }....................
+def add_commands(setup_options: dict) -> None:
+    '''
+    Add wrapper script-specific commands to the passed dictionary of
+    `setuptools` options.
+    '''
+    assert isinstance(setup_options, dict),\
+        '"{}" not a dict'.format(setup_options)
+
+    # Replace the default "setuptools" class for writing scripts with the above.
+    easy_install.get_script_args = UnresourcefulScriptWriter.get_script_args
+
 # ....................{ WRITER                             }....................
 class UnresourcefulScriptWriter(ScriptWriter):
     '''
@@ -78,15 +90,6 @@ if __name__ == '__main__':
                     type_, script_basename, script_shebang, script_text):
                     yield res
 
-# ....................{ COMMANDS                           }....................
-def add_commands(setup_options):
-    '''
-    Add wrapper script-specific commands to the passed dictionary of
-    `setuptools` options.
-    '''
-    # Replace the default "setuptools" class for writing scripts with the above.
-    easy_install.get_script_args = UnresourcefulScriptWriter.get_script_args
-
 # --------------------( WASTELANDS                         )--------------------
 # Since setuptools provides installation- but *NOT* build-specific commands,
 # defer to the latter provided by distutils.
@@ -114,7 +117,7 @@ def add_commands(setup_options):
 #         # If the current operating system is *NOT* POSIX-compatible, such system
 #         # does *NOT* support conventional shebang-driven shell scripts. Raise an
 #         # exception.
-#         error.raise_exception_if_os_non_posix()
+#         error.die_if_os_non_posix()
 #
 #         # Template for the contents of such scripts.
 #         script_template = """#!{python_interpreter_filename}

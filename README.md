@@ -11,12 +11,13 @@ flow).
 require non-Python libraries (e.g., C, Fortran) and hence are best installed
 manually via the package manager specific to your current operating system:
 
-* setuptools >= 7.0.
+* Python >= 3.3.
 * Matplotlib >= 1.3.0.
 * NumPy >= 1.9.0.
 * PySide >= 1.1.0.
 * PyYaml >= 3.10.
 * SciPy >= 0.12.0.
+* setuptools >= 7.0.
 
 `betse` also requires the following pure-Python packages – which Python-specific
 package managers (e.g., `pip`, `setuptools`) will install for you and hence
