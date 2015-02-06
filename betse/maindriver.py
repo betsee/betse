@@ -22,8 +22,8 @@ class MainDriver(object):
 
         self.start_time = time.time()  # get a start value for timing the simulation
 
-        #self.cells = World(vorclose='circle',worldtype='full')  # always need instance of world
-        #self.cells.makeWorld()     # call functions to create the world
+     #   self.cells = World(vorclose='circle',worldtype='full')  # always need instance of world
+      #  self.cells.makeWorld()     # call functions to create the world
 
         #fh.saveSim(self.cells.savedWorld,self.cells)   # save the world to cache
 
@@ -33,11 +33,11 @@ class MainDriver(object):
 
         self.sim = Simulator(self.p)   # whether running from scratch or loading, instance needs to be called
 
-        #self.sim.baseInit(self.cells, self.p)   # initialize data if working from scratch
+      #  self.sim.baseInit(self.cells, self.p)   # initialize data if working from scratch
         #
-        #self.sim.runInit(self.cells,self.p)     # run and save an initialization if working from scratch
+      #  self.sim.runInit(self.cells,self.p)     # run and save an initialization if working from scratch
 
-        self.sim,self.cells, _ = fh.loadSim(self.sim.savedInit)  # load an initialization from cache
+        #self.sim,self.cells, _ = fh.loadSim(self.sim.savedInit)  # load an initialization from cache
 
         self.sim.runSim(self.cells,self.p,save=False)   # run and save the simulation
 
@@ -53,25 +53,32 @@ class MainDriver(object):
         vdata_t = np.multiply(self.sim.vm_time,1000)
 
         # PLOTTING SINGLE CELL DATA
-        figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iNa,1,fig=None,
-            ax=None,lncolor='g',ionname='Na+')
-        figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iK,1,fig=figC,
+        # figC, axC = viz.plotSingleCellCData(self.sim.envcc_time,self.sim.time,self.sim.iNa,self.p.target_cell,fig=None,
+        #      ax=None,lncolor='g',ionname='Na+')
+        # figC, axC = viz.plotSingleCellCData(self.sim.envcc_time,self.sim.time,self.sim.iK,self.p.target_cell,fig=figC,
+        #     ax=axC,lncolor='b',ionname='K+')
+        # figC, axC = viz.plotSingleCellCData(self.sim.envcc_time,self.sim.time,self.sim.iM,self.p.target_cell,fig=figC,
+        #      ax=axC,lncolor='r',ionname='M-')
+
+        figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iNa,self.p.target_cell,fig=None,
+             ax=None,lncolor='g',ionname='Na+')
+        figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iK,self.p.target_cell,fig=figC,
             ax=axC,lncolor='b',ionname='K+')
-        figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iM,1,fig=figC,
-            ax=axC,lncolor='r',ionname='M-')
+        figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iM,self.p.target_cell,fig=figC,
+             ax=axC,lncolor='r',ionname='M-')
 
         lg = axC.legend()
         lg.draw_frame(True)
-        plt.show(block=True)
+        plt.show(block=False)
 
-        figVt, axVt = viz.plotSingleCellVData(self.sim.vm_time,self.sim.time,1,fig=None,ax=None,lncolor='b')
-        plt.show(block=True)
+        figVt, axVt = viz.plotSingleCellVData(self.sim.vm_time,self.sim.time,self.p.target_cell,fig=None,ax=None,lncolor='b')
+        plt.show(block=False)
 
         # ANIMATING DATA
 
-        viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=True, ani_repeat=True,colormap=cm.Blues)
+        viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=False, ani_repeat=True,colormap=cm.Blues)
 
-        # viz.AnimateGJData(self.cells, self.sim, self.p, save=False, ani_repeat=True)
+        #viz.AnimateGJData(self.cells, self.sim, self.p, save=False, ani_repeat=True)
 
         # figI, axI, axcbI = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata0)
         # figI, axI, _ = viz.plotConnectionData(self.cells, fig=figI, ax = axI, zdata=self.sim.gjopen, pickable=False)

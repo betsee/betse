@@ -21,15 +21,19 @@ class Parameters(object):
     def __init__(self):
 
         self.dt = 1e-2    # Simulation step-size [s]
-        self.init_tsteps = 50000 # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-        self.sim_tsteps = 1000    # Number of timesteps for the simulation
-        self.t_resample = 7         # resample the time vector every x steps
+        self.init_end = 10*60      # world time to end the initialization simulation time [s]
+        self.sim_end = 10         # world time to end the simulation
+        self.resamp = 0.1         # time to resample in world time
+
+        self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
+        self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+        self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
         self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
         self.cache_path = "~/.betse/cache/basicInit"  # world, inits, and sims are saved and read to/from this directory.
 
-        self.profile = 'basic' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
+        self.profile = 'mammalian' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
 
         # basic constants
         self.F = 96485 # Faraday constant [J/V*mol]
@@ -60,16 +64,30 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gjsa = math.pi*(5.0e-9)**2          # total gap junction x-sectional surface area [m2] with r=1 to 5 nm
-        self.gj_vthresh = 40e-3              # voltage threshhold gj closing [V]
-        self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
+        self.gjsa = math.pi*((3.0e-9)**2)          # total gap junction surface area as fraction of cell surface area
+        self.gj_vthresh = 50e-3              # voltage threshhold gj closing [V]
+        self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
+        self.Dgj = 1e-10                    # gap junction diffusion coefficient [m2/s]
 
+        # pump parameters
+        self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
+        self.alpha_NaK = 1.0e-17 # rate constant sodium-potassium ATPase [m3/mols]  range 1.0e-9 to 1.0e-10 for dt =1e-2
+        self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ] (12)
+        self.slope_NaK = 12  # the energy window width of the NaK-ATPase pump [kJ] (24)
 
+        # Scheduled Interventions
+
+        # cell to effect:
+        self.target_cell = 10
+
+        # [time on, time off, rate of change, multiplier]
+        #self.ion_options = {'Na_mem':[3,6,0.5,50],'K_mem':0}
+        self.ion_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':[3,7,1,6]}
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1.0e-18      # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
+        self.Dm_K = 1.0e-17      # membrane diffusion constant potassium [m2/s]
+        self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
@@ -176,11 +194,7 @@ class Parameters(object):
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
-        # pump parameters
-        self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
-        self.alpha_NaK = 5.0e-17 # rate constant sodium-potassium ATPase [m3/mols]  range 1.0e-9 to 1.0e-10 for dt =1e-2
-        self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
-        self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
+
 
 
 def bal_charge(concentrations,zs):

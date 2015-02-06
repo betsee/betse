@@ -132,8 +132,8 @@ class AnimateGJData(object):
         vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
         vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
 
-        self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-            vx,vy,self.zdata_t[0],zorder=10, cmap=cm.bone_r,clim=[0,1])
+        # self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
+        #     vx,vy,self.zdata_t[0],zorder=10, cmap=cm.bone_r,clim=[0,1])
 
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
@@ -166,8 +166,8 @@ class AnimateGJData(object):
         self.collection.set_array(zz)
         self.coll2.set_array(zv)
 
-        self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-            vx,vy,zz,zorder=10, cmap=cm.bone_r,clim=[0,1])
+        # self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
+        #     vx,vy,zz,zorder=10, cmap=cm.bone_r,clim=[0,1])
 
         tit = 'Simulation time' + ' ' + str(round(self.time[i],1)) + ' ' + 's'
         self.ax.set_title(tit)

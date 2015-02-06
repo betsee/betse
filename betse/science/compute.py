@@ -258,19 +258,6 @@ class Simulator(object):
         self.envV = np.zeros(len(cells.cell_i))
         self.envV[:] = p.vol_env
 
-        # gap junction specific arrays:
-        self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
-
-        self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
-        self.gjl[:] = p.gjl
-
-        self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
-        self.gjsa[:] = p.gjsa
-
-        # initialization of data-arrays holding time-related information
-        self.cc_time = []  # data array holding the concentrations at time points
-        self.vm_time = []  # data array holding voltage at time points
-        self.time = []     # time values of the simulation
 
         flx = np.zeros(len(cells.gj_i))
         self.fluxes_gj = [flx,flx,flx,flx,flx,flx,flx]   # stores gj fluxes for each ion
@@ -301,7 +288,6 @@ class Simulator(object):
 
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
 
-
         i = 0 # resample the time vector to save data at specific times:
         tsamples =[]
         resample = p.t_resample
@@ -310,10 +296,8 @@ class Simulator(object):
             tsamples.append(tt[i])
         tsamples = set(tsamples)
 
-
         # report
         print('Your sim initialization is running for', round((p.init_tsteps*p.dt)/60,2),'minutes of in-world time.')
-
 
         for t in tt:   # run through the loop
 
@@ -321,13 +305,12 @@ class Simulator(object):
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
 
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
-            vm = get_volt(q_cells,cells.cell_sa,p)
+            self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             # run the Na-K-ATPase pump:   # FIXME there may be other pumps!
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,vm,p)
-
+                    cells.cell_vol,self.envV,self.vm,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -336,19 +319,17 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                vm = get_volt(q_cells,cells.cell_sa,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 self.cc_env[i],self.cc_cells[i],fNa = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
-                        self.envV,cells.cell_vol,self.zs[i],vm,p)
-
-            self.vm_to = copy.deepcopy(vm)
+                        self.envV,cells.cell_vol,self.zs[i],self.vm,p)
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 self.cc_time.append(concs)
-                vmm = copy.deepcopy(vm)
+                vmm = copy.deepcopy(self.vm)
                 self.vm_time.append(vmm)
                 self.time.append(t)
 
@@ -357,16 +338,32 @@ class Simulator(object):
         datadump = [celf,cells,p]
         fh.saveSim(self.savedInit,datadump)
 
+        self.vm_to = copy.deepcopy(self.vm)
+
     def runSim(self,cells,p,save=None):
         """
         Drives the actual time-loop iterations for the simulation.
         """
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
+        self.envcc_time = [] # data array holding environmental concentrations at time points
         self.vm_time = []  # data array holding voltage at time points
         self.time = []     # time values of the simulation
         self.fgj_time = []      # stores the gj fluxes for each ion at each time
         self.Igj_time = []      # current for each gj at each time
+        self.vgj_time = []
+
+        # gap junction specific arrays:
+        self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
+
+        self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
+        self.gjl[:] = p.gjl
+        self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
+        self.gjsa[:] = p.gjsa
+        # mean_sa = np.mean(cells.cell_sa)
+        # self.gjsa = p.gjsa*mean_sa*np.ones(len(cells.gj_i))
+
+        vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
 
         # create a time-steps vector:
         tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
@@ -382,18 +379,19 @@ class Simulator(object):
         # report
         print('Your simulation is running from',0,'to',p.sim_tsteps*p.dt,'seconds of in-world time.')
 
+
         for t in tt:   # run through the loop
 
             # get the net, unbalanced charge in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
 
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
-            vm = get_volt(q_cells,cells.cell_sa,p)
+            self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-            # run the Na-K-ATPase pump:
+            # run the Na-K-ATPase pump: # FIXME add in Calcium pump
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,vm,p)
+                    cells.cell_vol,self.envV,self.vm,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
@@ -404,43 +402,61 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                vm = get_volt(q_cells,cells.cell_sa,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                self.cc_env[i],self.cc_cells[i],fNa = \
+                self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
+                self.vm_to = copy.deepcopy(self.vm)       # reassign the history-saving vm
+
+                # calculate the values of ion channel multipliers:
+
+                self.scheduledChanges(p.target_cell,t,p)
+
+                # electrodiffusion of ion between cell and extracellular matrix
+                self.cc_env[i],self.cc_cells[i],_ = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
-                        self.envV,cells.cell_vol,self.zs[i],vm,p)
+                        self.envV,cells.cell_vol,self.zs[i],self.vm,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                vm = get_volt(q_cells,cells.cell_sa,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                vmA,vmB = vm[cells.gap_jun_i][:,0], vm[cells.gap_jun_i][:,1]
+                # calculate volatge difference between cells:
+                vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
                 vgj = vmB - vmA
 
+                # determine the open state of gap junctions:
                 self.gjopen = (1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad))
 
+                # determine flux through gap junctions for this ion:
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-                    self.gjopen*p.Do_Na,self.gjl,self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+                    self.gjopen*p.Dgj,self.gjl,self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
                     cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
 
-                self.cc_cells[i] = self.cc_cells[i] + np.dot(fgj, cells.gjMatrix)
+                # update cell concentration due to gap junction flux: FIXME this needs to be flux*dt/cellV
+                mole_delta = (fgj*p.dt)
 
-                self.fluxes_gj[i] = fgj
+                self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
+
+                self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
                 # self.cc_cells[i] = check_c(self.cc_cells[i])
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
+                envsc = copy.deepcopy(self.cc_env)
                 flxs = copy.deepcopy(self.fluxes_gj)
-                vmm = copy.deepcopy(vm)
+                vmm = copy.deepcopy(self.vm)
+                vgjj = copy.deepcopy(vgj)
                 self.cc_time.append(concs)
+                self.envcc_time.append(envsc)
                 self.vm_time.append(vmm)
                 self.time.append(t)
                 self.fgj_time.append(flxs)
                 self.gjopen_time.append(self.gjopen)
+                self.vgj_time.append(vgjj)
 
-        # End off by calculating the current through the gap junctions:
+        # End off by calculating the current through the gap junction network:
         self.Igj_time =[]
         for tflux in self.fgj_time:
             igj=0
@@ -454,6 +470,80 @@ class Simulator(object):
             celf = copy.deepcopy(self)
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
+
+    def scheduledChanges(self,target_specifier,t,p):
+
+        if p.ion_options['Na_mem'] != 0:
+
+            t_on = p.ion_options['Na_mem'][0]
+            t_off = p.ion_options['Na_mem'][1]
+            t_change = p.ion_options['Na_mem'][2]
+            mem_mult_Na = p.ion_options['Na_mem'][3]
+
+            effector_Na = pulse(t,t_on,t_off,t_change)
+
+            self.Dm_cells[self.iNa][target_specifier] = mem_mult_Na*effector_Na*p.Dm_Na + p.Dm_Na
+
+        if p.ion_options['K_mem'] != 0:
+
+            t_on = p.ion_options['K_mem'][0]
+            t_off = p.ion_options['K_mem'][1]
+            t_change = p.ion_options['K_mem'][2]
+            mem_mult_K = p.ion_options['K_mem'][3]
+
+            effector_K = pulse(t,t_on,t_off,t_change)
+
+            self.Dm_cells[self.iK][target_specifier] = mem_mult_K*effector_K*p.Dm_K + p.Dm_K
+
+        if p.ion_options['Cl_mem'] != 0:
+
+            t_on = p.ion_options['Cl_mem'][0]
+            t_off = p.ion_options['Cl_mem'][1]
+            t_change = p.ion_options['Cl_mem'][2]
+            mem_mult_Cl = p.ion_options['Cl_mem'][3]
+
+            effector_Cl = pulse(t,t_on,t_off,t_change)
+
+            self.Dm_cells[self.iCl][target_specifier] = mem_mult_Cl*effector_Cl*p.Dm_Cl + p.Dm_Cl
+
+        if p.ion_options['Ca_mem'] != 0:
+
+            t_on = p.ion_options['Ca_mem'][0]
+            t_off = p.ion_options['Ca_mem'][1]
+            t_change = p.ion_options['Ca_mem'][2]
+            mem_mult_Ca = p.ion_options['Ca_mem'][3]
+
+            effector_Ca = pulse(t,t_on,t_off,t_change)
+
+            self.Dm_cells[self.iCa][target_specifier] = mem_mult_Ca*effector_Ca*p.Dm_Ca + p.Dm_Ca
+
+        if p.ion_options['H_mem'] != 0:
+
+            t_on = p.ion_options['H_mem'][0]
+            t_off = p.ion_options['H_mem'][1]
+            t_change = p.ion_options['H_mem'][2]
+            mem_mult_H = p.ion_options['H_mem'][3]
+
+            effector_H = pulse(t,t_on,t_off,t_change)
+
+            self.Dm_cells[self.iH][target_specifier] = mem_mult_H*effector_H*p.Dm_H + p.Dm_H
+
+        if p.ion_options['K_env'] != 0:
+
+            t_on = p.ion_options['K_env'][0]
+            t_off = p.ion_options['K_env'][1]
+            t_change = p.ion_options['K_env'][2]
+            mem_mult_Kenv = p.ion_options['K_env'][3]
+
+            effector_Kenv = pulse(t,t_on,t_off,t_change)
+
+            K_env_o = np.ones(len(self.cc_env[self.iK]))
+            K_env_o[:] = p.cK_env
+
+            self.cc_env[self.iK] = mem_mult_Kenv*effector_Kenv*K_env_o + K_env_o
+
+
+
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
@@ -562,7 +652,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
     deno = 1 - np.exp(-alpha)   # calculate the denominator for the electrodiffusion equation,..
 
     izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
-    inzero = (deno!=0).nonzero()
+    inotzero = (deno!=0).nonzero()
 
     # initialize data matrices to the same shape as input data
     dmol = np.zeros(deno.shape)
@@ -579,7 +669,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
 
     if len(deno[izero]):   # if there's anything in the izero array:
          # calculate the flux for those elements [mol/s]:
-        flux[izero] = -sa[izero]*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
+        flux[izero] = -(sa[izero]/d[izero])*Dc[izero]*(cB[izero] - cA[izero])
 
 
         if p.method == 0:
@@ -587,8 +677,8 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
             #dmol[izero] = sa[izero]*p.dt*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
             dmol[izero] = -p.dt*flux[izero]
 
-            cA2[izero] = cA[izero] + dmol[izero]/vola[izero]
-            cB2[izero] = cB[izero] - dmol[izero]/volb[izero]
+            cA2[izero] = cA[izero] + (dmol[izero]/vola[izero])
+            cB2[izero] = cB[izero] - (dmol[izero]/volb[izero])
 
         elif p.method == 1:
 
@@ -606,38 +696,38 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
             cB2[izero] = cB[izero] - dmol[izero]/volb[izero]
 
 
-    if len(deno[inzero]):   # if there's any indices in the inzero array:
+    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
 
         # calculate the flux for those elements:
-        flux[inzero] = -((sa[inzero]*Dc[inzero]*alpha[inzero])/d[inzero])*\
-                       ((cB[inzero] - cA[inzero]*np.exp(-alpha[inzero]))/deno[inzero])
+        flux[inotzero] = -((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
+                       ((cB[inotzero] - cA[inotzero]*np.exp(-alpha[inotzero]))/deno[inotzero])
 
 
         if p.method == 0:
 
-            dmol[inzero] = -flux[inzero]*p.dt
+            dmol[inotzero] = -flux[inotzero]*p.dt
 
-            cA2[inzero] = cA[inzero] + dmol[inzero]/vola[inzero]
-            cB2[inzero] = cB[inzero] - dmol[inzero]/volb[inzero]
+            cA2[inotzero] = cA[inotzero] + (dmol[inotzero]/vola[inotzero])
+            cB2[inotzero] = cB[inotzero] - (dmol[inotzero]/volb[inotzero])
 
 
         elif p.method == 1:
 
-            k1[inzero] = -flux[inzero]
+            k1[inotzero] = -flux[inotzero]
 
-            k2[inzero] = ((sa[inzero]*Dc[inzero]*alpha[inzero])/d[inzero])*\
-                         (cB[inzero] - (cA[inzero] + (1/2)*k1[inzero]*p.dt)*np.exp(-alpha[inzero]))/deno[inzero]
+            k2[inotzero] = ((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
+                         (cB[inotzero] - (cA[inotzero] + (1/2)*k1[inotzero]*p.dt)*np.exp(-alpha[inotzero]))/deno[inotzero]
 
-            k3[inzero] = ((sa[inzero]*Dc[inzero]*alpha[inzero])/d[inzero])*\
-                         (cB[inzero] - (cA[inzero] + (1/2)*k2[inzero]*p.dt)*np.exp(-alpha[inzero]))/deno[inzero]
+            k3[inotzero] = ((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
+                         (cB[inotzero] - (cA[inotzero] + (1/2)*k2[inotzero]*p.dt)*np.exp(-alpha[inotzero]))/deno[inotzero]
 
-            k4[inzero] = ((sa[inzero]*Dc[inzero]*alpha[inzero])/d[inzero])*\
-                         (cB[inzero] - (cA[inzero] + k3[inzero]*p.dt)*np.exp(-alpha[inzero]))/deno[inzero]
+            k4[inotzero] = ((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
+                         (cB[inotzero] - (cA[inotzero] + k3[inotzero]*p.dt)*np.exp(-alpha[inotzero]))/deno[inotzero]
 
-            dmol[inzero] = (p.dt/6)*(k1[inzero] + 2*k2[inzero] + 2*k3[inzero] + k4[inzero])
+            dmol[inotzero] = (p.dt/6)*(k1[inotzero] + 2*k2[inotzero] + 2*k3[inotzero] + k4[inotzero])
 
-            cA2[inzero] = cA[inzero] + dmol[inzero]/vola[inzero]
-            cB2[inzero] = cB[inzero] - dmol[inzero]/volb[inzero]
+            cA2[inotzero] = cA[inotzero] + dmol[inotzero]/vola[inotzero]
+            cB2[inotzero] = cB[inotzero] - dmol[inotzero]/volb[inotzero]
 
 
     return cA2, cB2, flux
@@ -706,7 +796,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
         cKo2 = cKo - (2/3)*dmol/volo
 
 
-    return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
+    return cNai2,cNao2,cKi2,cKo2, f_Na, f_K, delG, alpha
 
 def get_volt(q,sa,p):
 
@@ -840,6 +930,12 @@ def pulse(t,t_on,t_off,t_change):
     y1 = 1/(1 + (np.exp(-g*(t-t_on))))
     y2 = 1/(1 + (np.exp(-g*(t-t_off))))
     y = y1 - y2
+    return y
+
+def H(x):
+
+    y = 0.5*(np.sign(x) +1)
+
     return y
 
 
