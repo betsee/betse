@@ -29,7 +29,7 @@ For PEP 8 compliance, such specifier is exposed as the canonical variable
 '''
 
 NAME = 'BETSE'
-'''Program name.'''
+'''Human-readable program name.'''
 
 DESCRIPTION = ''.join((
     NAME, ' ',
@@ -37,10 +37,23 @@ DESCRIPTION = ''.join((
     'electrical phenomena in biological tissue (e.g., ion channel-gated ',
     'current flow).',
 ))
-'''Program description.'''
+'''Human-readable program description.'''
 
 AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
-'''Program authors as a comma-delimited list.'''
+'''Human-readable program authors as a comma-delimited list.'''
+
+# ....................{ METADATA ~ scripts                 }....................
+SCRIPT_NAME_CLI = NAME.lower()
+'''
+Basename of the CLI-specific Python script wrapper created by `setuptools`
+installation.
+'''
+
+SCRIPT_NAME_GUI = SCRIPT_NAME_CLI + '-qt'
+'''
+Basename of the GUI-specific Python script wrapper created by `setuptools`
+installation.
+'''
 
 # ....................{ METADATA ~ setuptools              }....................
 # setuptools-specific metadata required outside of setuptools-based
@@ -104,6 +117,12 @@ if sys.hexversion < 0x03030000:
     )))
 
 # --------------------( WASTELANDS                         )--------------------
+# COMMAND_NAME_PREFIX = NAME.lower()
+# '''
+# Substring prefixing the basenames of all `betse`-specific Python script wrappers
+# created by `setuptools` installation.
+# '''
+
 #  In particular, this implies that
 # packages possibly installed by such installation (e.g., mandatory
 # dependencies) must *NOT* be imported from.

@@ -78,6 +78,11 @@ def die_if_dependency_unloadable(
     such requirements are assumed to be in `setuptools` format (e.g.,
     `numpy >= 1.9.0`).
     '''
+    assert isinstance(module_name, str),\
+        '"{}" not a string.'.format(module_name)
+    assert isinstance(module_requirements, str),\
+        '"{}" not a string.'.format(module_requirements)
+
     # If such dependency is *NOT* importable, raise an exception. Ideally, such
     # exception would be an instance of the setuptools-specific
     # "DistributionNotFound" class. Yet, as setuptools and hence such class is

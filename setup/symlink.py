@@ -20,7 +20,7 @@ def add_commands(setup_options: dict) -> None:
     options.
     '''
     assert isinstance(setup_options, dict),\
-        '"{}" not a dict'.format(setup_options)
+        '"{}" not a dict.'.format(setup_options)
 
     # For the name of each command class to be registered as a new command...
     for command_class_name in (
@@ -157,7 +157,7 @@ def remove_symlink(filename: str) -> None:
     filename
         Absolute path of such link.
     '''
-    assert isinstance(filename, str), '"{}" not a str'.format(filename)
+    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
 
     # If such path is *NOT* a symbolic link, raise an exception.
     if not os.path.islink(filename):

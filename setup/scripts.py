@@ -16,7 +16,7 @@ def add_commands(setup_options: dict) -> None:
     `setuptools` options.
     '''
     assert isinstance(setup_options, dict),\
-        '"{}" not a dict'.format(setup_options)
+        '"{}" not a dict.'.format(setup_options)
 
     # Replace the default "setuptools" class for writing scripts with the above.
     easy_install.get_script_args = UnresourcefulScriptWriter.get_script_args

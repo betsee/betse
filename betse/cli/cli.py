@@ -56,10 +56,11 @@
 
 # ....................{ IMPORTS                            }....................
 from betse import dependency, metadata
+from betse.io.printer import printer
 import argparse, logging, os, sys
 
 # ....................{ MAIN                               }....................
-def main():
+def main() -> int:
     '''Run `betse`'s command line interface (CLI).
 
     This function is provided as a convenience to callers requiring procedural
@@ -68,11 +69,25 @@ def main():
     Returns
     ----------
     int
-        Exit status of such interface, guaranteed to be a non-negative integer
-        in `[0, 255]`, where 0 signifies success and all other values failure.
+        Exit status of such interface. This is a non-negative integer in
+        `[0, 255]` where 0 signifies success and all other values failure.
     '''
-    return CLI().run()
+    try:
+        # Attempt to parse CLI arguments and run the specified command.
+        CLI().run()
 
+        # Exit with successful exit status from the current process.
+        return 0
+    except Exception as exception:
+        # Print such exception.
+        printer.print_exception(exception)
+
+        # Exit with failure exit status from the current process. If such
+        # exception provides a system-specific exit status, use such status;
+        # else, use the default such status.
+        return getattr(exception, 'errno', 1)
+
+# ....................{ MAIN                               }....................
 class CLI(object):
     '''`betse`'s command line interface (CLI).
 
@@ -82,7 +97,7 @@ class CLI(object):
     def __init__(self):
         pass
 
-    def run(self):
+    def run(self) -> int:
         '''Run `betse`'s command line interface (CLI).
 
         Returns
@@ -99,9 +114,6 @@ class CLI(object):
         self._parse_args()
         # self._parse_common_args()
 
-        #FIXME; Return the proper exit status.
-        return 0
-
     def _parse_args(self):
         '''Parse all currently passed command-line arguments.
         '''
@@ -112,8 +124,11 @@ class CLI(object):
         # all subparsers, added below).
         parser = argparse.ArgumentParser(
             # Program name and description.
-            prog = metadata.NAME + metadata.__version__,
+            prog = ''.join((metadata.NAME, ' ', metadata.__version__,)),
             description = metadata.DESCRIPTION,
+            usage = ''.join((
+                metadata.SCRIPT_NAME_CLI, ' <command> [<arg>...]',
+            ))
         )
         self._add_parser_common_args(parser)
 
@@ -142,6 +157,7 @@ class CLI(object):
         parser.parse_args(namespace=self)
 
 # --------------------( WASTELANDS                         )--------------------
+        # return exception.errno if hasattr(exception, 'errno') else 1
 #FUXME: Define a new module "betse/dependency.py" performing validation of
 #external dependencies, both Python and non-Python. Although we believe "yppy"
 #implemented such functionality, google about for the optimum Python 3 solution
