@@ -70,8 +70,8 @@ class MainDriver(object):
         lg.draw_frame(True)
         plt.show(block=False)
 
-        # figCa, axCa = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iCa,self.p.target_cell,
-        #     lncolor='r',ionname='Ca2+')
+        figCa, axCa = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iCa,self.p.target_cell,
+            lncolor='r',ionname='Ca2+')
 
         # plt.figure()
         # plt.plot(self.sim.time,self.sim.active_Na_time)

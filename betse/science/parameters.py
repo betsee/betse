@@ -21,7 +21,7 @@ class Parameters(object):
     def __init__(self):
 
         self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
-        self.init_end = 20*60      # world time to end the initialization simulation time [s]
+        self.init_end = 10*60      # world time to end the initialization simulation time [s]
         self.sim_end = 0.2         # world time to end the simulation
         self.resamp = 1e-3         # time to resample in world time
 
@@ -83,19 +83,19 @@ class Parameters(object):
         # cell to effect:
         self.target_cell = 10
 
-
         #self.ion_options specifications list is [time on, time off, rate of change, Dmem multiplier]
-        self.ion_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
+        self.ion_options = {'Na_mem':[0.08,0.10,0.01,10],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         # self.vg_options specifications list is [Dmem multiplier, gain, v_on, v_off, v_inactivate]
         #
         self.vg_options = {'Na_vg':[1000,0.5,-55e-3,40e-3,-68e-3],'K_vg':[100,0.5,10e-3,-70e-3,-60e-3],'Ca_vg':0,'K_cag':0}
+        # self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_K = 1e-16      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
-        self.Dm_Ca = 5.0e-20     # membrane diffusion constant calcium [m2/s]
+        self.Dm_Ca = 1.0e-20     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]

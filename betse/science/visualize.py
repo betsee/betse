@@ -198,7 +198,7 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
     # ccIon = [arr[ion] for arr in simdata_time]  # get all cells at all times at one ion
     # ccIon_cell = [x[0] for x in ccIon]  # get one cell at all times at one ion
 
-    ccIon_cell = [round(arr[ioni][celli],2) for arr in simdata_time]
+    ccIon_cell = [arr[ioni][celli] for arr in simdata_time]
 
     if fig==None:
         fig = plt.figure()# define the figure and axes instances
