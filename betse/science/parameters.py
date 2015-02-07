@@ -20,10 +20,10 @@ class Parameters(object):
     """
     def __init__(self):
 
-        self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
+        self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
         self.init_end = 10*60      # world time to end the initialization simulation time [s]
-        self.sim_end = 0.2         # world time to end the simulation
-        self.resamp = 1e-3         # time to resample in world time
+        self.sim_end = 0.05         # world time to end the simulation
+        self.resamp = 0.1         # time to resample in world time
 
         self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
         self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
@@ -64,10 +64,10 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gjsa = math.pi*((3.0e-9)**2)          # total gap junction surface area as fraction of cell surface area
-        self.gj_vthresh = 50e-3              # voltage threshhold gj closing [V]
-        self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
-        self.Dgj = 1e-10                    # gap junction diffusion coefficient [m2/s]
+        self.gjsa = math.pi*((5.0e-9)**2)          # total gap junction surface area as fraction of cell surface area (3.0)
+        self.gj_vthresh = 80e-3              # voltage threshhold gj closing [V]
+        self.gj_vgrad  = 40e-3               # the range over which gj goes from open to shut at threshold [V]
+        self.Dgj = 1e-9                    # gap junction diffusion coefficient [m2/s]
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
@@ -80,20 +80,25 @@ class Parameters(object):
 
         # Scheduled Interventions
 
-        # cell to effect:
-        self.target_cell = 10
+        # cell to effect in scheduled intervention: (choices = None or int)
+        self.target_cell = [1]
+
+        # cells to effect: (choices = 'none','all','random1','random50')
+        self.targets = 'all'
 
         #self.ion_options specifications list is [time on, time off, rate of change, Dmem multiplier]
-        self.ion_options = {'Na_mem':[0.08,0.10,0.01,10],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
+        # for triggering action potentials:
+        #self.scheduled_options = {'Na_mem':[0.05,0.15,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
+        self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         # self.vg_options specifications list is [Dmem multiplier, gain, v_on, v_off, v_inactivate]
         #
-        self.vg_options = {'Na_vg':[1000,0.5,-55e-3,40e-3,-68e-3],'K_vg':[100,0.5,10e-3,-70e-3,-60e-3],'Ca_vg':0,'K_cag':0}
+        self.vg_options = {'Na_vg':[1000,1,-60e-3,30e-3,-70e-3],'K_vg':[2,1,10e-3,-85e-3,-60e-3],'Ca_vg':0,'K_cag':0}
         # self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1e-16      # membrane diffusion constant potassium [m2/s]
+        self.Dm_K = 1.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-20     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
