@@ -33,7 +33,7 @@ sim = Simulator(p)   # whether running from scratch or loading, instance needs t
 
 sim,cells, _ = fh.loadSim(sim.savedInit)  # load an initialization from cache
 
-#sim.runSim(cells,p,save=False)   # run and save the simulation
+sim.runSim(cells,p,save=False)   # run and save the simulation
 
 #sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
 
@@ -69,6 +69,6 @@ plt.show(block=False)
 
 # ANIMATING DATA
 
-viz.AnimateCellData(cells,vdata_t,sim.time,p, save=False, ani_repeat=True,colormap=cm.Blues)
+#viz.AnimateCellData(cells,vdata_t,sim.time,p, save=False, ani_repeat=True,colormap=cm.Blues)
 
-#viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
+viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)

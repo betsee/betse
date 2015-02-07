@@ -311,8 +311,7 @@ class Simulator(object):
         if p.vg_options['Na_vg'] != 0:
 
             # Initialization of logic values for voltage gated sodium channel
-            self.mem_mult_Na = p.vg_options['Na_vg'][0]
-            self.maxDmNa = self.mem_mult_Na*p.Dm_Na
+            self.maxDmNa = p.vg_options['Na_vg'][0]
             self.gain_Na = p.vg_options['Na_vg'][1]
             self.v_on_Na = p.vg_options['Na_vg'][2]
             self.v_off_Na = p.vg_options['Na_vg'][3]
@@ -326,8 +325,7 @@ class Simulator(object):
         if p.vg_options['K_vg']  !=0:
 
             # Initialization of logic values forr voltage gated potassium channel
-            self.mem_mult_K = p.vg_options['K_vg'][0]
-            self.maxDmK = self.mem_mult_K*p.Dm_K
+            self.maxDmK = p.vg_options['K_vg'][0]
             self.gain_K = p.vg_options['K_vg'][1]
             self.v_on_K = p.vg_options['K_vg'][2]
             self.v_off_K = p.vg_options['K_vg'][3]
@@ -800,22 +798,23 @@ class Simulator(object):
                  # Logic phase 1: find out which cells have activated their vgNa channels
                 truth_vmGTvon_K = self.vm > self.v_on_K  # returns bools of vm that are bigger than threshhold
                 truth_depol_K = dvsign==1  # returns bools of vm that are bigger than threshhold
-                truth_crossed_inactivate_K = self.crossed_inactivate_K == 0  # return bools of vm that can activate
+                # truth_crossed_inactivate_K = self.crossed_inactivate_K == 0  # return bools of vm that can activate
 
                  # set the cell indicies that correspond to all statements of logic phase 1:
-                inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_crossed_inactivate_K*self.target_cells).nonzero()
+                #inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_crossed_inactivate_K*self.target_cells).nonzero()
+                inds_activate_K = (truth_vmGTvon_K*truth_depol_K*self.target_cells).nonzero()
                 self.crossed_activate_K[inds_activate_K] = 1 # set the crossed_activate term to 1
 
                  # Logic phase 2: find out which cells have closed their gates due to crossing shut-off voltage:
                 truth_vmLTvoff_K = self.vm < self.v_off_K  # bools of cells that have vm greater than shut-off volts
                 inds_shut_K = (truth_vmLTvoff_K*self.target_cells).nonzero()
                 self.crossed_activate_K[inds_shut_K] = 0    # close the vg sodium channels
-                self.crossed_inactivate_K[inds_shut_K] = 1   # switch these so cells do not re-activate
+                # self.crossed_inactivate_K[inds_shut_K] = 1   # switch these so cells do not re-activate
 
-                # Logic phase 3: find out which cells can re-activate
-                truth_vmGTvreact_K = self.vm > self.v_reactivate_K
-                inds_reactivate_K = (truth_vmGTvreact_K*self.target_cells).nonzero()
-                self.crossed_inactivate_K[inds_reactivate_K] = 0
+                # # Logic phase 3: find out which cells can re-activate
+                # truth_vmGTvreact_K = self.vm > self.v_reactivate_K
+                # inds_reactivate_K = (truth_vmGTvreact_K*self.target_cells).nonzero()
+                # self.crossed_inactivate_K[inds_reactivate_K] = 0
 
                 # Set activity of K channel:
 
