@@ -56,7 +56,6 @@ class Simulator(object):
 
     """
 
-
     def __init__(self,p):
 
         self.fileInit(p)
@@ -292,6 +291,8 @@ class Simulator(object):
 
         print(self.ionlabel)
 
+
+
     def runInit(self,cells,p):
         """
         Runs an initialization simulation from the existing data state of the Simulation object,
@@ -319,6 +320,8 @@ class Simulator(object):
             i = i + resample
             tsamples.append(tt[i])
         tsamples = set(tsamples)
+
+
 
         # report
         print('Your sim initialization is running for', round((p.init_tsteps*p.dt)/60,2),'minutes of in-world time.')
@@ -384,6 +387,8 @@ class Simulator(object):
         self.Igj_time = []      # current for each gj at each time
         self.vgj_time = []
 
+        self.active_Na_time = []
+
         # gap junction specific arrays:
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
 
@@ -393,6 +398,32 @@ class Simulator(object):
         self.gjsa[:] = p.gjsa
         # mean_sa = np.mean(cells.cell_sa)
         # self.gjsa = p.gjsa*mean_sa*np.ones(len(cells.gj_i))
+
+        if p.vg_options['Na_vg'] != 0:
+
+            # initialization for voltage gated sodium channel
+            self.mem_mult_Na = p.vg_options['Na_vg'][0]
+            self.maxDmNa = self.mem_mult_Na*p.Dm_Na
+            self.gain_Na = p.vg_options['Na_vg'][1]
+            self.v_on_Na = p.vg_options['Na_vg'][2]
+            self.v_off_Na = p.vg_options['Na_vg'][3]
+            self.v_reactivate_Na = p.vg_options['Na_vg'][4]
+            self.active_Na = 0
+            self.crossed_inactivate_Na =0
+            self.crossed_activate_Na = 0
+
+        if p.vg_options['K_vg']  !=0:
+            # initialization for voltage gated potassium channel
+            self.mem_mult_K = p.vg_options['K_vg'][0]
+            self.maxK = self.mem_mult_K*p.Dm_K
+            self.gain_K = p.vg_options['K_vg'][1]
+            self.v_on_K = p.vg_options['K_vg'][2]
+            self.v_off_K = p.vg_options['K_vg'][3]
+            self.v_reactivate_K = p.vg_options['K_vg'][4]
+            self.active_K = 0
+            self.crossed_activate_K = 0
+            self.crossed_inactivate_K = 0
+
 
         vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
 
@@ -445,7 +476,9 @@ class Simulator(object):
 
                 # calculate the values of ion channel multipliers:
 
-                self.scheduledChanges(p.target_cell,t,p)
+                self.scheduledChanges(p.target_cell,t,p)  # user-scheduled (forced) interventions
+
+                self.vgChannels(p.target_cell,t,p)  # voltage and ligand gated interventions
 
                 # electrodiffusion of ion between cell and extracellular matrix
                 self.cc_env[i],self.cc_cells[i],_ = \
@@ -468,7 +501,7 @@ class Simulator(object):
                     self.gjopen*p.Dgj,self.gjl,self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
                     cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
 
-                # update cell concentration due to gap junction flux: FIXME this needs to be flux*dt/cellV
+                # update cell concentration due to gap junction flux:
                 mole_delta = (fgj*p.dt)
 
                 self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
@@ -492,6 +525,7 @@ class Simulator(object):
                 self.gjopen_time.append(self.gjopen)
                 self.vgj_time.append(vgjj)
 
+
         # End off by calculating the current through the gap junction network:
         self.Igj_time =[]
         for tflux in self.fgj_time:
@@ -499,7 +533,7 @@ class Simulator(object):
             for zi, flx in zip(self.zs,tflux):
                 igj = igj+ zi*flx
 
-            igj = p.F*igj
+            igj = -p.F*igj
             self.Igj_time.append(igj)
 
         if save==True or save==None:
@@ -513,58 +547,81 @@ class Simulator(object):
 
         if p.ion_options['Na_mem'] != 0:
 
-            t_on = p.ion_options['Na_mem'][0]
-            t_off = p.ion_options['Na_mem'][1]
-            t_change = p.ion_options['Na_mem'][2]
-            mem_mult_Na = p.ion_options['Na_mem'][3]
+            if p.ions_dict['Na'] == 0:
+                pass
 
-            effector_Na = pulse(t,t_on,t_off,t_change)
+            else:
 
-            self.Dm_cells[self.iNa][target_specifier] = mem_mult_Na*effector_Na*p.Dm_Na + p.Dm_Na
+                t_on = p.ion_options['Na_mem'][0]
+                t_off = p.ion_options['Na_mem'][1]
+                t_change = p.ion_options['Na_mem'][2]
+                mem_mult_Na = p.ion_options['Na_mem'][3]
+
+                effector_Na = pulse(t,t_on,t_off,t_change)
+
+                self.Dm_cells[self.iNa][target_specifier] = mem_mult_Na*effector_Na*p.Dm_Na + p.Dm_Na
 
         if p.ion_options['K_mem'] != 0:
 
-            t_on = p.ion_options['K_mem'][0]
-            t_off = p.ion_options['K_mem'][1]
-            t_change = p.ion_options['K_mem'][2]
-            mem_mult_K = p.ion_options['K_mem'][3]
+            if p.ions_dict['K'] == 0:
+                pass
 
-            effector_K = pulse(t,t_on,t_off,t_change)
+            else:
+                t_on = p.ion_options['K_mem'][0]
+                t_off = p.ion_options['K_mem'][1]
+                t_change = p.ion_options['K_mem'][2]
+                mem_mult_K = p.ion_options['K_mem'][3]
 
-            self.Dm_cells[self.iK][target_specifier] = mem_mult_K*effector_K*p.Dm_K + p.Dm_K
+                effector_K = pulse(t,t_on,t_off,t_change)
+
+                self.Dm_cells[self.iK][target_specifier] = mem_mult_K*effector_K*p.Dm_K + p.Dm_K
 
         if p.ion_options['Cl_mem'] != 0:
 
-            t_on = p.ion_options['Cl_mem'][0]
-            t_off = p.ion_options['Cl_mem'][1]
-            t_change = p.ion_options['Cl_mem'][2]
-            mem_mult_Cl = p.ion_options['Cl_mem'][3]
+            if p.ions_dict['Cl'] == 0:
+                pass
 
-            effector_Cl = pulse(t,t_on,t_off,t_change)
+            else:
+                t_on = p.ion_options['Cl_mem'][0]
+                t_off = p.ion_options['Cl_mem'][1]
+                t_change = p.ion_options['Cl_mem'][2]
+                mem_mult_Cl = p.ion_options['Cl_mem'][3]
 
-            self.Dm_cells[self.iCl][target_specifier] = mem_mult_Cl*effector_Cl*p.Dm_Cl + p.Dm_Cl
+                effector_Cl = pulse(t,t_on,t_off,t_change)
+
+                self.Dm_cells[self.iCl][target_specifier] = mem_mult_Cl*effector_Cl*p.Dm_Cl + p.Dm_Cl
 
         if p.ion_options['Ca_mem'] != 0:
 
-            t_on = p.ion_options['Ca_mem'][0]
-            t_off = p.ion_options['Ca_mem'][1]
-            t_change = p.ion_options['Ca_mem'][2]
-            mem_mult_Ca = p.ion_options['Ca_mem'][3]
+            if p.ions_dict['Ca'] == 0:
+                pass
 
-            effector_Ca = pulse(t,t_on,t_off,t_change)
+            else:
 
-            self.Dm_cells[self.iCa][target_specifier] = mem_mult_Ca*effector_Ca*p.Dm_Ca + p.Dm_Ca
+                t_on = p.ion_options['Ca_mem'][0]
+                t_off = p.ion_options['Ca_mem'][1]
+                t_change = p.ion_options['Ca_mem'][2]
+                mem_mult_Ca = p.ion_options['Ca_mem'][3]
+
+                effector_Ca = pulse(t,t_on,t_off,t_change)
+
+                self.Dm_cells[self.iCa][target_specifier] = mem_mult_Ca*effector_Ca*p.Dm_Ca + p.Dm_Ca
 
         if p.ion_options['H_mem'] != 0:
 
-            t_on = p.ion_options['H_mem'][0]
-            t_off = p.ion_options['H_mem'][1]
-            t_change = p.ion_options['H_mem'][2]
-            mem_mult_H = p.ion_options['H_mem'][3]
+            if p.ions_dict['H'] == 0:
+                pass
 
-            effector_H = pulse(t,t_on,t_off,t_change)
+            else:
 
-            self.Dm_cells[self.iH][target_specifier] = mem_mult_H*effector_H*p.Dm_H + p.Dm_H
+                t_on = p.ion_options['H_mem'][0]
+                t_off = p.ion_options['H_mem'][1]
+                t_change = p.ion_options['H_mem'][2]
+                mem_mult_H = p.ion_options['H_mem'][3]
+
+                effector_H = pulse(t,t_on,t_off,t_change)
+
+                self.Dm_cells[self.iH][target_specifier] = mem_mult_H*effector_H*p.Dm_H + p.Dm_H
 
         if p.ion_options['K_env'] != 0:
 
@@ -579,6 +636,77 @@ class Simulator(object):
             K_env_o[:] = p.cK_env
 
             self.cc_env[self.iK] = mem_mult_Kenv*effector_Kenv*K_env_o + K_env_o
+
+    def vgChannels(self,target_specifier,t,p):
+
+        dvsign = np.sign(self.dvm[target_specifier])
+
+        if p.vg_options['Na_vg'] != 0:
+
+            if p.ions_dict['Na'] == 0:
+                pass
+
+            else:
+
+                 # FIXME this needs to be done for matrix of vms!
+
+                if self.vm[target_specifier] > self.v_on_Na and dvsign ==1 and self.crossed_inactivate_Na == 0:
+                    self.crossed_activate_Na = 1
+
+                elif self.vm[target_specifier] > self.v_off_Na:
+                    self.crossed_activate_Na = 0
+                    self.crossed_inactivate_Na = 1
+
+                elif self.vm[target_specifier] < self.v_on_Na:
+                    self.crossed_inactivate_Na = 0
+                    self.crossed_activate_Na = 0
+
+                elif self.vm[target_specifier] < self.v_reactivate_Na:
+                    self.crossed_inactivate_Na = 0
+
+                if self.crossed_activate_Na == 1:
+                    self.active_Na = 1
+
+                elif self.crossed_activate_Na == 0:
+                    self.active_Na = 0
+
+                self.Dm_cells[self.iNa][target_specifier] = self.maxDmNa*self.active_Na + p.Dm_Na
+
+        if p.vg_options['K_vg'] !=0:
+
+            if p.ions_dict['K'] == 0:
+                pass
+
+            else:
+
+                if self.vm[target_specifier] > self.v_on_K and dvsign ==1 and self.crossed_inactivate_K ==0:
+                    self.crossed_activate_K =1
+
+                elif self.vm[target_specifier] < self.v_off_K and self.crossed_activate_K==1:
+                    self.crossed_activate_K = 0
+                    self.crossed_inactivate_K = 1
+
+                elif self.vm[target_specifier] > self.v_reactivate_K:
+                    self.crossed_inactivate_K = 0
+
+                if self.crossed_activate_K == 1:
+                    self.active_K =1
+
+                elif self.crossed_activate_K ==0:
+                    self.active_K =0
+
+                # elif self.vm[target_specifier] < self.v_on_K:
+                #     self.crossed_inactivate = 0
+
+                # DmNa = self.Dm_cells[self.iNa][target_specifier]
+                #
+                # dDmNa = (self.active*self.gain_Na*DmNa)*(1/self.maxDmNa)*(self.maxDmNa - DmNa)*(DmNa - 0.999*p.Dm_Na)
+                #
+                # self.Dm_cells[self.iNa][target_specifier] = DmNa + dDmNa
+                self.Dm_cells[self.iK][target_specifier] = self.maxK*self.active_K + p.Dm_K
+
+
+
 
 
 
@@ -888,7 +1016,6 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
 
 
     return cCai2, cCao2, f_Ca
-
 
 def get_volt(q,sa,p):
 

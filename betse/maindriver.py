@@ -43,9 +43,6 @@ class MainDriver(object):
 
         #sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
 
-        print('final cell concentrations',self.sim.cc_cells)
-        print('final env concentrations',self.sim.cc_env)
-
         vdata0 =self.sim.vm_to*1000
         vdata = self.sim.vm_time[-1]*1000
         # print('vdata0',vdata0)
@@ -69,22 +66,30 @@ class MainDriver(object):
             ax=axC,lncolor='b',ionname='K+')
         figC, axC = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iM,self.p.target_cell,fig=figC,
              ax=axC,lncolor='r',ionname='M-')
-
-        figCa, axCa = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iCa,self.p.target_cell,
-            lncolor='r',ionname='Ca2+')
-
         lg = axC.legend()
         lg.draw_frame(True)
         plt.show(block=False)
+
+        # figCa, axCa = viz.plotSingleCellCData(self.sim.cc_time,self.sim.time,self.sim.iCa,self.p.target_cell,
+        #     lncolor='r',ionname='Ca2+')
+
+        # plt.figure()
+        # plt.plot(self.sim.time,self.sim.active_Na_time)
+        # plt.title('active Na')
+        # plt.show(block=False)
+
+
+
+
 
         figVt, axVt = viz.plotSingleCellVData(self.sim.vm_time,self.sim.time,self.p.target_cell,fig=None,ax=None,lncolor='b')
         plt.show(block=False)
 
         # ANIMATING DATA
 
-        viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=False, ani_repeat=True,colormap=cm.Blues)
+        #viz.AnimateCellData(self.cells,vdata_t,self.sim.time,self.p, save=False, ani_repeat=True,colormap=cm.Blues)
 
-        #viz.AnimateGJData(self.cells, self.sim, self.p, save=False, ani_repeat=True)
+        viz.AnimateGJData(self.cells, self.sim, self.p, save=False, ani_repeat=True)
 
         # figI, axI, axcbI = viz.plotPolyData(self.cells,clrmap = cm.coolwarm,zdata=vdata0)
         # figI, axI, _ = viz.plotConnectionData(self.cells, fig=figI, ax = axI, zdata=self.sim.gjopen, pickable=False)

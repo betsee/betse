@@ -20,10 +20,10 @@ class Parameters(object):
     """
     def __init__(self):
 
-        self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
+        self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
         self.init_end = 20*60      # world time to end the initialization simulation time [s]
-        self.sim_end = 100         # world time to end the simulation
-        self.resamp = 0.5         # time to resample in world time
+        self.sim_end = 0.2         # world time to end the simulation
+        self.resamp = 1e-3         # time to resample in world time
 
         self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
         self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
@@ -66,7 +66,7 @@ class Parameters(object):
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
         self.gjsa = math.pi*((3.0e-9)**2)          # total gap junction surface area as fraction of cell surface area
         self.gj_vthresh = 50e-3              # voltage threshhold gj closing [V]
-        self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
+        self.gj_vgrad  = 20e-3               # the range over which gj goes from open to shut at threshold [V]
         self.Dgj = 1e-10                    # gap junction diffusion coefficient [m2/s]
 
         # pump parameters
@@ -83,9 +83,13 @@ class Parameters(object):
         # cell to effect:
         self.target_cell = 10
 
-        # [time on, time off, rate of change, multiplier]
-        #self.ion_options = {'Na_mem':[3,6,0.5,50],'K_mem':0}
+
+        #self.ion_options specifications list is [time on, time off, rate of change, Dmem multiplier]
         self.ion_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
+
+        # self.vg_options specifications list is [Dmem multiplier, gain, v_on, v_off, v_inactivate]
+        #
+        self.vg_options = {'Na_vg':[1000,0.5,-55e-3,40e-3,-68e-3],'K_vg':[100,0.5,10e-3,-70e-3,-60e-3],'Ca_vg':0,'K_cag':0}
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
