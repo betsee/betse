@@ -8,7 +8,7 @@ Low-level facilities for transparently printing and logging objects.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.io.file import log
+from betse.io.file.log import logger
 import traceback, sys
 
 # ....................{ OUTPUTTERS                         }....................
@@ -35,6 +35,10 @@ class LoggingPrinter(object):
     def __init__(self):
         #FIXME: Actually, this should just be a global variable of the new
         #"betse.io.file.log" module.
+        #FIXME: Right. And since we no longer need this as a field, there's
+        #really no justification for having this as a class. Revert back to
+        #simple functions, please.
+
         self._logger = None
 
     def print_exception(self, exception: Exception) -> None:
@@ -51,10 +55,11 @@ class LoggingPrinter(object):
             # Log such exception *AFTER* printing such exception to standard error,
             # as logging is substantially more fragile and hence likely to itself
             # raise further exceptions.
-            self._logger.exception(exception)
+            logger.exception(exception)
         # ...catch and print such exception using standard Python facilities
         # guaranteed not to raise additional exceptions.
         except Exception:
+            output_error('print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
 # ....................{ SINGLETONS                         }....................
