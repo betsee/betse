@@ -56,7 +56,7 @@ else:
 # ....................{ MAKERS                             }....................
 #FIXME: Replace all existing calls to os.makedirs() by calls to such function.
 
-def make_if_not_found(dirname: str) -> None:
+def make_unless_found(dirname: str) -> None:
     '''
     Create the passed directory if *not* found.
 

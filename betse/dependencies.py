@@ -67,32 +67,7 @@ from betse import metadata
 import importlib
 
 # ....................{ EXCEPTIONS                         }....................
-def die_if_dependency_unloadable(
-    module_name: str,
-    module_requirements: str) -> None:
-    '''
-    Raise an exception containing the passed human-readable module requirements
-    if the module with the passed name is *not* importable.
-
-    Such module is assumed to signify a mandatory `betse` dependency. Likewise,
-    such requirements are assumed to be in `setuptools` format (e.g.,
-    `numpy >= 1.9.0`).
-    '''
-    assert isinstance(module_name, str),\
-        '"{}" not a string.'.format(module_name)
-    assert isinstance(module_requirements, str),\
-        '"{}" not a string.'.format(module_requirements)
-
-    # If such dependency is *NOT* importable, raise an exception. Ideally, such
-    # exception would be an instance of the setuptools-specific
-    # "DistributionNotFound" class. Yet, as setuptools and hence such class is
-    # *NOT* guaranteed to be importable, the conventional Python exception for
-    # import errors is raised instead.
-    if not importlib.find_loader(module_name):
-        raise ImportError(
-            'Mandatory dependency {} not found.'.format(module_requirements))
-
-def die_if_dependencies_unmet() -> None:
+def die_unless_satisfied() -> None:
     '''
     Raise an exception if at least one mandatory `betse` dependency is unmet.
 
@@ -109,7 +84,7 @@ def die_if_dependencies_unmet() -> None:
     '''
     # If the setuptools-specific "pkg_resources" dependency is *NOT* importable,
     # fail *BEFORE* attempting to import such dependency below.
-    die_if_dependency_unloadable('pkg_resources', 'setuptools >= 7.0')
+    die_unless_importable('pkg_resources', 'setuptools >= 7.0')
 
     # Import such dependency and all required classes in such dependency.
     from pkg_resources import (Environment, VersionConflict, WorkingSet)
@@ -142,6 +117,31 @@ def die_if_dependencies_unmet() -> None:
                raise VersionConflict(
                    'Mandatory dependency {} required but only {} found.'.format(
                        requirement, requirement_distribution))
+
+def die_unless_importable(
+    module_name: str,
+    module_requirements: str) -> None:
+    '''
+    Raise an exception containing the passed human-readable module requirements
+    if the module with the passed name is *not* importable.
+
+    Such module is assumed to signify a mandatory `betse` dependency. Likewise,
+    such requirements are assumed to be in `setuptools` format (e.g.,
+    `numpy >= 1.9.0`).
+    '''
+    assert isinstance(module_name, str),\
+        '"{}" not a string.'.format(module_name)
+    assert isinstance(module_requirements, str),\
+        '"{}" not a string.'.format(module_requirements)
+
+    # If such dependency is *NOT* importable, raise an exception. Ideally, such
+    # exception would be an instance of the setuptools-specific
+    # "DistributionNotFound" class. Yet, as setuptools and hence such class is
+    # *NOT* guaranteed to be importable, the conventional Python exception for
+    # import errors is raised instead.
+    if not importlib.find_loader(module_name):
+        raise ImportError(
+            'Mandatory dependency {} not found.'.format(module_requirements))
 
 # --------------------( WASTELANDS                         )--------------------
         # if not importlib.find_loader(requirement.project_name):

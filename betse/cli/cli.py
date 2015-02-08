@@ -14,8 +14,8 @@
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
-from betse import dependency
-from betse.util.path import log
+from betse import dependencies
+from betse.util.path import dirs, log
 from betse.util import output
 import argparse, traceback
 
@@ -47,7 +47,10 @@ class CLI(metaclass = ABCMeta):
         '''
         try:
             # If at least one mandatory dependency is missing, fail.
-            dependency.die_if_dependencies_unmet()
+            dependencies.die_unless_satisfied()
+
+            # Make betse's top-level dot directory if not found.
+            dirs.make_unless_found(dirs.DOT_DIR)
 
             # Parse command-line arguments and run the specified command.
             self._run()
