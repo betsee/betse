@@ -312,10 +312,9 @@ class Simulator(object):
 
             # Initialization of logic values for voltage gated sodium channel
             self.maxDmNa = p.vg_options['Na_vg'][0]
-            self.gain_Na = p.vg_options['Na_vg'][1]
-            self.v_on_Na = p.vg_options['Na_vg'][2]
-            self.v_off_Na = p.vg_options['Na_vg'][3]
-            self.v_reactivate_Na = p.vg_options['Na_vg'][4]
+            self.v_on_Na = p.vg_options['Na_vg'][1]
+            self.v_off_Na = p.vg_options['Na_vg'][2]
+            self.v_reactivate_Na = p.vg_options['Na_vg'][3]
 
             # Initialize matrices defining states of vgNa channels for each cell:
             self.active_Na = np.zeros(len(cells.cell_i))
@@ -326,10 +325,8 @@ class Simulator(object):
 
             # Initialization of logic values forr voltage gated potassium channel
             self.maxDmK = p.vg_options['K_vg'][0]
-            self.gain_K = p.vg_options['K_vg'][1]
-            self.v_on_K = p.vg_options['K_vg'][2]
-            self.v_off_K = p.vg_options['K_vg'][3]
-            self.v_reactivate_K = p.vg_options['K_vg'][4]
+            self.v_on_K = p.vg_options['K_vg'][1]
+            self.v_off_K = p.vg_options['K_vg'][2]
 
             # Initialize matrices defining states of vgK channels for each cell:
             self.active_K = np.zeros(len(cells.cell_i))

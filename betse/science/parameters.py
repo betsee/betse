@@ -20,15 +20,32 @@ class Parameters(object):
     """
     def __init__(self):
 
-        self.dt = 1e-4    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 1e-6 for neural
-        self.init_end = 10*60      # world time to end the initialization simulation time [s]
-        self.sim_end = 0.5         # world time to end the simulation
-        self.resamp = 1e-3         # time to resample in world time
+        self.time_profile = 'simulate'   # choice of 'initialize' or 'simulate'
 
-        self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-        self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-        self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-        self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+        if self.time_profile == 'simulate':
+
+            self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+            self.init_end = 10*60      # world time to end the initialization simulation time [s]
+            self.sim_end = 0.5         # world time to end the simulation
+            self.resamp = 1e-3         # time to resample in world time
+
+            self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
+            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+        elif self.time_profile == 'initialize':
+
+            self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+            self.init_end = 10*60      # world time to end the initialization simulation time [s]
+            self.sim_end = 0.05         # world time to end the simulation
+            self.resamp = 1.0         # time to resample in world time
+
+            self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
+            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
         self.cache_path = "~/.betse/cache/basicInit"  # world, inits, and sims are saved and read to/from this directory.
@@ -81,7 +98,7 @@ class Parameters(object):
         # Scheduled Interventions
 
         # cell to effect in scheduled intervention: (choices = None or int)
-        self.target_cell = None
+        self.target_cell = [1]
 
         # cells to effect: (choices = 'none','all','random1','random50')
         self.targets = 'all'
@@ -93,14 +110,15 @@ class Parameters(object):
 
         # self.vg_options specifications list is [Dmem multiplier, gain, v_on, v_off, v_inactivate]
         #
-        vgNa = [1.0e-15,1,-60e-3,30e-3,-65e-3]
-        vgK = [1.0e-16,1,10e-3,-75e-3,-60e-3]
+        vgNa = [1.0e-15,-60e-3,30e-3,-65e-3]    # [max Na mem diffusion m2/s, v on, v off, v reactivate]
+        vgK = [1.0e-16,10e-3,-75e-3]             # [max K mem diffusion m2/s, v on, v off]
+        vgCa = [1.0e-18,-40e-3,10e-3,1.0e-3,1.0e-4]    # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':0,'K_cag':0}
         # self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
         # default diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 1.0e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_K = 2.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-20     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]

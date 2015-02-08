@@ -70,5 +70,7 @@ plt.show(block=False)
 # ANIMATING DATA
 
 #viz.AnimateCellData(cells,vdata_t,sim.time,p, save=False, ani_repeat=True,colormap=cm.Blues)
+if p.time_profile == 'simulate':
+    viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
 
-viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
+plt.show()
