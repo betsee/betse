@@ -20,14 +20,6 @@ interpreter. An exception is raised if such version is insufficient.
 # ....................{ METADATA                           }....................
 # General-purpose metadata.
 
-__version__ = '0.0.1'
-'''
-Version specifier.
-
-For PEP 8 compliance, such specifier is exposed as the canonical variable
-`__variable__` rather than a constant `VARIABLE`.
-'''
-
 NAME = 'BETSE'
 '''Human-readable program name.'''
 
@@ -53,6 +45,25 @@ SCRIPT_NAME_GUI = SCRIPT_NAME_CLI + '-qt'
 '''
 Basename of the GUI-specific Python script wrapper created by `setuptools`
 installation.
+'''
+
+# ....................{ METADATA ~ versions                }....................
+__version__ = '0.0.1'
+'''
+Version specifier.
+
+For PEP 8 compliance, such specifier is exposed as the canonical variable
+`__variable__` rather than a typical constant (e.g., `VARIABLE`).
+'''
+
+# Program version as a tuple adhering to this semi-standard version specifier.
+__version_info__ = tuple(
+    int(version_part) for version_part in __version__.split('.'))
+'''
+Version specifier as a tuple of integers rather than `.`-delimited string.
+
+For PEP 8 compliance, such specifier is exposed as the canonical variable
+`__variable_info__` rather than a typical constant (e.g., `VARIABLE_PARTS`).
 '''
 
 # ....................{ METADATA ~ setuptools              }....................

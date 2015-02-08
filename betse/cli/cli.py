@@ -10,95 +10,33 @@
 #* Improves such output.
 #* Exits the current process with status 1.
 
-#FIXME; The following snippet courtesy Matthew Leingan affords an elegant means
-#of integrating built-in Python argument parsing and logging;
-#
-#    import argparse
-#    import logging
-#
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument('-d','--debug',
-#        help='Print lots of debugging statements',
-#        action="store_const",dest="loglevel",const=logging.DEBUG,
-#        default=logging.WARNING
-#    )
-#    parser.add_argument('-v','--verbose',
-#        help='Be verbose',
-#        action="store_const",dest="loglevel",const=logging.INFO
-#    )
-#    args = parser.parse_args()
-#    logging.basicConfig(level=args.loglevel)
-#
-#In his own words: "So if --debug is set, the logging level is set to DEBUG. If
-#--verbose, logging is set to INFO. If neither, the lack of --debug sets the
-#logging level to the default of WARNING."
-#
-#That said, devoting a separate command-line option to "--debug" strikes us as
-#overkill when we can simply repeat "-vv" to achive the same, ala this snippet;
-#
-#    # This isn't quite right, as it uses "--verbose=1"-style integer
-#    # assignment. We just want to repeat "-v" and/or "--verbose". Much simpler.
-#    # Nonetheless, this should be of some use.
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument("-v", "--verbose", const=1, default=0, type=int, nargs="?",
-#                        help="increase verbosity: 0 = only warnings, 1 = info, 2 = debug. No number means info. Default is no verbosity.")
-#    args = parser.parse_args()
-#
-#    logger = logging.getLogger()
-#    if args.verbose == 0:
-#        logger.setLevel(logging.WARN)
-#    elif args.verbose == 1:
-#        logger.setLevel(logging.INFO)
-#    elif args.verbose == 2:
-#        logger.setLevel(logging.DEBUG)
-
-'''`betse`'s command line interface (CLI).'''
+'''Abstract command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
-from betse import dependency, metadata
-from betse.io.printer import printer
-import argparse, logging, os, sys
+from abc import ABCMeta
+from betse import dependency
+from betse.util.path import log
+from betse.util import output
+import argparse, traceback
 
 # ....................{ MAIN                               }....................
-def main() -> int:
-    '''Run `betse`'s command line interface (CLI).
-
-    This function is provided as a convenience to callers requiring procedural
-    functions rather than classical methods (e.g., `setuptools`).
-
-    Returns
-    ----------
-    int
-        Exit status of such interface. This is a non-negative integer in
-        `[0, 255]` where 0 signifies success and all other values failure.
+class CLI(metaclass = ABCMeta):
     '''
-    try:
-        # Attempt to parse CLI arguments and run the specified command.
-        CLI().run()
-
-        # Exit with successful exit status from the current process.
-        return 0
-    except Exception as exception:
-        # Print such exception.
-        printer.print_exception(exception)
-
-        # Exit with failure exit status from the current process. If such
-        # exception provides a system-specific exit status, use such status;
-        # else, use the default such status.
-        return getattr(exception, 'errno', 1)
-
-# ....................{ MAIN                               }....................
-class CLI(object):
-    '''`betse`'s command line interface (CLI).
+    Abstract command line interface (CLI) suitable for use by both the front-
+    facing CLI and GUI applications for `betse`.
 
     Attributes
     ----------
+    _logger : Logger
+        Low-level object implementing such logging.
     '''
     def __init__(self):
-        pass
+        #FIXME: Initialize me, please.
+        self._logger = None
 
     def run(self) -> int:
-        '''Run `betse`'s command line interface (CLI).
+        '''
+        Run the command line interface (CLI) defined by the current subclass.
 
         Returns
         ----------
@@ -107,54 +45,53 @@ class CLI(object):
             integer in `[0, 255]`, where 0 signifies success and all other
             values failure.
         '''
-        # If at least one mandatory BETSE dependency is missing, fail.
-        dependency.die_if_dependencies_unmet()
+        try:
+            # If at least one mandatory dependency is missing, fail.
+            dependency.die_if_dependencies_unmet()
 
-        # Parse command-line arguments into object attributes.
-        self._parse_args()
-        # self._parse_common_args()
+            # Parse command-line arguments and run the specified command.
+            self._run()
 
-    def _parse_args(self):
-        '''Parse all currently passed command-line arguments.
+            # Exit with successful exit status from the current process.
+            return 0
+        except Exception as exception:
+            # Print such exception.
+            self._print_exception(exception)
+
+            # Exit with failure exit status from the current process. If such
+            # exception provides a system-specific exit status, use such status;
+            # else, use the default such status.
+            return getattr(exception, 'errno', 1)
+
+    def _print_exception(self, exception: Exception) -> None:
         '''
-        #FIXME: Display a default help message, when the user passes no
-        #arguments.
+        Print the passed exception to standard error *and* log such exception.
+        '''
+        # If such printing itself raises an exception...
+        try:
+            assert isinstance(exception, Exception),\
+                '"{}" not an exception.'.format(exception)
 
-        # Define global command-line arguments (i.e., arguments applicable to
-        # all subparsers, added below).
-        parser = argparse.ArgumentParser(
-            # Program name and description.
-            prog = ''.join((metadata.NAME, ' ', metadata.__version__,)),
-            description = metadata.DESCRIPTION,
-            usage = ''.join((
-                metadata.SCRIPT_NAME_CLI, ' <command> [<arg>...]',
-            ))
-        )
-        self._add_parser_common_args(parser)
+            #FIXME: Print such exception.
 
-        # Define argument subparsers (i.e., actions).
-        subparsers = parser.add_subparsers(
-            title = 'actions',
-            description = 'Actions to be performed.',
-        )
+            # If a logger has been initialized, log such exception *AFTER*
+            # printing such exception to standard error. (Logging is
+            # substantially more fragile and hence likely to itself raise
+            # further exceptions.)
+            if self._logger:
+                self._logger.exception(exception)
+        # ...catch and print such exception using standard Python facilities
+        # guaranteed not to raise additional exceptions.
+        except Exception:
+            output.error('print_exception() recursively raised exception:\n')
+            traceback.print_exc()
 
-        #FIXME: Not entirely clear as to why we require or want this dictionary.
-
-        # Dictionary from action name to subparser object.
-        action_parsers = {}
-#        action_parsers['help'   ] = self._add_subparser_help(subparsers)
-        action_parsers['run'] = self._add_subparser_run(subparsers)
-
-        # Add an identifying name and description for each action parser.
-        for action_parser_name, action_parser in action_parsers.iteritems():
-            assert action_parser, '"{}" is None'.format(action_parser_name)
-            action_parser.set_defaults(action_name=action_parser_name)
-
-        #FIXME: This doesn't seem quite right. Don't we want to parse arguments
-        #only after defining all argument syntax for actions as well?
-
-        # Parse command-line arguments according to such specification.
-        parser.parse_args(namespace=self)
+    @abc.abstractmethod
+    def _run(self):
+        '''
+        Parse all passed command-line arguments and run the specified command.
+        '''
+        pass
 
 # --------------------( WASTELANDS                         )--------------------
         # return exception.errno if hasattr(exception, 'errno') else 1
