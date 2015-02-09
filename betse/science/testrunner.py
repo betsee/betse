@@ -9,68 +9,125 @@ from betse.science.world import World
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science import visualize as viz
-import matplotlib.cm as cm
 from betse.science import filehandling as fh
-import numpy as np
-from matplotlib import animation
+import matplotlib.cm as cm
 
-start_time = time.time()  # get a start value for timing the simulation
 
-#cells = World(vorclose='circle',worldtype='full')  # always need instance of world
-#cells.makeWorld()     # call functions to create the world
+class SimRunner(object):
 
-#fh.saveSim(self.cells.savedWorld,self.cells)   # save the world to cache
+    def initialize(self):
 
-#cells = fh.loadWorld(cells.savedWorld)   # load a previously defined world from cache
+        #.....COMMAND SEQUENCE #1: "initialize" ...........................................................................
+        # Run an initialization simulation from scratch and save it to the initialization cache.
 
-p = Parameters()
+        start_time = time.time()  # get a start value for timing the simulation
 
-sim = Simulator(p)   # whether running from scratch or loading, instance needs to be called
+        cells = World(vorclose='circle',worldtype='full')  # create an instance of world
+        cells.makeWorld()     # call function to create the world
+        p = Parameters()     # create an instance of Parameters
+        p.time_profile = 'initialize'  # enforce the time profile to be initialize
+        sim = Simulator(p)   # create an instance of Simulator
+        sim.baseInit(cells, p)   # initialize simulation data structures
+        sim.runInit(cells,p)     # run and save the initialization
 
-#sim.baseInit(cells, p)   # initialize data if working from scratch
+        print('The initialization took', time.time() - start_time, 'seconds to complete')
 
-#sim.runInit(cells,p)     # run and save an initialization if working from scratch
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
+             ax=None,lncolor='g',ionname='Na+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
+            ax=axC,lncolor='b',ionname='K+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
+             ax=axC,lncolor='r',ionname='M-')
+        lg = axC.legend()
+        lg.draw_frame(True)
+        plt.show(block=False)
 
-sim,cells, _ = fh.loadSim(sim.savedInit)  # load an initialization from cache
+        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
+        plt.show(block=False)
 
-sim.runSim(cells,p,save=False)   # run and save the simulation
+        plt.show()
 
-#sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
+    def simulate(self, savePNG=False):
 
-vdata_t = np.multiply(sim.vm_time,1000)
-# PLOTTING SINGLE CELL DATA
-# figC, axC = viz.plotSingleCellCData(self.sim.envcc_time,self.sim.time,self.sim.iNa,self.p.target_cell,fig=None,
-#      ax=None,lncolor='g',ionname='Na+')
-# figC, axC = viz.plotSingleCellCData(self.sim.envcc_time,self.sim.time,self.sim.iK,self.p.target_cell,fig=figC,
-#     ax=axC,lncolor='b',ionname='K+')
-# figC, axC = viz.plotSingleCellCData(self.sim.envcc_time,self.sim.time,self.sim.iM,self.p.target_cell,fig=figC,
-#      ax=axC,lncolor='r',ionname='M-')
+        # COMMAND SEQUENCE #2: "runSim"  ...............................................................................
+        # Run simulation from a previously saved initialization. FIXME: throw exception if init cache is empty.
+        start_time = time.time()  # get a start value for timing the simulation
 
-figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
-     ax=None,lncolor='g',ionname='Na+')
-figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
-    ax=axC,lncolor='b',ionname='K+')
-figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
-     ax=axC,lncolor='r',ionname='M-')
-lg = axC.legend()
-lg.draw_frame(True)
-plt.show(block=False)
+        p = Parameters()     # create an instance of Parameters
+        p.time_profile = 'simulate'  # enforce the time-profile to be simulate
+        sim = Simulator(p)   # create an instance of Simulator
+        sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+        sim.runSim(cells,p,save=False)   # run and optionally save the simulation to the cache
 
-figCa, axCa = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,0,
-    lncolor='r',ionname='Ca2+')
+        print('The simulation took', time.time() - start_time, 'seconds to complete')
 
-# plt.figure()
-# plt.plot(self.sim.time,self.sim.active_Na_time)
-# plt.title('active Na')
-# plt.show(block=False)
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
+             ax=None,lncolor='g',ionname='Na+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
+            ax=axC,lncolor='b',ionname='K+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
+             ax=axC,lncolor='r',ionname='M-')
+        lg = axC.legend()
+        lg.draw_frame(True)
+        plt.show(block=False)
 
-figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
-plt.show(block=False)
+        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
+        plt.show(block=False)
 
-# ANIMATING DATA
+        viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
+        #viz.AnimateCellData(cells,sim.active_K_time,sim.time,p, save=False,ani_repeat=True)
+        if savePNG == True:
+            viz.Animate2PNG(cells,sim,p)
 
-#viz.AnimateCellData(cells,vdata_t,sim.time,p, save=False, ani_repeat=True,colormap=cm.Blues)
-if p.time_profile == 'simulate':
-    viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
+        plt.show()
 
-plt.show()
+    def loadInit(self):
+        # COMMAND SEQUENCE #3: "loadInit" ..............................................................................
+        # Load and visualize a previously solved initialization
+
+        p = Parameters()     # create an instance of Parameters
+        sim = Simulator(p)   # create an instance of Simulator
+        sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
+             ax=None,lncolor='g',ionname='Na+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
+            ax=axC,lncolor='b',ionname='K+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
+             ax=axC,lncolor='r',ionname='M-')
+        lg = axC.legend()
+        lg.draw_frame(True)
+        plt.show(block=False)
+
+        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
+        plt.show(block=False)
+
+        plt.show()
+
+    def loadSim(self):
+
+        # COMMAND SEQUENCE #4: "loadSim" ...............................................................................
+        # Load and visualize a previously solved simulation
+
+        p = Parameters()     # create an instance of Parameters
+        sim = Simulator(p)   # create an instance of Simulator
+        sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
+
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
+             ax=None,lncolor='g',ionname='Na+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
+            ax=axC,lncolor='b',ionname='K+')
+        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
+             ax=axC,lncolor='r',ionname='M-')
+        lg = axC.legend()
+        lg.draw_frame(True)
+        plt.show(block=False)
+
+        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
+        plt.show(block=False)
+
+        plt.show()
+
+boo = SimRunner()
+boo.simulate()
+

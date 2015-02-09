@@ -13,11 +13,8 @@
 
 import numpy as np
 import os, os.path
-import pickle
 import copy
 from random import shuffle
-import warnings
-from numba import jit
 from betse.science import filehandling as fh
 
 
@@ -86,12 +83,16 @@ class Simulator(object):
 
         """
 
+        # Identity matrix to easily make matrices out of scalars
+        self.id_cells = np.ones(len(cells.cell_i))
+
         self.cc_cells = []  # cell concentrations initialized
         self.cc_env = []   # environmental concentrations initialized
         self.zs = []   # ion valence state initialized
         self.Dm_cells = []              # membrane diffusion constants initialized
+        self.D_free = []                 # a list of single-valued free diffusion constants for each ion
         self.movingIons = []            # moving ions indices
-        self.ionlabel = {}              # dictionary to hold label names
+        self.ionlabel = {}              # dictionary to hold ion label names
 
         i = -1                           # an index to track place in ion list
 
@@ -117,6 +118,7 @@ class Simulator(object):
             self.cc_env.append(cNa_env)
             self.zs.append(p.z_Na)
             self.Dm_cells.append(DmNa)
+            self.D_free.append(p.Do_Na)
 
         if p.ions_dict['K'] == 1:
 
@@ -139,6 +141,7 @@ class Simulator(object):
             self.cc_env.append(cK_env)
             self.zs.append(p.z_K)
             self.Dm_cells.append(DmK)
+            self.D_free.append(p.Do_K)
 
         if p.ions_dict['Cl'] == 1:
 
@@ -161,6 +164,7 @@ class Simulator(object):
             self.cc_env.append(cCl_env)
             self.zs.append(p.z_Cl)
             self.Dm_cells.append(DmCl)
+            self.D_free.append(p.Do_Cl)
 
         if p.ions_dict['Ca'] == 1:
 
@@ -183,6 +187,7 @@ class Simulator(object):
             self.cc_env.append(cCa_env)
             self.zs.append(p.z_Ca)
             self.Dm_cells.append(DmCa)
+            self.D_free.append(p.Do_Ca)
 
         if p.ions_dict['H'] == 1:
 
@@ -205,6 +210,7 @@ class Simulator(object):
             self.cc_env.append(cH_env)
             self.zs.append(p.z_H)
             self.Dm_cells.append(DmH)
+            self.D_free.append(p.Do_H)
 
         if p.ions_dict['P'] == 1:
 
@@ -225,7 +231,8 @@ class Simulator(object):
             self.cc_cells.append(cP_cells)
             self.cc_env.append(cP_env)
             self.zs.append(p.z_P)
-            self.Dm_cells.append(DmP)
+            self.Dm_cells.append(DmP)        # FIXME is it a problem that this is here?
+            self.D_free.append(p.Do_P)
 
         if p.ions_dict['M'] == 1:
 
@@ -248,29 +255,7 @@ class Simulator(object):
             self.cc_env.append(cM_env)
             self.zs.append(p.z_M)
             self.Dm_cells.append(DmM)
-
-        # if p.ions_dict['Mp'] == 1:
-        #
-        #     i =i+1
-        #
-        #     self.iMp = i
-        #     self.movingIons.append(self.iMp)
-        #     self.ionlabel[self.iMp] = 'charge balance cation'
-        #
-        #     cMp_cells = np.zeros(len(cells.cell_i))
-        #     cMp_cells[:]=p.cMp_cell
-        #
-        #     cMp_env = np.zeros(len(cells.cell_i))
-        #     cMp_env[:]=p.cMp_env
-        #
-        #     DmMp = np.zeros(len(cells.cell_i))
-        #     DmMp[:] = p.Dm_Mp
-        #
-        #     self.cc_cells.append(cMp_cells)
-        #     self.cc_env.append(cMp_env)
-        #     self.zs.append(p.z_Mp)
-        #     self.Dm_cells.append(DmMp)
-
+            self.D_free.append(p.Do_M)
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -295,7 +280,6 @@ class Simulator(object):
     def tissueInit(self,cells,p):
 
 
-
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
 
@@ -315,11 +299,14 @@ class Simulator(object):
             self.v_on_Na = p.vg_options['Na_vg'][1]
             self.v_off_Na = p.vg_options['Na_vg'][2]
             self.v_reactivate_Na = p.vg_options['Na_vg'][3]
+            self.t_alive_Na = p.vg_options['Na_vg'][4]
 
             # Initialize matrices defining states of vgNa channels for each cell:
             self.active_Na = np.zeros(len(cells.cell_i))
             self.crossed_inactivate_Na = np.zeros(len(cells.cell_i))
             self.crossed_activate_Na = np.zeros(len(cells.cell_i))
+
+            self.vgNa_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
 
         if p.vg_options['K_vg']  !=0:
 
@@ -327,36 +314,59 @@ class Simulator(object):
             self.maxDmK = p.vg_options['K_vg'][0]
             self.v_on_K = p.vg_options['K_vg'][1]
             self.v_off_K = p.vg_options['K_vg'][2]
+            self.t_alive_K = p.vg_options['K_vg'][3]
 
             # Initialize matrices defining states of vgK channels for each cell:
             self.active_K = np.zeros(len(cells.cell_i))
             self.crossed_activate_K = np.zeros(len(cells.cell_i))
             self.crossed_inactivate_K = np.zeros(len(cells.cell_i))
 
-        # Initialize targets:
+            # Initialize other matrices for vgK timing logic: NEW!
+            self.vgK_state = np.zeros(len(cells.cell_i))   # state can be 0 = off, 1 = open
+            self.vgK_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
 
-        if p.targets == 'none':
+        # Initialize target cell sets for dynamically gated channels from user options:
+        if p.gated_targets == 'none':
+            self.target_cells = np.zeros(len(cells.cell_i))
+
+        elif p.gated_targets == 'all':
             self.target_cells = np.ones(len(cells.cell_i))
 
-        if p.targets == 'all':
-            self.target_cells = np.ones(len(cells.cell_i))
-
-        if p.targets == 'random1':
+        elif p.gated_targets == 'random1':
             shuffle(cells.cell_i)
             trgt = cells.cell_i[0]
             self.target_cells = np.zeros(len(cells.cell_i))
             self.target_cells[trgt] = 1
 
-        if p.targets == 'random50':
+        elif p.gated_targets == 'random50':
             self.target_cells = np.random.random(len(cells.cell_i))
             self.target_cells = np.rint(self.target_cells)
 
-        # allow for option to independently schedule an intervention to a single cell:
-        if p.target_cell == None:
-            self.scheduled_target_inds = (self.target_cells ==1).nonzero()
-        else:
-            self.scheduled_target_inds = p.target_cell
+        elif isinstance(p.gated_targets,list):
+            self.target_cells = np.zeros(len(cells.cell_i))
+            self.target_cells[p.gated_targets] = 1
 
+        # allow for option to independently schedule an intervention to cells distinct from voltage gated:
+        if p.scheduled_targets == 'none':
+            self.scheduled_target_inds = np.zeros(len(cells.cell_i))
+
+        elif p.scheduled_targets == 'all':
+            self.scheduled_target_inds = np.ones(len(cells.cell_i))
+
+        elif p.scheduled_targets =='random1':
+            shuffle(cells.cell_i)
+            trgt2 = cells.cell_i[0]
+            self.scheduled_target_inds = np.zeros(len(cells.cell_i))
+            self.scheduled_target_inds[trgt2] = 1
+
+        elif p.scheduled_targets == 'random50':
+            shuffle(cells.cell_i)
+            self.scheduled_target_inds = np.random.random(len(cells.cell_i))
+            self.scheduled_target_inds = np.rint(self.scheduled_target_inds)
+
+        elif isinstance(p.scheduled_targets, list):
+            self.scheduled_target_inds = np.zeros(len(cells.cell_i))
+            self.scheduled_target_inds[p.scheduled_targets] = 1
 
     def runInit(self,cells,p):
         """
@@ -437,6 +447,17 @@ class Simulator(object):
 
         self.vm_to = copy.deepcopy(self.vm)
 
+        for i in range(0,len(self.ionlabel)):
+            endconc = np.round(np.mean(self.cc_time[-1][i]),2)
+            label = self.ionlabel[i]
+            concmess = 'Final cytoplasmic concentration of'+ ' '+ label + ': '
+            print(concmess,endconc,' mmol/L')
+
+
+        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),2)
+        vmess = 'Final cell Vmem of ' + ': '
+        print(vmess,final_vmean, ' mV')
+
     def runSim(self,cells,p,save=None):
         """
         Drives the actual time-loop iterations for the simulation.
@@ -448,20 +469,23 @@ class Simulator(object):
         self.cc_time = []  # data array holding the concentrations at time points
         self.envcc_time = [] # data array holding environmental concentrations at time points
         self.vm_time = []  # data array holding voltage at time points
+        self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
 
         self.fgj_time = []      # stores the gj fluxes for each ion at each time
         self.Igj_time = []      # current for each gj at each time
         self.vgj_time = []
 
+        self.active_Na_time = []   # stores the activation state of Na and K voltage gated channels at time
+        self.active_K_time = []
+
         # gap junction specific arrays:
+        self.id_gj = np.ones(len(cells.gj_i))
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
         self.gjl[:] = p.gjl
         self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
         self.gjsa[:] = p.gjsa
-        # mean_sa = np.mean(cells.cell_sa)
-        # self.gjsa = p.gjsa*mean_sa*np.ones(len(cells.gj_i))
 
         vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
 
@@ -477,7 +501,7 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        print('Your simulation is running from',0,'to',p.sim_tsteps*p.dt,'seconds of in-world time.')
+        print('Your simulation is running from',0,'to',round(p.sim_tsteps*p.dt,3),'seconds of in-world time.')
 
 
         for t in tt:   # run through the loop
@@ -534,11 +558,11 @@ class Simulator(object):
 
                 # determine flux through gap junctions for this ion:
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-                    self.gjopen*p.Dgj,self.gjl,self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+                    self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
                     cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
 
                 # update cell concentration due to gap junction flux:
-                mole_delta = (fgj*p.dt)
+                #mole_delta = (fgj*p.dt)
 
                 self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
 
@@ -553,6 +577,9 @@ class Simulator(object):
                 flxs = copy.deepcopy(self.fluxes_gj)
                 vmm = copy.deepcopy(self.vm)
                 vgjj = copy.deepcopy(vgj)
+                dvmm = copy.deepcopy(self.dvm)
+                aNa = copy.deepcopy(self.active_Na)
+                aK = copy.deepcopy(self.active_K)
                 self.cc_time.append(concs)
                 self.envcc_time.append(envsc)
                 self.vm_time.append(vmm)
@@ -560,10 +587,12 @@ class Simulator(object):
                 self.fgj_time.append(flxs)
                 self.gjopen_time.append(self.gjopen)
                 self.vgj_time.append(vgjj)
-
+                self.dvm_time.append(dvmm)
+                self.active_Na_time.append(aNa)
+                self.active_K_time.append(aK)
 
         # End off by calculating the current through the gap junction network:
-        self.Igj_time =[]
+        self.Igj_time = []
         for tflux in self.fgj_time:
             igj=0
             for zi, flx in zip(self.zs,tflux):
@@ -572,80 +601,14 @@ class Simulator(object):
             igj = -p.F*igj
             self.Igj_time.append(igj)
 
-        if save==True or save==None:
+        if save==True:
             celf = copy.deepcopy(self)
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.cache_path
             print(message_2)
 
-    def vgChannels(self,target_specifier,t,p):
-
-        dvsign = np.sign(self.dvm[target_specifier])
-
-        if p.vg_options['Na_vg'] != 0:
-
-            if p.ions_dict['Na'] == 0:
-                pass
-
-            else:
-
-                 # FIXME this needs to be done for matrix of vms!
-
-                if self.vm[target_specifier] > self.v_on_Na and dvsign ==1 and self.crossed_inactivate_Na == 0:
-                    self.crossed_activate_Na = 1
-
-                elif self.vm[target_specifier] > self.v_off_Na:
-                    self.crossed_activate_Na = 0
-                    self.crossed_inactivate_Na = 1
-
-                elif self.vm[target_specifier] < self.v_on_Na:
-                    self.crossed_inactivate_Na = 0
-                    self.crossed_activate_Na = 0
-
-                elif self.vm[target_specifier] < self.v_reactivate_Na:
-                    self.crossed_inactivate_Na = 0
-
-                if self.crossed_activate_Na == 1:
-                    self.active_Na = 1
-
-                elif self.crossed_activate_Na == 0:
-                    self.active_Na = 0
-
-                self.Dm_cells[self.iNa][target_specifier] = self.maxDmNa*self.active_Na + p.Dm_Na
-
-        if p.vg_options['K_vg'] !=0:
-
-            if p.ions_dict['K'] == 0:
-                pass
-
-            else:
-
-                if self.vm[target_specifier] > self.v_on_K and dvsign ==1 and self.crossed_inactivate_K ==0:
-                    self.crossed_activate_K =1
-
-                elif self.vm[target_specifier] < self.v_off_K and self.crossed_activate_K==1:
-                    self.crossed_activate_K = 0
-                    self.crossed_inactivate_K = 1
-
-                elif self.vm[target_specifier] > self.v_reactivate_K:
-                    self.crossed_inactivate_K = 0
-
-                if self.crossed_activate_K == 1:
-                    self.active_K =1
-
-                elif self.crossed_activate_K ==0:
-                    self.active_K =0
-
-                # elif self.vm[target_specifier] < self.v_on_K:
-                #     self.crossed_inactivate = 0
-
-                # DmNa = self.Dm_cells[self.iNa][target_specifier]
-                #
-                # dDmNa = (self.active*self.gain_Na*DmNa)*(1/self.maxDmNa)*(self.maxDmNa - DmNa)*(DmNa - 0.999*p.Dm_Na)
-                #
-                # self.Dm_cells[self.iNa][target_specifier] = DmNa + dDmNa
-                self.Dm_cells[self.iK][target_specifier] = self.maxK*self.active_K + p.Dm_K
+        print('Simulation completed successfully.')
 
     def allDynamics(self,t,p):
 
@@ -785,43 +748,78 @@ class Simulator(object):
 
                 self.Dm_vg[self.iNa] = self.maxDmNa*self.active_Na
 
-        if p.vg_options['K_vg'] !=0:
+        if p.vg_options['K_vg'] != 0:
 
             if p.ions_dict['K'] == 0 or target_length == 0:
                 pass
 
             else:
 
-                 # Logic phase 1: find out which cells have activated their vgNa channels
-                truth_vmGTvon_K = self.vm > self.v_on_K  # returns bools of vm that are bigger than threshhold
-                truth_depol_K = dvsign==1  # returns bools of vm that are bigger than threshhold
-                # truth_crossed_inactivate_K = self.crossed_inactivate_K == 0  # return bools of vm that can activate
+                # detecting channels to turn on:
 
-                 # set the cell indicies that correspond to all statements of logic phase 1:
-                #inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_crossed_inactivate_K*self.target_cells).nonzero()
-                inds_activate_K = (truth_vmGTvon_K*truth_depol_K*self.target_cells).nonzero()
-                self.crossed_activate_K[inds_activate_K] = 1 # set the crossed_activate term to 1
+                truth_vmGTvon_K = self.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
+                truth_depol_K = dvsign == 1  # bools matrix for cells that are depolarizing
+                truth_vgK_OFF = self.vgK_state == 0   # bools matrix for cells that are in the off state
+                # cells at these indices will become activated in this time step:
+                inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.target_cells).nonzero()
+                self.vgK_state[inds_activate_K] = 1  # set the state of these channels to "open"
+                self.vgK_OFFtime[inds_activate_K] = self.t_alive_K + t  # set the time at which these channels will close
 
-                 # Logic phase 2: find out which cells have closed their gates due to crossing shut-off voltage:
-                truth_vmLTvoff_K = self.vm < self.v_off_K  # bools of cells that have vm greater than shut-off volts
-                inds_shut_K = (truth_vmLTvoff_K*self.target_cells).nonzero()
-                self.crossed_activate_K[inds_shut_K] = 0    # close the vg sodium channels
-                # self.crossed_inactivate_K[inds_shut_K] = 1   # switch these so cells do not re-activate
+                #  detecting channels to turn off:
+                truth_vgK_ON = self.vgK_state == 1  # detect cells that are in their on state
+                truth_vgK_timeout = self.vgK_OFFtime < t     # detect the cells that have expired off timers
+                inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.target_cells).nonzero()
+                self.vgK_state[inds_deactivate_K] = 0 # turn off the channels to closed
+                self.vgK_OFFtime[inds_deactivate_K] = 0
 
-                # # Logic phase 3: find out which cells can re-activate
-                # truth_vmGTvreact_K = self.vm > self.v_reactivate_K
-                # inds_reactivate_K = (truth_vmGTvreact_K*self.target_cells).nonzero()
-                # self.crossed_inactivate_K[inds_reactivate_K] = 0
-
-                # Set activity of K channel:
-
-                inds_open_K = (self.crossed_activate_K == 1).nonzero()
+                inds_open_K = (self.vgK_state == 1).nonzero()
                 self.active_K[inds_open_K] = 1
 
-                inds_closed_K =(self.crossed_activate_K == 0).nonzero()
+                inds_closed_K =(self.vgK_state == 0).nonzero()
                 self.active_K[inds_closed_K] = 0
 
                 self.Dm_vg[self.iK] = self.maxDmK*self.active_K
+
+
+
+
+        # if p.vg_options['K_vg'] !=0:
+        #
+        #     if p.ions_dict['K'] == 0 or target_length == 0:
+        #         pass
+        #
+        #     else:
+        #
+        #          # Logic phase 1: find out which cells have activated their vgNa channels
+        #         truth_vmGTvon_K = self.vm > self.v_on_K  # returns bools of vm that are bigger than threshhold
+        #         truth_depol_K = dvsign==1  # returns bools of vm that are bigger than threshhold
+        #         # truth_crossed_inactivate_K = self.crossed_inactivate_K == 0  # return bools of vm that can activate
+        #
+        #          # set the cell indicies that correspond to all statements of logic phase 1:
+        #         #inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_crossed_inactivate_K*self.target_cells).nonzero()
+        #         inds_activate_K = (truth_vmGTvon_K*truth_depol_K*self.target_cells).nonzero()
+        #         self.crossed_activate_K[inds_activate_K] = 1 # set the crossed_activate term to 1
+        #
+        #          # Logic phase 2: find out which cells have closed their gates due to crossing shut-off voltage:
+        #         truth_vmLTvoff_K = self.vm < self.v_off_K  # bools of cells that have vm greater than shut-off volts
+        #         inds_shut_K = (truth_vmLTvoff_K*self.target_cells).nonzero()
+        #         self.crossed_activate_K[inds_shut_K] = 0    # close the vg sodium channels
+        #         # self.crossed_inactivate_K[inds_shut_K] = 1   # switch these so cells do not re-activate
+        #
+        #         # # Logic phase 3: find out which cells can re-activate
+        #         # truth_vmGTvreact_K = self.vm > self.v_reactivate_K
+        #         # inds_reactivate_K = (truth_vmGTvreact_K*self.target_cells).nonzero()
+        #         # self.crossed_inactivate_K[inds_reactivate_K] = 0
+        #
+        #         # Set activity of K channel:
+        #
+        #         inds_open_K = (self.crossed_activate_K == 1).nonzero()
+        #         self.active_K[inds_open_K] = 1
+        #
+        #         inds_closed_K =(self.crossed_activate_K == 0).nonzero()
+        #         self.active_K[inds_closed_K] = 0
+        #
+        #         self.Dm_vg[self.iK] = self.maxDmK*self.active_K
 
 
         # finally, add together all effects to make change on the cell membrane permeabilities:

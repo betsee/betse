@@ -11,6 +11,7 @@
 
 import numpy as np
 import math
+import matplotlib.cm as cm
 
 # define the basic class that holds variables
 class Parameters(object):
@@ -22,15 +23,12 @@ class Parameters(object):
 
         self.time_profile = 'simulate'   # choice of 'initialize' or 'simulate'
 
-
         if self.time_profile == 'simulate':
 
             self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.init_end = 10*60      # world time to end the initialization simulation time [s]
-            self.sim_end = 0.5         # world time to end the simulation
+            self.sim_end = 0.25         # world time to end the simulation
             self.resamp = 1e-3         # time to resample in world time
 
-            self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
             self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
@@ -39,52 +37,47 @@ class Parameters(object):
 
             self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
             self.init_end = 10*60      # world time to end the initialization simulation time [s]
-            self.sim_end = 0.05         # world time to end the simulation
             self.resamp = 1.0         # time to resample in world time
 
             self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
             self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
         self.cache_path = "~/.betse/cache/basicInit"  # world, inits, and sims are saved and read to/from this directory.
 
-        self.profile = 'scratch' #ion profile to be used: 'basic' (3 ions), 'mammalian' (7 ions), 'invertebrate' (7 ions)
+        # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
+        self.ion_profile = 'basic'
 
-        # basic constants
-        self.F = 96485 # Faraday constant [J/V*mol]
-        self.R = 8.314  # Gas constant [J/K*mol]
-        self.T = 310   # Temperature [K]
+        # Default colormap
+        self.default_cm = cm.coolwarm
 
         # geometric constants and factors
         self.wsx = 100e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
         self.wsy = 100e-6  # the y-dimension of the world space [m] recommended range 50 to 1000 um
         self.rc = 5e-6  # radius of single cell
-        self.d_cell = self.rc * 2  # diameter of single cell
-        self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index
-        self.ny = int(self.wsy / self.d_cell)  # number of lattice sites in world y index
-        self.ac = 1e-6  # cell-cell separation for drawing
-        self.nl = 0.8  # noise level for the lattice
-        self.wsx = self.wsx + 5 * self.nl * self.d_cell  # readjust the world size for noise
-        self.wsy = self.wsy + 5 * self.nl * self.d_cell
-        self.vol_env = 1        # volume of the environmental space [m3]
-        self.search_d =1.5     # distance to search for nearest neighbours (relative to cell diameter dc) min 1.0 max 5.0
-        self.scale_cell = 0.9          # the amount to scale cell membranes in from ecm edges (only affects drawing)
-        self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
-        self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
         self.cell_height = 5.0e-6  # the height of a cell in the z-direction (for volume and surface area calculations)
         self.cell_space = 26.0e-9  # the true cell-cell spacing (width of extracellular space)
         self.cm = 0.010            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
-        self.um = 1e6    # multiplication factor to convert m to um
+
+        self.ac = 1e-6  # cell-cell separation for drawing
+        self.scale_cell = 0.9          # the amount to scale cell membranes in from ecm edges (only affects drawing)
+        self.nl = 0.8  # noise level for the lattice
+        self.vol_env = 1        # volume of the environmental space [m3]
+        self.search_d =1.5     # distance to search for nearest neighbours (relative to cell diameter dc) min 1.0 max 5.0
+        self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
+        self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
+
+        self.T = 310   # Temperature [K]
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gjsa = math.pi*((5.0e-9)**2)          # total gap junction surface area as fraction of cell surface area (5.0)
-        self.gj_vthresh = 80e-3              # voltage threshhold gj closing [V]
+        self.gj_radius = 3.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.gjsa = math.pi*((self.gj_radius)**2)          # total gap junction surface area as fraction of cell surface area
+        self.gj_vthresh = 80e-3              # cell-cell voltage threshhold at which gj close [V]
         self.gj_vgrad  = 40e-3               # the range over which gj goes from open to shut at threshold [V]
-        self.Dgj = 1e-9                    # gap junction diffusion coefficient [m2/s] (1e-9 neural)
+       # self.Dgj = 1e-9                    # gap junction diffusion coefficient [m2/s]
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
@@ -95,36 +88,37 @@ class Parameters(object):
         self.halfmax_Ca = 12
         self.slope_Ca = 24
 
-        # Scheduled Interventions
+        #.............................Scheduled Interventions..........................................................
 
-        # cell to effect in scheduled intervention: (choices = None or int)
-        self.target_cell = [1]
+        # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
+        self.scheduled_targets = 'none'
 
-        # cells to effect: (choices = 'none','all','random1','random50')
-        self.targets = 'all'
-
-        #self.ion_options specifications list is [time on, time off, rate of change, Dmem multiplier]
-        # for triggering action potentials:
+        #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
-       # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
+        # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
-        # self.vg_options specifications list is [Dmem multiplier, gain, v_on, v_off, v_inactivate]
-        #
-        vgNa = [1.0e-15,-60e-3,30e-3,-65e-3]    # [max Na mem diffusion m2/s, v on, v off, v reactivate]
-        vgK = [1.0e-16,10e-3,-75e-3]             # [max K mem diffusion m2/s, v on, v off]
+        #...................................Voltage Gated Channels......................................................
+
+        # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
+        self.gated_targets = 'random50'
+        # self.vg_options specifications list for voltage gated ion channel options:
+        vgNa = [1.0e-15,-55e-3,30e-3,-60e-3,5e-3]    # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
+        vgK = [1.0e-16, -20e-3,-75e-3,30.0e-3]             # [max K mem diffusion (m2/s), v on, v off, duration (s)]
         vgCa = [1.0e-18,-40e-3,10e-3,1.0e-3,1.0e-4]    # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
-        self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':0,'K_cag':0}
-        # self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
-        # default diffusion constants
+        self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':0,'K_cag':0}
+
+
+        # default membrane diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
         self.Dm_K = 2.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-20     # membrane diffusion constant calcium [m2/s]
-        self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
+        self.Dm_H = 1.0e-17      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]
 
+        # default free diffusion constants
         self.Do_Na = 1.33e-9      # free diffusion constant sodium [m2/s]
         self.Do_K = 1.96e-9      # free diffusion constant potassium [m2/s]
         self.Do_Cl = 2.03e-9     # free diffusion constant chloride [m2/s]
@@ -132,6 +126,9 @@ class Parameters(object):
         self.Do_H = 2.5e-9      # free diffusion constant hydrogen [m2/s]
         self.Do_M = 1.0e-9     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
+
+
+        # ........................Rarely changed constants and calculations.............................................
 
         # charge states of ions
         self.z_Na = 1
@@ -142,7 +139,47 @@ class Parameters(object):
         self.z_P = -1
         self.z_M = -1
 
-        if self.profile == 'scratch':
+        # fundamental constants
+        self.F = 96485 # Faraday constant [J/V*mol]
+        self.R = 8.314  # Gas constant [J/K*mol]
+
+
+        self.d_cell = self.rc * 2  # diameter of single cell
+        self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index
+        self.ny = int(self.wsy / self.d_cell)  # number of lattice sites in world y index
+        self.wsx = self.wsx + 5 * self.nl * self.d_cell  # readjust the world size for noise
+        self.wsy = self.wsy + 5 * self.nl * self.d_cell
+
+        self.um = 1e6    # multiplication factor to convert m to um
+
+        # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
+        if self.ion_profile == 'basic':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+            self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 5.4
+            self.cK_cell = 140.44
+            self.cP_cell = 138.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
+
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
+
+
+        if self.ion_profile == 'basic_Ca':
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
@@ -156,18 +193,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-
-            # if self.z_M_env == -1:
-            #     self.cMn_env = self.cM_env
-            #     self.cMp_env = 0
-            #
-            # if self.z_M_env == 1:
-            #     self.cMp_env = self.cM_env
-            #     self.cMn_env = 0
-
             self.cNa_cell = 5.4
             self.cK_cell = 140.44
-            self.cCa_cell = 1.69
+            self.cCa_cell = 1.0e-3
             self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
@@ -176,42 +204,11 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            # if self.z_M_cell == -1:
-            #     self.cMn_cell = self.cM_cell
-            #     self.cMp_cell = 0
-            #
-            # if self.z_M_cell == 1:
-            #     self.cMp_cell = self.cM_cell
-            #     self.cMn_cell = 0
-
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
 
 
-
-        if self.profile == 'basic':
-
-            self.cNa_env = 145.0
-            self.cK_env = 5.0
-
-            zs = [self.z_Na, self.z_K]
-
-            conc_env = [self.cNa_env,self.cK_env]
-            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
-
-            assert self.z_M_env == -1
-
-            self.cNa_cell = 17.0
-            self.cK_cell = 131.0
-
-            conc_cell = [self.cNa_cell,self.cK_cell]
-            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
-
-            assert self.z_M_cell == -1
-
-            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':0,'M':1}
-
-        # default environmental and initial values mammalian cells and plasma
-        if self.profile == 'mammalian':
+        # default environmental and cytoplasmic initial values mammalian cells
+        if self.ion_profile == 'animal':
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
@@ -241,8 +238,8 @@ class Parameters(object):
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
-         # default environmental and initial values invertebrate cells and plasma
-        if self.profile == 'invertebrate':
+         # default environmental and cytoplasm values invertebrate cells
+        if self.ion_profile == 'invertebrate':
             self.cNa_env = 440.0
             self.cK_env = 20.0
             self.cCl_env = 460.0
@@ -270,8 +267,6 @@ class Parameters(object):
             assert self.z_M_cell == -1
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
-
-
 
 
 def bal_charge(concentrations,zs):
