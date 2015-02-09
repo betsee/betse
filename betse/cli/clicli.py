@@ -48,6 +48,7 @@
 '''`betse`'s command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
+from betse import metadata
 from betse.cli.cli import CLI
 import argparse
 
@@ -74,7 +75,12 @@ class CLICLI(CLI):
     ----------
     '''
     def __init__(self):
-        pass
+        super().__init__()
+
+    # ..................{ ABSTRACT                           }..................
+    @property
+    def _script_basename(self) -> str:
+        return metadata.SCRIPT_NAME_CLI
 
     def _run(self) -> None:
         '''

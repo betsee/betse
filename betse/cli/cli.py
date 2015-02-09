@@ -15,8 +15,9 @@
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 from betse import dependencies
-from betse.util.path import dirs, log
 from betse.util import output
+from betse.util.path import dirs, logger
+from betse.util.path.logger import LoggerConfig
 import argparse, traceback
 
 # ....................{ MAIN                               }....................
@@ -27,11 +28,16 @@ class CLI(metaclass = ABCMeta):
 
     Attributes
     ----------
+    _logger_config : LoggerConfig
+        Logger configuration, providing access to root logger handlers (e.g.,
+        for modifying logging levels).
     _logger : Logger
-        Low-level object implementing such logging.
+        Logger intended to be used only by CLI modules or None if no such
+        logger has been initialized.
     '''
     def __init__(self):
-        #FIXME: Initialize me, please.
+        # Initialize such logger to None to avoid subtle issues elsewhere (e.g.,
+        # attempting to access such logger in _print_exception()).
         self._logger = None
 
     def run(self) -> int:
@@ -51,6 +57,14 @@ class CLI(metaclass = ABCMeta):
 
             # Make betse's top-level dot directory if not found.
             dirs.make_unless_found(dirs.DOT_DIR)
+
+            # Make a root logger *AFTER* making such directory, as the former
+            # writes to logfiles in the latter.
+            self._logger_config = LoggerConfig(
+                script_basename = self._script_basename)
+
+            # Make a child logger specific to this module.
+            self._logger = logger.get(__name__)
 
             # Parse command-line arguments and run the specified command.
             self._run()
@@ -88,6 +102,14 @@ class CLI(metaclass = ABCMeta):
         except Exception:
             output.error('print_exception() recursively raised exception:\n')
             traceback.print_exc()
+
+    # ..................{ ABSTRACT                           }..................
+    @abc.abstractmethod
+    def _script_basename(self) -> str:
+        '''
+        Get the basename of the currently executed external script.
+        '''
+        pass
 
     @abc.abstractmethod
     def _run(self):

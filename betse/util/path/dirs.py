@@ -12,6 +12,7 @@ builtin.
 
 # ....................{ IMPORTS                            }....................
 from betse import metadata
+from betse.exceptions import BetseExceptionDir
 from betse.util import system
 from os import environ, path
 import os
@@ -52,6 +53,39 @@ elif system.is_windows():
 # Else, assume the current system is POSIX-compatible.
 else:
     DOT_DIR = path.join(HOME_DIR, '.' + metadata.SCRIPT_NAME_CLI)
+
+# ....................{ EXCEPTIONS                         }....................
+def die_unless_found(dirname: str) -> None:
+    '''
+    Raise an exception unless the passed directory exists.
+    '''
+    assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
+    if not is_dir(dirname):
+        raise BetseExceptionDir(
+            '"{}" not found, not a directory, or not readable.'.format(dirname))
+
+def die_unless_parent_found(pathname: str) -> None:
+    '''
+    Raise an exception unless the parent directory of the passed path exists.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    die_unless_found(get_dirname(pathname))
+
+# ....................{ TESTERS                            }....................
+def is_dir(dirname: str) -> bool:
+    '''
+    True if the passed directory exists.
+    '''
+    assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
+    path.isdir(dirname)
+
+# ....................{ GETTERS                            }....................
+def get_dirname(pathname: str) -> str:
+    '''
+    Get the *dirname* (i.e., parent directory) of the passed path.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    path.dirname(pathname)
 
 # ....................{ MAKERS                             }....................
 #FIXME: Replace all existing calls to os.makedirs() by calls to such function.
