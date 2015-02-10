@@ -17,6 +17,12 @@ class BetseException(Exception, metaclass = ABCMeta):
     '''
     pass
 
+class BetseExceptionLog(BetseException):
+    '''
+    Log-specific exception.
+    '''
+    pass
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetseExceptionPath(BetseException):
     '''

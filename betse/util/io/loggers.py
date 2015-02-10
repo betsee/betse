@@ -44,6 +44,7 @@ loggers except the root logger to be unconfigured, messages will be logged
 
 # ....................{ IMPORTS                            }....................
 from betse.util.path import dirs
+from betse.util.system import processes
 from betse.util.type import ints
 import logging, sys
 
@@ -92,28 +93,31 @@ be smaller than the smallest constant defined by such module.
 '''
 
 # ....................{ GETTERS                            }....................
-def get(logger_name: str) -> logging.Logger:
+def get(logger_name: str = None) -> logging.Logger:
     '''
-    Get a new logger with the passed `.`-delimited name.
-
-    This function should *always* be called on a module-specific basis before
-    attempting to log. In particular, the root logger should *not* be logged to.
+    Get the logger with the passed `.`-delimited name, defaulting to the
+    basename of the current process (e.g., `betse`).
 
     Logger Name
     ----------
-    For simplicity, such name should typically be that of the calling module
-    (e.g., `__name__`).
-
-    Ideally, this function would automatically get such name by inspecting the
-    current call stack for such name. Unfortunately, a recent stackoverflow
-    comment suggests such inspection fails under PyInstaller: "Also note that
-    this logic fails to work properly when you compile your python code into an
-    exe using pyinstaller." See also:
-
-        https://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
+    By convention, logger names are typically that of the calling module (e.g.,
+    `__name__`). However, since the default logger configuration already
+    dynamically embeds the name of such module but *not* such logger into log
+    records, there currently remains no reason to pass a logger name.
     '''
+    # Default the name of such logger to the basename of the current process.
+    # (e.g., "betse").
+    if not logger_name:
+        logger_name = processes.get_current_basename()
+
+    # If such name is the empty string, this function would get the root logger.
+    # Since logging under the root logger is inherently unsafe, assert such
+    # constraint.
     assert isinstance(logger_name, str),\
         '"{}" not a string.'.format(logger_name)
+    assert logger_name, 'Logger name empty.'
+
+    # Get such logger.
     return logging.getLogger(logger_name)
 
 # ....................{ CONFIG                             }....................
@@ -169,18 +173,11 @@ class LoggerConfig(object):
     _logger_root_handler_stdout : LoggerHandler
         Stream handler for the root logger printing to standard output.
     '''
-    def __init__(self, script_basename: str):
+    def __init__(self):
         '''
         Initialize the root logger for application-wide logging.
-
-        Parameters
-        ----------
-        script_basename
-            Basename of the currently executed external script (e.g., `betse`).
         '''
         super().__init__()
-        assert isinstance(script_basename, str),\
-            '"{}" not a string.'.format(script_basename)
 
         # If the directory containing such logfile does not exist, fail.
         dirs.die_unless_parent_found(LOG_FILE)
@@ -221,23 +218,36 @@ class LoggerConfig(object):
 
         #FIXME: Colourize me please.
 
-        # Format stdout and stderr output in the conventional way.
-        stream_format = ''.join(('[', script_basename, '] {message}',))
+        # Format stdout and stderr output in the conventional way. For a list of
+        # all available log record attributes, see:
+        #
+        #     https://docs.python.org/3/library/logging.html#logrecord-attributes
+        stream_format = '[{processName}] {message}'
         self._logger_root_handler_stdout.setFormatter(logging.Formatter(
             stream_format, style='{',))
         self._logger_root_handler_stderr.setFormatter(logging.Formatter(
             stream_format, style='{',))
 
         # Enforce a Linux-style logfile format.
+        file_format =\
+            '[{asctime}] {processName} {levelname:8s} ({module}.py:{funcName}():{lineno}): {message}'
         self._logger_root_handler_file.setFormatter(logging.Formatter(
-            '[{asctime}] {name} {levelname:8s} ({module}.py:{lineno}): {message}',
-            style='{',
-        ))
+            file_format, style='{',))
 
         # Register such handlers with the root logger.
         logger_root.addHandler(self._logger_root_handler_stdout)
         logger_root.addHandler(self._logger_root_handler_stderr)
         logger_root.addHandler(self._logger_root_handler_file)
+
+    def get_logger(self, *args, **kwargs) -> logging.Logger:
+        '''
+        Get the logger with the passed `.`-delimited name, defaulting to the
+        basename of the current process (e.g., `betse`).
+
+        This is a convenience method wrapping this module's `get()` function.
+        See such function for further details.
+        '''
+        return get(*args, **kwargs)
 
 # ....................{ CONFIG                             }....................
 class LoggerFilterInfoOnly(logging.Filter):
@@ -255,6 +265,45 @@ class LoggerFilterInfoOnly(logging.Filter):
         return log_record.levelno == logging.INFO
 
 # --------------------( WASTELANDS                         )--------------------
+    # Since logging under the root logger is inherently unsafe, an exception is
+    # raised.
+    # if logger_name == '':
+    #     raise BetseExceptionLog('Logger name empty.')
+# from betse.util.exceptions import BetseExceptionLog
+        # Note that "{{" and "}}" substrings in format() strings escape literal
+        # "{" and "}" characters, respectively.
+        # file_format =\
+        #     '[{{asctime}}] {} {{levelname:8s}} ({{module}}.py:{{lineno}}): {{message}}'.format(
+        #         script_basename)
+        # stream_format = '[{}] {{message}}'.format(script_basename)
+        # Basename of the current process (e.g., "betse").
+        # script_basename = process.get_current_basename()
+
+    # Ideally, this function would automatically get such name by inspecting the
+    # current call stack for such name. Unfortunately, a recent stackoverflow
+    # comment suggests such inspection fails under PyInstaller: "Also note that
+    # this logic fails to work properly when you compile your python code into an
+    # exe using pyinstaller." See also:
+    #
+    #     https://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
+    # This function should *always* be called on a module-specific basis before
+    # attempting to log. In particular, the root logger should *not* be logged to.
+
+            # '[{asctime}] {name} {levelname:8s} ({module}.py:{lineno}): {message}',
+        # # Basename of the currently executed external script (e.g., `betse`).
+        # script_basename =
+
+    # def __init__(self, script_basename: str):
+    #     '''
+    #     Initialize the root logger for application-wide logging.
+    #
+    #     Parameters
+    #     ----------
+    #     script_basename
+    #         Basename of the currently executed external script (e.g., `betse`).
+    #     '''
+        # assert isinstance(script_basename, str),\
+        #     '"{}" not a string.'.format(script_basename)
     # Filter ignoring log records whose logging level strictly greater than
     # `INFO`.
     #

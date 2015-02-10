@@ -3,22 +3,18 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-#FIXME: Improve output on uncatched exceptions by wrapping all CLI operations in
-#a try-except block that:
-#
-#* Catches all exceptions.
-#* Improves such output.
-#* Exits the current process with status 1.
-
 '''Abstract command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta
-from betse import dependencies
-from betse.util import output
-from betse.util.path import dirs, logger
-from betse.util.path.logger import LoggerConfig
-import argparse, traceback
+from abc import ABCMeta, abstractmethod
+from argparse import ArgumentParser
+from betse import dependencies, metadata
+from betse.util.io import output
+from betse.util.io.loggers import LoggerConfig
+from betse.util.path import dirs
+from betse.util.system import processes
+from io import StringIO
+import traceback, sys
 
 # ....................{ MAIN                               }....................
 class CLI(metaclass = ABCMeta):
@@ -32,10 +28,14 @@ class CLI(metaclass = ABCMeta):
         Logger configuration, providing access to root logger handlers (e.g.,
         for modifying logging levels).
     _logger : Logger
-        Logger intended to be used only by CLI modules or None if no such
-        logger has been initialized.
+        Logger intended to be used globally (i.e., by *all* classes, functions,
+        and modules) or None if no such logger has been initialized.
+    _arg_parser : ArgumentParser
+        `argparse`-style command-line argument parser.
     '''
     def __init__(self):
+        super().__init__()
+
         # Initialize such logger to None to avoid subtle issues elsewhere (e.g.,
         # attempting to access such logger in _print_exception()).
         self._logger = None
@@ -58,13 +58,26 @@ class CLI(metaclass = ABCMeta):
             # Make betse's top-level dot directory if not found.
             dirs.make_unless_found(dirs.DOT_DIR)
 
-            # Make a root logger *AFTER* making such directory, as the former
-            # writes to logfiles in the latter.
-            self._logger_config = LoggerConfig(
-                script_basename = self._script_basename)
+            # Configure the root logger *AFTER* making such directory, as the
+            # former writes to logfiles in the latter.
+            self._logger_config = LoggerConfig()
 
-            # Make a child logger specific to this module.
-            self._logger = logger.get(__name__)
+            # Make a child logger.
+            self._logger = self._logger_config.get_logger()
+
+            #FIXME: Display a default help message, when the user passes no
+            #arguments. Does such parser already do so?
+
+            # Make a command-line argument parser.
+            self._arg_parser = ArgumentParser(
+                # Program name.
+                prog = '{} {}'.format(
+                    processes.get_current_basename(), metadata.__version__),
+
+                # Program description.
+                description = metadata.DESCRIPTION,
+                # usage = '{} <command> [<arg>...]'.format(metadata.SCRIPT_NAME_CLI),
+            )
 
             # Parse command-line arguments and run the specified command.
             self._run()
@@ -84,34 +97,87 @@ class CLI(metaclass = ABCMeta):
         '''
         Print the passed exception to standard error *and* log such exception.
         '''
-        # If such printing itself raises an exception...
+        assert isinstance(exception, Exception),\
+            '"{}" not an exception.'.format(exception)
+
         try:
-            assert isinstance(exception, Exception),\
-                '"{}" not an exception.'.format(exception)
-
-            #FIXME: Print such exception.
-
-            # If a logger has been initialized, log such exception *AFTER*
-            # printing such exception to standard error. (Logging is
-            # substantially more fragile and hence likely to itself raise
-            # further exceptions.)
+            # If a logger has been initialized, print such exception by logging
+            # such exception. Assuming such logger retains its default
+            # configuration, such exception will be propagated up to the root
+            # logger and then handled by the stderr handler.
             if self._logger:
-                self._logger.exception(exception)
-        # ...catch and print such exception using standard Python facilities
-        # guaranteed not to raise additional exceptions.
+                # While all loggers provide an exception() method for logging
+                # exceptions, the output produced by such method is in the same
+                # format as that produced by the Python interpreter on uncaught
+                # exceptions. In order, this is:
+                #
+                # * Such exception's non-layman-readable stack trace.
+                # * Such exception's layman-readable error message.
+                #
+                # Since such format is (arguably) unreadable for non-developers,
+                # such exception is reformatted for readability. Sadly, this
+                # precludes us from calling our logger's exception() method.
+
+                # Traceback object for such exception.
+                _, _, exception_traceback = sys.exc_info()
+
+                # List of tuple pairs comprising both the parent exceptions of
+                # such exception *AND* such exception. The first and second
+                # items of such pairs are those exceptions and those exception's
+                # tracebacks respectively. (Sadly, this is only accessible as a
+                # private module function.)
+                exception_parents = traceback._iter_chain(
+                    exception, exception_traceback)
+
+                # String buffer formatting such exception and all parents of
+                # such exception in the current exception chain.
+                exception_string_buffer = StringIO()
+
+                # Append each parent exception and such exception's traceback to
+                # such string.
+                for exception_parent, exception_parent_traceback in\
+                    exception_parents:
+                    # If such exception is a string, append such string as is
+                    # and continue to the next parent exception.
+                    if isinstance(exception_parent, str):
+                        exception_string_buffer.write(exception_parent)
+                        exception_string_buffer.write('\n')
+                        continue
+
+                    # Append such exception's message.
+                    exception_string_buffer.write(
+                        traceback.format_exception_only(
+                            type(exception_parent), exception_parent))
+
+                    # If such exception has a traceback, append such traceback.
+                    if exception_parent_traceback:
+                        # Append a traceback header.
+                        exception_string_buffer.write('\n')
+                        exception_string_buffer.write(
+                            'Traceback (most recent call last):\n')
+
+                        # Append such traceback itself.
+                        exception_string_buffer.write(''.join(
+                            # Get a list of lines formatted from such list.
+                            traceback.format_list(
+                                # Get a list of stack trace entries from such
+                                # traceback.
+                                traceback.extract_tb(
+                                    exception_parent_traceback))))
+
+                # Log such exception.
+                self._logger.error(exception_string_buffer.getvalue())
+            # Else, print such exception via the standard Python library.
+            else:
+                traceback.print_exc()
+        # If such printing raises an exception, catch and print such exception
+        # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
             output.error('print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
     # ..................{ ABSTRACT                           }..................
-    @abc.abstractmethod
-    def _script_basename(self) -> str:
-        '''
-        Get the basename of the currently executed external script.
-        '''
-        pass
-
-    @abc.abstractmethod
+    @abstractmethod
     def _run(self):
         '''
         Parse all passed command-line arguments and run the specified command.
@@ -119,6 +185,50 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+        # Logger intended to be used only by CLI modules or None if no such
+        # logger has been initialized.
+        # Define global command-line arguments (i.e., arguments applicable to
+        # all subparsers, added below).
+            # Make a child logger specific to this module.
+                # script_basename = self._script_basename)
+    # @abstractmethod
+    # def _script_basename(self) -> str:
+    #     '''
+    #     Get the basename of the currently executed external script.
+    #     '''
+    #     pass
+
+                # # Traceback formatted as a list of lines.
+                # exception_traceback_lines = traceback.format_list(
+                #     traceback.extract_tb(exception_traceback))
+                #
+                # # Traceback formatted as a list of lines.
+                # exception_traceback_lines = traceback.format_list(
+                #     traceback.extract_tb(exception_traceback))
+                #
+                # # Exception formatted as a string concatenating such exception's
+                # # message and traceback in that order.
+                # # exception_
+
+                    # reversed(exception_parents):
+#FUXME: Improve output on uncatched exceptions by wrapping all CLI operations in
+#a try-except block that:
+#
+#* Catches all exceptions.
+#* Improves such output.
+#* Exits the current process with status 1.
+
+                # self._logger.exception(exception)
+            #FUXME: Print such exception.
+
+            # If a logger has been initialized, log such exception *AFTER*
+            # printing such exception to standard error. (Logging is
+            # substantially more fragile and hence likely to itself raise
+            # further exceptions.)
+            # if self._logger:
+                #FUXME: Erroneous. This will result in duplicate output.
+                # self._logger.exception(exception)
+
         # return exception.errno if hasattr(exception, 'errno') else 1
 #FUXME: Define a new module "betse/dependency.py" performing validation of
 #external dependencies, both Python and non-Python. Although we believe "yppy"

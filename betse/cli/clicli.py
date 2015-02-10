@@ -48,9 +48,8 @@
 '''`betse`'s command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
-from betse import metadata
+# from betse import metadata
 from betse.cli.cli import CLI
-import argparse
 
 # ....................{ MAIN                               }....................
 def main() -> int:
@@ -78,10 +77,6 @@ class CLICLI(CLI):
         super().__init__()
 
     # ..................{ ABSTRACT                           }..................
-    @property
-    def _script_basename(self) -> str:
-        return metadata.SCRIPT_NAME_CLI
-
     def _run(self) -> None:
         '''
         Run `betse`'s command line interface (CLI).
@@ -96,23 +91,10 @@ class CLICLI(CLI):
     def _parse_args(self):
         '''Parse all currently passed command-line arguments.
         '''
-        #FIXME: Display a default help message, when the user passes no
-        #arguments.
-
-        # Define global command-line arguments (i.e., arguments applicable to
-        # all subparsers, added below).
-        parser = argparse.ArgumentParser(
-            # Program name and description.
-            prog = ''.join((metadata.NAME, ' ', metadata.__version__,)),
-            description = metadata.DESCRIPTION,
-            usage = ''.join((
-                metadata.SCRIPT_NAME_CLI, ' <command> [<arg>...]',
-            ))
-        )
-        self._add_parser_common_args(parser)
+        # self._add_parser_common_args(parser)
 
         # Define argument subparsers (i.e., actions).
-        subparsers = parser.add_subparsers(
+        subparsers = self._arg_parser.add_subparsers(
             title = 'actions',
             description = 'Actions to be performed.',
         )
@@ -136,6 +118,10 @@ class CLICLI(CLI):
         parser.parse_args(namespace=self)
 
 # --------------------( WASTELANDS                         )--------------------
+    # @property
+    # def _script_basename(self) -> str:
+    #     return metadata.SCRIPT_NAME_CLI
+
         # return exception.errno if hasattr(exception, 'errno') else 1
 #FUXME: Define a new module "betse/dependency.py" performing validation of
 #external dependencies, both Python and non-Python. Although we believe "yppy"

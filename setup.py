@@ -115,11 +115,11 @@ setup_options = {
     # both installation and symlink time.
     'entry_points': {
         # CLI-specific scripts.
-        'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.cli:main',],
+        'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
 
-        #FIXME: Create "betse.gui.gui".
+        #FIXME: Create "betse.gui.guicli".
         # GUI-specific scripts.
-        'gui_scripts':  [SCRIPT_NAME_GUI + ' = betse.gui.gui:main',],
+        'gui_scripts':  [SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',],
     },
 
     # ..................{ DEPENDENCY                         }..................

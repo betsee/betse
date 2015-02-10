@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level facilities for transparently printing and logging objects.
+Low-level output facilities.
 '''
 
 # ....................{ IMPORTS                            }....................

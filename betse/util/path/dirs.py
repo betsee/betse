@@ -12,8 +12,8 @@ builtin.
 
 # ....................{ IMPORTS                            }....................
 from betse import metadata
-from betse.exceptions import BetseExceptionDir
-from betse.util import system
+from betse.util.exceptions import BetseExceptionDir
+from betse.util.system import systems
 from os import environ, path
 import os
 
@@ -43,11 +43,11 @@ Specifically, under:
 '''
 
 # If the current system is OS X, set such directory accordingly.
-if system.is_osx():
+if systems.is_osx():
     DOT_DIR = path.join(
         HOME_DIR, 'Library', 'Application Support', metadata.SCRIPT_NAME_CLI)
 # If the current system is Windows, set such directory accordingly.
-elif system.is_windows():
+elif systems.is_windows():
     DOT_DIR = path.join(environ['APPDATA'], metadata.NAME)
 #FIXME: Explicitly assert POSIX compatibility here.
 # Else, assume the current system is POSIX-compatible.

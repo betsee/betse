@@ -12,7 +12,7 @@ managed by `setuptools` (e.g., `betse`).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.cli.cli import main
+from betse.cli.clicli import main
 
 # ....................{ MAIN                               }....................
 # If this module is imported from the command line, run betse's CLI; else, noop.
