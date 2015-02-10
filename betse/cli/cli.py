@@ -7,9 +7,9 @@
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from betse import dependencies, metadata
-from betse.util.io import output
+from betse.util.io import loggers, output
 from betse.util.io.loggers import LoggerConfig
 from betse.util.path import dirs
 from betse.util.system import processes
@@ -36,10 +36,13 @@ class CLI(metaclass = ABCMeta):
     def __init__(self):
         super().__init__()
 
-        # Initialize such logger to None to avoid subtle issues elsewhere (e.g.,
-        # attempting to access such logger in _print_exception()).
+        # Initialize such fields to None to avoid subtle issues elsewhere (e.g.,
+        # attempting to access such logger within _print_exception()).
+        self._logger_config = None
         self._logger = None
+        self._arg_parser = None
 
+    # ..................{ PUBLIC                             }..................
     def run(self) -> int:
         '''
         Run the command line interface (CLI) defined by the current subclass.
@@ -58,28 +61,17 @@ class CLI(metaclass = ABCMeta):
             # Make betse's top-level dot directory if not found.
             dirs.make_unless_found(dirs.DOT_DIR)
 
-            # Configure the root logger *AFTER* making such directory, as the
-            # former writes to logfiles in the latter.
-            self._logger_config = LoggerConfig()
+            # Configure logging *AFTER* making such directory, as such logging
+            # writes to logfiles in such directory.
+            self._configure_logging()
 
-            # Make a child logger.
-            self._logger = self._logger_config.get_logger()
+            # Parse CLI arguments *AFTER* logging, ensuring that exceptions
+            # raised by such parsing will be logged.
+            self._parse_args()
 
-            #FIXME: Display a default help message, when the user passes no
-            #arguments. Does such parser already do so?
+            #FIXME: We probably don't need this. Excise away. Yay!
 
-            # Make a command-line argument parser.
-            self._arg_parser = ArgumentParser(
-                # Program name.
-                prog = '{} {}'.format(
-                    processes.get_current_basename(), metadata.__version__),
-
-                # Program description.
-                description = metadata.DESCRIPTION,
-                # usage = '{} <command> [<arg>...]'.format(metadata.SCRIPT_NAME_CLI),
-            )
-
-            # Parse command-line arguments and run the specified command.
+            # Perform subclass-specific logic.
             self._run()
 
             # Exit with successful exit status from the current process.
@@ -92,6 +84,77 @@ class CLI(metaclass = ABCMeta):
             # exception provides a system-specific exit status, use such status;
             # else, use the default such status.
             return getattr(exception, 'errno', 1)
+
+    # ..................{ PRIVATE                            }..................
+    def _configure_logging(self) -> None:
+        '''
+        Configure the root logger and obtain an application-wide child logger.
+        '''
+        # Configure the root logger.
+        self._logger_config = LoggerConfig()
+
+        # Create an application-wide child logger.
+        self._logger = self._logger_config.get_logger()
+
+    def _parse_args(self) -> None:
+        '''
+        Parse all currently passed command-line arguments.
+
+        In order, this method:
+
+        * Creates and configures an argument parser with sensible defaults.
+        * Calls the subclass-specific `_configure_arg_parsing()` method,
+          defaulting to a noop.
+        * Parses all arguments with such parser.
+        '''
+        # Program version specifier.
+        program_version = '{} {}'.format(
+            processes.get_current_basename(), metadata.__version__)
+
+        # Make a command-line argument parser.
+        self._arg_parser = ArgumentParser(
+            # Program name.
+            prog = program_version,
+
+            # Program description.
+            description = metadata.DESCRIPTION,
+
+            # Print the default values of options in help output.
+            formatter_class = ArgumentDefaultsHelpFormatter,
+        )
+
+        # Add globally applicable arguments.
+        self._arg_parser.add_argument(
+            '-v', '--verbose',
+            dest = 'is_verbose',
+            action = 'store_true',
+            help = 'print low-level debugging messages',
+        )
+        self._arg_parser.add_argument(
+            '-V', '--version',
+            action = 'version',
+            version = program_version,
+            help='print program version and exit',
+        )
+
+        # Perform subclass-specific argument parsing configuration.
+        self._configure_arg_parsing()
+
+        # Parse arguments.
+        args = self._arg_parser.parse_args()
+
+        #FIXME: Display a default help message, when the user passes no
+        #arguments. Does such parser already do so? This is trivial for us
+        #to do as follows:
+        #
+        #    if len(sys.argv) == 1:
+        #         self._arg_parser.print_help()
+        #         return
+
+        # If verbosity was requested, decrease the log level for the stdout-
+        # specific logger handler from default "INFO" to all-inclusive "ALL".
+        if args.is_verbose:
+            self._logger_config.stdout.setLevel(loggers.ALL)
 
     def _print_exception(self, exception: Exception) -> None:
         '''
@@ -176,15 +239,28 @@ class CLI(metaclass = ABCMeta):
             output.error('print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
-    # ..................{ ABSTRACT                           }..................
+    # ..................{ SUBCLASS ~ mandatory               }..................
+    # The following methods *MUST* be implemented by subclasses.
+
     @abstractmethod
     def _run(self):
         '''
-        Parse all passed command-line arguments and run the specified command.
+        Perform subclass-specific logic.
+        '''
+        pass
+
+    # ..................{ SUBCLASS ~ optional                }..................
+    # The following methods may but need *NOT* be implemented by subclasses.
+
+    def _configure_arg_parsing(self):
+        '''
+        Configure the argument parser for subclass-specific argument parsing.
         '''
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+#Parse all passed command-line arguments and run the specified command.
+                # usage = '{} <command> [<arg>...]'.format(metadata.SCRIPT_NAME_CLI),
         # Logger intended to be used only by CLI modules or None if no such
         # logger has been initialized.
         # Define global command-line arguments (i.e., arguments applicable to

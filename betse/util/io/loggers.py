@@ -190,7 +190,7 @@ class LoggerConfig(object):
             level = INFO,
             stream = sys.stdout,
         )
-        self._logger_root_handler_stdout.addFilter(LoggerFilterInfoOnly())
+        self._logger_root_handler_stdout.addFilter(LoggerFilterInfoOrLess())
 
         # Root logger stdout handler, preconfigured as documented above.
         self._logger_root_handler_stderr = logging.StreamHandler(
@@ -239,6 +239,29 @@ class LoggerConfig(object):
         logger_root.addHandler(self._logger_root_handler_stderr)
         logger_root.addHandler(self._logger_root_handler_file)
 
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def file(self) -> logging.LoggerHandler:
+        '''
+        Get the root logger handler appending to the current logfile.
+        '''
+        return self._logger_root_handler_file
+
+    @property
+    def stderr(self) -> logging.LoggerHandler:
+        '''
+        Get the root logger handler printing to standard error.
+        '''
+        return self._logger_root_handler_stderr
+
+    @property
+    def stdout(self) -> logging.LoggerHandler:
+        '''
+        Get the root logger handler printing to standard output.
+        '''
+        return self._logger_root_handler_stdout
+
+    # ..................{ GETTERS                            }..................
     def get_logger(self, *args, **kwargs) -> logging.Logger:
         '''
         Get the logger with the passed `.`-delimited name, defaulting to the
@@ -250,21 +273,36 @@ class LoggerConfig(object):
         return get(*args, **kwargs)
 
 # ....................{ CONFIG                             }....................
-class LoggerFilterInfoOnly(logging.Filter):
+class LoggerFilterInfoOrLess(logging.Filter):
     '''
-    Filter ignoring log records whose logging level is *not* `INFO`.
+    Filter ignoring log records with logging level strictly greater than `INFO`.
 
-    This filter retains only log records with a logging level of `INFO`.
+    This filter retains only log records with logging level of either `INFO` or
+    `DEBUG`.
     '''
     def filter(self, log_record: logging.LogRecord) -> str:
         '''
-        True if the passed log record has a logging level of `INFO`.
+        True if the passed log record has a logging level of `INFO` or less.
         '''
         assert isinstance(log_record, logging.LogRecord),\
             '"{}" not a string.'.format(log_record)
-        return log_record.levelno == logging.INFO
+        return log_record.levelno <= logging.INFO
 
 # --------------------( WASTELANDS                         )--------------------
+# class LoggerFilterInfoOnly(logging.Filter):
+#     '''
+#     Filter ignoring log records with logging level *not* `INFO`.
+#
+#     This filter retains only log records with a logging level of `INFO`.
+#     '''
+#     def filter(self, log_record: logging.LogRecord) -> str:
+#         '''
+#         True if the passed log record has a logging level of `INFO`.
+#         '''
+#         assert isinstance(log_record, logging.LogRecord),\
+#             '"{}" not a string.'.format(log_record)
+#         return log_record.levelno == logging.INFO
+
     # Since logging under the root logger is inherently unsafe, an exception is
     # raised.
     # if logger_name == '':

@@ -25,9 +25,9 @@ NAME = 'BETSE'
 
 DESCRIPTION = ''.join((
     NAME, ' ',
-    '(Bioelectric Tissue Simulation Environment) simulates propagation of ',
-    'electrical phenomena in biological tissue (e.g., ion channel-gated ',
-    'current flow).',
+    '(BioElectric Tissue Simulation Engine) simulates propagation of ',
+    'electrical phenomena within biological tissue ',
+    '(e.g., ion channel-gated current flow).',
 ))
 '''Human-readable program description.'''
 

@@ -3,7 +3,71 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-#FIXME; The following snippet courtesy Matthew Leingan affords an elegant means
+'''`betse`'s command line interface (CLI).'''
+
+# ....................{ IMPORTS                            }....................
+from betse.cli.cli import CLI
+
+# ....................{ MAIN                               }....................
+def main() -> int:
+    '''Run `betse`'s command line interface (CLI).
+
+    This function is provided as a convenience to callers requiring procedural
+    functions rather than classical methods (e.g., `setuptools`).
+
+    Returns
+    ----------
+    int
+        Exit status of such interface. This is a non-negative integer in
+        `[0, 255]` where 0 signifies success and all other values failure.
+    '''
+    return CLICLI().run()
+
+# ....................{ MAIN                               }....................
+class CLICLI(CLI):
+    '''`betse`'s command line interface (CLI).
+
+    Attributes
+    ----------
+    '''
+    def __init__(self):
+        super().__init__()
+
+    # ..................{ ABSTRACT                           }..................
+    def _run(self) -> None:
+        '''
+        Run `betse`'s command line interface (CLI).
+        '''
+        #FIXME: Implement me.
+        # Run the command specified by such arguments.
+
+    # ..................{ PRIVATE                            }..................
+    def _configure_arg_parsing(self):
+        # Define argument subparsers (i.e., actions).
+        self._arg_subparsers = self._arg_parser.add_subparsers(
+            title = 'command',
+            description = 'Command to be performed.',
+        )
+
+        #FIXME: Not entirely clear as to why we require or want this dictionary.
+        #Smacks of overkill, frankly. Also unclear why we require
+        #_add_subparser_sim()-style methods. Just define all such subcommands
+        #here, for now.
+
+        # Dictionary from command name to subparser object.
+        command_parsers = {}
+        command_parsers['sim'] = self._add_subparser_sim()
+
+        # Add an identifying name and description for each command parser.
+        for command_parser_name, command_parser in command_parsers.items():
+            command_parser.set_defaults(command_name = command_parser_name)
+
+# --------------------( WASTELANDS                         )--------------------
+        # Parse command-line arguments into object attributes.
+        # self._parse_args()
+        # self._parse_common_args()
+
+#FUXME; The following snippet courtesy Matthew Leingan affords an elegant means
 #of integrating built-in Python argument parsing and logging;
 #
 #    import argparse
@@ -45,79 +109,11 @@
 #    elif args.verbose == 2:
 #        logger.setLevel(logging.DEBUG)
 
-'''`betse`'s command line interface (CLI).'''
-
-# ....................{ IMPORTS                            }....................
-# from betse import metadata
-from betse.cli.cli import CLI
-
-# ....................{ MAIN                               }....................
-def main() -> int:
-    '''Run `betse`'s command line interface (CLI).
-
-    This function is provided as a convenience to callers requiring procedural
-    functions rather than classical methods (e.g., `setuptools`).
-
-    Returns
-    ----------
-    int
-        Exit status of such interface. This is a non-negative integer in
-        `[0, 255]` where 0 signifies success and all other values failure.
-    '''
-    return CLICLI().run()
-
-# ....................{ MAIN                               }....................
-class CLICLI(CLI):
-    '''`betse`'s command line interface (CLI).
-
-    Attributes
-    ----------
-    '''
-    def __init__(self):
-        super().__init__()
-
-    # ..................{ ABSTRACT                           }..................
-    def _run(self) -> None:
-        '''
-        Run `betse`'s command line interface (CLI).
-        '''
-        # Parse command-line arguments into object attributes.
-        self._parse_args()
-        # self._parse_common_args()
-
-        #FIXME: Implement me.
-        # Run the command specified by such arguments.
-
-    def _parse_args(self):
-        '''Parse all currently passed command-line arguments.
-        '''
-        # self._add_parser_common_args(parser)
-
-        # Define argument subparsers (i.e., actions).
-        subparsers = self._arg_parser.add_subparsers(
-            title = 'actions',
-            description = 'Actions to be performed.',
-        )
-
-        #FIXME: Not entirely clear as to why we require or want this dictionary.
-
-        # Dictionary from action name to subparser object.
-        action_parsers = {}
-#        action_parsers['help'   ] = self._add_subparser_help(subparsers)
-        action_parsers['run'] = self._add_subparser_run(subparsers)
-
-        # Add an identifying name and description for each action parser.
-        for action_parser_name, action_parser in action_parsers.iteritems():
-            assert action_parser, '"{}" is None'.format(action_parser_name)
-            action_parser.set_defaults(action_name=action_parser_name)
-
-        #FIXME: This doesn't seem quite right. Don't we want to parse arguments
+# from betse.util.io import loggers
+            # assert action_parser, '"{}" is None'.format(action_parser_name)
+        #FUXME: This doesn't seem quite right. Don't we want to parse arguments
         #only after defining all argument syntax for actions as well?
 
-        # Parse command-line arguments according to such specification.
-        parser.parse_args(namespace=self)
-
-# --------------------( WASTELANDS                         )--------------------
     # @property
     # def _script_basename(self) -> str:
     #     return metadata.SCRIPT_NAME_CLI
