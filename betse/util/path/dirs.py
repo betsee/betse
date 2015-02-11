@@ -77,7 +77,7 @@ def is_dir(dirname: str) -> bool:
     True if the passed directory exists.
     '''
     assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
-    path.isdir(dirname)
+    return path.isdir(dirname)
 
 # ....................{ GETTERS                            }....................
 def get_dirname(pathname: str) -> str:
@@ -85,7 +85,19 @@ def get_dirname(pathname: str) -> str:
     Get the *dirname* (i.e., parent directory) of the passed path.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    path.dirname(pathname)
+    return path.dirname(pathname)
+
+# ....................{ JOINERS                            }....................
+def join(*pathnames) -> str:
+    '''
+    Join the passed pathnames on the directory separator specific to the current
+    operating system.
+
+    This is a convenience function wrapping the standard `os.path.join()`
+    function, provided to reduce the number of import statements required by
+    other modules.
+    '''
+    return path.join(*pathnames)
 
 # ....................{ MAKERS                             }....................
 #FIXME: Replace all existing calls to os.makedirs() by calls to such function.

@@ -4,16 +4,66 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level output facilities.
+Low-level standard error facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import sys
+import random, sys
+
+# ....................{ CONSTANTS                          }....................
+HAIKU = [
+    '\n'.join((
+        'Chaos reigns within.',
+        'Reflect, repent, and reboot.',
+        'Order shall return.',
+    )),
+    '\n'.join((
+        'ABORTED effort:',
+        'Close all that you have.',
+        'You ask way too much.',
+    )),
+    '\n'.join((
+        'First snow, then silence.',
+        'This thousand dollar screen dies',
+        'so beautifully.',
+    )),
+    '\n'.join((
+        'A crash reduces',
+        'your expensive computer',
+        'to a simple stone.',
+    )),
+    '\n'.join((
+        'Error messages',
+        'cannot completely convey.',
+        'We now know shared loss.',
+    )),
+]
+'''
+List of haikus to be printed in the event of fatal errors.
+
+This is serious business, folks.
+
+See Also
+----------
+https://www.gnu.org/fun/jokes/error-haiku.html
+    To quote: "IMAGINE IF INSTEAD OF CRYPTIC TEXT STRINGS, YOUR COMPUTER
+    PRODUCED ERROR MESSAGES IN HAIKU..." We need no longer imagine.
+'''
+
+# ....................{ GETTERS                            }....................
+def get_haiku_random() -> str:
+    '''
+    Get a random haiku to be printed in the event of fatal errors.
+    '''
+    return random.choice(HAIKU)
 
 # ....................{ OUTPUTTERS                         }....................
-def error(*objects) -> None:
+def output(*objects) -> None:
     '''
     Print all passed objects to standard error *without* logging such objects.
+
+    This function is *not* named `print`, as doing so induces spurious errors
+    elsewhere.
     '''
     print(*objects, file = sys.stderr)
 

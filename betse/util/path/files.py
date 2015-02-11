@@ -11,7 +11,22 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.path import dirs
 import os
+
+# ....................{ CONSTANTS                          }....................
+#FIXME: Actually use this. More work than we currently care to invest.
+
+DEFAULT_CONFIG_FILE = dirs.join(dirs.DOT_DIR, 'config.yaml')
+'''
+Absolute path of the default user-specific file with which `betse` configures
+application-wide behaviour (e.g., log settings).
+'''
+
+DEFAULT_LOG_FILE = dirs.join(dirs.DOT_DIR, 'debug.log')
+'''
+Absolute path of the default user-specific file to which `betse` logs messages.
+'''
 
 # ....................{ REMOVERS                           }....................
 def remove(filename: str) -> None:

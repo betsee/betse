@@ -9,7 +9,7 @@
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from betse import dependencies, metadata
-from betse.util.io import loggers, output
+from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
 from betse.util.path import dirs
 from betse.util.system import processes
@@ -30,8 +30,10 @@ class CLI(metaclass = ABCMeta):
     _logger : Logger
         Logger intended to be used globally (i.e., by *all* classes, functions,
         and modules) or None if no such logger has been initialized.
+    _args : argparse.Namespace
+        `argparse`-specific object of all passed command-line arguments.
     _arg_parser : ArgumentParser
-        `argparse`-style command-line argument parser.
+        `argparse`-specific parser of command-line arguments.
     '''
     def __init__(self):
         super().__init__()
@@ -55,15 +57,16 @@ class CLI(metaclass = ABCMeta):
             values failure.
         '''
         try:
-            # If at least one mandatory dependency is missing, fail.
-            dependencies.die_unless_satisfied()
-
             # Make betse's top-level dot directory if not found.
             dirs.make_unless_found(dirs.DOT_DIR)
 
             # Configure logging *AFTER* making such directory, as such logging
             # writes to logfiles in such directory.
             self._configure_logging()
+
+            # Validate mandatory dependency *AFTER* configuring logging,
+            # ensuring that exceptions raised by such validation will be logged.
+            dependencies.die_unless_satisfied_all()
 
             # Parse CLI arguments *AFTER* logging, ensuring that exceptions
             # raised by such parsing will be logged.
@@ -123,7 +126,15 @@ class CLI(metaclass = ABCMeta):
             formatter_class = ArgumentDefaultsHelpFormatter,
         )
 
+        #FIXME: Enable the "--config" option. More work than we care to invest,
+        #at the moment.
+
         # Add globally applicable arguments.
+        # self._arg_parser.add_argument(
+        #     '-c', '--config',
+        #     default = files.DEFAULT_CONFIG_FILE,
+        #     dest = 'config_filename',
+        #     help = 'config file to read program settings from')
         self._arg_parser.add_argument(
             '-v', '--verbose',
             dest = 'is_verbose',
@@ -141,19 +152,11 @@ class CLI(metaclass = ABCMeta):
         self._configure_arg_parsing()
 
         # Parse arguments.
-        args = self._arg_parser.parse_args()
-
-        #FIXME: Display a default help message, when the user passes no
-        #arguments. Does such parser already do so? This is trivial for us
-        #to do as follows:
-        #
-        #    if len(sys.argv) == 1:
-        #         self._arg_parser.print_help()
-        #         return
+        self._args = self._arg_parser.parse_args()
 
         # If verbosity was requested, decrease the log level for the stdout-
         # specific logger handler from default "INFO" to all-inclusive "ALL".
-        if args.is_verbose:
+        if self._args.is_verbose:
             self._logger_config.stdout.setLevel(loggers.ALL)
 
     def _print_exception(self, exception: Exception) -> None:
@@ -164,79 +167,89 @@ class CLI(metaclass = ABCMeta):
             '"{}" not an exception.'.format(exception)
 
         try:
+            # While all loggers provide an exception() method for logging
+            # exceptions, the output produced by such method is in the same
+            # format as that produced by the Python interpreter on uncaught
+            # exceptions. In order, this is:
+            #
+            # * Such exception's non-layman-readable stack trace.
+            # * Such exception's layman-readable error message.
+            #
+            # Since such format is (arguably) unreadable for non-developers,
+            # such exception is reformatted for readability. Sadly, this
+            # precludes us from calling our logger's exception() method.
+
+            # Traceback object for such exception.
+            _, _, exception_traceback = sys.exc_info()
+
+            # List of tuple pairs comprising both the parent exceptions of
+            # such exception *AND* such exception. The first and second
+            # items of such pairs are those exceptions and those exception's
+            # tracebacks respectively. (Sadly, this is only accessible as a
+            # private module function.)
+            exception_parents = traceback._iter_chain(
+                exception, exception_traceback)
+
+            # String buffer formatting such exception and all parents of
+            # such exception in the current exception chain.
+            exception_string_buffer = StringIO()
+
+            # Begin such string with a descriptive header.
+            exception_string_buffer.write(
+                'Halting prematurely [read: fatally crashing] due to uncaught exception:\n\n')
+
+            # Append each parent exception and such exception's traceback.
+            for exception_parent, exception_parent_traceback in\
+                exception_parents:
+                # If such exception is a string, append such string as is
+                # and continue to the next parent.
+                if isinstance(exception_parent, str):
+                    exception_string_buffer.write(exception_parent)
+                    exception_string_buffer.write('\n')
+                    continue
+
+                # Append such exception's message.
+                exception_string_buffer.write(''.join(
+                    traceback.format_exception_only(
+                        type(exception_parent), exception_parent)
+                ))
+
+                # If such exception has a traceback, append such traceback.
+                if exception_parent_traceback:
+                    # Append a traceback header.
+                    exception_string_buffer.write('\n')
+                    exception_string_buffer.write(
+                        'Traceback (most recent call last):\n')
+
+                    # Append such traceback itself.
+                    exception_string_buffer.write(''.join(
+                        # Get a list of lines formatted from such list.
+                        traceback.format_list(
+                            # Get a list of stack trace entries from such
+                            # traceback.
+                            traceback.extract_tb(
+                                exception_parent_traceback))))
+
+            # Append a random error haiku.
+            exception_string_buffer.write('\n')
+            exception_string_buffer.write(stderr.get_haiku_random())
+
+            # Exception string.
+            exception_string = exception_string_buffer.getvalue()
+
             # If a logger has been initialized, print such exception by logging
             # such exception. Assuming such logger retains its default
             # configuration, such exception will be propagated up to the root
             # logger and then handled by the stderr handler.
             if self._logger:
-                # While all loggers provide an exception() method for logging
-                # exceptions, the output produced by such method is in the same
-                # format as that produced by the Python interpreter on uncaught
-                # exceptions. In order, this is:
-                #
-                # * Such exception's non-layman-readable stack trace.
-                # * Such exception's layman-readable error message.
-                #
-                # Since such format is (arguably) unreadable for non-developers,
-                # such exception is reformatted for readability. Sadly, this
-                # precludes us from calling our logger's exception() method.
-
-                # Traceback object for such exception.
-                _, _, exception_traceback = sys.exc_info()
-
-                # List of tuple pairs comprising both the parent exceptions of
-                # such exception *AND* such exception. The first and second
-                # items of such pairs are those exceptions and those exception's
-                # tracebacks respectively. (Sadly, this is only accessible as a
-                # private module function.)
-                exception_parents = traceback._iter_chain(
-                    exception, exception_traceback)
-
-                # String buffer formatting such exception and all parents of
-                # such exception in the current exception chain.
-                exception_string_buffer = StringIO()
-
-                # Append each parent exception and such exception's traceback to
-                # such string.
-                for exception_parent, exception_parent_traceback in\
-                    exception_parents:
-                    # If such exception is a string, append such string as is
-                    # and continue to the next parent exception.
-                    if isinstance(exception_parent, str):
-                        exception_string_buffer.write(exception_parent)
-                        exception_string_buffer.write('\n')
-                        continue
-
-                    # Append such exception's message.
-                    exception_string_buffer.write(
-                        traceback.format_exception_only(
-                            type(exception_parent), exception_parent))
-
-                    # If such exception has a traceback, append such traceback.
-                    if exception_parent_traceback:
-                        # Append a traceback header.
-                        exception_string_buffer.write('\n')
-                        exception_string_buffer.write(
-                            'Traceback (most recent call last):\n')
-
-                        # Append such traceback itself.
-                        exception_string_buffer.write(''.join(
-                            # Get a list of lines formatted from such list.
-                            traceback.format_list(
-                                # Get a list of stack trace entries from such
-                                # traceback.
-                                traceback.extract_tb(
-                                    exception_parent_traceback))))
-
-                # Log such exception.
-                self._logger.error(exception_string_buffer.getvalue())
-            # Else, print such exception via the standard Python library.
+                self._logger.error(exception_string)
+            # Else, print such exception to stderr.
             else:
-                traceback.print_exc()
+                stderr.output(exception_string)
         # If such printing raises an exception, catch and print such exception
         # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
-            output.error('print_exception() recursively raised exception:\n')
+            stderr.output('print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
     # ..................{ SUBCLASS ~ mandatory               }..................
@@ -259,6 +272,9 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+            # # Else, print such exception via the standard Python library.
+            # else:
+            #     traceback.print_exc()
 #Parse all passed command-line arguments and run the specified command.
                 # usage = '{} <command> [<arg>...]'.format(metadata.SCRIPT_NAME_CLI),
         # Logger intended to be used only by CLI modules or None if no such

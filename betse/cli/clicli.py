@@ -6,7 +6,12 @@
 '''`betse`'s command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
+from betse import metadata
 from betse.cli.cli import CLI
+from betse.util.io import stdout
+from betse.util.path import files
+from betse.util.system import processes
+from collections import OrderedDict
 
 # ....................{ MAIN                               }....................
 def main() -> int:
@@ -33,36 +38,115 @@ class CLICLI(CLI):
     def __init__(self):
         super().__init__()
 
-    # ..................{ ABSTRACT                           }..................
+    # ..................{ SUPERCLASS                         }..................
+    def _configure_arg_parsing(self):
+        #FIXME: Contemplate localizing.
+
+        # Collection of argument subparsers parsing arguments for subcommands.
+        self._arg_subparsers = self._arg_parser.add_subparsers(
+            # Title of the subcommand section in help output.
+            title = 'subcommands',
+
+            # Description of the subcommand section in help output.
+            description = 'Subcommand to be performed.',
+
+            # Name of the attribute storing the passed command name.
+            dest = 'command_name',
+        )
+
+        # Add argument subparsers accepting no options.
+        self._arg_subparsers.add_subparser(
+            name = 'info',
+            description = 'print program metadata in key-value pair format',
+        )
+
     def _run(self) -> None:
         '''
         Run `betse`'s command line interface (CLI).
         '''
-        #FIXME: Implement me.
-        # Run the command specified by such arguments.
+        # If no subcommand was passed, print help output and return.
+        if not self._args.command_name:
+            self._arg_parser.print_help()
+            return
 
-    # ..................{ PRIVATE                            }..................
-    def _configure_arg_parsing(self):
-        # Define argument subparsers (i.e., actions).
-        self._arg_subparsers = self._arg_parser.add_subparsers(
-            title = 'command',
-            description = 'Command to be performed.',
+        # Else, a subcommand was passed.
+        #
+        # Name of the method running such subcommand.
+        subcommand_method_name = '_run_' + self._args.command_name
+
+        # Method running such subcommand. If such method does *NOT* exist,
+        # getattr() will raise a non-layman-readable exception. Typically, this
+        # would be bad. In this case, however, argument parsing coupled with a
+        # reliable class implementation guarantees such method to exist.
+        subcommand_method = getattr(self, subcommand_method_name)
+
+        # Run such subcommand.
+        subcommand_method()
+
+    # ..................{ SUBCOMMAND                         }..................
+    def _run_info(self) -> None:
+        '''
+        Run the `info` subcommand.
+        '''
+        #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
+
+        # Dictionary of string keys and string values to be output below,
+        # ordered so as to preserve the specified order.
+        info_key_to_value = OrderedDict((
+            ('script name', processes.get_current_basename()),
+            ('version',     metadata.__version__),
+            ('config file', files.DEFAULT_CONFIG_FILE),
+            ('log file',    files.DEFAULT_LOG_FILE),
+        ))
+
+        # Print such dictionary.
+        stdout.output_lines(
+            '{}: {}'.format(info_key, info_value)
+            for info_key, info_value in info_key_to_value
         )
 
-        #FIXME: Not entirely clear as to why we require or want this dictionary.
+# --------------------( WASTELANDS                         )--------------------
+# import inspect
+        # Dictionary from subcommand name to _run_*() method running such
+        # subcommand.
+        # subcommand_name_to_method = dict(
+        #     (method_name[len('_run_'):], method)
+        #     for (method_name, method) in
+        #         inspect.getmembers(self, inspect.ismethod)
+        #     if method_name.startswith('_run_')
+        # )
+        # assert self._args.command_name in subcommand_name_to_method,\
+        #     '"{}" not a recognized subcommand'.format(self._args.command_name)
+        #
+        # # Run such subcommand.
+        # subcommand_name_to_method[self._args.command_name]()
+        # subcommand_method = getattr(self, subcommand_method_name, None)
+        # assert callable(subcommand_method),\
+        #     '"{}" not callable'.format(subcommand_method_name)
+        #FUXME: Implement me.
+        # Run the command specified by such arguments.
+
+        #FUXME: Display a default help message, when the user passes no
+        #arguments. Does such parser already do so? This is trivial for us
+        #to do as follows:
+        #
+        #    if len(sys.argv) == 1:
+        #         self._arg_parser.print_help()
+        #         return
+
+        #FUXME: Not entirely clear as to why we require or want this dictionary.
         #Smacks of overkill, frankly. Also unclear why we require
         #_add_subparser_sim()-style methods. Just define all such subcommands
         #here, for now.
 
-        # Dictionary from command name to subparser object.
-        command_parsers = {}
-        command_parsers['sim'] = self._add_subparser_sim()
+        # # Dictionary from command name to subparser object.
+        # command_parsers = {}
+        # command_parsers['sim'] = self._add_subparser_sim()
+        #
+        # # Add an identifying name and description for each command parser.
+        # for command_parser_name, command_parser in command_parsers.items():
+        #     command_parser.set_defaults(command_name = command_parser_name)
 
-        # Add an identifying name and description for each command parser.
-        for command_parser_name, command_parser in command_parsers.items():
-            command_parser.set_defaults(command_name = command_parser_name)
-
-# --------------------( WASTELANDS                         )--------------------
         # Parse command-line arguments into object attributes.
         # self._parse_args()
         # self._parse_common_args()

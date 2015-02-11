@@ -3,6 +3,30 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: The following blog post provides useful instructions on deserializing
+#logging settings from a YAML-formatted configuration file. Leveraging such
+#instructions, we could permit users to setup logging as they see fit (e.g.,
+#configuring the logging file and level). This is probably the preferable means
+#of doing so, rather than providing a gamut of CLI options:
+#
+#    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
+
+#FIXME: It would be great to augment LoggerConfig() with functionality
+#permitting the log filename to be explicitly set *AFTER* such object's
+#construction. To support this, define a new getter-setter pair of such class
+#called simply "filename". Such property's setter should:
+#
+#* Remove the existing file handler from the root logger.
+#* Create a new file handler writing to the passed file.
+#* Set such handler on the root logger.
+#
+#Why not simply pass such filename to such class's __init__()? Because the
+#desired log filename will only be available sometime after startup (e.g., after
+#parsing command-line arguments and/or configuration files), whereas we would
+#prefer that all LoggerConfig() objects come preconfigured with logfile output.
+#Why? Because this ensures that, in the event of sufficiently early exceptions,
+#there will still exist a logfile for clients to send us.
+
 '''
 Low-level logging facilities.
 
@@ -34,45 +58,44 @@ loggers except the root logger to be unconfigured, messages will be logged
 *only* by the root logger.
 '''
 
-#FIXME: The following blog post provides useful instructions on deserializing
-#logging settings from a YAML-formatted configuration file. Leveraging such
-#instructions, we could permit users to setup logging as they see fit (e.g.,
-#configuring the logging file and level). This is probably the preferable means
-#of doing so, rather than providing a gamut of CLI options:
-#
-#    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
-
 # ....................{ IMPORTS                            }....................
-from betse.util.path import dirs
+from betse.util.path import files, dirs
 from betse.util.system import processes
 from betse.util.type import ints
+from logging import StreamHandler
+from logging.handlers import RotatingFileHandler
 import logging, sys
 
-# ....................{ CONSTANTS                          }....................
-LOG_FILE = dirs.DOT_DIR
-'''
-Absolute path of the user-specific file to which `betse` logs messages.
-'''
-
 # ....................{ CONSTANTS ~ int                    }....................
-def _copy_logging_levels():
-    '''
-    Copy all logging levels from the `logging` module complete with docstrings
-    into this module on the first importation of this module. Following such
-    importation, all such levels will be publicly accessible as
-    `logger.{logging_level_name}` (e.g., `logger.DEBUG`).
-    '''
-    module_constant = globals()
-    for logging_level_name in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL',):
-        logging_level = getattr(logging, logging_level_name)
-        module_constant[logging_level_name] = logging_level
+# Originally, we attempted to dynamically copy such constants from the "logging"
+# to the current module. Such attempts succeeded in exposing such constants to
+# other modules importing this module but *NOT* to this module itself. Hence,
+# such constants are manually copied.
 
-# Make it so.
-_copy_logging_levels
+DEBUG = logging.DEBUG
+'''
+Logging level suitable for debugging messages.
+'''
 
-# For mild safety, delete such function after use. Python's lack of support for
-# multiline anonymous functions becomes unctuous, with time.
-del(_copy_logging_levels)
+INFO = logging.INFO
+'''
+Logging level suitable for informational messages.
+'''
+
+WARNING = logging.WARNING
+'''
+Logging level suitable for warning messages.
+'''
+
+ERROR = logging.ERROR
+'''
+Logging level suitable for error messages.
+'''
+
+CRITICAL = logging.CRITICAL
+'''
+Logging level suitable for critical messages.
+'''
 
 NONE = logging.CRITICAL + 1024
 '''
@@ -149,7 +172,7 @@ class LoggerConfig(object):
     * Printed to standard output if the logging level for such output is
       `INFO`. (Together with the prior statement, this implies output with a
       logging level of `DEBUG` will *NOT* be printed by default.)
-    * Appended to the user-specific file given by `LOG_FILE`, whose:
+    * Appended to the user-specific file given by `DEFAULT_LOG_FILE`, whose:
       * Level defaults to `logger.ALL`. Hence, *all* messages will be logged by
         default, including low-level debug messages. (This is helpful for
         debugging client-side errors.)
@@ -166,11 +189,11 @@ class LoggerConfig(object):
     ----------
     _logger_root : Logger
         Root logger.
-    _logger_root_handler_file : LoggerHandler
+    _logger_root_handler_file : Handler
         File handler for the root logger appending to such file.
-    _logger_root_handler_stderr : LoggerHandler
+    _logger_root_handler_stderr : Handler
         Stream handler for the root logger printing to standard error.
-    _logger_root_handler_stdout : LoggerHandler
+    _logger_root_handler_stdout : Handler
         Stream handler for the root logger printing to standard output.
     '''
     def __init__(self):
@@ -179,29 +202,26 @@ class LoggerConfig(object):
         '''
         super().__init__()
 
-        # If the directory containing such logfile does not exist, fail.
-        dirs.die_unless_parent_found(LOG_FILE)
-
         # Root logger.
         logger_root = logging.getLogger()
 
-        # Root logger stdout handler, preconfigured as documented above.
-        self._logger_root_handler_stdout = logging.StreamHandler(
-            level = INFO,
-            stream = sys.stdout,
-        )
+        # Root logger stdout handler, preconfigured as documented above. Sadly,
+        # such handlers' constructors do *NOT* accept the standard "level"
+        # attribute accepted by their base class' constructor.
+        self._logger_root_handler_stdout = StreamHandler(sys.stdout)
+        self._logger_root_handler_stdout.setLevel(INFO)
         self._logger_root_handler_stdout.addFilter(LoggerFilterInfoOrLess())
 
         # Root logger stdout handler, preconfigured as documented above.
-        self._logger_root_handler_stderr = logging.StreamHandler(
-            level = WARNING,
-            stream = sys.stderr,
-        )
+        self._logger_root_handler_stderr = StreamHandler(sys.stderr)
+        self._logger_root_handler_stderr.setLevel(WARNING)
+
+        # If the directory containing such logfile does not exist, fail.
+        dirs.die_unless_parent_found(files.DEFAULT_LOG_FILE)
 
         # Root logger file handler, preconfigured as documented above.
-        self._logger_root_handler_file = logging.handlers.RotatingFileHandler(
-            filename = LOG_FILE,
-            level = ALL,
+        self._logger_root_handler_file = RotatingFileHandler(
+            filename = files.DEFAULT_LOG_FILE,
 
             # Append rather than overwrite such file.
             mode = 'a',
@@ -215,6 +235,7 @@ class LoggerConfig(object):
             # Maximum number of rotated logfiles to maintain.
             backupCount = 8,
         )
+        self._logger_root_handler_file.setLevel(ALL)
 
         #FIXME: Colourize me please.
 
@@ -230,7 +251,7 @@ class LoggerConfig(object):
 
         # Enforce a Linux-style logfile format.
         file_format =\
-            '[{asctime}] {processName} {levelname:8s} ({module}.py:{funcName}():{lineno}): {message}'
+            '[{asctime}] {processName} {levelname} ({module}.py:{funcName}():{lineno}):\n{message}'
         self._logger_root_handler_file.setFormatter(logging.Formatter(
             file_format, style='{',))
 
@@ -241,21 +262,21 @@ class LoggerConfig(object):
 
     # ..................{ PROPERTIES                         }..................
     @property
-    def file(self) -> logging.LoggerHandler:
+    def file(self) -> logging.Handler:
         '''
         Get the root logger handler appending to the current logfile.
         '''
         return self._logger_root_handler_file
 
     @property
-    def stderr(self) -> logging.LoggerHandler:
+    def stderr(self) -> logging.Handler:
         '''
         Get the root logger handler printing to standard error.
         '''
         return self._logger_root_handler_stderr
 
     @property
-    def stdout(self) -> logging.LoggerHandler:
+    def stdout(self) -> logging.Handler:
         '''
         Get the root logger handler printing to standard output.
         '''
@@ -289,6 +310,33 @@ class LoggerFilterInfoOrLess(logging.Filter):
         return log_record.levelno <= logging.INFO
 
 # --------------------( WASTELANDS                         )--------------------
+            # '[{asctime}] {processName} {levelname:8s} ({module}.py:{funcName}():{lineno}):\n{message}'
+# def _copy_logging_levels():
+#     '''
+#     Copy all logging levels from the `logging` module complete with docstrings
+#     into this module on the first importation of this module. Following such
+#     importation, all such levels will be publicly accessible as
+#     `logger.{logging_level_name}` (e.g., `logger.DEBUG`).
+#     '''
+#     import sys
+#     # thismodule = sys.modules[__name__]
+#
+#     module_constant = globals()
+#     for logging_level_name in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL',):
+#         logging_level = getattr(logging, logging_level_name)
+#         # setattr(thismodule, logging_level_name, logging_level)
+#         globals()[logging_level_name] = logging_level
+#
+#     global INFO
+#     print('INFO: '+INFO)
+#
+# # Make it so.
+# _copy_logging_levels
+#
+# # For mild safety, delete such function after use. Python's lack of support for
+# # multiline anonymous functions becomes unctuous, with time.
+# del(_copy_logging_levels)
+
 # class LoggerFilterInfoOnly(logging.Filter):
 #     '''
 #     Filter ignoring log records with logging level *not* `INFO`.

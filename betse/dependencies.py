@@ -67,7 +67,7 @@ from betse import metadata
 import importlib
 
 # ....................{ EXCEPTIONS                         }....................
-def die_unless_satisfied() -> None:
+def die_unless_satisfied_all() -> None:
     '''
     Raise an exception if at least one mandatory `betse` dependency is unmet.
 
@@ -103,7 +103,7 @@ def die_unless_satisfied() -> None:
     # Validate each such dependency.
     for requirement in requirements:
         # If such dependency is *NOT* importable, fail.
-        die_if_dependency_unloadable(requirement.project_name, str(requirement))
+        die_unless_importable(requirement.project_name, str(requirement))
 
         # Else, such dependency is importable.
         #
