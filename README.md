@@ -13,7 +13,7 @@ manually via the package manager specific to your current operating system:
 
 * Python >= 3.3.
 * Matplotlib >= 1.3.0.
-* NumPy >= 1.9.0.
+* NumPy >= 1.8.0.
 * PySide >= 1.1.0.
 * PyYaml >= 3.10.
 * SciPy >= 0.12.0.

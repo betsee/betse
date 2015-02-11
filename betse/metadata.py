@@ -72,7 +72,7 @@ For PEP 8 compliance, such specifier is exposed as the canonical variable
 # Python environment.
 
 REQUIREMENTS = [
-    'numpy >= 1.9.0',
+    'numpy >= 1.8.0',
     'pyside >= 1.1.0',
     'pyyaml >= 3.10',
     'scipy >= 0.12.0',
