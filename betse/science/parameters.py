@@ -73,7 +73,7 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gj_radius = 3.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.gj_radius = 2.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
         self.gjsa = math.pi*((self.gj_radius)**2)          # total gap junction surface area as fraction of cell surface area
         self.gj_vthresh = 80e-3              # cell-cell voltage threshhold at which gj close [V]
         self.gj_vgrad  = 40e-3               # the range over which gj goes from open to shut at threshold [V]
@@ -102,8 +102,8 @@ class Parameters(object):
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         self.gated_targets = 'random50'
         # self.vg_options specifications list for voltage gated ion channel options:
-        vgNa = [1.0e-15,-55e-3,30e-3,-60e-3,5e-3]    # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
-        vgK = [1.0e-16, -20e-3,-75e-3,30.0e-3]             # [max K mem diffusion (m2/s), v on, v off, duration (s)]
+        vgNa = [1.0e-15,-55e-3,50e-3,-60e-3,5e-3]    # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
+        vgK = [5.0e-16, -20e-3,-75e-3,10.0e-3]             # [max K mem diffusion (m2/s), v on, v off, duration (s)]
         vgCa = [1.0e-18,-40e-3,10e-3,1.0e-3,1.0e-4]    # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
 
         self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':0,'K_cag':0}
