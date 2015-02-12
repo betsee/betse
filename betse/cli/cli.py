@@ -72,8 +72,6 @@ class CLI(metaclass = ABCMeta):
             # raised by such parsing will be logged.
             self._parse_args()
 
-            #FIXME: We probably don't need this. Excise away. Yay!
-
             # Perform subclass-specific logic.
             self._run()
 
@@ -98,6 +96,10 @@ class CLI(metaclass = ABCMeta):
 
         # Create an application-wide child logger.
         self._logger = self._logger_config.get_logger()
+        # self._logger.error('ERROR!')
+        # self._logger.warning('WARNING!')
+        # self._logger.info('INFO!')
+        # self._logger.debug('DEBUG!')
 
     def _parse_args(self) -> None:
         '''
@@ -110,14 +112,16 @@ class CLI(metaclass = ABCMeta):
           defaulting to a noop.
         * Parses all arguments with such parser.
         '''
+        # Basename of the current process (e.g., "betse").
+        script_basename = processes.get_current_basename()
+
         # Program version specifier.
-        program_version = '{} {}'.format(
-            processes.get_current_basename(), metadata.__version__)
+        program_version = '{} {}'.format(script_basename, metadata.__version__)
 
         # Make a command-line argument parser.
         self._arg_parser = ArgumentParser(
             # Program name.
-            prog = program_version,
+            prog = script_basename,
 
             # Program description.
             description = metadata.DESCRIPTION,
@@ -131,7 +135,7 @@ class CLI(metaclass = ABCMeta):
 
         # Add globally applicable arguments.
         # self._arg_parser.add_argument(
-        #     '-c', '--config',
+        #     '-c', '--config-file',
         #     default = files.DEFAULT_CONFIG_FILE,
         #     dest = 'config_filename',
         #     help = 'config file to read program settings from')
@@ -196,7 +200,7 @@ class CLI(metaclass = ABCMeta):
 
             # Begin such string with a descriptive header.
             exception_string_buffer.write(
-                'Halting prematurely [read: fatally crashing] due to uncaught exception:\n\n')
+                'Halting prematurely due to uncaught exception:\n\n')
 
             # Append each parent exception and such exception's traceback.
             for exception_parent, exception_parent_traceback in\
@@ -272,6 +276,9 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+            #FUXME: We probably don't need this. Excise away. Yay!
+
+                # 'Halting prematurely [read: fatally crashing] due to uncaught exception:\n\n')
             # # Else, print such exception via the standard Python library.
             # else:
             #     traceback.print_exc()

@@ -12,7 +12,15 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-import os
+from os import path
+
+# ....................{ GETTERS                            }....................
+def get_basename(pathname: str) -> str:
+    '''
+    Get the *basename* (i.e., last component) of the passed path.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    return path.basename(pathname)
 
 # ....................{ REMOVERS                           }....................
 # def remove(filename: str) -> None:

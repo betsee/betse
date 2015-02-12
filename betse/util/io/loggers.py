@@ -205,6 +205,12 @@ class LoggerConfig(object):
         # Root logger.
         logger_root = logging.getLogger()
 
+        # Instruct such logger to entertain all log requests, ensuring such
+        # requests will be delegated to the handlers defined below. By default,
+        # such logger ignores all log requests with level less than "WARNING",
+        # preventing handlers from receiving such requests.
+        logger_root.setLevel(ALL)
+
         # Root logger stdout handler, preconfigured as documented above. Sadly,
         # such handlers' constructors do *NOT* accept the standard "level"
         # attribute accepted by their base class' constructor.
@@ -237,21 +243,31 @@ class LoggerConfig(object):
         )
         self._logger_root_handler_file.setLevel(ALL)
 
+        # Basename of the current process (e.g., "betse").
+        script_basename = processes.get_current_basename()
+
         #FIXME: Colourize me please.
 
         # Format stdout and stderr output in the conventional way. For a list of
         # all available log record attributes, see:
         #
         #     https://docs.python.org/3/library/logging.html#logrecord-attributes
-        stream_format = '[{processName}] {message}'
+        #
+        # Note that the "processName" attribute appears to *ALWAYS* expand to
+        # "MainProcess", which is not terribly descriptive. Hence, the name of
+        # the current process is manually embedded in such format.
+        #
+        # Note that "{{" and "}}" substrings in format() strings escape literal
+        # "{" and "}" characters, respectively.
+        stream_format = '[{}] {{message}}'.format(script_basename)
         self._logger_root_handler_stdout.setFormatter(logging.Formatter(
             stream_format, style='{',))
         self._logger_root_handler_stderr.setFormatter(logging.Formatter(
             stream_format, style='{',))
 
         # Enforce a Linux-style logfile format.
-        file_format =\
-            '[{asctime}] {processName} {levelname} ({module}.py:{funcName}():{lineno}):\n{message}'
+        file_format = '[{{asctime}}] {} {{levelname}} ({{module}}.py:{{funcName}}():{{lineno}}):\n    {{message}}'.format(
+            script_basename)
         self._logger_root_handler_file.setFormatter(logging.Formatter(
             file_format, style='{',))
 
@@ -310,6 +326,12 @@ class LoggerFilterInfoOrLess(logging.Filter):
         return log_record.levelno <= logging.INFO
 
 # --------------------( WASTELANDS                         )--------------------
+        # Prevent the root logger from ignoring *ANY* log requests. (By default,
+        # such logger ignores
+        # stream_format = '[{processName}] {message}'
+        # file_format =\
+        #     '[{asctime}] {processName} {levelname} ({module}.py:{funcName}():{lineno}):\n{message}'
+
             # '[{asctime}] {processName} {levelname:8s} ({module}.py:{funcName}():{lineno}):\n{message}'
 # def _copy_logging_levels():
 #     '''

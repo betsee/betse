@@ -101,22 +101,25 @@ def die_unless_satisfied_all() -> None:
     environment = Environment(working_set.entries)
 
     # Validate each such dependency.
-    for requirement in requirements:
+    for requirement_required in requirements:
         # If such dependency is *NOT* importable, fail.
-        die_unless_importable(requirement.project_name, str(requirement))
+        die_unless_importable(
+            requirement_required.project_name, str(requirement_required))
 
         # Else, such dependency is importable.
         #
-        # Best match for such dependency under the active Python 3 interpreter.
-        requirement_distribution = environment.best_match(
-            requirement, working_set)
+        # Best match for such dependency under the active Python 3 interpreter
+        # if any or None otherwise.
+        requirement_provided = environment.best_match(
+            requirement_required, working_set)
 
-        # If the version of such match is *NOT* a version we require, fail.
-        if requirement_distribution and\
-           requirement_distribution not in requirements:
+        # If a match was found with version conflicting with that required,
+        # fail.
+        if requirement_provided is not None and\
+           requirement_provided not in requirement_required:
                raise VersionConflict(
                    'Mandatory dependency {} required but only {} found.'.format(
-                       requirement, requirement_distribution))
+                       requirement_required, requirement_provided))
 
 def die_unless_importable(
     module_name: str,

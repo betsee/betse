@@ -8,6 +8,7 @@ Low-level external process facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.path import paths
 import sys
 
 # ....................{ GETTERS                            }....................
@@ -15,6 +16,8 @@ def get_current_basename() -> str:
     '''
     Get the basename of the executable originating the current process.
     '''
-    return sys.argv[0]
+    # Since "sys.argv[0]" is either an absolute or relative path, get only such
+    # path's basename.
+    return paths.get_basename(sys.argv[0])
 
 # --------------------( WASTELANDS                         )--------------------

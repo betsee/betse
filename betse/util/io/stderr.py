@@ -8,35 +8,32 @@ Low-level standard error facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.type import strs
 import random, sys
 
 # ....................{ CONSTANTS                          }....................
 HAIKU = [
-    '\n'.join((
+    (
         'Chaos reigns within.',
         'Reflect, repent, and reboot.',
         'Order shall return.',
-    )),
-    '\n'.join((
+    ), (
         'ABORTED effort:',
         'Close all that you have.',
         'You ask way too much.',
-    )),
-    '\n'.join((
+    ), (
         'First snow, then silence.',
         'This thousand dollar screen dies',
         'so beautifully.',
-    )),
-    '\n'.join((
+    ), (
         'A crash reduces',
         'your expensive computer',
         'to a simple stone.',
-    )),
-    '\n'.join((
+    ), (
         'Error messages',
         'cannot completely convey.',
         'We now know shared loss.',
-    )),
+    ),
 ]
 '''
 List of haikus to be printed in the event of fatal errors.
@@ -55,7 +52,7 @@ def get_haiku_random() -> str:
     '''
     Get a random haiku to be printed in the event of fatal errors.
     '''
-    return random.choice(HAIKU)
+    return '\n'.join(random.choice(HAIKU))
 
 # ....................{ OUTPUTTERS                         }....................
 def output(*objects) -> None:

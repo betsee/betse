@@ -8,10 +8,11 @@
 # ....................{ IMPORTS                            }....................
 from betse import metadata
 from betse.cli.cli import CLI
-from betse.util.io import stdout
 from betse.util.path import files
+from betse.util.type import strs
 from betse.util.system import processes
 from collections import OrderedDict
+import argparse
 
 # ....................{ MAIN                               }....................
 def main() -> int:
@@ -34,14 +35,15 @@ class CLICLI(CLI):
 
     Attributes
     ----------
+    _arg_subparsers : argparse._SubParsersAction
+        `argparse`-specific object storing all *argument subparsers* (i.e.,
+        parsers parsing subcommand-specific arguments).
     '''
     def __init__(self):
         super().__init__()
 
     # ..................{ SUPERCLASS                         }..................
     def _configure_arg_parsing(self):
-        #FIXME: Contemplate localizing.
-
         # Collection of argument subparsers parsing arguments for subcommands.
         self._arg_subparsers = self._arg_parser.add_subparsers(
             # Title of the subcommand section in help output.
@@ -54,10 +56,82 @@ class CLICLI(CLI):
             dest = 'command_name',
         )
 
-        # Add argument subparsers accepting no options.
-        self._arg_subparsers.add_subparser(
+        # ................{ SUBPARSER ~ info                   }................
+        self._add_subparser(
             name = 'info',
-            description = 'print program metadata in key-value pair format',
+            help = 'print program metadata',
+            description = 'Print program metadata in key-value format.',
+        )
+
+        # ................{ SUBPARSER ~ sim                    }................
+        self._add_subparser_simulation(
+            name = 'sim',
+            help = 'initialize, run, and plot a tissue simulation',
+            description = (
+                'Run and plot the tissue simulation '
+                'specified by the passed configuration file. '
+                'Simulation results and plots will be saved to '
+                'the output files '
+                'configured in such configuration. '
+                'The simulation will be initialized before being run by '
+                'loading the input initialization file '
+                'configured in such configuration. '
+                'If such file does not exist, '
+                'it will be automatically created on your behalf by '
+                'performing an initialization. '
+                'caching simulation results to the passed output file. '
+                '(In short, this subcommand always tries to '
+                '"do the right thing.")'
+            )
+        )
+
+        # ................{ SUBPARSER ~ sim.init               }................
+        self._add_subparser_simulation(
+            name = 'sim.init',
+            help = 'initialize a tissue simulation',
+            description = (
+                'Initialize the tissue simulation '
+                'specified by the passed configuration file. '
+                'Initialization results will be saved to '
+                'the output file '
+                'configured in such configuration. '
+            ),
+        )
+
+        # ................{ SUBPARSER ~ sim.run                }................
+        self._add_subparser_simulation(
+            name = 'sim.run',
+            help = 'run a previously initialized tissue simulation',
+            description = (
+                'Run the previously initialized tissue simulation '
+                'specified by the passed configuration file. '
+                'Simulation results will be saved to '
+                'the output file '
+                'configured in such configuration. '
+                'The simulation will be initialized before being run by '
+                'loading the input initialization file '
+                'configured in such configuration. '
+                'If such file does not exist, '
+                'this subcommand will fail with an error.'
+            )
+        )
+
+        # ................{ SUBPARSER ~ sim.plot               }................
+        self._add_subparser_simulation(
+            name = 'sim.plot',
+            help = 'plot a previously run tissue simulation',
+            description = (
+                'Plot the previously run tissue simulation '
+                'specified by the passed configuration file. '
+                'Plot results will be saved to '
+                'the output files '
+                'configured in such configuration. '
+                'The simulation will be loaded before being plotted by '
+                'loading the input simulation file '
+                'configured in such configuration. '
+                'If such file does not exist, '
+                'this subcommand will fail with an error.'
+            ),
         )
 
     def _run(self) -> None:
@@ -83,11 +157,49 @@ class CLICLI(CLI):
         # Run such subcommand.
         subcommand_method()
 
-    # ..................{ SUBCOMMAND                         }..................
+    # ..................{ PRIVATE                            }..................
+    def _add_subparser(self, **kwargs) -> argparse._SubParsersAction:
+        '''
+        Create and return a new argument subparser initialized with the set of
+        passed keyword parameters.
+
+        Additionally, if the `help` keyword parameter is passed *and* the
+        `description` keyword parameter is not, the latter will be implicitly
+        synthesized from the former.
+        '''
+        # If the "help" parameter was passed *AND* the "description" parameter
+        # was not, synthesize the latter from the former.
+        if 'help' in kwargs and 'description' not in kwargs:
+            kwargs['description'] = kwargs['help'].capitalize() + '.'
+
+        # Make such subparser.
+        arg_subparser = self._arg_subparsers.add_parser(**kwargs)
+
+        # Get such subparser.
+        return arg_subparser
+
+    def _add_subparser_simulation(self, **kwargs) -> argparse._SubParsersAction:
+        '''
+        Create and return a new simulation-specific argument subparser
+        initialized with the set of passed keyword parameters.
+
+        Such subparser will be preconfigured to parse options `-c` and
+        `--config-file`, specifying such simulation's configuration file.
+        '''
+        subparser_sim = self._add_subparser(**kwargs)
+        subparser_sim.add_argument(
+            'sim_config_filename',
+            metavar = 'CONFIG_FILE',
+            help = 'simulation configuration file'
+        )
+        return subparser_sim
+
+    # ..................{ PRIVATE ~ subcommand               }..................
     def _run_info(self) -> None:
         '''
         Run the `info` subcommand.
         '''
+        #FIXME: Also print the versions of installed mandatory dependencies.
         #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
 
         # Dictionary of string keys and string values to be output below,
@@ -99,13 +211,108 @@ class CLICLI(CLI):
             ('log file',    files.DEFAULT_LOG_FILE),
         ))
 
-        # Print such dictionary.
-        stdout.output_lines(
+        # String to be output by this subcommand.
+        info_output = '\n' + strs.join_on_newline(
             '{}: {}'.format(info_key, info_value)
-            for info_key, info_value in info_key_to_value
+            for info_key, info_value in info_key_to_value.items()
         )
 
+        # Log rather than merely output such string, as such logging simplifies
+        # cliest-side bug reporting.
+        self._logger.info(info_output)
+
 # --------------------( WASTELANDS                         )--------------------
+                # 'If such file does not exist, '
+                # 'This subcommand does *NOT* plot such simulation but is '
+                # 'otherwise identical to the "run" subcommand.'
+                # 'See help for the "run" subcommand for further details.'
+                # 'Unlike the "run" subcommand, '
+                # 'this subcommand does *NOT* plot such simulation. '
+    # def _add_subparser_simulation(self, **kwargs) -> argparse._SubParsersAction:
+    #     '''
+    #     Create and return a new simulation-specific argument subparser
+    #     initialized with the set of passed keyword parameters.
+    #
+    #     Such subparser will be preconfigured to parse options `-c` and
+    #     `--config-file`, specifying such simulation's configuration file.
+    #     '''
+    #     subparser_sim = self._add_subparser_simulation(**kwargs)
+    #     subparser_sim.add_argument(
+    #         '-c', '--config-file',
+    #         dest = 'sim_config_filename',
+    #         help = 'simulation configuration file'
+    #     )
+    #     return subparser_sim
+
+        # ................{ SUBPARSER ~ sim                    }................
+        # subparser_sim = self._add_subparser_simulation(
+        #     name = 'sim',
+        #     help = 'run and plot a tissue simulation',
+        #     description = (
+        #         'Run and plot a tissue simulation, '
+        #         'cache the simulation results to the passed output file. '
+        #         'If an optional input file is passed, '
+        #         'the simulation will be initialized from '
+        #         'the previously cached contents of such file; '
+        #         'otherwise, an initialization will be '
+        #         'automatically performed on your behalf and '
+        #         'the simulation then initialized from '
+        #         'the contents of the file produced by such initialization. '
+        #         '(In short, this subcommand always tries to '
+        #         '"do the right thing.")'
+        #     )
+        # )
+        # subparser_sim.add_argument(
+        #     '-c', '--config-file',
+        #     dest = 'sim_config_filename',
+        #     help = 'simulation configuration file'
+        # )
+        #
+        # # ................{ SUBPARSER ~ sim.run                }................
+        # subparser_sim = self._add_subparser_simulation(
+        #     name = 'sim.run',
+        #     help = 'run a tissue simulation',
+        #     description = (
+        #         'Run a tissue simulation and '
+        #         'cache the results to the passed output file. '
+        #         'If an optional input file is passed, '
+        #         'the simulation will be initialized from '
+        #         'the previously cached contents of such file; '
+        #         'otherwise, an initialization will be '
+        #         'automatically performed on your behalf and '
+        #         'the simulation then initialized from '
+        #         'the contents of the file produced by such initialization. '
+        #         '(In short, this subcommand always tries to '
+        #         '"do the right thing.")'
+        #     )
+        # )
+        # subparser_sim.add_argument(
+        #     '-c', '--config-file',
+        #     dest = 'sim_config_filename',
+        #     help = 'simulation configuration file'
+        # )
+        #
+        # # ................{ SUBPARSER ~ sim.init               }................
+        # subparser_sim_init = self._add_subparser_simulation(
+        #     name = 'sim.init',
+        #     help = 'initialize a tissue simulation (to be subsequently run)',
+        #     description = (
+        #         'Initialize a tissue simulation and '
+        #         'cache the results to the passed output file.'
+        #     ),
+        # )
+
+                # 'initialized on your behalf before being run. '
+                # 'If this simulation has *NOT* yet been '
+                # 'initialized, such simulation will be automatically '
+                # 'initialized on your behalf before being run. '
+                # '(This is a good thing.)'
+        # Add argument subparsers accepting options.
+        # Add argument subparsers accepting no options.
+# from betse.util.io import stdout
+        # stdout.output_lines(
+        #FUXME: Contemplate localizing.
+
 # import inspect
         # Dictionary from subcommand name to _run_*() method running such
         # subcommand.

@@ -27,7 +27,7 @@ DESCRIPTION = ''.join((
     NAME, ' ',
     '(BioElectric Tissue Simulation Engine) simulates propagation of ',
     'electrical phenomena within biological tissue ',
-    '(e.g., ion channel-gated current flow).',
+    '(e.g., of ion channel-gated current flow).',
 ))
 '''Human-readable program description.'''
 
@@ -73,8 +73,9 @@ For PEP 8 compliance, such specifier is exposed as the canonical variable
 
 REQUIREMENTS = [
     'numpy >= 1.8.0',
-    'pyside >= 1.1.0',
-    'pyyaml >= 3.10',
+    #FIXME: Reenable after installation.
+    # 'pyside >= 1.2.0',
+    'yaml >= 3.10',
     'scipy >= 0.12.0',
     'matplotlib >= 1.3.0',
 ]
