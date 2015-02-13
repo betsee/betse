@@ -112,5 +112,13 @@ def make_unless_found(dirname: str) -> None:
     assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
     os.makedirs(dirname, exist_ok = True)
 
+def make_parent_unless_found(*pathnames) -> None:
+    '''
+    Create the parent directory of each passed path if *not* found.
+    '''
+    for pathnames in pathnames:
+        assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+        make_unless_found(get_dirname(pathname))
+
 # --------------------( WASTELANDS                         )--------------------
 # from betse.util.path import paths

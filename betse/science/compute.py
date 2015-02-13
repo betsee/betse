@@ -67,6 +67,10 @@ class Simulator(object):
 
         """
 
+        #FIXME: Uncomment to make required directories. Yay!
+        # from betse.util.path import dirs
+        # dirs.make_parent_unless_found(p.saved_init_file, p.saved_run_file)
+
         # Make the BETSE-specific cache directory if not found.
         betse_cache_dir = os.path.expanduser(p.cache_path)
         os.makedirs(betse_cache_dir, exist_ok=True)
@@ -308,7 +312,7 @@ class Simulator(object):
 
             self.vgNa_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
 
-        if p.vg_options['K_vg']  !=0:
+        if p.vg_options['K_vg'] !=0:
 
             # Initialization of logic values forr voltage gated potassium channel
             self.maxDmK = p.vg_options['K_vg'][0]
@@ -348,25 +352,25 @@ class Simulator(object):
 
         # allow for option to independently schedule an intervention to cells distinct from voltage gated:
         if p.scheduled_targets == 'none':
-            self.scheduled_target_inds = np.zeros(len(cells.cell_i))
+            self.scheduled_target_inds = []
 
         elif p.scheduled_targets == 'all':
-            self.scheduled_target_inds = np.ones(len(cells.cell_i))
+            self.scheduled_target_inds = cells.cell_i
 
         elif p.scheduled_targets =='random1':
             shuffle(cells.cell_i)
             trgt2 = cells.cell_i[0]
-            self.scheduled_target_inds = np.zeros(len(cells.cell_i))
-            self.scheduled_target_inds[trgt2] = 1
+            self.scheduled_target_inds = [trgt2]
 
         elif p.scheduled_targets == 'random50':
             shuffle(cells.cell_i)
-            self.scheduled_target_inds = np.random.random(len(cells.cell_i))
-            self.scheduled_target_inds = np.rint(self.scheduled_target_inds)
+            halflength = int(len(cells.cell_i)/2)
+            self.scheduled_target_inds = [cells.cell_i[x] for x in range(0,halflength)]
 
         elif isinstance(p.scheduled_targets, list):
-            self.scheduled_target_inds = np.zeros(len(cells.cell_i))
-            self.scheduled_target_inds[p.scheduled_targets] = 1
+            # self.scheduled_target_inds = np.zeros(len(cells.cell_i))
+            # self.scheduled_target_inds[p.scheduled_targets] = 1
+            self.scheduled_target_inds = p.scheduled_targets
 
     def runInit(self,cells,p):
         """
@@ -554,7 +558,7 @@ class Simulator(object):
                 vgj = vmB - vmA
 
                 # determine the open state of gap junctions:
-                self.gjopen = (1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.1
+                self.gjopen = (1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2
 
                 # determine flux through gap junctions for this ion:
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
@@ -579,7 +583,7 @@ class Simulator(object):
                 vgjj = copy.deepcopy(vgj)
                 dvmm = copy.deepcopy(self.dvm)
                 aNa = copy.deepcopy(self.active_Na)
-                aK = copy.deepcopy(self.active_K)
+                # aK = copy.deepcopy(self.active_K)
                 self.cc_time.append(concs)
                 self.envcc_time.append(envsc)
                 self.vm_time.append(vmm)
@@ -589,7 +593,7 @@ class Simulator(object):
                 self.vgj_time.append(vgjj)
                 self.dvm_time.append(dvmm)
                 self.active_Na_time.append(aNa)
-                self.active_K_time.append(aK)
+                # self.active_K_time.append(aK)
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
@@ -712,7 +716,7 @@ class Simulator(object):
 
         if p.vg_options['Na_vg'] != 0:
 
-            if p.ions_dict['Na'] == 0 or target_length == 0:
+            if p.ions_dict['Na'] == 0:
                 pass
 
             else:
@@ -768,7 +772,7 @@ class Simulator(object):
 
         if p.vg_options['K_vg'] != 0:
 
-            if p.ions_dict['K'] == 0 or target_length == 0:
+            if p.ions_dict['K'] == 0:
                 pass
 
             else:

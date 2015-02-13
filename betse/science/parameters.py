@@ -12,6 +12,7 @@
 import numpy as np
 import math
 import matplotlib.cm as cm
+import os
 
 # define the basic class that holds variables
 class Parameters(object):
@@ -26,7 +27,7 @@ class Parameters(object):
         if self.time_profile == 'simulate':
 
             self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.sim_end = 0.25         # world time to end the simulation
+            self.sim_end = 0.15         # world time to end the simulation
             self.resamp = 1e-3         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
@@ -44,7 +45,7 @@ class Parameters(object):
             self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
-        self.cache_path = "~/.betse/cache/basicInit"  # world, inits, and sims are saved and read to/from this directory.
+        self.cache_path = os.path.expanduser("~/.betse/cache/basicInit/")  # world, inits, and sims are saved and read to/from this directory.
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = 'basic'
@@ -73,15 +74,14 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gj_radius = 2.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-        self.gjsa = math.pi*((self.gj_radius)**2)          # total gap junction surface area as fraction of cell surface area
-        self.gj_vthresh = 80e-3              # cell-cell voltage threshhold at which gj close [V]
-        self.gj_vgrad  = 40e-3               # the range over which gj goes from open to shut at threshold [V]
-       # self.Dgj = 1e-9                    # gap junction diffusion coefficient [m2/s]
+        self.gj_radius = 4.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+        self.gj_vthresh = 60e-3              # cell-cell voltage threshhold at which gj close [V]
+        self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
-        self.alpha_NaK = 5.0e-17 # rate constant sodium-potassium ATPase [m3/mols]  range 1.0e-9 to 1.0e-10 for dt =1e-2
+        self.alpha_NaK = 5.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
         self.alpha_Ca = 1.0e-17 # pump rate for calcium ATPase [m3/mols]
@@ -102,9 +102,9 @@ class Parameters(object):
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         self.gated_targets = 'random50'
         # self.vg_options specifications list for voltage gated ion channel options:
-        vgNa = [1.0e-15,-55e-3,50e-3,-60e-3,5e-3]    # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
-        vgK = [5.0e-16, -20e-3,-75e-3,10.0e-3]             # [max K mem diffusion (m2/s), v on, v off, duration (s)]
-        vgCa = [1.0e-18,-40e-3,10e-3,1.0e-3,1.0e-4]    # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
+        vgNa = [1.0e-15,-50e-3,20e-3,-55e-3,5e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
+        vgK = [5.0e-16, -20e-3,-75e-3,10.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
+        vgCa = [1.0e-18,-40e-3,10e-3,1.0e-3,1.0e-4]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
 
         self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':0,'K_cag':0}
 
