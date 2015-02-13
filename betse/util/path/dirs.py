@@ -104,7 +104,7 @@ def join(*pathnames) -> str:
 
 def make_unless_found(dirname: str) -> None:
     '''
-    Create the passed directory if *not* found.
+    Create the passed directory if such directory does *not* already exist.
 
     All nonexistent parents of such directory will also be recursively created,
     mimicking the action of the conventional shell command `mkdir -p`.
@@ -114,10 +114,10 @@ def make_unless_found(dirname: str) -> None:
 
 def make_parent_unless_found(*pathnames) -> None:
     '''
-    Create the parent directory of each passed path if *not* found.
+    Create the parent directory of each passed path for parent directories that
+    do *not* already exist.
     '''
-    for pathnames in pathnames:
-        assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    for pathname in pathnames:
         make_unless_found(get_dirname(pathname))
 
 # --------------------( WASTELANDS                         )--------------------
