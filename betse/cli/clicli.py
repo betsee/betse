@@ -12,7 +12,6 @@ from betse.util.path import files
 from betse.util.type import strs
 from betse.util.system import processes
 from collections import OrderedDict
-import argparse
 
 # ....................{ MAIN                               }....................
 def main() -> int:
@@ -35,16 +34,19 @@ class CLICLI(CLI):
 
     Attributes
     ----------
-    _arg_subparsers : argparse._SubParsersAction
-        `argparse`-specific object storing all *argument subparsers* (i.e.,
-        parsers parsing subcommand-specific arguments).
+    _arg_subparsers : ArgumentParser
+        `argparse`-specific list of subparsers parsing top-level subcommands
+        (e.g., `sim`).
+    _arg_parser_sim : ArgumentParser
+        `argparse`-specific subparser of command-line arguments passed to the
+        `sim` subcommand.
     '''
     def __init__(self):
         super().__init__()
 
     # ..................{ SUPERCLASS                         }..................
     def _configure_arg_parsing(self):
-        # Collection of argument subparsers parsing arguments for subcommands.
+        # List of argument subparsers parsing arguments for root subcommands.
         self._arg_subparsers = self._arg_parser.add_subparsers(
             # Title of the subcommand section in help output.
             title = 'subcommands',
@@ -56,82 +58,28 @@ class CLICLI(CLI):
             dest = 'command_name',
         )
 
+        # ................{ SUBPARSER ~ sim                    }................
+        #FIXME: Implement me.
+
+        self._arg_subparsers.add_parser(
+            name = 'try',
+            help = 'run a sample tissue simulation',
+            description = (
+                'Run a sample tissue simulation by '
+                'automatically creating a default configuration file and '
+                'initializing, running, and plotting the tissue simulation '
+                'configured by such file. '
+                'This convenience command is equivalent to the following:\n\n'
+                '    {} sim cfg init run plot sim_config.yaml\n\n'
+            ).format(self._script_basename)
+        )
+        self._configure_arg_parsing_simulation()
+
         # ................{ SUBPARSER ~ info                   }................
-        self._add_subparser(
+        self._arg_subparsers.add_parser(
             name = 'info',
             help = 'print program metadata',
             description = 'Print program metadata in key-value format.',
-        )
-
-        # ................{ SUBPARSER ~ sim                    }................
-        self._add_subparser_simulation(
-            name = 'sim',
-            help = 'initialize, run, and plot a tissue simulation',
-            description = (
-                'Run and plot the tissue simulation '
-                'specified by the passed configuration file. '
-                'Simulation results and plots will be saved to '
-                'the output files '
-                'configured in such configuration. '
-                'The simulation will be initialized before being run by '
-                'loading the input initialization file '
-                'configured in such configuration. '
-                'If such file does not exist, '
-                'it will be automatically created on your behalf by '
-                'performing an initialization. '
-                'caching simulation results to the passed output file. '
-                '(In short, this subcommand always tries to '
-                '"do the right thing.")'
-            )
-        )
-
-        # ................{ SUBPARSER ~ sim.init               }................
-        self._add_subparser_simulation(
-            name = 'sim.init',
-            help = 'initialize a tissue simulation',
-            description = (
-                'Initialize the tissue simulation '
-                'specified by the passed configuration file. '
-                'Initialization results will be saved to '
-                'the output file '
-                'configured in such configuration. '
-            ),
-        )
-
-        # ................{ SUBPARSER ~ sim.run                }................
-        self._add_subparser_simulation(
-            name = 'sim.run',
-            help = 'run a previously initialized tissue simulation',
-            description = (
-                'Run the previously initialized tissue simulation '
-                'specified by the passed configuration file. '
-                'Simulation results will be saved to '
-                'the output file '
-                'configured in such configuration. '
-                'The simulation will be initialized before being run by '
-                'loading the input initialization file '
-                'configured in such configuration. '
-                'If such file does not exist, '
-                'this subcommand will fail with an error.'
-            )
-        )
-
-        # ................{ SUBPARSER ~ sim.plot               }................
-        self._add_subparser_simulation(
-            name = 'sim.plot',
-            help = 'plot a previously run tissue simulation',
-            description = (
-                'Plot the previously run tissue simulation '
-                'specified by the passed configuration file. '
-                'Plot results will be saved to '
-                'the output files '
-                'configured in such configuration. '
-                'The simulation will be loaded before being plotted by '
-                'loading the input simulation file '
-                'configured in such configuration. '
-                'If such file does not exist, '
-                'this subcommand will fail with an error.'
-            ),
         )
 
     def _run(self) -> None:
@@ -157,44 +105,73 @@ class CLICLI(CLI):
         # Run such subcommand.
         subcommand_method()
 
-    # ..................{ PRIVATE                            }..................
-    def _add_subparser(self, **kwargs) -> argparse._SubParsersAction:
+    # ..................{ PRIVATE ~ subparser : configure    }..................
+    def _configure_arg_parsing_simulation(self):
         '''
-        Create and return a new argument subparser initialized with the set of
-        passed keyword parameters.
-
-        Additionally, if the `help` keyword parameter is passed *and* the
-        `description` keyword parameter is not, the latter will be implicitly
-        synthesized from the former.
+        Configure argument parsing for the `sim` subcommand.
         '''
-        # If the "help" parameter was passed *AND* the "description" parameter
-        # was not, synthesize the latter from the former.
-        if 'help' in kwargs and 'description' not in kwargs:
-            kwargs['description'] = kwargs['help'].capitalize() + '.'
-
-        # Make such subparser.
-        arg_subparser = self._arg_subparsers.add_parser(**kwargs)
-
-        # Get such subparser.
-        return arg_subparser
-
-    def _add_subparser_simulation(self, **kwargs) -> argparse._SubParsersAction:
-        '''
-        Create and return a new simulation-specific argument subparser
-        initialized with the set of passed keyword parameters.
-
-        Such subparser will be preconfigured to parse options `-c` and
-        `--config-file`, specifying such simulation's configuration file.
-        '''
-        subparser_sim = self._add_subparser(**kwargs)
-        subparser_sim.add_argument(
+        # Create and return a new simulation-specific argument subparser
+        # initialized with the set of passed keyword parameters.
+        #
+        # Such subparser will be preconfigured to parse options `-c` and
+        # `--config-file`, specifying such simulation's configuration file.
+        self._arg_parser_sim = self._arg_subparsers_main.add_parser(
+            name = 'sim',
+            help = 'run tissue simulation subcommand(s)',
+            description = (
+                'Run all passed tissue simulation subcommand(s) '
+                'configured by the passed configuration file. For example, '
+                'to initialize, run, and plot a tissue simulation '
+                'configured by a file "config.yaml" '
+                'in the current directory:\n\n'
+                '    {script_basename} sim init run plot sim_config.yaml\n\n'
+                'Valid subcommands include:\n\n'
+                'cfg\n-----------\n'
+                'Write a default configuration to the passed output file. '
+                'Such configuration will instruct '
+                'other tissue simulation subcommands (e.g., "run", "plot") '
+                'to save simulation results and plots '
+                'in the current directory.\n\n'
+                'init\n-----------\n'
+                'Initialize the tissue simulation '
+                'configured by the passed input configuration file. '
+                'Initialization results will be saved to the output file '
+                'configured in such configuration.\n\n'
+                'run\n-----------\n'
+                'Run the previously initialized tissue simulation '
+                'configured by the passed input configuration file. '
+                'Simulation results will be saved to the output file '
+                'configured in such configuration. '
+                'Likewise, the previously run initialization '
+                'will be loaded from the input file '
+                'configured in such configuration. '
+                'If such file does not exist, an error is raised.\n\n'
+                'plot\n-----------\n'
+                'Plot the previously run tissue simulation '
+                'configured by the passed input configuration file. '
+                'Plot results will be saved to the output files '
+                'configured in such configuration. '
+                'Likewise, the previously run simulation '
+                'will be loaded from the input file '
+                'configured in such configuration. '
+                'If such file does not exist, an error is raised.'
+            ).format(
+                script_basename = self._script_basename,
+            ),
+        )
+        self._arg_parser_sim.add_argument(
+            'sim_subcommand_names',
+            nargs = '+',
+            metavar = 'SIM_SUBCOMMAND_NAME',
+            help = 'simulation subcommand(s) to be run',
+        )
+        self._arg_parser_sim.add_argument(
             'sim_config_filename',
             metavar = 'CONFIG_FILE',
-            help = 'simulation configuration file'
+            help = 'simulation configuration file',
         )
-        return subparser_sim
 
-    # ..................{ PRIVATE ~ subcommand               }..................
+    # ..................{ SUBCOMMAND ~ info                  }..................
     def _run_info(self) -> None:
         '''
         Run the `info` subcommand.
@@ -221,7 +198,224 @@ class CLICLI(CLI):
         # cliest-side bug reporting.
         self._logger.info(info_output)
 
+    # ..................{ SUBCOMMAND ~ sim                   }..................
+    def _run_sim(self) -> None:
+        '''
+        Run the `sim` subcommand.
+        '''
+        # Run each simulation-specific subcommand.
+        for sim_subcommand_name in self._args.sim_subcommand_names:
+            # Name of the method running such subcommand.
+            sim_subcommand_method_name = sim_subcommand_name + '_sim'
+
+            # Method running such subcommand, passing "None" to prevent
+            # getattr() from raising a non-layman-readable exception on
+            # unrecognized subcommands.
+            sim_subcommand_method = getattr(
+                self, sim_subcommand_method_name, None)
+
+            # If such subcommand is unrecognized, print help output and exit the
+            # current process with failure.
+            if not sim_subcommand_method:
+                # Error message to be printed.
+                exit_message = (
+                    '"sim" subcommand "{}" unrecognized. '
+                    'See the following usage documentation for '
+                    'the list of subcommands recognized by "sim".\n\n{}'
+                ).format(
+                    sim_subcommand_name,
+                    self._arg_parser_sim.format_help(),
+                )
+
+                # Exit with such message.
+                processes.exit_with_failure(exit_message)
+
+            # Else, run such subcommand.
+            sim_subcommand_method()
+
+    #FIXME: Get me working correctly *BEFORE* implementing any others.
+
+    def _cfg_sim(self) -> None:
+        '''
+        Run the `sim` subcommand's `cfg` subcommand.
+        '''
+        self._args.sim_config_filename
+
 # --------------------( WASTELANDS                         )--------------------
+# from argparse import ArgumentParser, _SubParsersAction
+                    # 'Run "{} sim --help" for a list of supported'
+    # def _configure_arg_parsing_simulation(
+    #     self, arg_subparsers_main: ArgumentParser):
+    #     '''
+    #     Configure subclass-specific argument parsing for the `sim` subcommand
+    #     given the passed list of top-level argument parsers.
+    #     '''
+    #     assert isinstance(arg_subparsers_main, ArgumentParser),\
+    #         '"{}" not an argument parser.'.format(arg_subparsers_main)
+
+    # def _configure_arg_parsing(self, arg_parser: ArgumentParser):
+    #     assert isinstance(arg_parser, ArgumentParser),\
+    #         '"{}" not an argument parser.'.format(arg_parser)
+                # program_name = metadata.NAME,
+        # ................{ SUBPARSER ~ sim                    }................
+        # self._add_subparser_simulation(
+        #     name = 'sim.init,run,plot',
+        #     help = 'initialize, run, and plot a tissue simulation',
+        #     description = (
+        #         'Initialize, run, and plot the tissue simulation '
+        #         'specified by the passed configuration file. '
+        #         'This subcommand aggregates the behaviour of '
+        #         'the "sim.init", "sim.run", and "sim.plot" subcommands. '
+        #         'Simulation results and plots will be saved to '
+        #         'the output files '
+        #         'specified by such configuration. '
+        #         'The simulation will be initialized before being run by '
+        #         'loading the input initialization file '
+        #         'specified by such configuration. '
+        #         'If such file does not exist, '
+        #         'it will be automatically created on your behalf by '
+        #         'performing an initialization. '
+        #         'caching simulation results to the passed output file. '
+        #         '(In short, this subcommand always tries to '
+        #         '"do the right thing.")'
+        #     )
+        # )
+        #
+        # # ................{ SUBPARSER ~ sim.init               }................
+        # self._add_subparser_simulation(
+        #     name = 'sim.cfg',
+        #     help = 'make a default tissue simulation configuration',
+        #     description = (
+        #         'Write a default tissue simulation configuration to '
+        #         'the passed output file. Such configuration will instruct {} '
+        #         'to save simulation results and plots '
+        #         'to sensibly named files in the current directory.'
+        #     ).format(metadata.NAME),
+        # )
+        #
+        # # ................{ SUBPARSER ~ sim.init               }................
+        # self._add_subparser_simulation(
+        #     name = 'sim.init',
+        #     help = 'initialize a tissue simulation',
+        #     description = (
+        #         'Initialize the tissue simulation '
+        #         'specified by the passed configuration file. '
+        #         'Initialization results will be saved to '
+        #         'the output file '
+        #         'specified by such configuration. '
+        #     ),
+        # )
+        #
+        # # ................{ SUBPARSER ~ sim.run                }................
+        # self._add_subparser_simulation(
+        #     name = 'sim.run',
+        #     help = 'run a previously initialized tissue simulation',
+        #     description = (
+        #         'Run the previously initialized tissue simulation '
+        #         'specified by the passed configuration file. '
+        #         'Simulation results will be saved to '
+        #         'the output file '
+        #         'specified by such configuration. '
+        #         'The simulation will be initialized before being run by '
+        #         'loading the input initialization file '
+        #         'specified by such configuration. '
+        #         'If such file does not exist, '
+        #         'this subcommand will fail with an error.'
+        #     )
+        # )
+        #
+        # # ................{ SUBPARSER ~ sim.plot               }................
+        # self._add_subparser_simulation(
+        #     name = 'sim.plot',
+        #     help = 'plot a previously run tissue simulation',
+        #     description = (
+        #         'Plot the previously run tissue simulation '
+        #         'specified by the passed configuration file. '
+        #         'Plot results will be saved to '
+        #         'the output files '
+        #         'specified by such configuration. '
+        #         'The simulation will be loaded before being plotted by '
+        #         'loading the input simulation file '
+        #         'specified by such configuration. '
+        #         'If such file does not exist, '
+        #         'this subcommand will fail with an error.'
+        #     ),
+        # )
+#
+    #FUXME: This method should arguably simply be passed "self._arg_parser",
+    #which would then permit us to localize such field in the "CLI" class.
+
+# ..................{ SUBPARSERS                         }..................
+# def add_arg_subparsers_parser(
+#     arg_subparsers: ArgumentParser, **kwargs) -> _SubParsersAction:
+#     '''
+#     Create and add a new argument subparser to the passed list of argument
+#     subparsers, initializing such subparser with the set of passed keyword
+#     parameters and returning such subparser.
+#
+#     Additionally, if the `help` keyword parameter is passed *and* the
+#     `description` keyword parameter is not, the latter will be implicitly
+#     synthesized from the former.
+#     '''
+#     assert isinstance(arg_subparsers, ArgumentParser),\
+#         '"{}" not an argument parser.'.format(arg_subparsers)
+#
+#     # If the "help" parameter was passed *AND* the "description" parameter
+#     # was not, synthesize the latter from the former.
+#     if 'help' in kwargs and 'description' not in kwargs:
+#         kwargs['description'] = kwargs['help'].capitalize() + '.'
+#
+#     # Make such subparser.
+#     arg_subparser = arg_subparsers.add_parser(**kwargs)
+#
+#     # Get such subparser.
+#     return arg_subparser
+#
+    # _arg_subparsers : argparse._SubParsersAction
+    #     `argparse`-specific object storing all *argument subparsers* (i.e.,
+    #     parsers parsing subcommand-specific arguments).
+        # Create and return a new argument subparser initialized with the set of
+        # passed keyword parameters.
+    # def _add_subparser_simulation(self, **kwargs) -> argparse._SubParsersAction:
+    #     '''
+    #     Create and return a new simulation-specific argument subparser
+    #     initialized with the set of passed keyword parameters.
+    #
+    #     Such subparser will be preconfigured to parse options `-c` and
+    #     `--config-file`, specifying such simulation's configuration file.
+    #     '''
+    #     subparser_sim = self._add_subparser(**kwargs)
+    #     subparser_sim.add_argument(
+    #         'sim_config_filename',
+    #         metavar = 'CONFIG_FILE',
+    #         help = 'simulation configuration file'
+    #     )
+    #     return subparser_sim
+
+        # ................{ SUBPARSER ~ sim                    }................
+        # self._add_subparser_simulation(
+        #     name = 'sim',
+        #     help = 'initialize, run, and plot a tissue simulation',
+        #     description = (
+        #         'Initialize, run, and plot the tissue simulation '
+        #         'specified by the passed configuration file. '
+        #         'This subcommand aggregates the behaviour of '
+        #         'the "sim.init", "sim.run", and "sim.plot" subcommands. '
+        #         'Simulation results and plots will be saved to '
+        #         'the output files '
+        #         'specified by such configuration. '
+        #         'The simulation will be initialized before being run by '
+        #         'loading the input initialization file '
+        #         'specified by such configuration. '
+        #         'If such file does not exist, '
+        #         'it will be automatically created on your behalf by '
+        #         'performing an initialization. '
+        #         'caching simulation results to the passed output file. '
+        #         '(In short, this subcommand always tries to '
+        #         '"do the right thing.")'
+        #     )
+        # )
+#
                 # 'If such file does not exist, '
                 # 'This subcommand does *NOT* plot such simulation but is '
                 # 'otherwise identical to the "run" subcommand.'

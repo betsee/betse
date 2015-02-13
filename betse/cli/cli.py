@@ -24,25 +24,31 @@ class CLI(metaclass = ABCMeta):
 
     Attributes
     ----------
+    _arg_parser : ArgumentParser
+        `argparse`-specific parser of command-line arguments.
+    _args : argparse.Namespace
+        `argparse`-specific object of all passed command-line arguments.
     _logger_config : LoggerConfig
         Logger configuration, providing access to root logger handlers (e.g.,
         for modifying logging levels).
     _logger : Logger
         Logger intended to be used globally (i.e., by *all* classes, functions,
         and modules) or None if no such logger has been initialized.
-    _args : argparse.Namespace
-        `argparse`-specific object of all passed command-line arguments.
-    _arg_parser : ArgumentParser
-        `argparse`-specific parser of command-line arguments.
+    _script_basename : str
+        Basename of the current process (e.g., `betse`).
     '''
     def __init__(self):
         super().__init__()
 
+        # Since the basename of the current process is *ALWAYS* available,
+        # initialize such basename here for simplicity.
+        self._script_basename = processes.get_current_basename()
+
         # Initialize such fields to None to avoid subtle issues elsewhere (e.g.,
         # attempting to access such logger within _print_exception()).
+        self._arg_parser = None
         self._logger_config = None
         self._logger = None
-        self._arg_parser = None
 
     # ..................{ PUBLIC                             }..................
     def run(self) -> int:
@@ -112,16 +118,14 @@ class CLI(metaclass = ABCMeta):
           defaulting to a noop.
         * Parses all arguments with such parser.
         '''
-        # Basename of the current process (e.g., "betse").
-        script_basename = processes.get_current_basename()
-
         # Program version specifier.
-        program_version = '{} {}'.format(script_basename, metadata.__version__)
+        program_version = '{} {}'.format(
+            self._script_basename, metadata.__version__)
 
         # Make a command-line argument parser.
         self._arg_parser = ArgumentParser(
             # Program name.
-            prog = script_basename,
+            prog = self._script_basename,
 
             # Program description.
             description = metadata.DESCRIPTION,
@@ -271,11 +275,17 @@ class CLI(metaclass = ABCMeta):
 
     def _configure_arg_parsing(self):
         '''
-        Configure the argument parser for subclass-specific argument parsing.
+        Configure subclass-specific argument parsing.
         '''
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+    # def _configure_arg_parsing(self, arg_parser: ArgumentParser):
+    #     '''
+    #     Configure subclass-specific argument parsing with the passed top-level
+    #     argument parser.
+    #     '''
+    #     pass
             #FUXME: We probably don't need this. Excise away. Yay!
 
                 # 'Halting prematurely [read: fatally crashing] due to uncaught exception:\n\n')

@@ -8,7 +8,6 @@ Low-level standard error facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type import strs
 import random, sys
 
 # ....................{ CONSTANTS                          }....................
@@ -65,6 +64,7 @@ def output(*objects) -> None:
     print(*objects, file = sys.stderr)
 
 # --------------------( WASTELANDS                         )--------------------
+# from betse.util.type import strs
 # from betse.io.file.log import logger
 # ....................{ CLASSES                            }....................
 # class LoggingPrinter(object):

@@ -322,7 +322,7 @@ class LoggerFilterInfoOrLess(logging.Filter):
         True if the passed log record has a logging level of `INFO` or less.
         '''
         assert isinstance(log_record, logging.LogRecord),\
-            '"{}" not a string.'.format(log_record)
+            '"{}" not a log record.'.format(log_record)
         return log_record.levelno <= logging.INFO
 
 # --------------------( WASTELANDS                         )--------------------

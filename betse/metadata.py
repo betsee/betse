@@ -73,8 +73,7 @@ For PEP 8 compliance, such specifier is exposed as the canonical variable
 
 REQUIREMENTS = [
     'numpy >= 1.8.0',
-    #FIXME: Reenable after installation.
-    # 'pyside >= 1.2.0',
+    'pyside >= 1.2.0',
     'yaml >= 3.10',
     'scipy >= 0.12.0',
     'matplotlib >= 1.3.0',
@@ -129,6 +128,7 @@ if sys.hexversion < 0x03030000:
     )))
 
 # --------------------( WASTELANDS                         )--------------------
+    #FUXME: Reenable after installation.
 # COMMAND_NAME_PREFIX = NAME.lower()
 # '''
 # Substring prefixing the basenames of all `betse`-specific Python script wrappers
