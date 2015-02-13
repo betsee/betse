@@ -28,7 +28,7 @@ class Parameters(object):
 
             self.dt = 5e-5    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
             self.sim_end = 0.15         # world time to end the simulation
-            self.resamp = 1e-3         # time to resample in world time
+            self.resamp = 5e-4         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
@@ -74,45 +74,48 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gj_radius = 4.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.gj_radius = 5.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
         self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
         self.gj_vthresh = 60e-3              # cell-cell voltage threshhold at which gj close [V]
         self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # pump parameters
         self.deltaGATP = 50e3    # free energy released in ATP hydrolysis [J/mol]
-        self.alpha_NaK = 5.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
+        self.alpha_NaK = 1.0e-15 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
         self.alpha_Ca = 1.0e-17 # pump rate for calcium ATPase [m3/mols]
         self.halfmax_Ca = 12
         self.slope_Ca = 24
+        self.ratemax_NaK = 5.0   # Concentration of cytosolic sodium at which rate of Na-K pump is halved mol/m3
 
         #.............................Scheduled Interventions..........................................................
 
         # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
-        self.scheduled_targets = 'none'
+        self.scheduled_targets = [0]
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
-        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
+        self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,1000],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
         # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = 'random50'
+        self.gated_targets = 'all'
         # self.vg_options specifications list for voltage gated ion channel options:
-        vgNa = [1.0e-15,-50e-3,20e-3,-55e-3,5e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
-        vgK = [5.0e-16, -20e-3,-75e-3,10.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
+        vgNa = [1.0e-15,-50e-3,10e-3,-55e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
+        vgK = [2.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
         vgCa = [1.0e-18,-40e-3,10e-3,1.0e-3,1.0e-4]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
 
         self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':0,'K_cag':0}
 
+        self.Na_timeout = 0   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
+
 
         # default membrane diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 2.0e-18      # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
+        self.Dm_K = 50.0e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-20     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-17      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]

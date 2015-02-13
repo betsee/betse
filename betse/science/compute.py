@@ -413,7 +413,7 @@ class Simulator(object):
 
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
-                pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
+                pumpNaKATP_MM(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
 
             if p.ions_dict['Ca'] == 1:
@@ -482,6 +482,8 @@ class Simulator(object):
 
         self.active_Na_time = []   # stores the activation state of Na and K voltage gated channels at time
         self.active_K_time = []
+
+        self.fNa_NaK_time = []
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.gj_i))
@@ -583,7 +585,8 @@ class Simulator(object):
                 vgjj = copy.deepcopy(vgj)
                 dvmm = copy.deepcopy(self.dvm)
                 aNa = copy.deepcopy(self.active_Na)
-                # aK = copy.deepcopy(self.active_K)
+                aK = copy.deepcopy(self.active_K)
+                fNa = copy.deepcopy(fNa_NaK)
                 self.cc_time.append(concs)
                 self.envcc_time.append(envsc)
                 self.vm_time.append(vmm)
@@ -593,7 +596,8 @@ class Simulator(object):
                 self.vgj_time.append(vgjj)
                 self.dvm_time.append(dvmm)
                 self.active_Na_time.append(aNa)
-                # self.active_K_time.append(aK)
+                self.active_K_time.append(aK)
+                self.fNa_NaK_time.append(fNa)
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
@@ -734,7 +738,7 @@ class Simulator(object):
                 self.vgNa_state[inds_activate_Na] = 1 # set the crossed_activate term to 1
                 self.vgNa_OFFtime[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
 
-                # Logic phase 2: find out which cells have closed their gates due to crossing inactivating voltage or timeout:
+                # Logic phase 2: find out which cells have closed their gates due to crossing inactivating voltage:
                 truth_vgNa_ON = self.vgNa_state == 1  # channel must be on already
                 truth_vmGTvoff_Na = self.vm > self.v_off_Na  # bools of cells that have vm greater than shut-off volts
 
@@ -755,11 +759,12 @@ class Simulator(object):
                 self.vgNa_OFFtime[inds_reactivate_Na] = 0            # reset the timers to zero
 
                 # Logic phase 4: find out if cells have timed out:
-                truth_vgNa_timeout = self.vgNa_OFFtime < t   # find cells that have timed out their vgNa open state
-                inds_timeout_Na = (truth_vgNa_timeout*truth_vgNa_ON*self.target_cells).nonzero()
-                self.vgNa_state[inds_timeout_Na] = 0             # set the state to closed
-                self.vgNa_OFFtime[inds_timeout_Na] = 0            # reset the timers to zero
-                self.crossed_inactivate_Na[inds_timeout_Na] = 1    # inactivate the channel
+                if p.Na_timeout == 1:
+                    truth_vgNa_timeout = self.vgNa_OFFtime < t   # find cells that have timed out their vgNa open state
+                    inds_timeout_Na = (truth_vgNa_timeout*truth_vgNa_ON*self.target_cells).nonzero()
+                    self.vgNa_state[inds_timeout_Na] = 0             # set the state to closed
+                    self.vgNa_OFFtime[inds_timeout_Na] = 0            # reset the timers to zero
+                    self.crossed_inactivate_Na[inds_timeout_Na] = 1    # inactivate the channel
 
                 # Set activity of Na channel:
                 inds_open_Na = (self.vgNa_state == 1).nonzero()
@@ -782,6 +787,7 @@ class Simulator(object):
                 truth_vmGTvon_K = self.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
                 truth_depol_K = dvsign == 1  # bools matrix for cells that are depolarizing
                 truth_vgK_OFF = self.vgK_state == 0   # bools matrix for cells that are in the off state
+
                 # cells at these indices will become activated in this time step:
                 inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.target_cells).nonzero()
                 self.vgK_state[inds_activate_K] = 1  # set the state of these channels to "open"
@@ -1152,6 +1158,76 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
 
 
     return cCai2, cCao2, f_Ca
+
+def pumpNaKATP_MM(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
+
+
+    """
+    Sodium potassium ATPase enzyme pump. Uses Michaelis Mentin
+    enzyme kinetics for sodium.
+
+    Parameters
+    ----------
+    cNai            Concentration of Na+ inside the cell
+    cNao            Concentration of Na+ outside the cell
+    cKi             Concentration of K+ inside the cell
+    cKo             Concentration of K+ outside the cell
+    voli            Volume of the cell [m3]
+    volo            Volume outside the cell [m3]
+    Vm              Voltage across cell membrane [V]
+    p               An instance of Parameters object
+
+
+    Returns
+    -------
+    cNai2           Updated Na+ inside cell
+    cNao2           Updated Na+ outside cell
+    cKi2            Updated K+ inside cell
+    cKo2            Updated K+ outside cell
+    f_Na            Na+ flux (into cell +)
+    f_K             K+ flux (into cell +)
+    """
+
+    delG_Na = p.R*p.T*np.log(cNao/cNai) - p.F*Vm
+    delG_K = p.R*p.T*np.log(cKi/cKo) + p.F*Vm
+    delG_NaKATP = p.deltaGATP - (3*delG_Na + 2*delG_K)
+    delG = (delG_NaKATP/1000)
+
+    alpha = p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
+
+    f_Na  = -alpha*(cNai/(p.ratemax_NaK + cNai))      #flux as [mol/s]
+    f_K = -(2/3)*f_Na          # flux as [mol/s]
+
+    if p.method == 0:
+
+        dmol = -alpha*cNai*cKo*p.dt
+
+        cNai2 = cNai + dmol/voli
+        cNao2 = cNao - dmol/volo
+
+        cKi2 = cKi - (2/3)*dmol/voli
+        cKo2 = cKo + (2/3)*dmol/volo
+
+    elif p.method == 1:
+
+        k1 = alpha*cNai*cKo
+
+        k2 = alpha*(cNai+(1/2)*k1*p.dt)*cKo
+
+        k3 = alpha*(cNai+(1/2)*k2*p.dt)*cKo
+
+        k4 = alpha*(cNai+ k3*p.dt)*cKo
+
+        dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+        cNai2 = cNai - dmol/voli
+        cNao2 = cNao + dmol/volo
+
+        cKi2 = cKi + (2/3)*dmol/voli
+        cKo2 = cKo - (2/3)*dmol/volo
+
+
+    return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
 
 def get_volt(q,sa,p):
 
