@@ -26,7 +26,7 @@ class Parameters(object):
 
         if self.time_profile == 'simulate':
 
-            self.dt = 1e-3    # Simulation step-size [s] recommended range 5e-3 to 4e-4 for regular sims; 5e-5 for neural
+            self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
             self.sim_end = 30.0         # world time to end the simulation
             self.resamp = 1e-1         # time to resample in world time
 
@@ -36,7 +36,7 @@ class Parameters(object):
 
         elif self.time_profile == 'initialize':
 
-            self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+            self.dt = 5e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
             self.init_end = 10*60      # world time to end the initialization simulation time [s]
             self.resamp = 1.0         # time to resample in world time
 
@@ -48,14 +48,13 @@ class Parameters(object):
         self.cache_path = os.path.expanduser("~/.betse/cache/basicInit/")  # world, inits, and sims are saved and read to/from this directory.
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
-        self.ion_profile = 'basic_Ca'
+        self.ion_profile = 'animal'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 1
+        self.Ca_dyn = 0
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = 0
-
 
         # Default colormap
         self.default_cm = cm.coolwarm
@@ -72,7 +71,8 @@ class Parameters(object):
         self.ac = 1e-6  # cell-cell separation for drawing
         self.scale_cell = 0.9          # the amount to scale cell membranes in from ecm edges (only affects drawing)
         self.nl = 0.8  # noise level for the lattice
-        self.vol_env = 1        # volume of the environmental space [m3]
+       # self.vol_env = 2*self.wsx*self.wsy*self.cell_height    # volume of the environmental space [m3]
+        self.vol_env = 1
         self.search_d =1.5     # distance to search for nearest neighbours (relative to cell diameter dc) min 1.0 max 5.0
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
         self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
@@ -81,55 +81,63 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gj_radius = 2.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.gj_radius = 0.5e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
         self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
         self.gj_vthresh = 60e-3              # cell-cell voltage threshhold at which gj close [V]
         self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
 
+        # Endoplasmic reticulum
+        self.ER_vol = 0.1                  # volume of endoplasmic reticulum as a fraction of cell volume
+        self.ER_sa = 10                    # surface area of endoplasmic reticulum as a fraction of cell surface area
+
         # pump parameters
-
-
         self.alpha_NaK = 5.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
 
-        self.alpha_Ca = 5.0e-17 # pump rate for calcium ATPase [m3/mols]
+        self.alpha_Ca = 2.0e-15 # pump rate for calcium ATPase [m3/mols] 2.0e-15
         self.halfmax_Ca = 12
         self.slope_Ca = 24
 
-        self.alpha_HK = 5.0e-15
+        self.alpha_HK = 1.0e-13
         self.halfmax_HK = 12
         self.slope_HK = 24
 
         #.............................Scheduled Interventions..........................................................
 
         # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
-        self.scheduled_targets = 'none'
+        self.scheduled_targets = [0]
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
-        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0,'gj_block':0}
+        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
+            'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'Dm_er':0,'IP3':0}
         # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = [0]
+        self.gated_targets = 'none'
         # self.vg_options specifications list for voltage gated ion channel options:
         vgNa = [1.0e-15,-50e-3,10e-3,-55e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
         vgK = [1.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
-        vgCa = [1.0e-17,-40e-3,10e-3,2.5e-3,1.0e-4]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
+        vgCa = [1.0e-15,-40e-3,10e-3,1.0e-3,1.0e-4]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':vgCa,'K_cag':cagK}
+        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
-        self.Na_timeout = 0   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
+        self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
+
+        # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)
+
+        cicr = [1.0e-15]   # max Ca2+ diffusion constant through ER membrane
+        self.Ca_dyn_options = {'CICR':0}
 
 
         # default membrane diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 2.0e-18      # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
-        self.Dm_Ca = 2.0e-20     # membrane diffusion constant calcium [m2/s]
+        self.Dm_K = 15.0e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
+        self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-16      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]
@@ -144,6 +152,10 @@ class Parameters(object):
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
 
         # ........................Rarely changed constants and calculations.............................................
+        # partial pressure dissolved CO2
+        self.CO2 = 0.03*40
+        self.bicarb = 25.0
+
 
         # charge states of ions
         self.z_Na = 1
@@ -220,6 +232,17 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
+            self.cNa_er = 5.4
+            self.cK_er = 140.44
+            self.cCa_er = 1.0e-3
+            self.cP_er = 138.0
+
+            conc_er = [self.cNa_er,self.cK_er, self.cCa_er, self.cP_er]
+
+            self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+
+            assert self.z_M_er == -1
+
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
 
 
@@ -230,7 +253,7 @@ class Parameters(object):
             self.cK_env = 5.0
             self.cCl_env = 105.0
             self.cCa_env = 1.0
-            self.cH_env = 1.0e-4
+            self.cH_env = 3.98e-5
             self.cP_env = 9.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
@@ -244,13 +267,27 @@ class Parameters(object):
             self.cK_cell = 131.0
             self.cCl_cell = 6.0
             self.cCa_cell = 1.0e-6
-            self.cH_cell = 4.0e-5
+            self.cH_cell = 6.31e-5
             self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
+
+            self.cNa_er = 17.0
+            self.cK_er = 131.0
+            self.cCl_er = 6.0
+            self.cCa_er = 1.0e-6
+            self.cH_er = 6.31e-5
+            self.cP_er = 138.0
+
+            conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
+
+            self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+
+            assert self.z_M_er == -1
+
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
@@ -260,7 +297,7 @@ class Parameters(object):
             self.cK_env = 20.0
             self.cCl_env = 460.0
             self.cCa_env = 10.0
-            self.cH_env = 1.0e-4
+            self.cH_env = 3.98e-5
             self.cP_env = 7.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
@@ -270,17 +307,30 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 50.0
-            self.cK_cell = 400.0
-            self.cCl_cell = 75.0
+            self.cNa_cell = 8.66
+            self.cK_cell = 406.09
+            self.cCl_cell = 45.56
             self.cCa_cell = 3.0e-4
-            self.cH_cell = 4.0e-5
+            self.cH_cell = 6.31e-5
             self.cP_cell = 350.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
+
+            self.cNa_er = 8.66
+            self.cK_er = 406.09
+            self.cCl_er = 45.56
+            self.cCa_er = 3.0e-4
+            self.cH_er = 6.31e-5
+            self.cP_er = 350.0
+
+            conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
+
+            self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+
+            assert self.z_M_er == -1
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 

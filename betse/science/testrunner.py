@@ -46,6 +46,19 @@ class SimRunner(object):
         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
         plt.show(block=False)
 
+        if p.Ca_dyn ==1:
+
+            figCaER, axCaER = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,0,lncolor='b',ionname='Ca2+ ER')
+            axCaER.set_title('Ca2+ in the endoplasmic reticulum')
+            plt.show(block=False)
+
+            figVER, axVER  = viz.plotSingleCellVData(sim.v_er_time,sim.time,0,fig=None,ax=None,lncolor='b')
+            plt.show(block=False)
+            axVER.set_title('Membrane voltage in the endoplasmic reticulum')
+            plt.show(block=False)
+
+
+
         plt.show()
 
     def simulate(self, savePNG=False):
@@ -62,41 +75,23 @@ class SimRunner(object):
 
         print('The simulation took', round(time.time() - start_time,2), 'seconds to complete')
 
-        neigh = cells.cell_nn[0][2]
+        neigh = cells.cell_nn[0][1]
         print('neighbour=',neigh)
 
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,0,fig=None,
-             ax=None,lncolor='g',ionname='Ca2+')
-        # figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
-        #     ax=axC,lncolor='b',ionname='K+')
-        # figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
-        #      ax=axC,lncolor='r',ionname='M-')
-        # lg = axC.legend()
-        # lg.draw_frame(True)
+        if p.Ca_dyn ==1:
+
+            figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,neigh,fig=None,
+                 ax=None,lncolor='g',ionname='Ca2+ cell')
+            axC.set_title("Calcium in Cell")
+            plt.show(block=False)
+
+            figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,neigh,fig=None,
+                 ax=None,lncolor='b',ionname='Ca2+ cell')
+            axD.set_title("Calcium in ER")
+            plt.show(block=False)
+
+        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,neigh,fig=None,ax=None,lncolor='b')
         plt.show(block=False)
-
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
-        plt.show(block=False)
-
-        # figAt = plt.figure()
-        # axAt = plt.subplot(111)
-        # act_Na = [arr[0] for arr in sim.active_Na_time]
-        # act_K = [arr[0] for arr in sim.active_K_time]
-        # dvm = [arr[0] for arr in sim.dvm_time]
-        # dvm = np.asarray(dvm)
-        # dvm = np.sign(dvm)
-        # axAt.plot(sim.time,act_Na,'b')
-        # axAt.plot(sim.time,act_K,'r')
-        # axAt.axis([sim.time[0],sim.time[-1],-0.5,1.5])
-        # # axAt.plot(sim.time,dvm,'k')
-        # plt.show()
-
-        # figfNa = plt.figure()
-        # axfNa = plt.subplot(111)
-        # fNa = [-arr[0] for arr in sim.fNa_NaK_time]
-        # axfNa.plot(sim.time,fNa,'b')
-        # axfNa.set_title('Sodium Flux NaKATPase')
-
 
 
         viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)

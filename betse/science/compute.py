@@ -10,6 +10,7 @@
 # FIXME Calcium dynamics
 # FIXME ECM diffusion and discrete membrane domains?
  # FIXME would be nice to track ATP use
+ # FIXME use carbonate buffer for propper H+ handling!
 
 import numpy as np
 import os, os.path
@@ -120,11 +121,15 @@ class Simulator(object):
             DmNa[:] = p.Dm_Na
 
             self.cc_cells.append(cNa_cells)
-            self.cc_er.append(cNa_cells)
             self.cc_env.append(cNa_env)
             self.zs.append(p.z_Na)
             self.Dm_cells.append(DmNa)
             self.D_free.append(p.Do_Na)
+
+            if p.ions_dict['Ca'] ==1:
+                cNa_er = np.zeros(len(cells.cell_i))
+                cNa_er[:]=p.cNa_er
+                self.cc_er.append(cNa_er)
 
 
         if p.ions_dict['K'] == 1:
@@ -145,11 +150,15 @@ class Simulator(object):
             DmK[:] = p.Dm_K
 
             self.cc_cells.append(cK_cells)
-            self.cc_er.append(cK_cells)
             self.cc_env.append(cK_env)
             self.zs.append(p.z_K)
             self.Dm_cells.append(DmK)
             self.D_free.append(p.Do_K)
+
+            if p.ions_dict['Ca'] ==1:
+                cK_er = np.zeros(len(cells.cell_i))
+                cK_er[:]=p.cK_er
+                self.cc_er.append(cK_er)
 
         if p.ions_dict['Cl'] == 1:
 
@@ -157,7 +166,7 @@ class Simulator(object):
 
             self.iCl = i
             self.movingIons.append(self.iCl)
-            self.ionlabel[self.iCl] = 'chlorine'
+            self.ionlabel[self.iCl] = 'chloride'
 
             cCl_cells = np.zeros(len(cells.cell_i))
             cCl_cells[:]=p.cCl_cell
@@ -169,11 +178,15 @@ class Simulator(object):
             DmCl[:] = p.Dm_Cl
 
             self.cc_cells.append(cCl_cells)
-            self.cc_er.append(cCl_cells)
             self.cc_env.append(cCl_env)
             self.zs.append(p.z_Cl)
             self.Dm_cells.append(DmCl)
             self.D_free.append(p.Do_Cl)
+
+            if p.ions_dict['Ca'] ==1:
+                cCl_er = np.zeros(len(cells.cell_i))
+                cCl_er[:]=p.cCl_er
+                self.cc_er.append(cCl_er)
 
         if p.ions_dict['Ca'] == 1:
 
@@ -193,18 +206,22 @@ class Simulator(object):
             DmCa[:] = p.Dm_Ca
 
             self.cc_cells.append(cCa_cells)
-            self.cc_er.append(cCa_cells)
             self.cc_env.append(cCa_env)
             self.zs.append(p.z_Ca)
             self.Dm_cells.append(DmCa)
             self.D_free.append(p.Do_Ca)
+
+            if p.ions_dict['Ca'] ==1:
+                cCa_er = np.zeros(len(cells.cell_i))
+                cCa_er[:]=p.cCa_er
+                self.cc_er.append(cCa_er)
 
         if p.ions_dict['H'] == 1:
 
             i =i+1
 
             self.iH = i
-            self.movingIons.append(self.iH)
+            #self.movingIons.append(self.iH)
             self.ionlabel[self.iH] = 'protons'
 
             cH_cells = np.zeros(len(cells.cell_i))
@@ -217,11 +234,15 @@ class Simulator(object):
             DmH[:] = p.Dm_H
 
             self.cc_cells.append(cH_cells)
-            self.cc_er.append(cH_cells)
             self.cc_env.append(cH_env)
             self.zs.append(p.z_H)
             self.Dm_cells.append(DmH)
             self.D_free.append(p.Do_H)
+
+            if p.ions_dict['Ca'] ==1:
+                cH_er = np.zeros(len(cells.cell_i))
+                cH_er[:]=p.cH_er
+                self.cc_er.append(cH_er)
 
         if p.ions_dict['P'] == 1:
 
@@ -240,11 +261,15 @@ class Simulator(object):
             DmP[:] = p.Dm_P
 
             self.cc_cells.append(cP_cells)
-            self.cc_er.append(cP_cells)
             self.cc_env.append(cP_env)
             self.zs.append(p.z_P)
             self.Dm_cells.append(DmP)
             self.D_free.append(p.Do_P)
+
+            if p.ions_dict['Ca'] ==1:
+                cP_er = np.zeros(len(cells.cell_i))
+                cP_er[:]=p.cP_er
+                self.cc_er.append(cP_er)
 
         if p.ions_dict['M'] == 1:
 
@@ -264,11 +289,15 @@ class Simulator(object):
             DmM[:] = p.Dm_M
 
             self.cc_cells.append(cM_cells)
-            self.cc_er.append(cM_cells)
             self.cc_env.append(cM_env)
             self.zs.append(p.z_M)
             self.Dm_cells.append(DmM)
             self.D_free.append(p.Do_M)
+
+            if p.ions_dict['Ca'] ==1:
+                cM_er = np.zeros(len(cells.cell_i))
+                cM_er[:]=p.cM_er
+                self.cc_er.append(cM_er)
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -289,6 +318,7 @@ class Simulator(object):
         self.Dm_er = copy.deepcopy(self.Dm_cells)
 
         self.vm_to = np.zeros(len(cells.cell_i))
+        self.v_er = np.zeros(len(cells.cell_i))
 
         print('Ions in this simulation:', self.ionlabel)
 
@@ -310,6 +340,13 @@ class Simulator(object):
         # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
+
+        # Initialize array structures that hold endoplasmic reticulum related membrane changes:
+        self.Dm_er_scheduled = np.copy(Dm_cellsA)
+        self.Dm_er_scheduled[:] = 0
+
+        self.Dm_er_CICR = np.copy(Dm_cellsA)
+        self.Dm_er_CICR[:] = 0
 
         if p.vg_options['Na_vg'] != 0:
 
@@ -366,6 +403,9 @@ class Simulator(object):
 
             # Initialize matrices defining states of cag K channels for each cell:
             self.active_Kcag = np.zeros(len(cells.cell_i))
+
+        if p.Ca_dyn_options['CICR'] != 0:
+            self.maxDmCaER = p.Ca_dyn_options['CICR'][0]
 
         # Initialize target cell sets for dynamically gated channels from user options:
         if p.gated_targets == 'none':
@@ -425,8 +465,11 @@ class Simulator(object):
         """
         # Reinitialize data structures that hold time data
         self.cc_time = []  # data array holding the concentrations at time points
+        self.cc_env_time = []  # data array holding the environmental concentrations at time points
         self.vm_time = []  # data array holding voltage at time points
         self.time = []     # time values of the simulation
+        self.cc_er_time = []
+        self.v_er_time = []
 
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
 
@@ -461,20 +504,20 @@ class Simulator(object):
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
                     pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
 
-                self.cc_cells[self.iCa],self.cc_er[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_er[self.iCa],cells.cell_vol,0.1*cells.cell_vol,self.vm,p)
+                self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
+                    pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,self.v_er,p)
+
+                q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+                self.v_er = v_er_o - self.vm
 
 
             if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
 
-                # if HKATPse pump is desired, build up metabolic acid at a constant rate:
-                self.cc_cells[self.iH] = self.cc_cells[self.iH] + 1e-9
-
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
-                self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
+                _,_,self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
                 pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
-
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -490,23 +533,31 @@ class Simulator(object):
                         self.envV,cells.cell_vol,self.zs[i],self.vm,p)
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-                    q_er = get_charge(self.cc_er,self.zs,0.1*cells.cell_vol,p)
-                    v_er_o = get_volt(q_er,0.1*cells.cell_sa,p)
-                    self.v_er = v_er_o - self.vm
-
                     # electrodiffusion of ions between cell and endoplasmic reticulum
                     self.cc_cells[i],self.cc_er[i],_ = \
-                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,0.1*cells.cell_sa,
-                        cells.cell_vol,0.1*cells.cell_vol,self.zs[i],self.v_er,p)
+                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,p.ER_sa*cells.cell_sa,
+                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,p)
+
+                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                    v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+                    self.v_er = v_er_o - self.vm
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 self.cc_time.append(concs)
+                concs_env = copy.deepcopy(self.cc_env)
+                self.cc_env_time.append(concs_env)
+
                 vmm = copy.deepcopy(self.vm)
                 self.vm_time.append(vmm)
                 self.time.append(t)
+
+                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
+                    concs_er = copy.deepcopy(self.cc_er)
+                    self.cc_er_time.append(concs_er)
+                    cver = copy.deepcopy(self.v_er)
+                    self.v_er_time.append(cver)
 
         celf = copy.deepcopy(self)
 
@@ -529,7 +580,7 @@ class Simulator(object):
         print(vmess,final_vmean, ' mV')
 
         if p.ions_dict['H'] == 1:
-            final_pH = np.log10(np.mean(self.cc_time[-1][self.iH]))
+            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
             print('cell pH',np.round(final_pH,2))
 
         if p.Ca_dyn == 1:
@@ -566,6 +617,7 @@ class Simulator(object):
         self.active_K_time = []
 
         self.fNa_NaK_time = []
+        self.cc_er_time = []
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.gj_i))
@@ -610,15 +662,19 @@ class Simulator(object):
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
                     pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
 
-                self.cc_cells[self.iCa],self.cc_er[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_er[self.iCa],cells.cell_vol,0.1*cells.cell_vol,self.vm,p)
+                self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
+                    pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,self.v_er,p)
+
+                q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+                self.v_er = v_er_o - self.vm
 
             if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
                 # if HKATPse pump is desired, build up metabolic acid at a constant rate:
-                self.cc_cells[self.iH] = self.cc_cells[self.iH] + 1e-9
+                # self.cc_cells[self.iH] = self.cc_cells[self.iH] + 1e-9
 
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
-                self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
+                _,_,self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
                 pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
 
@@ -646,16 +702,14 @@ class Simulator(object):
                         self.envV,cells.cell_vol,self.zs[i],self.vm,p)
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-                    q_er = get_charge(self.cc_er,self.zs,0.1*cells.cell_vol,p)
-                    v_er_o = get_volt(q_er,0.1*cells.cell_sa,p)
-                    self.v_er = v_er_o - self.vm
-
                     # electrodiffusion of ions between cell and endoplasmic reticulum
                     self.cc_cells[i],self.cc_er[i],_ = \
-                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,0.1*cells.cell_sa,
-                        cells.cell_vol,0.1*cells.cell_vol,self.zs[i],self.v_er,p)
+                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,p.ER_sa*cells.cell_sa,
+                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,p)
 
+                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                    v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+                    self.v_er = v_er_o - self.vm
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -691,7 +745,6 @@ class Simulator(object):
                 vgjj = copy.deepcopy(vgj)
                 dvmm = copy.deepcopy(self.dvm)
 
-
                 fNa = copy.deepcopy(fNa_NaK)
                 self.cc_time.append(concs)
                 self.envcc_time.append(envsc)
@@ -710,6 +763,10 @@ class Simulator(object):
                 if p.vg_options['K_vg'] != 0:
                     aK = copy.deepcopy(self.active_K)
                     self.active_K_time.append(aK)
+
+                if p.Ca_dyn == 1:
+                    ccer = copy.deepcopy(self.cc_er)
+                    self.cc_er_time.append(ccer)
 
 
         # End off by calculating the current through the gap junction network:
@@ -741,7 +798,7 @@ class Simulator(object):
         print(vmess,final_vmean, ' mV')
 
         if p.ions_dict['H'] == 1:
-            final_pH = np.log10(np.mean(self.cc_time[-1][self.iH]))
+            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
             print('cell pH',np.round(final_pH,2))
 
         molarity_cells = get_molarity(self.cc_time[-1],p)
@@ -831,21 +888,6 @@ class Simulator(object):
 
                 self.Dm_scheduled[self.iCa][self.scheduled_target_inds] = mem_mult_Ca*effector_Ca*p.Dm_Ca
 
-        if p.scheduled_options['H_mem'] != 0:
-
-            if p.ions_dict['H'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                t_on = p.scheduled_options['H_mem'][0]
-                t_off = p.scheduled_options['H_mem'][1]
-                t_change = p.scheduled_options['H_mem'][2]
-                mem_mult_H = p.scheduled_options['H_mem'][3]
-
-                effector_H = pulse(t,t_on,t_off,t_change)
-
-                self.Dm_scheduled[self.iH][self.scheduled_target_inds] = mem_mult_H*effector_H*p.Dm_H
 
         if p.scheduled_options['K_env'] != 0:
 
@@ -856,10 +898,40 @@ class Simulator(object):
 
             effector_Kenv = pulse(t,t_on,t_off,t_change)
 
-            K_env_o = np.ones(len(self.cc_env[self.iK]))
-            K_env_o[:] = p.cK_env
+            self.cc_env[self.iK][:] = mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
-            self.cc_env[self.iK] = mem_mult_Kenv*effector_Kenv*K_env_o
+        if p.scheduled_options['Cl_env'] != 0:
+
+            t_on = p.scheduled_options['Cl_env'][0]
+            t_off = p.scheduled_options['Cl_env'][1]
+            t_change = p.scheduled_options['Cl_env'][2]
+            mem_mult_Clenv = p.scheduled_options['Cl_env'][3]
+
+            effector_Clenv = pulse(t,t_on,t_off,t_change)
+
+            self.cc_env[self.iCl][:] = mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+
+        if p.scheduled_options['Na_env'] != 0:
+
+            t_on = p.scheduled_options['Na_env'][0]
+            t_off = p.scheduled_options['Na_env'][1]
+            t_change = p.scheduled_options['Na_env'][2]
+            mem_mult_Naenv = p.scheduled_options['Na_env'][3]
+
+            effector_Naenv = pulse(t,t_on,t_off,t_change)
+
+            self.cc_env[self.iNa][:] = mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+
+        if p.scheduled_options['Dm_er'] != 0 and p.ions_dict['Ca'] == 1:
+
+            t_on = p.scheduled_options['Dm_er'][0]
+            t_off = p.scheduled_options['Dm_er'][1]
+            t_change = p.scheduled_options['Dm_er'][2]
+            mem_mult_er = p.scheduled_options['Dm_er'][3]
+
+            effector_Dmer = pulse(t,t_on,t_off,t_change)
+
+            self.Dm_er_scheduled[self.iCa][self.scheduled_target_inds] = effector_Dmer*mem_mult_er*p.Dm_Ca
 
         # Voltage gated channel effects
 
@@ -1006,11 +1078,16 @@ class Simulator(object):
 
                 self.Dm_cag[self.iK] = self.maxDmKcag*self.active_Kcag
 
-
-
-
         # finally, add together all effects to make change on the cell membrane permeabilities:
         self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_cag + self.Dm_base
+
+        if p.ions_dict['Ca'] ==1 and p.Ca_dyn == 1:
+
+            if p.Ca_dyn_options['CICR'] != 0:
+                    #self.Dm_er[self.iCa] = self.maxDmCaER*pulse(self.cc_cells[self.iCa],2.0e-4,6.0e-4,4e-4) + self.Dm_base[self.iCa]
+                    self.Dm_er_CICR[self.iCa] = self.maxDmCaER*step(self.cc_cells[self.iCa],6.0e-5,1e-5)
+
+            self.Dm_er[self.iCa] = self.Dm_er_scheduled[self.iCa] + self.Dm_er_CICR[self.iCa] + self.Dm_base[self.iCa]
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
@@ -1314,6 +1391,41 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
 
         cCai2 = cCai - dmol/voli
         cCao2 = cCao + dmol/volo
+
+
+    return cCai2, cCao2, f_Ca
+
+def pumpCaER(cCai,cCao,voli,volo,Vm,p):
+
+    delG_Ca = p.R*p.T*np.log(cCai/cCao) + 2*p.F*Vm
+    delG_CaATP = p.deltaGATP - (delG_Ca)
+    delG = (delG_CaATP/1000)
+
+    alpha = p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+
+    f_Ca  = alpha*(cCao)      #flux as [mol/s]
+
+    if p.method == 0:
+
+        dmol = f_Ca*p.dt
+
+        cCai2 = cCai + dmol/voli
+        cCao2 = cCao - dmol/volo
+
+    elif p.method == 1:
+
+        k1 = alpha*cCao
+
+        k2 = alpha*(cCao+(1/2)*k1*p.dt)
+
+        k3 = alpha*(cCao+(1/2)*k2*p.dt)
+
+        k4 = alpha*(cCao+ k3*p.dt)
+
+        dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+        cCai2 = cCai + dmol/voli
+        cCao2 = cCao - dmol/volo
 
 
     return cCai2, cCao2, f_Ca
