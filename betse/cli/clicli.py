@@ -118,6 +118,11 @@ class CLICLI(CLI):
         self._arg_parser_sim = self._arg_subparsers.add_parser(
             name = 'sim',
             help = 'run tissue simulation subcommand(s)',
+
+            #FIXME: Ugh. "\n" escapes are ignored in descriptions, so we'll need
+            #to manually embed newlines. Hmm. Would even that work? It might be
+            #that argparse squelches *ALL* newlines in descriptions. Google up.
+
             description = (
                 'Run the passed tissue simulation subcommand(s) '
                 'configured by the passed configuration file. For example, '
@@ -165,7 +170,7 @@ class CLICLI(CLI):
         self._arg_parser_sim.add_argument(
             'sim_subcommand_names',
             nargs = '+',
-            metavar = 'SIM_SUBCOMMAND_NAME',
+            metavar = 'SUBCOMMAND_NAME',
             help = 'simulation subcommand(s) to be run',
         )
         self._arg_parser_sim.add_argument(
