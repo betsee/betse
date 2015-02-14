@@ -92,6 +92,7 @@ class Simulator(object):
 
         self.cc_cells = []  # cell concentrations initialized
         self.cc_env = []   # environmental concentrations initialized
+        self.cc_er = []   # endoplasmic reticulum ion concentrations
         self.zs = []   # ion valence state initialized
         self.Dm_cells = []              # membrane diffusion constants initialized
         self.D_free = []                 # a list of single-valued free diffusion constants for each ion
@@ -119,10 +120,12 @@ class Simulator(object):
             DmNa[:] = p.Dm_Na
 
             self.cc_cells.append(cNa_cells)
+            self.cc_er.append(cNa_cells)
             self.cc_env.append(cNa_env)
             self.zs.append(p.z_Na)
             self.Dm_cells.append(DmNa)
             self.D_free.append(p.Do_Na)
+
 
         if p.ions_dict['K'] == 1:
 
@@ -142,6 +145,7 @@ class Simulator(object):
             DmK[:] = p.Dm_K
 
             self.cc_cells.append(cK_cells)
+            self.cc_er.append(cK_cells)
             self.cc_env.append(cK_env)
             self.zs.append(p.z_K)
             self.Dm_cells.append(DmK)
@@ -165,6 +169,7 @@ class Simulator(object):
             DmCl[:] = p.Dm_Cl
 
             self.cc_cells.append(cCl_cells)
+            self.cc_er.append(cCl_cells)
             self.cc_env.append(cCl_env)
             self.zs.append(p.z_Cl)
             self.Dm_cells.append(DmCl)
@@ -188,6 +193,7 @@ class Simulator(object):
             DmCa[:] = p.Dm_Ca
 
             self.cc_cells.append(cCa_cells)
+            self.cc_er.append(cCa_cells)
             self.cc_env.append(cCa_env)
             self.zs.append(p.z_Ca)
             self.Dm_cells.append(DmCa)
@@ -211,6 +217,7 @@ class Simulator(object):
             DmH[:] = p.Dm_H
 
             self.cc_cells.append(cH_cells)
+            self.cc_er.append(cH_cells)
             self.cc_env.append(cH_env)
             self.zs.append(p.z_H)
             self.Dm_cells.append(DmH)
@@ -233,9 +240,10 @@ class Simulator(object):
             DmP[:] = p.Dm_P
 
             self.cc_cells.append(cP_cells)
+            self.cc_er.append(cP_cells)
             self.cc_env.append(cP_env)
             self.zs.append(p.z_P)
-            self.Dm_cells.append(DmP)        # FIXME is it a problem that this is here?
+            self.Dm_cells.append(DmP)
             self.D_free.append(p.Do_P)
 
         if p.ions_dict['M'] == 1:
@@ -256,6 +264,7 @@ class Simulator(object):
             DmM[:] = p.Dm_M
 
             self.cc_cells.append(cM_cells)
+            self.cc_er.append(cM_cells)
             self.cc_env.append(cM_env)
             self.zs.append(p.z_M)
             self.Dm_cells.append(DmM)
@@ -277,9 +286,11 @@ class Simulator(object):
         self.Igj =[]            # current for each gj
         self.Igj_time = []      # current for each gj at each time
 
+        self.Dm_er = copy.deepcopy(self.Dm_cells)
+
         self.vm_to = np.zeros(len(cells.cell_i))
 
-        print(self.ionlabel)
+        print('Ions in this simulation:', self.ionlabel)
 
     def tissueInit(self,cells,p):
 
@@ -295,6 +306,10 @@ class Simulator(object):
         # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
         self.Dm_vg = np.copy(Dm_cellsA)
         self.Dm_vg[:] = 0
+
+        # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
+        self.Dm_cag = np.copy(Dm_cellsA)
+        self.Dm_cag[:] = 0
 
         if p.vg_options['Na_vg'] != 0:
 
@@ -328,6 +343,29 @@ class Simulator(object):
             # Initialize other matrices for vgK timing logic: NEW!
             self.vgK_state = np.zeros(len(cells.cell_i))   # state can be 0 = off, 1 = open
             self.vgK_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
+
+        if p.vg_options['Ca_vg'] !=0:
+
+            # Initialization of logic values forr voltage gated potassium channel
+            self.maxDmCa = p.vg_options['Ca_vg'][0]
+            self.v_on_Ca = p.vg_options['Ca_vg'][1]
+            self.v_off_Ca = p.vg_options['Ca_vg'][2]
+            self.ca_upper_ca = p.vg_options['Ca_vg'][3]
+            self.ca_lower_ca = p.vg_options['Ca_vg'][4]
+
+            # Initialize matrices defining states of vgK channels for each cell:
+            self.active_Ca = np.zeros(len(cells.cell_i))
+
+            self.vgCa_state = np.zeros(len(cells.cell_i))   # state can be 0 = off, 1 = open
+
+        if p.vg_options['K_cag'] != 0:
+
+            self.maxDmKcag = p.vg_options['K_cag'][0]
+            self.Kcag_halfmax = p.vg_options['K_cag'][1]
+            self.Kcag_n = p.vg_options['K_cag'][2]
+
+            # Initialize matrices defining states of cag K channels for each cell:
+            self.active_Kcag = np.zeros(len(cells.cell_i))
 
         # Initialize target cell sets for dynamically gated channels from user options:
         if p.gated_targets == 'none':
@@ -413,13 +451,30 @@ class Simulator(object):
 
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
-                pumpNaKATP_MM(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
+                pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
 
-            if p.ions_dict['Ca'] == 1:
+
+            # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
+            if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
 
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
                     pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
+
+                self.cc_cells[self.iCa],self.cc_er[self.iCa], _ =\
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_er[self.iCa],cells.cell_vol,0.1*cells.cell_vol,self.vm,p)
+
+
+            if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
+
+                # if HKATPse pump is desired, build up metabolic acid at a constant rate:
+                self.cc_cells[self.iH] = self.cc_cells[self.iH] + 1e-9
+
+                # if HKATPase pump is desired, run the H-K-ATPase pump:
+                self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
+                pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
+                    cells.cell_vol,self.envV,self.vm,p)
+
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -433,6 +488,17 @@ class Simulator(object):
                 self.cc_env[i],self.cc_cells[i],fNa = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
                         self.envV,cells.cell_vol,self.zs[i],self.vm,p)
+
+                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
+
+                    q_er = get_charge(self.cc_er,self.zs,0.1*cells.cell_vol,p)
+                    v_er_o = get_volt(q_er,0.1*cells.cell_sa,p)
+                    self.v_er = v_er_o - self.vm
+
+                    # electrodiffusion of ions between cell and endoplasmic reticulum
+                    self.cc_cells[i],self.cc_er[i],_ = \
+                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,0.1*cells.cell_sa,
+                        cells.cell_vol,0.1*cells.cell_vol,self.zs[i],self.v_er,p)
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
@@ -452,7 +518,7 @@ class Simulator(object):
         self.vm_to = copy.deepcopy(self.vm)
 
         for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_time[-1][i]),2)
+            endconc = np.round(np.mean(self.cc_time[-1][i]),9)
             label = self.ionlabel[i]
             concmess = 'Final cytoplasmic concentration of'+ ' '+ label + ': '
             print(concmess,endconc,' mmol/L')
@@ -461,6 +527,22 @@ class Simulator(object):
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),2)
         vmess = 'Final cell Vmem of ' + ': '
         print(vmess,final_vmean, ' mV')
+
+        if p.ions_dict['H'] == 1:
+            final_pH = np.log10(np.mean(self.cc_time[-1][self.iH]))
+            print('cell pH',np.round(final_pH,2))
+
+        if p.Ca_dyn == 1:
+
+            for i in range(0,len(self.ionlabel)):
+                endconc_er = np.round(np.mean(self.cc_er[i]),9)
+                label = self.ionlabel[i]
+                concmess = 'Final ER concentration of'+ ' '+ label + ': '
+                print(concmess,endconc_er,' mmol/L')
+
+            final_ver = 1000*np.round(np.mean(self.v_er),4)
+            vermess = 'Final ER V_er of ' + ': '
+            print(vermess,final_ver, ' mV')
 
     def runSim(self,cells,p,save=None):
         """
@@ -523,10 +605,22 @@ class Simulator(object):
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,p)
 
-            if p.ions_dict['Ca'] == 1:
+            if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
 
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
                     pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
+
+                self.cc_cells[self.iCa],self.cc_er[self.iCa], _ =\
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_er[self.iCa],cells.cell_vol,0.1*cells.cell_vol,self.vm,p)
+
+            if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
+                # if HKATPse pump is desired, build up metabolic acid at a constant rate:
+                self.cc_cells[self.iH] = self.cc_cells[self.iH] + 1e-9
+
+                # if HKATPase pump is desired, run the H-K-ATPase pump:
+                self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
+                pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
+                    cells.cell_vol,self.envV,self.vm,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
@@ -550,6 +644,18 @@ class Simulator(object):
                 self.cc_env[i],self.cc_cells[i],_ = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
                         self.envV,cells.cell_vol,self.zs[i],self.vm,p)
+
+                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
+
+                    q_er = get_charge(self.cc_er,self.zs,0.1*cells.cell_vol,p)
+                    v_er_o = get_volt(q_er,0.1*cells.cell_sa,p)
+                    self.v_er = v_er_o - self.vm
+
+                    # electrodiffusion of ions between cell and endoplasmic reticulum
+                    self.cc_cells[i],self.cc_er[i],_ = \
+                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,0.1*cells.cell_sa,
+                        cells.cell_vol,0.1*cells.cell_vol,self.zs[i],self.v_er,p)
+
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -584,8 +690,8 @@ class Simulator(object):
                 vmm = copy.deepcopy(self.vm)
                 vgjj = copy.deepcopy(vgj)
                 dvmm = copy.deepcopy(self.dvm)
-                aNa = copy.deepcopy(self.active_Na)
-                aK = copy.deepcopy(self.active_K)
+
+
                 fNa = copy.deepcopy(fNa_NaK)
                 self.cc_time.append(concs)
                 self.envcc_time.append(envsc)
@@ -595,9 +701,16 @@ class Simulator(object):
                 self.gjopen_time.append(self.gjopen)
                 self.vgj_time.append(vgjj)
                 self.dvm_time.append(dvmm)
-                self.active_Na_time.append(aNa)
-                self.active_K_time.append(aK)
                 self.fNa_NaK_time.append(fNa)
+
+                if p.vg_options['Na_vg'] != 0:
+                    aNa = copy.deepcopy(self.active_Na)
+                    self.active_Na_time.append(aNa)
+
+                if p.vg_options['K_vg'] != 0:
+                    aK = copy.deepcopy(self.active_K)
+                    self.active_K_time.append(aK)
+
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
@@ -615,6 +728,40 @@ class Simulator(object):
             fh.saveSim(self.savedSim,datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.cache_path
             print(message_2)
+
+        for i in range(0,len(self.ionlabel)):
+            endconc = np.round(np.mean(self.cc_time[-1][i]),9)
+            label = self.ionlabel[i]
+            concmess = 'Final cytoplasmic concentration of'+ ' '+ label + ': '
+            print(concmess,endconc,' mmol/L')
+
+
+        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),2)
+        vmess = 'Final cell Vmem of ' + ': '
+        print(vmess,final_vmean, ' mV')
+
+        if p.ions_dict['H'] == 1:
+            final_pH = np.log10(np.mean(self.cc_time[-1][self.iH]))
+            print('cell pH',np.round(final_pH,2))
+
+        molarity_cells = get_molarity(self.cc_time[-1],p)
+        molarity_env = get_molarity(self.envcc_time[-1],p)
+        osmotic_cells = molarity_cells*p.R*p.T
+        osmotic_env = molarity_env*p.R*p.T
+        pressure_cells = np.round((np.mean(osmotic_cells - osmotic_env)/1000),2)
+        print('cell osmotic pressure',pressure_cells, ' kPa')
+
+        if p.Ca_dyn == 1:
+
+            for i in range(0,len(self.ionlabel)):
+                endconc_er = np.round(np.mean(self.cc_er[i]),9)
+                label = self.ionlabel[i]
+                concmess = 'Final ER concentration of'+ ' '+ label + ': '
+                print(concmess,endconc_er,' mmol/L')
+
+            final_ver = 1000*np.round(np.mean(self.v_er),4)
+            vermess = 'Final ER V_er of ' + ': '
+            print(vermess,final_ver, ' mV')
 
         print('Simulation completed successfully.')
 
@@ -809,49 +956,61 @@ class Simulator(object):
                 self.Dm_vg[self.iK] = self.maxDmK*self.active_K
 
 
+        if p.vg_options['Ca_vg'] != 0:
+
+            if p.ions_dict['Ca'] == 0:
+                pass
+
+            else:
+                # detect condition to turn vg_Ca channel on:
+                truth_vmGTvon_Ca = self.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
+                truth_caLTcaOff = self.cc_cells[self.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
+                truth_depol_Ca = dvsign == 1  # bools matrix for cells that are depolarizing
+                truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
+
+                # cells at these indices will become activated in this time step:
+                inds_activate_Ca = (truth_vmGTvon_Ca*truth_caLTcaOff*truth_depol_Ca*truth_vgCa_OFF*self.target_cells).nonzero()
+                self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
+
+                # detect condition to turn off vg_Ca channel:
+                truth_caGTcaOff = self.cc_cells[self.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
+                truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
+                inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_cells).nonzero()
+                self.vgCa_state[inds_inactivate_Ca] = 0
+
+                # additional condition to turn off vg_Ca via depolarizing voltage:
+                truth_vmGTvcaOff = self.vm > self.v_off_Ca
+                inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_cells*truth_vgCa_ON).nonzero()
+                self.vgCa_state[inds_inactivate_Ca_2] = 0
 
 
-        # if p.vg_options['K_vg'] !=0:
-        #
-        #     if p.ions_dict['K'] == 0 or target_length == 0:
-        #         pass
-        #
-        #     else:
-        #
-        #          # Logic phase 1: find out which cells have activated their vgNa channels
-        #         truth_vmGTvon_K = self.vm > self.v_on_K  # returns bools of vm that are bigger than threshhold
-        #         truth_depol_K = dvsign==1  # returns bools of vm that are bigger than threshhold
-        #         # truth_crossed_inactivate_K = self.crossed_inactivate_K == 0  # return bools of vm that can activate
-        #
-        #          # set the cell indicies that correspond to all statements of logic phase 1:
-        #         #inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_crossed_inactivate_K*self.target_cells).nonzero()
-        #         inds_activate_K = (truth_vmGTvon_K*truth_depol_K*self.target_cells).nonzero()
-        #         self.crossed_activate_K[inds_activate_K] = 1 # set the crossed_activate term to 1
-        #
-        #          # Logic phase 2: find out which cells have closed their gates due to crossing shut-off voltage:
-        #         truth_vmLTvoff_K = self.vm < self.v_off_K  # bools of cells that have vm greater than shut-off volts
-        #         inds_shut_K = (truth_vmLTvoff_K*self.target_cells).nonzero()
-        #         self.crossed_activate_K[inds_shut_K] = 0    # close the vg sodium channels
-        #         # self.crossed_inactivate_K[inds_shut_K] = 1   # switch these so cells do not re-activate
-        #
-        #         # # Logic phase 3: find out which cells can re-activate
-        #         # truth_vmGTvreact_K = self.vm > self.v_reactivate_K
-        #         # inds_reactivate_K = (truth_vmGTvreact_K*self.target_cells).nonzero()
-        #         # self.crossed_inactivate_K[inds_reactivate_K] = 0
-        #
-        #         # Set activity of K channel:
-        #
-        #         inds_open_K = (self.crossed_activate_K == 1).nonzero()
-        #         self.active_K[inds_open_K] = 1
-        #
-        #         inds_closed_K =(self.crossed_activate_K == 0).nonzero()
-        #         self.active_K[inds_closed_K] = 0
-        #
-        #         self.Dm_vg[self.iK] = self.maxDmK*self.active_K
+                inds_open_Ca = (self.vgCa_state == 1).nonzero()
+                self.active_Ca[inds_open_Ca] = 1
+
+                inds_closed_Ca =(self.vgCa_state == 0).nonzero()
+                self.active_Ca[inds_closed_Ca] = 0
+
+                self.Dm_vg[self.iCa] = self.maxDmCa*self.active_Ca
+
+        if p.vg_options['K_cag'] != 0:
+
+            if p.ions_dict['Ca'] == 0:
+                pass
+
+            else:
+
+                inds_cagK_targets = (self.target_cells).nonzero()
+
+                self.active_Kcag[inds_cagK_targets] = hill(self.cc_cells[self.iCa][inds_cagK_targets],
+                    self.Kcag_halfmax,self.Kcag_n)
+
+                self.Dm_cag[self.iK] = self.maxDmKcag*self.active_Kcag
+
+
 
 
         # finally, add together all effects to make change on the cell membrane permeabilities:
-        self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_base
+        self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_cag + self.Dm_base
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
@@ -1132,7 +1291,7 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
 
     alpha = p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
 
-    f_Ca  = -alpha*cCai      #flux as [mol/s]
+    f_Ca  = -alpha*(cCai)      #flux as [mol/s]
 
     if p.method == 0:
 
@@ -1159,17 +1318,13 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
 
     return cCai2, cCao2, f_Ca
 
-def pumpNaKATP_MM(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
-
+def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,p):
 
     """
-    Sodium potassium ATPase enzyme pump. Uses Michaelis Mentin
-    enzyme kinetics for sodium.
-
     Parameters
     ----------
-    cNai            Concentration of Na+ inside the cell
-    cNao            Concentration of Na+ outside the cell
+    cHi            Concentration of H+ inside the cell
+    cHo            Concentration of H+ outside the cell
     cKi             Concentration of K+ inside the cell
     cKo             Concentration of K+ outside the cell
     voli            Volume of the cell [m3]
@@ -1180,54 +1335,55 @@ def pumpNaKATP_MM(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
 
     Returns
     -------
-    cNai2           Updated Na+ inside cell
-    cNao2           Updated Na+ outside cell
+    cHi2           Updated H+ inside cell
+    cHo2           Updated H+ outside cell
     cKi2            Updated K+ inside cell
     cKo2            Updated K+ outside cell
     f_Na            Na+ flux (into cell +)
     f_K             K+ flux (into cell +)
     """
 
-    delG_Na = p.R*p.T*np.log(cNao/cNai) - p.F*Vm
+    delG_H = p.R*p.T*np.log(cHo/cHi) - p.F*Vm
     delG_K = p.R*p.T*np.log(cKi/cKo) + p.F*Vm
-    delG_NaKATP = p.deltaGATP - (3*delG_Na + 2*delG_K)
-    delG = (delG_NaKATP/1000)
 
-    alpha = p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
+    delG_HKATP = p.deltaGATP - (delG_H + delG_K)
+    delG = (delG_HKATP/1000)
 
-    f_Na  = -alpha*(cNai/(p.ratemax_NaK + cNai))      #flux as [mol/s]
-    f_K = -(2/3)*f_Na          # flux as [mol/s]
+    alpha = p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
+
+    f_H  = -alpha*cHi*cKo      #flux as [mol/s]
+    f_K = -f_H          # flux as [mol/s]
 
     if p.method == 0:
 
-        dmol = -alpha*cNai*cKo*p.dt
+        dmol = -alpha*cHi*cKo*p.dt
 
-        cNai2 = cNai + dmol/voli
-        cNao2 = cNao - dmol/volo
+        cHi2 = cHi + dmol/voli
+        cHo2 = cHo - dmol/volo
 
-        cKi2 = cKi - (2/3)*dmol/voli
-        cKo2 = cKo + (2/3)*dmol/volo
+        cKi2 = cKi - dmol/voli
+        cKo2 = cKo + dmol/volo
 
     elif p.method == 1:
 
-        k1 = alpha*cNai*cKo
+        k1 = alpha*cHi*cKo
 
-        k2 = alpha*(cNai+(1/2)*k1*p.dt)*cKo
+        k2 = alpha*(cHi+(1/2)*k1*p.dt)*cKo
 
-        k3 = alpha*(cNai+(1/2)*k2*p.dt)*cKo
+        k3 = alpha*(cHi+(1/2)*k2*p.dt)*cKo
 
-        k4 = alpha*(cNai+ k3*p.dt)*cKo
+        k4 = alpha*(cHi+ k3*p.dt)*cKo
 
         dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
 
-        cNai2 = cNai - dmol/voli
-        cNao2 = cNao + dmol/volo
+        cHi2 = cHi - dmol/voli
+        cHo2 = cHo + dmol/volo
 
-        cKi2 = cKi + (2/3)*dmol/voli
-        cKo2 = cKo - (2/3)*dmol/volo
+        cKi2 = cKi + dmol/voli
+        cKo2 = cKo - dmol/volo
 
 
-    return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
+    return cHi2,cHo2,cKi2,cKo2, f_H, f_K
 
 def get_volt(q,sa,p):
 
@@ -1258,6 +1414,17 @@ def get_charge(concentrations,zs,vol,p):
     netcharge = p.F*q*vol
 
     return netcharge
+
+def get_molarity(concentrations,p):
+
+    q = 0
+
+    for conc in concentrations:
+        q = q+ conc
+
+    netmolarity = q
+
+    return netmolarity
 
 def check_c(cA):
     """
