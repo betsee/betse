@@ -71,16 +71,31 @@ For PEP 8 compliance, such specifier is exposed as the canonical variable
 # installations, typically for performing runtime validation of the current
 # Python environment.
 
-REQUIREMENTS = [
-    'numpy >= 1.8.0',
-    'pyside >= 1.2.0',
-    'yaml >= 3.10',
-    'scipy >= 0.12.0',
+DEPENDENCY_SETUPTOOLS = 'setuptools >= 7.0'
+'''
+Version of `setuptools` required by `betse` at both install and runtime.
+
+For simplicity, such version is a `setuptools`-specific requirements string.
+'''
+
+# Such dependencies are also checked for importability as modules at runtime and
+# hence case-sensitive (e.g., "PySide" is importable but "pyside" is *NOT*).
+DEPENDENCIES_RUNTIME = [
+    # setuptools is currently required at both install and runtime. At runtime,
+    # setuptools is used to validate that required dependencies are available.
+    DEPENDENCY_SETUPTOOLS,
+    'PySide >= 1.2.0',
     'matplotlib >= 1.3.0',
+    'numpy >= 1.8.0',
+    'scipy >= 0.12.0',
+    'voluptuous >= 0.8.7',
+    'yaml >= 3.10',
 ]
 '''
-List of `setuptools`-specific requirements strings, signifying the set of all
-mandatory runtime dependencies for `betse`.
+Set of all mandatory runtime dependencies for `betse`.
+
+For simplicity, such set is formatted as a list of `setuptools`-specific
+requirements strings.
 
 See Also
 ----------
@@ -128,6 +143,28 @@ if sys.hexversion < 0x03030000:
     )))
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: There appears to be no way to provide build-time dependencies to
+#setuptools. Nonetheless, there should be, so we preserve this for posterity.
+
+# DEPENDENCIES_INSTALL = [
+#     'setuptools >= 7.0',
+# ]
+# '''
+# Set of all mandatory install-time dependencies for `betse`.
+#
+# For simplicity, such set is formatted as a list of `setuptools`-specific
+# requirements strings.
+#
+# See Also
+# ----------
+# README.md
+#     Human-readable list of such dependencies.
+# '''
+
+# See "README.md" for human-readable versions of such dependency lists.
+# For simplicity, such set is formatted as a list of `setuptools`-specific
+# requirements strings.
+
     #FUXME: Reenable after installation.
 # COMMAND_NAME_PREFIX = NAME.lower()
 # '''

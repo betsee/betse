@@ -7,6 +7,8 @@
 `betse`-specific exception hierarchy.
 '''
 
+#FIXME: Shift this module to the top-level "betse" package.
+
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 
@@ -20,6 +22,12 @@ class BetseException(Exception, metaclass = ABCMeta):
 class BetseExceptionLog(BetseException):
     '''
     Log-specific exception.
+    '''
+    pass
+
+class BetseExceptionModule(BetseException):
+    '''
+    Module-specific exception.
     '''
     pass
 

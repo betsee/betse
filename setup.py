@@ -5,15 +5,6 @@
 
 '''`betse`'s `setuptools`-based makefile.'''
 
-#FIXME: Define a new "symlink" setuptools command, strongly inspired by the
-#IPython command of the same name. See:
-#    https://github.com/ipython/ipython/blob/master/setupbase.py
-#    https://github.com/ipython/ipython/blob/master/setup.py
-#To support such cruft, we probably want a new setuptools-specific package tree
-#(e.g., a new top-level directory "setup" containing at least files
-#"__init__.py" and "symlink.py", the latter implementing the "symlink" and
-#"unsymlink" commands).
-
 #FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
 #following URL, which appears to be the only online reference to such practice.
 #We could leverage such logic by defining a new "setup_pyside.py" file in the
@@ -66,8 +57,10 @@ setup_options = {
     'description': DESCRIPTION,
     'author': AUTHORS,
     'author_email': 'alexis.pietak@gmail.com',
+    'url': 'http://www.mindshines.com',
 
     # PyPi-specific metadata.
+    'keywords': 'science research visualization',
     'classifiers': [
         'Intended Audience :: Science/Research',
         'Operating System :: OS Independent',
@@ -124,7 +117,7 @@ setup_options = {
 
     # ..................{ DEPENDENCY                         }..................
     # Runtime dependencies. See "README.md".
-    'install_requires': REQUIREMENTS,
+    'install_requires': DEPENDENCIES_RUNTIME,
 
     # Unit test-specific dependencies. While such tests should also be runnable
     # under "py.test", "py.test" does *NOT* provide out-of-the-box support for

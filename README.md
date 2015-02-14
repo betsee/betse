@@ -17,6 +17,7 @@ manually via the package manager specific to your current operating system:
 * PySide >= 1.1.0.
 * PyYaml >= 3.10.
 * SciPy >= 0.12.0.
+* Voluptuous >= 0.8.7.
 * setuptools >= 7.0.
 
 `betse` also requires the following pure-Python packages – which Python-specific

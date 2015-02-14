@@ -115,23 +115,26 @@ class CLICLI(CLI):
         #
         # Such subparser will be preconfigured to parse options `-c` and
         # `--config-file`, specifying such simulation's configuration file.
-        self._arg_parser_sim = self._arg_subparsers_main.add_parser(
+        self._arg_parser_sim = self._arg_subparsers.add_parser(
             name = 'sim',
             help = 'run tissue simulation subcommand(s)',
             description = (
-                'Run all passed tissue simulation subcommand(s) '
+                'Run the passed tissue simulation subcommand(s) '
                 'configured by the passed configuration file. For example, '
                 'to initialize, run, and plot a tissue simulation '
-                'configured by a file "config.yaml" '
+                'configured by a file "my_sim.yaml" '
                 'in the current directory:\n\n'
-                '    {script_basename} sim init run plot sim_config.yaml\n\n'
+                '    {script_basename} sim init run plot my_sim.yaml\n\n'
                 'Valid subcommands include:\n\n'
                 'cfg\n-----------\n'
-                'Write a default configuration to the passed output file. '
-                'Such configuration will instruct '
-                'other tissue simulation subcommands (e.g., "run", "plot") '
-                'to save simulation results and plots '
-                'in the current directory.\n\n'
+                'Write a default tissue simulation configuration to '
+                'the passed output YAML file. '
+                'The filename should typically be suffixed by ".yaml", '
+                'the filetype for YAML files. '
+                'For portability, the resulting configuration will save '
+                'simulation results and plots '
+                'to the same directory containing this YAML file. '
+                'You are welcome to modify this file at any time.\n\n'
                 'init\n-----------\n'
                 'Initialize the tissue simulation '
                 'configured by the passed input configuration file. '
@@ -242,6 +245,9 @@ class CLICLI(CLI):
         self._args.sim_config_filename
 
 # --------------------( WASTELANDS                         )--------------------
+                # 'will instruct '
+                # 'other tissue simulation subcommands (e.g., "run", "plot") '
+                # 'to the current directory.\n\n'
 # from argparse import ArgumentParser, _SubParsersAction
                     # 'Run "{} sim --help" for a list of supported'
     # def _configure_arg_parsing_simulation(

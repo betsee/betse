@@ -5,13 +5,19 @@
 
 '''Abstract command line interface (CLI).'''
 
+#FIXME: Can PyInstaller be made to embed setuptools-specific eggs in the
+#executable binaries it produces? If not, we'll probably want to avoid even
+#calling die_unless_satisfied_all(), as such function is a noop unless such eggs
+#are available at runtime.
+
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from betse import dependencies, metadata
+from betse import metadata
 from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
 from betse.util.path import dirs
+from betse.util.python import dependencies
 from betse.util.system import processes
 from io import StringIO
 import traceback, sys
