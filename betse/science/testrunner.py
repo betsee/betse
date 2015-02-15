@@ -85,23 +85,29 @@ class SimRunner(object):
         neigh = cells.cell_nn[0][1]
         print('neighbour=',neigh)
 
+        plotcell =24
+
         if p.ions_dict['Ca']==1:
 
-            figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,neigh,fig=None,
+            figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plotcell,fig=None,
                  ax=None,lncolor='g',ionname='Ca2+ cell')
             axC.set_title("Calcium in Cell")
             plt.show(block=False)
 
             if p.Ca_dyn ==1:
 
-                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,neigh,fig=None,
+                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,plotcell,fig=None,
                      ax=None,lncolor='b',ionname='Ca2+ ER')
                 axD.set_title("Calcium in ER")
                 plt.show(block=False)
 
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,neigh,fig=None,ax=None,lncolor='b')
+        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plotcell,fig=None,ax=None,lncolor='b')
         plt.show(block=False)
 
+        figIP3, axIP3 = viz.plotSingleCellData(sim.time,sim.cIP3_time,plotcell,lab='cIP3 mol/m3')
+        plt.show(block=False)
+
+        viz.AnimateCellData(cells,sim.cIP3_time,sim.time,p,ani_repeat=True, number_cells=True)
 
         viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
         #viz.AnimateCellData(cells,sim.active_K_time,sim.time,p, save=False,ani_repeat=True)

@@ -27,8 +27,8 @@ class Parameters(object):
         if self.time_profile == 'simulate':
 
             self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 30.0         # world time to end the simulation
-            self.resamp = 1e-1         # time to resample in world time
+            self.sim_end = 80.0         # world time to end the simulation
+            self.resamp = 1.0         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
@@ -37,7 +37,7 @@ class Parameters(object):
         elif self.time_profile == 'initialize':
 
             self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.init_end = 0.5*60      # world time to end the initialization simulation time [s]
+            self.init_end = 10*60      # world time to end the initialization simulation time [s]
             self.resamp = 1.0         # time to resample in world time
 
             self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
@@ -48,13 +48,13 @@ class Parameters(object):
         self.cache_path = os.path.expanduser("~/.betse/cache/basicInit/")  # world, inits, and sims are saved and read to/from this directory.
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
-        self.ion_profile = 'animal'
+        self.ion_profile = 'basic_Ca'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
         self.Ca_dyn = 1
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = 1
+        self.HKATPase_dyn = 0
 
         # Default colormap
         self.default_cm = cm.coolwarm
@@ -81,7 +81,7 @@ class Parameters(object):
 
         # gap junction constants
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gj_radius = 0.5e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
         self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
         self.gj_vthresh = 60e-3              # cell-cell voltage threshhold at which gj close [V]
         self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
@@ -110,47 +110,51 @@ class Parameters(object):
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'CaATP_block':[5,25,1],'CaER_block':0,
-            'Dm_er':0,'IP3':0}
+            'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'CaATP_block':0,'CaER_block':0,
+            'Dm_er':0,'IP3':[2,3,0.1,1e-3]}
         # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = 'none'
+        self.gated_targets = 'all'
         # self.vg_options specifications list for voltage gated ion channel options:
         vgNa = [1.0e-15,-50e-3,10e-3,-55e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
         vgK = [1.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
-        vgCa = [1.0e-15,-40e-3,10e-3,1.0e-3,1.0e-4]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
+        vgCa = [1.0e-15,-40e-3,10e-3,0.75e-3,3.0e-5]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
+        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':cagK}
 
         self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
 
-        cicr = [1.0e-15]   # max Ca2+ diffusion constant through ER membrane
-        self.Ca_dyn_options = {'CICR':0}
+        cicr = [2.0e-14]   # max Ca2+ diffusion constant through ER membrane [max membrane, Ca on, Ca change, Ca off]
+        ip3 = [2.0e-14,70e-6,3]   # max Ca2+ diffusion constant through ER membrane, IP3 half-max, Hill coefficient
+        self.Ca_dyn_options = {'CICR':0, 'IP3':ip3}
 
 
         # default membrane diffusion constants
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = 15.0e-18      # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
+        self.Dm_K = 5.0e-18      # membrane diffusion constant potassium [m2/s]
+        self.Dm_Cl = 1.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
         self.Dm_H = 1.0e-16      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]
 
-        # default free diffusion constants
-        self.Do_Na = 1.33e-9      # free diffusion constant sodium [m2/s]
-        self.Do_K = 1.96e-9      # free diffusion constant potassium [m2/s]
-        self.Do_Cl = 2.03e-9     # free diffusion constant chloride [m2/s]
-        self.Do_Ca = 1.0e-9     # free diffusion constant calcium [m2/s]
-        self.Do_H = 2.5e-9      # free diffusion constant hydrogen [m2/s]
-        self.Do_M = 1.0e-9     # free diffusion constant mystery anchor ion [m2/s]
+        # default free diffusion constants (cytoplasmic)
+        self.Do_Na = 1.33e-10      # free diffusion constant sodium [m2/s]
+        self.Do_K = 1.96e-10      # free diffusion constant potassium [m2/s]
+        self.Do_Cl = 2.03e-10     # free diffusion constant chloride [m2/s]
+        self.Do_Ca = 1.5e-11     # free diffusion constant calcium [m2/s]
+        self.Do_H = 2.5e-10      # free diffusion constant hydrogen [m2/s]
+        self.Do_M = 1.0e-10     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
+
+        self.Do_IP3 = 1e-7    # IP3 free diffusion constant [m2/s]
+        self.z_IP3 = -3        # charge valence of IP3
 
         # ........................Rarely changed constants and calculations.............................................
         # partial pressure dissolved CO2

@@ -24,7 +24,7 @@ class AnimateCellData(object):
 
     """
 
-    def __init__(self,cells,zdata_t,time,p,colormap=p.default_cm, save=False,ani_repeat=False):
+    def __init__(self,cells,zdata_t,time,p,colormap=p.default_cm, save=False,ani_repeat=False,number_cells = False):
 
         self.zdata_t = zdata_t
         self.colormap = colormap
@@ -48,6 +48,10 @@ class AnimateCellData(object):
 
         self.ax.add_collection(self.collection)
 
+        if number_cells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                self.ax.text(p.um*cll[0],p.um*cll[1],i)
+
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
 
@@ -57,6 +61,8 @@ class AnimateCellData(object):
 
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=66, repeat=ani_repeat)
+
+
 
         if save == True:
             # Encode such animation to disk. Naturally, this requires external
@@ -98,7 +104,7 @@ class AnimateGJData(object):
     Animate the gap junction open state as a function of time.
     """
 
-    def __init__(self,cells,sim,p,colormap=p.default_cm, save=False,ani_repeat=False):
+    def __init__(self,cells,sim,p,colormap=p.default_cm, save=False,ani_repeat=False,number_cells=False):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
@@ -135,6 +141,10 @@ class AnimateGJData(object):
 
         self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
             vx,vy,self.zdata_t[0],zorder=10, cmap=cm.bone_r,clim=[0,1])
+
+        if number_cells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                self.ax.text(p.um*cll[0],p.um*cll[1],i)
 
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
@@ -314,6 +324,30 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
 
     return fig, ax
 
+
+def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
+
+    data_cell = [arr[celli] for arr in simdata_time]
+
+    if fig==None:
+        fig = plt.figure()# define the figure and axes instances
+    if ax == None:
+        ax = plt.subplot(111)
+
+    xmin = simtime[0]
+    xmax = simtime[-1]
+    ymin = np.min(data_cell)
+    ymax = np.max(data_cell)
+
+
+
+    ax.plot(simtime, data_cell,lncolor,label=lab)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel(lab)
+    # ax.axis([xmin,xmax,ymin,ymax])
+
+
+    return fig, ax
 
 def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
         """

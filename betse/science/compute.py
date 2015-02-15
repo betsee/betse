@@ -5,12 +5,10 @@
 
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
 # FIXME would be nice to have a time estimate for the simulation
-# FIXME Initialization function of Dmems, gjs, ect for simulation
-# FIXME combine effects of scheduling and dynamic gating into one function so effects can overlap.
-# FIXME Calcium dynamics
 # FIXME ECM diffusion and discrete membrane domains?
  # FIXME would be nice to track ATP use
  # FIXME use carbonate buffer for propper H+ handling!
+ # FIXME IP3 movements suggest problem with electrofusion equation or gap junction implementation -- opposite charge
 
 import numpy as np
 import os, os.path
@@ -356,6 +354,8 @@ class Simulator(object):
 
         self.gj_block = np.ones(len(cells.gj_i))   # initialize the gap junction blocking vector to ones
 
+        self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
+
         if p.vg_options['Na_vg'] != 0:
 
             # Initialization of logic values for voltage gated sodium channel
@@ -632,8 +632,10 @@ class Simulator(object):
         self.fNa_NaK_time = []
         self.cc_er_time = []
 
+        self.cIP3_time = []
+
         # gap junction specific arrays:
-        self.id_gj = np.ones(len(cells.gj_i))
+        self.id_gj = np.ones(len(cells.gj_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
         self.gjl[:] = p.gjl
@@ -746,6 +748,15 @@ class Simulator(object):
                 self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
                 # self.cc_cells[i] = check_c(self.cc_cells[i])
+            # determine flux through gap junctions for IP3:
+            _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
+                self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+                cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,vgj,self.T,p)
+
+            # update cell concentration due to gap junction flux:
+            #mole_delta = (fgj*p.dt)
+
+            self.cIP3 = (self.cIP3*cells.cell_vol + np.dot((fIP3*p.dt), cells.gjMatrix))/cells.cell_vol
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
@@ -766,6 +777,8 @@ class Simulator(object):
                 self.vgj_time.append(vgjj)
                 self.dvm_time.append(dvmm)
                 self.fNa_NaK_time.append(fNa)
+                ccIP3 = copy.deepcopy(self.cIP3)
+                self.cIP3_time.append(ccIP3)
 
                 if p.vg_options['Na_vg'] != 0:
                     aNa = copy.deepcopy(self.active_Na)
@@ -993,6 +1006,16 @@ class Simulator(object):
 
             self.Dm_er_scheduled[self.iCa][self.scheduled_target_inds] = effector_Dmer*mem_mult_er*p.Dm_Ca
 
+        if p.scheduled_options['IP3'] != 0:
+
+            t_onIP3 = p.scheduled_options['IP3'][0]
+            t_offIP3 = p.scheduled_options['IP3'][1]
+            t_changeIP3 = p.scheduled_options['IP3'][2]
+            rate_IP3 = p.scheduled_options['IP3'][3]
+
+            self.cIP3[self.scheduled_target_inds] = self.cIP3[self.scheduled_target_inds] + rate_IP3*pulse(t,t_onIP3,
+                t_offIP3,t_changeIP3)
+
         # Voltage gated channel effects ................................................................................
 
         dvsign = np.sign(self.dvm)
@@ -1141,11 +1164,21 @@ class Simulator(object):
         # finally, add together all effects to make change on the cell membrane permeabilities:
         self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_cag + self.Dm_base
 
+        # Calcium Dynamics options including Calicum-Induced-Calcium-Release (CICR) and IP3 mediated calcium release....
+
         if p.ions_dict['Ca'] ==1 and p.Ca_dyn == 1:
 
             if p.Ca_dyn_options['CICR'] != 0:
-                    #self.Dm_er[self.iCa] = self.maxDmCaER*pulse(self.cc_cells[self.iCa],2.0e-4,6.0e-4,4e-4) + self.Dm_base[self.iCa]
-                    self.Dm_er_CICR[self.iCa] = self.maxDmCaER*step(self.cc_cells[self.iCa],6.0e-5,1e-5)
+                    #self.Dm_er_CICR[self.iCa] = self.maxDmCaER*pulse(self.cc_cells[self.iCa],5.0e-5,1.5e-3,1e-5)
+                    #self.Dm_er_CICR[self.iCa] = self.maxDmCaER*step(self.cc_cells[self.iCa],5.0e-5,1e-5)
+                    self.Dm_er_CICR[self.iCa] = self.maxDmCaER*(np.exp(-((self.cc_cells[self.iCa]-400e-6)**2)/((2*60e-6)**2)))
+
+            if p.Ca_dyn_options['IP3'] != 0:
+                    maxDmCaER_IP3 = p.Ca_dyn_options['IP3'][0]
+                    cIP3_halfmax = p.Ca_dyn_options['IP3'][1]
+                    IP3n = p.Ca_dyn_options['IP3'][2]
+
+                    self.Dm_er_CICR[self.iCa] = maxDmCaER_IP3*hill(self.cIP3,cIP3_halfmax,IP3n)
 
             self.Dm_er[self.iCa] = self.Dm_er_scheduled[self.iCa] + self.Dm_er_CICR[self.iCa] + self.Dm_base[self.iCa]
 
@@ -1658,7 +1691,7 @@ def hill(x,K,n):
     y            Numpy array or float of values
 
     """
-    assert x.all() > 0
+    # assert x.all() > 0
 
     y = x**n/((K**n)+(x**n))
 
