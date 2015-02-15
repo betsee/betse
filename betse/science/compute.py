@@ -100,6 +100,8 @@ class Simulator(object):
         self.movingIons = []            # moving ions indices
         self.ionlabel = {}              # dictionary to hold ion label names
 
+        self.T = p.T                # set the base temperature for the simulation
+
         i = -1                           # an index to track place in ion list
 
         # Initialize cellular concentrations of ions:
@@ -307,7 +309,6 @@ class Simulator(object):
         self.envV = np.zeros(len(cells.cell_i))
         self.envV[:] = p.vol_env
 
-
         flx = np.zeros(len(cells.gj_i))
         self.fluxes_gj = [flx,flx,flx,flx,flx,flx,flx]   # stores gj fluxes for each ion
         self.gjopen_time = []   # stores gj open fraction at each time
@@ -319,6 +320,11 @@ class Simulator(object):
 
         self.vm_to = np.zeros(len(cells.cell_i))
         self.v_er = np.zeros(len(cells.cell_i))
+
+        self.NaKATP_block = np.ones(len(cells.cell_i))  # initialize NaKATP blocking vector
+        self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
+        self.CaATP_block = np.ones(len(cells.cell_i))  # initialize CaATP (plasm membrane) blocking vector
+        self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
 
         print('Ions in this simulation:', self.ionlabel)
 
@@ -347,6 +353,8 @@ class Simulator(object):
 
         self.Dm_er_CICR = np.copy(Dm_cellsA)
         self.Dm_er_CICR[:] = 0
+
+        self.gj_block = np.ones(len(cells.gj_i))   # initialize the gap junction blocking vector to ones
 
         if p.vg_options['Na_vg'] != 0:
 
@@ -486,6 +494,7 @@ class Simulator(object):
 
         for t in tt:   # run through the loop
 
+
             # get the net, unbalanced charge in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
 
@@ -495,21 +504,25 @@ class Simulator(object):
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,p)
+                    cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
 
 
             # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
-            if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
+            if  p.ions_dict['Ca'] == 1:
 
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,
+                        self.T,p,self.CaATP_block)
 
-                self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
-                    pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,self.v_er,p)
+                if p.Ca_dyn ==1:
 
-                q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
-                v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-                self.v_er = v_er_o - self.vm
+                    self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
+                        pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
+                            self.v_er,self.T,p,self.CaER_block)
+
+                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                    v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+                    self.v_er = v_er_o - self.vm
 
 
             if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
@@ -517,7 +530,7 @@ class Simulator(object):
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
                 _,_,self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
                 pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,p)
+                    cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -530,13 +543,13 @@ class Simulator(object):
 
                 self.cc_env[i],self.cc_cells[i],fNa = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
-                        self.envV,cells.cell_vol,self.zs[i],self.vm,p)
+                        self.envV,cells.cell_vol,self.zs[i],self.vm,self.T,p)
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                     # electrodiffusion of ions between cell and endoplasmic reticulum
                     self.cc_cells[i],self.cc_er[i],_ = \
                     electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,p)
+                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,self.T,p)
 
                     q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -652,31 +665,36 @@ class Simulator(object):
             # calculate the voltage in the cell (which is also Vmem as environment is zero):
             self.vm = get_volt(q_cells,cells.cell_sa,p)
 
+            self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
+            self.vm_to = copy.deepcopy(self.vm)       # reassign the history-saving vm
+
+            # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
+            self.allDynamics(t,p)  # user-scheduled (forced) interventions
+
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,p)
+                    cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
 
             if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
 
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,p)
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,
+                        self.T,p,self.CaATP_block)
 
                 self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
-                    pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,self.v_er,p)
+                    pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
+                        self.v_er,self.T,p,self.CaER_block)
 
                 q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
                 v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
                 self.v_er = v_er_o - self.vm
 
             if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
-                # if HKATPse pump is desired, build up metabolic acid at a constant rate:
-                # self.cc_cells[self.iH] = self.cc_cells[self.iH] + 1e-9
-
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
                 _,_,self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
                 pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,p)
+                    cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
 
@@ -689,23 +707,16 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
-                self.vm_to = copy.deepcopy(self.vm)       # reassign the history-saving vm
-
-                # calculate the values of ion channel multipliers:
-
-                self.allDynamics(t,p)  # user-scheduled (forced) interventions
-
                 # electrodiffusion of ion between cell and extracellular matrix
                 self.cc_env[i],self.cc_cells[i],_ = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
-                        self.envV,cells.cell_vol,self.zs[i],self.vm,p)
+                        self.envV,cells.cell_vol,self.zs[i],self.vm,self.T,p)
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                     # electrodiffusion of ions between cell and endoplasmic reticulum
                     self.cc_cells[i],self.cc_er[i],_ = \
                     electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,p)
+                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,self.T,p)
 
                     q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -720,12 +731,12 @@ class Simulator(object):
                 vgj = vmB - vmA
 
                 # determine the open state of gap junctions:
-                self.gjopen = (1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2
+                self.gjopen = self.gj_block*((1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2)
 
                 # determine flux through gap junctions for this ion:
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
                     self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-                    cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,p)
+                    cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,self.T,p)
 
                 # update cell concentration due to gap junction flux:
                 #mole_delta = (fgj*p.dt)
@@ -803,8 +814,8 @@ class Simulator(object):
 
         molarity_cells = get_molarity(self.cc_time[-1],p)
         molarity_env = get_molarity(self.envcc_time[-1],p)
-        osmotic_cells = molarity_cells*p.R*p.T
-        osmotic_env = molarity_env*p.R*p.T
+        osmotic_cells = molarity_cells*p.R*self.T
+        osmotic_env = molarity_env*p.R*self.T
         pressure_cells = np.round((np.mean(osmotic_cells - osmotic_env)/1000),2)
         print('cell osmotic pressure',pressure_cells, ' kPa')
 
@@ -922,6 +933,55 @@ class Simulator(object):
 
             self.cc_env[self.iNa][:] = mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
+        if p.scheduled_options['T_change'] != 0:
+
+            tonT = p.scheduled_options['T_change'][0]
+            toffT = p.scheduled_options['T_change'][1]
+            trampT = p.scheduled_options['T_change'][2]
+            multT = p.scheduled_options['T_change'][3]
+            self.T = multT*pulse(t,tonT,toffT,trampT)*p.T + p.T
+
+        if p.scheduled_options['gj_block'] != 0:
+
+            tonGJ = p.scheduled_options['gj_block'][0]
+            toffGJ = p.scheduled_options['gj_block'][1]
+            trampGJ = p.scheduled_options['gj_block'][2]
+
+            self.gj_block = (1.0 - pulse(t,tonGJ,toffGJ,trampGJ))
+
+        if p.scheduled_options['NaKATP_block'] != 0:
+
+            tonNK = p.scheduled_options['NaKATP_block'][0]
+            toffNK = p.scheduled_options['NaKATP_block'][1]
+            trampNK = p.scheduled_options['NaKATP_block'][2]
+
+            self.NaKATP_block = (1.0 - pulse(t,tonNK,toffNK,trampNK))
+
+        if p.scheduled_options['HKATP_block'] != 0:
+
+            tonHK = p.scheduled_options['HKATP_block'][0]
+            toffHK = p.scheduled_options['HKATP_block'][1]
+            trampHK = p.scheduled_options['HKATP_block'][2]
+
+            self.HKATP_block = (1.0 - pulse(t,tonHK,toffHK,trampHK))
+
+        if p.scheduled_options['CaATP_block'] != 0:
+
+            tonCa = p.scheduled_options['CaATP_block'][0]
+            toffCa = p.scheduled_options['CaATP_block'][1]
+            trampCa = p.scheduled_options['CaATP_block'][2]
+
+            self.CaATP_block = (1.0 - pulse(t,tonCa,toffCa,trampCa))
+
+        if p.scheduled_options['CaER_block'] != 0:
+
+            tonCaER = p.scheduled_options['CaER_block'][0]
+            toffCaER = p.scheduled_options['CaER_block'][1]
+            trampCaER = p.scheduled_options['CaER_block'][2]
+
+            self.CaER_block = (1.0 - pulse(t,tonCaER,toffCaER,trampCaER))
+
+
         if p.scheduled_options['Dm_er'] != 0 and p.ions_dict['Ca'] == 1:
 
             t_on = p.scheduled_options['Dm_er'][0]
@@ -933,7 +993,7 @@ class Simulator(object):
 
             self.Dm_er_scheduled[self.iCa][self.scheduled_target_inds] = effector_Dmer*mem_mult_er*p.Dm_Ca
 
-        # Voltage gated channel effects
+        # Voltage gated channel effects ................................................................................
 
         dvsign = np.sign(self.dvm)
 
@@ -1154,7 +1214,7 @@ def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
 
     return cA2, cB2, flux
 
-def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
+def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p):
     """
     Returns updated concentrations for electro-diffusion between two
     connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
@@ -1188,7 +1248,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
 
     """
 
-    alpha = (zc*Vba*p.F)/(p.R*p.T)
+    alpha = (zc*Vba*p.F)/(p.R*T)
 
     #volab = (vola + volb)/2
     #qualityfactor = abs((Dc/d)*(sa/volab)*p.dt*alpha)   # quality factor should be <1.0 for stable simulations
@@ -1276,7 +1336,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,p):
 
     return cA2, cB2, flux
 
-def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
+def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,T,p,block):
 
     """
     Parameters
@@ -1300,13 +1360,14 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
     f_Na            Na+ flux (into cell +)
     f_K             K+ flux (into cell +)
     """
+    deltaGATP = 20*p.R*T
 
-    delG_Na = p.R*p.T*np.log(cNao/cNai) - p.F*Vm
-    delG_K = p.R*p.T*np.log(cKi/cKo) + p.F*Vm
-    delG_NaKATP = p.deltaGATP - (3*delG_Na + 2*delG_K)
+    delG_Na = p.R*T*np.log(cNao/cNai) - p.F*Vm
+    delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
+    delG_NaKATP = deltaGATP - (3*delG_Na + 2*delG_K)
     delG = (delG_NaKATP/1000)
 
-    alpha = p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
+    alpha = block*p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
 
     f_Na  = -alpha*cNai*cKo      #flux as [mol/s]
     f_K = -(2/3)*f_Na          # flux as [mol/s]
@@ -1342,7 +1403,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,p):
 
     return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
 
-def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
+def pumpCaATP(cCai,cCao,voli,volo,Vm,T,p,block):
 
     """
     Parameters
@@ -1362,11 +1423,13 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
     f_Ca            Ca2+ flux (into cell +)
     """
 
-    delG_Ca = p.R*p.T*np.log(cCao/cCai) - 2*p.F*Vm
-    delG_CaATP = p.deltaGATP - (delG_Ca)
+    deltaGATP = 20*p.R*T
+
+    delG_Ca = p.R*T*np.log(cCao/cCai) - 2*p.F*Vm
+    delG_CaATP = deltaGATP - (delG_Ca)
     delG = (delG_CaATP/1000)
 
-    alpha = p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+    alpha = block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
 
     f_Ca  = -alpha*(cCai)      #flux as [mol/s]
 
@@ -1395,13 +1458,15 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,p):
 
     return cCai2, cCao2, f_Ca
 
-def pumpCaER(cCai,cCao,voli,volo,Vm,p):
+def pumpCaER(cCai,cCao,voli,volo,Vm,T,p,block):
 
-    delG_Ca = p.R*p.T*np.log(cCai/cCao) + 2*p.F*Vm
-    delG_CaATP = p.deltaGATP - (delG_Ca)
+    deltaGATP = 20*p.R*T
+
+    delG_Ca = p.R*T*np.log(cCai/cCao) + 2*p.F*Vm
+    delG_CaATP = deltaGATP - (delG_Ca)
     delG = (delG_CaATP/1000)
 
-    alpha = p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+    alpha = block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
 
     f_Ca  = alpha*(cCao)      #flux as [mol/s]
 
@@ -1430,7 +1495,7 @@ def pumpCaER(cCai,cCao,voli,volo,Vm,p):
 
     return cCai2, cCao2, f_Ca
 
-def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,p):
+def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,T,p,block):
 
     """
     Parameters
@@ -1455,13 +1520,15 @@ def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,p):
     f_K             K+ flux (into cell +)
     """
 
-    delG_H = p.R*p.T*np.log(cHo/cHi) - p.F*Vm
-    delG_K = p.R*p.T*np.log(cKi/cKo) + p.F*Vm
+    deltaGATP = 20*p.R*T
 
-    delG_HKATP = p.deltaGATP - (delG_H + delG_K)
+    delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm
+    delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
+
+    delG_HKATP = deltaGATP - (delG_H + delG_K)
     delG = (delG_HKATP/1000)
 
-    alpha = p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
+    alpha = block*p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
 
     f_H  = -alpha*cHi*cKo      #flux as [mol/s]
     f_K = -f_H          # flux as [mol/s]

@@ -46,17 +46,24 @@ class SimRunner(object):
         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
         plt.show(block=False)
 
-        if p.Ca_dyn ==1:
+        if p.ions_dict['Ca'] ==1:
 
-            figCaER, axCaER = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,0,lncolor='b',ionname='Ca2+ ER')
-            axCaER.set_title('Ca2+ in the endoplasmic reticulum')
+            figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,0,fig=None,
+                 ax=None,lncolor='g',ionname='Ca2+ cell')
+            axA.set_title("Calcium in Cell")
             plt.show(block=False)
 
-            figVER, axVER  = viz.plotSingleCellVData(sim.v_er_time,sim.time,0,fig=None,ax=None,lncolor='b')
-            plt.show(block=False)
-            axVER.set_title('Membrane voltage in the endoplasmic reticulum')
-            plt.show(block=False)
+            if p.Ca_dyn == 1:
 
+                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,0,fig=None,
+                     ax=None,lncolor='b',ionname='Ca2+ cell')
+                axD.set_title("Calcium in ER")
+                plt.show(block=False)
+
+                figVER, axVER  = viz.plotSingleCellVData(sim.v_er_time,sim.time,0,fig=None,ax=None,lncolor='b')
+                plt.show(block=False)
+                axVER.set_title('Membrane voltage in the endoplasmic reticulum')
+                plt.show(block=False)
 
 
         plt.show()
@@ -78,17 +85,19 @@ class SimRunner(object):
         neigh = cells.cell_nn[0][1]
         print('neighbour=',neigh)
 
-        if p.Ca_dyn ==1:
+        if p.ions_dict['Ca']==1:
 
             figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,neigh,fig=None,
                  ax=None,lncolor='g',ionname='Ca2+ cell')
             axC.set_title("Calcium in Cell")
             plt.show(block=False)
 
-            figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,neigh,fig=None,
-                 ax=None,lncolor='b',ionname='Ca2+ cell')
-            axD.set_title("Calcium in ER")
-            plt.show(block=False)
+            if p.Ca_dyn ==1:
+
+                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,neigh,fig=None,
+                     ax=None,lncolor='b',ionname='Ca2+ ER')
+                axD.set_title("Calcium in ER")
+                plt.show(block=False)
 
         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,neigh,fig=None,ax=None,lncolor='b')
         plt.show(block=False)

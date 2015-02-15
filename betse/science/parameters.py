@@ -36,8 +36,8 @@ class Parameters(object):
 
         elif self.time_profile == 'initialize':
 
-            self.dt = 5e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.init_end = 10*60      # world time to end the initialization simulation time [s]
+            self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+            self.init_end = 0.5*60      # world time to end the initialization simulation time [s]
             self.resamp = 1.0         # time to resample in world time
 
             self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
@@ -51,10 +51,10 @@ class Parameters(object):
         self.ion_profile = 'animal'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 0
+        self.Ca_dyn = 1
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = 0
+        self.HKATPase_dyn = 1
 
         # Default colormap
         self.default_cm = cm.coolwarm
@@ -88,7 +88,7 @@ class Parameters(object):
 
         # Endoplasmic reticulum
         self.ER_vol = 0.1                  # volume of endoplasmic reticulum as a fraction of cell volume
-        self.ER_sa = 10                    # surface area of endoplasmic reticulum as a fraction of cell surface area
+        self.ER_sa = 0.1                    # surface area of endoplasmic reticulum as a fraction of cell surface area
 
         # pump parameters
         self.alpha_NaK = 5.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
@@ -110,7 +110,8 @@ class Parameters(object):
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'Dm_er':0,'IP3':0}
+            'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'CaATP_block':[5,25,1],'CaER_block':0,
+            'Dm_er':0,'IP3':0}
         # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         #...................................Voltage Gated Channels......................................................
@@ -127,7 +128,7 @@ class Parameters(object):
 
         self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
 
-        # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)
+        # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
 
         cicr = [1.0e-15]   # max Ca2+ diffusion constant through ER membrane
         self.Ca_dyn_options = {'CICR':0}
@@ -263,10 +264,10 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 17.0
-            self.cK_cell = 131.0
+            self.cNa_cell = 5.4
+            self.cK_cell = 140.44
             self.cCl_cell = 6.0
-            self.cCa_cell = 1.0e-6
+            self.cCa_cell = 1.0e-3
             self.cH_cell = 6.31e-5
             self.cP_cell = 138.0
 
@@ -275,10 +276,10 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cNa_er = 17.0
-            self.cK_er = 131.0
+            self.cNa_er = 5.4
+            self.cK_er = 140.44
             self.cCl_er = 6.0
-            self.cCa_er = 1.0e-6
+            self.cCa_er = 1.0e-3
             self.cH_er = 6.31e-5
             self.cP_er = 138.0
 
