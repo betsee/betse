@@ -6,6 +6,7 @@
 '''`betse`'s command line interface (CLI).'''
 
 # ....................{ IMPORTS                            }....................
+from argparse import ArgumentParser
 from betse import metadata
 from betse.cli.cli import CLI
 from betse.util.path import files
@@ -61,7 +62,7 @@ class CLICLI(CLI):
         # ................{ SUBPARSER ~ sim                    }................
         #FIXME: Implement me.
 
-        self._arg_subparsers.add_parser(
+        self._add_subparser(
             name = 'try',
             help = 'run a sample tissue simulation',
             description = (
@@ -71,15 +72,18 @@ class CLICLI(CLI):
                 'configured by such file. '
                 'This convenience command is equivalent to the following:\n\n'
                 '    {} sim cfg init run plot sim_config.yaml\n\n'
-            ).format(self._script_basename)
+            ).format(self._script_basename),
         )
-        self._configure_arg_parsing_simulation()
+        self._configure_arg_parsing_sim()
 
         # ................{ SUBPARSER ~ info                   }................
-        self._arg_subparsers.add_parser(
+        self._add_subparser(
             name = 'info',
             help = 'print program metadata',
             description = 'Print program metadata in key-value format.',
+
+            # Pass preinitialized keyword arguments.
+            **self._arg_parser_kwargs
         )
 
     def _run(self) -> None:
@@ -105,8 +109,20 @@ class CLICLI(CLI):
         # Run such subcommand.
         subcommand_method()
 
-    # ..................{ PRIVATE ~ subparser : configure    }..................
-    def _configure_arg_parsing_simulation(self):
+    # ..................{ SUBPARSERS                         }..................
+    def _add_subparser(self, *args, **kwargs) -> ArgumentParser:
+        '''
+        Add and return a top-level command-line argument subparser, initialized
+        with the passed positional and keyword arguments.
+        '''
+        # Extend the passed dictionary of keyword arguments with the dictionary
+        # of preinitialized keyword arguments.
+        kwargs.update(self._arg_parser_kwargs)
+
+        # Add such subparser.
+        return self._arg_subparsers.add_parser(*args, **kwargs)
+
+    def _configure_arg_parsing_sim(self):
         '''
         Configure argument parsing for the `sim` subcommand.
         '''
@@ -115,37 +131,36 @@ class CLICLI(CLI):
         #
         # Such subparser will be preconfigured to parse options `-c` and
         # `--config-file`, specifying such simulation's configuration file.
-        self._arg_parser_sim = self._arg_subparsers.add_parser(
+        self._arg_parser_sim = self._add_subparser(
             name = 'sim',
             help = 'run tissue simulation subcommand(s)',
 
-            #FIXME: Ugh. "\n" escapes are ignored in descriptions, so we'll need
-            #to manually embed newlines. Hmm. Would even that work? It might be
-            #that argparse squelches *ALL* newlines in descriptions. Google up.
-
+            #FIXME: Convert to a '''-style string.
             description = (
                 'Run the passed tissue simulation subcommand(s) '
                 'configured by the passed configuration file. For example, '
                 'to initialize, run, and plot a tissue simulation '
                 'configured by a file "my_sim.yaml" '
                 'in the current directory:\n\n'
-                '    {script_basename} sim init run plot my_sim.yaml\n\n'
+                ':    {script_basename} sim init run plot my_sim.yaml\n\n'
                 'Valid subcommands include:\n\n'
-                'cfg\n-----------\n'
+                'cfg\n'
+                ' ----------\n'
                 'Write a default tissue simulation configuration to '
-                'the passed output YAML file. '
-                'The filename should typically be suffixed by ".yaml", '
-                'the filetype for YAML files. '
-                'For portability, the resulting configuration will save '
+                'the passed output file, '
+                'whose filename should (ideally) be suffixed by ".yaml". '
+                'For portability, this configuration will save '
                 'simulation results and plots '
-                'to the same directory containing this YAML file. '
+                'to the directory in which this file resides. '
                 'You are welcome to modify this file at any time.\n\n'
-                'init\n-----------\n'
+                'init\n'
+                ' ----------\n'
                 'Initialize the tissue simulation '
                 'configured by the passed input configuration file. '
                 'Initialization results will be saved to the output file '
                 'configured in such configuration.\n\n'
-                'run\n-----------\n'
+                'run\n'
+                ' ----------\n'
                 'Run the previously initialized tissue simulation '
                 'configured by the passed input configuration file. '
                 'Simulation results will be saved to the output file '
@@ -154,7 +169,8 @@ class CLICLI(CLI):
                 'will be loaded from the input file '
                 'configured in such configuration. '
                 'If such file does not exist, an error is raised.\n\n'
-                'plot\n-----------\n'
+                'plot\n '
+                ' ----------\n'
                 'Plot the previously run tissue simulation '
                 'configured by the passed input configuration file. '
                 'Plot results will be saved to the output files '
@@ -179,7 +195,7 @@ class CLICLI(CLI):
             help = 'simulation configuration file',
         )
 
-    # ..................{ SUBCOMMAND ~ info                  }..................
+    # ..................{ SUBCOMMANDS ~ info                 }..................
     def _run_info(self) -> None:
         '''
         Run the `info` subcommand.
@@ -206,7 +222,7 @@ class CLICLI(CLI):
         # cliest-side bug reporting.
         self._logger.info(info_output)
 
-    # ..................{ SUBCOMMAND ~ sim                   }..................
+    # ..................{ SUBCOMMANDS ~ sim                  }..................
     def _run_sim(self) -> None:
         '''
         Run the `sim` subcommand.
@@ -250,6 +266,10 @@ class CLICLI(CLI):
         self._args.sim_config_filename
 
 # --------------------( WASTELANDS                         )--------------------
+            #FUXME: Ugh. "\n" escapes are ignored in descriptions, so we'll need
+            #to manually embed newlines. Hmm. Would even that work? It might be
+            #that argparse squelches *ALL* newlines in descriptions. Google up.
+
                 # 'will instruct '
                 # 'other tissue simulation subcommands (e.g., "run", "plot") '
                 # 'to the current directory.\n\n'

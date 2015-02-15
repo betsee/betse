@@ -12,13 +12,14 @@
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from betse import metadata
 from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
 from betse.util.path import dirs
 from betse.util.python import dependencies
 from betse.util.system import processes
+from betse.util.system.args import HelpFormatterParagraph
 from io import StringIO
 import traceback, sys
 
@@ -32,6 +33,11 @@ class CLI(metaclass = ABCMeta):
     ----------
     _arg_parser : ArgumentParser
         `argparse`-specific parser of command-line arguments.
+    _arg_parser_kwargs : dict
+        Dictionary of keyword arguments to initialize `ArgumentParser` objects
+        with. This dictionary is suitable for passing to both the
+        `ArgumentParser` constructor *and* the `add_parser()` method of
+        `ArgumentParser` objects.
     _args : argparse.Namespace
         `argparse`-specific object of all passed command-line arguments.
     _logger_config : LoggerConfig
@@ -49,6 +55,13 @@ class CLI(metaclass = ABCMeta):
         # Since the basename of the current process is *ALWAYS* available,
         # initialize such basename here for simplicity.
         self._script_basename = processes.get_current_basename()
+
+        # Initialize such keyword arguments.
+        self._arg_parser_kwargs = {
+            # Wrap non-indented lines in help and description text as paragraphs
+            # while preserving indented lines in such text as is.
+            'formatter_class': HelpFormatterParagraph,
+        }
 
         # Initialize such fields to None to avoid subtle issues elsewhere (e.g.,
         # attempting to access such logger within _print_exception()).
@@ -98,7 +111,7 @@ class CLI(metaclass = ABCMeta):
             # else, use the default such status.
             return getattr(exception, 'errno', 1)
 
-    # ..................{ PRIVATE                            }..................
+    # ..................{ LOGGING                            }..................
     def _configure_logging(self) -> None:
         '''
         Configure the root logger and obtain an application-wide child logger.
@@ -113,6 +126,7 @@ class CLI(metaclass = ABCMeta):
         # self._logger.info('INFO!')
         # self._logger.debug('DEBUG!')
 
+    # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
         '''
         Parse all currently passed command-line arguments.
@@ -136,8 +150,8 @@ class CLI(metaclass = ABCMeta):
             # Program description.
             description = metadata.DESCRIPTION,
 
-            # Print the default values of options in help output.
-            formatter_class = ArgumentDefaultsHelpFormatter,
+            # Pass preinitialized keyword arguments.
+            **self._arg_parser_kwargs
         )
 
         #FIXME: Enable the "--config" option. More work than we care to invest,
@@ -173,6 +187,7 @@ class CLI(metaclass = ABCMeta):
         if self._args.is_verbose:
             self._logger_config.stdout.setLevel(loggers.ALL)
 
+    # ..................{ EXCEPTIONS                         }..................
     def _print_exception(self, exception: Exception) -> None:
         '''
         Print the passed exception to standard error *and* log such exception.
@@ -286,6 +301,8 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+# from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+            # Print the default values of options in help output.
     # def _configure_arg_parsing(self, arg_parser: ArgumentParser):
     #     '''
     #     Configure subclass-specific argument parsing with the passed top-level

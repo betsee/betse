@@ -37,56 +37,51 @@ _TEMPLATE = '''
 # ----------
 # For portability, files and directories are configured below as relative rather
 # than absolute pathnames (e.g., as "sim_init.betse" rather than
-# "/Users/iamawesome/my_sim/sim_init.betse"). Relative pathnames instruct BETSE
-# to save simulation results and plots relative to the directory containing this
-# configuration file, permitting such directory to be moved elsewhere on the
-# filesystem without "breaking" this configuration.
+# "/Users/iamawesome/my_sim/sim_init.betse"). Such pathnames are relative to the
+# directory containing this file, allowing such directory to be safely moved
+# without breaking existing tissue simulations.
 #
 # YAML
 # ----------
-# As the "%YAML"-prefixed line above suggests, this file is formatted according
+# As the "%YAML"-prefixed line above implies, this file is formatted according
 # to the YAML ("[Y]AML [A]in't [M]arkup [L]anguage") standard. YAML is a human-
-# readable data serialization format appropriate for configuration files -- like
-# this one. For further details on YAML syntax and semantics, see:
-# https://en.wikipedia.org/wiki/YAML
+# readable data serialization format useful for configuration files -- like this
+# one. For details, see https://en.wikipedia.org/wiki/YAML.
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION
 # -----------------------------------------------------------------------------
-# The following settings configure simulation initialization.
+# Configure simulation initialization.
 init:
 
-  # Files output by simulation initialization.
+  # Files output by such initialization.
   file:
 
-    # Name of the file output by simulation initialization and subsequently
-    # read by simulation runs.
+    # File caching the results of such initialization.
     cache: sim_init.betse
 
 # -----------------------------------------------------------------------------
 # SIMULATION
 # -----------------------------------------------------------------------------
-# The following settings configure simulation runs.
+# Configure simulation runs.
 run:
 
-  # Files output by simulation runs.
+  # Files output by such runs.
   file:
 
-    # Name of the file output by simulation runs and subsequently read by
-    # simulation plotting.
+    # File caching the results of such runs.
     cache: sim_init.betse
 
 # -----------------------------------------------------------------------------
 # PLOTS
 # -----------------------------------------------------------------------------
-# The following settings configure simulation plotting.
+# Configure simulation plotting.
 plot:
 
   # Directories output by such plotting.
   dir:
 
-    # Name of the directory to which such plotting outputs media files (e.g.,
-    # images, animations).
+    # Directory saving plotted images and movies.
     media: sim_init.betse
 
 # -----------------------------------------------------------------------------
