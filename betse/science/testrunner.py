@@ -68,7 +68,7 @@ class SimRunner(object):
 
         plt.show()
 
-    def simulate(self, savePNG=False):
+    def simulate(self,savePNG=False):
 
         # COMMAND SEQUENCE #2: "runSim"  ...............................................................................
         # Run simulation from a previously saved initialization. FIXME: throw exception if init cache is empty.
@@ -78,7 +78,7 @@ class SimRunner(object):
         p.time_profile = 'simulate'  # enforce the time-profile to be simulate
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-        sim.runSim(cells,p,save=False)   # run and optionally save the simulation to the cache
+        sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
 
         print('The simulation took', round(time.time() - start_time,2), 'seconds to complete')
 
@@ -99,6 +99,11 @@ class SimRunner(object):
                 figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,plotcell,fig=None,
                      ax=None,lncolor='b',ionname='Ca2+ ER')
                 axD.set_title("Calcium in ER")
+                plt.show(block=False)
+
+                figVER, axVER  = viz.plotSingleCellVData(sim.v_er_time,sim.time,0,fig=None,ax=None,lncolor='b')
+                plt.show(block=False)
+                axVER.set_title('Membrane voltage in the endoplasmic reticulum')
                 plt.show(block=False)
 
         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plotcell,fig=None,ax=None,lncolor='b')
