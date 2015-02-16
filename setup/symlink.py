@@ -3,7 +3,9 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''`betse`-specific `symlink` command for `setuptools`.'''
+'''
+`betse`-specific `symlink` commands for `setuptools`.
+'''
 
 # ....................{ IMPORTS                            }....................
 from setup import error
@@ -16,11 +18,10 @@ import os
 # ....................{ COMMANDS                           }....................
 def add_commands(setup_options: dict) -> None:
     '''
-    Add symbolic link-specific commands to the passed dictionary of `setuptools`
-    options.
+    Add `symlink` commands to the passed dictionary of `setuptools` options.
     '''
     assert isinstance(setup_options, dict),\
-        '"{}" not a dict.'.format(setup_options)
+        '"{}" not a dictionary.'.format(setup_options)
 
     # For the name of each command class to be registered as a new command...
     for command_class_name in (
@@ -104,6 +105,10 @@ class symlink_lib(install_lib):
         Default undefined command-specific options to the options passed to the
         current parent command if any (e.g., `symlink`).
         '''
+        # Copy the "install_dir" attribute from the existing "install_lib"
+        # attribute of a temporarily instantiated "symlink" object.
+        #
+        # Welcome to setuptools hell.
         self.set_undefined_options(
             'symlink', ('install_lib', 'install_dir'))
 

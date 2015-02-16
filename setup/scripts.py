@@ -16,13 +16,13 @@ def add_commands(setup_options: dict) -> None:
     `setuptools` options.
     '''
     assert isinstance(setup_options, dict),\
-        '"{}" not a dict.'.format(setup_options)
+        '"{}" not a dictionary.'.format(setup_options)
 
-    # Replace the default "setuptools" class for writing scripts with the above.
-    easy_install.get_script_args = UnresourcefulScriptWriter.get_script_args
+    # Replace the default "setuptools" class for writing scripts with ours.
+    easy_install.get_script_args = ScriptWriterSimple.get_script_args
 
 # ....................{ WRITER                             }....................
-class UnresourcefulScriptWriter(ScriptWriter):
+class ScriptWriterSimple(ScriptWriter):
     '''
     Write Python script wrappers suitable for use with system-wide installations
     of Python packages (e.g., via the `betse`-specific `symlink` command).
@@ -73,16 +73,10 @@ if __name__ == '__main__':
             # For the basename and entry point of each script of such type...
             for script_basename, entry_point in\
                 dist.get_entry_map(script_group).items():
-                # Entry point module and function split from such entry point
-                # (e.g., "betse.cli.cli:main").
-                # entry_point_module, entry_point_func = entry_point.split(':')
-
                 # Script contents, formatted according to such template.
                 script_text = script_template.format(
                     entry_point_module = entry_point.module_name,
                     entry_point_func = entry_point.attrs[0],
-                    # entry_point_module = entry_point_module,
-                    # entry_point_func = entry_point_func,
                 )
 
                 # Yield a tuple containing such metadata to the caller.
@@ -91,6 +85,12 @@ if __name__ == '__main__':
                     yield res
 
 # --------------------( WASTELANDS                         )--------------------
+                # Entry point module and function split from such entry point
+                # (e.g., "betse.cli.cli:main").
+                # entry_point_module, entry_point_func = entry_point.split(':')
+                    # entry_point_module = entry_point_module,
+                    # entry_point_func = entry_point_func,
+
 # Since setuptools provides installation- but *NOT* build-specific commands,
 # defer to the latter provided by distutils.
 # from distutils.command.build_scripts import build_scripts
