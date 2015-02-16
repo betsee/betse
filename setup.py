@@ -43,7 +43,7 @@ with open('betse/metadata.py') as betse_metadata:
     exec(betse_metadata.read())
 
 # ....................{ IMPORTS                            }....................
-from setup import bundle, scripts, symlink
+from setup import freeze, scripts, symlink
 import setuptools
 
 # ....................{ OPTIONS                            }....................
@@ -138,7 +138,7 @@ defining custom commands).
 
 # ....................{ COMMANDS                           }....................
 # Define all BETSE-specific setuptools commands.
-for setup_module in (bundle, scripts, symlink):
+for setup_module in (freeze, scripts, symlink):
     setup_module.add_commands(setup_options)
 
 # ....................{ SETUP                              }....................

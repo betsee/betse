@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`-specific `bundle` commands for `setuptools`.
+`betse`-specific `freeze` commands for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -14,7 +14,7 @@ from setup.cmd import Command
 # ....................{ COMMANDS                           }....................
 def add_commands(setup_options: dict) -> None:
     '''
-    Add `bundle` commands to the passed dictionary of `setuptools` options.
+    Add `freeze` commands to the passed dictionary of `setuptools` options.
     '''
     assert isinstance(setup_options, dict),\
         '"{}" not a dictionary.'.format(setup_options)
@@ -43,9 +43,9 @@ def add_commands(setup_options: dict) -> None:
     #     command_class._setup_options = setup_options
 
 # ....................{ CLASSES                            }....................
-#FIXME: Also make a "bundle_dir" class.
+#FIXME: Also make a "freeze_dir" class.
 
-class bundle_file(Command):
+class freeze_file(Command):
     '''
     Create one platform-specific executable file in the top-level `dist`
     directory for each previously installed script.
