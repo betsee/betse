@@ -85,7 +85,7 @@ class SimRunner(object):
         neigh = cells.cell_nn[0][1]
         print('neighbour=',neigh)
 
-        plotcell =24
+        plotcell = 0
 
         if p.ions_dict['Ca']==1:
 

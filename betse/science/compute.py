@@ -324,6 +324,10 @@ class Simulator(object):
         self.CaATP_block = np.ones(len(cells.cell_i))  # initialize CaATP (plasm membrane) blocking vector
         self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
 
+        self.cc_er = np.asarray(self.cc_er)
+
+        self.cc_er_to = np.copy(self.cc_er)
+
         print('Ions in this simulation:', self.ionlabel)
 
     def tissueInit(self,cells,p):
@@ -344,6 +348,9 @@ class Simulator(object):
         # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
+
+        self.Dm_soce = np.copy(Dm_cellsA)
+        self.Dm_soce[:] = 0
 
         # Initialize array structures that hold endoplasmic reticulum related membrane changes:
         self.Dm_er_scheduled = np.copy(Dm_cellsA)
@@ -389,6 +396,8 @@ class Simulator(object):
             self.vgK_state = np.zeros(len(cells.cell_i))   # state can be 0 = off, 1 = open
             self.vgK_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
 
+
+
         if p.vg_options['Ca_vg'] !=0:
 
             # Initialization of logic values forr voltage gated potassium channel
@@ -414,6 +423,7 @@ class Simulator(object):
 
         if p.Ca_dyn_options['CICR'] != 0:
             self.maxDmCaER = p.Ca_dyn_options['CICR'][0]
+            self.stateER = np.zeros(len(cells.cell_i))   # state of ER membrane Ca permeability
 
         # Initialize target cell sets for dynamically gated channels from user options:
         if p.gated_targets == 'none':
@@ -670,6 +680,11 @@ class Simulator(object):
             self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
             self.vm_to = copy.deepcopy(self.vm)       # reassign the history-saving vm
 
+            if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
+
+                self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
+                self.cc_er_to = copy.deepcopy(self.cc_er)
+
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
             self.allDynamics(t,p)  # user-scheduled (forced) interventions
 
@@ -730,7 +745,7 @@ class Simulator(object):
 
                 # calculate volatge difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
-                vgj = vmB - vmA
+                vgj = vmB - vmA  
 
                 # determine the open state of gap junctions:
                 self.gjopen = self.gj_block*((1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2)
@@ -800,7 +815,7 @@ class Simulator(object):
             for zi, flx in zip(self.zs,tflux):
                 igj = igj+ zi*flx
 
-            igj = -p.F*igj
+            igj = p.F*igj
             self.Igj_time.append(igj)
 
         if save==True:
@@ -1169,18 +1184,70 @@ class Simulator(object):
         if p.ions_dict['Ca'] ==1 and p.Ca_dyn == 1:
 
             if p.Ca_dyn_options['CICR'] != 0:
+
+                # dccER = np.asarray(self.dcc_er)
+                dcc_CaER_sign = np.sign(self.dcc_ER[self.iCa])
+
+                topCa = 0.8
+                bottomCa = 0.75
+                maxDmCaER = 1.0e-15
+
+                truth_overHighCa = self.cc_er[self.iCa] > topCa
+                truth_increasingCa = dcc_CaER_sign == 1
+                truth_alreadyClosed = self.stateER == 0.0
+                inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
+
+
+                truth_underBottomCa = self.cc_er[self.iCa]<bottomCa
+                #truth_decreasingCa = dcc_CaER_sign == -1
+                truth_alreadyOpen = self.stateER == 1.0
+                inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
+
+                self.stateER[inds_open_ER] = 1.0
+                self.stateER[inds_close_ER] = 0.0
+
+                self.Dm_er_CICR[self.iCa] = maxDmCaER*self.stateER*hill(self.cIP3,70e-9,3.4)
+
+                #(np.exp(-((self.cc_cells[self.iCa]-400e-6)**2)/((2*80e-6)**2)))
+
+
                     #self.Dm_er_CICR[self.iCa] = self.maxDmCaER*pulse(self.cc_cells[self.iCa],5.0e-5,1.5e-3,1e-5)
                     #self.Dm_er_CICR[self.iCa] = self.maxDmCaER*step(self.cc_cells[self.iCa],5.0e-5,1e-5)
-                    self.Dm_er_CICR[self.iCa] = self.maxDmCaER*(np.exp(-((self.cc_cells[self.iCa]-400e-6)**2)/((2*60e-6)**2)))
+                    # self.Dm_er_CICR[self.iCa] = self.maxDmCaER*
+                # maxDmCaER = p.Ca_dyn_options['CICR'][0][0]
+                # ca_reg_midpoint = p.Ca_dyn_options['CICR'][0][1]
+                # ca_reg_width = p.Ca_dyn_options['CICR'][0][2]
+                # ip3_reg_halfmax = p.Ca_dyn_options['CICR'][1][0]
+                # ip3_reg_n = p.Ca_dyn_options['CICR'][1][1]
+                # ip3_store_halfmax = p.Ca_dyn_options['CICR'][2][0]
+                # ip3_store_n = p.Ca_dyn_options['CICR'][2][1]
+                # soce_maxDm = p.Ca_dyn_options['CICR'][3][0]
+                # soce_halfmax = p.Ca_dyn_options['CICR'][3][1]
+                # soce_n = p.Ca_dyn_options['CICR'][3][2]
+                #
+                # term_regCa = (np.exp(-((self.cc_cells[self.iCa]-ca_reg_midpoint)**2)/((2*ca_reg_width)**2)))
+                #
+                #
+                # term_regIP3 = hill(self.cIP3,ip3_reg_halfmax,ip3_reg_n)
+                # term_store_inhib = hill(self.cc_er[self.iCa],ip3_store_halfmax,ip3_store_n)
+                #
+                # self.Dm_er_CICR[self.iCa] = maxDmCaER*term_regCa*term_regIP3*term_store_inhib
+
+                #term_soce = 1 - hill(self.cc_er[self.iCa],soce_halfmax,soce_n)
+
+                #self.Dm_soce[self.iCa] = soce_maxDm*term_soce
 
             if p.Ca_dyn_options['IP3'] != 0:
-                    maxDmCaER_IP3 = p.Ca_dyn_options['IP3'][0]
-                    cIP3_halfmax = p.Ca_dyn_options['IP3'][1]
-                    IP3n = p.Ca_dyn_options['IP3'][2]
+                maxDmCaER_IP3 = p.Ca_dyn_options['IP3'][0]
+                cIP3_halfmax = p.Ca_dyn_options['IP3'][1]
+                IP3n = p.Ca_dyn_options['IP3'][2]
 
-                    self.Dm_er_CICR[self.iCa] = maxDmCaER_IP3*hill(self.cIP3,cIP3_halfmax,IP3n)
+                self.Dm_er_CICR[self.iCa] = maxDmCaER_IP3*hill(self.cIP3,cIP3_halfmax,IP3n)
 
             self.Dm_er[self.iCa] = self.Dm_er_scheduled[self.iCa] + self.Dm_er_CICR[self.iCa] + self.Dm_base[self.iCa]
+
+             # finally, add together all effects to make change on the cell membrane permeabilities:
+            #self.Dm_cells = self.Dm_cells + self.Dm_soce
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
@@ -1499,7 +1566,7 @@ def pumpCaER(cCai,cCao,voli,volo,Vm,T,p,block):
     delG_CaATP = deltaGATP - (delG_Ca)
     delG = (delG_CaATP/1000)
 
-    alpha = block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+    alpha = block*p.alpha_CaER*step(delG,p.halfmax_Ca,p.slope_Ca)
 
     f_Ca  = alpha*(cCao)      #flux as [mol/s]
 

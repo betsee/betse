@@ -26,9 +26,9 @@ class Parameters(object):
 
         if self.time_profile == 'simulate':
 
-            self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 80.0         # world time to end the simulation
-            self.resamp = 1.0         # time to resample in world time
+            self.dt = 1e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+            self.sim_end = 3*60         # world time to end the simulation
+            self.resamp = 0.5         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
@@ -45,7 +45,7 @@ class Parameters(object):
             self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
         # File saving
-        self.cache_path = os.path.expanduser("~/.betse/cache/basicInit/")  # world, inits, and sims are saved and read to/from this directory.
+        self.cache_path = os.path.expanduser("~/.betse/cache/baseInit/")  # world, inits, and sims are saved and read to/from this directory.
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = 'basic_Ca'
@@ -88,14 +88,15 @@ class Parameters(object):
 
         # Endoplasmic reticulum
         self.ER_vol = 0.1                  # volume of endoplasmic reticulum as a fraction of cell volume
-        self.ER_sa = 0.1                    # surface area of endoplasmic reticulum as a fraction of cell surface area
+        self.ER_sa = 1.0                    # surface area of endoplasmic reticulum as a fraction of cell surface area
 
         # pump parameters
         self.alpha_NaK = 5.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
 
-        self.alpha_Ca = 2.0e-15 # pump rate for calcium ATPase [m3/mols] 2.0e-15
+        self.alpha_Ca = 1.0e-15 # pump rate for calcium ATPase [m3/mols] 2.0e-15
+        self.alpha_CaER = 1.0e-14  # pump rate for ER calcium ATPase
         self.halfmax_Ca = 12
         self.slope_Ca = 24
 
@@ -111,7 +112,7 @@ class Parameters(object):
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
             'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'CaATP_block':0,'CaER_block':0,
-            'Dm_er':0,'IP3':[2,3,0.1,1e-3]}
+            'Dm_er':0,'IP3':[2,3,1,1e-3]}
         # self.scheduled_options = {'Na_mem':[0.01,0.03,0.01,100],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'H_mem':0,'K_env':0}
 
         #...................................Voltage Gated Channels......................................................
@@ -130,9 +131,13 @@ class Parameters(object):
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
 
-        cicr = [2.0e-14]   # max Ca2+ diffusion constant through ER membrane [max membrane, Ca on, Ca change, Ca off]
-        ip3 = [2.0e-14,70e-6,3]   # max Ca2+ diffusion constant through ER membrane, IP3 half-max, Hill coefficient
-        self.Ca_dyn_options = {'CICR':0, 'IP3':ip3}
+        ca_reg = [1.0e-14,400e-6,80e-6]   # max Ca2+ diffusion constant through ER membrane [max membrane, Ca mid, Ca width]
+        ip3_reg = [70e-6,3.4]   # max Ca2+ diffusion constant through ER membrane, IP3 half-max, Hill coefficient
+        ip3_ERstore = [0.05,3]      # [ER Ca2+ half max inhibition, Hill coefficient]
+        soce = [1.0e-15,0.001,3]     # store operated calcium influx from plasma membrane
+
+        cicr = [ca_reg,ip3_reg,ip3_ERstore,soce]
+        self.Ca_dyn_options = {'CICR':cicr, 'IP3':0}
 
 
         # default membrane diffusion constants
