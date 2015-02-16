@@ -3,6 +3,10 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: Contribute back to the community. Contemplate a stackoverflow answer.
+#(We believe we may have espied an unanswered question asking about query words
+#"pyinstaller setuptools integration". Huzzah!)
+
 '''
 `betse`-specific `freeze` commands for `setuptools`.
 '''
@@ -62,6 +66,11 @@ class freeze_file(Command):
       (Of course, that's not a file. So sue us.)
     * Under Windows, such files will be conventional ".exe"-suffixed binaries.
     '''
+
+    #FIXME: Does this actually work? If so, replicate to the other modules in
+    #this package as well.
+
+    description = 'freeze scripts to platform-specific executable binaries'
 
     def finalize_options(self):
         '''
