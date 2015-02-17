@@ -24,11 +24,22 @@ class AnimateCellData(object):
 
     """
 
-    def __init__(self,cells,zdata_t,time,p,colormap=p.default_cm, save=False,ani_repeat=False,number_cells = False):
+    def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', colormap=p.default_cm, save=False,ani_repeat=False,
+        number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
 
         self.zdata_t = zdata_t
         self.colormap = colormap
         self.time = time
+        self.save = save
+
+        self.cbtit = cbtit
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.cache_path + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
 
         # define a polygon collection based on individual cell polygons
         self.points = np.multiply(cells.cell_verts, p.um)
@@ -45,8 +56,11 @@ class AnimateCellData(object):
         self.collection.set_clim(self.cmin,self.cmax)
 
         self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
+        self.cb.set_label(self.cbtit)
 
         self.ax.add_collection(self.collection)
+
+        self.tit = tit
 
         if number_cells == True:
             for i,cll in enumerate(cells.cell_centres):
@@ -54,6 +68,7 @@ class AnimateCellData(object):
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_title(self.tit)
 
         self.ax.autoscale_view()
 
@@ -62,31 +77,6 @@ class AnimateCellData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=66, repeat=ani_repeat)
 
-
-
-        if save == True:
-            # Encode such animation to disk. Naturally, this requires external
-            # dependencies (e.g., "ffmpeg"). Unfortunately, the save() method
-            # only prints non-fatal warnings rather than raising fatal
-            # exceptions when such dependencies are not installed. We correct
-            # this by temporarily converting warnings to exceptions for the
-            # duration of such call. See also:
-            #     https://docs.python.org/3/library/warnings.html
-            with warnings.catch_warnings():
-                warnings.simplefilter('error')
-
-                #FIXME: Ideally, save() should detect which of ffmpeg and avconv
-                #is installed and enable the appropriate writer. Unfortunately,
-                #it currently requires we manually specify such backend as below.
-                #This is bad, as Sess uses ffmpeg whereas Ally uses avconv (due
-                #to differences between Linux distributions). Correct this by
-                #manually detecting which of the two (if any) is in the current
-                #$PATH and enabling the appropriate writer. Annoying, but trivial.
-
-                ani.save('basic_animation.mp4', writer='avconv')
-
-            print('Animation saved to file.')
-
         plt.show()
 
 
@@ -95,8 +85,13 @@ class AnimateCellData(object):
         zz = self.zdata_t[i]
 
         self.collection.set_array(zz)
-        tit = 'Simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's'
-        self.ax.set_title(tit)
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i)
+            plt.savefig(savename,dpi=96,format='png')
 
 
 class AnimateGJData(object):
@@ -104,7 +99,8 @@ class AnimateGJData(object):
     Animate the gap junction open state as a function of time.
     """
 
-    def __init__(self,cells,sim,p,colormap=p.default_cm, save=False,ani_repeat=False,number_cells=False):
+    def __init__(self,cells,sim,p,tit=' ', colormap=p.default_cm, save=False,saveFolder = '/animation',
+        saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
@@ -116,6 +112,17 @@ class AnimateGJData(object):
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
+
+        self.tit = tit
+
+        self.save = save
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.cache_path + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
 
         con_segs = cells.cell_centres[cells.gap_jun_i]
         connects = p.um*np.asarray(con_segs)
@@ -149,6 +156,7 @@ class AnimateGJData(object):
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_title(self.tit)
 
         self.ax.autoscale_view()
 
@@ -157,15 +165,9 @@ class AnimateGJData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
                frames=self.frames, interval=100, repeat=ani_repeat)
 
-        if save == True:
-
-            ani.save('basic_animation.mp4')
-            print('Animation saved to file.')
-
         plt.show()
 
 
-
     def aniFunc(self,i):
 
         zz = self.zdata_t[i]
@@ -178,105 +180,13 @@ class AnimateGJData(object):
         self.coll2.set_array(zv)
         self.Qplot.set_UVC(vx,vy,zz)
 
+        titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
+        self.ax.set_title(titani)
 
-        # self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-        #     vx,vy,zz,zorder=10, cmap=cm.bone_r,clim=[0,1])
-
-        tit = 'Simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's'
-        self.ax.set_title(tit)
-
-class Animate2PNG(object):
-
-    """
-    Animate the gap junction open state as a function of time.
-    """
-
-    def __init__(self,cells,sim,p,colormap=p.default_cm):
-
-
-        # Make the BETSE-specific cache directory if not found.
-        images_path = p.cache_path + '/animation'
-        betse_cache_dir = os.path.expanduser(images_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
-        self.savedAni = os.path.join(betse_cache_dir, 'sim_ani.png')
-
-        # Define data paths for saving an initialization and simulation run:
-        self.savedInit = os.path.join(betse_cache_dir, 'saved_init.pickle')
-        self.savedSim = os.path.join(betse_cache_dir, 'saved_sim.pickle')
-
-        self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
-        self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
-        self.colormap = colormap
-        self.time = sim.time
-
-        self.gjI_t = np.sign(sim.Igj_time)
-        self.gjvects = cells.gj_vects
-
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
-
-        con_segs = cells.cell_centres[cells.gap_jun_i]
-        connects = p.um*np.asarray(con_segs)
-        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap=cm.bone_r, linewidths=3.0, zorder=5)
-        self.collection.set_clim(0.0,1.0)
-        self.ax.add_collection(self.collection)
-
-        # Next add a collection of cell polygons, with aimated voltage data
-        points = np.multiply(cells.cell_verts, p.um)
-        self.coll2 =  PolyCollection(points, array=self.vdata_t[0], edgecolors='none', cmap=self.colormap)
-        self.coll2.set_alpha(1.0)
-         # set range of the colormap
-        self.cmean = np.mean(self.vdata_t)
-        self.cmin = np.min(self.vdata_t)
-        self.cmax = np.max(self.vdata_t)
-        self.coll2.set_clim(self.cmin,self.cmax)
-        self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
-        self.ax.add_collection(self.coll2)
-
-        # Next add in gap junction current direction
-        vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
-        vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
-
-        self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-            vx,vy,self.zdata_t[0],zorder=10, cmap=cm.bone_r,clim=[0,1])
-
-        self.cb.set_label('Voltage [mV]')
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
-
-        self.ax.autoscale_view()
-
-        self.frames = len(self.zdata_t)
-
-        plt.show(block=False)
-
-        print('Saving your animation to png sequence...')
-
-        for i in range(0,self.frames):
-            self.aniFunc(i)
-
-        print('Animation saved!')
-
-
-
-    def aniFunc(self,i):
-
-        zz = self.zdata_t[i]
-        zv = self.vdata_t[i]
-
-        vx = np.multiply(self.gjI_t[i],self.gjvects[:,2])
-        vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
-
-        self.collection.set_array(zz)
-        self.coll2.set_array(zv)
-        self.Qplot.set_UVC(vx,vy,zz)
-
-        tit = 'BLAZING!!!' + ' ' + str(round(self.time[i],3)) + ' ' + 's'
-        self.ax.set_title(tit)
-
-        self.fig.canvas.draw()
-        savename = self.savedAni + str(i)
-        plt.savefig(savename,dpi=96,format='png')
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i)
+            plt.savefig(savename,dpi=96,format='png')
 
 
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
@@ -339,8 +249,6 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
     ymin = np.min(data_cell)
     ymax = np.max(data_cell)
 
-
-
     ax.plot(simtime, data_cell,lncolor,label=lab)
     ax.set_xlabel('Time [s]')
     ax.set_ylabel(lab)
@@ -349,7 +257,7 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
 
     return fig, ax
 
-def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
+def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number_cells=False):
         """
         Assigns color-data to each polygon in a cell cluster diagram and returns a plot instance (fig, axes)
 
@@ -394,7 +302,7 @@ def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
 
         # Make the polygon collection and add it to the plot.
         if clrmap == None:
-            clrmap = cm.rainbow
+            clrmap = p.default_cm
 
         points = np.multiply(cells.cell_verts, p.um)
 
@@ -423,9 +331,11 @@ def plotPolyData(cells, fig=None, ax=None, zdata = None,clrmap = None):
             coll.set_clim(0,1)
             ax_cb = fig.colorbar(coll,ax=ax)
 
+        if number_cells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
         ax.autoscale_view(tight=True)
-
 
         return fig,ax,ax_cb
 

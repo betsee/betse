@@ -324,9 +324,17 @@ class Simulator(object):
         self.CaATP_block = np.ones(len(cells.cell_i))  # initialize CaATP (plasm membrane) blocking vector
         self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
 
-        self.cc_er = np.asarray(self.cc_er)
+        if p.Ca_dyn == 1:
 
-        self.cc_er_to = np.copy(self.cc_er)
+            self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
+            self.cc_er_to = np.copy(self.cc_er)
+
+        if p.voltage_dye == 1:
+
+            self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+
+            self.cDye_env = np.zeros(len(cells.cell_i))
+            self.cDye_env[:] = p.cDye_to
 
         print('This world contains ',cells.cell_number, ' cells.')
         print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
@@ -335,8 +343,10 @@ class Simulator(object):
         print('Ions in this simulation:', self.ionlabel)
 
     def tissueInit(self,cells,p):
+        """
+        Runs initializations for all user-specified options that will be used in the main simulation.
 
-
+        """
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
 
@@ -353,12 +363,12 @@ class Simulator(object):
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
 
-        self.Dm_soce = np.copy(Dm_cellsA)
-        self.Dm_soce[:] = 0
+        # self.Dm_soce = np.copy(Dm_cellsA)
+        # self.Dm_soce[:] = 0
 
         # Initialize array structures that hold endoplasmic reticulum related membrane changes:
-        self.Dm_er_scheduled = np.copy(Dm_cellsA)
-        self.Dm_er_scheduled[:] = 0
+        # self.Dm_er_scheduled = np.copy(Dm_cellsA)
+        # self.Dm_er_scheduled[:] = 0
 
         self.Dm_er_CICR = np.copy(Dm_cellsA)
         self.Dm_er_CICR[:] = 0
@@ -367,6 +377,121 @@ class Simulator(object):
 
         self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
         self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
+
+        self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
+        self.cIP3_env[:] = p.cIP3_to_env
+
+        # Parameter assignments for all existing options
+        if p.Ca_dyn_options['CICR'] != 0:
+
+            self.stateER = np.zeros(len(cells.cell_i))   # state of ER membrane Ca permeability
+
+            self.maxDmCaER = p.Ca_dyn_options['CICR'][0][0]
+            self.topCa = p.Ca_dyn_options['CICR'][0][1]
+            self.bottomCa =  p.Ca_dyn_options['CICR'][0][2]
+
+            if len(p.Ca_dyn_options['CICR'][1])==0:
+                pass
+
+            else:
+                self.midCaR = p.Ca_dyn_options['CICR'][1][0]
+                self.widthCaR = p.Ca_dyn_options['CICR'][1][1]
+
+            if len(p.Ca_dyn_options['CICR'][2])==0:
+                pass
+
+            else:
+                self.KhmIP3 = p.Ca_dyn_options['CICR'][2][0]
+                self.n_IP3 = p.Ca_dyn_options['CICR'][2][1]
+
+        if p.scheduled_options['Na_mem'] != 0:
+
+            self.t_on_Namem = p.scheduled_options['Na_mem'][0]
+            self.t_off_Namem = p.scheduled_options['Na_mem'][1]
+            self.t_change_Namem = p.scheduled_options['Na_mem'][2]
+            self.mem_mult_Namem = p.scheduled_options['Na_mem'][3]
+
+        if p.scheduled_options['K_mem'] != 0:
+
+            self.t_on_Kmem = p.scheduled_options['K_mem'][0]
+            self.t_off_Kmem = p.scheduled_options['K_mem'][1]
+            self.t_change_Kmem = p.scheduled_options['K_mem'][2]
+            self.mem_mult_Kmem = p.scheduled_options['K_mem'][3]
+
+        if p.scheduled_options['Cl_mem'] != 0:
+
+            self.t_on_Clmem = p.scheduled_options['Cl_mem'][0]
+            self.t_off_Clmem = p.scheduled_options['Cl_mem'][1]
+            self.t_change_Clmem = p.scheduled_options['Cl_mem'][2]
+            self.mem_mult_Clmem = p.scheduled_options['Cl_mem'][3]
+
+
+        if p.scheduled_options['Ca_mem'] != 0:
+
+            self.t_on_Camem = p.scheduled_options['Ca_mem'][0]
+            self.t_off_Camem = p.scheduled_options['Ca_mem'][1]
+            self.t_change_Camem = p.scheduled_options['Ca_mem'][2]
+            self.mem_mult_Camem = p.scheduled_options['Ca_mem'][3]
+
+
+        if p.scheduled_options['IP3'] != 0:
+
+            self.t_onIP3 = p.scheduled_options['IP3'][0]
+            self.t_offIP3 = p.scheduled_options['IP3'][1]
+            self.t_changeIP3 = p.scheduled_options['IP3'][2]
+            self.rate_IP3 = p.scheduled_options['IP3'][3]
+
+
+        if p.global_options['K_env'] != 0:
+
+            self.t_on_Kenv = p.global_options['K_env'][0]
+            self.t_off_Kenv = p.global_options['K_env'][1]
+            self.t_change_Kenv = p.global_options['K_env'][2]
+            self.mem_mult_Kenv = p.global_options['K_env'][3]
+
+
+        if p.global_options['Cl_env'] != 0:
+
+            self.t_on_Clenv = p.global_options['Cl_env'][0]
+            self.t_off_Clenv = p.global_options['Cl_env'][1]
+            self.t_change_Clenv = p.global_options['Cl_env'][2]
+            self.mem_mult_Clenv = p.global_options['Cl_env'][3]
+
+
+        if p.global_options['Na_env'] != 0:
+
+            self.t_on_Naenv = p.global_options['Na_env'][0]
+            self.t_off_Naenv = p.global_options['Na_env'][1]
+            self.t_change_Naenv = p.global_options['Na_env'][2]
+            self.mem_mult_Naenv = p.global_options['Na_env'][3]
+
+
+        if p.global_options['T_change'] != 0:
+
+            self.tonT = p.global_options['T_change'][0]
+            self.toffT = p.global_options['T_change'][1]
+            self.trampT = p.global_options['T_change'][2]
+            self.multT = p.global_options['T_change'][3]
+
+
+        if p.global_options['gj_block'] != 0:
+
+            self.tonGJ = p.global_options['gj_block'][0]
+            self.toffGJ = p.global_options['gj_block'][1]
+            self.trampGJ = p.global_options['gj_block'][2]
+
+        if p.global_options['NaKATP_block'] != 0:
+
+            self.tonNK = p.global_options['NaKATP_block'][0]
+            self.toffNK = p.global_options['NaKATP_block'][1]
+            self.trampNK = p.global_options['NaKATP_block'][2]
+
+        if p.global_options['HKATP_block'] != 0:
+
+            self.tonHK = p.global_options['HKATP_block'][0]
+            self.toffHK = p.global_options['HKATP_block'][1]
+            self.trampHK = p.global_options['HKATP_block'][2]
+
 
         if p.vg_options['Na_vg'] != 0:
 
@@ -402,7 +527,6 @@ class Simulator(object):
             self.vgK_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
 
 
-
         if p.vg_options['Ca_vg'] !=0:
 
             # Initialization of logic values forr voltage gated potassium channel
@@ -425,10 +549,6 @@ class Simulator(object):
 
             # Initialize matrices defining states of cag K channels for each cell:
             self.active_Kcag = np.zeros(len(cells.cell_i))
-
-        if p.Ca_dyn_options['CICR'] != 0:
-            self.maxDmCaER = p.Ca_dyn_options['CICR'][0]
-            self.stateER = np.zeros(len(cells.cell_i))   # state of ER membrane Ca permeability
 
         # Initialize target cell sets for dynamically gated channels from user options:
         if p.gated_targets == 'none':
@@ -473,6 +593,12 @@ class Simulator(object):
             # self.scheduled_target_inds[p.scheduled_targets] = 1
             self.scheduled_target_inds = p.scheduled_targets
 
+        print('This world contains ',cells.cell_number, ' cells.')
+        print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
+        print('You are running the ion profile: ',p.ion_profile)
+
+        print('Ions in this simulation:', self.ionlabel)
+
     def runInit(self,cells,p):
         """
         Runs an initialization simulation from the existing data state of the Simulation object,
@@ -487,12 +613,14 @@ class Simulator(object):
 
         """
         # Reinitialize data structures that hold time data
-        self.cc_time = []  # data array holding the concentrations at time points
+        self.cc_time = []  # data array holding the cell concentrations at time points
         self.cc_env_time = []  # data array holding the environmental concentrations at time points
+        self.cc_er_time = []  # data array holding endoplasmic reticulum concentrations at time points
+
         self.vm_time = []  # data array holding voltage at time points
+        self.cDye_time = [] # data array holding voltage-sensitive dye concentrations at time points
+
         self.time = []     # time values of the simulation
-        self.cc_er_time = []
-        self.v_er_time = []
 
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
 
@@ -507,16 +635,14 @@ class Simulator(object):
         # report
         print('Your initialization is running for', round((p.init_tsteps*p.dt)/60,2),'minutes of in-world time.')
 
-        # get the initial net, unbalanced charge in each cell:
+        # get the initial net, unbalanced charge and voltage in each cell:
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-
-        # calculate the initial voltage in the cell (which is also Vmem as environment is zero):
         self.vm = get_volt(q_cells,cells.cell_sa,p)
 
         for t in tt:   # run through the loop
 
             # run the Na-K-ATPase pump:
-            self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
+            self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
 
@@ -553,7 +679,7 @@ class Simulator(object):
             if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
 
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
-                _,_,self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
+                _,_,self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
                 pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
                     cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
 
@@ -566,7 +692,7 @@ class Simulator(object):
 
             for i in self.movingIons:
 
-                self.cc_env[i],self.cc_cells[i],fNa = \
+                self.cc_env[i],self.cc_cells[i],_ = \
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
                         self.envV,cells.cell_vol,self.zs[i],self.vm,self.T,p)
 
@@ -588,22 +714,33 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
+            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
+            if p.voltage_dye ==1:
+
+                self.cDye_env,self.cDye_cell,_ = \
+                        electrofuse(self.cDye_env,self.cDye_cell,p.Dm_Dye*self.id_cells,self.tm,cells.cell_sa,
+                            self.envV,cells.cell_vol,p.z_Dye,self.vm,self.T,p)
+
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 self.cc_time.append(concs)
+
                 concs_env = copy.deepcopy(self.cc_env)
                 self.cc_env_time.append(concs_env)
 
                 vmm = copy.deepcopy(self.vm)
                 self.vm_time.append(vmm)
+
                 self.time.append(t)
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                     concs_er = copy.deepcopy(self.cc_er)
                     self.cc_er_time.append(concs_er)
-                    cver = copy.deepcopy(self.v_er)
-                    self.v_er_time.append(cver)
+
+                if p.voltage_dye == 1:
+                    cvdye = copy.deepcopy(self.cDye_cell)
+                    self.cDye_time.append(cvdye)
 
         celf = copy.deepcopy(self)
 
@@ -642,13 +779,16 @@ class Simulator(object):
                 concmess = 'Final ER concentration of'+ ' '+ label + ': '
                 print(concmess,endconc_er,' mmol/L')
 
-            final_ver = 1000*np.round(np.mean(self.v_er),4)
-            vermess = 'Final ER V_er of ' + ': '
-            print(vermess,final_ver, ' mV')
+        if p.voltage_dye == 1:
+
+            dye_env_final = np.mean(self.cDye_env)
+            dye_cell_final = np.mean(self.cDye_cell)
+            print('Final dye concentration in the environment: ',np.round(dye_env_final,6), ' mmol/L')
+            print('Final average dye concentration in cells: ', np.round(dye_cell_final,6), ' mmol/L')
 
     def runSim(self,cells,p,save=None):
         """
-        Drives the actual time-loop iterations for the simulation.
+        Drives the time-loop for the main simulation, including gap-junction connections and all dynamics.
         """
 
         self.tissueInit(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
@@ -656,24 +796,19 @@ class Simulator(object):
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
         self.envcc_time = [] # data array holding environmental concentrations at time points
+
         self.vm_time = []  # data array holding voltage at time points
+
         self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
 
+        self.gjopen_time = []   # stores the fractional gap junction open state at each time
         self.fgj_time = []      # stores the gj fluxes for each ion at each time
         self.Igj_time = []      # current for each gj at each time
-        self.vgj_time = []
 
-        self.active_Na_time = []   # stores the activation state of Na and K voltage gated channels at time
-        self.active_K_time = []
-
-        self.fNa_NaK_time = []
-
-        self.cc_er_time = []
-        self.v_er_time = []
-
-        self.cIP3_time = []
-
+        self.cc_er_time = []   # retains er concentrations as a function of time
+        self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
+        self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.gj_i))  # identity array for gap junction indices...
@@ -699,12 +834,9 @@ class Simulator(object):
         # report
         print('Your simulation is running from',0,'to',round(p.sim_tsteps*p.dt,3),'seconds of in-world time.')
 
-        # get the net, unbalanced charge in each cell:
+        # get the net, unbalanced charge and corresponding voltage in each cell:
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-
-        # calculate the voltage in the cell (which is also Vmem as environment is zero):
         self.vm = get_volt(q_cells,cells.cell_sa,p)
-
 
         for t in tt:   # run through the loop
 
@@ -762,8 +894,7 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-            # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
-
+            # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
             shuffle(cells.gj_i)
             shuffle(self.movingIons)
 
@@ -793,8 +924,8 @@ class Simulator(object):
                     self.v_er = v_er_o - self.vm
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                # q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                # self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 # calculate volatge difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
@@ -817,13 +948,33 @@ class Simulator(object):
 
                 self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
-                # self.cc_cells[i] = check_c(self.cc_cells[i])
             # determine flux through gap junctions for IP3:
             _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
                 self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
                 cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,vgj,self.T,p)
 
+            # update cell IP3 concentration due to gap junction flux:
             self.cIP3 = (self.cIP3*cells.cell_vol + np.dot((fIP3*p.dt), cells.gjMatrix))/cells.cell_vol
+
+            # electrodiffuse IP3 between cell and environment:
+            self.cIP3_env,self.cIP3,_ = \
+                        electrofuse(self.cIP3_env,self.cIP3,p.Dm_IP3*self.id_cells,self.tm,cells.cell_sa,
+                            self.envV,cells.cell_vol,p.z_IP3,self.vm,self.T,p)
+
+            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
+            if p.voltage_dye ==1:
+
+                self.cDye_env,self.cDye_cell,_ = \
+                        electrofuse(self.cDye_env,self.cDye_cell,p.Dm_Dye*self.id_cells,self.tm,cells.cell_sa,
+                            self.envV,cells.cell_vol,p.z_Dye,self.vm,self.T,p)
+
+                # determine flux through gap junctions for voltage dye:
+                _,_,fDye = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
+                    self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+                    cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,vgj,self.T,p)
+
+                # update cell voltage-sensitive dye concentration due to gap junction flux:
+                self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
@@ -831,36 +982,29 @@ class Simulator(object):
                 envsc = copy.deepcopy(self.cc_env)
                 flxs = copy.deepcopy(self.fluxes_gj)
                 vmm = copy.deepcopy(self.vm)
-                vgjj = copy.deepcopy(vgj)
                 dvmm = copy.deepcopy(self.dvm)
+                ccIP3 = copy.deepcopy(self.cIP3)
+                ggjopen = copy.deepcopy(self.gjopen)
 
-                fNa = copy.deepcopy(fNa_NaK)
+                self.time.append(t)
+
                 self.cc_time.append(concs)
                 self.envcc_time.append(envsc)
                 self.vm_time.append(vmm)
-                self.time.append(t)
+
                 self.fgj_time.append(flxs)
-                self.gjopen_time.append(self.gjopen)
-                self.vgj_time.append(vgjj)
+                self.gjopen_time.append(ggjopen)
                 self.dvm_time.append(dvmm)
-                self.fNa_NaK_time.append(fNa)
-                ccIP3 = copy.deepcopy(self.cIP3)
+
                 self.cIP3_time.append(ccIP3)
 
-                if p.vg_options['Na_vg'] != 0:
-                    aNa = copy.deepcopy(self.active_Na)
-                    self.active_Na_time.append(aNa)
-
-                if p.vg_options['K_vg'] != 0:
-                    aK = copy.deepcopy(self.active_K)
-                    self.active_K_time.append(aK)
+                if p.voltage_dye ==1:
+                    ccDye_cells = copy.deepcopy(self.cDye_cell)
+                    self.cDye_time.append(ccDye_cells)
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     ccer = copy.deepcopy(self.cc_er)
-                    vver = copy.deepcopy(self.v_er)
                     self.cc_er_time.append(ccer)
-                    self.v_er_time.append(vver)
-
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
@@ -882,7 +1026,7 @@ class Simulator(object):
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
             label = self.ionlabel[i]
-            concmess = 'Final cytoplasmic concentration of'+ ' '+ label + ': '
+            concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
             print(concmess,endconc,' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
@@ -893,31 +1037,39 @@ class Simulator(object):
 
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),2)
-        vmess = 'Final cell Vmem of ' + ': '
+        vmess = 'Final average cell Vmem of ' + ': '
         print(vmess,final_vmean, ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
             print('cell pH',np.round(final_pH,2))
 
-        molarity_cells = get_molarity(self.cc_time[-1],p)
-        molarity_env = get_molarity(self.envcc_time[-1],p)
-        osmotic_cells = molarity_cells*p.R*self.T
-        osmotic_env = molarity_env*p.R*self.T
-        pressure_cells = np.round((np.mean(osmotic_cells - osmotic_env)/1000),2)
-        print('cell osmotic pressure',pressure_cells, ' kPa')
+        IP3_env_final = np.mean(self.cIP3_env)
+        IP3_cell_final = np.mean(self.cIP3)
+        print('Final IP3 concentration in the environment: ',np.round(IP3_env_final,6), ' mmol/L')
+        print('Final average IP3 concentration in cells: ', np.round(IP3_cell_final,6), ' mmol/L')
+
+        # molarity_cells = get_molarity(self.cc_time[-1],p)
+        # molarity_env = get_molarity(self.envcc_time[-1],p)
+        # osmotic_cells = molarity_cells*p.R*self.T
+        # osmotic_env = molarity_env*p.R*self.T
+        # pressure_cells = np.round((np.mean(osmotic_cells - osmotic_env)/1000),2)
+        # print('cell osmotic pressure',pressure_cells, ' kPa')
 
         if p.Ca_dyn == 1:
 
             for i in range(0,len(self.ionlabel)):
                 endconc_er = np.round(np.mean(self.cc_er[i]),6)
                 label = self.ionlabel[i]
-                concmess = 'Final ER concentration of'+ ' '+ label + ': '
+                concmess = 'Final average ER concentration of'+ ' '+ label + ': '
                 print(concmess,endconc_er,' mmol/L')
 
-            final_ver = 1000*np.round(np.mean(self.v_er),4)
-            vermess = 'Final ER V_er of ' + ': '
-            print(vermess,final_ver, ' mV')
+        if p.voltage_dye ==1:
+            dye_env_final = np.mean(self.cDye_env)
+            dye_cell_final = np.mean(self.cDye_cell)
+            print('Final dye concentration in the environment: ',np.round(dye_env_final,6), ' mmol/L')
+            print('Final average dye concentration in cells: ', np.round(dye_cell_final,6), ' mmol/L')
+
 
         print('Simulation completed successfully.')
 
@@ -932,14 +1084,9 @@ class Simulator(object):
 
             else:
 
-                t_on = p.scheduled_options['Na_mem'][0]
-                t_off = p.scheduled_options['Na_mem'][1]
-                t_change = p.scheduled_options['Na_mem'][2]
-                mem_mult_Na = p.scheduled_options['Na_mem'][3]
+                effector_Na = pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
 
-                effector_Na = pulse(t,t_on,t_off,t_change)
-
-                self.Dm_scheduled[self.iNa][self.scheduled_target_inds] = mem_mult_Na*effector_Na*p.Dm_Na
+                self.Dm_scheduled[self.iNa][self.scheduled_target_inds] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
         if p.scheduled_options['K_mem'] != 0:
 
@@ -947,14 +1094,10 @@ class Simulator(object):
                 pass
 
             else:
-                t_on = p.scheduled_options['K_mem'][0]
-                t_off = p.scheduled_options['K_mem'][1]
-                t_change = p.scheduled_options['K_mem'][2]
-                mem_mult_K = p.scheduled_options['K_mem'][3]
 
-                effector_K = pulse(t,t_on,t_off,t_change)
+                effector_K = pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
 
-                self.Dm_scheduled[self.iK][self.scheduled_target_inds] = mem_mult_K*effector_K*p.Dm_K
+                self.Dm_scheduled[self.iK][self.scheduled_target_inds] = self.mem_mult_Kmem*effector_K*p.Dm_K
 
         if p.scheduled_options['Cl_mem'] != 0:
 
@@ -962,14 +1105,10 @@ class Simulator(object):
                 pass
 
             else:
-                t_on = p.scheduled_options['Cl_mem'][0]
-                t_off = p.scheduled_options['Cl_mem'][1]
-                t_change = p.scheduled_options['Cl_mem'][2]
-                mem_mult_Cl = p.scheduled_options['Cl_mem'][3]
 
-                effector_Cl = pulse(t,t_on,t_off,t_change)
+                effector_Cl = pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
 
-                self.Dm_scheduled[self.iCl][self.scheduled_target_inds] = mem_mult_Cl*effector_Cl*p.Dm_Cl
+                self.Dm_scheduled[self.iCl][self.scheduled_target_inds] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
 
         if p.scheduled_options['Ca_mem'] != 0:
 
@@ -978,118 +1117,49 @@ class Simulator(object):
 
             else:
 
-                t_on = p.scheduled_options['Ca_mem'][0]
-                t_off = p.scheduled_options['Ca_mem'][1]
-                t_change = p.scheduled_options['Ca_mem'][2]
-                mem_mult_Ca = p.scheduled_options['Ca_mem'][3]
+                effector_Ca = pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
 
-                effector_Ca = pulse(t,t_on,t_off,t_change)
-
-                self.Dm_scheduled[self.iCa][self.scheduled_target_inds] = mem_mult_Ca*effector_Ca*p.Dm_Ca
-
-
-        if p.scheduled_options['K_env'] != 0:
-
-            t_on = p.scheduled_options['K_env'][0]
-            t_off = p.scheduled_options['K_env'][1]
-            t_change = p.scheduled_options['K_env'][2]
-            mem_mult_Kenv = p.scheduled_options['K_env'][3]
-
-            effector_Kenv = pulse(t,t_on,t_off,t_change)
-
-            self.cc_env[self.iK][:] = mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
-
-        if p.scheduled_options['Cl_env'] != 0:
-
-            t_on = p.scheduled_options['Cl_env'][0]
-            t_off = p.scheduled_options['Cl_env'][1]
-            t_change = p.scheduled_options['Cl_env'][2]
-            mem_mult_Clenv = p.scheduled_options['Cl_env'][3]
-
-            effector_Clenv = pulse(t,t_on,t_off,t_change)
-
-            self.cc_env[self.iCl][:] = mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
-
-        if p.scheduled_options['Na_env'] != 0:
-
-            t_on = p.scheduled_options['Na_env'][0]
-            t_off = p.scheduled_options['Na_env'][1]
-            t_change = p.scheduled_options['Na_env'][2]
-            mem_mult_Naenv = p.scheduled_options['Na_env'][3]
-
-            effector_Naenv = pulse(t,t_on,t_off,t_change)
-
-            self.cc_env[self.iNa][:] = mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
-
-        if p.scheduled_options['T_change'] != 0:
-
-            tonT = p.scheduled_options['T_change'][0]
-            toffT = p.scheduled_options['T_change'][1]
-            trampT = p.scheduled_options['T_change'][2]
-            multT = p.scheduled_options['T_change'][3]
-            self.T = multT*pulse(t,tonT,toffT,trampT)*p.T + p.T
-
-        if p.scheduled_options['gj_block'] != 0:
-
-            tonGJ = p.scheduled_options['gj_block'][0]
-            toffGJ = p.scheduled_options['gj_block'][1]
-            trampGJ = p.scheduled_options['gj_block'][2]
-
-            self.gj_block = (1.0 - pulse(t,tonGJ,toffGJ,trampGJ))
-
-        if p.scheduled_options['NaKATP_block'] != 0:
-
-            tonNK = p.scheduled_options['NaKATP_block'][0]
-            toffNK = p.scheduled_options['NaKATP_block'][1]
-            trampNK = p.scheduled_options['NaKATP_block'][2]
-
-            self.NaKATP_block = (1.0 - pulse(t,tonNK,toffNK,trampNK))
-
-        if p.scheduled_options['HKATP_block'] != 0:
-
-            tonHK = p.scheduled_options['HKATP_block'][0]
-            toffHK = p.scheduled_options['HKATP_block'][1]
-            trampHK = p.scheduled_options['HKATP_block'][2]
-
-            self.HKATP_block = (1.0 - pulse(t,tonHK,toffHK,trampHK))
-
-        if p.scheduled_options['CaATP_block'] != 0:
-
-            tonCa = p.scheduled_options['CaATP_block'][0]
-            toffCa = p.scheduled_options['CaATP_block'][1]
-            trampCa = p.scheduled_options['CaATP_block'][2]
-
-            self.CaATP_block = (1.0 - pulse(t,tonCa,toffCa,trampCa))
-
-        if p.scheduled_options['CaER_block'] != 0:
-
-            tonCaER = p.scheduled_options['CaER_block'][0]
-            toffCaER = p.scheduled_options['CaER_block'][1]
-            trampCaER = p.scheduled_options['CaER_block'][2]
-
-            self.CaER_block = (1.0 - pulse(t,tonCaER,toffCaER,trampCaER))
-
-
-        if p.scheduled_options['Dm_er'] != 0 and p.ions_dict['Ca'] == 1:
-
-            t_on = p.scheduled_options['Dm_er'][0]
-            t_off = p.scheduled_options['Dm_er'][1]
-            t_change = p.scheduled_options['Dm_er'][2]
-            mem_mult_er = p.scheduled_options['Dm_er'][3]
-
-            effector_Dmer = pulse(t,t_on,t_off,t_change)
-
-            self.Dm_er_scheduled[self.iCa][self.scheduled_target_inds] = effector_Dmer*mem_mult_er*p.Dm_Ca
+                self.Dm_scheduled[self.iCa][self.scheduled_target_inds] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
 
         if p.scheduled_options['IP3'] != 0:
 
-            t_onIP3 = p.scheduled_options['IP3'][0]
-            t_offIP3 = p.scheduled_options['IP3'][1]
-            t_changeIP3 = p.scheduled_options['IP3'][2]
-            rate_IP3 = p.scheduled_options['IP3'][3]
+            self.cIP3[self.scheduled_target_inds] = self.cIP3[self.scheduled_target_inds] + self.rate_IP3*pulse(t,self.t_onIP3,
+                self.t_offIP3,self.t_changeIP3)
 
-            self.cIP3[self.scheduled_target_inds] = self.cIP3[self.scheduled_target_inds] + rate_IP3*pulse(t,t_onIP3,
-                t_offIP3,t_changeIP3)
+        if p.global_options['K_env'] != 0:
+
+            effector_Kenv = pulse(t,self.t_on_Kenv,self.t_off_Kenv,self.t_change_Kenv)
+
+            self.cc_env[self.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
+
+        if p.global_options['Cl_env'] != 0:
+
+            effector_Clenv = pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
+
+            self.cc_env[self.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+
+        if p.global_options['Na_env'] != 0:
+
+            effector_Naenv = pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
+
+            self.cc_env[self.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+
+        if p.global_options['T_change'] != 0:
+
+            self.T = self.multT*pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
+
+        if p.global_options['gj_block'] != 0:
+
+            self.gj_block = (1.0 - pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
+
+        if p.global_options['NaKATP_block'] != 0:
+
+            self.NaKATP_block = (1.0 - pulse(t,self.tonNK,self.toffNK,self.trampNK))
+
+        if p.global_options['HKATP_block'] != 0:
+
+            self.HKATP_block = (1.0 - pulse(t,self.tonHK,self.toffHK,self.trampHK))
+
 
         # Voltage gated channel effects ................................................................................
 
@@ -1124,7 +1194,6 @@ class Simulator(object):
                 self.vgNa_state[inds_shut_Na] = 0    # close the vg sodium channels
                 self.crossed_inactivate_Na[inds_shut_Na] = 1   # switch these so cells do not re-activate
                 self.vgNa_OFFtime[inds_shut_Na] = 0            # reset any timers to zero
-
 
                 # Logic phase 3: find out if cells have passed below threshhold to become capable of activating:
                 truth_vmLTvreact_Na = self.vm < self.v_reactivate_Na # voltage is lower than the deactivate voltage
@@ -1245,37 +1314,27 @@ class Simulator(object):
 
             if p.Ca_dyn_options['CICR'] != 0:
 
-
-                dcc_CaER_sign = np.sign(self.dcc_ER[self.iCa]) #
-
-                maxDmCaER = p.Ca_dyn_options['CICR'][0][0]
-                topCa = p.Ca_dyn_options['CICR'][0][1]
-                bottomCa =  p.Ca_dyn_options['CICR'][0][2]
+                dcc_CaER_sign = np.sign(self.dcc_ER[self.iCa])
 
                 if len(p.Ca_dyn_options['CICR'][1])==0:
-                    term_Ca_reg = 1
+                    term_Ca_reg = 1.0
 
                 else:
-                    midCaR = p.Ca_dyn_options['CICR'][1][0]
-                    widthCaR = p.Ca_dyn_options['CICR'][1][1]
-                    term_Ca_reg = (np.exp(-((self.cc_cells[self.iCa]-midCaR)**2)/((2*widthCaR)**2)))
+                    term_Ca_reg = (np.exp(-((self.cc_cells[self.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
 
                 if len(p.Ca_dyn_options['CICR'][2]) == 0:
-                    term_IP3_reg = 1
+                    term_IP3_reg = 1.0
 
                 else:
-                    KhmIP3 = p.Ca_dyn_options['CICR'][2][0]
-                    n_IP3 = p.Ca_dyn_options['CICR'][2][1]
-                    term_IP3_reg = hill(self.cIP3,KhmIP3,n_IP3)
-                    topCa = topCa - 0.5*term_IP3_reg
+                    term_IP3_reg = hill(self.cIP3,self.KhmIP3,self.n_IP3)
+                    topCa = self.topCa - 0.5*term_IP3_reg
 
-                truth_overHighCa = self.cc_er[self.iCa] >= topCa
+                truth_overHighCa = self.cc_er[self.iCa] >=  self.topCa
                 truth_increasingCa = dcc_CaER_sign == 1
                 truth_alreadyClosed = self.stateER == 0.0
                 inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
 
-
-                truth_underBottomCa = self.cc_er[self.iCa]<bottomCa
+                truth_underBottomCa = self.cc_er[self.iCa]< self.bottomCa
                 truth_decreasingCa = dcc_CaER_sign == -1
                 truth_alreadyOpen = self.stateER == 1.0
                 inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
@@ -1283,51 +1342,9 @@ class Simulator(object):
                 self.stateER[inds_open_ER] = 1.0
                 self.stateER[inds_close_ER] = 0.0
 
-                self.Dm_er_CICR[self.iCa] = maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
+                self.Dm_er_CICR[self.iCa] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
 
-
-
-
-                #(np.exp(-((self.cc_cells[self.iCa]-400e-6)**2)/((2*80e-6)**2)))
-
-
-                    #self.Dm_er_CICR[self.iCa] = self.maxDmCaER*pulse(self.cc_cells[self.iCa],5.0e-5,1.5e-3,1e-5)
-                    #self.Dm_er_CICR[self.iCa] = self.maxDmCaER*step(self.cc_cells[self.iCa],5.0e-5,1e-5)
-                    # self.Dm_er_CICR[self.iCa] = self.maxDmCaER*
-                # maxDmCaER = p.Ca_dyn_options['CICR'][0][0]
-                # ca_reg_midpoint = p.Ca_dyn_options['CICR'][0][1]
-                # ca_reg_width = p.Ca_dyn_options['CICR'][0][2]
-                # ip3_reg_halfmax = p.Ca_dyn_options['CICR'][1][0]
-                # ip3_reg_n = p.Ca_dyn_options['CICR'][1][1]
-                # ip3_store_halfmax = p.Ca_dyn_options['CICR'][2][0]
-                # ip3_store_n = p.Ca_dyn_options['CICR'][2][1]
-                # soce_maxDm = p.Ca_dyn_options['CICR'][3][0]
-                # soce_halfmax = p.Ca_dyn_options['CICR'][3][1]
-                # soce_n = p.Ca_dyn_options['CICR'][3][2]
-                #
-                # term_regCa = (np.exp(-((self.cc_cells[self.iCa]-ca_reg_midpoint)**2)/((2*ca_reg_width)**2)))
-                #
-                #
-                # term_regIP3 = hill(self.cIP3,ip3_reg_halfmax,ip3_reg_n)
-                # term_store_inhib = hill(self.cc_er[self.iCa],ip3_store_halfmax,ip3_store_n)
-                #
-                # self.Dm_er_CICR[self.iCa] = maxDmCaER*term_regCa*term_regIP3*term_store_inhib
-
-                #term_soce = 1 - hill(self.cc_er[self.iCa],soce_halfmax,soce_n)
-
-                #self.Dm_soce[self.iCa] = soce_maxDm*term_soce
-
-            if p.Ca_dyn_options['IP3'] != 0:
-                maxDmCaER_IP3 = p.Ca_dyn_options['IP3'][0]
-                cIP3_halfmax = p.Ca_dyn_options['IP3'][1]
-                IP3n = p.Ca_dyn_options['IP3'][2]
-
-                self.Dm_er_CICR[self.iCa] = maxDmCaER_IP3*hill(self.cIP3,cIP3_halfmax,IP3n)
-
-            self.Dm_er[self.iCa] = self.Dm_er_scheduled[self.iCa] + self.Dm_er_CICR[self.iCa] + self.Dm_base[self.iCa]
-
-             # finally, add together all effects to make change on the cell membrane permeabilities:
-            #self.Dm_cells = self.Dm_cells + self.Dm_soce
+                self.Dm_er = self.Dm_er_CICR + self.Dm_base
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """

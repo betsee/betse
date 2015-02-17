@@ -12,6 +12,7 @@ from betse.science import visualize as viz
 from betse.science import filehandling as fh
 import matplotlib.cm as cm
 import numpy as np
+import os, os.path
 
 
 class SimRunner(object):
@@ -33,42 +34,11 @@ class SimRunner(object):
 
         print('The initialization took', round(time.time() - start_time,2), 'seconds to complete')
 
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
-             ax=None,lncolor='g',ionname='Na+')
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
-            ax=axC,lncolor='b',ionname='K+')
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
-             ax=axC,lncolor='r',ionname='M-')
-        lg = axC.legend()
-        lg.draw_frame(True)
-        plt.show(block=False)
-
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
-        plt.show(block=False)
-
-        if p.ions_dict['Ca'] ==1:
-
-            figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,0,fig=None,
-                 ax=None,lncolor='g',ionname='Ca2+ cell')
-            axA.set_title("Calcium in Cell")
-            plt.show(block=False)
-
-            if p.Ca_dyn == 1:
-
-                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,0,fig=None,
-                     ax=None,lncolor='b',ionname='Ca2+ cell')
-                axD.set_title("Calcium in ER")
-                plt.show(block=False)
-
-                figVER, axVER  = viz.plotSingleCellVData(sim.v_er_time,sim.time,0,fig=None,ax=None,lncolor='b')
-                plt.show(block=False)
-                axVER.set_title('Membrane voltage in the endoplasmic reticulum')
-                plt.show(block=False)
-
+        plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
 
         plt.show()
 
-    def simulate(self,savePNG=False):
+    def simulate(self):
 
         # COMMAND SEQUENCE #2: "runSim"  ...............................................................................
         # Run simulation from a previously saved initialization. FIXME: throw exception if init cache is empty.
@@ -82,42 +52,7 @@ class SimRunner(object):
 
         print('The simulation took', round(time.time() - start_time,2), 'seconds to complete')
 
-        neigh = cells.cell_nn[0][1]
-        print('neighbour=',neigh)
-
-        plotcell = 0
-
-        if p.ions_dict['Ca']==1:
-
-            figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plotcell,fig=None,
-                 ax=None,lncolor='g',ionname='Ca2+ cell')
-            axC.set_title("Calcium in Cell")
-            plt.show(block=False)
-
-            if p.Ca_dyn ==1:
-
-                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,plotcell,fig=None,
-                     ax=None,lncolor='b',ionname='Ca2+ ER')
-                axD.set_title("Calcium in ER")
-                plt.show(block=False)
-
-                figVER, axVER  = viz.plotSingleCellVData(sim.v_er_time,sim.time,0,fig=None,ax=None,lncolor='b')
-                plt.show(block=False)
-                axVER.set_title('Membrane voltage in the endoplasmic reticulum')
-                plt.show(block=False)
-
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plotcell,fig=None,ax=None,lncolor='b')
-        plt.show(block=False)
-
-        figIP3, axIP3 = viz.plotSingleCellData(sim.time,sim.cIP3_time,plotcell,lab='cIP3 mol/m3')
-        plt.show(block=False)
-
-        viz.AnimateCellData(cells,sim.cIP3_time,sim.time,p,ani_repeat=True, number_cells=True)
-
-        viz.AnimateGJData(cells, sim, p, save=False, ani_repeat=True)
-        #viz.AnimateCellData(cells,sim.active_K_time,sim.time,p, save=False,ani_repeat=True)
-        if savePNG == True:
-            viz.Animate2PNG(cells,sim,p)
+        plots4Sim(p.plot_cell,cells,sim,p,saveImages = p.autosave,animate=p.createAnimations,saveAni=p.saveAnimations)
 
         plt.show()
 
@@ -129,18 +64,7 @@ class SimRunner(object):
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
-             ax=None,lncolor='g',ionname='Na+')
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
-            ax=axC,lncolor='b',ionname='K+')
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
-             ax=axC,lncolor='r',ionname='M-')
-        lg = axC.legend()
-        lg.draw_frame(True)
-        plt.show(block=False)
-
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
-        plt.show(block=False)
+        plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
 
         plt.show()
 
@@ -151,23 +75,182 @@ class SimRunner(object):
 
         p = Parameters()     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
-        sim,cells,p = fh.loadSim(sim.savedSim)  # load the simulation from cache
+        sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
 
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,0,fig=None,
-             ax=None,lncolor='g',ionname='Na+')
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,0,fig=figC,
-            ax=axC,lncolor='b',ionname='K+')
-        figC, axC = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,0,fig=figC,
-             ax=axC,lncolor='r',ionname='M-')
-        lg = axC.legend()
-        lg.draw_frame(True)
-        plt.show(block=False)
-
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,0,fig=None,ax=None,lncolor='b')
-        plt.show(block=False)
+        plots4Sim(p.plot_cell,cells,sim,p,saveImages=p.autosave, animate=p.createAnimations, saveAni=p.saveAnimations)
 
         plt.show()
 
+def plots4Init(plot_cell,cells,sim,p,saveImages=False):
+
+    figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
+         ax=None,lncolor='g',ionname='Na+')
+    figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
+        ax=axConcs,lncolor='b',ionname='K+')
+    figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
+         ax=axConcs,lncolor='r',ionname='M-')
+    lg = axConcs.legend()
+    lg.draw_frame(True)
+    titC = 'Concentration of main ions in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
+    axConcs.set_title(titC)
+    plt.show(block=False)
+
+    figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
+    titV = 'Voltage (Vmem) in cell index ' + str(plot_cell) + ' as a function of time'
+    axVt.set_title(titV)
+    plt.show(block=False)
+
+    if p.ions_dict['Ca'] ==1:
+
+        figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
+             ax=None,lncolor='g',ionname='Ca2+ cell')
+        titCa =  'Calcium concentration in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
+        axA.set_title(titCa)
+        plt.show(block=False)
+
+        if p.Ca_dyn == 1:
+
+            figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,plot_cell,fig=None,
+                 ax=None,lncolor='b',ionname='Ca2+ cell')
+            titER =  'Calcium concentration in cell index ' + str(plot_cell) + ' ER as a function of time'
+            axD.set_title(titER)
+            plt.show(block=False)
+
+    figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells)
+    axV.set_title('Final Vmem in cell collection')
+    axV.set_xlabel('Spatial distance [um]')
+    axV.set_ylabel('Spatial distance [um]')
+    cbV.set_label('Voltage mV')
+
+def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
+
+    if saveImages == True:
+        images_path = p.cache_path + '/results'
+        betse_cache_dir = os.path.expanduser(images_path)
+        os.makedirs(betse_cache_dir, exist_ok=True)
+        savedImg = os.path.join(betse_cache_dir, 'fig_')
+
+    figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
+         ax=None,lncolor='g',ionname='Na+')
+    figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
+        ax=axConcs,lncolor='b',ionname='K+')
+    figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
+         ax=axConcs,lncolor='r',ionname='M-')
+    lg = axConcs.legend()
+    lg.draw_frame(True)
+    titC = 'Main ions in cell index ' + str(plot_cell)
+    axConcs.set_title(titC)
+    if saveImages == True:
+        savename1 = savedImg + 'conc_time'
+        plt.savefig(savename1,dpi=300,format='png')
+    plt.show(block=False)
+
+    figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
+    titV = 'Voltage (Vmem) in cell ' + str(plot_cell)
+    axVt.set_title(titV)
+    if saveImages == True:
+        savename2 = savedImg + 'Vmem_time'
+        plt.savefig(savename2,dpi=300,format='png')
+    plt.show(block=False)
+
+    if p.ions_dict['Ca'] ==1:
+
+        figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
+             ax=None,lncolor='g',ionname='Ca2+ cell')
+        titCa =  'Cytosolic Ca2+ in cell index ' + str(plot_cell)
+        axA.set_title(titCa)
+
+        if saveImages == True:
+            savename3 = savedImg + 'cytosol_Ca_time'
+            plt.savefig(savename3,dpi=300,format='png')
+
+        plt.show(block=False)
+
+        if p.Ca_dyn == 1:
+
+            figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,sim.iCa,plot_cell,fig=None,
+                 ax=None,lncolor='b',ionname='Ca2+ cell')
+            titER =  'ER Ca2+ in cell index ' + str(plot_cell)
+            axD.set_title(titER)
+
+            if saveImages == True:
+                savename4 = savedImg + 'ER_Ca_time'
+                plt.savefig(savename4,dpi=300,format='png')
+
+            plt.show(block=False)
+
+    figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=False)
+    axV.set_title('Final Vmem')
+    axV.set_xlabel('Spatial distance [um]')
+    axV.set_ylabel('Spatial distance [um]')
+    cbV.set_label('Voltage mV')
+
+    if saveImages == True:
+        savename5 = savedImg + 'final_Vmem_2D'
+        plt.savefig(savename5,dpi=300,format='png')
+
+    plt.show(block=False)
+
+    if p.scheduled_options['IP3'] != 0:
+        figIP3, axIP3, cbIP3 = viz.plotPolyData(cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=False)
+        axIP3.set_title('Final IP3 concentration')
+        axIP3.set_xlabel('Spatial distance [um]')
+        axIP3.set_ylabel('Spatial distance [um]')
+        cbIP3.set_label('Concentration umol/L')
+
+        if saveImages == True:
+            savename6 = savedImg + 'final_IP3_2D'
+            plt.savefig(savename6,dpi=300,format='png')
+
+        plt.show(block=False)
+
+    if p.voltage_dye == 1:
+        figVdye, axVdye, cbVdye = viz.plotPolyData(cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=False)
+        axVdye.set_title('Final voltage-sensitive dye')
+        axVdye.set_xlabel('Spatial distance [um]')
+        axVdye.set_ylabel('Spatial distance [um]')
+        cbVdye.set_label('Concentration umol/L')
+
+        if saveImages == True:
+            savename7 = savedImg + 'final_dye_2D'
+            plt.savefig(savename7,dpi=300,format='png')
+
+        plt.show(block=False)
+
+    if p.ions_dict['Ca'] == 1:
+        figCa, axCa, cbCa = viz.plotPolyData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells=False)
+        axCa.set_title('Final cytosolic Ca2+')
+        axCa.set_xlabel('Spatial distance [um]')
+        axCa.set_ylabel('Spatial distance [um]')
+        cbCa.set_label('Concentration nmol/L')
+
+        if saveImages == True:
+            savename8 = savedImg + 'final_Ca_2D'
+            plt.savefig(savename8,dpi=300,format='png')
+
+        plt.show(block=False)
+
+    if p.scheduled_options['IP3'] != 0 and animate == 1:
+        IP3plotting = np.asarray(sim.cIP3_time)
+        IP3plotting = np.multiply(IP3plotting,1e3)
+        viz.AnimateCellData(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
+            save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
+
+    if p.voltage_dye == 1 and animate ==1:
+        Dyeplotting = np.asarray(sim.cDye_time)
+        Dyeplotting = np.multiply(Dyeplotting,1e3)
+        viz.AnimateCellData(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+            save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'dye_')
+
+    if p.ions_dict['Ca'] == 1 and animate == 1:
+        tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
+        viz.AnimateCellData(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
+            ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
+
+    if animate == 1:
+        viz.AnimateGJData(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem',
+            saveFile = 'vmem_')
+
 boo = SimRunner()
-boo.simulate()
+boo.loadSim()
 

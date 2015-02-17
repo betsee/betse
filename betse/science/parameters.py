@@ -22,13 +22,13 @@ class Parameters(object):
     """
     def __init__(self):
 
-        self.time_profile = 'simulate_somatic'   # choice of 'initialize' or 'simulate_neural' or 'simulate_somatic'
+        self.time_profile = 'simulate_somatic'   # choice of 'initialize' or 'simulate_excitable' or 'simulate_somatic'
 
         if self.time_profile == 'simulate_somatic':
 
             self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 2*60         # world time to end the simulation
-            self.resamp = 0.5         # time to resample in world time
+            self.sim_end = 20         # world time to end the simulation
+            self.resamp = 5e-2         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
@@ -36,7 +36,7 @@ class Parameters(object):
 
             self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
 
-        if self.time_profile == 'simulate_neural':
+        if self.time_profile == 'simulate_excitable':
 
             self.dt = 5e-5    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
             self.sim_end = 0.5         # world time to end the simulation
@@ -52,7 +52,7 @@ class Parameters(object):
         elif self.time_profile == 'initialize':
 
             self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.init_end = 10*60      # world time to end the initialization simulation time [s]
+            self.init_end = 2*60      # world time to end the initialization simulation time [s]
             self.resamp = 1.0         # time to resample in world time
 
             self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
@@ -87,10 +87,18 @@ class Parameters(object):
         self.ion_profile = 'animal'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 1
+        self.Ca_dyn = 0
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = 0
+
+        # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
+        self.voltage_dye = 1
+
+        self.Dm_Dye = 1.0e-12  # voltage sensitive dye membrane diffusion coefficient [m2/s]
+        self.Do_Dye = 1.0e-9   # gap junction diffusion constant of voltage-sensitive dye [m2/s]
+        self.z_Dye = 1         # charge valence of dye
+        self.cDye_to = 1.0e-3    # initial concentration of voltage sensitive dye in environment [mol/m3]
 
     #..................................................................................................................
         # default membrane diffusion constants: easy control of cell's base resting potential
@@ -104,26 +112,30 @@ class Parameters(object):
 
         #.............................Scheduled Interventions..........................................................
 
+        # Schedule global changes to all cells in the collective:
+        self.global_options = {'K_env':0,'Cl_env':0,'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,
+            'HKATP_block':0}
+        # K_env, Cl_env, Na_env, T_change: [time on, time off, rate change, multiplier]
+        # gj_block, NaKATP_block,HKATP_block, CaATP_block: [time on, time off, rate change]
+
         # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
         self.scheduled_targets = [0]    # targets do not affect: gj_block,T_change, NaKATP_block, HKATP_block,CaATP_block,CaER_block
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'CaATP_block':0,'CaER_block':0,
-            'Dm_er':0,'IP3':[30,35,1,1e-3]}
-        # self.globalchange_options = {'gj_block':0,'T_change':0,'NaKATP_block':0,'HKATP_block':0,'CaATP_block':0,'CaER_block':0}
+            'IP3':[3,10,2,1e-4]}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = 'all'
+        self.gated_targets = 'none'
         # self.vg_options specifications list for voltage gated ion channel options:
         vgNa = [1.0e-15,-50e-3,10e-3,-55e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
         vgK = [1.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
         vgCa = [1.0e-15,-40e-3,10e-3,0.75e-3,3.0e-5]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':cagK}
+        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
         self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
 
@@ -131,25 +143,23 @@ class Parameters(object):
 
         ERstore_dyn = [5e-15,0.8,0.1]   # base dynamics of endoplasmic reticulum Ca2+ store:
                                         # [max diffusion m2/s, full Ca thresh mol/m3, empty Ca thresh mol/m3]
-        #ca_reg = [400e-6,80e-6]   # central concentration for Ca-act-Ca release [Ca mid, Ca width]
-        ca_reg =[]                  # leave this empty to have no Ca-influence on the dynamics
+        ca_reg = []   # central concentration for Ca-act-Ca release [Ca mid, Ca width]
+        #ca_reg =[]                  # leave this empty to have no Ca-influence on the dynamics
 
         ip3_reg = [1e-3,3.4]   # max Ca2+ diffusion constant through ER membrane, IP3 half-max, Hill coefficient
         #ip3_reg = []            # leave this empty to have no ip3-influence on the dynamics
 
 
         cicr = [ERstore_dyn,ca_reg,ip3_reg]
-        self.Ca_dyn_options = {'CICR':cicr, 'IP3':0}
+        self.Ca_dyn_options = {'CICR':cicr}
 
-        self.Dm_IP3 = 1.0e-12   # membrane diffusion constant of IP3
-        self.Do_IP3 = 1.0e-7    # IP3 free diffusion constant [m2/s]
+        self.Dm_IP3 = 1.0e-15   # membrane diffusion constant of IP3
+        self.Do_IP3 = 1.0e-9    # IP3 free diffusion constant [m2/s]
         self.z_IP3 = -3        # charge valence of IP3
-        self.cIP3_to = 0.0     # initial value of IP3 in all cells
+        self.cIP3_to = 1e-6     # initial value of IP3 in all cells
+        self.cIP3_to_env = 1e-6  # initial value of IP3 in environment
 
-        self.Dm_dye = 1.0e-12  # voltage sensitive dye membrane diffusion coefficient [m2/s]
-        self.Do_dye = 1.0e-9   # gap junction diffusion constant of voltage-sensitive dye [m2/s]
-        self.z_dye = 1         # charge valence of dye
-        self.cDye_to = 0.0    # initial concentration of voltage sensitive dye in environment
+
 
         #..........................PLOTTING OPTIONS.....................................................................
 
@@ -157,13 +167,21 @@ class Parameters(object):
         self.default_cm = cm.coolwarm   # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
                                         # http://matplotlib.org/examples/color/colormaps_reference.html
 
+        self.createAnimations = True   # create animations
+
+        self.enumerate_cells = True    # number cells on the static 2D maps with their simulation index
+        self.plot_cell = 0             # State the cell index to use for single-cell time plots
+        self.autosave = True           # autosave images to a results directory in the simulation folder
+        self.saveAnimations = False    # save animations as png sequences in animation-specific folders
+
+
         # ........................Rarely changed constants and calculations.............................................
 
         # default free diffusion constants (cytoplasmic)
         self.Do_Na = 1.33e-9      # free diffusion constant sodium [m2/s]
         self.Do_K = 1.96e-9      # free diffusion constant potassium [m2/s]
         self.Do_Cl = 2.03e-9     # free diffusion constant chloride [m2/s]
-        self.Do_Ca = 1.5e-11     # free diffusion constant calcium [m2/s]
+        self.Do_Ca = 1.5e-10     # free diffusion constant calcium [m2/s]
         self.Do_H = 2.5e-9      # free diffusion constant hydrogen [m2/s]
         self.Do_M = 1.0e-9     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
@@ -178,7 +196,7 @@ class Parameters(object):
         self.halfmax_Ca = 12
         self.slope_Ca = 24
 
-        self.alpha_HK = 0.5e-13  # pump rate for the H-K-ATPase
+        self.alpha_HK = 1.0e-13  # pump rate for the H-K-ATPase
         self.halfmax_HK = 12
         self.slope_HK = 24
 
