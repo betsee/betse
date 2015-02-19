@@ -57,66 +57,6 @@ This path is operating system-specific as follows:
 .. _XDG Base Directory Specification: http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 '''
 
-# ....................{ INITIALIZATION                     }....................
-def __init__():
-    '''
-    Initialize constants whose definitions depend on conditional runtime state.
-
-    To support caller-specific exception handling, this function does *not*
-    validate such constants (e.g., by creating non-existent directories). See
-    `paths.init()` for such functionality.
-    '''
-    # Declare such constants to be globals, permitting their modification below.
-    global DATA_DIRNAME, DOT_DIRNAME
-
-    # Relative path of the top-level data directory.
-    data_dirname_main = 'data'
-
-    # Initialize the absolute path of the data directory.
-    #
-    # If the current application is a PyInstaller-frozen executable binary, the
-    # bootloader for such binary will have added the PyInstaller-specific private
-    # attribute "_MEIPASS" to the "sys" module, providing the absolute path of the
-    # temporary directory containing all application data resources.
-    if hasattr(sys, '_MEIPASS'):
-        #FIXME: Is this right? Verify with additional online research.
-        DATA_DIRNAME = path.join(sys._MEIPASS, data_dirname_main)
-    #FIXME: This *OBVIOUSLY* isn't right. We appear to have two options,
-    #depending on how "betse" was installed:
-    #
-    #* If via "setup.py install", we should probably use "pkg_resources" to
-    #  obtain the data directory.
-    #* Else, assume it was via "setup.py symlink", in which case the data
-    #  directory can probably be located in one of two ways (in order of
-    #  inreasing complexity):
-    #  * Use the "__file__" attribute of the current module to obtain the
-    #    absolute path of such module. Given that, we can then obtain the
-    #    absolute path of the data directory via path munging and the
-    #    os.path.abspath(pathname) function, converting relative to absolute
-    #    paths. (Double-check that, of course.)
-    #  * Manually follow the symlink at
-    #    "/usr/lib64/python3.3/site-packages/betse". Yeah. That seems horrid.
-    #    Happily, the former approach should work.
-    else:
-        DATA_DIRNAME = data_dirname_main
-
-    # Initialize the absolute path of the dot directory.
-    #
-    # If the current system is OS X, set such directory accordingly.
-    if systems.is_osx():
-        DOT_DIRNAME = path.join(
-            HOME_DIRNAME,
-            'Library', 'Application Support',
-            metadata.SCRIPT_NAME_CLI
-        )
-    # If the current system is Windows, set such directory accordingly.
-    elif systems.is_windows():
-        DOT_DIRNAME = path.join(environ['APPDATA'], metadata.NAME)
-    #FIXME: Explicitly assert POSIX compatibility here.
-    # Else, assume the current system is POSIX-compatible.
-    else:
-        DOT_DIRNAME = path.join(HOME_DIRNAME, '.' + metadata.SCRIPT_NAME_CLI)
-
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_found(dirname: str) -> None:
     '''
@@ -183,6 +123,68 @@ def make_parent_unless_found(*pathnames) -> None:
     '''
     for pathname in pathnames:
         make_unless_found(get_dirname(pathname))
+
+# ....................{ INITIALIZATION                     }....................
+def __init__():
+    '''
+    Initialize constants whose definitions depend on conditional runtime state.
+
+    To support caller-specific exception handling, this function does *not*
+    validate such constants (e.g., by creating non-existent directories). See
+    `paths.init()` for such functionality.
+    '''
+    # Declare such constants to be globals, permitting their modification below.
+    global DATA_DIRNAME, DOT_DIRNAME
+
+    # Relative path of the top-level data directory.
+    data_dirname_main = 'data'
+
+    # Initialize the absolute path of the data directory.
+    #
+    # If the current application is a PyInstaller-frozen executable binary, the
+    # bootloader for such binary will have added the PyInstaller-specific private
+    # attribute "_MEIPASS" to the "sys" module, providing the absolute path of the
+    # temporary directory containing all application data resources.
+    if hasattr(sys, '_MEIPASS'):
+        #FIXME: Is this right? Verify with additional online research.
+        DATA_DIRNAME = path.join(sys._MEIPASS, data_dirname_main)
+    #FIXME: This *OBVIOUSLY* isn't right. We appear to have two options,
+    #depending on how "betse" was installed:
+    #
+    #* If via "setup.py install", we should probably use "pkg_resources" to
+    #  obtain the data directory.
+    #* Else, assume it was via "setup.py symlink", in which case the data
+    #  directory can probably be located in one of two ways (in order of
+    #  inreasing complexity):
+    #  * Use the "__file__" attribute of the current module to obtain the
+    #    absolute path of such module. Given that, we can then obtain the
+    #    absolute path of the data directory via path munging and the
+    #    os.path.abspath(pathname) function, converting relative to absolute
+    #    paths. (Double-check that, of course.)
+    #  * Manually follow the symlink at
+    #    "/usr/lib64/python3.3/site-packages/betse". Yeah. That seems horrid.
+    #    Happily, the former approach should work.
+    else:
+        DATA_DIRNAME = data_dirname_main
+
+    # Initialize the absolute path of the dot directory.
+    #
+    # If the current system is OS X, set such directory accordingly.
+    if systems.is_osx():
+        DOT_DIRNAME = path.join(
+            HOME_DIRNAME,
+            'Library', 'Application Support',
+            metadata.SCRIPT_NAME_CLI
+        )
+    # If the current system is Windows, set such directory accordingly.
+    elif systems.is_windows():
+        DOT_DIRNAME = path.join(environ['APPDATA'], metadata.NAME)
+    #FIXME: Explicitly assert POSIX compatibility here.
+    # Else, assume the current system is POSIX-compatible.
+    else:
+        DOT_DIRNAME = path.join(HOME_DIRNAME, '.' + metadata.SCRIPT_NAME_CLI)
+
+__init__()
 
 # --------------------( WASTELANDS                         )--------------------
 # from betse.util.path import paths
