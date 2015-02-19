@@ -5,18 +5,13 @@
 
 '''Abstract command line interface (CLI).'''
 
-#FIXME: Can PyInstaller be made to embed setuptools-specific eggs in the
-#executable binaries it produces? If not, we'll probably want to avoid even
-#calling die_unless_satisfied_all(), as such function is a noop unless such eggs
-#are available at runtime.
-
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import metadata
 from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
-from betse.util.path import dirs
+from betse.util.path import paths
 from betse.util.python import dependencies
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
@@ -82,8 +77,8 @@ class CLI(metaclass = ABCMeta):
             values failure.
         '''
         try:
-            # Make betse's top-level dot directory if not found.
-            dirs.make_unless_found(dirs.DOT_DIR)
+            # Validate core directories and files required at program startup.
+            paths.init()
 
             # Configure logging *AFTER* making such directory, as such logging
             # writes to logfiles in such directory.
@@ -301,6 +296,11 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Can PyInstaller be made to embed setuptools-specific eggs in the
+#executable binaries it produces? If not, we'll probably want to avoid even
+#calling die_unless_satisfied_all(), as such function is a noop unless such eggs
+#are available at runtime.
+
 # from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
             # Print the default values of options in help output.
     # def _configure_arg_parsing(self, arg_parser: ArgumentParser):

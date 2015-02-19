@@ -22,6 +22,31 @@ def get_basename(pathname: str) -> str:
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     return path.basename(pathname)
 
+# ....................{ MAKERS                             }....................
+def init() -> None:
+    '''
+    Validate core directories and files required at program startup.
+
+    This function automatically creates non-existent paths where feasible and
+    otherwise raises exceptions on such paths *not* being found or *not* having
+    correct metadata (e.g., permissions).
+
+    Such paths are required by both the CLI and GUI interfaces for `betse`. To
+    support caller-specific exception handling, this function *must* be manually
+    called sufficiently early in such startup.
+    '''
+    # Defer such imports to avoid circular dependencies.
+    from betse.util.path import dirs
+
+    #FIXME: Uncomment this after we ascertain the correct path for DATA_DIRNAME,
+    #which we should probably get around to!
+
+    # Make betse's top-level dot directory if not found.
+    # dirs.die_unless_found(dirs.DATA_DIRNAME)
+
+    # Make betse's top-level dot directory if not found.
+    dirs.make_unless_found(dirs.DOT_DIRNAME)
+
 # ....................{ REMOVERS                           }....................
 # def remove(filename: str) -> None:
 #     '''

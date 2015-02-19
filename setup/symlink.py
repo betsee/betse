@@ -8,60 +8,23 @@
 '''
 
 # ....................{ IMPORTS                            }....................
-from setup import error
+from setup import util
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
 from setuptools.command.install_scripts import install_scripts
 from distutils.errors import DistutilsFileError
+from os import path
 import os
 
 # ....................{ COMMANDS                           }....................
-def add_commands(setup_options: dict) -> None:
+def add_setup_commands(setup_options: dict) -> None:
     '''
     Add `symlink` commands to the passed dictionary of `setuptools` options.
     '''
-    assert isinstance(setup_options, dict),\
-        '"{}" not a dictionary.'.format(setup_options)
+    util.add_setup_command_classes(setup_options,
+        symlink, symlink_lib, symlink_scripts, unsymlink)
 
-    # For the name of each command class to be registered as a new command...
-    for command_class_name in (
-        'symlink', 'symlink_lib', 'symlink_scripts', 'unsymlink'):
-        # Class object for the class with such name.
-        command_class = globals()[command_class_name]
-
-        # Register such command.
-        setup_options['cmdclass'][command_class_name] = command_class
-
-        # Expose the passed dictionary of "setuptools" options to such class by
-        # adding a new private class field "_setup_options" to such class. While
-        # merely passing such dictionary to instances of such classes would be
-        # obviously preferable, setuptools and hence setuputils requires commands
-        # be specified as uninstantiated classes rather than instances. Hence,
-        # the current approach.
-        command_class._setup_options = setup_options
-
-# ....................{ CLASSES ~ uninstall                }....................
-class unsymlink(install):
-    '''
-    Editably uninstall (e.g., in a symbolically linked manner) `betse` from
-    the active Python 3 interpreter.
-    '''
-
-    def run(self):
-        '''Run the current command and all subcommands thereof.'''
-        # If the current operating system is *NOT* POSIX-compatible, such system
-        # does *NOT* provide conventional symbolic links. Raise an exception.
-        error.die_if_os_non_posix()
-
-        # Absolute path of such symbolic link.
-        symlink_filename = os.path.join(
-            self.install_lib,
-            self._setup_options['name'])
-
-        # Remove such link.
-        remove_symlink(symlink_filename)
-
-# ....................{ CLASSES ~ install                  }....................
+# ....................{ INSTALLERS                         }....................
 class symlink(install):
     '''
     Editably install (e.g., in a symbolically linked manner) `betse` into the
@@ -87,7 +50,7 @@ class symlink(install):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is *NOT* POSIX-compatible, such system
         # does *NOT* provide conventional symbolic links. Raise an exception.
-        error.die_if_os_non_posix()
+        util.die_if_os_non_posix()
 
         # Run all subcommands.
         for subcommand_name in self.get_sub_commands():
@@ -105,27 +68,25 @@ class symlink_lib(install_lib):
         Default undefined command-specific options to the options passed to the
         current parent command if any (e.g., `symlink`).
         '''
-        # Copy the "install_dir" attribute from the existing "install_lib"
-        # attribute of a temporarily instantiated "symlink" object.
-        #
-        # Welcome to setuptools hell.
+        # Copy attributes from a temporarily instantiated "symlink" object into
+        # the current object under different attribute names.
         self.set_undefined_options(
             'symlink', ('install_lib', 'install_dir'))
 
     def run(self):
-        error.die_if_os_non_posix()
+        util.die_if_os_non_posix()
 
         # Absolute path of betse's top-level Python package in the current
         # directory.
-        package_dirname = os.path.join(os.getcwd(), self._setup_options['name'])
+        package_dirname = path.join(os.getcwd(), self._setup_options['name'])
 
         # Absolute path of such symbolic link.
-        symlink_filename = os.path.join(
+        symlink_filename = path.join(
             self.install_dir,
             self._setup_options['name'])
 
         # If such link currently exists, remove such link.
-        if os.path.islink(symlink_filename):
+        if path.islink(symlink_filename):
             remove_symlink(symlink_filename)
 
         # (Re)create such link.
@@ -144,6 +105,8 @@ class symlink_scripts(install_scripts):
         Default undefined command-specific options to the options passed to the
         current parent command if any (e.g., `symlink`).
         '''
+        # Copy attributes from a temporarily instantiated "symlink" object into
+        # the current object under different attribute names.
         self.set_undefined_options('build', ('build_scripts', 'build_dir'))
         self.set_undefined_options(
             'symlink',
@@ -151,6 +114,45 @@ class symlink_scripts(install_scripts):
             ('force', 'force'),
             ('skip_build', 'skip_build'),
         )
+
+# ....................{ UNINSTALLERS                       }....................
+class unsymlink(install):
+    '''
+    Editably uninstall (e.g., in a symbolically linked manner) `betse` from
+    the active Python 3 interpreter.
+    '''
+
+    def finalize_options(self):
+        '''
+        Default undefined command-specific options to the options passed to the
+        current parent command if any (e.g., `symlink`).
+        '''
+        # Copy attributes from a temporarily instantiated "symlink" object into
+        # the current object under different attribute names.
+        self.set_undefined_options(
+            'symlink',
+            ('install_lib', 'install_lib_dir'),
+            ('install_scripts', 'install_scripts_dir'),
+        )
+
+    #FIXME: Insufficient. This obviously needs to uninstall *ALL* previously
+    #symlinked scripts as well.
+
+    def run(self):
+        '''Run the current command and all subcommands thereof.'''
+        # If the current operating system is *NOT* POSIX-compatible, such system
+        # does *NOT* provide conventional symbolic links. Raise an exception.
+        util.die_if_os_non_posix()
+
+        # Remove such link.
+        remove_symlink(path.join(
+            self.install_lib_dir,
+            self._setup_options['name'],
+        ))
+
+        # Remove all script-specific symbolic links.
+        for script_basename, _, _ in util.entry_points(self):
+            remove_symlink(path.join(self.install_script_dir, script_basename))
 
 # ....................{ REMOVERS                           }....................
 def remove_symlink(filename: str) -> None:
@@ -162,18 +164,58 @@ def remove_symlink(filename: str) -> None:
     filename
         Absolute path of such link.
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-
-    # If such path is *NOT* a symbolic link, raise an exception.
-    if not os.path.islink(filename):
-        raise DistutilsFileError(
-            'Symbolic link "{}" not found.'.format(filename))
+    # If such path is *NOT* a symbolic link, fail.
+    util.die_unless_symlink(filename)
 
     # Remove such link.
     print('Removing symbolic link "{}".'.format(filename))
     os.unlink(filename)
 
 # --------------------( WASTELANDS                         )--------------------
+        # Absolute path of the library-specific symbolic link.
+        # symlink_filename = path.join(
+        #     self.install_lib_dir,
+        #     self._setup_options['name'])
+        #
+        # # Remove such link.
+        # remove_symlink(symlink_filename)
+    # def finalize_options(self):
+    #     '''
+    #     Default undefined command-specific options to the options passed to the
+    #     current parent command if any (e.g., `symlink`).
+    #     '''
+    #     # Copy the "install_dir" attribute from the existing "install_lib"
+    #     # attribute of a temporarily instantiated "symlink" object.
+    #     #
+    #     # Welcome to setuptools hell.
+    #     self.set_undefined_options(
+    #         'symlink',
+    #         ('install_lib', 'install_lib_dir'),
+    #         ('install_scripts', 'install_scripts_dir'),
+    #     )
+
+    #FUXME: Insufficient. This obviously needs to uninstall *ALL* previously
+    #symlinked scripts as well.
+    # assert isinstance(setup_options, dict),\
+    #     '"{}" not a dictionary.'.format(setup_options)
+    #
+    # # For the name of each command class to be registered as a new command...
+    # for command_class_name in (
+    #     'symlink', 'symlink_lib', 'symlink_scripts', 'unsymlink'):
+    #     # Class object for the class with such name.
+    #     command_class = globals()[command_class_name]
+    #
+    #     # Register such command.
+    #     setup_options['cmdclass'][command_class_name] = command_class
+    #
+    #     # Expose the passed dictionary of "setuptools" options to such class by
+    #     # adding a new private class field "_setup_options" to such class. While
+    #     # merely passing such dictionary to instances of such classes would be
+    #     # obviously preferable, setuptools and hence setuputils requires commands
+    #     # be specified as uninstantiated classes rather than instances. Hence,
+    #     # the current approach.
+    #     command_class._setup_options = setup_options
+
     # user_options = [('install-dir=', 'd', 'directory to install to'),]
     # '''List of command-specific options.'''
 
@@ -198,7 +240,7 @@ def remove_symlink(filename: str) -> None:
 #     string
 #         Absolute path of such link for subsequent caller manipulation.
 #     '''
-#     return os.path.join(
+#     return path.join(
 #         setuptools_command.install_lib,
 #         setuptools_command._setup_options['name'])
 

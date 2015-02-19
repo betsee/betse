@@ -10,7 +10,7 @@ from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter
 
 # ....................{ COMMANDS                           }....................
-def add_commands(setup_options: dict) -> None:
+def add_setup_commands(setup_options: dict) -> None:
     '''
     Add wrapper script-specific commands to the passed dictionary of
     `setuptools` options.
