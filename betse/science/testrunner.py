@@ -122,13 +122,14 @@ def plots4Init(plot_cell,cells,sim,p,saveImages=False):
     axV.set_ylabel('Spatial distance [um]')
     cbV.set_label('Voltage mV')
 
+
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if saveImages == True:
-        images_path = p.cache_path + '/results'
-        betse_cache_dir = os.path.expanduser(images_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
-        savedImg = os.path.join(betse_cache_dir, 'fig_')
+        images_path = p.sim_results
+        image_cache_dir = os.path.expanduser(images_path)
+        os.makedirs(image_cache_dir, exist_ok=True)
+        savedImg = os.path.join(image_cache_dir, 'fig_')
 
     figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
          ax=None,lncolor='g',ionname='Na+')
@@ -251,6 +252,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         viz.AnimateGJData(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem',
             saveFile = 'vmem_')
 
+    if p.exportData == True:
+        viz.exportData(cells, sim, p)
+
 boo = SimRunner()
-boo.loadSim()
+boo.simulate()
 

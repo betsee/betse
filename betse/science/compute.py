@@ -74,9 +74,12 @@ class Simulator(object):
         betse_cache_dir = os.path.expanduser(p.cache_path)
         os.makedirs(betse_cache_dir, exist_ok=True)
 
+        sim_cache_dir = os.path.expanduser(p.sim_path)
+        os.makedirs(sim_cache_dir, exist_ok=True)
+
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, 'saved_init.btse')
-        self.savedSim = os.path.join(betse_cache_dir, 'saved_sim.btse')
+        self.savedSim = os.path.join(sim_cache_dir, 'saved_sim.btse')
 
     def baseInit(self,cells,p):
         """
@@ -795,7 +798,7 @@ class Simulator(object):
 
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
-        self.envcc_time = [] # data array holding environmental concentrations at time points
+        self.cc_env_time = [] # data array holding environmental concentrations at time points
 
         self.vm_time = []  # data array holding voltage at time points
 
@@ -989,7 +992,7 @@ class Simulator(object):
                 self.time.append(t)
 
                 self.cc_time.append(concs)
-                self.envcc_time.append(envsc)
+                self.cc_env_time.append(envsc)
                 self.vm_time.append(vmm)
 
                 self.fgj_time.append(flxs)
@@ -1048,13 +1051,6 @@ class Simulator(object):
         IP3_cell_final = np.mean(self.cIP3)
         print('Final IP3 concentration in the environment: ',np.round(IP3_env_final,6), ' mmol/L')
         print('Final average IP3 concentration in cells: ', np.round(IP3_cell_final,6), ' mmol/L')
-
-        # molarity_cells = get_molarity(self.cc_time[-1],p)
-        # molarity_env = get_molarity(self.envcc_time[-1],p)
-        # osmotic_cells = molarity_cells*p.R*self.T
-        # osmotic_env = molarity_env*p.R*self.T
-        # pressure_cells = np.round((np.mean(osmotic_cells - osmotic_env)/1000),2)
-        # print('cell osmotic pressure',pressure_cells, ' kPa')
 
         if p.Ca_dyn == 1:
 

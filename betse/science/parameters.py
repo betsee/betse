@@ -63,8 +63,8 @@ class Parameters(object):
 
         # File saving
         self.cache_path = os.path.expanduser("~/.betse/cache/baseInit/")  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_file = os.path.expanduser("~/.betse/cache/baseInit/sim_1.btse") # file to save unique simulations
-        self.sim_images = os.path.expanduser("~/.betse/cache/baseInit/results") # folder to auto-save results (graphs, images, animations)
+        self.sim_path = os.path.expanduser("~/.betse/cache/baseInit/sim1") # folder to save unique simulation and data linked to init
+        self.sim_results = os.path.expanduser("~/.betse/cache/baseInit/sim1/results") # folder to auto-save results (graphs, images, animations)
 
         # Geometric constants and factors
         self.wsx = 100e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
@@ -161,7 +161,7 @@ class Parameters(object):
 
 
 
-        #..........................PLOTTING OPTIONS.....................................................................
+        #..........................PLOTTING OPTIONS and OUTPUT..........................................................
 
          # Default colormap
         self.default_cm = cm.coolwarm   # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
@@ -172,7 +172,9 @@ class Parameters(object):
         self.enumerate_cells = True    # number cells on the static 2D maps with their simulation index
         self.plot_cell = 0             # State the cell index to use for single-cell time plots
         self.autosave = True           # autosave images to a results directory in the simulation folder
-        self.saveAnimations = False    # save animations as png sequences in animation-specific folders
+        self.saveAnimations = True    # save animations as png sequences in animation-specific folders
+
+        self.exportData = True        # export all stored data for the plot_cell to a csv text file
 
 
         # ........................Rarely changed constants and calculations.............................................

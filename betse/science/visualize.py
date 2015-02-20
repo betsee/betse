@@ -36,7 +36,7 @@ class AnimateCellData(object):
 
         if self.save == True:
             # Make the BETSE-specific cache directory if not found.
-            images_path = p.cache_path + saveFolder
+            images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -93,7 +93,6 @@ class AnimateCellData(object):
             savename = self.savedAni + str(i)
             plt.savefig(savename,dpi=96,format='png')
 
-
 class AnimateGJData(object):
     """
     Animate the gap junction open state as a function of time.
@@ -119,7 +118,7 @@ class AnimateGJData(object):
 
         if self.save == True:
             # Make the BETSE-specific cache directory if not found.
-            images_path = p.cache_path + saveFolder
+            images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -188,7 +187,6 @@ class AnimateGJData(object):
             savename = self.savedAni + str(i)
             plt.savefig(savename,dpi=96,format='png')
 
-
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
     tvect_data=[x[celli]*1000 for x in simdata_time]
@@ -205,7 +203,6 @@ def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'
     #ax.axis('equal')
 
     return fig, ax
-
 
 def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
 
@@ -233,7 +230,6 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
     # ax.axis([xmin,xmax,ymin,ymax])
 
     return fig, ax
-
 
 def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
 
@@ -634,4 +630,75 @@ def plotVects(cells, fig=None, ax=None):
         ax.autoscale_view(tight=True)
 
         return fig, ax
+
+def exportData(cells,sim,p):
+
+    results_path = p.sim_results
+    os.makedirs(results_path, exist_ok=True)
+    savedData = os.path.join(results_path, 'ExportedData.csv')
+
+    cc_cell = []
+    cc_env = []
+
+    ci = p.plot_cell  # index of cell to get time data for
+
+    # create the header, first entry will be time:
+    headr = 'time_s'
+
+    # next entry will be Vm:
+    headr = headr + ',' + 'Vmem_mV'
+
+    # create the header starting with cell concentrations
+    for i in range(0,len(sim.ionlabel)):
+        label = sim.ionlabel[i]
+        headr = headr + ',' + 'cell_' + label + '_mmol/L'
+        cc_m = [arr[i][ci] for arr in sim.cc_time]
+        cc_m = np.asarray(cc_m)
+        cc_cell.append(cc_m)
+
+    # create the header moving on to env concentrations
+    for i in range(0,len(sim.ionlabel)):
+        label = sim.ionlabel[i]
+        headr = headr + ',' + 'env_' + label + '_mmol/L'
+        cc_m2 = [arr[i][ci] for arr in sim.cc_env_time]
+        cc_m2 = np.asarray(cc_m2)
+        cc_env.append(cc_m2)
+
+    vm = [arr[ci]*1000 for arr in sim.vm_time]
+    vm = np.asarray(vm)
+    t = np.asarray(sim.time)
+    cc_cell = np.asarray(cc_cell)
+    cc_env = np.asarray(cc_env)
+
+    IP3_time = [arr[ci] for arr in sim.cIP3_time]
+    IP3_time = np.asarray(IP3_time)
+    headr = headr + ',' + 'cell_cIP3_mmol/L'
+
+    if p.voltage_dye ==1:
+        dye_time = [arr[ci] for arr in sim.cDye_time]
+        dye_time = np.asarray(dye_time)
+        headr = headr + ',' + 'cell_dye_mmol/L'
+    else:
+        dye_time = np.zeros(len(sim.time))
+        headr = headr + ',' + 'cell_dye_mmol/L'
+
+    if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
+        Ca_er = [arr[sim.iCa][ci] for arr in sim.cc_er_time]
+        Ca_er = np.asarray(Ca_er)
+        headr = headr + ',' + 'ER_Ca2+_mmol/L'
+    else:
+        Ca_er = np.zeros(len(sim.time))
+        headr = headr + ',' + 'CaER_mmol/L'
+
+
+    dataM = np.column_stack((t,vm,cc_cell.T, cc_env.T,IP3_time,dye_time,Ca_er))
+
+    np.savetxt(savedData,dataM,delimiter = ',',header = headr)
+
+def export2dData(simdata,cells,p):
+    pass
+
+
+
+
 
