@@ -6,6 +6,8 @@
 '''`betse`-specific script writer for `setuptools`.'''
 
 # ....................{ IMPORTS                            }....................
+from pkg_resources import Distribution
+from setup import util
 from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter
 
@@ -39,7 +41,8 @@ class ScriptWriterSimple(ScriptWriter):
 
     @classmethod
     def get_script_args(
-        cls, dist,
+        cls,
+        distribution: Distribution,
         executable = easy_install.sys_executable,
         wininst = False):
         '''
@@ -65,26 +68,28 @@ if __name__ == '__main__':
     # byte integer) to the calling shell as this script's exit status.
     sys.exit({entry_point_func}())
 """
+        for script_basename, script_type, entry_point in\
+            util.package_distribution_entry_points(distribution):
+            # Script contents, formatted according to such template.
+            script_text = script_template.format(
+                entry_point_module = entry_point.module_name,
+                entry_point_func = entry_point.attrs[0],
+            )
 
-        # For each type of script...
-        for type_ in 'console', 'gui':
-            script_group = type_ + '_scripts'
-
-            # For the basename and entry point of each script of such type...
-            for script_basename, entry_point in\
-                dist.get_entry_map(script_group).items():
-                # Script contents, formatted according to such template.
-                script_text = script_template.format(
-                    entry_point_module = entry_point.module_name,
-                    entry_point_func = entry_point.attrs[0],
-                )
-
-                # Yield a tuple containing such metadata to the caller.
-                for res in gen_class._get_script_args(
-                    type_, script_basename, script_shebang, script_text):
-                    yield res
+            # Yield a tuple containing such metadata to the caller.
+            for res in gen_class._get_script_args(
+                script_type, script_basename, script_shebang, script_text):
+                yield res
 
 # --------------------( WASTELANDS                         )--------------------
+        # # For each type of script...
+        # for type_ in 'console', 'gui':
+        #     script_group = type_ + '_scripts'
+        #
+        #     # For the basename and entry point of each script of such type...
+        #     for script_basename, entry_point in\
+        #         dist.get_entry_map(script_group).items():
+
                 # Entry point module and function split from such entry point
                 # (e.g., "betse.cli.cli:main").
                 # entry_point_module, entry_point_func = entry_point.split(':')

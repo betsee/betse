@@ -12,7 +12,6 @@ from setup import util
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
 from setuptools.command.install_scripts import install_scripts
-from distutils.errors import DistutilsFileError
 from os import path
 import os
 
@@ -32,6 +31,12 @@ class symlink(install):
 
     Unlike the default `develop` command, this command is suitable for
     system-wide installation.
+    '''
+
+    description =\
+        'install a symlink rather than copy of this package (for development)'
+    '''
+    Command description printed when running `./setup.py --help-commands`.
     '''
 
     sub_commands = [
@@ -63,6 +68,11 @@ class symlink_lib(install_lib):
     interpreter.
     '''
 
+    description = "install a symlink to this package's top-level module"
+    '''
+    Command description printed when running `./setup.py --help-commands`.
+    '''
+
     def finalize_options(self):
         '''
         Default undefined command-specific options to the options passed to the
@@ -86,8 +96,8 @@ class symlink_lib(install_lib):
             self._setup_options['name'])
 
         # If such link currently exists, remove such link.
-        if path.islink(symlink_filename):
-            remove_symlink(symlink_filename)
+        if util.is_symlink(symlink_filename):
+            util.remove_symlink(symlink_filename)
 
         # (Re)create such link.
         print('Symbolically linking "{}" to "{}".'.format(
@@ -98,6 +108,12 @@ class symlink_scripts(install_scripts):
     '''
     Install all scripts wrapping `betse`'s current editable installation,
     usually to a system-wide directory in the current `${PATH}`.
+    '''
+
+    description =\
+        'install scripts running this package without dependency checks'
+    '''
+    Command description printed when running `./setup.py --help-commands`.
     '''
 
     def finalize_options(self):
@@ -122,6 +138,26 @@ class unsymlink(install):
     the active Python 3 interpreter.
     '''
 
+    description =\
+        'uninstall all installed symbolic links and scripts for this package'
+    '''
+    Command description printed when running `./setup.py --help-commands`.
+    '''
+
+    def initialize_options(self):
+        '''
+        Declare option-specific attributes subsequently initialized by
+        `finalize_options()`.
+
+        If this function is *not* defined, the default implementation of this
+        method raises an inscrutable `distutils` exception. If such attributes
+        are *not* declared, the subsequent call to
+        `self.set_undefined_options()` raises an inscrutable `setuptools`
+        exception. (This is terrible. So much hate.)
+        '''
+        self.install_lib_dir = None
+        self.install_scripts_dir = None
+
     def finalize_options(self):
         '''
         Default undefined command-specific options to the options passed to the
@@ -131,12 +167,9 @@ class unsymlink(install):
         # the current object under different attribute names.
         self.set_undefined_options(
             'symlink',
-            ('install_lib', 'install_lib_dir'),
+            ('install_lib',     'install_lib_dir'),
             ('install_scripts', 'install_scripts_dir'),
         )
-
-    #FIXME: Insufficient. This obviously needs to uninstall *ALL* previously
-    #symlinked scripts as well.
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
@@ -144,34 +177,28 @@ class unsymlink(install):
         # does *NOT* provide conventional symbolic links. Raise an exception.
         util.die_if_os_non_posix()
 
-        # Remove such link.
-        remove_symlink(path.join(
+        # Remove the installed library symbolic link.
+        util.remove_symlink(path.join(
             self.install_lib_dir,
             self._setup_options['name'],
         ))
 
-        # Remove all script-specific symbolic links.
-        for script_basename, _, _ in util.entry_points(self):
-            remove_symlink(path.join(self.install_script_dir, script_basename))
-
-# ....................{ REMOVERS                           }....................
-def remove_symlink(filename: str) -> None:
-    '''
-    Remove the passed symbolic link.
-
-    Parameters
-    ----------
-    filename
-        Absolute path of such link.
-    '''
-    # If such path is *NOT* a symbolic link, fail.
-    util.die_unless_symlink(filename)
-
-    # Remove such link.
-    print('Removing symbolic link "{}".'.format(filename))
-    os.unlink(filename)
+        # Remove all installed scripts.
+        for script_basename, _, _ in util.command_entry_points(self):
+            util.remove_file(path.join(
+                self.install_scripts_dir, script_basename))
 
 # --------------------( WASTELANDS                         )--------------------
+        # Declare all attributes subsequently set by the call to
+        # self.set_undefined_options(). (Such method raises exceptions if such
+        # attributes have *NOT* been declared. This is rather terrible but par
+        # for the setuptools course.)
+        # Declare all attributes subsequently set by the call to
+        # self.set_undefined_options(). (Such method raises exceptions if such
+        # attributes have *NOT* been declared.)
+    #FUXME: Insufficient. This obviously needs to uninstall *ALL* previously
+    #symlinked scripts as well.
+
         # Absolute path of the library-specific symbolic link.
         # symlink_filename = path.join(
         #     self.install_lib_dir,

@@ -57,7 +57,7 @@
 # ....................{ IMPORTS                            }....................
 from os import path
 from setup import util
-from setuptools.cmd import Command
+from setuptools import Command
 
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(setup_options: dict) -> None:
@@ -83,12 +83,37 @@ class freeze_file(Command):
     * Under OS X, such files will be conventional ".app"-suffixed directories.
       (Of course, that's not a file. So sue us.)
     * Under Windows, such files will be conventional ".exe"-suffixed binaries.
+
+    Attributes
+    ----------
+    install_scripts_dir : str
+        Absolute path of the directory to which all wrapper scripts were
+        previously installed.
     '''
 
-    #FIXME: Does this actually work? If so, replicate to the other modules in
-    #this package as well.
+    description =\
+        'freeze all installed scripts to platform-specific executable files'
+    '''
+    Command description printed when running `./setup.py --help-commands`.
+    '''
 
-    description = 'freeze scripts to platform-specific executable binaries'
+    user_options = []
+    '''
+    List of 3-tuples specifying command-line options accepted by this command.
+    '''
+
+    def initialize_options(self):
+        '''
+        Declare option-specific attributes subsequently initialized by
+        `finalize_options()`.
+
+        If this function is *not* defined, the default implementation of this
+        method raises an inscrutable `distutils` exception. If such attributes
+        are *not* declared, the subsequent call to
+        `self.set_undefined_options()` raises an inscrutable `setuptools`
+        exception. (This is terrible. So much hate.)
+        '''
+        self.install_scripts_dir = None
 
     def finalize_options(self):
         '''
@@ -100,7 +125,7 @@ class freeze_file(Command):
         #
         # Why? Because setuptools.
         self.set_undefined_options(
-            'symlink', ('install_scripts', 'install_dir'))
+            'symlink', ('install_scripts', 'install_scripts_dir'))
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
@@ -120,40 +145,109 @@ class freeze_file(Command):
             )
 
         # Freeze each previously installed script wrapper.
-        for script_basename, script_type, _ in util.entry_points(self):
-            # Absolute path of such script.
-            script_filename = path.join(
-                self.install_script_dir, script_basename)
-            util.die_unless_file(
-                script_filename, (
-                    'Script "{}" not found. Consider first running either'
-                    '"sudo python3 setup.py install" or '
-                    '"sudo python3 setup.py symlink".'
-                ),
-            )
+        for script_basename, script_type, _ in util.command_entry_points(self):
+            # Basename of the PyInstaller ".spec" file converting such
+            # platform-independent script into a platform-specific executable.
+            # To ensure such file is recreated and reused in the same directory
+            # as the top-level "setup.py" script, such file's path is specified
+            # as a basename and hence relative to such directory.
+            script_spec_basename = '{}.spec'.format(script_basename)
 
-            #FIXME: If a ".spec" file exists, such file should be passed rather
-            #than such script's basename.
+            # If such ".spec" file exists, instruct PyInstaller to reuse rather
+            # than recreate such file, thus preserving manual edits made to such
+            # file following its prior creation.
+            if util.is_file(script_spec_basename):
+                print('Reusing spec file "{}".'.format(script_spec_basename))
 
-            # Freeze such script.
-            util.die_unless_command_succeeds(
-                'pyinstaller',
-                '--onefile',
+                # Freeze such script with such ".spec" file. Note that
+                # "pyinstaller" supports substantially command-line options
+                # under this mode of operation than when passed a Python script.
+                util.die_unless_command_succeeds(
+                    'pyinstaller',
 
-                # Overwrite existing output paths under the "dist/" subdirectory
-                # without confirmation, the default behaviour.
-                '--noconfirm',
+                    # Overwrite existing output paths under the "dist/" subdirectory
+                    # without confirmation, the default behaviour.
+                    '--noconfirm',
 
-                # If this is a console script, configure standard input and
-                # output for console handling; else, do *NOT* and, if the
-                # current operating system is OS X, generate an ".app"-suffixed
-                # application bundle rather than a customary executable.
-                '--console' if script_type == 'console' else '--windowed',
+                    script_spec_basename,
+                )
+            # Else, instruct PyInstaller to (re)create such ".spec" file.
+            else:
+                print('Generating spec file "{}".'.format(script_spec_basename))
 
-                script_filename,
-            )
+                # Absolute path of such script.
+                script_filename = path.join(
+                    self.install_scripts_dir, script_basename)
+                util.die_unless_file(
+                    script_filename, (
+                        'Script "{}" not found. Consider first running either'
+                        '"sudo python3 setup.py install" or '
+                        '"sudo python3 setup.py symlink".'
+                    ),
+                )
+
+                # Freeze such script without such ".spec" file.
+                util.die_unless_command_succeeds(
+                    'pyinstaller',
+                    '--onefile',
+
+                    # Overwrite existing output paths under the "dist/" subdirectory
+                    # without confirmation, the default behaviour.
+                    '--noconfirm',
+
+                    # If this is a console script, configure standard input and
+                    # output for console handling; else, do *NOT* and, if the
+                    # current operating system is OS X, generate an ".app"-suffixed
+                    # application bundle rather than a customary executable.
+                    '--console' if script_type == 'console' else '--windowed',
+
+                    script_filename,
+                )
 
 # --------------------( WASTELANDS                         )--------------------
+    #FUXME: Does this actually work? If so, replicate to the other modules in
+    #this package as well.
+
+            # Basename of the PyInstaller ".spec" file converting such
+            # platform-independent script into a platform-specific executable.
+            # Since such file is specific to both the basename of such script
+            # *AND* the type of the current operating system, such substrings
+            # are embedded in such filename.
+            # script_spec_basename = '{}.{}.spec'.format(
+            #     script_basename, util.get_os_type())
+
+                # # Basename of the currently generated spec file.
+                # script_spec_basename_current = '{}.spec'.format(script_basename)
+                #
+                # # Rename such file to have the operating system-specific
+                # # basename expected by the prior conditional (on the next
+                # # invocation of this setuptools command).
+                # #
+                # # Note that "pyinstaller" accepts an option "--name" permitting
+                # # the basename of such file to be specified prior to generating
+                # # such file. Unfortunately, such option *ALSO* specifies the
+                # # basename of the generated executable. Since we only
+                # util.move_file(
+                #     script_spec_basename_current, script_spec_basename)
+
+                #FUXME: If a ".spec" file exists, such file should be passed rather
+                #than such script's basename. Note that, when passing such file,
+                #most CLI options are ignored; of those we use below, only
+                #"--noconfirm" appears to still be respected.
+
+                    # path.basename(script_spec_basename))
+            # Absolute path of the PyInstaller ".spec" file converting such
+            # platform-independent script into a platform-specific executable.
+            # Since such file is specific to both the basename of such script
+            # *AND* the type of the current operating system, such substrings
+            # are embedded in such filename.
+            # script_spec_filename = path.join(
+            #     script_basename, util.get_os_type()
+            # )
+
+            # util.output_sans_newline(
+            #     'Searching for existing spec file "{}"... '.format(
+            #         path.basename(script_spec_filename)))
 #".app"-suffixed
         # # List of shell words common to all "pyinstaller" commands called below.
         # command_words_base = [

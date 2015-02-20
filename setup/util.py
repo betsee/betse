@@ -7,14 +7,13 @@
 
 # ....................{ IMPORTS                            }....................
 from distutils.errors import (
-    DistutilsExecError, DistutilsFileError, DistutilsPlatformError
-)
+    DistutilsExecError, DistutilsFileError, DistutilsPlatformError)
 from os import path
-from setuptools.cmd import Command
-import os, shutil, subprocess, sys
+from setuptools import Command
+import os, pkg_resources, shutil, subprocess, sys
 
 # ....................{ EXCEPTIONS                         }....................
-def die_if_os_non_posix():
+def die_if_os_non_posix() -> None:
     '''
     Raise a fatal exception if the current operating system does `not` comply
     with POSIX standards (e.g., as required for symbolic link manipulation).
@@ -28,15 +27,12 @@ def die_if_os_non_posix():
         )
 
 # ....................{ EXCEPTIONS ~ path                  }....................
-def die_unless_file(filename: str, exception_message: str = None):
+def die_unless_file(filename: str, exception_message: str = None) -> None:
     '''
-    Raise a fatal exception unless the passed non-directory file exists.
+    Raise a fatal exception unless the passed non-special file exists.
     '''
-    assert isinstance(filename, str),\
-        '"{}" not a string.'.format(filename)
-
     # If such file is not found, fail.
-    if not path.isfile(filename):
+    if not is_file(filename):
         # If no such message was passed, default such message.
         if not exception_message:
              exception_message = 'File "{}" not found.'.format(filename)
@@ -46,14 +42,14 @@ def die_unless_file(filename: str, exception_message: str = None):
         # Raise such exception.
         raise DistutilsFileError(exception_message)
 
-def die_unless_symlink(filename: str):
+def die_unless_symlink(filename: str) -> None:
     '''
     Raise a fatal exception unless the passed symbolic link exists.
     '''
     assert isinstance(filename, str),\
         '"{}" not a string.'.format(filename)
 
-    if not path.islink(filename):
+    if not is_symlink(filename):
         raise DistutilsFileError(
             'Symbolic link "{}" not found.'.format(filename))
 
@@ -74,7 +70,7 @@ def die_unless_command_succeeds(*command_words) -> None:
     print('Running "{}".'.format(' '.join(command_words)))
 
     # Run such command.
-    subprocess.check_call(*command_words)
+    subprocess.check_call(command_words)
 
 def die_unless_command(command_basename: str, exception_message: str = None):
     '''
@@ -99,6 +95,31 @@ def die_unless_command(command_basename: str, exception_message: str = None):
         raise DistutilsExecError(exception_message)
 
 # ....................{ TESTERS                            }....................
+def is_file(filename: str) -> bool:
+    '''
+    True if the passed non-special file exists.
+
+    This function returns False if such file exists but is **special** (e.g.,
+    directory, device node, symbolic link).
+    '''
+    assert isinstance(filename, str),\
+        '"{}" not a string.'.format(filename)
+    return path.isfile(filename)
+
+def is_symlink(filename: str) -> bool:
+    '''
+    True if the passed symbolic link exists.
+
+    Caveats
+    ----------
+    This function returns False if the passed symbolic link exists but the
+    current user has insufficient privelages to follow such link. This may
+    constitute a bug in the underlying `path.islink()` function.
+    '''
+    assert isinstance(filename, str),\
+        '"{}" not a string.'.format(filename)
+    return path.islink(filename)
+
 def is_command(command_basename: str) -> bool:
     '''
     True if the external command with the passed basename exists.
@@ -117,14 +138,46 @@ def is_command(command_basename: str) -> bool:
             '"{}" contains a directory separator.'.format(command_basename))
 
     # Return whether such command is found.
-    return shutil.which(command_basename) is None
+    return shutil.which(command_basename) is not None
 
 # ....................{ OUTPUTTERS                         }....................
+def output_sans_newline(*strings) -> None:
+    '''
+    Print the passed strings to standard output *not* suffixed by a newline.
+
+    By default, printed strings are suffixed by a newline.
+    '''
+    print(*strings, end = '')
+
 def output_warning(*warnings) -> None:
     '''
-    Print the passed warning message(s) to standard error.
+    Print the passed warning messages to standard error.
     '''
     print('WARNING: ', *warnings, file = sys.stderr)
+
+# ....................{ REMOVERS                           }....................
+def remove_file(filename: str) -> None:
+    '''
+    Remove the passed non-special file.
+    '''
+    # If such file does *NOT* exist, fail.
+    die_unless_file(filename)
+
+    # Remove such link.
+    print('Removing file "{}".'.format(filename))
+    os.unlink(filename)
+
+def remove_symlink(filename: str) -> None:
+    '''
+    Remove the passed symbolic link.
+    '''
+    # If such link does *NOT* exist, fail.
+    die_unless_symlink(filename)
+
+    # Remove such link. Since symbolic links are special files, remove_file()
+    # fails when passed such link and hence must be reimplemented here.
+    print('Removing symbolic link "{}".'.format(filename))
+    os.unlink(filename)
 
 # ....................{ SETUPTOOLS                         }....................
 def add_setup_command_classes(setup_options: dict, *command_classes) -> None:
@@ -154,37 +207,121 @@ def add_setup_command_classes(setup_options: dict, *command_classes) -> None:
         # classes rather than instances. Thus, the current approach.
         command_class._setup_options = setup_options
 
-def entry_points(command_object: Command):
+# ....................{ SETUPTOOLS ~ entry points          }....................
+def command_entry_points(command: Command):
     '''
-    Generator yielding a 3-tuple describing each script installed by the
-    dictionary of `setuptools` options in the passed `setuptools` command
-    object.
+    Generator yielding a 3-tuple detailing each wrapper script installed for the
+    *Python distribution* (i.e., top-level package) identified by the passed
+    `setuptools` command.
 
-    Such dictionary of `setuptools` options *must* be a private attribute
-    `_setup_options` of such command object.
+    See Also
+    ----------
+    dist_entry_points
+        For further details on tuple contents.
+    '''
+    assert isinstance(command, Command),\
+        '"{}" not a setuptools command.'.format(command)
 
-    Such 3-tuple consists of each installed script's (in order):
+    # Make a "pkg_resources"-specific distribution from the passed command. Yes,
+    # this code was ripped wholesale from the run() method defined by module
+    # "setuptools.command.install_scripts". Yes, we don't know how it works.
+    # "Frankly, Mam, we don't give a damn."
+    #
+    # It should be noted that all commands have an attribute "distribution".
+    # Naturally, this is a setuptools-specific distribution that has literally
+    # *NOTHING* to do with "pkg_resources"-specific distribution.
+    #
+    # Die, setuptools. Die!
+    ei_cmd = command.get_finalized_command('egg_info')
+    distribution = pkg_resources.Distribution(
+        ei_cmd.egg_base,
+        pkg_resources.PathMetadata(ei_cmd.egg_base, ei_cmd.egg_info),
+        ei_cmd.egg_name,
+        ei_cmd.egg_version,
+    )
+
+    # Defer to the generator provided by such function.
+    yield from package_distribution_entry_points(distribution)
+
+def package_distribution_entry_points(distribution: pkg_resources.Distribution):
+    '''
+    Generator yielding a 3-tuple detailing each wrapper script installed for the
+    passed `pkg_resources`-specific distribution identifying a top-level Python
+    package.
+
+    Such 3-tuple consists of each such script's (in order):
 
     * Basename (e.g., `betse`).
     * Type string, guaranteed to be either:
       * `console` if such script is console-specific.
       * `gui` otherwise.
-    * `:`-delimited entry point (e.g., `betse.cli.clicli:main`).
+    * `EntryPoint` object, whose attributes specify the module to be imported
+      and function to be run by such script.
     '''
-    assert isinstance(command_object, Command),\
-        '"{}" not a setuptools command.'.format(command_object)
+    assert isinstance(distribution, pkg_resources.Distribution),\
+        '"{}" not a setuptools distribution.'.format(distribution)
 
-    for script_category, script_basename_to_entry_point\
-        in command_object._setup_options['entry_points']:
+    # Iterate script types.
+    for script_type in 'console', 'gui':
+        script_type_group = script_type + '_scripts'
+
+        # Yield such 3-tuple for each script of such type.
         for script_basename, entry_point in\
-            script_basename_to_entry_point.items():
-            # Strip the suffix "_scripts" from such category.
-            script_type = script_category[:-len('_scripts')]
-
-            # Yield such 3-tuple.
+            distribution.get_entry_map(script_type_group).items():
             yield script_basename, script_type, entry_point
 
 # --------------------( WASTELANDS                         )--------------------
+    # If such path is *NOT* a symbolic link, fail.
+    # Remove such link.
+    # print('Removing symbolic link "{}".'.format(filename))
+    # os.unlink(filename)
+
+# ....................{ GETTERS                            }....................
+# def get_os_type() -> bool:
+#     '''
+#     Get the type of the current operating system as a human-readable word.
+#
+#     Specifically, this is:
+#
+#     * `Darwin` if such system is Apple OS X.
+#     * `Linux` if such system is a Linux distribution.
+#     * `Windows` if such system is Microsoft Windows.
+#     '''
+#     return platform.system()
+
+    # # Iterate script types.
+    # for script_type in 'console', 'gui':
+    #     script_type_group = script_type + '_scripts'
+    #
+    #     # Yield such 3-tuple for each script of such type.
+    #     for script_basename, entry_point in\
+    #         command.dist.get_entry_map(script_type_group).items():
+    #         yield script_basename, script_type, entry_point
+    # * `:`-delimited entry point (e.g., `betse.cli.clicli:main`).
+#             for entry_point_spec in entry_point_specs:
+#                 # Basename (e.g., "betse") and entry point (e.g.,
+#                 # "betse.cli.cli:main") of such script split from such
+#                 # specification on "=", stripping all leading and trailing
+#                 # whitespace from such substrings after doing so.
+#                 script_basename, entry_point = entry_point_spec.split('=')
+#                 script_basename = script_basename.strip()
+#                 entry_point = entry_point.strip()
+
+    # for script_category, script_basename_to_entry_point\
+    #     in command_object._setup_options['entry_points'].items():
+    #     for script_basename, entry_point in\
+    #         script_basename_to_entry_point.items():
+    #         # Strip the suffix "_scripts" from such category.
+    #         script_type = script_category[:-len('_scripts')]
+    #
+    #         # Yield such 3-tuple.
+    #         yield script_basename, script_type, entry_point
+    #
+    # Generator yielding a 3-tuple detailing each script installed by the
+    # dictionary of `setuptools` options provided by the passed `setuptools`
+    # command's private attribute `_setup_options`.
+#Such dictionary *must* be a private attribute `_setup_options` of such
+    # command object.
     # assert isinstance(command_words, list),\
     #     '"{}" not a list.'.format(command_words)
 
