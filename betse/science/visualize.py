@@ -200,7 +200,7 @@ class AnimateGJData(object):
 
         con_segs = cells.cell_centres[cells.gap_jun_i]
         connects = p.um*np.asarray(con_segs)
-        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=3.0, zorder=5)
+        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=2.0, zorder=5)
         self.collection.set_clim(0.0,1.0)
         self.ax.add_collection(self.collection)
 

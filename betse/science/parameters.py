@@ -22,53 +22,20 @@ class Parameters(object):
     """
     def __init__(self):
 
-        self.time_profile = 'simulate_somatic'   # choice of 'initialize' or 'simulate_excitable' or 'simulate_somatic'
+        self.time_profile_init = 'initialize'        # choose time profile for initialization sim
+        self.time_profile_sim = 'simulate_excitable'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
-        if self.time_profile == 'simulate_somatic':
-
-            self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 5*60         # world time to end the simulation
-            self.resamp = 0.1         # time to resample in world time
-
-            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-            self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-
-        if self.time_profile == 'simulate_excitable':
-
-            self.dt = 5e-5    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 0.5         # world time to end the simulation
-            self.resamp = 5e-4         # time to resample in world time
-
-            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-            self.gj_radius = 5.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-
-
-        elif self.time_profile == 'initialize':
-
-            self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.init_end = 2*60      # world time to end the initialization simulation time [s]
-            self.resamp = 1.0         # time to resample in world time
-
-            self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-            self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+        self.time4init = 5*60      # set the time for the initialization sim [s]
+        self.time4sim = 0.5        # set total time for simulation [s]
 
         # File saving
-        self.cache_path = os.path.expanduser("~/.betse/cache/baseInit/")  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path = os.path.expanduser("~/.betse/cache/baseInit/sim2") # folder to save unique simulation and data linked to init
-        self.sim_results = os.path.expanduser("~/.betse/cache/baseInit/sim2/results") # folder to auto-save results (graphs, images, animations)
+        self.cache_path = os.path.expanduser("~/.betse/cache/exciteInit/")  # world, inits, and sims are saved and read to/from this directory.
+        self.sim_path = os.path.expanduser("~/.betse/cache/exciteInit/sim_vgNaK_ap_vgCa") # folder to save unique simulation and data linked to init
+        self.sim_results = os.path.expanduser("~/.betse/cache/exciteInit/sim_vgNaK_ap_vgCa/results") # folder to auto-save results (graphs, images, animations)
 
         # Geometric constants and factors
-        self.wsx = 100e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
-        self.wsy = 100e-6  # the y-dimension of the world space [m] recommended range 50 to 1000 um
+        self.wsx = 500e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
+        self.wsy = 500e-6  # the y-dimension of the world space [m] recommended range 50 to 1000 um
         self.rc = 5e-6  # radius of single cell
         self.cell_height = 5.0e-6  # the height of a cell in the z-direction (for volume and surface area calculations)
         self.cell_space = 26.0e-9  # the true cell-cell spacing (width of extracellular space)
@@ -84,16 +51,16 @@ class Parameters(object):
         self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
-        self.ion_profile = 'animal'
+        self.ion_profile = 'basic_Ca'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 1
+        self.Ca_dyn = 0
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = 0
 
         # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
-        self.voltage_dye = 1
+        self.voltage_dye = 0
 
         self.Dm_Dye = 1.0e-12  # voltage sensitive dye membrane diffusion coefficient [m2/s]
         self.Do_Dye = 1.0e-9   # gap junction diffusion constant of voltage-sensitive dye [m2/s]
@@ -122,20 +89,20 @@ class Parameters(object):
         self.scheduled_targets = [0]    # targets do not affect: gj_block,T_change, NaKATP_block, HKATP_block,CaATP_block,CaER_block
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
-        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'IP3':[5,15,5,2e-4]}
+        self.scheduled_options = {'Na_mem':[0.020,0.030,0.002,1000],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
+            'IP3':0}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         self.gated_targets = 'all'
         # self.vg_options specifications list for voltage gated ion channel options:
-        vgNa = [1.0e-15,-50e-3,10e-3,-55e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
+        vgNa = [1.0e-15,-50e-3,30e-3,-60e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
         vgK = [1.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
-        vgCa = [1.0e-15,-40e-3,10e-3,0.75e-3,3.0e-5]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
+        vgCa = [1.0e-13,-40e-3,40e-3,2.5e-3,3.0e-5]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':cagK}
+        self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':vgCa,'K_cag':0}
 
         self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
 
@@ -156,8 +123,8 @@ class Parameters(object):
         cicr = [ERstore_dyn,ca_reg,ip3_reg]
         self.Ca_dyn_options = {'CICR':cicr}
 
-        self.Dm_IP3 = 1.0e-17   # membrane diffusion constant of IP3
-        self.Do_IP3 = 5.0e-7    # IP3 free diffusion constant [m2/s]
+        self.Dm_IP3 = 1.0e-18   # membrane diffusion constant of IP3
+        self.Do_IP3 = 1.0e-5    # IP3 free diffusion constant [m2/s] (this is artificially high due to gj being artificially low)
         self.z_IP3 = -3        # charge valence of IP3
         self.cIP3_to = 1e-6     # initial value of IP3 in all cells
         self.cIP3_to_env = 1e-6  # initial value of IP3 in environment
@@ -174,7 +141,7 @@ class Parameters(object):
 
         self.plot_while_solving = True  # create a 2d plot of cell vmems while solution is taking place
 
-        self.enumerate_cells = True    # number cells on the static 2D maps with their simulation index (this can help
+        self.enumerate_cells = False    # number cells on the static 2D maps with their simulation index (this can help
                                         # decide on the value of self.plot_cell
 
         self.plot_cell = 0             # State the cell index to use for single-cell time plots
@@ -194,11 +161,11 @@ class Parameters(object):
         self.ani_vm2d = True                # 2d animation of vmem with time?
         self.ani_ca2d = True                # 2d animation of cell calcium with time ?
         self.ani_ip32d = False               # 2d animation of cIP3 with time?
-        self.ani_dye2d = False               # 2d animation of voltage sensitive dye in cell collective with time?
+        self.ani_dye2d = True               # 2d animation of voltage sensitive dye in cell collective with time?
         self.ani_vmgj2d = True              # 2d animation of vmem with superimposed gj network showing current direction
 
-        self.autosave = False           # autosave all still images to a results directory in the simulation folder
-        self.saveAnimations = False    # save all animations as png sequences in animation-specific folders
+        self.autosave = True           # autosave all still images to a results directory in the simulation folder
+        self.saveAnimations = True    # save all animations as png sequences in animation-specific folders
 
         self.exportData = True        # export all stored data for the plot_cell to a csv text file
 
@@ -265,7 +232,7 @@ class Parameters(object):
         self.wsy = self.wsy + 5 * self.nl * self.d_cell
 
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
-        self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+
 
         self.um = 1e6    # multiplication factor to convert m to um
 
@@ -321,21 +288,10 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            #self.cNa_er = 5.4
-            #self.cK_er = 140.44
             self.cCa_er = 0.9
             self.cM_er = self.cCa_er
 
-            #self.cP_er = 138.0
-
-            #conc_er = [self.cNa_er,self.cK_er, self.cCa_er, self.cP_er]
-
-            #self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
-
-            #assert self.z_M_er == -1
-
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
-
 
         # default environmental and cytoplasmic initial values mammalian cells
         if self.ion_profile == 'animal':
@@ -366,20 +322,8 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            #self.cNa_er = 5.4
-            #self.cK_er = 140.44
-            #self.cCl_er = 6.0
             self.cCa_er = 0.9
             self.cM_er = - self.cCa_er
-            #self.cH_er = 6.31e-5
-            #self.cP_er = 138.0
-
-            #conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
-
-            #self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
-
-            #assert self.z_M_er == -1
-
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
@@ -411,21 +355,52 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            #self.cNa_er = 8.66
-            #self.cK_er = 406.09
-            #self.cCl_er = 45.56
             self.cCa_er = 3.0e-4
             self.cM_er = 3.0e-4
-            #self.cH_er = 6.31e-5
-            #self.cP_er = 350.0
-
-            #conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
-
-            #self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
-
-            #assert self.z_M_er == -1
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
+    def set_time_profile(self,time_profile):
+
+        if time_profile == 'simulate_somatic':
+
+            self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+            self.sim_end = self.time4sim         # world time to end the simulation
+            self.resamp = 0.1         # time to resample in world time
+
+            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+            self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+            self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+
+        if time_profile == 'simulate_excitable':
+
+            self.dt = 5e-5    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+            self.sim_end = self.time4sim         # world time to end the simulation
+            self.resamp = 5e-4         # time to resample in world time
+
+            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+            self.gj_radius = 5.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+            self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+
+
+        elif time_profile == 'initialize':
+
+            self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+            self.init_end = self.time4init      # world time to end the initialization simulation time [s]
+            self.resamp = 1.0         # time to resample in world time
+
+            self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
+            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+            self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+            self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
 
 def bal_charge(concentrations,zs):

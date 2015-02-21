@@ -27,7 +27,7 @@ class SimRunner(object):
         cells = World(vorclose='circle',worldtype='full')  # create an instance of world
         cells.makeWorld()     # call function to create the world
         p = Parameters()     # create an instance of Parameters
-        p.time_profile = 'initialize'  # enforce the time profile to be initialize
+        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         sim = Simulator(p)   # create an instance of Simulator
         sim.baseInit(cells, p)   # initialize simulation data structures
         sim.runInit(cells,p)     # run and save the initialization
@@ -45,9 +45,10 @@ class SimRunner(object):
         start_time = time.time()  # get a start value for timing the simulation
 
         p = Parameters()     # create an instance of Parameters
-        p.time_profile = 'simulate'  # enforce the time-profile to be simulate
+        p.set_time_profile(p.time_profile_sim)  # force the time profile to be initialize
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+        sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
         sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
 
         print('The simulation took', round(time.time() - start_time,2), 'seconds to complete')
@@ -128,7 +129,6 @@ def plots4Init(plot_cell,cells,sim,p,saveImages=False):
         axV.set_xlabel('Spatial distance [um]')
         axV.set_ylabel('Spatial distance [um]')
         cbV.set_label('Voltage mV')
-
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 

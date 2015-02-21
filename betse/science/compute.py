@@ -1056,7 +1056,7 @@ class Simulator(object):
             celf = copy.deepcopy(self)
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
-            message_2 = 'Simulation run saved to' + ' ' + p.cache_path
+            message_2 = 'Simulation run saved to' + ' ' + p.sim_path
             print(message_2)
 
         for i in range(0,len(self.ionlabel)):
