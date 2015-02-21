@@ -189,6 +189,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
                 plt.show(block=False)
 
+
+                figPro, axPro = viz.plotSingleCellData(sim.time, sim.cIP3_time,plot_cell, lab='IP3 [mmol/L]')
+                titIP3 =  'IP3 in cell index ' + str(plot_cell)
+                axPro.set_title(titIP3)
+
+                if saveImages == True:
+                    savename5 = savedImg + 'IP3_time'
+                    plt.savefig(savename5,dpi=300,format='png')
+
+                plt.show(block=False)
+
     if p.plot_vm2d == True:
 
         if p.showCells == True:

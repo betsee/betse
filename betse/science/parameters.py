@@ -27,7 +27,7 @@ class Parameters(object):
         if self.time_profile == 'simulate_somatic':
 
             self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 2*60         # world time to end the simulation
+            self.sim_end = 5*60         # world time to end the simulation
             self.resamp = 0.1         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
@@ -63,8 +63,8 @@ class Parameters(object):
 
         # File saving
         self.cache_path = os.path.expanduser("~/.betse/cache/baseInit/")  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path = os.path.expanduser("~/.betse/cache/baseInit/sim1") # folder to save unique simulation and data linked to init
-        self.sim_results = os.path.expanduser("~/.betse/cache/baseInit/sim1/results") # folder to auto-save results (graphs, images, animations)
+        self.sim_path = os.path.expanduser("~/.betse/cache/baseInit/sim2") # folder to save unique simulation and data linked to init
+        self.sim_results = os.path.expanduser("~/.betse/cache/baseInit/sim2/results") # folder to auto-save results (graphs, images, animations)
 
         # Geometric constants and factors
         self.wsx = 100e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
@@ -123,7 +123,7 @@ class Parameters(object):
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'IP3':[3,15,5,1e-3]}
+            'IP3':[5,15,5,2e-4]}
 
         #...................................Voltage Gated Channels......................................................
 
@@ -156,7 +156,7 @@ class Parameters(object):
         cicr = [ERstore_dyn,ca_reg,ip3_reg]
         self.Ca_dyn_options = {'CICR':cicr}
 
-        self.Dm_IP3 = 1.0e-18   # membrane diffusion constant of IP3
+        self.Dm_IP3 = 1.0e-17   # membrane diffusion constant of IP3
         self.Do_IP3 = 5.0e-7    # IP3 free diffusion constant [m2/s]
         self.z_IP3 = -3        # charge valence of IP3
         self.cIP3_to = 1e-6     # initial value of IP3 in all cells
@@ -209,7 +209,7 @@ class Parameters(object):
         self.Do_Na = 1.33e-9      # free diffusion constant sodium [m2/s]
         self.Do_K = 1.96e-9      # free diffusion constant potassium [m2/s]
         self.Do_Cl = 2.03e-9     # free diffusion constant chloride [m2/s]
-        self.Do_Ca = 1.5e-10     # free diffusion constant calcium [m2/s]
+        self.Do_Ca = 1.0e-9     # free diffusion constant calcium [m2/s]
         self.Do_H = 2.5e-9      # free diffusion constant hydrogen [m2/s]
         self.Do_M = 1.0e-9     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]

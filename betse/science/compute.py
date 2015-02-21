@@ -861,16 +861,7 @@ class Simulator(object):
 
         if p.plot_while_solving == True:  # FIXME need a new viz function for plot while solving: 2 part class
 
-            if p.showCells == True:
-                figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*self.vm,number_cells=p.enumerate_cells)
-            else:
-                figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*self.vm)
-
-            axV.set_title('Vmem')
-            axV.set_xlabel('Spatial distance [um]')
-            axV.set_ylabel('Spatial distance [um]')
-            cbV.set_label('Voltage mV')
-            plt.show(block=False)
+            checkPlot = viz.PlotWhileSolving(cells,self,p)
 
         for t in tt:   # run through the loop
 
@@ -1048,7 +1039,8 @@ class Simulator(object):
                     self.cc_er_time.append(ccer)
 
                 if p.plot_while_solving == True:  # FIXME will be doing stuff here to update the plot
-                    figV.canvas.draw()
+
+                    checkPlot.updatePlot(self)
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
@@ -1106,7 +1098,7 @@ class Simulator(object):
             print('Final dye concentration in the environment: ',np.round(dye_env_final,6), ' mmol/L')
             print('Final average dye concentration in cells: ', np.round(dye_cell_final,6), ' mmol/L')
 
-
+        plt.close()
         print('Simulation completed successfully.')
 
     def allDynamics(self,t,p):

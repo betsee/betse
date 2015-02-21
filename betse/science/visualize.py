@@ -355,6 +355,66 @@ class AnimateGJData_smoothed(object):
             savename = self.savedAni + str(i)
             plt.savefig(savename,dpi=96,format='png')
 
+class PlotWhileSolving(object):
+
+    def __init__(self,cells,sim,p,number_cells=p.enumerate_cells):
+
+        vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
+        self.colormap = p.default_cm
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
+        self.tit = 'Vmem check while solving'
+
+        self.cmean = np.mean(vdata)
+        self.cmin = np.min(vdata)
+        self.cmax = np.max(vdata)
+
+        if p.showCells == True:
+            # Add a collection of cell polygons, with animated voltage data
+            points = np.multiply(cells.cell_verts, p.um)
+            self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
+            self.coll2.set_alpha(1.0)
+
+        else:
+             # Next add a triplot with interpolated and animated voltage data
+            self.coll2 = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
+                vdata,shading='gouraud', cmap=self.colormap)
+
+         # set range of the colormap
+        self.coll2.set_clim(self.cmin,self.cmax)
+        self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
+        self.ax.add_collection(self.coll2)
+
+        if number_cells == True and p.showCells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                self.ax.text(p.um*cll[0],p.um*cll[1],i)
+
+        self.cb.set_label('Voltage [mV]')
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_title(self.tit)
+
+        self.ax.autoscale_view()
+
+        plt.show(block=False)
+
+    def updatePlot(self,sim):
+
+        zv = sim.vm_time[-1]*1000
+        time = sim.time[-1]
+
+        cmin = np.min(zv)
+        cmax = np.max(zv)
+
+        self.coll2.set_array(zv)
+        self.coll2.set_clim(cmin,cmax)
+
+        titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'
+        self.ax.set_title(titani)
+
+        self.fig.canvas.draw()
 
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
