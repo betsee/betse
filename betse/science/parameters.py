@@ -27,8 +27,8 @@ class Parameters(object):
         if self.time_profile == 'simulate_somatic':
 
             self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = 20         # world time to end the simulation
-            self.resamp = 5e-2         # time to resample in world time
+            self.sim_end = 2*60         # world time to end the simulation
+            self.resamp = 0.1         # time to resample in world time
 
             self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
             self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
@@ -87,7 +87,7 @@ class Parameters(object):
         self.ion_profile = 'animal'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 0
+        self.Ca_dyn = 1
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = 0
@@ -123,38 +123,41 @@ class Parameters(object):
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
         self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'IP3':[3,10,2,1e-4]}
+            'IP3':[3,15,5,1e-3]}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = 'none'
+        self.gated_targets = 'all'
         # self.vg_options specifications list for voltage gated ion channel options:
         vgNa = [1.0e-15,-50e-3,10e-3,-55e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
         vgK = [1.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
         vgCa = [1.0e-15,-40e-3,10e-3,0.75e-3,3.0e-5]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
+        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':cagK}
 
         self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
 
-        ERstore_dyn = [5e-15,0.8,0.1]   # base dynamics of endoplasmic reticulum Ca2+ store:
+
+        ERstore_dyn = [5e-15,0.8,0.5]   # base dynamics of endoplasmic reticulum Ca2+ store:
                                         # [max diffusion m2/s, full Ca thresh mol/m3, empty Ca thresh mol/m3]
         ca_reg = []   # central concentration for Ca-act-Ca release [Ca mid, Ca width]
         #ca_reg =[]                  # leave this empty to have no Ca-influence on the dynamics
 
         ip3_reg = [1e-3,3.4]   # max Ca2+ diffusion constant through ER membrane, IP3 half-max, Hill coefficient
         #ip3_reg = []            # leave this empty to have no ip3-influence on the dynamics
+        self.FMmod = 1              # frequency modulate ER response to IP3? 1 = yes, 0 = no
+        self.ip3FM = 0.8            # degree to which ip3 affects Ca2+ frequency (higher more effect, max 0.9)
 
 
         cicr = [ERstore_dyn,ca_reg,ip3_reg]
         self.Ca_dyn_options = {'CICR':cicr}
 
-        self.Dm_IP3 = 1.0e-15   # membrane diffusion constant of IP3
-        self.Do_IP3 = 1.0e-9    # IP3 free diffusion constant [m2/s]
+        self.Dm_IP3 = 1.0e-18   # membrane diffusion constant of IP3
+        self.Do_IP3 = 5.0e-7    # IP3 free diffusion constant [m2/s]
         self.z_IP3 = -3        # charge valence of IP3
         self.cIP3_to = 1e-6     # initial value of IP3 in all cells
         self.cIP3_to_env = 1e-6  # initial value of IP3 in environment
@@ -167,12 +170,35 @@ class Parameters(object):
         self.default_cm = cm.coolwarm   # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
                                         # http://matplotlib.org/examples/color/colormaps_reference.html
 
-        self.createAnimations = True   # create animations
+        self.gj_cm = cm.bone           # colormap for plotting gj currents on top of default colormap
 
-        self.enumerate_cells = True    # number cells on the static 2D maps with their simulation index
+        self.plot_while_solving = True  # create a 2d plot of cell vmems while solution is taking place
+
+        self.enumerate_cells = True    # number cells on the static 2D maps with their simulation index (this can help
+                                        # decide on the value of self.plot_cell
+
         self.plot_cell = 0             # State the cell index to use for single-cell time plots
-        self.autosave = True           # autosave images to a results directory in the simulation folder
-        self.saveAnimations = True    # save animations as png sequences in animation-specific folders
+
+        self.plot_single_cell_graphs = True # plot graphs of concentration and voltage in self.plot_cell with time
+
+        self.showCells = True     # plots and ani are individual cell plots if True; as interpolated mesh data if False
+
+        self.plot_vm2d = False                # 2d plot of final vmem ?
+        self.plot_ca2d = False                # 2d plot of final cell calcium ?
+        self.plot_ip32d = False               # 2d plot of final cIP3 ?
+        self.plot_dye2d = False               # 2d plot of voltage sensitive dye in cell collective?
+
+        self.createAnimations = True   # create all animations = True; turn off all animations = False
+
+        # specify desired animations:
+        self.ani_vm2d = True                # 2d animation of vmem with time?
+        self.ani_ca2d = True                # 2d animation of cell calcium with time ?
+        self.ani_ip32d = False               # 2d animation of cIP3 with time?
+        self.ani_dye2d = False               # 2d animation of voltage sensitive dye in cell collective with time?
+        self.ani_vmgj2d = True              # 2d animation of vmem with superimposed gj network showing current direction
+
+        self.autosave = False           # autosave all still images to a results directory in the simulation folder
+        self.saveAnimations = False    # save all animations as png sequences in animation-specific folders
 
         self.exportData = True        # export all stored data for the plot_cell to a csv text file
 
@@ -295,16 +321,18 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cNa_er = 5.4
-            self.cK_er = 140.44
+            #self.cNa_er = 5.4
+            #self.cK_er = 140.44
             self.cCa_er = 0.9
-            self.cP_er = 138.0
+            self.cM_er = self.cCa_er
 
-            conc_er = [self.cNa_er,self.cK_er, self.cCa_er, self.cP_er]
+            #self.cP_er = 138.0
 
-            self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+            #conc_er = [self.cNa_er,self.cK_er, self.cCa_er, self.cP_er]
 
-            assert self.z_M_er == -1
+            #self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+
+            #assert self.z_M_er == -1
 
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
 
@@ -338,18 +366,19 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cNa_er = 5.4
-            self.cK_er = 140.44
-            self.cCl_er = 6.0
+            #self.cNa_er = 5.4
+            #self.cK_er = 140.44
+            #self.cCl_er = 6.0
             self.cCa_er = 0.9
-            self.cH_er = 6.31e-5
-            self.cP_er = 138.0
+            self.cM_er = - self.cCa_er
+            #self.cH_er = 6.31e-5
+            #self.cP_er = 138.0
 
-            conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
+            #conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
 
-            self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+            #self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
 
-            assert self.z_M_er == -1
+            #assert self.z_M_er == -1
 
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
@@ -382,18 +411,19 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cNa_er = 8.66
-            self.cK_er = 406.09
-            self.cCl_er = 45.56
+            #self.cNa_er = 8.66
+            #self.cK_er = 406.09
+            #self.cCl_er = 45.56
             self.cCa_er = 3.0e-4
-            self.cH_er = 6.31e-5
-            self.cP_er = 350.0
+            self.cM_er = 3.0e-4
+            #self.cH_er = 6.31e-5
+            #self.cP_er = 350.0
 
-            conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
+            #conc_er = [self.cNa_er,self.cK_er, self.cCl_er, self.cCa_er, self.cH_er, self.cP_er]
 
-            self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
+            #self.cM_er, self.z_M_er = bal_charge(conc_er,zs)
 
-            assert self.z_M_er == -1
+            #assert self.z_M_er == -1
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 

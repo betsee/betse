@@ -15,6 +15,8 @@ import os, os.path
 import copy
 from random import shuffle
 from betse.science import filehandling as fh
+from betse.science import visualize as viz
+import matplotlib.pyplot as plt
 
 
 class Simulator(object):
@@ -96,8 +98,10 @@ class Simulator(object):
         self.cc_env = []   # environmental concentrations initialized
         self.cc_er = []   # endoplasmic reticulum ion concentrations
         self.zs = []   # ion valence state initialized
+        self.z_er = []  # ion valence states of er ions
         self.Dm_cells = []              # membrane diffusion constants initialized
         self.D_free = []                 # a list of single-valued free diffusion constants for each ion
+        self.Dm_er = []                  # a list of endoplasmic reticulum membrane states
         self.movingIons = []            # moving ions indices
         self.ionlabel = {}              # dictionary to hold ion label names
 
@@ -129,10 +133,10 @@ class Simulator(object):
             self.Dm_cells.append(DmNa)
             self.D_free.append(p.Do_Na)
 
-            if p.ions_dict['Ca'] ==1:
-                cNa_er = np.zeros(len(cells.cell_i))
-                cNa_er[:]=p.cNa_er
-                self.cc_er.append(cNa_er)
+            # if p.ions_dict['Ca'] ==1:
+            #     cNa_er = np.zeros(len(cells.cell_i))
+            #     cNa_er[:]=p.cNa_er
+            #     self.cc_er.append(cNa_er)
 
 
         if p.ions_dict['K'] == 1:
@@ -158,10 +162,10 @@ class Simulator(object):
             self.Dm_cells.append(DmK)
             self.D_free.append(p.Do_K)
 
-            if p.ions_dict['Ca'] ==1:
-                cK_er = np.zeros(len(cells.cell_i))
-                cK_er[:]=p.cK_er
-                self.cc_er.append(cK_er)
+            # if p.ions_dict['Ca'] ==1:
+            #     cK_er = np.zeros(len(cells.cell_i))
+            #     cK_er[:]=p.cK_er
+            #     self.cc_er.append(cK_er)
 
         if p.ions_dict['Cl'] == 1:
 
@@ -185,11 +189,11 @@ class Simulator(object):
             self.zs.append(p.z_Cl)
             self.Dm_cells.append(DmCl)
             self.D_free.append(p.Do_Cl)
-
-            if p.ions_dict['Ca'] ==1:
-                cCl_er = np.zeros(len(cells.cell_i))
-                cCl_er[:]=p.cCl_er
-                self.cc_er.append(cCl_er)
+            #
+            # if p.ions_dict['Ca'] ==1:
+            #     cCl_er = np.zeros(len(cells.cell_i))
+            #     cCl_er[:]=p.cCl_er
+            #     self.cc_er.append(cCl_er)
 
         if p.ions_dict['Ca'] == 1:
 
@@ -218,6 +222,8 @@ class Simulator(object):
                 cCa_er = np.zeros(len(cells.cell_i))
                 cCa_er[:]=p.cCa_er
                 self.cc_er.append(cCa_er)
+                self.z_er.append(p.z_Ca)
+                self.Dm_er.append(p.Dm_Ca)
 
         if p.ions_dict['H'] == 1:
 
@@ -242,10 +248,10 @@ class Simulator(object):
             self.Dm_cells.append(DmH)
             self.D_free.append(p.Do_H)
 
-            if p.ions_dict['Ca'] ==1:
-                cH_er = np.zeros(len(cells.cell_i))
-                cH_er[:]=p.cH_er
-                self.cc_er.append(cH_er)
+            # if p.ions_dict['Ca'] ==1:
+            #     cH_er = np.zeros(len(cells.cell_i))
+            #     cH_er[:]=p.cH_er
+            #     self.cc_er.append(cH_er)
 
         if p.ions_dict['P'] == 1:
 
@@ -269,10 +275,10 @@ class Simulator(object):
             self.Dm_cells.append(DmP)
             self.D_free.append(p.Do_P)
 
-            if p.ions_dict['Ca'] ==1:
-                cP_er = np.zeros(len(cells.cell_i))
-                cP_er[:]=p.cP_er
-                self.cc_er.append(cP_er)
+            # if p.ions_dict['Ca'] ==1:
+            #     cP_er = np.zeros(len(cells.cell_i))
+            #     cP_er[:]=p.cP_er
+            #     self.cc_er.append(cP_er)
 
         if p.ions_dict['M'] == 1:
 
@@ -301,6 +307,8 @@ class Simulator(object):
                 cM_er = np.zeros(len(cells.cell_i))
                 cM_er[:]=p.cM_er
                 self.cc_er.append(cM_er)
+                self.z_er.append(p.z_M)
+                self.Dm_er.append(p.Dm_M)
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -352,6 +360,7 @@ class Simulator(object):
         """
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
+        Dm_cellsER = np.asarray(self.Dm_er)
 
         self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
@@ -372,8 +381,9 @@ class Simulator(object):
         # Initialize array structures that hold endoplasmic reticulum related membrane changes:
         # self.Dm_er_scheduled = np.copy(Dm_cellsA)
         # self.Dm_er_scheduled[:] = 0
+        self.Dm_er_base = np.copy(Dm_cellsER)
 
-        self.Dm_er_CICR = np.copy(Dm_cellsA)
+        self.Dm_er_CICR = np.copy(Dm_cellsER)
         self.Dm_er_CICR[:] = 0
 
         self.gj_block = np.ones(len(cells.gj_i))   # initialize the gap junction blocking vector to ones
@@ -666,15 +676,15 @@ class Simulator(object):
 
                 if p.Ca_dyn ==1:
 
-                    self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
+                    self.cc_er[0],self.cc_cells[self.iCa], _ =\
+                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
                             self.v_er,self.T,p,self.CaER_block)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                     self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                    q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
                     self.v_er = v_er_o - self.vm
 
@@ -699,23 +709,29 @@ class Simulator(object):
                     electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
                         self.envV,cells.cell_vol,self.zs[i],self.vm,self.T,p)
 
-                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
+
+            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                     # electrodiffusion of ions between cell and endoplasmic reticulum
-                    self.cc_cells[i],self.cc_er[i],_ = \
-                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,self.T,p)
+                    # First do calciu:m
+                    self.cc_cells[self.iCa],self.cc_er[0],_ = \
+                    electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
+                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
+
+                    # next do charge compensation anion:
+                    self.cc_cells[self.iM],self.cc_er[1],_ = \
+                    electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
+                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                     self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                    q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
                     self.v_er = v_er_o - self.vm
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
@@ -744,6 +760,9 @@ class Simulator(object):
                 if p.voltage_dye == 1:
                     cvdye = copy.deepcopy(self.cDye_cell)
                     self.cDye_time.append(cvdye)
+
+                if p.plot_while_solving == True:  # FIXME do stuff here to update the plot
+                    pass
 
         celf = copy.deepcopy(self)
 
@@ -776,9 +795,8 @@ class Simulator(object):
 
         if p.Ca_dyn == 1:
 
-            for i in range(0,len(self.ionlabel)):
-                endconc_er = np.round(np.mean(self.cc_er[i]),6)
-                label = self.ionlabel[i]
+                endconc_er = np.round(np.mean(self.cc_er[0]),6)
+                label = self.ionlabel[self.iCa]
                 concmess = 'Final ER concentration of'+ ' '+ label + ': '
                 print(concmess,endconc_er,' mmol/L')
 
@@ -841,6 +859,19 @@ class Simulator(object):
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
         self.vm = get_volt(q_cells,cells.cell_sa,p)
 
+        if p.plot_while_solving == True:  # FIXME need a new viz function for plot while solving: 2 part class
+
+            if p.showCells == True:
+                figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*self.vm,number_cells=p.enumerate_cells)
+            else:
+                figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*self.vm)
+
+            axV.set_title('Vmem')
+            axV.set_xlabel('Spatial distance [um]')
+            axV.set_ylabel('Spatial distance [um]')
+            cbV.set_label('Voltage mV')
+            plt.show(block=False)
+
         for t in tt:   # run through the loop
 
             self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
@@ -875,15 +906,15 @@ class Simulator(object):
 
                 if p.Ca_dyn ==1:
 
-                    self.cc_er[self.iCa],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[self.iCa],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
+                    self.cc_er[0],self.cc_cells[self.iCa], _ =\
+                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
                             self.v_er,self.T,p,self.CaER_block)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                     self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
+                    q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
                     self.v_er = v_er_o - self.vm
 
@@ -912,19 +943,6 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-                    # electrodiffusion of ions between cell and endoplasmic reticulum
-                    self.cc_cells[i],self.cc_er[i],_ = \
-                    electrofuse(self.cc_cells[i],self.cc_er[i],self.Dm_er[i],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.zs[i],self.v_er,self.T,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-                    q_er = get_charge(self.cc_er,self.zs,p.ER_vol*cells.cell_vol,p)
-                    v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-                    self.v_er = v_er_o - self.vm
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 # q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -963,6 +981,26 @@ class Simulator(object):
             self.cIP3_env,self.cIP3,_ = \
                         electrofuse(self.cIP3_env,self.cIP3,p.Dm_IP3*self.id_cells,self.tm,cells.cell_sa,
                             self.envV,cells.cell_vol,p.z_IP3,self.vm,self.T,p)
+
+            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
+                # electrodiffusion of ions between cell and endoplasmic reticulum
+                # Electrodiffusio of calcium
+                self.cc_cells[self.iCa],self.cc_er[0],_ = \
+                electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
+                    cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
+
+                # Electrodiffusion of charge compensation anion
+                self.cc_cells[self.iM],self.cc_er[1],_ = \
+                electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
+                    cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
+
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
+
+                q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
+                v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+                self.v_er = v_er_o - self.vm
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
@@ -1009,6 +1047,9 @@ class Simulator(object):
                     ccer = copy.deepcopy(self.cc_er)
                     self.cc_er_time.append(ccer)
 
+                if p.plot_while_solving == True:  # FIXME will be doing stuff here to update the plot
+                    figV.canvas.draw()
+
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
         for tflux in self.fgj_time:
@@ -1054,11 +1095,10 @@ class Simulator(object):
 
         if p.Ca_dyn == 1:
 
-            for i in range(0,len(self.ionlabel)):
-                endconc_er = np.round(np.mean(self.cc_er[i]),6)
-                label = self.ionlabel[i]
-                concmess = 'Final average ER concentration of'+ ' '+ label + ': '
-                print(concmess,endconc_er,' mmol/L')
+            endconc_er = np.round(np.mean(self.cc_er[0]),6)
+            label = self.ionlabel[self.iCa]
+            concmess = 'Final average ER concentration of'+ ' '+ label + ': '
+            print(concmess,endconc_er,' mmol/L')
 
         if p.voltage_dye ==1:
             dye_env_final = np.mean(self.cDye_env)
@@ -1310,7 +1350,7 @@ class Simulator(object):
 
             if p.Ca_dyn_options['CICR'] != 0:
 
-                dcc_CaER_sign = np.sign(self.dcc_ER[self.iCa])
+                dcc_CaER_sign = np.sign(self.dcc_ER[0])
 
                 if len(p.Ca_dyn_options['CICR'][1])==0:
                     term_Ca_reg = 1.0
@@ -1323,14 +1363,20 @@ class Simulator(object):
 
                 else:
                     term_IP3_reg = hill(self.cIP3,self.KhmIP3,self.n_IP3)
-                    topCa = self.topCa - 0.5*term_IP3_reg
 
-                truth_overHighCa = self.cc_er[self.iCa] >=  self.topCa
+                if p.FMmod == 1:
+                    span = self.topCa - self.bottomCa
+                    FMmod = p.ip3FM*span
+                    topCa = self.topCa - FMmod*term_IP3_reg
+                else:
+                    topCa = self.topCa
+
+                truth_overHighCa = self.cc_er[0] >=  topCa
                 truth_increasingCa = dcc_CaER_sign == 1
                 truth_alreadyClosed = self.stateER == 0.0
                 inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
 
-                truth_underBottomCa = self.cc_er[self.iCa]< self.bottomCa
+                truth_underBottomCa = self.cc_er[0]< self.bottomCa
                 truth_decreasingCa = dcc_CaER_sign == -1
                 truth_alreadyOpen = self.stateER == 1.0
                 inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
@@ -1338,9 +1384,9 @@ class Simulator(object):
                 self.stateER[inds_open_ER] = 1.0
                 self.stateER[inds_close_ER] = 0.0
 
-                self.Dm_er_CICR[self.iCa] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
+                self.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
 
-                self.Dm_er = self.Dm_er_CICR + self.Dm_base
+                self.Dm_er = self.Dm_er_CICR + self.Dm_er_base
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
