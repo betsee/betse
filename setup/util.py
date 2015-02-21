@@ -27,6 +27,42 @@ def die_if_os_non_posix() -> None:
         )
 
 # ....................{ EXCEPTIONS ~ path                  }....................
+def die_unless_dir_or_not_found(
+    pathname: str, exception_message: str = None) -> None:
+    '''
+    Raise a fatal exception unless the passed path is either an existing
+    directory *or* does not exist (i.e., if such path is an existing non-
+    directory).
+    '''
+    # If such path is an existing non-directory, fail.
+    if is_path(pathname) and not is_dir(pathname):
+        # If no such message was passed, default such message.
+        if not exception_message:
+             exception_message = 'Path "{}" not a directory.'.format(pathname)
+        assert isinstance(exception_message, str),\
+            '"{}" not a string.'.format(exception_message)
+
+        # Raise such exception.
+        raise DistutilsFileError(exception_message)
+
+def die_unless_file_or_not_found(
+    pathname: str, exception_message: str = None) -> None:
+    '''
+    Raise a fatal exception unless the passed path is either an existing non-
+    special file *or* does not exist (e.g., if such path is an existing
+    directory).
+    '''
+    # If such path exists and is *NOT* an existing non-special file, fail.
+    if is_path(pathname) and not is_file(pathname):
+        # If no such message was passed, default such message.
+        if not exception_message:
+             exception_message = 'Path "{}" not a file.'.format(pathname)
+        assert isinstance(exception_message, str),\
+            '"{}" not a string.'.format(exception_message)
+
+        # Raise such exception.
+        raise DistutilsFileError(exception_message)
+
 def die_unless_file(filename: str, exception_message: str = None) -> None:
     '''
     Raise a fatal exception unless the passed non-special file exists.
@@ -95,6 +131,20 @@ def die_unless_command(command_basename: str, exception_message: str = None):
         raise DistutilsExecError(exception_message)
 
 # ....................{ TESTERS                            }....................
+def is_path(pathname: str) -> bool:
+    '''
+    True if the passed path exists.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    return path.exists(pathname)
+
+def is_dir(dirname: str) -> bool:
+    '''
+    True if the passed directory exists.
+    '''
+    assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
+    return path.isdir(dirname)
+
 def is_file(filename: str) -> bool:
     '''
     True if the passed non-special file exists.
@@ -102,8 +152,7 @@ def is_file(filename: str) -> bool:
     This function returns False if such file exists but is **special** (e.g.,
     directory, device node, symbolic link).
     '''
-    assert isinstance(filename, str),\
-        '"{}" not a string.'.format(filename)
+    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.isfile(filename)
 
 def is_symlink(filename: str) -> bool:
@@ -116,8 +165,7 @@ def is_symlink(filename: str) -> bool:
     current user has insufficient privelages to follow such link. This may
     constitute a bug in the underlying `path.islink()` function.
     '''
-    assert isinstance(filename, str),\
-        '"{}" not a string.'.format(filename)
+    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.islink(filename)
 
 def is_command(command_basename: str) -> bool:
@@ -155,6 +203,18 @@ def output_warning(*warnings) -> None:
     '''
     print('WARNING: ', *warnings, file = sys.stderr)
 
+# ....................{ MOVERS                             }....................
+def move_file(filename_source: str, filename_target: str) -> None:
+    '''
+    Move the passed source to the passed target file.
+    '''
+    # If such file does *NOT* exist, fail.
+    die_unless_file(filename_source)
+
+    # Move such file.
+    print('Moving file "{}" to "{}".'.format(filename_source, filename_target))
+    shutil.move(filename_source, filename_target)
+
 # ....................{ REMOVERS                           }....................
 def remove_file(filename: str) -> None:
     '''
@@ -163,7 +223,7 @@ def remove_file(filename: str) -> None:
     # If such file does *NOT* exist, fail.
     die_unless_file(filename)
 
-    # Remove such link.
+    # Remove such file.
     print('Removing file "{}".'.format(filename))
     os.unlink(filename)
 

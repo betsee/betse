@@ -7,6 +7,16 @@ flow).
 
 ## Dependencies
 
+`betse` has both mandatory and optional dependencies. Let's begin!
+
+### Mandatory
+
+`betse` is intended to be run on machines meeting the following specifications:
+
+* 64-bit Linux, OS X, and Windows operating systems.
+* At least 4GB RAM. (This and the 64-bit requirement are principally a result of
+  the memory intensiveness of tissue simulations.)
+
 `betse` requires the following non-pure-Python packages – which themselves
 require non-Python libraries (e.g., C, Fortran) and hence are best installed
 manually via the package manager specific to your current operating system:
@@ -20,20 +30,14 @@ manually via the package manager specific to your current operating system:
 * Voluptuous >= 0.8.7.
 * setuptools >= 7.0.
 
-`betse` also requires the following pure-Python packages – which Python-specific
-package managers (e.g., `pip`, `setuptools`) will install for you and hence
-require no manual installation:
-
-* None, as of this writing.
-
-### Linux Debian
+#### Linux Debian
 
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), such
 dependencies are installable in a system-wide manner as follows:
 
     >>> sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pyside python3-scipy python3-setuptools python3-yaml
 
-### Apple OS X
+#### Apple OS X
 
 `betse` requires at least OS X 10.6 (Snow Leopard). Under such systems, such
 dependencies are installable in a system-wide manner as follows:
@@ -54,6 +58,23 @@ dependencies are installable in a system-wide manner as follows:
 Note that MacPorts is a source-based package manager and hence extremely slow.
 Expect the installation of dependencies to take several hours to several days.
 (We're not kidding.)
+
+### Optional
+
+`betse` optionally benefits from the following mostly pure-Python packages –
+which Python-specific package managers (e.g., `pip`, `setuptools`) install for
+you and hence require no manual installation:
+
+* PyInstaller `python3` branch for optionally freezing `betse`. (See below.)
+* nose >= 1.3.0 for optionally running unit tests. (See below.)
+
+Assuming the common `git` and `pip3` commands to already be installed, such
+dependencies are installable in a system-wide manner as follows:
+
+    >>> sudo pip3 install nose
+    >>> git clone --branch python3 https://github.com/pyinstaller/pyinstaller.git
+    >>> cd pyinstaller
+    >>> sudo python3 setup.py install
 
 ## Installation
 
@@ -76,11 +97,6 @@ absolute path of the directory containing this file.
 
 `betse` is installable into a system-wide directory as follows:
 
-* **(Optional).** Set the current umask to "002", permitting subsequently
-  installed paths to be read by non-superusers. Since this is usually the
-  default, this command is required only for users explicitly changing the umask
-  (e.g., via shell startup scripts).
-    >>> umask 002
 * Compile `betse`. 
     >>> cd "${BETSE_DIR}"
     >>> python3 setup.py build
@@ -89,7 +105,7 @@ absolute path of the directory containing this file.
 
 Curiously, although the `develop` command for `setuptools` provides a
 `--no-deps` option, the `install` command does not. Hence, the `easy\_install`
-command is called above.
+command is called above instead.
 
 ### User-specific
 
@@ -109,7 +125,7 @@ by `setuptools` and dependencies already installed by such package maneger.
 
 `betse` is a front-facing application rather than backend framework. While
 `betse`'s Python packages are importable by other packages, `betse` is typically
-run by executing Python script wrappers installed to the current `${PATH}`.
+run by executing Python wrapper scripts installed to the current `${PATH}`.
 
 ### CLI
 
@@ -219,6 +235,68 @@ equivalent commands:
 
     >>> nosetests             # this works...
     >>> ./setup.py nosetest   # ...as does this.
+
+## Freezing
+
+`betse` is **freezable** (i.e., convertable to platform-specific executable
+binaries distributable to end users) via the optional dependency PyInstaller in
+one of two ways:
+
+* One-file mode, in which case PyInstaller will generate one executable file for
+  each of `betse`'s wrapper scripts (e.g., `betse`, `betse-qt`).
+* One-directory mode, in which case PyInstaller will generate one directory
+  containing one executable file (along with various ancillary libraries and
+  archives) for each of `betse`'s wrapper scripts.
+
+`betse` is freezable in one-file mode as follows:
+
+    >>> cd "${BETSE_DIR}"
+    >>> ./setup.py freeze_file
+
+`betse` is freezable in one-directory mode as follows:
+
+    >>> cd "${BETSE_DIR}"
+    >>> ./setup.py freeze_dir
+
+### Output
+
+Assuming one-file mode, executables will be output as:
+
+* Under Linux:
+  * `dist/betse` for `betse`'s CLI wrapper.
+  * `dist/betse-qt` for `betse`'s GUI wrapper.
+* Under OS X:
+  * `dist/betse` for `betse`'s CLI wrapper.
+  * `dist/betse-qt.app` for `betse`'s GUI wrapper.
+* Under Windows:
+  * `dist/betse.exe` for `betse`'s CLI wrapper.
+  * `dist/betse-qt.exe` for `betse`'s GUI wrapper.
+
+Such executables may be moved (and hence distributed to end users) as is but
+should *not* be renamed. Doing so typically invalidates code signing (as well as
+other embedded metadata).
+
+### Caveats
+
+PyInstaller supports neither **cross-freezing** (i.e., generation of
+executables intended for execution on operating systems other than the current)
+nor **cross-compilation** (i.e., generating of executables intended for
+execution on CPU architectures other than the current) out of the box. Hence,
+executables will be executable only under systems matching the current operating
+system and architecture. As example, if the current system is 64-bit Linux,
+executables generated under such system will be executable only under other
+64-bit Linux systems.
+
+In practice, the lack of cross-compilation support is ignorable. `betse` is
+sufficiently memory-intensive that running under a 32-bit architecture would be
+strongly inadvisable and hence unsupported.
+
+The lack of cross-freezing support is *not* ignorable. While there exist well-
+documented means of cross-freezing Windows executables on Linux systems (e.g.,
+via the popular emulation layer Wine), there exist *no* means of cross-freezing
+OS X executables on Linux. The conventional solution is to install OS X as a
+virtual guest of an existing Linux host and perform freezing under such guest.
+We recommend the open-source product VMware for this purpose.
 
 ## License
 

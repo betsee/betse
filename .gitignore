@@ -32,9 +32,10 @@ __pycache__/
 # Ignore all top-level Nose-specific output files.
 /nosetests.xml
 
-# Ignore all top-level PyInstaller-specific output files.
+# Ignore top-level PyInstaller-specific output files *NOT* intended to be
+# modified. ".spec"-suffixed files *ARE* intended to be modified and hence
+# excluded.
 /*.manifest
-/*.spec
 
 # ....................{ FILES ~ general                    }....................
 # Ignore all audio and video files.

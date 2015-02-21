@@ -12,11 +12,11 @@ from betse import metadata
 from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
 from betse.util.path import paths
-from betse.util.python import dependencies
+# from betse.util.python import dependencies
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
 from io import StringIO
-import traceback, sys
+import sys, traceback
 
 # ....................{ MAIN                               }....................
 class CLI(metaclass = ABCMeta):
@@ -84,9 +84,13 @@ class CLI(metaclass = ABCMeta):
             # writes to logfiles in such directory.
             self._configure_logging()
 
+            #FIXME: Reenable *AFTER* we integrate the CLI frontend with our
+            #scientific backend. For the moment, this unacceptably provokes
+            #fatal exceptions in frozen applications.
+
             # Validate mandatory dependency *AFTER* configuring logging,
             # ensuring that exceptions raised by such validation will be logged.
-            dependencies.die_unless_satisfied_all()
+            # dependencies.die_unless_satisfied_all()
 
             # Parse CLI arguments *AFTER* logging, ensuring that exceptions
             # raised by such parsing will be logged.

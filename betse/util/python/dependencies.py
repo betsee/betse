@@ -63,11 +63,23 @@ def die_unless_satisfied_all() -> None:
 
     # Validate each such dependency.
     for requirement_required in requirements:
+        # Name of the top-level importable module provided by such project.
+        module_name = requirement_required.project_name
+
         # If such dependency is missing, fail.
-        modules.die_unless(
-            module_name = requirement_required.project_name,
-            exception_message =\
-                exception_template.format(str(requirement_required)))
+        if not modules.is_module(module_name):
+            # If such dependency is "setuptools", reduce such dependency to
+            # merely "pkg_resources" and try again. "pkg_resources" is a single
+            # module installed with (but inexplicably outside of the package
+            # tree of) setuptools. BETSE requires setuptools and hence
+            # "pkg_resources" at install time but *ONLY* the latter at runtime.
+            if module_name == 'setuptools':
+                module_name = 'pkg_resources'
+
+            # Try again.
+            modules.die_unless(
+                module_name, exception_template.format(
+                    str(requirement_required)))
 
         # Else, such dependency exists.
         #
