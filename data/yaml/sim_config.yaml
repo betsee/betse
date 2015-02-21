@@ -1,0 +1,67 @@
+%YAML 1.1
+---
+# Default tissue simulation configuration.
+#
+# You are welcome to change any of the following settings -- except where stated
+# otherwise (e.g., under the "INTERNAL USE ONLY" section).
+#
+# Pathnames
+# ----------
+# For portability, files and directories are configured below as relative rather
+# than absolute pathnames (e.g., as "sim_init.betse" rather than
+# "/Users/iamawesome/my_sim/sim_init.betse"). Such pathnames are relative to the
+# directory containing this file, allowing such directory to be safely moved
+# without breaking existing tissue simulations.
+#
+# YAML
+# ----------
+# As the "%YAML"-prefixed line above implies, this file is formatted according
+# to the YAML ("[Y]AML [A]in't [M]arkup [L]anguage") standard. YAML is a human-
+# readable data serialization format useful for configuration files -- like this
+# one. For details, see https://en.wikipedia.org/wiki/YAML.
+
+# -----------------------------------------------------------------------------
+# INITIALIZATION
+# -----------------------------------------------------------------------------
+# Configure simulation initialization.
+init:
+
+  # Files output by such initialization.
+  file:
+
+    # File caching the results of the prior initialization.
+    cache: sim_init.betse
+
+# -----------------------------------------------------------------------------
+# SIMULATION
+# -----------------------------------------------------------------------------
+# Configure simulation runs.
+run:
+
+  # Files output by such runs.
+  file:
+
+    # File caching the results of the prior run.
+    cache: sim_init.betse
+
+# -----------------------------------------------------------------------------
+# PLOTS
+# -----------------------------------------------------------------------------
+# Configure simulation plotting.
+plot:
+
+  # Directories output by such plotting.
+  dir:
+
+    # Directory saving plotted images and movies.
+    media: sim_init.betse
+
+# -----------------------------------------------------------------------------
+# INTERNAL USE ONLY
+# -----------------------------------------------------------------------------
+# Avoid editing the following settings, which BETSE strictly requires for its
+# internal use only.
+
+# Configuration file version that this file conforms to. For reliable
+# comparability, this is stored as a string rather than float scalar.
+version: "0.0"
