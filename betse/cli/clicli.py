@@ -7,7 +7,7 @@
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
-from betse import metadata
+from betse import metadata, pathtree
 from betse.cli.cli import CLI
 from betse.util.path import files
 from betse.util.type import strs
@@ -206,10 +206,14 @@ class CLICLI(CLI):
         # Dictionary of string keys and string values to be output below,
         # ordered so as to preserve the specified order.
         info_key_to_value = OrderedDict((
-            ('script name', processes.get_current_basename()),
-            ('version',     metadata.__version__),
-            ('config file', files.DEFAULT_CONFIG_FILE),
-            ('log file',    files.DEFAULT_LOG_FILE),
+            ('script basename', processes.get_current_basename()),
+            ('program version', metadata.__version__),
+            ('home directory', pathtree.HOME_DIRNAME),
+            ('dot directory',  pathtree.DOT_DIRNAME),
+            ('data directory', pathtree.DATA_DIRNAME),
+            ('log file (default)', pathtree.LOG_DEFAULT_FILENAME),
+            ('simulation config file (default)',
+             pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
         ))
 
         # String to be output by this subcommand.

@@ -1,0 +1,13 @@
+# ====================[ MANIFEST.in                        ]====================
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Template with which setuptools generates the "MANIFEST" for this project.
+#
+# --------------------( SEE ALSO                           )--------------------
+#
+# --------------------( LICENSE                            )--------------------
+# Copyright 2015 by Alexis Pietak & Cecil Curry
+# See "LICENSE" for further details.
+
+# ....................{ MAIN                               }....................
+recursive-include betse/data *

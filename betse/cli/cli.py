@@ -8,10 +8,9 @@
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
-from betse import metadata
+from betse import metadata, pathtree
 from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
-from betse.util.path import paths
 # from betse.util.python import dependencies
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
@@ -78,7 +77,7 @@ class CLI(metaclass = ABCMeta):
         '''
         try:
             # Validate core directories and files required at program startup.
-            paths.init()
+            pathtree.init()
 
             # Configure logging *AFTER* making such directory, as such logging
             # writes to logfiles in such directory.

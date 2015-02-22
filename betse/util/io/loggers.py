@@ -68,6 +68,7 @@ loggers except the root logger to be unconfigured, messages will be logged
 # Since all other modules should *ALWAYS* be able to safely import this module
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+from betse import pathtree
 from betse.util.path import files, dirs
 from betse.util.type import ints
 from logging import StreamHandler
@@ -181,7 +182,8 @@ class LoggerConfig(object):
     * Printed to standard output if the logging level for such output is
       `INFO`. (Together with the prior statement, this implies output with a
       logging level of `DEBUG` will *NOT* be printed by default.)
-    * Appended to the user-specific file given by `DEFAULT_LOG_FILE`, whose:
+    * Appended to the user-specific file given by
+      `pathtree.LOG_DEFAULT_FILENAME`, whose:
       * Level defaults to `logger.ALL`. Hence, *all* messages will be logged by
         default, including low-level debug messages. (This is helpful for
         debugging client-side errors.)
@@ -235,11 +237,11 @@ class LoggerConfig(object):
         self._logger_root_handler_stderr.setLevel(WARNING)
 
         # If the directory containing such logfile does not exist, fail.
-        dirs.die_unless_parent_found(files.DEFAULT_LOG_FILE)
+        dirs.die_unless_parent_found(pathtree.LOG_DEFAULT_FILENAME)
 
         # Root logger file handler, preconfigured as documented above.
         self._logger_root_handler_file = RotatingFileHandler(
-            filename = files.DEFAULT_LOG_FILE,
+            filename = pathtree.LOG_DEFAULT_FILENAME,
 
             # Append rather than overwrite such file.
             mode = 'a',

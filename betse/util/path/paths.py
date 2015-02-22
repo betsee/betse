@@ -17,36 +17,41 @@ from os import path
 # ....................{ GETTERS                            }....................
 def get_basename(pathname: str) -> str:
     '''
-    Get the *basename* (i.e., last component) of the passed path.
+    Get the **basename** (i.e., last component) of the passed path.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     return path.basename(pathname)
 
-# ....................{ MAKERS                             }....................
-def init() -> None:
+# ....................{ CANONICALIZERS                     }....................
+def canonicalize(pathname: str) -> str:
     '''
-    Validate core directories and files required at program startup.
+    Get the **canonical form** (i.e., unique absolute path) of the passed path.
 
-    This function automatically creates non-existent paths where feasible and
-    otherwise raises exceptions on such paths *not* being found or *not* having
-    correct metadata (e.g., permissions).
+    Specifically (in order):
 
-    Such paths are required by both the CLI and GUI interfaces for `betse`. To
-    support caller-specific exception handling, this function *must* be manually
-    called sufficiently early in such startup.
+    * Perform **tilde expansion,** replacing a `~` character prefixing such path
+      by the absolute path of the current user's home directory.
+    * Perform **path normalization,** thus:
+      * Collapsing redundant separators (e.g., converting `//` to `/`).
+      * Converting relative to absolute path components (e.g., converting `../`
+        to the name of the parent directory of such component).
     '''
-    # Defer such imports to avoid circular dependencies.
-    from betse.util.path import dirs
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    return path.abspath(path.expanduser(pathname))
 
-    #FIXME: Uncomment this after we ascertain the correct path for DATA_DIRNAME,
-    #which we should probably get around to!
+# ....................{ JOINERS                            }....................
+def join(*pathnames) -> str:
+    '''
+    Join the passed pathnames on the directory separator specific to the current
+    operating system.
 
-    # Make betse's top-level dot directory if not found.
-    # dirs.die_unless_found(dirs.DATA_DIRNAME)
+    This is a convenience function wrapping the standard `os.path.join()`
+    function, provided to reduce the number of import statements required by
+    other modules.
+    '''
+    return path.join(*pathnames)
 
-    # Make betse's top-level dot directory if not found.
-    dirs.make_unless_found(dirs.DOT_DIRNAME)
-
+# --------------------( WASTELANDS                         )--------------------
 # ....................{ REMOVERS                           }....................
 # def remove(filename: str) -> None:
 #     '''
@@ -57,4 +62,12 @@ def init() -> None:
 #     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
 #     os.remove(filename)
 
-# --------------------( WASTELANDS                         )--------------------
+# def __init__():
+#     '''
+#
+#     To support caller-specific exception handling, this function does *not*
+#     validate such constants (e.g., by creating non-existent directories). See
+#     `paths.init()` for such functionality.
+#     '''
+#     # Declare such constants to be globals, permitting their modification below.
+#     global DATA_DIRNAME, DOT_DIRNAME

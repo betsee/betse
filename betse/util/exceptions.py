@@ -3,11 +3,11 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: Shift this module to the top-level "betse" package.
+
 '''
 `betse`-specific exception hierarchy.
 '''
-
-#FIXME: Shift this module to the top-level "betse" package.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
