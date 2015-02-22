@@ -5,10 +5,10 @@
 
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
 # FIXME would be nice to have a time estimate for the simulation
-# FIXME ECM diffusion and discrete membrane domains?
+# FIXME ECM diffusion and discrete membrane domains
  # FIXME would be nice to track ATP use
  # FIXME use carbonate buffer for propper H+ handling!
- # FIXME IP3 movements suggest problem with electrofusion equation or gap junction implementation -- opposite charge
+
 
 import numpy as np
 import os, os.path

@@ -6,7 +6,6 @@
 # FIXME create a plotting method for ecm data
 # FIXME work on the vector plotting -- perhaps interpolating data to grid?
 # FIXME saving animations doesn't work
-# FIXME do an animation for smoothed 'vert' data and gap junctions (with fluxes)
 
 import warnings
 import numpy as np

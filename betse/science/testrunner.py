@@ -3,6 +3,9 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME needs to call a comprehensive error if the user tries to run a sim without an existing initialization
+# FIXME needs to call a comprehensive error if the user tries to run a sim with the wrong initialization
+
 import matplotlib.pyplot as plt
 import time
 from betse.science.world import World

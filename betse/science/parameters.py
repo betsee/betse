@@ -13,6 +13,7 @@ import numpy as np
 import math
 import matplotlib.cm as cm
 import os
+import yaml
 
 # define the basic class that holds variables
 class Parameters(object):
@@ -20,6 +21,8 @@ class Parameters(object):
     The object that stores all constants used in world-building, simulation, and plotting.
 
     """
+
+
     def __init__(self):
 
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
@@ -359,6 +362,21 @@ class Parameters(object):
             self.cM_er = 3.0e-4
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
+    def load_yaml(self):
+
+        config_filename = os.path.expanduser('~/BETSE/data/yaml/sim_config.yaml')
+        config_dirname = os.path.dirname(config_filename)
+
+        #FIXME: Load from the above file.
+        config = None
+
+        self.cache_path =  os.path.join(config_dirname, config['init']['cache file'])  # world, inits, and sims are saved and read to/from this directory.
+        self.sim_path =    os.path.join(config_dirname, config['run']['cache file']) # folder to save unique simulation and data linked to init
+        self.sim_results = os.path.join(config_dirname, config['plot']['media dir']) # folder to auto-save results (graphs, images, animations)
+
+        membrane = config['variables']['membrane diffusion']
+        self.Dm_Na = membrane['Dm_Na']
 
     def set_time_profile(self,time_profile):
 
