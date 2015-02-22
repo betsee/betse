@@ -44,7 +44,7 @@ init directory:
 init time settings:
 
   time profile: 'initialize'   # choose a pre-defined time profile for the init
-                               # choices: 'initialize' or 'customized'
+                               # choices, 'initialize' or 'customized'
                                # settings for 'customized' time-profile can be
                                # edited below.
 
@@ -71,7 +71,7 @@ sim directory:
 sim time settings:
 
   time profile: 'simulate_somatic'    # choose a pre-defined time profile for the sim run
-                                      # choices: 'simulate_somatic' or 'simulate_excitable'
+                                      # choices, 'simulate_somatic' or 'simulate_excitable'
                                       # 'simulate_somatic' is for cells without voltage-gated
                                       #  sodium and potassium channels.
                                       # 'simulate_excitable' is for cells with voltage-gated
@@ -97,7 +97,7 @@ sim time settings:
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
-                                  # rule of thumb: gap junction radii up to 1.0e-9 for time step of 5e-3 s
+                                  # rule of thumb, gap junction radii up to 1.0e-9 for time step of 5e-3 s
                                   # gap junction radii up to 5.0e-9 for time step of 5e-5 s.
 
 
@@ -108,32 +108,32 @@ sim time settings:
 
 general options:
 
-  ion profile: 'basic_Ca'       # set the ion profile to be used in the simulation:
+  ion profile: 'basic_Ca'       # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
                                 # 'invertebrate' (Na+, K+, Cl-, Ca2+, H+ and proteins)
                                 # each profile also contains a charge-balance anion, M-
-                                # note: as ion number increases, time to run an init
+                                # note as ion number increases, time to run an init
                                 # or sim increases proportionally.
 
 
   Ca dynamics: True         # include full calcium dynamics in the situation?
                             # this creates an endoplasmic reticulum (ER) in each cell and
                             # IP3 mediated calcium release from the ER
-                            # note: this only works for an ion profile with Ca2+ ions
-                            # options: True or False (case sensitive)
+                            # note this only works for an ion profile with Ca2+ ions
+                            # options True or False (case sensitive)
 
 
   HKATPase pump: True     # include the HK-ATPase pump in the simulation?
-                          # note: this only works for an ion profile with H+ ions
+                          # note this only works for an ion profile with H+ ions
                           # options True or False (case sensitive)
 
 
   voltage dye: False     # include diffusion of a voltage sensitive dye?
                          # this is intended to help link sim output to real-world
                          # experimental methods.
-                         # options: True or False (case sensitive)
+                         # options True or False (case sensitive)
 
   voltage dye properties:  # specify the properties of the voltage sensitive dye
 
@@ -240,10 +240,10 @@ change Cl env:       # Change the environmental concentration of K+
 
 change Na env:       # Change the environmental concentration of K+
 
-  change start:400          # sim time to start change [s]
-  change finish:450          # sim time to end change and return to original [s]
-  change rate:5           # rate of change [s]
-  multiplier:5           # factor to multiply base level
+  change start: 400          # sim time to start change [s]
+  change finish: 450          # sim time to end change and return to original [s]
+  change rate: 5           # rate of change [s]
+  multiplier: 5           # factor to multiply base level
 
 change temperature:
 
@@ -254,9 +254,9 @@ change temperature:
 
 block gap junctions:     # block the gap junctions between cells
 
-  change start:500           # sim time to start change [s]
-  change finish:550          # sim time to end change and return to original [s]
-  change rate:5            # rate of change [s]
+  change start: 500           # sim time to start change [s]
+  change finish: 550          # sim time to end change and return to original [s]
+  change rate: 5            # rate of change [s]
 
 block NaKATP pump:
 
@@ -273,7 +273,7 @@ block HKATP pump:
 # The following are scheduled changes that can be applied to one or more cells.
 # First select how to apply the following changes to the cell cluster:
 
-scheduled target cells: 'all'      # select ways to apply targeted changes from:
+scheduled target cells: 'all'           # Select ways to apply targeted changes from
                                         # 'none' void all scheduled changes (no cells)
                                         # 'random1' randomly pick a cell to target
                                         # 'random50' randomly pick half of cells to target
@@ -282,10 +282,10 @@ scheduled target cells: 'all'      # select ways to apply targeted changes from:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  change start:30          # sim time to start change [s]
-  change finish:40         # sim time to end change and return to original [s]
-  change rate:2           # rate of change [s]
-  multiplier:10            # factor to multiply base level
+  change start: 30          # sim time to start change [s]
+  change finish: 40         # sim time to end change and return to original [s]
+  change rate: 2           # rate of change [s]
+  multiplier: 10            # factor to multiply base level
 
 change K mem:       # Change the membrane permeability to K+
 
@@ -303,17 +303,17 @@ change Cl mem:      # Change the membrane permeability to Cl-
 
 change Ca mem:       # Change the membrane permeability to Ca2+
 
-  change start:600           # sim time to start change [s]
-  change finish:650          # sim time to end change and return to original [s]
-  change rate:5            # rate of change [s]
-  multiplier:5             # factor to multiply base level
+  change start: 600           # sim time to start change [s]
+  change finish: 650          # sim time to end change and return to original [s]
+  change rate: 5            # rate of change [s]
+  multiplier: 5             # factor to multiply base level
 
 produce IP3:        # Schedule cell production of IP3
 
-  change start:700           # sim time to start IP3 production [s]
-  change finish:750          # sim time to end IP3 production [s]
-  change rate:5              # rate of production ramp up [s]
-  multiplier:1e-4            # maximum rate of production [mol/(s*m3)]
+  change start: 700           # sim time to start IP3 production [s]
+  change finish: 750          # sim time to end IP3 production [s]
+  change rate: 5              # rate of production ramp up [s]
+  multiplier: 1e-4            # maximum rate of production [mol/(s*m3)]
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS
@@ -325,7 +325,7 @@ produce IP3:        # Schedule cell production of IP3
 
 
 ion channel target cells: 'all'    # specify cells to affect with dynamic channels.
-                                   # choices:
+                                   # choices
                                    # 'none' void all scheduled changes (no cells)
                                    # 'random1' randomly pick a cell to target
                                    # 'random50' randomly pick half of cells to target
@@ -358,17 +358,17 @@ results options:
 
 
   default colormap: cm.coolwarm   # Specify the colormap to be used for main data on all graphs.
-                                  # options include:
+                                  # options include
                                   # cm.rainbow, cm.jet, cm.Blues, cm.Greens, cm.bone
                                   # to reverse a colormap add _r to the name (e.g. cm.jet_r)
-                                  # for all options please see:
+                                  # for all options please see
                                   # http://matplotlib.org/examples/color/colormaps_reference.html
 
   gj colormap: cm.bone           # colormap used for plotting gj currents on top of default colormap
 
   plot while solving: True       # show a continuously updating 2d plot of cell Vmems
                                  # while the sim run is computing?
-                                 # options: True or False
+                                 # options True or False
 
   enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
@@ -383,23 +383,23 @@ results options:
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface.
-                                  # note: if you're working with a large cluster (>500 um) do not
+                                  # note if you're working with a large cluster (>500 um) do not
                                   # show cells as it will plot very slowly.
 
-  plot Vmem = False                # 2d plot of final vmem ?
-  plot Ca = False                # 2d plot of final cell calcium ?
-  plot IP3 = False               # 2d plot of final cIP3 ?
-  plot Dye = False               # 2d plot of voltage sensitive dye in cell collective?
+  plot Vmem: True                # 2d plot of final vmem ?
+  plot Ca: True                # 2d plot of final cell calcium ?
+  plot IP3: True               # 2d plot of final cIP3 ?
+  plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
 
   create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
 
-  animate Vmem = True                # 2d animation of vmem with time?
-  animate Ca2+ = True                # 2d animation of cell calcium with time ?
-  animate IP3 = True               # 2d animation of cIP3 with time?
-  animate Dye = True               # 2d animation of voltage sensitive dye in cell collective with time?
-  animate Vmem with gj = True              # 2d animation of vmem with superimposed gj network showing current direction
+  animate Vmem: True                # 2d animation of vmem with time?
+  animate Ca2+: True                # 2d animation of cell calcium with time ?
+  animate IP3: True               # 2d animation of cIP3 with time?
+  animate Dye: True               # 2d animation of voltage sensitive dye in cell collective with time?
+  animate Vmem with gj: True              # 2d animation of vmem with superimposed gj network showing current direction
 
   automatically save plots: True     # autosave all still images to the results directory in the simulation folder
   save animations: False            # save all animations as png sequences in animation-specific folders
