@@ -29,7 +29,7 @@ class Parameters(object):
         self.time_profile_sim = 'simulate_excitable'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
         self.time4init = 5*60      # set the time for the initialization sim [s]
-        self.time4sim = 0.5        # set total time for simulation [s]
+        self.time4sim = 0.2        # set total time for simulation [s]
 
         # File saving
         self.cache_path = os.path.expanduser("~/.betse/cache/exciteInit/")  # world, inits, and sims are saved and read to/from this directory.
@@ -143,6 +143,7 @@ class Parameters(object):
         self.gj_cm = cm.bone           # colormap for plotting gj currents on top of default colormap
 
         self.plot_while_solving = True  # create a 2d plot of cell vmems while solution is taking place
+        self.save_solving_plot = False   # save the 2d plot generated while solving (warning: will slow sim down!)
 
         self.enumerate_cells = False    # number cells on the static 2D maps with their simulation index (this can help
                                         # decide on the value of self.plot_cell
@@ -168,9 +169,12 @@ class Parameters(object):
         self.ani_vmgj2d = True              # 2d animation of vmem with superimposed gj network showing current direction
 
         self.autosave = True           # autosave all still images to a results directory in the simulation folder
-        self.saveAnimations = True    # save all animations as png sequences in animation-specific folders
+        self.saveAnimations = False    # save all animations as png sequences in animation-specific folders
 
         self.exportData = True        # export all stored data for the plot_cell to a csv text file
+
+        self.clip = 20e-6
+
 
 
         # ........................Rarely changed constants and calculations.............................................

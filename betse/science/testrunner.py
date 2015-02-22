@@ -28,12 +28,15 @@ class SimRunner(object):
         start_time = time.time()  # get a start value for timing the simulation
 
         cells = World(vorclose='circle',worldtype='full')  # create an instance of world
+        print('Cell cluster is being created...')
         cells.makeWorld()     # call function to create the world
+        print('Cell cluster creation complete!')
         p = Parameters()     # create an instance of Parameters
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         sim = Simulator(p)   # create an instance of Simulator
         sim.baseInit(cells, p)   # initialize simulation data structures
         sim.runInit(cells,p)     # run and save the initialization
+        print('Initialization run complete!')
 
         print('The initialization took', round(time.time() - start_time,2), 'seconds to complete')
 

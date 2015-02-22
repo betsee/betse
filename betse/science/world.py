@@ -975,6 +975,12 @@ class World(object):
 
         self.cell_vol = np.asarray(self.cell_vol)
 
+        self.clust_centre = np.mean(self.cell_centres)
+        self.clust_x_max = np.max(self.cell_centres[:,0])
+        self.clust_x_min = np.min(self.cell_centres[:,0])
+        self.clust_y_max = np.max(self.cell_centres[:,1])
+        self.clust_y_min = np.min(self.cell_centres[:,1])
+
         self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
         for igj, pair in enumerate(self.gap_jun_i):
             ci = pair[0]

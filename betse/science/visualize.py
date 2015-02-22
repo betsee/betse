@@ -69,7 +69,12 @@ class AnimateCellData(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        self.ax.autoscale_view()
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
 
         self.frames = len(self.zdata_t)
 
@@ -111,8 +116,6 @@ class AnimateCellData_smoothed(object):
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
 
-
-
         # set range of the colormap
         self.cmean = np.mean(self.zdata_t)
         self.cmin = np.min(self.zdata_t)
@@ -140,7 +143,12 @@ class AnimateCellData_smoothed(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        self.ax.autoscale_view()
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
 
         self.frames = len(self.zdata_t)
 
@@ -231,7 +239,12 @@ class AnimateGJData(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        self.ax.autoscale_view()
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
 
         self.frames = len(self.zdata_t)
 
@@ -325,7 +338,12 @@ class AnimateGJData_smoothed(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        self.ax.autoscale_view()
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
 
         self.frames = len(self.zdata_t)
 
@@ -357,6 +375,8 @@ class AnimateGJData_smoothed(object):
 class PlotWhileSolving(object):
 
     def __init__(self,cells,sim,p,number_cells=p.enumerate_cells):
+
+
 
         vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
         self.colormap = p.default_cm
@@ -395,7 +415,21 @@ class PlotWhileSolving(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        self.ax.autoscale_view()
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if p.save_solving_plot == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + '/plotWhileSolving'
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, 'vm_')
+
+            self.i = 0   # an index used for saving plot filename
 
         plt.show(block=False)
 
@@ -414,6 +448,11 @@ class PlotWhileSolving(object):
         self.ax.set_title(titani)
 
         self.fig.canvas.draw()
+
+        if p.save_solving_plot == True:
+            self.i = self.i + 1
+            savename = self.savedAni + str(self.i)
+            plt.savefig(savename,dpi=96,format='png')
 
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
@@ -559,7 +598,12 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
             for i,cll in enumerate(cells.cell_centres):
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
-        ax.autoscale_view(tight=True)
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
 
         return fig,ax,ax_cb
 
@@ -654,7 +698,12 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
             ax.add_collection(coll)
 
 
-        ax.autoscale_view(tight=True)
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
 
 
         return fig, ax, ax_cb
@@ -717,7 +766,13 @@ def plotMemData(cells, fig= None, ax = None, zdata=None,clrmap=None):
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.axis('equal')
-        ax.autoscale_view(tight=True)
+
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
 
         return fig, ax, ax_cb
 
@@ -789,7 +844,12 @@ def plotConnectionData(cells, fig = None, ax=None, zdata=None,clrmap=None,colorb
         else:
             ax_cb = None
 
-        ax.autoscale_view(tight=True)
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
 
         return fig, ax, ax_cb
 
@@ -835,7 +895,12 @@ def plotBoundCells(points_flat,bflags,cells, fig=None, ax=None):
 
         ax.axis('equal')
 
-        ax.autoscale_view(tight=True)
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
 
         return fig, ax
 
@@ -871,7 +936,12 @@ def plotVects(cells, fig=None, ax=None):
 
         ax.axis('equal')
 
-        ax.autoscale_view(tight=True)
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
 
         return fig, ax
 
