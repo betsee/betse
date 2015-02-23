@@ -38,7 +38,16 @@ def die_unless_dir_or_not_found(
     if is_path(pathname) and not is_dir(pathname):
         # If no such message was passed, default such message.
         if not exception_message:
-             exception_message = 'Path "{}" not a directory.'.format(pathname)
+            if is_file(pathname):
+                exception_message =\
+                    'Directory "{}" already an existing file.'.format(pathname)
+            elif is_symlink(pathname):
+                exception_message =\
+                    'Directory "{}" already an existing symbolic link.'.format(
+                        pathname)
+            else:
+                exception_message = 'Path "{}" not a directory.'.format(
+                    pathname)
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 
@@ -56,7 +65,15 @@ def die_unless_file_or_not_found(
     if is_path(pathname) and not is_file(pathname):
         # If no such message was passed, default such message.
         if not exception_message:
-             exception_message = 'Path "{}" not a file.'.format(pathname)
+            if is_dir(pathname):
+                exception_message =\
+                    'File "{}" already an existing directory.'.format(pathname)
+            elif is_symlink(pathname):
+                exception_message =\
+                    'File "{}" already an existing symbolic link.'.format(
+                        pathname)
+            else:
+                exception_message = 'Path "{}" not a file.'.format(pathname)
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 
@@ -71,7 +88,7 @@ def die_unless_file(filename: str, exception_message: str = None) -> None:
     if not is_file(filename):
         # If no such message was passed, default such message.
         if not exception_message:
-             exception_message = 'File "{}" not found.'.format(filename)
+            exception_message = 'File "{}" not found.'.format(filename)
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 

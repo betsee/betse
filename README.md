@@ -5,17 +5,39 @@ betse
 electrical phenomena within biological tissue (e.g., ion channel-gated current
 flow).
 
-## Dependencies
+## System Requirements
 
-`betse` has both mandatory and optional dependencies. Let's begin!
+`betse` currently runs *only* on:
+
+* **64-bit systems**. This is principally due to the increasing obsolescence and
+  hence irrelevance of 32-bit systems for scientific work. [Read: no clients or
+  developers use 32-bit systems.] To a lesser extent, this is due to the so-
+  called ["3GB barrier"](https://en.wikipedia.org/wiki/3_GB_barrier) imposed by
+  most existing 32-bit systems -- including *all* non-server 32-bit editions of
+  Microsoft Windows. Such barrier prevents usage of more than 3 to 4GB of
+  available RAM, which rarely suffices for even small-scale tissue simulations.
+* Operating systems matching either:
+  * **Microsoft Windows XP** or newer.
+  * **Apple OS X 10.6** (Snow Leopard) or newer.
+  * **Linux distributions providing at least `glibc` 2.19** or newer. (The
+    currently installed version of `glibc` is printable by running the following
+    command at the command line: `ldd --version`.) This includes but is *not*
+    limited to the following Linux distributions:
+    * **Linux Mint 17.1** (Rebecca) or newer.
+    * **Ubuntu 14.10** (Utopic Unicorn) or newer.
+
+`betse` currently recommends but does *not* require:
+
+* **At least 16GB RAM**. Again, this is due to the memory intensiveness of
+  even small-scale tissue simulations.
+
+## Program Dependencies
+
+`betse` has both mandatory dependencies that must be installed *before*
+installing `betse` and optional dependencies that may be installed *after*
+installing `betse`. Let's begin!
 
 ### Mandatory
-
-`betse` is intended to be run on machines meeting the following specifications:
-
-* 64-bit Linux, OS X, and Windows operating systems.
-* At least 4GB RAM. (This and the 64-bit requirement are principally a result of
-  the memory intensiveness of tissue simulations.)
 
 `betse` requires the following non-pure-Python packages – which themselves
 require non-Python libraries (e.g., C, Fortran) and hence are best installed
@@ -39,8 +61,8 @@ dependencies are installable in a system-wide manner as follows:
 
 #### Apple OS X
 
-`betse` requires at least OS X 10.6 (Snow Leopard). Under such systems, such
-dependencies are installable in a system-wide manner as follows:
+Under Apple OS X, such dependencies are installable in a system-wide manner as
+follows:
 
 . Register as an [Apple Developer](https://developer.apple.com). While free,
   such registration requires an existing Apple ID.
@@ -76,7 +98,7 @@ dependencies are installable in a system-wide manner as follows:
     >>> cd pyinstaller
     >>> sudo python3 setup.py install
 
-## Installation
+## Program Installation
 
 `betse` is installable into either:
 
@@ -97,10 +119,10 @@ absolute path of the directory containing this file.
 
 `betse` is installable into a system-wide directory as follows:
 
-* Compile `betse`. 
+* Compile `betse`.
     >>> cd "${BETSE_DIR}"
     >>> python3 setup.py build
-* Install `betse`. 
+* Install `betse`.
     >>> sudo python3 setup.py easy_install --no-deps .
 
 Curiously, although the `develop` command for `setuptools` provides a
@@ -121,7 +143,7 @@ dependencies of `betse` already installed by the system-wide package manager
 difficult to debug conflicts at `betse` runtime between dependencies reinstalled
 by `setuptools` and dependencies already installed by such package maneger.
 
-## Usage
+## Program Usage
 
 `betse` is a front-facing application rather than backend framework. While
 `betse`'s Python packages are importable by other packages, `betse` is typically
@@ -155,7 +177,7 @@ Python 3 interpreter as follows:
     >>> cd "${BETSE_DIR}"
     >>> python3 -m betse.gui
 
-## Development
+## Program Development
 
 For development purposes, `betse` is *editably installable* (i.e., as a symbolic
 link rather than physical copy). As the name implies, editable installations are
@@ -222,7 +244,7 @@ Such installation is uninstallable as follows:
     >>> cd "${BETSE_DIR}"
     >>> ./setup.py develop --uninstall
 
-## Testing
+## Program Testing
 
 `betse` is testable via `nose` as follows:
 
@@ -236,7 +258,7 @@ equivalent commands:
     >>> nosetests             # this works...
     >>> ./setup.py nosetest   # ...as does this.
 
-## Freezing
+## Program Freezing
 
 `betse` is **freezable** (i.e., convertable to platform-specific executable
 binaries distributable to end users) via the optional dependency PyInstaller in
@@ -277,6 +299,39 @@ should *not* be renamed. Doing so typically invalidates code signing (as well as
 other embedded metadata).
 
 ### Caveats
+
+While commonly regarded as the best utility for freezing Python applications,
+PyInstaller is *not* without the occasional caveat. Most if not all such caveats
+apply to alternative utilities (e.g., `cx_Freeze`, `py2app`, `py2exe`).
+
+#### Forwards Incompatibilities
+
+Executables frozen on older versions of supported operating systems are
+*typically* compatible with newer versions of the same systems. For example,
+executables frozen on Ubuntu 12.04 (Precise Pangolin) are typically compatible
+with Ubuntu 12.10, 14.04, 14.10, and newer. This is commonly referred to as
+**backwards compatibility**.
+
+The converse is *not* the case. That is, executables frozen on newer versions of
+supported operating systems are guaranteeably incompatible with older versions
+of the same systems. For example, executables frozen on OS X 10.10 (Yosemite)
+are guaranteeably incompatible with OS X 10.9, 10.8, 10.7, and older. This is
+commonly referred to as **forwards incompatibility**.
+
+For this reason, executables should be frozen on the oldest possible versions
+of supported operating systems themselves supporting all application
+dependencies. The simplest means of doing so is to **host** (i.e., install and
+run) such versions of such systems as virtual guests of the current system via a
+**hypervisor** (i.e., an application creating and running virtual machines).
+
+For this purpose, we recommend Oracle's open-source hypervisor VirtualBox rather
+than VMware's closed-source hypervisor VMware Workstation. The former supports
+all operating systems supported by `betse` out of the box, including OS X; the
+latter supports Linux and Windows but *not* OS X out of the box. Moreover, the
+former is free (as in both beer and speech); the latter is non-free (as in both
+beer and speech).
+
+#### No Cross-freezing or -compilation
 
 PyInstaller supports neither **cross-freezing** (i.e., generation of
 executables intended for execution on operating systems other than the current)
