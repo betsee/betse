@@ -13,8 +13,10 @@ Low-level module facilities.
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time (e.g., stock Python packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-from betse.util.exceptions import BetseExceptionModule
 import importlib
+
+from betse.exceptions import BetseExceptionModule
+
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless(

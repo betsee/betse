@@ -11,9 +11,11 @@ builtin.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.exceptions import BetseExceptionDir
 from os import path
 import os
+
+from betse.exceptions import BetseExceptionDir
+
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_found(dirname: str) -> None:

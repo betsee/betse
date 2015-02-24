@@ -3,7 +3,8 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''Main entry point of `betse`'s command line interface (CLI).
+'''
+Main entry point of `betse`'s command line interface (CLI).
 
 This module is a thin wrapper intended to be imported only from the command line
 (e.g., via `python -m betse`). This module is *not* imported by `setuptools`'s

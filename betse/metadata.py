@@ -24,14 +24,14 @@ NAME = 'BETSE'
 '''Human-readable program name.'''
 
 DESCRIPTION = ''.join((
-    NAME, ' ',
-    '(BioElectric Tissue Simulation Engine) simulates propagation of ',
-    'electrical phenomena within biological tissue ',
+    NAME, ', the [B]io[E]lectric [T]issue [S]imulation [E]ngine, models ',
+    'propagation of electrical phenomena through biological tissue ',
     '(e.g., of ion channel-gated current flow).',
 ))
 '''Human-readable program description.'''
 
-AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
+AUTHORS = 'Alexis Pietak, Cecil Curry'
+# AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
 '''Human-readable program authors as a comma-delimited list.'''
 
 # ....................{ METADATA ~ scripts                 }....................

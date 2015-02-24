@@ -3,12 +3,15 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''Abstract command line interface (CLI).'''
+'''
+Abstract command line interface (CLI).
+'''
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import metadata, pathtree
+from betse.cli import help
 from betse.util.io import loggers, stderr
 from betse.util.io.loggers import LoggerConfig
 # from betse.util.python import dependencies
@@ -17,7 +20,7 @@ from betse.util.system.args import HelpFormatterParagraph
 from io import StringIO
 import sys, traceback
 
-# ....................{ MAIN                               }....................
+# ....................{ CLASS                              }....................
 class CLI(metaclass = ABCMeta):
     '''
     Abstract command line interface (CLI) suitable for use by both the front-
@@ -142,11 +145,15 @@ class CLI(metaclass = ABCMeta):
 
         # Make a command-line argument parser.
         self._arg_parser = ArgumentParser(
-            # Program name.
+            # Script name.
             prog = self._script_basename,
 
-            # Program description.
+            # Script description.
             description = metadata.DESCRIPTION,
+
+            # Help text printed *AFTER* all other output when such script is
+            # passed no command-line arguments.
+            epilog = self._format_help_template(help.TEMPLATE_EPILOG),
 
             # Pass preinitialized keyword arguments.
             **self._arg_parser_kwargs
@@ -184,6 +191,23 @@ class CLI(metaclass = ABCMeta):
         # specific logger handler from default "INFO" to all-inclusive "ALL".
         if self._args.is_verbose:
             self._logger_config.stdout.setLevel(loggers.ALL)
+
+    def _format_help_template(self, text: str) -> str:
+        '''
+        Format the passed help string template.
+
+        Specifically:
+
+        * Replace all instances in such template of:
+          * `{script_basename}` by the basename of the current script (e.g.,
+            `betse`).
+          * `{program_name}` by the name of the current program (e.g., `BETSE`).
+        '''
+        assert isinstance(text, str), '"{}" not a string.'.format(text)
+        return text.format(
+            program_name = metadata.NAME,
+            script_basename = self._script_basename,
+        )
 
     # ..................{ EXCEPTIONS                         }..................
     def _print_exception(self, exception: Exception) -> None:

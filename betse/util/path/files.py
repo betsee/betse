@@ -11,9 +11,11 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.exceptions import BetseExceptionFile
 from os import path
 import os
+
+from betse.exceptions import BetseExceptionFile
+
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_found(filename: str) -> None:

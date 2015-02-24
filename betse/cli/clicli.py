@@ -3,13 +3,15 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''`betse`'s command line interface (CLI).'''
+'''
+`betse`'s command line interface (CLI).
+'''
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
 from betse import metadata, pathtree
+from betse.cli import help
 from betse.cli.cli import CLI
-from betse.util.path import files
 from betse.util.type import strs
 from betse.util.system import processes
 from collections import OrderedDict
@@ -29,7 +31,7 @@ def main() -> int:
     '''
     return CLICLI().run()
 
-# ....................{ MAIN                               }....................
+# ....................{ CLASS                              }....................
 class CLICLI(CLI):
     '''`betse`'s command line interface (CLI).
 
@@ -42,21 +44,19 @@ class CLICLI(CLI):
         `argparse`-specific subparser of command-line arguments passed to the
         `sim` subcommand.
     '''
-    def __init__(self):
-        super().__init__()
-
     # ..................{ SUPERCLASS                         }..................
     def _configure_arg_parsing(self):
         # List of argument subparsers parsing arguments for root subcommands.
         self._arg_subparsers = self._arg_parser.add_subparsers(
+            # Name of the attribute storing the passed command name.
+            dest = 'command_name',
+
             # Title of the subcommand section in help output.
             title = 'subcommands',
 
             # Description of the subcommand section in help output.
-            description = 'Subcommand to be performed.',
-
-            # Name of the attribute storing the passed command name.
-            dest = 'command_name',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMANDS),
         )
 
         # ................{ SUBPARSER ~ sim                    }................
@@ -65,25 +65,17 @@ class CLICLI(CLI):
         self._add_subparser(
             name = 'try',
             help = 'run a sample tissue simulation',
-            description = (
-                'Run a sample tissue simulation by '
-                'automatically creating a default configuration file and '
-                'initializing, running, and plotting the tissue simulation '
-                'configured by such file. '
-                'This convenience command is equivalent to the following:\n\n'
-                '    {} sim cfg init run plot sim_config.yaml\n\n'
-            ).format(self._script_basename),
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_TRY),
         )
         self._configure_arg_parsing_sim()
 
         # ................{ SUBPARSER ~ info                   }................
         self._add_subparser(
             name = 'info',
-            help = 'print program metadata',
-            description = 'Print program metadata in key-value format.',
-
-            # Pass preinitialized keyword arguments.
-            **self._arg_parser_kwargs
+            help = 'print informational metadata about the program',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_INFO),
         )
 
     def _run(self) -> None:
@@ -134,54 +126,8 @@ class CLICLI(CLI):
         self._arg_parser_sim = self._add_subparser(
             name = 'sim',
             help = 'run tissue simulation subcommand(s)',
-
-            #FIXME: Convert to a '''-style string.
-            description = (
-                'Run the passed tissue simulation subcommand(s) '
-                'configured by the passed configuration file. For example, '
-                'to initialize, run, and plot a tissue simulation '
-                'configured by a file "my_sim.yaml" '
-                'in the current directory:\n\n'
-                ':    {script_basename} sim init run plot my_sim.yaml\n\n'
-                'Valid subcommands include:\n\n'
-                'cfg\n'
-                ' ----------\n'
-                'Write a default tissue simulation configuration to '
-                'the passed output file, '
-                'whose filename should (ideally) be suffixed by ".yaml". '
-                'For portability, this configuration will save '
-                'simulation results and plots '
-                'to the directory in which this file resides. '
-                'You are welcome to modify this file at any time.\n\n'
-                'init\n'
-                ' ----------\n'
-                'Initialize the tissue simulation '
-                'configured by the passed input configuration file. '
-                'Initialization results will be saved to the output file '
-                'configured in such configuration.\n\n'
-                'run\n'
-                ' ----------\n'
-                'Run the previously initialized tissue simulation '
-                'configured by the passed input configuration file. '
-                'Simulation results will be saved to the output file '
-                'configured in such configuration. '
-                'Likewise, the previously run initialization '
-                'will be loaded from the input file '
-                'configured in such configuration. '
-                'If such file does not exist, an error is raised.\n\n'
-                'plot\n '
-                ' ----------\n'
-                'Plot the previously run tissue simulation '
-                'configured by the passed input configuration file. '
-                'Plot results will be saved to the output files '
-                'configured in such configuration. '
-                'Likewise, the previously run simulation '
-                'will be loaded from the input file '
-                'configured in such configuration. '
-                'If such file does not exist, an error is raised.'
-            ).format(
-                script_basename = self._script_basename,
-            ),
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM),
         )
         self._arg_parser_sim.add_argument(
             'sim_subcommand_names',
@@ -208,11 +154,12 @@ class CLICLI(CLI):
         info_key_to_value = OrderedDict((
             ('script basename', processes.get_current_basename()),
             ('program version', metadata.__version__),
+            ('program authors', metadata.AUTHORS),
             ('home directory', pathtree.HOME_DIRNAME),
             ('dot directory',  pathtree.DOT_DIRNAME),
             ('data directory', pathtree.DATA_DIRNAME),
-            ('log file (default)', pathtree.LOG_DEFAULT_FILENAME),
-            ('simulation config file (default)',
+            ('log file', pathtree.LOG_DEFAULT_FILENAME),
+            ('default simulation config file',
              pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
         ))
 
@@ -270,6 +217,68 @@ class CLICLI(CLI):
         self._args.sim_config_filename
 
 # --------------------( WASTELANDS                         )--------------------
+            # description = (
+            #     'Run the passed tissue simulation subcommand(s) '
+            #     'configured by the passed configuration file. For example, '
+            #     'to initialize, run, and plot a tissue simulation '
+            #     'configured by a file "my_sim.yaml" '
+            #     'in the current directory:\n\n'
+            #     ':    {script_basename} sim init run plot my_sim.yaml\n\n'
+            #     'Valid subcommands include:\n\n'
+            #     'cfg\n'
+            #     ' ----------\n'
+            #     'Write a default tissue simulation configuration to '
+            #     'the passed output file, '
+            #     'whose filename should (ideally) be suffixed by ".yaml". '
+            #     'For portability, this configuration will save '
+            #     'simulation results and plots '
+            #     'to the directory in which this file resides. '
+            #     'You are welcome to modify this file at any time.\n\n'
+            #     'init\n'
+            #     ' ----------\n'
+            #     'Initialize the tissue simulation '
+            #     'configured by the passed input configuration file. '
+            #     'Initialization results will be saved to the output file '
+            #     'configured in such configuration.\n\n'
+            #     'run\n'
+            #     ' ----------\n'
+            #     'Run the previously initialized tissue simulation '
+            #     'configured by the passed input configuration file. '
+            #     'Simulation results will be saved to the output file '
+            #     'configured in such configuration. '
+            #     'Likewise, the previously run initialization '
+            #     'will be loaded from the input file '
+            #     'configured in such configuration. '
+            #     'If such file does not exist, an error is raised.\n\n'
+            #     'plot\n '
+            #     ' ----------\n'
+            #     'Plot the previously run tissue simulation '
+            #     'configured by the passed input configuration file. '
+            #     'Plot results will be saved to the output files '
+            #     'configured in such configuration. '
+            #     'Likewise, the previously run simulation '
+            #     'will be loaded from the input file '
+            #     'configured in such configuration. '
+            #     'If such file does not exist, an error is raised.'
+            # ).format(
+            #     script_basename = self._script_basename,
+            # ),
+
+            # Pass preinitialized keyword arguments.
+            # **self._arg_parser_kwargs
+    # def __init__(self):
+    #     super().__init__()
+
+            # description = 'Subcommand to be performed.',
+            # description = (
+            #     'Run a sample tissue simulation by '
+            #     'automatically creating a default configuration file and '
+            #     'initializing, running, and plotting the tissue simulation '
+            #     'configured by such file. '
+            #     'This convenience command is equivalent to the following:\n\n'
+            #     '    {} sim cfg init run plot sim_config.yaml\n\n'
+            # ).format(self._script_basename),
+
             #FUXME: Ugh. "\n" escapes are ignored in descriptions, so we'll need
             #to manually embed newlines. Hmm. Would even that work? It might be
             #that argparse squelches *ALL* newlines in descriptions. Google up.
