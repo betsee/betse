@@ -76,6 +76,14 @@ follows:
     >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
 . Activate the version of Python required by betse:
     >>> sudo port select --set python python34
+. Close the terminal, if you like:
+    >>> exit
+. Manually add the
+  "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin" directory
+  to the current ${PATH}. To do so permanently, edit the ".profile" file in your
+  home directory and change the line beginning with "export PATH" to resemble
+  the following:
+    export PATH="/opt/local/bin:/opt/local/sbin:/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin:$PATH"
 
 Note that MacPorts is a source-based package manager and hence extremely slow.
 Expect the installation of dependencies to take several hours to several days.
