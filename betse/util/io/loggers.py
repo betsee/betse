@@ -68,12 +68,10 @@ loggers except the root logger to be unconfigured, messages will be logged
 # Since all other modules should *ALWAYS* be able to safely import this module
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-from betse import pathtree
-from betse.util.path import files, dirs
-from betse.util.type import ints
 from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
-import logging, sys
+from os import path
+import logging, os, sys
 
 # ....................{ CONSTANTS ~ int                    }....................
 # Originally, we attempted to dynamically copy such constants from the "logging"
@@ -128,7 +126,11 @@ be smaller than the smallest constant defined by such module.
 def get(logger_name: str = None) -> logging.Logger:
     '''
     Get the logger with the passed `.`-delimited name, defaulting to the
-    basename of the current process (e.g., `betse`).
+    basename of the current process (e.g., `betse`) implying the *global logger*
+    (i.e., the default application-wide logger).
+
+    This function expects the `LoggerConfig` class to have been previously
+    instantiated, which globally configures logging.
 
     Logger Name
     ----------
@@ -144,14 +146,59 @@ def get(logger_name: str = None) -> logging.Logger:
         logger_name = processes.get_current_basename()
 
     # If such name is the empty string, this function would get the root logger.
-    # Since logging under the root logger is inherently unsafe, assert such
-    # constraint.
+    # Since such name being empty typically constitutes an implicit error rather
+    # than an attempt to get the root logger, such constraint is asserted.
     assert isinstance(logger_name, str),\
         '"{}" not a string.'.format(logger_name)
     assert logger_name, 'Logger name empty.'
 
     # Get such logger.
     return logging.getLogger(logger_name)
+
+# ....................{ LOGGERS                            }....................
+def log_debug(message: str, *args, **kwargs) -> None:
+    '''
+    Log the passed debug message with the root logger, formatted with the passed
+    `%`-style positional and keyword arguments.
+
+    This function expects the `LoggerConfig` class to have been previously
+    instantiated, which globally configures logging.
+    '''
+    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    logging.debug(message, *args, **kwargs)
+
+def log_info(message: str, *args, **kwargs) -> None:
+    '''
+    Log the passed informational message with the root logger, formatted with
+    the passed `%`-style positional and keyword arguments.
+
+    This function expects the `LoggerConfig` class to have been previously
+    instantiated, which globally configures logging.
+    '''
+    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    logging.info(message, *args, **kwargs)
+
+def log_warning(message: str, *args, **kwargs) -> None:
+    '''
+    Log the passed warning message with the root logger, formatted with the
+    passed `%`-style positional and keyword arguments.
+
+    This function expects the `LoggerConfig` class to have been previously
+    instantiated, which globally configures logging.
+    '''
+    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    logging.warning(message, *args, **kwargs)
+
+def log_error(message: str, *args, **kwargs) -> None:
+    '''
+    Log the passed error message with the root logger, formatted with the
+    passed `%`-style positional and keyword arguments.
+
+    This function expects the `LoggerConfig` class to have been previously
+    instantiated, which globally configures logging.
+    '''
+    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    logging.error(message, *args, **kwargs)
 
 # ....................{ CONFIG                             }....................
 class LoggerConfig(object):
@@ -198,6 +245,8 @@ class LoggerConfig(object):
 
     Attributes
     ----------
+    is_initted : bool
+        True if the init() method has been previously called.
     _logger_root : Logger
         Root logger.
     _logger_root_handler_file : Handler
@@ -208,13 +257,22 @@ class LoggerConfig(object):
         Stream handler for the root logger printing to standard output.
     '''
     def __init__(self):
+        self.is_initted = False
+        self._logger_root = None
+        self._logger_root_handler_file = None
+        self._logger_root_handler_stderr = None
+        self._logger_root_handler_stdout = None
+
+    def init(self):
         '''
         Initialize the root logger for application-wide logging.
         '''
         super().__init__()
 
         # Import modules required below.
+        from betse import pathtree
         from betse.util.system import processes
+        from betse.util.type import ints
 
         # Root logger.
         logger_root = logging.getLogger()
@@ -236,8 +294,14 @@ class LoggerConfig(object):
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
 
-        # If the directory containing such logfile does not exist, fail.
-        dirs.die_unless_parent_found(pathtree.LOG_DEFAULT_FILENAME)
+        # Create the directory containing such logfile if needed. Since
+        # dirs.make_parent_unless_found() logs such creation, calling such
+        # function here induces exceptions in the worst case (due to the root
+        # logger having been insufficiently configured) or subtle errors in the
+        # best case. Instead, create such directory with standard low-level
+        # Python functions.
+        os.makedirs(
+            path.dirname(pathtree.LOG_DEFAULT_FILENAME), exist_ok = True)
 
         # Root logger file handler, preconfigured as documented above.
         self._logger_root_handler_file = RotatingFileHandler(
@@ -290,6 +354,10 @@ class LoggerConfig(object):
         logger_root.addHandler(self._logger_root_handler_stderr)
         logger_root.addHandler(self._logger_root_handler_file)
 
+        # Report this object as having been initialized to callers *AFTER*
+        # successfully performing the above initialization.
+        self.is_initted = False
+
     # ..................{ PROPERTIES                         }..................
     @property
     def file(self) -> logging.Handler:
@@ -323,7 +391,7 @@ class LoggerConfig(object):
         '''
         return get(*args, **kwargs)
 
-# ....................{ CONFIG                             }....................
+# ....................{ CONFIG ~ filter                    }....................
 class LoggerFilterInfoOrLess(logging.Filter):
     '''
     Filter ignoring log records with logging level strictly greater than `INFO`.
@@ -339,7 +407,22 @@ class LoggerFilterInfoOrLess(logging.Filter):
             '"{}" not a log record.'.format(log_record)
         return log_record.levelno <= logging.INFO
 
+# ....................{ SINGLETON                          }....................
+config = LoggerConfig()
+'''
+Singleton logging configuration.
+
+Such configuration provides access to root logger handlers. In particular, this
+simplifies modification of logging levels at runtime (e.g., in response to
+command-line arguments or configuration file settings).
+'''
+
 # --------------------( WASTELANDS                         )--------------------
+# from betse.util.path import dirs
+# from betse.util.type import ints
+# and hence logging globally configured. at least once
+    # Since logging under the root logger is inherently unsafe, assert such
+    # constraint.
         # Prevent the root logger from ignoring *ANY* log requests. (By default,
         # such logger ignores
         # stream_format = '[{processName}] {message}'

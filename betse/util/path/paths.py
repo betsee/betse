@@ -15,11 +15,20 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 from os import path
 
 # ....................{ GETTERS                            }....................
+def get_dirname(pathname: str) -> str:
+    '''
+    Get the *dirname* (i.e., parent directory) of the passed path.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+    return path.dirname(pathname)
+
 def get_basename(pathname: str) -> str:
     '''
     Get the **basename** (i.e., last component) of the passed path.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
     return path.basename(pathname)
 
 # ....................{ CANONICALIZERS                     }....................
@@ -37,6 +46,7 @@ def canonicalize(pathname: str) -> str:
         to the name of the parent directory of such component).
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
     return path.abspath(path.expanduser(pathname))
 
 # ....................{ JOINERS                            }....................

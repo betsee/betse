@@ -12,6 +12,8 @@ from argparse import ArgumentParser
 from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
+from betse.util.io import loggers
+from betse.util.path import dirs, files
 from betse.util.type import strs
 from betse.util.system import processes
 from collections import OrderedDict
@@ -171,17 +173,22 @@ class CLICLI(CLI):
 
         # Log rather than merely output such string, as such logging simplifies
         # cliest-side bug reporting.
-        self._logger.info(info_output)
+        loggers.log_info(info_output)
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
     def _run_sim(self) -> None:
         '''
         Run the `sim` subcommand.
         '''
+        # loggers.log_debug(
+        #     'sim subcommand names: %s', str(self._args.sim_subcommand_names))
+        # loggers.log_debug(
+        #     'sim_config_filename: %s', self._args.sim_config_filename)
+
         # Run each simulation-specific subcommand.
         for sim_subcommand_name in self._args.sim_subcommand_names:
             # Name of the method running such subcommand.
-            sim_subcommand_method_name = sim_subcommand_name + '_sim'
+            sim_subcommand_method_name = '_run_sim_' + sim_subcommand_name
 
             # Method running such subcommand, passing "None" to prevent
             # getattr() from raising a non-layman-readable exception on
@@ -208,15 +215,22 @@ class CLICLI(CLI):
             # Else, run such subcommand.
             sim_subcommand_method()
 
-    #FIXME: Get me working correctly *BEFORE* implementing any others.
-
-    def _cfg_sim(self) -> None:
+    def _run_sim_cfg(self) -> None:
         '''
         Run the `sim` subcommand's `cfg` subcommand.
         '''
-        self._args.sim_config_filename
+        # Create the directory to which such file will be written if needed.
+        dirs.make_parent_unless_found(self._args.sim_config_filename)
+
+        # Copy the default configuration file to such file.
+        files.copy(
+            pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME,
+            self._args.sim_config_filename,
+        )
 
 # --------------------( WASTELANDS                         )--------------------
+    #FUXME: Get me working correctly *BEFORE* implementing any others.
+
             # description = (
             #     'Run the passed tissue simulation subcommand(s) '
             #     'configured by the passed configuration file. For example, '

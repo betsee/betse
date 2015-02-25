@@ -13,7 +13,6 @@ from argparse import ArgumentParser
 from betse import metadata, pathtree
 from betse.cli import help
 from betse.util.io import loggers, stderr
-from betse.util.io.loggers import LoggerConfig
 # from betse.util.python import dependencies
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
@@ -37,12 +36,6 @@ class CLI(metaclass = ABCMeta):
         `ArgumentParser` objects.
     _args : argparse.Namespace
         `argparse`-specific object of all passed command-line arguments.
-    _logger_config : LoggerConfig
-        Logger configuration, providing access to root logger handlers (e.g.,
-        for modifying logging levels).
-    _logger : Logger
-        Logger intended to be used globally (i.e., by *all* classes, functions,
-        and modules) or None if no such logger has been initialized.
     _script_basename : str
         Basename of the current process (e.g., `betse`).
     '''
@@ -63,8 +56,7 @@ class CLI(metaclass = ABCMeta):
         # Initialize such fields to None to avoid subtle issues elsewhere (e.g.,
         # attempting to access such logger within _print_exception()).
         self._arg_parser = None
-        self._logger_config = None
-        self._logger = None
+        self._args = None
 
     # ..................{ PUBLIC                             }..................
     def run(self) -> int:
@@ -84,7 +76,11 @@ class CLI(metaclass = ABCMeta):
 
             # Configure logging *AFTER* making such directory, as such logging
             # writes to logfiles in such directory.
-            self._configure_logging()
+            loggers.config.init()
+            # self._logger.error('ERROR!')
+            # self._logger.warning('WARNING!')
+            # self._logger.info('INFO!')
+            # self._logger.debug('DEBUG!')
 
             #FIXME: Reenable *AFTER* we integrate the CLI frontend with our
             #scientific backend. For the moment, this unacceptably provokes
@@ -111,21 +107,6 @@ class CLI(metaclass = ABCMeta):
             # exception provides a system-specific exit status, use such status;
             # else, use the default such status.
             return getattr(exception, 'errno', 1)
-
-    # ..................{ LOGGING                            }..................
-    def _configure_logging(self) -> None:
-        '''
-        Configure the root logger and obtain an application-wide child logger.
-        '''
-        # Configure the root logger.
-        self._logger_config = LoggerConfig()
-
-        # Create an application-wide child logger.
-        self._logger = self._logger_config.get_logger()
-        # self._logger.error('ERROR!')
-        # self._logger.warning('WARNING!')
-        # self._logger.info('INFO!')
-        # self._logger.debug('DEBUG!')
 
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
@@ -190,7 +171,7 @@ class CLI(metaclass = ABCMeta):
         # If verbosity was requested, decrease the log level for the stdout-
         # specific logger handler from default "INFO" to all-inclusive "ALL".
         if self._args.is_verbose:
-            self._logger_config.stdout.setLevel(loggers.ALL)
+            loggers.config.stdout.setLevel(loggers.ALL)
 
     def _format_help_template(self, text: str) -> str:
         '''
@@ -292,8 +273,8 @@ class CLI(metaclass = ABCMeta):
             # such exception. Assuming such logger retains its default
             # configuration, such exception will be propagated up to the root
             # logger and then handled by the stderr handler.
-            if self._logger:
-                self._logger.error(exception_string)
+            if loggers.config.is_initted:
+                loggers.log_error(exception_string)
             # Else, print such exception to stderr.
             else:
                 stderr.output(exception_string)
@@ -323,6 +304,28 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+    # ..................{ LOGGING                            }..................
+    #         self._configure_logging()
+    # def _configure_logging(self) -> None:
+    #     '''
+    #     Configure the root logger and obtain an application-wide child logger.
+    #     '''
+    #     # Configure the root logger.
+    #     # Configure the root logger.
+    #     self._logger_config = LoggerConfig()
+    #
+    #     # Create an application-wide child logger.
+    #     self._logger = self._logger_config.get_logger()
+
+    # _logger_config : LoggerConfig
+    #     Logger configuration, providing access to root logger handlers (e.g.,
+    #     for modifying logging levels).
+    # _logger : Logger
+    #     Logger intended to be used globally (i.e., by *all* classes, functions,
+    #     and modules) or None if no such logger has been initialized.
+# from betse.util.io.loggers import LoggerConfig
+        # self._logger_config = None
+        # self._logger = None
 #FUXME: Can PyInstaller be made to embed setuptools-specific eggs in the
 #executable binaries it produces? If not, we'll probably want to avoid even
 #calling die_unless_satisfied_all(), as such function is a noop unless such eggs

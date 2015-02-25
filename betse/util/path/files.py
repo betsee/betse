@@ -11,11 +11,10 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-from os import path
-import os
-
 from betse.exceptions import BetseExceptionFile
-
+from betse.util.io import loggers
+from os import path
+import os, shutil
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_found(filename: str) -> None:
@@ -49,14 +48,55 @@ def is_file(filename: str) -> bool:
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.exists(filename) and not path.isdir(filename)
 
+# ....................{ COPIERS                            }....................
+def copy(filename_source: str, filename_target: str) -> None:
+    '''
+    Copy the passed source to target non-directory file.
+
+    Such file will be copied in a manner maximally preserving metadata (e.g.,
+    owner, group, permissions, times, extended file system attributes). If such
+    source file is a symbolic link, such link (rather than the transitive
+    target of such link) will be copied.
+    '''
+    assert isinstance(filename_source, str),\
+        '"{}" not a string.'.format(filename_source)
+    assert isinstance(filename_target, str),\
+        '"{}" not a string.'.format(filename_target)
+
+    # Fail unless such source file exists.
+    die_unless_found(filename_source)
+
+    # Log such copy.
+    loggers.log_info(
+        'Copying file "%s" to "%s".', filename_source, filename_target)
+
+    # Copy such source file, preserving metadata and symbolic links.
+    shutil.copy2(filename_source, filename_target, follow_symlinks = False)
+
 # ....................{ REMOVERS                           }....................
 def remove(filename: str) -> None:
     '''
-    Remove the passed file.
-
-    If such file does *not* exist, an exception is raised.
+    Remove the passed non-directory file.
     '''
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+
+    # Fail unless such file exists.
+    die_unless_found(filename)
+
+    # Log such removal.
+    loggers.log_info('Removing file "%s".', filename)
+
+    # Remove such file. Note that the os.remove() and os.unlink() functions are
+    # identical. (That was silly, Guido.)
     os.remove(filename)
 
 # --------------------( WASTELANDS                         )--------------------
+    # Such file will be copied in a manner preserving some but *not* all metadata,
+    # in accordance with standard POSIX behaviour. Specifically, the permissions
+    # but *not* owner, group, or times of such file
+
+    # Such file will be copied in a manner maximally preserving metadata (e.g.,
+    # owner, group, permissions, times, extended file system attributes
+    # If such source file is a symbolic link, such link rather than the target
+    # file of such link will be copied.
+    # If such file does *not* exist, an exception is raised.

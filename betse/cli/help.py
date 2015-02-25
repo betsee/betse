@@ -8,7 +8,6 @@ Help strings to be printed by `betse`'s command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse import pathtree
 from betse.util.path import paths
 
 # ....................{ TEMPLATES                          }....................
@@ -58,10 +57,8 @@ Run a sample tissue simulation by automatically creating a default configuration
 file and initializing, running, and plotting the simulation configured by such
 file. This command is shorthand for the following:
 
-;    {{script_basename}} sim cfg init run plot {simulation_config_basename}
-'''.format(
-    simulation_config_basename = paths.get_basename(
-        pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME))
+;    {script_basename} sim cfg init run plot my_sim.yaml
+'''
 '''
 Help string template for the `try` command.
 '''
@@ -115,4 +112,8 @@ Help string template for the `sim` command.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+#.format(
+    # simulation_config_basename = paths.get_basename(
+    #     pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME))
+# from betse import pathtree
 #Subcommand to be run.

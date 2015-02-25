@@ -2,18 +2,19 @@
 ---
 # Default BETSE simulation configuration file.
 #
-# The following settings can be changed to customize simulations in BETSE.
-# When editing the file, note that it is essential that the line indentations (tabs)
-# are maintained in their current order, and that only variable assignments are changed.
-# Variable names must not be changed. Comments are indicated by # and can be altered.
+# The following settings can be changed to customize simulations in BETSE. When
+# editing the file, note that it is essential that the line indentations (tabs)
+# are maintained in their current order, and that only variable assignments are
+# changed. Variable names must not be changed. Comments are prefixed by "#" and
+# may be altered.
 #
-# Note that each BETSE simulation requires an initialization run. The initialization
-# is required to ensure that a simulation begins with a system in a steady state.
-# Each subsequent simulation depends on an initialization run specific to the cell
-# geometry and initialized parameters.
+# Note that each BETSE simulation requires an initialization run. The
+# initialization is required to ensure that a simulation begins with a system in
+# a steady state. Each subsequent simulation depends on an initialization run
+# specific to the cell geometry and initialized parameters.
 #
-# Note: parameters listed under the "INTERNAL USE ONLY" section should be modified only with
-# care.
+# Note: parameters listed under the "INTERNAL USE ONLY" section should be
+# modified only with care.
 #
 # Pathnames
 # ----------
@@ -25,10 +26,10 @@
 #
 # A Note on YAML
 # ----------
-# This file is formatted according to the YAML ("[Y]AML [A]in't [M]arkup [L]anguage")
-# standard. YAML is a human-readable data serialization format useful for
-# configuration files -- like this one.
-# For details, please see https://en.wikipedia.org/wiki/YAML.
+# This file is formatted according to the YAML ("[Y]AML [A]in't [M]arkup
+# [L]anguage") standard. YAML is a human-readable data serialization format
+# useful for configuration files -- like this one. For details, please see
+# https://en.wikipedia.org/wiki/YAML.
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION:
