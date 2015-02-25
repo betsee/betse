@@ -13,7 +13,7 @@ from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
 from betse.util.io import loggers
-from betse.util.path import dirs, files
+from betse.util.path import dirs, files, paths
 from betse.util.type import strs
 from betse.util.system import processes
 from collections import OrderedDict
@@ -227,6 +227,42 @@ class CLICLI(CLI):
             pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME,
             self._args.sim_config_filename,
         )
+
+    def _run_sim_init(self) -> None:
+        '''
+        Run the `sim` subcommand's `init` subcommand.
+        '''
+        loggers.log_info(
+            'Initializing simulation with configuration "{}".'.format(
+                paths.get_basename(self._args.sim_config_filename)))
+
+        #FIXME: Do something here with the YAML file given by:
+        #    self._args.sim_config_filename
+        pass
+
+    def _run_sim_run(self) -> None:
+        '''
+        Run the `sim` subcommand's `run` subcommand.
+        '''
+        loggers.log_info(
+            'Running simulation with configuration "{}".'.format(
+                paths.get_basename(self._args.sim_config_filename)))
+
+        #FIXME: Do something here with the YAML file given by:
+        #    self._args.sim_config_filename
+        pass
+
+    def _run_sim_plot(self) -> None:
+        '''
+        Run the `sim` subcommand's `plot` subcommand.
+        '''
+        loggers.log_info(
+            'Plotting simulation with configuration "{}".'.format(
+                paths.get_basename(self._args.sim_config_filename)))
+
+        #FIXME: Do something here with the YAML file given by:
+        #    self._args.sim_config_filename
+        pass
 
 # --------------------( WASTELANDS                         )--------------------
     #FUXME: Get me working correctly *BEFORE* implementing any others.
