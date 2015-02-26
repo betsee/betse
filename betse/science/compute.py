@@ -375,12 +375,6 @@ class Simulator(object):
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
 
-        # self.Dm_soce = np.copy(Dm_cellsA)
-        # self.Dm_soce[:] = 0
-
-        # Initialize array structures that hold endoplasmic reticulum related membrane changes:
-        # self.Dm_er_scheduled = np.copy(Dm_cellsA)
-        # self.Dm_er_scheduled[:] = 0
         self.Dm_er_base = np.copy(Dm_cellsER)
 
         self.Dm_er_CICR = np.copy(Dm_cellsER)
@@ -510,17 +504,18 @@ class Simulator(object):
 
             # Initialization of logic values for voltage gated sodium channel
             self.maxDmNa = p.vg_options['Na_vg'][0]
-            self.v_on_Na = p.vg_options['Na_vg'][1]
-            self.v_off_Na = p.vg_options['Na_vg'][2]
-            self.v_reactivate_Na = p.vg_options['Na_vg'][3]
+            self.v_activate_Na = p.vg_options['Na_vg'][1]
+            self.v_inactivate_Na = p.vg_options['Na_vg'][2]
+            self.v_deactivate_Na = p.vg_options['Na_vg'][3]
             self.t_alive_Na = p.vg_options['Na_vg'][4]
+            self.t_dead_Na = p.vg_options['Na_vg'][5]
 
             # Initialize matrices defining states of vgNa channels for each cell:
-            self.active_Na = np.zeros(len(cells.cell_i))
-            self.crossed_inactivate_Na = np.zeros(len(cells.cell_i))
+            self.inactivated_Na = np.zeros(len(cells.cell_i))
             self.vgNa_state = np.zeros(len(cells.cell_i))
 
-            self.vgNa_OFFtime = np.zeros(len(cells.cell_i)) # sim time at which vgK starts to close
+            self.vgNa_aliveTimer = np.zeros(len(cells.cell_i)) # sim time at which vgNa starts to close if activated
+            self.vgNa_deadTimer = np.zeros(len(cells.cell_i)) # sim time at which vgNa reactivates after inactivation
 
         if p.vg_options['K_vg'] !=0:
 
@@ -1201,53 +1196,63 @@ class Simulator(object):
             else:
 
                 # Logic phase 1: find out which cells have activated their vgNa channels
-                truth_vmGTvon_Na = self.vm > self.v_on_Na  # returns bools of vm that are bigger than threshhold
-                truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
-                truth_crossed_inactivate_Na = self.crossed_inactivate_Na == 0  # return bools of vm that can activate
+                truth_vmGTvon_Na = self.vm > self.v_activate_Na  # returns bools of vm that are bigger than threshhold
+                #truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
+                truth_not_inactivated_Na = self.inactivated_Na == 0  # return bools of vm that can activate
                 truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
 
                 # find the cell indicies that correspond to all statements of logic phase 1:
-                inds_activate_Na = (truth_vmGTvon_Na*truth_depol_Na*truth_crossed_inactivate_Na*truth_vgNa_Off*
+                inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*
                                     self.target_cells).nonzero()
 
-                self.vgNa_state[inds_activate_Na] = 1 # set the crossed_activate term to 1
-                self.vgNa_OFFtime[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
+                self.vgNa_state[inds_activate_Na] = 1 # open the channel
+                self.vgNa_aliveTimer[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
+                self.vgNa_deadTimer[inds_activate_Na] = 0  # reset any timers for an inactivated state to zero
 
                 # Logic phase 2: find out which cells have closed their gates due to crossing inactivating voltage:
-                truth_vgNa_ON = self.vgNa_state == 1  # channel must be on already
-                truth_vmGTvoff_Na = self.vm > self.v_off_Na  # bools of cells that have vm greater than shut-off volts
+                truth_vgNa_On = self.vgNa_state == 1  # channel must be on already
+                truth_vmGTvoff_Na = self.vm > self.v_inactivate_Na  # bools of cells that have vm greater than shut-off volts
 
-                inds_shut_Na = (truth_vgNa_ON*truth_vmGTvoff_Na*self.target_cells).nonzero()
+                inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.target_cells).nonzero()
 
-                self.vgNa_state[inds_shut_Na] = 0    # close the vg sodium channels
-                self.crossed_inactivate_Na[inds_shut_Na] = 1   # switch these so cells do not re-activate
-                self.vgNa_OFFtime[inds_shut_Na] = 0            # reset any timers to zero
+                self.vgNa_state[inds_inactivate_Na] = 0    # close the vg sodium channels
+                self.inactivated_Na[inds_inactivate_Na] = 1   # switch these so cells do not re-activate
+                self.vgNa_aliveTimer[inds_inactivate_Na] = 0            # reset any alive timers to zero
+                self.vgNa_deadTimer[inds_inactivate_Na] = t + self.t_dead_Na # set the timer of the inactivated state
 
-                # Logic phase 3: find out if cells have passed below threshhold to become capable of activating:
-                truth_vmLTvreact_Na = self.vm < self.v_reactivate_Na # voltage is lower than the deactivate voltage
-                truth_vgNa_inactive = self.crossed_inactivate_Na == 1  # the cell had previously been inactivated
-                inds_reactivate_Na = (truth_vmLTvreact_Na*truth_vgNa_inactive*self.target_cells).nonzero()
+                 # Logic phase 3: find out if cell activation state has timed out, also rendering inactivated state:
 
-                self.crossed_inactivate_Na[inds_reactivate_Na] = 0  # turn the inhibition to activation off
-                self.vgNa_state[inds_reactivate_Na] = 0   # shut the Na channel off if it's on
-                self.vgNa_OFFtime[inds_reactivate_Na] = 0            # reset the timers to zero
+                truth_vgNa_act_timeout = self.vgNa_aliveTimer < t   # find cells that have timed out their vgNa open state
+                truth_vgNa_On = self.vgNa_state == 1 # ensure the vgNa is indeed open
+                inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.target_cells).nonzero()
 
-                # Logic phase 4: find out if cells have timed out:
-                if p.Na_timeout == 1:
-                    truth_vgNa_timeout = self.vgNa_OFFtime < t   # find cells that have timed out their vgNa open state
-                    inds_timeout_Na = (truth_vgNa_timeout*truth_vgNa_ON*self.target_cells).nonzero()
-                    self.vgNa_state[inds_timeout_Na] = 0             # set the state to closed
-                    self.vgNa_OFFtime[inds_timeout_Na] = 0            # reset the timers to zero
-                    self.crossed_inactivate_Na[inds_timeout_Na] = 1    # inactivate the channel
+                self.vgNa_state[inds_timeout_Na_act] = 0             # set the state to closed
+                self.vgNa_aliveTimer[inds_timeout_Na_act] = 0            # reset the timers to zero
+                self.inactivated_Na[inds_timeout_Na_act] = 1    # inactivate the channel so it can't reactivate
+                self.vgNa_deadTimer[inds_timeout_Na_act] = t + self.t_dead_Na # set the timer of the inactivated state
 
-                # Set activity of Na channel:
-                inds_open_Na = (self.vgNa_state == 1).nonzero()
-                self.active_Na[inds_open_Na] = 1
+                # Logic phase 4: find out if inactivation timers have timed out:
+                truth_vgNa_inact_timeout = self.vgNa_deadTimer <t  # find cells that have timed out their vgNa inact state
+                truth_vgNa_Off = self.vgNa_state == 0 # check to make sure these channels are indeed closed
+                inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.target_cells).nonzero()
 
-                inds_closed_Na =(self.vgNa_state == 0).nonzero()
-                self.active_Na[inds_closed_Na] = 0
+                self.vgNa_deadTimer[inds_timeout_Na_inact] = 0    # reset the inactivation timer
+                self.inactivated_Na[inds_timeout_Na_inact] = 0    # remove inhibition to activation
 
-                self.Dm_vg[self.iNa] = self.maxDmNa*self.active_Na
+                # Logic phase 5: find out if cells have passed below threshhold to become deactivated:
+                truth_vmLTvreact_Na = self.vm < self.v_deactivate_Na # voltage is lower than the deactivate voltage
+
+                inds_deactivate_Na = (truth_vmLTvreact_Na*self.target_cells).nonzero()
+
+                self.inactivated_Na[inds_deactivate_Na] = 0  # turn any inhibition to activation off
+                self.vgNa_state[inds_deactivate_Na] = 0   # shut the Na channel off if it's on
+                self.vgNa_aliveTimer[inds_deactivate_Na] = 0       # reset any alive-timers to zero
+                self.vgNa_deadTimer[inds_deactivate_Na] = 0   # reset any dead-timers to zero
+
+
+                # Define ultimate activity of the vgNa channel:
+
+                self.Dm_vg[self.iNa] = self.maxDmNa*self.vgNa_state
 
         if p.vg_options['K_vg'] != 0:
 
@@ -1296,7 +1301,7 @@ class Simulator(object):
                 truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
 
                 # cells at these indices will become activated in this time step:
-                inds_activate_Ca = (truth_vmGTvon_Ca*truth_caLTcaOff*truth_depol_Ca*truth_vgCa_OFF*self.target_cells).nonzero()
+                inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_cells).nonzero()
                 self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
 
                 # detect condition to turn off vg_Ca channel:

@@ -26,15 +26,15 @@ class Parameters(object):
     def __init__(self):
 
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
-        self.time_profile_sim = 'simulate_excitable'   # choice of 'simulate_excitable' or 'simulate_somatic'
+        self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
         self.time4init = 5*60      # set the time for the initialization sim [s]
-        self.time4sim = 0.2        # set total time for simulation [s]
+        self.time4sim = 5*60        # set total time for simulation [s]
 
         # File saving
-        self.cache_path = os.path.expanduser("~/.betse/cache/exciteInit/")  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path = os.path.expanduser("~/.betse/cache/exciteInit/sim_vgNaK_ap_vgCa") # folder to save unique simulation and data linked to init
-        self.sim_results = os.path.expanduser("~/.betse/cache/exciteInit/sim_vgNaK_ap_vgCa/results") # folder to auto-save results (graphs, images, animations)
+        self.cache_path = os.path.expanduser("~/.betse/cache/500umInit/")  # world, inits, and sims are saved and read to/from this directory.
+        self.sim_path = os.path.expanduser("~/.betse/cache/500umInit/sim_ip3") # folder to save unique simulation and data linked to init
+        self.sim_results = os.path.expanduser("~/.betse/cache/500umInit/sim_ip3/results") # folder to auto-save results (graphs, images, animations)
 
         # Geometric constants and factors
         self.wsx = 500e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
@@ -57,7 +57,7 @@ class Parameters(object):
         self.ion_profile = 'basic_Ca'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 0
+        self.Ca_dyn = 1
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = 0
@@ -92,22 +92,20 @@ class Parameters(object):
         self.scheduled_targets = [0]    # targets do not affect: gj_block,T_change, NaKATP_block, HKATP_block,CaATP_block,CaER_block
 
         #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
-        self.scheduled_options = {'Na_mem':[0.020,0.030,0.002,1000],'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'IP3':0}
+        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
+            'IP3':[5,15,1,1e-4]}
 
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         self.gated_targets = 'all'
         # self.vg_options specifications list for voltage gated ion channel options:
-        vgNa = [1.0e-15,-50e-3,30e-3,-60e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v off, v reactivate,duration (s)]
-        vgK = [1.0e-16, 10e-3,-75e-3,20.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
-        vgCa = [1.0e-13,-40e-3,40e-3,2.5e-3,3.0e-5]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
+        vgNa = [1.0e-15,-50e-3,30e-3,-52e-3,5e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v inactive, v deactivate,duration active (s), duration inactive]
+        vgK = [0.5e-15, -20e-3,-75e-3,10.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
+        vgCa = [1.0e-15,-40e-3,40e-3,0.75e-3,200.0e-6]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':vgNa,'K_vg':vgK,'Ca_vg':vgCa,'K_cag':0}
-
-        self.Na_timeout = 1   # Does the activated state of the vgNa have a time-out? Yes = 1, No =0
+        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':cagK}
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
 
@@ -132,8 +130,6 @@ class Parameters(object):
         self.cIP3_to = 1e-6     # initial value of IP3 in all cells
         self.cIP3_to_env = 1e-6  # initial value of IP3 in environment
 
-
-
         #..........................PLOTTING OPTIONS and OUTPUT..........................................................
 
          # Default colormap
@@ -143,12 +139,12 @@ class Parameters(object):
         self.gj_cm = cm.bone           # colormap for plotting gj currents on top of default colormap
 
         self.plot_while_solving = True  # create a 2d plot of cell vmems while solution is taking place
-        self.save_solving_plot = False   # save the 2d plot generated while solving (warning: will slow sim down!)
+        self.save_solving_plot = True   # save the 2d plot generated while solving (warning: will slow sim down!)
 
         self.enumerate_cells = False    # number cells on the static 2D maps with their simulation index (this can help
                                         # decide on the value of self.plot_cell
 
-        self.plot_cell = 0             # State the cell index to use for single-cell time plots
+        self.plot_cell = 11             # State the cell index to use for single-cell time plots
 
         self.plot_single_cell_graphs = True # plot graphs of concentration and voltage in self.plot_cell with time
 
@@ -163,13 +159,13 @@ class Parameters(object):
 
         # specify desired animations:
         self.ani_vm2d = True                # 2d animation of vmem with time?
-        self.ani_ca2d = True                # 2d animation of cell calcium with time ?
+        self.ani_ca2d = False                # 2d animation of cell calcium with time ?
         self.ani_ip32d = False               # 2d animation of cIP3 with time?
-        self.ani_dye2d = True               # 2d animation of voltage sensitive dye in cell collective with time?
-        self.ani_vmgj2d = True              # 2d animation of vmem with superimposed gj network showing current direction
+        self.ani_dye2d = False               # 2d animation of voltage sensitive dye in cell collective with time?
+        self.ani_vmgj2d = False              # 2d animation of vmem with superimposed gj network showing current direction
 
         self.autosave = True           # autosave all still images to a results directory in the simulation folder
-        self.saveAnimations = False    # save all animations as png sequences in animation-specific folders
+        self.saveAnimations = True    # save all animations as png sequences in animation-specific folders
 
         self.exportData = True        # export all stored data for the plot_cell to a csv text file
 
@@ -183,13 +179,13 @@ class Parameters(object):
         self.Do_Na = 1.33e-9      # free diffusion constant sodium [m2/s]
         self.Do_K = 1.96e-9      # free diffusion constant potassium [m2/s]
         self.Do_Cl = 2.03e-9     # free diffusion constant chloride [m2/s]
-        self.Do_Ca = 1.0e-9     # free diffusion constant calcium [m2/s]
+        self.Do_Ca = 1.0e-10     # free diffusion constant calcium [m2/s]
         self.Do_H = 2.5e-9      # free diffusion constant hydrogen [m2/s]
         self.Do_M = 1.0e-9     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
 
         # pump parameters
-        self.alpha_NaK = 5.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
+        self.alpha_NaK = 1.0e-16 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
 
