@@ -13,6 +13,7 @@ from betse.science import filehandling as fh
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science.world import World
+from betse.util.path import files
 # import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,6 +21,27 @@ import os, os.path
 import time
 
 class SimRunner(object):
+    '''
+    High-level simulation runner encapsulating a single simulation.
+
+    This class provides high-level methods for initializing, running, and
+    plotting simulations specified by the YAML configuration file with which
+    this class is instantiated. Thus, each instance of this class only handles a
+    single simulation.
+
+    Attributes
+    ----------
+    _config_filename : str
+        Absolute path of the YAML file configuring this simulation.
+    '''
+    def __init__(self, config_filename):
+        super().__init__()
+
+        # Validate and localize such filename.
+        files.die_unless_found(config_filename)
+        self._config_filename = config_filename
+
+    #FIXME: Configure such initialization with "self._config_filename".
     def initialize(self):
         '''
         Run an initialization simulation from scratch and save it to the
@@ -44,6 +66,7 @@ class SimRunner(object):
 
         plt.show()
 
+    #FIXME: Configure such simulation with "self._config_filename".
     # FIXME: throw exception if init cache is empty.
     def simulate(self):
         '''
@@ -68,6 +91,8 @@ class SimRunner(object):
 
         plt.show()
 
+    #FIXME: Configure such method with "self._config_filename".
+    #FIXME: Consider renaming to plotInit().
     def loadInit(self):
         '''
         Load and visualize a previously solved initialization.
@@ -80,6 +105,8 @@ class SimRunner(object):
 
         plt.show()
 
+    #FIXME: Configure such method with "self._config_filename".
+    #FIXME: Consider renaming to plotSim().
     def loadSim(self):
         '''
         Load and visualize a previously solved simulation.

@@ -20,8 +20,8 @@ Help string template for the set of subcommands.
 
 TEMPLATE_EPILOG = '''
 For further help on subcommand behaviour and expected arguments, pass the "-h"
-or "--help" argument to any subcommand. For example, the following prints help
-documentation for the "sim" subcommand:
+or "--help" argument to any subcommand. For example, for further help with the
+"sim" subcommand, run:
 
 ;    {script_basename} sim --help
 '''

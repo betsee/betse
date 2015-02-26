@@ -17,7 +17,7 @@ installation environments -- including PyInstaller-frozen executables and
 from betse import metadata
 from betse.util.path import dirs, files, paths
 from betse.util.path.paths import get_dirname
-from betse.util.system import systems
+from betse.util.system import oses
 from os import environ, path
 import pkg_resources, sys
 
@@ -133,14 +133,14 @@ def _init_pathnames() -> None:
     # Initialize the absolute path of BETSE's dot directory.
     #
     # If the current system is OS X, set such directory accordingly.
-    if systems.is_osx():
+    if oses.is_osx():
         DOT_DIRNAME = paths.join(
             HOME_DIRNAME,
             'Library', 'Application Support',
             metadata.SCRIPT_NAME_CLI
         )
     # If the current system is Windows, set such directory accordingly.
-    elif systems.is_windows():
+    elif oses.is_windows():
         DOT_DIRNAME = paths.join(environ['APPDATA'], metadata.NAME)
     #FIXME: Explicitly assert POSIX compatibility here.
     # Else, assume the current system is POSIX-compatible.

@@ -14,9 +14,10 @@ from betse.cli import help
 from betse.cli.cli import CLI
 from betse.util.io import loggers
 from betse.util.path import dirs, files, paths
-from betse.util.type import strs
-from betse.util.system import processes
+from betse.util.python import pythons
+from betse.util.system import processes, systems
 from collections import OrderedDict
+from io import StringIO
 
 # ....................{ MAIN                               }....................
 def main() -> int:
@@ -151,29 +152,56 @@ class CLICLI(CLI):
         #FIXME: Also print the versions of installed mandatory dependencies.
         #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
 
-        # Dictionary of string keys and string values to be output below,
-        # ordered so as to preserve the specified order.
-        info_key_to_value = OrderedDict((
-            ('script basename', processes.get_current_basename()),
-            ('program version', metadata.__version__),
-            ('program authors', metadata.AUTHORS),
-            ('home directory', pathtree.HOME_DIRNAME),
-            ('dot directory',  pathtree.DOT_DIRNAME),
-            ('data directory', pathtree.DATA_DIRNAME),
-            ('log file', pathtree.LOG_DEFAULT_FILENAME),
-            ('default simulation config file',
-             pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
+        # Dictionary of human-readable labels to dictionaries of all
+        # human-readable keys and values categorized by such labels. All such
+        # dictionaries are ordered so as to preserve order in output.
+        info_type_to_dict = OrderedDict((
+            # Application metadata.
+            (metadata.NAME.lower(), OrderedDict((
+                ('basename', processes.get_current_basename()),
+                ('version', metadata.__version__),
+                ('authors', metadata.AUTHORS),
+                ('home directory', pathtree.HOME_DIRNAME),
+                ('dot directory',  pathtree.DOT_DIRNAME),
+                ('data directory', pathtree.DATA_DIRNAME),
+                ('log file', pathtree.LOG_DEFAULT_FILENAME),
+                ('default simulation config file',
+                pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
+            ))),
+
+            # Python metadata.
+            ('python', pythons.get_metadata()),
+
+            # System metadata.
+            ('system', systems.get_metadata()),
         ))
 
-        # String to be output by this subcommand.
-        info_output = '\n' + strs.join_on_newline(
-            '{}: {}'.format(info_key, info_value)
-            for info_key, info_value in info_key_to_value.items()
-        )
+        # String buffer formatting such information.
+        info_buffer = StringIO()
+        info_buffer.write('\n')
 
-        # Log rather than merely output such string, as such logging simplifies
+        # True if this is the first label to be output.
+        is_info_type_first = True
+
+        # Format each such dictionary under its categorizing label.
+        for info_type, info_dict in info_type_to_dict.items():
+            # If this is *NOT* the first label, delimit this label from the
+            # prior label.
+            if is_info_type_first:
+                is_info_type_first = False
+            else:
+                info_buffer.write('\n')
+
+            # Format such label.
+            info_buffer.write('{}:\n'.format(info_type))
+
+            # Format such dictionary.
+            for info_key, info_value in info_dict.items():
+                info_buffer.write('  {}: {}\n'.format(info_key, info_value))
+
+        # Log rather than merely output such string, as logging simplifies
         # cliest-side bug reporting.
-        loggers.log_info(info_output)
+        loggers.log_info(info_buffer.getvalue())
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
     def _run_sim(self) -> None:
@@ -265,6 +293,15 @@ class CLICLI(CLI):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+# OrderedDict((
+#                 #FIXME: Shift such functionality to "betse.util.system.systems".
+#                 ('operating system', ),
+#             ))
+            # info_buffer.write('{}\n'.format(
+            #     '\n' + strs.join_on_newline(
+            #         '{}: {}'.format(info_key, info_value)
+            #         for info_key, info_value in info_dict.items())))
+            # String to be output by this subcommand.
     #FUXME: Get me working correctly *BEFORE* implementing any others.
 
             # description = (

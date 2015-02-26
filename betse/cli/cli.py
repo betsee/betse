@@ -10,10 +10,9 @@ Abstract command line interface (CLI).
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
-from betse import metadata, pathtree
+from betse import ignition, metadata
 from betse.cli import help
 from betse.util.io import loggers, stderr
-# from betse.util.python import dependencies
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
 from io import StringIO
@@ -71,24 +70,8 @@ class CLI(metaclass = ABCMeta):
             values failure.
         '''
         try:
-            # Validate core directories and files required at program startup.
-            pathtree.init()
-
-            # Configure logging *AFTER* making such directory, as such logging
-            # writes to logfiles in such directory.
-            loggers.config.init()
-            # self._logger.error('ERROR!')
-            # self._logger.warning('WARNING!')
-            # self._logger.info('INFO!')
-            # self._logger.debug('DEBUG!')
-
-            #FIXME: Reenable *AFTER* we integrate the CLI frontend with our
-            #scientific backend. For the moment, this unacceptably provokes
-            #fatal exceptions in frozen applications.
-
-            # Validate mandatory dependency *AFTER* configuring logging,
-            # ensuring that exceptions raised by such validation will be logged.
-            # dependencies.die_unless_satisfied_all()
+            # Initialize the current application *BEFORE* subsequent logic.
+            ignition.init()
 
             # Parse CLI arguments *AFTER* logging, ensuring that exceptions
             # raised by such parsing will be logged.
@@ -191,6 +174,8 @@ class CLI(metaclass = ABCMeta):
         )
 
     # ..................{ EXCEPTIONS                         }..................
+    #FIXME: Confine tracebacks to the logfile.
+
     def _print_exception(self, exception: Exception) -> None:
         '''
         Print the passed exception to standard error *and* log such exception.

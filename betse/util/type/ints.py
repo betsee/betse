@@ -11,16 +11,29 @@ Low-level integer facilities.
 # import sys
 
 # ....................{ CONSTANTS                          }....................
-# Number of bits per byte.
 BITS_PER_BYTE = 8
-
-# Largest unsigned integer value representable with one byte.
-BYTE = 255
+'''
+Number of bits per byte.
+'''
 
 # Size denominations in base 2 rather than base 10, for mild efficiency.
 KB = 1 << 10
 MB = 1 << 20
 GB = 1 << 30
 TB = 1 << 40
+
+# ....................{ CONSTANTS ~ max                    }....................
+BYTE_VALUE_MAX = 255
+'''
+Maximum value of unsigned bytes.
+'''
+
+INT_VALUE_MAX_32_BIT = 1 << 32
+'''
+Maximum value of variables of internal type `Py_ssize_t` on 32-bit systems.
+
+Such value is suitable for comparison against `sys.maxsize`, the maximum value
+for such variables on the current system.
+'''
 
 # --------------------( WASTELANDS                         )--------------------

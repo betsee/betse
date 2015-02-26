@@ -4,52 +4,38 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level operating system facilities.
+High-level system facilities.
 
-Caveats
-----------
-Operating system-specific functions (e.g., `is_windows()`) are considered poor
-form. Call such functions only when absolutely necessary.
+This module provides functionality pertaining to the system as a whole and hence
+comprising both hardware and software. Hardware- and software-specific
+functionality resides elsewhere.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, platform
+import platform
 
-# ....................{ TESTERS ~ os                       }....................
-def is_linux() -> bool:
+# ....................{ GETTERS                            }....................
+def get_metadata() -> str:
     '''
-    True if the current operating system is Linux.
-    '''
-    return platform.system() == 'Linux'
+    Get an ordered dictionary synopsizing the current system.
 
-def is_osx() -> bool:
+    This function expands the metadata reported by the reasonably cross-platform
+    function `platform.uname()` with additional diagnostics.
     '''
-    True if the current operating system is Apple OS X.
-    '''
-    return platform.system() == 'Darwin'
+    # Such dictionary.
+    metadata = vars(platform.uname())
 
-def is_windows() -> bool:
-    '''
-    True if the current operating system is Microsoft Windows.
-    '''
-    return platform.system() == 'Windows'
+    #FIXME: Expand such dictionary here with additioral metadata. See:
+    #    https://docs.python.org/3/library/platform.html
 
-# ....................{ TESTERS ~ arch                     }....................
-#FIXME: Shift to a new module "arches" in the same package.
-#FIXME: Research us up. Is this *REALLY* the canonical means of determining
-#this under Python3? (This seems fairly terrible, honestly. Is this actually
-#cross-platform-portable?)
-
-def is_32_bit():
-    '''
-    True if the current CPU architecture is 32-bit.
-    '''
-    return not is_64_bit()
-
-def is_64_bit():
-    '''
-    True if the current CPU architecture is 64-bit.
-    '''
-    return 'PROCESSOR_ARCHITEW6432' in os.environ
+    # Get such dictionary.
+    return metadata
 
 # --------------------( WASTELANDS                         )--------------------
+    #FUXME: Not terribly human-readable and hence hardly ideal.
+    # metadata[' platform.platform(aliased = True)
+
+# def format() -> str:
+#     '''
+#     Get a human-readable string synopsizing the current system.
+#     '''
