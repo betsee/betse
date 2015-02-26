@@ -26,17 +26,17 @@ class Parameters(object):
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
         self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
-        self.time4init = 5*60      # set the time for the initialization sim [s]
+        self.time4init = 10*60      # set the time for the initialization sim [s]
         self.time4sim = 5*60        # set total time for simulation [s]
 
         # File saving
-        self.cache_path = os.path.expanduser("~/.betse/cache/500umInit/")  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path = os.path.expanduser("~/.betse/cache/500umInit/sim_ip3") # folder to save unique simulation and data linked to init
-        self.sim_results = os.path.expanduser("~/.betse/cache/500umInit/sim_ip3/results") # folder to auto-save results (graphs, images, animations)
+        self.cache_path = os.path.expanduser("~/.betse/cache/100umInit/")  # world, inits, and sims are saved and read to/from this directory.
+        self.sim_path = os.path.expanduser("~/.betse/cache/100umInit/sim_test") # folder to save unique simulation and data linked to init
+        self.sim_results = os.path.expanduser("~/.betse/cache/100umInit/sim_test/results") # folder to auto-save results (graphs, images, animations)
 
         # Geometric constants and factors
-        self.wsx = 500e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
-        self.wsy = 500e-6  # the y-dimension of the world space [m] recommended range 50 to 1000 um
+        self.wsx = 100e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
+        self.wsy = 100e-6  # the y-dimension of the world space [m] recommended range 50 to 1000 um
         self.rc = 5e-6  # radius of single cell
         self.cell_height = 5.0e-6  # the height of a cell in the z-direction (for volume and surface area calculations)
         self.cell_space = 26.0e-9  # the true cell-cell spacing (width of extracellular space)
@@ -52,7 +52,7 @@ class Parameters(object):
         self.gj_vgrad  = 30e-3               # the range over which gj goes from open to shut at threshold [V]
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
-        self.ion_profile = 'basic_Ca'
+        self.ion_profile = 'animal'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
         self.Ca_dyn = 1
@@ -183,16 +183,16 @@ class Parameters(object):
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
 
         # pump parameters
-        self.alpha_NaK = 1.0e-16 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
+        self.alpha_NaK = 1.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
 
-        self.alpha_Ca = 1.0e-15 # pump rate for calcium ATPase in membrane [m3/mols] 2.0e-15
-        self.alpha_CaER = 1.0e-14  # pump rate for calcium ATPase in endoplasmic reticulum
+        self.alpha_Ca = 5.0e-15 # pump rate for calcium ATPase in membrane [m3/mols] 2.0e-15
+        self.alpha_CaER = 5.0e-14  # pump rate for calcium ATPase in endoplasmic reticulum
         self.halfmax_Ca = 12
         self.slope_Ca = 24
 
-        self.alpha_HK = 1.0e-13  # pump rate for the H-K-ATPase
+        self.alpha_HK = 5.0e-14  # pump rate for the H-K-ATPase
         self.halfmax_HK = 12
         self.slope_HK = 24
 

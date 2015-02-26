@@ -1601,16 +1601,29 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,T,p,block):
     delG_Na = p.R*T*np.log(cNao/cNai) - p.F*Vm
     delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
     delG_NaKATP = deltaGATP - (3*delG_Na + 2*delG_K)
-    delG = (delG_NaKATP/1000)
+    delG_pump = (delG_NaKATP/1000)
+    delG = np.absolute(delG_pump)
+    signG = np.sign(delG)
 
-    alpha = block*p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
+    alpha = signG*block*p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
 
-    f_Na  = -alpha*cNai*cKo      #flux as [mol/s]
+    truth_forwards = signG == 1    # boolean array tagging forward-running pump cells
+    truth_backwards = signG == -1  # boolean array tagging backwards-running pump cells
+
+    inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
+    inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
+
+    f_Na = np.zeros(len(cNai))
+
+    f_Na[inds_forwards]  = -alpha*cNai*cKo      #flux as [mol/s]   scaled to concentrations Na in and K out
+
+    f_Na[inds_backwards]  = -alpha*cNao*cKi      #flux as [mol/s]   scaled to concentrations K in and Na out
+
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
     if p.method == 0:
 
-        dmol = -alpha*cNai*cKo*p.dt
+        dmol = f_Na*p.dt
 
         cNai2 = cNai + dmol/voli
         cNao2 = cNao - dmol/volo
@@ -1663,11 +1676,23 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,T,p,block):
 
     delG_Ca = p.R*T*np.log(cCao/cCai) - 2*p.F*Vm
     delG_CaATP = deltaGATP - (delG_Ca)
-    delG = (delG_CaATP/1000)
+    delG_pump = (delG_CaATP/1000)
+    delG = np.absolute(delG_pump)
+    signG = np.sign(delG_pump)
 
-    alpha = block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
 
-    f_Ca  = -alpha*(cCai)      #flux as [mol/s]
+    alpha = signG*block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+
+    truth_forwards = signG == 1
+    truth_backwards = signG == -1
+
+    inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
+    inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
+
+    f_Ca = np.zeros(len(cCai))
+
+    f_Ca[inds_forwards]  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
+    f_Ca[inds_backwards]  = -alpha*(cCao)      #flux as [mol/s], scaled to concentration out of cell
 
     if p.method == 0:
 
@@ -1696,13 +1721,6 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,T,p,block):
 
 def pumpCaER(cCai,cCao,voli,volo,Vm,T,p,block):
 
-    # deltaGATP = 20*p.R*T
-
-    # delG_Ca = p.R*T*np.log(cCai/cCao) + 2*p.F*Vm
-    # delG_CaATP = deltaGATP - (delG_Ca)
-    # delG = (delG_CaATP/1000)
-
-    # alpha = block*p.alpha_CaER*step(delG,p.halfmax_Ca,p.slope_Ca)
     alpha = block*p.alpha_CaER
 
     f_Ca  = alpha*(cCao)*(1.0 - cCai)      #flux as [mol/s]
@@ -1763,11 +1781,23 @@ def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,T,p,block):
     delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
 
     delG_HKATP = deltaGATP - (delG_H + delG_K)
-    delG = (delG_HKATP/1000)
+    delG_pump = (delG_HKATP/1000)
+    delG = np.absolute(delG_pump)
+    signG = np.sign(delG)
 
-    alpha = block*p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
+    alpha = signG*block*p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
 
-    f_H  = -alpha*cHi*cKo      #flux as [mol/s]
+    truth_forwards = signG == 1
+    truth_backwards = signG == -1
+
+    inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
+    inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
+
+    f_H = np.zeros(len(cHi))
+
+    f_H[inds_forwards]  = -alpha*cHi*cKo      #flux as [mol/s], scaled by concentrations in and out
+    f_H[inds_backwards]  = -alpha*cHo*cKi
+
     f_K = -f_H          # flux as [mol/s]
 
     if p.method == 0:

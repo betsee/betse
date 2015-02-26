@@ -51,6 +51,7 @@ class SimRunner(object):
         Run an initialization simulation from scratch and save it to the
         initialization cache.
         '''
+
         loggers.log_info(
             'Initializing simulation with configuration "{}".'.format(
                 self._config_basename))
@@ -106,7 +107,6 @@ class SimRunner(object):
             saveAni=p.saveAnimations)
         plt.show()
 
-    #FIXME: Configure such method with "self._config_filename".
     #FIXME: Consider renaming to plotInit().
     def loadInit(self):
         '''
@@ -123,7 +123,6 @@ class SimRunner(object):
         plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
         plt.show()
 
-    #FIXME: Configure such method with "self._config_filename".
     #FIXME: Consider renaming to plotSim().
     def loadSim(self):
         '''
@@ -379,3 +378,4 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.exportData == True:
         viz.exportData(cells, sim, p)
+
