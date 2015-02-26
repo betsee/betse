@@ -90,6 +90,44 @@ def remove(filename: str) -> None:
     # identical. (That was silly, Guido.)
     os.remove(filename)
 
+# ....................{ OPENERS                            }....................
+def open_for_reading_text(filename: str):
+    '''
+    Open the passed file for line-oriented reading.
+
+    This function returns a `file`-like object, suitable for use wherever the
+    builtin `open()` would otherwise be called (e.g., in `with` statements).
+    '''
+    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+
+    # If such file does *NOT* exist, fail.
+    die_unless_found(filename)
+
+    # Open such file.
+    return open(filename, 'r')
+
+def open_for_writing_text(filename: str):
+    '''
+    Open the passed file for line-oriented writing.
+
+    This function returns a `file`-like object, suitable for use wherever the
+    builtin `open()` would otherwise be called (e.g., in `with` statements).
+    '''
+    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, paths
+
+    # If such path is an existing special file, fail. Special files should
+    # *NEVER* be opened for line-oriented writing.
+    paths.die_if_special(filename)
+
+    # Create the parent directory of such file if needed.
+    dirs.make_parent_unless_found(filename)
+
+    # Open such file.
+    return open(filename, 'w')
+
 # --------------------( WASTELANDS                         )--------------------
     # Such file will be copied in a manner preserving some but *not* all metadata,
     # in accordance with standard POSIX behaviour. Specifically, the permissions

@@ -16,7 +16,6 @@ installation environments -- including PyInstaller-frozen executables and
 # ....................{ IMPORTS                            }....................
 from betse import metadata
 from betse.util.path import dirs, files, paths
-from betse.util.path.paths import get_dirname
 from betse.util.system import oses
 from os import environ, path
 import pkg_resources, sys
@@ -128,7 +127,7 @@ def _init_pathnames() -> None:
     # relative to the absolute path of the current module.
     else:
         DATA_DIRNAME = paths.join(
-            get_dirname(__file__), data_root_basename)
+            paths.get_dirname(__file__), data_root_basename)
 
     # Initialize the absolute path of BETSE's dot directory.
     #

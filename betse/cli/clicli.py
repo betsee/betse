@@ -12,8 +12,9 @@ from argparse import ArgumentParser
 from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
+from betse.science import simconfig
+from betse.science.simrunner import SimRunner
 from betse.util.io import loggers
-from betse.util.path import dirs, files, paths
 from betse.util.python import pythons
 from betse.util.system import processes, systems
 from collections import OrderedDict
@@ -46,7 +47,17 @@ class CLICLI(CLI):
     _arg_parser_sim : ArgumentParser
         `argparse`-specific subparser of command-line arguments passed to the
         `sim` subcommand.
+    _sim_runner : SimRunner
+        Simulation specified by the YAML configuration file passed as a command-
+        line argument to the `sim` subcommand.
     '''
+    def __init__(self):
+        super().__init__()
+
+        self._arg_subparsers = None
+        self._arg_parser_sim = None
+        self._sim_runner = None
+
     # ..................{ SUPERCLASS                         }..................
     def _configure_arg_parsing(self):
         # List of argument subparsers parsing arguments for root subcommands.
@@ -240,59 +251,52 @@ class CLICLI(CLI):
                 # Exit with such message.
                 processes.exit_with_failure(exit_message)
 
-            # Else, run such subcommand.
+            # If such subcommand is *NOT* creating a configuration file *AND* a
+            # simulation has *NOT* yet been created, created a new simulation
+            # specified by the passed configuration file.
+            #
+            # If such subcommand is creating a configuration file, such file
+            # probably does *NOT* already exist. In such case, attempting to
+            # create a new simulation would justifiably raise an exception.
+            if sim_subcommand_name != 'cfg' and not self._sim_runner:
+                self._sim_runner = SimRunner(
+                    config_filename = self._args.sim_config_filename)
+
+            # Run such subcommand.
             sim_subcommand_method()
 
     def _run_sim_cfg(self) -> None:
         '''
         Run the `sim` subcommand's `cfg` subcommand.
         '''
-        # Create the directory to which such file will be written if needed.
-        dirs.make_parent_unless_found(self._args.sim_config_filename)
-
-        # Copy the default configuration file to such file.
-        files.copy(
-            pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME,
-            self._args.sim_config_filename,
-        )
+        simconfig.write_default(self._args.sim_config_filename)
 
     def _run_sim_init(self) -> None:
         '''
         Run the `sim` subcommand's `init` subcommand.
         '''
-        loggers.log_info(
-            'Initializing simulation with configuration "{}".'.format(
-                paths.get_basename(self._args.sim_config_filename)))
-
-        #FIXME: Do something here with the YAML file given by:
-        #    self._args.sim_config_filename
-        pass
+        self._sim_runner.initialize()
 
     def _run_sim_run(self) -> None:
         '''
         Run the `sim` subcommand's `run` subcommand.
         '''
-        loggers.log_info(
-            'Running simulation with configuration "{}".'.format(
-                paths.get_basename(self._args.sim_config_filename)))
+        self._sim_runner.simulate()
 
-        #FIXME: Do something here with the YAML file given by:
-        #    self._args.sim_config_filename
-        pass
-
-    def _run_sim_plot(self) -> None:
+    def _run_sim_plot_init(self) -> None:
         '''
-        Run the `sim` subcommand's `plot` subcommand.
+        Run the `sim` subcommand's `plot_init` subcommand.
         '''
-        loggers.log_info(
-            'Plotting simulation with configuration "{}".'.format(
-                paths.get_basename(self._args.sim_config_filename)))
+        self._sim_runner.loadInit()
 
-        #FIXME: Do something here with the YAML file given by:
-        #    self._args.sim_config_filename
-        pass
+    def _run_sim_plot_run(self) -> None:
+        '''
+        Run the `sim` subcommand's `plot_run` subcommand.
+        '''
+        self._sim_runner.loadSim()
 
 # --------------------( WASTELANDS                         )--------------------
+# from betse.util.path import dirs, files, paths
 # OrderedDict((
 #                 #FIXME: Shift such functionality to "betse.util.system.systems".
 #                 ('operating system', ),

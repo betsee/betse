@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 from betse import ignition, pathtree
-from betse.science.runner import SimRunner
+from betse.science.simrunner import SimRunner
 
 # If this module is imported from the command line, run; else, noop.
 if __name__ == '__main__':

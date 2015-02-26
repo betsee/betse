@@ -68,7 +68,7 @@ Run the passed tissue simulation subcommand(s) configured by the passed
 configuration file. For example, to initialize, run, and plot a simulation
 configured by an existing file "my_sim.yaml" in the current directory:
 
-;    {script_basename} sim init run plot my_sim.yaml
+;    {script_basename} sim init run plot_run my_sim.yaml
 
 The last passed argument must be the name of a simulation configuration file. If
 the "cfg" subcommand is run, such file need not already exist; else, such file
@@ -99,14 +99,22 @@ specified in such configuration. Likewise, the previously run initialization
 will be loaded from the input file specified in such configuration. (If such
 file does not exist, an error is raised.)
 
-;plot
+;plot_init
+;----------
+Plot the previously initialized tissue simulation specified by the passed
+configuration file. Plot results will be saved to the output file(s) specified
+in such configuration. Likewise, the previously run initialization will be
+loaded from the input file specified in such configuration. (If such file does
+not exist, an error is raised.)
+
+;plot_run
 ;----------
 Plot the previously run tissue simulation specified by the passed configuration
 file. Plot results will be saved to the output file(s) specified in such
 configuration. Likewise, the previously run simulation will be loaded from the
 input file specified in such configuration. (If such file does not exist, an
 error is raised.)
-''' #.format()
+'''
 '''
 Help string template for the `sim` command.
 '''

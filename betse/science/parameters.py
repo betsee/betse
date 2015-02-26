@@ -9,22 +9,20 @@
 # 2000. Section 15.4, Intracellular Ion Environment and Membrane Electric Potential.
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
+from betse.science import simconfig
+from betse.util.path import paths
 import numpy as np
 import math
 import matplotlib.cm as cm
 import os
-import yaml
 
 # define the basic class that holds variables
 class Parameters(object):
-    """
-    The object that stores all constants used in world-building, simulation, and plotting.
-
-    """
-
-
+    '''
+    The object that stores all constants used in world-building, simulation, and
+    plotting.
+    '''
     def __init__(self):
-
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
         self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
@@ -363,17 +361,20 @@ class Parameters(object):
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
-    def load_yaml(self):
+    def load_yaml(self, config_filename: str):
+        # Dictionary loaded from such YAML file.
+        config = simconfig.load(config_filename)
 
-        config_filename = os.path.expanduser('~/BETSE/data/yaml/sim_config.yaml')
-        config_dirname = os.path.dirname(config_filename)
+        # Absolute path of the parent directory of such file.
+        config_dirname = paths.get_dirname(config_filename)
 
-        #FIXME: Load from the above file.
-        config = None
-
-        self.cache_path =  os.path.join(config_dirname, config['init']['cache file'])  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path =    os.path.join(config_dirname, config['run']['cache file']) # folder to save unique simulation and data linked to init
-        self.sim_results = os.path.join(config_dirname, config['plot']['media dir']) # folder to auto-save results (graphs, images, animations)
+        #FIXME: Right. These dictionary entries have probably changed.
+        self.cache_path = paths.join(
+            config_dirname, config['init']['cache file'])  # world, inits, and sims are saved and read to/from this directory.
+        self.sim_path = paths.join(
+            config_dirname, config['run']['cache file']) # folder to save unique simulation and data linked to init
+        self.sim_results = paths.join(
+            config_dirname, config['plot']['media dir']) # folder to auto-save results (graphs, images, animations)
 
         membrane = config['variables']['membrane diffusion']
         self.Dm_Na = membrane['Dm_Na']
@@ -436,5 +437,6 @@ def bal_charge(concentrations,zs):
 
     return bal_conc,valance
 
-
+#FIXME: Is this actually used anywhere? If not, we should probably remove this;
+#it's probably consuming a bit of memory.
 params = Parameters()

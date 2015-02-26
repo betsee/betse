@@ -13,7 +13,8 @@ from betse.science import filehandling as fh
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science.world import World
-from betse.util.path import files
+from betse.util.io import loggers
+from betse.util.path import files, paths
 # import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,13 +34,16 @@ class SimRunner(object):
     ----------
     _config_filename : str
         Absolute path of the YAML file configuring this simulation.
+    _config_basename : str
+        Basename of the YAML file configuring this simulation.
     '''
-    def __init__(self, config_filename):
+    def __init__(self, config_filename: str):
         super().__init__()
 
         # Validate and localize such filename.
         files.die_unless_found(config_filename)
         self._config_filename = config_filename
+        self._config_basename = paths.get_basename(self._config_filename)
 
     #FIXME: Configure such initialization with "self._config_filename".
     def initialize(self):
@@ -47,23 +51,29 @@ class SimRunner(object):
         Run an initialization simulation from scratch and save it to the
         initialization cache.
         '''
+        loggers.log_info(
+            'Initializing simulation with configuration "{}".'.format(
+                self._config_basename))
+
         start_time = time.time()  # get a start value for timing the simulation
 
         cells = World(vorclose='circle',worldtype='full')  # create an instance of world
-        print('Cell cluster is being created...')
+        loggers.log_info('Cell cluster is being created...')
         cells.makeWorld()     # call function to create the world
-        print('Cell cluster creation complete!')
+        loggers.log_info('Cell cluster creation complete!')
+
         p = Parameters()     # create an instance of Parameters
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         sim = Simulator(p)   # create an instance of Simulator
         sim.baseInit(cells, p)   # initialize simulation data structures
         sim.runInit(cells,p)     # run and save the initialization
 
-        print('Initialization run complete!')
-        print('The initialization took', round(time.time() - start_time,2), 'seconds to complete')
+        loggers.log_info('Initialization run complete!')
+        loggers.log_info(
+            'The initialization took {} seconds to complete.'.format(
+                round(time.time() - start_time, 2)))
 
         plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
-
         plt.show()
 
     #FIXME: Configure such simulation with "self._config_filename".
@@ -72,6 +82,10 @@ class SimRunner(object):
         '''
         Run simulation from a previously saved initialization.
         '''
+        loggers.log_info(
+            'Running simulation with configuration "{}".'.format(
+                self._config_basename))
+
         start_time = time.time()  # get a start value for timing the simulation
 
         p = Parameters()     # create an instance of Parameters
@@ -81,14 +95,15 @@ class SimRunner(object):
         sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
         sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
 
-        print('The simulation took', round(time.time() - start_time,2), 'seconds to complete')
+        loggers.log_info(
+            'The simulation took {} seconds to complete.'.format(
+                round(time.time() - start_time, 2)))
 
         plots4Sim(
             p.plot_cell,cells,sim,p,
             saveImages = p.autosave,
             animate=p.createAnimations,
             saveAni=p.saveAnimations)
-
         plt.show()
 
     #FIXME: Configure such method with "self._config_filename".
@@ -97,12 +112,15 @@ class SimRunner(object):
         '''
         Load and visualize a previously solved initialization.
         '''
+        loggers.log_info(
+            'Plotting initialization with configuration "{}".'.format(
+                self._config_basename))
+
         p = Parameters()     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
         plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
-
         plt.show()
 
     #FIXME: Configure such method with "self._config_filename".
@@ -111,6 +129,10 @@ class SimRunner(object):
         '''
         Load and visualize a previously solved simulation.
         '''
+        loggers.log_info(
+            'Plotting simulation with configuration "{}".'.format(
+                self._config_basename))
+
         p = Parameters()     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
@@ -120,7 +142,6 @@ class SimRunner(object):
             saveImages=p.autosave,
             animate=p.createAnimations,
             saveAni=p.saveAnimations)
-
         plt.show()
 
 #FIXME: This... is pretty intense. When time permits [read: never], contemplate
