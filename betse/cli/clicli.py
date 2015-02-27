@@ -12,8 +12,6 @@ from argparse import ArgumentParser
 from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
-from betse.science import simconfig
-from betse.science.simrunner import SimRunner
 from betse.util.io import loggers
 from betse.util.python import pythons
 from betse.util.system import processes, systems
@@ -259,6 +257,12 @@ class CLICLI(CLI):
             # probably does *NOT* already exist. In such case, attempting to
             # create a new simulation would justifiably raise an exception.
             if sim_subcommand_name != 'cfg' and not self._sim_runner:
+                # Import from "betse.science" in a just-in-time manner, as such
+                # importation imports heavy-weight dependencies and hence is
+                # slow.
+                from betse.science.simrunner import SimRunner
+
+                # Create such simulation.
                 self._sim_runner = SimRunner(
                     config_filename = self._args.sim_config_filename)
 
@@ -269,6 +273,9 @@ class CLICLI(CLI):
         '''
         Run the `sim` subcommand's `cfg` subcommand.
         '''
+        # Import from "betse.science" in a just-in-time manner, as such
+        # importation imports heavy-weight dependencies and hence is slow.
+        from betse.science import simconfig
         simconfig.write_default(self._args.sim_config_filename)
 
     def _run_sim_init(self) -> None:

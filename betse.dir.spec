@@ -1,22 +1,38 @@
 # -*- mode: python -*-
-# ====================[ betse.dir.spec                     ]====================
-#
-# --------------------( SYNOPSIS                           )--------------------
-# PyInstaller spec file freezing the CLI script "betse" into a one-directory
-# executable. PyInstaller evaluates this file as Python code when the
-# "freeze_dir" setuptools command is run.
+from os import path
+import os
 
-# ....................{ IMPORTS                            }....................
-# Manually read and evaluate 'betse.core.spec', a mandatory dependency
-# performing logic common to both this file and "betse.file.spec".
-with open('betse.core.spec') as core_spec:
-    exec(core_spec.read())
+a = Analysis(['/usr/bin/betse'],
+             pathex=['/home/leycec/py/betse'],
+             hiddenimports=[],
+             hookspath=None,
+             runtime_hooks=None)
+pyz = PYZ(a.pure)
 
-# ....................{ MAIN                               }....................
+# Absolute path of the current directory.
+CURRENT_DIRNAME = os.getcwd()
+
+# Absolute path of the top-level directory containing all non-Python data files
+# to be bundled with such executable.
+DATA_ROOT_DIRNAME = path.join(CURRENT_DIRNAME, 'betse', 'data')
+
+# Record all non-Python data files to be bundled with such executable. For
+# further details, see http://pythonhosted.org/PyInstaller/#id38.
+a.datas += Tree(
+    DATA_ROOT_DIRNAME,
+
+    # Relative path of the output top-level directory containing such files.
+    prefix = 'data',
+)
+
 exe = EXE(pyz,
           a.scripts,
           exclude_binaries=True,
-          **EXE_options)
+          name='betse',
+          debug=False,
+          strip=None,
+          upx=True,
+          console=True )
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
@@ -24,5 +40,3 @@ coll = COLLECT(exe,
                strip=None,
                upx=True,
                name='betse')
-
-# --------------------( WASTELANDS                         )--------------------

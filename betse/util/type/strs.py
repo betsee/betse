@@ -66,6 +66,29 @@ def join_on_newline(*texts) -> str:
     '''
     return join_on(*texts, delimiter = '\n')
 
+# ....................{ REMOVERS                           }....................
+def remove_prefix(text: str, prefix: str) -> str:
+    '''
+    Remove the passed prefix from the passed string if such string is prefixed
+    by such prefix *or* such string as is otherwise.
+    '''
+    assert isinstance(text, str), '"{}" not a string.'.format(text)
+    assert isinstance(prefix, str), '"{}" not a string.'.format(prefix)
+    return text[len(prefix):] if text.startswith(prefix) else text
+
+def remove_suffix(text: str, suffix: str) -> str:
+    '''
+    Remove the passed suffix from the passed string if such string is suffixed
+    by such suffix *or* such string as is otherwise.
+    '''
+    assert isinstance(text, str), '"{}" not a string.'.format(text)
+    assert isinstance(suffix, str), '"{}" not a string.'.format(suffix)
+
+    # There exists a special case *NOT* present in remove_prefix(). If such
+    # suffix is empty, "string[:-0]" is also incorrectly empty. Avoid returning
+    # the empty string in such case by explicitly testing for emptiness.
+    return text[:-len(suffix)] if suffix and text.endswith(suffix) else text
+
 # ....................{ WRAPPERS                           }....................
 def wrap(*args, **kwargs) -> str:
     '''

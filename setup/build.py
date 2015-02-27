@@ -3,7 +3,21 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-'''`betse`-specific script writer for `setuptools`.'''
+'''
+`betse`-specific monkey patching of `setuptools`'s `ScriptWriter` class.
+
+Such patching renders such class for use with editable installations of Python
+packages (e.g., via `betse`'s `symlink` command). The default `ScriptWriter`
+implementation writes scripts attempting to import the `setuptools`-installed
+package resources for such packages. Since no such resources are installed for
+editable installations, such scripts *always* fail and hence are suitable *only*
+for use with user-specific venvs.
+
+Such patching corrects this deficiency, albeit at a minor cost of ignoring the
+package resources provided by Python packages installed in the customary way.
+While there exist alternatives, this appears to be the most robust means of
+maintaining backward compatibility with older `setuptools` versions.
+'''
 
 # ....................{ IMPORTS                            }....................
 from pkg_resources import Distribution
@@ -39,55 +53,141 @@ def add_setup_commands(setup_options: dict) -> None:
     assert isinstance(setup_options, dict),\
         '"{}" not a dictionary.'.format(setup_options)
 
-    # Replace the default "setuptools" class for writing scripts with ours.
-    easy_install.get_script_args = ScriptWriterSimple.get_script_args
+    # If the ScriptWriter.get_args() method exists, this is a recent version of
+    # setuptools. In such case, monkey patch such method.
+    if hasattr(ScriptWriter, 'get_args'):
+        ScriptWriter.get_args = _get_args
+    # Else, this is an older version of setuptools. In such case, monkey patch
+    # the deprecated ScriptWriter.get_script_args() method.
+    else:
+        ScriptWriter.get_script_args = _get_script_args
 
-# ....................{ WRITER                             }....................
-class ScriptWriterSimple(ScriptWriter):
+# ....................{ PATCHES                            }....................
+@classmethod
+def _get_args(
+    cls: type,
+    distribution: Distribution,
+    script_shebang: str = None
+):
     '''
-    Write Python script wrappers suitable for use with system-wide installations
-    of Python packages (e.g., via the `betse`-specific `symlink` command).
+    Yield write_script() argument tuples for a distribution's entry points.
 
-    The default `ScriptWriter` class provided by `setuptools` writes Python
-    script wrappers attempting to import the `pkg_resources` for the
-    corresponding Python package. Since no `pkg_resources` are installed for
-    system-wide installations, such scripts *always* fail, implying such scripts
-    to be suitable *only* for use with user-specific venvs.
-
-    This class corrects such deficiency, albeit at a minor cost of ignoring the
-    `pkg_resources` for Python packages installed in the customary way.
+    This function monkey patches the `ScriptWriter.get_args()` class function.
     '''
+    assert isinstance(cls, type), '"{}" not a class.'.format(cls)
+    assert isinstance(script_shebang, str),\
+        '"{}" not a string.'.format(script_shebang)
 
-    @classmethod
-    def get_script_args(
-        cls,
-        distribution: Distribution,
-        executable = easy_install.sys_executable,
-        wininst = False):
-        '''
-        Yield write_script() argument tuples for a distribution's entry points.
-        '''
-        # Class with which to write such scripts.
-        gen_class = cls.get_writer(wininst)
+    # For each such script...
+    for script_basename, script_type, entry_point in\
+        util.package_distribution_entry_points(distribution):
+        # Script contents, formatted according to such template.
+        script_text = SCRIPT_TEMPLATE.format(
+            entry_point_module = entry_point.module_name,
+            entry_point_func = entry_point.attrs[0],
+        )
 
-        # Shebang line prefixing the contents of all such scripts.
-        script_shebang = easy_install.get_script_header("", executable, wininst)
+        # Yield a tuple containing such metadata to the caller.
+        for script_tuple in cls._get_script_args(
+            script_type, script_basename, script_shebang, script_text):
+            yield script_tuple
 
-        # For each such script...
-        for script_basename, script_type, entry_point in\
-            util.package_distribution_entry_points(distribution):
-            # Script contents, formatted according to such template.
-            script_text = SCRIPT_TEMPLATE.format(
-                entry_point_module = entry_point.module_name,
-                entry_point_func = entry_point.attrs[0],
-            )
+@classmethod
+def _get_script_args(
+    cls: type,
+    distribution: Distribution,
+    executable = None,
+    is_executable_windows: bool = False
+):
+    '''
+    Yield write_script() argument tuples for a distribution's entry points.
 
-            # Yield a tuple containing such metadata to the caller.
-            for res in gen_class._get_script_args(
-                script_type, script_basename, script_shebang, script_text):
-                yield res
+    This function monkey patches the now-obsolete
+    `ScriptWriter.get_script_args()` class function.
+    '''
+    assert isinstance(cls, type), '"{}" not a class.'.format(cls)
+
+    # Shebang line prefixing the contents of all such scripts.
+    script_shebang = cls.get_script_header(
+        '', executable, is_executable_windows)
+
+    # Defer to the newer _get_args() function.
+    return _get_args(cls, distribution, script_shebang)
 
 # --------------------( WASTELANDS                         )--------------------
+    # # Class with which to write such scripts.
+    # gen_class = cls.get_writer(is_executable_windows)
+
+    # # Shebang line prefixing the contents of all such scripts.
+    # script_shebang = easy_install.get_script_header(
+    #     '', executable, is_executable_windows)
+
+    # # For each such script...
+    # for script_basename, script_type, entry_point in\
+    #     util.package_distribution_entry_points(distribution):
+    #     # Script contents, formatted according to such template.
+    #     script_text = SCRIPT_TEMPLATE.format(
+    #         entry_point_module = entry_point.module_name,
+    #         entry_point_func = entry_point.attrs[0],
+    #     )
+    #
+    #     # Yield a tuple containing such metadata to the caller.
+    #     for res in gen_class._get_script_args(
+    #         script_type, script_basename, script_shebang, script_text):
+    #         yield res
+
+    # Monkey patch the existing setuptools class "ScriptWriter". While there
+    # exist alternatives, this currently appears to be the most robust approach
+    # for maintaining backward compatibility with older setuptools versions.
+# `betse`-specific script writer for `setuptools`.
+    # Replace the default "setuptools" class for writing scripts with ours.
+#     easy_install.get_script_args = ScriptWriterSimple.get_script_args
+#
+# # ....................{ WRITER                             }....................
+# class ScriptWriterSimple(ScriptWriter):
+#     '''
+#     Write Python script wrappers suitable for use with system-wide installations
+#     of Python packages (e.g., via the `betse`-specific `symlink` command).
+#
+#     The default `ScriptWriter` class provided by `setuptools` writes Python
+#     script wrappers attempting to import the `pkg_resources` for the
+#     corresponding Python package. Since no `pkg_resources` are installed for
+#     system-wide installations, such scripts *always* fail, implying such scripts
+#     to be suitable *only* for use with user-specific venvs.
+#
+#     This class corrects such deficiency, albeit at a minor cost of ignoring the
+#     `pkg_resources` for Python packages installed in the customary way.
+#     '''
+#
+#     @classmethod
+#     def get_script_args(
+#         cls,
+#         distribution: Distribution,
+#         executable = easy_install.sys_executable,
+#         wininst = False):
+#         '''
+#         Yield write_script() argument tuples for a distribution's entry points.
+#         '''
+#         # Class with which to write such scripts.
+#         gen_class = cls.get_writer(wininst)
+#
+#         # Shebang line prefixing the contents of all such scripts.
+#         script_shebang = easy_install.get_script_header("", executable, wininst)
+#
+#         # For each such script...
+#         for script_basename, script_type, entry_point in\
+#             util.package_distribution_entry_points(distribution):
+#             # Script contents, formatted according to such template.
+#             script_text = SCRIPT_TEMPLATE.format(
+#                 entry_point_module = entry_point.module_name,
+#                 entry_point_func = entry_point.attrs[0],
+#             )
+#
+#             # Yield a tuple containing such metadata to the caller.
+#             for res in gen_class._get_script_args(
+#                 script_type, script_basename, script_shebang, script_text):
+#                 yield res
+
         # # For each type of script...
         # for type_ in 'console', 'gui':
         #     script_group = type_ + '_scripts'
