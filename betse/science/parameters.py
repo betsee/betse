@@ -25,7 +25,7 @@ class Parameters(object):
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
         self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
-        self.time4init = 10*60      # set the time for the initialization sim [s]
+        self.time4init = 5*60      # set the time for the initialization sim [s]
         self.time4sim = 1*60        # set total time for simulation [s]
 
         # File saving
@@ -60,7 +60,7 @@ class Parameters(object):
         self.HKATPase_dyn = 0
 
         # include V-ATPase in the simulation? Yes =1, No = 0
-        self.VATPase_dyn = 1
+        self.VATPase_dyn = 0
 
         # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
         self.voltage_dye = 0
@@ -70,13 +70,19 @@ class Parameters(object):
         self.z_Dye = 1         # charge valence of dye
         self.cDye_to = 1.0e-3    # initial concentration of voltage sensitive dye in environment [mol/m3]
 
+        # include noise in the simulation?
+        self.channel_noise_level = 0   # static noise: adds a random scatter to the K+leak channels in the membrane (range 0 to 10)
+
+        self.dynamic_noise = 1         # dynamic noise: adds a random walk on the concentration of protein in the cell
+        self.dynamic_noise_level = 1e-7   # dynamic noise level: how much dynamic noise: range 0 to 1e-5
+
     #..................................................................................................................
         # default membrane diffusion constants: easy control of cell's base resting potential
         self.Dm_Na = 1.0e-18     # membrane diffusion constant sodium [m2/s]
         self.Dm_K = 15.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
-        self.Dm_H = 1.0e-17      # membrane diffusion constant hydrogen [m2/s]
+        self.Dm_H = 1.0e-18      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]
 
@@ -98,14 +104,14 @@ class Parameters(object):
         #...................................Voltage Gated Channels......................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = 'all'
+        self.gated_targets = 'none'
         # self.vg_options specifications list for voltage gated ion channel options:
         vgNa = [1.0e-15,-50e-3,30e-3,-52e-3,5e-3,10e-3]  # [max Na mem diffusion m2/s, v on, v inactive, v deactivate,duration active (s), duration inactive]
         vgK = [0.5e-15, -20e-3,-75e-3,10.0e-3]           # [max K mem diffusion (m2/s), v on, v off, duration (s)]
         vgCa = [1.0e-15,-40e-3,40e-3,0.75e-3,200.0e-6]  # [maxCa mem diffusion m2/s, v on, v off, Ca2+ off mmol/L, Ca2+ reactivate]
         cagK = [2.0e-16,7.5e-4,3]                    # [maxK mem diffusion (m2/s), half-max Ca2+ for gating, hill coefficient]
 
-        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':cagK}
+        self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
 
@@ -122,7 +128,7 @@ class Parameters(object):
 
 
         cicr = [ERstore_dyn,ca_reg,ip3_reg]
-        self.Ca_dyn_options = {'CICR':cicr}
+        self.Ca_dyn_options = {'CICR':0}
 
         self.Dm_IP3 = 1.0e-18   # membrane diffusion constant of IP3
         self.Do_IP3 = 1.0e-5    # IP3 free diffusion constant [m2/s] (this is artificially high due to gj being artificially low)
@@ -171,8 +177,6 @@ class Parameters(object):
 
         self.clip = 20e-6
 
-
-
         # ........................Rarely changed constants and calculations.............................................
 
         # default free diffusion constants (cytoplasmic)
@@ -197,6 +201,10 @@ class Parameters(object):
         self.alpha_HK = 1.0e-3  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
         self.halfmax_HK = 12
         self.slope_HK = 24
+
+        self.alpha_V = 2.0e-4  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
+        self.halfmax_V = 12
+        self.slope_V = 24
 
          # Endoplasmic reticulum
         self.ER_vol = 0.1                  # volume of endoplasmic reticulum as a fraction of cell volume

@@ -324,6 +324,7 @@ class Simulator(object):
         self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
         self.CaATP_block = np.ones(len(cells.cell_i))  # initialize CaATP (plasm membrane) blocking vector
         self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
+        self.VATP_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
 
         if p.Ca_dyn == 1:
 
@@ -337,6 +338,15 @@ class Simulator(object):
             self.cDye_env = np.zeros(len(cells.cell_i))
             self.cDye_env[:] = p.cDye_to
 
+
+        # add channel noise to the model:
+        self.channel_noise_factor = np.random.random(len(cells.cell_i))
+        self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
+
+        # add a random walk on protein concentration to generate dynamic noise:
+        self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
+        self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
+
         print('This world contains ',cells.cell_number, ' cells.')
         print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
         print('You are running the ion profile: ',p.ion_profile)
@@ -348,6 +358,11 @@ class Simulator(object):
         Runs initializations for all user-specified options that will be used in the main simulation.
 
         """
+
+
+        # add channel noise to the model:
+        self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
+
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
         Dm_cellsER = np.asarray(self.Dm_er)
@@ -591,6 +606,8 @@ class Simulator(object):
             # self.scheduled_target_inds[p.scheduled_targets] = 1
             self.scheduled_target_inds = p.scheduled_targets
 
+
+
         print('This world contains ',cells.cell_number, ' cells.')
         print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
         print('You are running the ion profile: ',p.ion_profile)
@@ -717,7 +734,25 @@ class Simulator(object):
                     self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 if p.VATPase_dyn == 1:
-                    pass
+
+                     # if HKATPase pump is desired, run the H-K-ATPase pump:
+                    self.cc_cells[self.iH],self.cc_env[self.iH], f_H3, _ =\
+                    pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],
+                        cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.VATP_block)
+
+                     # buffer what's happening with H+ flux to or from the cell and environment:
+                    delH_cell = (f_H3*p.dt/cells.cell_vol)    # relative change in H wrt the cell
+                    delH_env = -(f_H3*p.dt/p.vol_env)    # relative change in H wrt to environment
+
+                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
+                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+
+                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+
+                    # recalculate the net, unbalanced charge and voltage in each cell:
+                    q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -758,6 +793,15 @@ class Simulator(object):
                 self.cDye_env,self.cDye_cell,_ = \
                         electrofuse(self.cDye_env,self.cDye_cell,p.Dm_Dye*self.id_cells,self.tm,cells.cell_sa,
                             self.envV,cells.cell_vol,p.z_Dye,self.vm,self.T,p)
+
+            if p.dynamic_noise == 1:
+                # add a random walk on protein concentration to generate dynamic noise:
+                self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
+                self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
+
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
@@ -975,7 +1019,25 @@ class Simulator(object):
                     self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 if p.VATPase_dyn == 1:
-                    pass
+
+                     # if HKATPase pump is desired, run the H-K-ATPase pump:
+                    self.cc_cells[self.iH],self.cc_env[self.iH], f_H3, _ =\
+                    pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],
+                        cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.VATP_block)
+
+                     # buffer what's happening with H+ flux to or from the cell and environment:
+                    delH_cell = (f_H3*p.dt/cells.cell_vol)    # relative change in H wrt the cell
+                    delH_env = -(f_H3*p.dt/p.vol_env)    # relative change in H wrt to environment
+
+                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
+                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+
+                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+
+                    # recalculate the net, unbalanced charge and voltage in each cell:
+                    q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
             shuffle(cells.gj_i)
@@ -1060,6 +1122,15 @@ class Simulator(object):
 
                 # update cell voltage-sensitive dye concentration due to gap junction flux:
                 self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
+
+            if p.dynamic_noise == 1:
+                # add a random walk on protein concentration to generate dynamic noise:
+                self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
+                self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
+
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
@@ -1651,6 +1722,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
+    # pumpnoise = p.pump_noise*0.001*np.random.random(len(Vm))
+
+
     alpha = sa*signG*block*p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
 
     truth_forwards = signG == 1    # boolean array tagging forward-running pump cells
@@ -1900,7 +1974,54 @@ def pumpHKATP(cHi,cHo,cKi,cKo,sa,voli,volo,Vm,T,p,block):
     return cHi2,cHo2,cKi2,cKo2, f_H, f_K
 
 def pumpVATP(cHi,cHo,sa,voli,volo,Vm,T,p,block):
-    pass
+
+    deltaGATP = 20*p.R*T
+
+    delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm  # free energy to move H+ out of cell
+
+    delG_VATP = deltaGATP - delG_H   # free energy available to move H+ out of cell
+    delG_pump = (delG_VATP/1000)
+    delG = np.absolute(delG_pump)
+    signG = np.sign(delG)
+
+    alpha = sa*signG*block*p.alpha_V*step(delG,p.halfmax_V,p.slope_V)
+
+    truth_forwards = signG == 1
+    truth_backwards = signG == -1
+
+    inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
+    inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
+
+    f_H = np.zeros(len(cHi))
+
+    f_H[inds_forwards]  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
+    f_H[inds_backwards]  = -alpha*cHo
+
+    f_K = -f_H          # flux as [mol/s]
+
+    if p.method == 0:
+
+        dmol = f_H*p.dt
+
+        cHi2 = cHi + dmol/voli
+        cHo2 = cHo - dmol/volo
+
+    elif p.method == 1:
+
+        k1 = alpha*cHi
+
+        k2 = alpha*(cHi+(1/2)*k1*p.dt)
+
+        k3 = alpha*(cHi+(1/2)*k2*p.dt)
+
+        k4 = alpha*(cHi+ k3*p.dt)
+
+        dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+        cHi2 = cHi - dmol/voli
+        cHo2 = cHo + dmol/volo
+
+    return cHi2, cHo2, f_H, f_K
 
 def bicarbBuffer(cH,cM,cHM,delH,p):
 
