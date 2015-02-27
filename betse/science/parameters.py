@@ -3,7 +3,6 @@
 # See "LICENSE" for further details.
 
 # FIXME this module will load parameters from a yaml file!
-# FIXME put *all* constants and options in here, including plotting colormaps, etc...
 
 # Lodish H, Berk A, Zipursky SL, et al. Molecular Cell Biology. 4th edition. New York: W. H. Freeman;
 # 2000. Section 15.4, Intracellular Ion Environment and Membrane Electric Potential.
@@ -27,7 +26,7 @@ class Parameters(object):
         self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
         self.time4init = 10*60      # set the time for the initialization sim [s]
-        self.time4sim = 5*60        # set total time for simulation [s]
+        self.time4sim = 1*60        # set total time for simulation [s]
 
         # File saving
         self.cache_path = os.path.expanduser("~/.betse/cache/100umInit/")  # world, inits, and sims are saved and read to/from this directory.
@@ -55,10 +54,13 @@ class Parameters(object):
         self.ion_profile = 'animal'
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = 1
+        self.Ca_dyn = 0
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = 0
+
+        # include V-ATPase in the simulation? Yes =1, No = 0
+        self.VATPase_dyn = 1
 
         # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
         self.voltage_dye = 0
@@ -74,7 +76,7 @@ class Parameters(object):
         self.Dm_K = 15.0e-18      # membrane diffusion constant potassium [m2/s]
         self.Dm_Cl = 2.0e-18     # membrane diffusion constant chloride [m2/s]
         self.Dm_Ca = 1.0e-18     # membrane diffusion constant calcium [m2/s]
-        self.Dm_H = 1.0e-16      # membrane diffusion constant hydrogen [m2/s]
+        self.Dm_H = 1.0e-17      # membrane diffusion constant hydrogen [m2/s]
         self.Dm_M = 1.0e-18     # membrane diffusion constant anchor ion [m2/s]
         self.Dm_P = 0.0        # membrane diffusion constant proteins [m2/s]
 
@@ -137,7 +139,7 @@ class Parameters(object):
         self.gj_cm = cm.bone           # colormap for plotting gj currents on top of default colormap
 
         self.plot_while_solving = True  # create a 2d plot of cell vmems while solution is taking place
-        self.save_solving_plot = True   # save the 2d plot generated while solving (warning: will slow sim down!)
+        self.save_solving_plot = False   # save the 2d plot generated while solving (warning: will slow sim down!)
 
         self.enumerate_cells = False    # number cells on the static 2D maps with their simulation index (this can help
                                         # decide on the value of self.plot_cell
@@ -148,7 +150,7 @@ class Parameters(object):
 
         self.showCells = True     # plots and ani are individual cell plots if True; as interpolated mesh data if False
 
-        self.plot_vm2d = False                # 2d plot of final vmem ?
+        self.plot_vm2d = True                # 2d plot of final vmem ?
         self.plot_ca2d = False                # 2d plot of final cell calcium ?
         self.plot_ip32d = False               # 2d plot of final cIP3 ?
         self.plot_dye2d = False               # 2d plot of voltage sensitive dye in cell collective?
@@ -183,16 +185,16 @@ class Parameters(object):
         self.Do_P = 5.0e-10      # free diffusion constant protein [m2/s]
 
         # pump parameters
-        self.alpha_NaK = 1.0e-17 # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
+        self.alpha_NaK = 5.0e-8 # maximum rate constant sodium-potassium ATPase per unit surface area [1/mol*s] (range 1e-17 to 5e-16)
         self.halfmax_NaK = 12   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = 24  # the energy window width of the NaK-ATPase pump [kJ]
 
-        self.alpha_Ca = 5.0e-15 # pump rate for calcium ATPase in membrane [m3/mols] 2.0e-15
-        self.alpha_CaER = 5.0e-14  # pump rate for calcium ATPase in endoplasmic reticulum
+        self.alpha_Ca = 2.5e-5 # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
+        self.alpha_CaER = 1.0e-3  # pump rate for calcium ATPase in endoplasmic reticulum
         self.halfmax_Ca = 12
         self.slope_Ca = 24
 
-        self.alpha_HK = 5.0e-14  # pump rate for the H-K-ATPase
+        self.alpha_HK = 1.0e-3  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
         self.halfmax_HK = 12
         self.slope_HK = 24
 
@@ -201,8 +203,7 @@ class Parameters(object):
         self.ER_sa = 1.0                    # surface area of endoplasmic reticulum as a fraction of cell surface area
 
         # partial pressure dissolved CO2
-        self.CO2 = 0.03*40
-        self.bicarb = 25.0
+        self.CO2 = 50   # [mmHg]
 
         # charge states of ions
         self.z_Na = 1
@@ -289,7 +290,7 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cCa_er = 0.9
+            self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
@@ -323,7 +324,7 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cCa_er = 0.9
+            self.cCa_er = 0.5
             self.cM_er = - self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
@@ -356,8 +357,8 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cCa_er = 3.0e-4
-            self.cM_er = 3.0e-4
+            self.cCa_er = 0.5
+            self.cM_er = -self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 

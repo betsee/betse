@@ -6,8 +6,8 @@
 # FIXME implement stability safety threshhold parameter checks and loss-of-stability detection + error message
 # FIXME would be nice to have a time estimate for the simulation
 # FIXME ECM diffusion and discrete membrane domains
- # FIXME would be nice to track ATP use
- # FIXME use carbonate buffer for propper H+ handling!
+# FIXME implement VATPase pump
+
 
 
 import numpy as np
@@ -133,11 +133,6 @@ class Simulator(object):
             self.Dm_cells.append(DmNa)
             self.D_free.append(p.Do_Na)
 
-            # if p.ions_dict['Ca'] ==1:
-            #     cNa_er = np.zeros(len(cells.cell_i))
-            #     cNa_er[:]=p.cNa_er
-            #     self.cc_er.append(cNa_er)
-
 
         if p.ions_dict['K'] == 1:
 
@@ -162,10 +157,6 @@ class Simulator(object):
             self.Dm_cells.append(DmK)
             self.D_free.append(p.Do_K)
 
-            # if p.ions_dict['Ca'] ==1:
-            #     cK_er = np.zeros(len(cells.cell_i))
-            #     cK_er[:]=p.cK_er
-            #     self.cc_er.append(cK_er)
 
         if p.ions_dict['Cl'] == 1:
 
@@ -189,11 +180,7 @@ class Simulator(object):
             self.zs.append(p.z_Cl)
             self.Dm_cells.append(DmCl)
             self.D_free.append(p.Do_Cl)
-            #
-            # if p.ions_dict['Ca'] ==1:
-            #     cCl_er = np.zeros(len(cells.cell_i))
-            #     cCl_er[:]=p.cCl_er
-            #     self.cc_er.append(cCl_er)
+
 
         if p.ions_dict['Ca'] == 1:
 
@@ -225,34 +212,6 @@ class Simulator(object):
                 self.z_er.append(p.z_Ca)
                 self.Dm_er.append(p.Dm_Ca)
 
-        if p.ions_dict['H'] == 1:
-
-            i =i+1
-
-            self.iH = i
-            #self.movingIons.append(self.iH)
-            self.ionlabel[self.iH] = 'protons'
-
-            cH_cells = np.zeros(len(cells.cell_i))
-            cH_cells[:]=p.cH_cell
-
-            cH_env = np.zeros(len(cells.cell_i))
-            cH_env[:]=p.cH_env
-
-            DmH = np.zeros(len(cells.cell_i))
-            DmH[:] = p.Dm_H
-
-            self.cc_cells.append(cH_cells)
-            self.cc_env.append(cH_env)
-            self.zs.append(p.z_H)
-            self.Dm_cells.append(DmH)
-            self.D_free.append(p.Do_H)
-
-            # if p.ions_dict['Ca'] ==1:
-            #     cH_er = np.zeros(len(cells.cell_i))
-            #     cH_er[:]=p.cH_er
-            #     self.cc_er.append(cH_er)
-
         if p.ions_dict['P'] == 1:
 
             i =i+1
@@ -274,11 +233,6 @@ class Simulator(object):
             self.zs.append(p.z_P)
             self.Dm_cells.append(DmP)
             self.D_free.append(p.Do_P)
-
-            # if p.ions_dict['Ca'] ==1:
-            #     cP_er = np.zeros(len(cells.cell_i))
-            #     cP_er[:]=p.cP_er
-            #     self.cc_er.append(cP_er)
 
         if p.ions_dict['M'] == 1:
 
@@ -309,6 +263,42 @@ class Simulator(object):
                 self.cc_er.append(cM_er)
                 self.z_er.append(p.z_M)
                 self.Dm_er.append(p.Dm_M)
+
+        if p.ions_dict['H'] == 1:
+
+            i =i+1
+
+            self.iH = i
+
+            #self.movingIons.append(self.iH)
+            self.ionlabel[self.iH] = 'protons'
+
+            # initialize the carbonic acid for the carbonate buffer
+            self.cHM_cells = np.zeros(len(cells.cell_i))
+            self.cHM_cells[:] = 0.03*p.CO2
+
+            self.cHM_env = np.zeros(len(cells.cell_i))
+            self.cHM_env[:] = 0.03*p.CO2
+
+            cH_cells = np.zeros(len(cells.cell_i))
+            # cH_cells[:]=p.cH_cell
+            pH_cell = 6.1 + np.log10(cM_cells/self.cHM_cells)
+            cH_cells = (10**(-pH_cell))*1000  # units mmol/L
+
+
+            cH_env = np.zeros(len(cells.cell_i))
+            # cH_env[:]=p.cH_env
+            pH_env = 6.1 + np.log10(cM_env/self.cHM_env)
+            cH_env = (10**(-pH_env))*1000 # units mmol/L
+
+            DmH = np.zeros(len(cells.cell_i))
+            DmH[:] = p.Dm_H
+
+            self.cc_cells.append(cH_cells)
+            self.cc_env.append(cH_env)
+            self.zs.append(p.z_H)
+            self.Dm_cells.append(DmH)
+            self.D_free.append(p.Do_H)
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -652,7 +642,7 @@ class Simulator(object):
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
+                    cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -662,8 +652,8 @@ class Simulator(object):
             if  p.ions_dict['Ca'] == 1:
 
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,
-                        self.T,p,self.CaATP_block)
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_sa,cells.cell_vol,
+                        self.envV,self.vm,self.T,p,self.CaATP_block)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -672,8 +662,8 @@ class Simulator(object):
                 if p.Ca_dyn ==1:
 
                     self.cc_er[0],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
-                            self.v_er,self.T,p,self.CaER_block)
+                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_sa,
+                            cells.cell_vol,self.v_er,self.T,p,self.CaER_block)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -683,17 +673,51 @@ class Simulator(object):
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
                     self.v_er = v_er_o - self.vm
 
+            if p.ions_dict['H'] == 1:
 
-            if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
+                # electrofuse the H+ ion between the cytoplasm and the environment
+                self.cc_env[self.iH],self.cc_cells[self.iH],f_H1 = \
+                    electrofuse(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,cells.cell_sa,
+                        self.envV,cells.cell_vol,self.zs[self.iH],self.vm,self.T,p)
 
-                # if HKATPase pump is desired, run the H-K-ATPase pump:
-                _,_,self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
-                pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
+                # buffer what's happening with H+ flux to or from the cell and environment:
+                delH_cell = (f_H1*p.dt/cells.cell_vol)    # relative change in H wrt the cell
+                delH_env =  -(f_H1*p.dt/p.vol_env)    # relative change in H wrt to environment
+
+                self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
+                    self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+
+                self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+                    self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
+
+
+                if p.HKATPase_dyn == 1:
+
+                    # if HKATPase pump is desired, run the H-K-ATPase pump:
+                    self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], f_H2, _ =\
+                    pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
+                        cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
+
+                     # buffer what's happening with H+ flux to or from the cell and environment:
+                    delH_cell = (f_H2*p.dt/cells.cell_vol)    # relative change in H wrt the cell
+                    delH_env = -(f_H2*p.dt/p.vol_env)    # relative change in H wrt to environment
+
+                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
+                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+
+                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+
+                    # recalculate the net, unbalanced charge and voltage in each cell:
+                    q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+
+                if p.VATPase_dyn == 1:
+                    pass
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -756,7 +780,7 @@ class Simulator(object):
                     cvdye = copy.deepcopy(self.cDye_cell)
                     self.cDye_time.append(cvdye)
 
-                if p.plot_while_solving == True:  # FIXME do stuff here to update the plot
+                if p.plot_while_solving == True:
                     pass
 
         celf = copy.deepcopy(self)
@@ -780,13 +804,16 @@ class Simulator(object):
             concmess = 'Final environmental concentration of'+ ' '+ label + ': '
             print(concmess,endconc,' mmol/L')
 
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),2)
+        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
         vmess = 'Final cell Vmem of ' + ': '
         print(vmess,final_vmean, ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
             print('cell pH',np.round(final_pH,2))
+
+            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
+            print('environmental pH',np.round(final_pH_env,2))
 
         if p.Ca_dyn == 1:
 
@@ -854,7 +881,7 @@ class Simulator(object):
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
         self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-        if p.plot_while_solving == True:  # FIXME need a new viz function for plot while solving: 2 part class
+        if p.plot_while_solving == True:
 
             checkPlot = viz.PlotWhileSolving(cells,self,p)
 
@@ -874,7 +901,7 @@ class Simulator(object):
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
+                    cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -883,8 +910,8 @@ class Simulator(object):
             if p.ions_dict['Ca'] == 1:
 
                 self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_vol,self.envV,self.vm,
-                        self.T,p,self.CaATP_block)
+                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_sa,cells.cell_vol,
+                        self.envV,self.vm,self.T,p,self.CaATP_block)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -893,8 +920,8 @@ class Simulator(object):
                 if p.Ca_dyn ==1:
 
                     self.cc_er[0],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_vol,
-                            self.v_er,self.T,p,self.CaER_block)
+                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol, cells.cell_sa,
+                            cells.cell_vol,self.v_er,self.T,p,self.CaER_block)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -904,15 +931,51 @@ class Simulator(object):
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
                     self.v_er = v_er_o - self.vm
 
-            if p.HKATPase_dyn == 1 and p.ions_dict['H']==1:
-                # if HKATPase pump is desired, run the H-K-ATPase pump:
-                _,_,self.cc_cells[self.iK],self.cc_env[self.iK], fH_HK, fK_HK =\
-                pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
+            if p.ions_dict['H'] == 1:
+
+                # electrofuse the H+ ion between the cytoplasm and the environment
+                self.cc_env[self.iH],self.cc_cells[self.iH],f_H1 = \
+                    electrofuse(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,cells.cell_sa,
+                        self.envV,cells.cell_vol,self.zs[self.iH],self.vm,self.T,p)
+
+                # buffer what's happening with H+ flux to or from the cell and environment:
+                delH_cell = (f_H1*p.dt/cells.cell_vol)    # relative change in H wrt the cell
+                delH_env =  -(f_H1*p.dt/p.vol_env)    # relative change in H wrt to environment
+
+                self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
+                    self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+
+                self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+                    self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
+
+
+                if p.HKATPase_dyn == 1:
+
+                    # if HKATPase pump is desired, run the H-K-ATPase pump:
+                    self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], f_H2, _ =\
+                    pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
+                        cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
+
+                     # buffer what's happening with H+ flux to or from the cell and environment:
+                    delH_cell = (f_H2*p.dt/cells.cell_vol)    # relative change in H wrt the cell
+                    delH_env = -(f_H2*p.dt/p.vol_env)    # relative change in H wrt to environment
+
+                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
+                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+
+                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+
+                    # recalculate the net, unbalanced charge and voltage in each cell:
+                    q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+
+                if p.VATPase_dyn == 1:
+                    pass
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
             shuffle(cells.gj_i)
@@ -928,11 +991,6 @@ class Simulator(object):
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 # calculate volatge difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
@@ -1033,7 +1091,7 @@ class Simulator(object):
                     ccer = copy.deepcopy(self.cc_er)
                     self.cc_er_time.append(ccer)
 
-                if p.plot_while_solving == True:  # FIXME will be doing stuff here to update the plot
+                if p.plot_while_solving == True:
 
                     checkPlot.updatePlot(self)
 
@@ -1411,12 +1469,6 @@ def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
 
     """
 
-    assert vola>0
-    assert volb>0
-    assert d >0
-
-    #volab = (vola + volb)/2
-    #qualityfactor = (Dc/d)*(sa/volab)*p.dt   # quality factor should be <1.0 for stable simulations
 
     flux = -sa*Dc*(cB - cA)/d
 
@@ -1426,9 +1478,6 @@ def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
 
         cA2 = cA + dmol/vola
         cB2 = cB - dmol/volb
-
-        cA2 = check_c(cA2)
-        cB2 = check_c(cB2)
 
     elif p.method == 1:
 
@@ -1444,9 +1493,6 @@ def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
 
         cA2 = cA + dmol/vola
         cB2 = cB - dmol/volb
-
-        cA2 = check_c(cA2)
-        cB2 = check_c(cB2)
 
     return cA2, cB2, flux
 
@@ -1572,7 +1618,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p):
 
     return cA2, cB2, flux
 
-def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,T,p,block):
+def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block):
 
     """
     Parameters
@@ -1605,7 +1651,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-    alpha = signG*block*p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
+    alpha = sa*signG*block*p.alpha_NaK*step(delG,p.halfmax_NaK,p.slope_NaK)
 
     truth_forwards = signG == 1    # boolean array tagging forward-running pump cells
     truth_backwards = signG == -1  # boolean array tagging backwards-running pump cells
@@ -1652,7 +1698,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,voli,volo,Vm,T,p,block):
 
     return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
 
-def pumpCaATP(cCai,cCao,voli,volo,Vm,T,p,block):
+def pumpCaATP(cCai,cCao,sa,voli,volo,Vm,T,p,block):
 
     """
     Parameters
@@ -1681,7 +1727,7 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,T,p,block):
     signG = np.sign(delG_pump)
 
 
-    alpha = signG*block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+    alpha = sa*signG*block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
 
     truth_forwards = signG == 1
     truth_backwards = signG == -1
@@ -1719,9 +1765,31 @@ def pumpCaATP(cCai,cCao,voli,volo,Vm,T,p,block):
 
     return cCai2, cCao2, f_Ca
 
-def pumpCaER(cCai,cCao,voli,volo,Vm,T,p,block):
+def pumpCaER(cCai,cCao,sa,voli,volo,Vm,T,p,block):
 
-    alpha = block*p.alpha_CaER
+    # deltaGATP = 20*p.R*T
+    #
+    # delG_Ca = p.R*T*np.log(cCao/cCai) - 2*p.F*Vm
+    # delG_CaATP = deltaGATP - (delG_Ca)
+    # delG_pump = (delG_CaATP/1000)
+    # delG = np.absolute(delG_pump)
+    # signG = np.sign(delG_pump)
+    #
+    #
+    # alpha = sa*signG*block*p.alpha_Ca*step(delG,p.halfmax_Ca,p.slope_Ca)
+    #
+    # truth_forwards = signG == 1
+    # truth_backwards = signG == -1
+    #
+    # inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
+    # inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
+    #
+    # f_Ca = np.zeros(len(cCai))
+    #
+    # f_Ca[inds_forwards]  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
+    # f_Ca[inds_backwards]  = -alpha*(cCao)      #flux as [mol/s], scaled to concentration out of cell
+
+    alpha = sa*block*p.alpha_CaER
 
     f_Ca  = alpha*(cCao)*(1.0 - cCai)      #flux as [mol/s]
 
@@ -1750,7 +1818,7 @@ def pumpCaER(cCai,cCao,voli,volo,Vm,T,p,block):
 
     return cCai2, cCao2, f_Ca
 
-def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,T,p,block):
+def pumpHKATP(cHi,cHo,cKi,cKo,sa,voli,volo,Vm,T,p,block):
 
     """
     Parameters
@@ -1785,7 +1853,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-    alpha = signG*block*p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
+    alpha = sa*signG*block*p.alpha_HK*step(delG,p.halfmax_HK,p.slope_HK)
 
     truth_forwards = signG == 1
     truth_backwards = signG == -1
@@ -1802,7 +1870,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,T,p,block):
 
     if p.method == 0:
 
-        dmol = -alpha*cHi*cKo*p.dt
+        dmol = f_H*p.dt
 
         cHi2 = cHi + dmol/voli
         cHo2 = cHo - dmol/volo
@@ -1830,6 +1898,22 @@ def pumpHKATP(cHi,cHo,cKi,cKo,voli,volo,Vm,T,p,block):
 
 
     return cHi2,cHo2,cKi2,cKo2, f_H, f_K
+
+def pumpVATP(cHi,cHo,sa,voli,volo,Vm,T,p,block):
+    pass
+
+def bicarbBuffer(cH,cM,cHM,delH,p):
+
+    cM2 = cM - delH
+
+    #cHM2 = cHM + delH
+    cHM2 = 0.03*p.CO2
+
+    pH = 6.1 + np.log10(cM/cHM2)
+
+    cH2 = 10**(-pH)*1000
+
+    return cH2, cM2, cHM2
 
 def get_volt(q,sa,p):
 
