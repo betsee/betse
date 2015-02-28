@@ -73,7 +73,7 @@ class Simulator(object):
         # dirs.make_parent_unless_found(p.saved_init_file, p.saved_run_file)
 
         # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.cache_path)
+        betse_cache_dir = os.path.expanduser(p.init_path)
         os.makedirs(betse_cache_dir, exist_ok=True)
 
         sim_cache_dir = os.path.expanduser(p.sim_path)
@@ -831,7 +831,7 @@ class Simulator(object):
 
         datadump = [celf,cells,p]
         fh.saveSim(self.savedInit,datadump)
-        message_1 = 'Initialization run saved to' + ' ' + p.cache_path
+        message_1 = 'Initialization run saved to' + ' ' + p.init_path
         print(message_1)
 
         self.vm_to = copy.deepcopy(self.vm)

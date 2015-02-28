@@ -36,7 +36,7 @@
 # -----------------------------------------------------------------------------
 # Settings specific to the initialization
 
-init filesaving:
+init file saving:
 
     directory: betse_data          # name of the directory to save this initialization
 
@@ -50,7 +50,7 @@ init time settings:
                                # settings for 'customized' time-profile can be
                                # edited below.
 
-  total time:10*60             # set the time for the initialization run [s]
+  total time: 10*60             # set the time for the initialization run [s]
                                # recommend 2 to 10 minutes of initialization.
     
   customized time profile:  # set the following params if you desire more control over init run
@@ -66,7 +66,7 @@ init time settings:
 # SIMULATION
 # ---------------------------------------------------------------------------------------------------------------------
 
-sim filesaving:
+sim file saving:
 
     directory: sim_run1    # Specify a directory to hold the sim and its results
 
@@ -129,9 +129,14 @@ general options:
                             # options True or False (case sensitive)
 
 
-  HKATPase pump: True     # include the HK-ATPase pump in the simulation?
+  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
                           # note this only works for an ion profile with H+ ions
                           # options True or False (case sensitive)
+
+  VATPase pump: False        # include the plasma membrane V-ATPase pump?
+                            # note this only works for an ion profile with H+ ions
+                            # options True or False (case sensitive)
+
 
 
   voltage dye: False     # include diffusion of a voltage sensitive dye?
@@ -141,10 +146,20 @@ general options:
 
   voltage dye properties:  # specify the properties of the voltage sensitive dye
 
-    Dm_Dye = 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
-    Do_Dye = 1.0e-9         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
-    z_Dye = 1               # charge of dye (oxidation state)
-    cDye_to = 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
+    Dm_Dye: 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
+    Do_Dye: 1.0e-9         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
+    z_Dye: 1               # charge of dye (oxidation state)
+    cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
+
+  static noise level: 0    # level of variance in K+ leaks on cell membranes
+                           # appropriate range 0 (all cells equivalent) to 10.0
+
+  dynamic noise: False      # is dynamic noise desired?
+                            # simulated as random-walk on cellular protein concentrations
+
+  dynamic noise level: 1e-7     # level of dynamic noise
+                                # appropriate range 0 to 1e-6
+                                # note high values may cause simulation instability
 
 # ---------------------------------------------------------------------------------------------------------------------
 # WORLD VARIABLES
@@ -156,9 +171,7 @@ general options:
 world variables:
 
   world x: 500e-6         # the x-dimension of the world space [m]
-                          # recommended range 50e-6 to 1000e-6 m
-
-  world y: 500e-6         # the y-dimension of the world space [m]
+                          # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
   cell radius: 5e-6       # radius of single cell [m]
@@ -184,10 +197,10 @@ world variables:
   temperature: 310            # World temperature [K]
 
   search distance: 1.5        # distance to search for nearest neighbours
-                              # relative to cell diameter dc
-                              # min 1.0 max 5.0
+                              # relative to cell diameter
+                              # min 1.1 max 3.5
 
-  gj voltage threshhold: 60e-3    # cell-cell voltage at which gj close [V]
+  gj voltage threshold: 60e-3    # cell-cell voltage at which gj close [V]
 
   gj voltage window: 30e-3        # the range over which gj goes from open to shut
                                   # with the threshhold as midpoint [V]

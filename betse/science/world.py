@@ -179,7 +179,7 @@ class World(object):
         """
 
         # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.cache_path)
+        betse_cache_dir = os.path.expanduser(p.init_path)
         os.makedirs(betse_cache_dir, exist_ok=True)
 
         # Define data paths for saving an initialization and simulation run:

@@ -22,20 +22,27 @@ class Parameters(object):
     plotting.
     '''
     def __init__(self):
+
+        self.inbuiltInit()
+
+
+
+    def inbuiltInit(self):
+
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
         self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
         self.time4init = 5*60      # set the time for the initialization sim [s]
-        self.time4sim = 1*60        # set total time for simulation [s]
+        self.time4sim = 0.5*60        # set total time for simulation [s]
 
         # File saving
-        self.cache_path = os.path.expanduser("~/.betse/cache/100umInit/")  # world, inits, and sims are saved and read to/from this directory.
+        self.init_path = os.path.expanduser("~/.betse/cache/100umInit/")  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = os.path.expanduser("~/.betse/cache/100umInit/sim_test") # folder to save unique simulation and data linked to init
         self.sim_results = os.path.expanduser("~/.betse/cache/100umInit/sim_test/results") # folder to auto-save results (graphs, images, animations)
 
         # Geometric constants and factors
         self.wsx = 100e-6  # the x-dimension of the world space [m] recommended range 50 to 1000 um
-        self.wsy = 100e-6  # the y-dimension of the world space [m] recommended range 50 to 1000 um
+        self.wsy = self.wsx  # the y-dimension of the world space [m] recommended range 50 to 1000 um
         self.rc = 5e-6  # radius of single cell
         self.cell_height = 5.0e-6  # the height of a cell in the z-direction (for volume and surface area calculations)
         self.cell_space = 26.0e-9  # the true cell-cell spacing (width of extracellular space)
@@ -73,8 +80,8 @@ class Parameters(object):
         # include noise in the simulation?
         self.channel_noise_level = 0   # static noise: adds a random scatter to the K+leak channels in the membrane (range 0 to 10)
 
-        self.dynamic_noise = 1         # dynamic noise: adds a random walk on the concentration of protein in the cell
-        self.dynamic_noise_level = 1e-7   # dynamic noise level: how much dynamic noise: range 0 to 1e-5
+        self.dynamic_noise = 0         # dynamic noise: adds a random walk on the concentration of protein in the cell
+        self.dynamic_noise_level = 1e-7   # dynamic noise level: how much dynamic noise: range 0 to 1e-6
 
     #..................................................................................................................
         # default membrane diffusion constants: easy control of cell's base resting potential
@@ -137,6 +144,8 @@ class Parameters(object):
         self.cIP3_to_env = 1e-6  # initial value of IP3 in environment
 
         #..........................PLOTTING OPTIONS and OUTPUT..........................................................
+
+        self.turn_all_plots_off = False    # turn off all plots and animations for init and sim runs
 
          # Default colormap
         self.default_cm = cm.coolwarm   # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
@@ -377,16 +386,199 @@ class Parameters(object):
         # Absolute path of the parent directory of such file.
         config_dirname = paths.get_dirname(config_filename)
 
-        #FIXME: Right. These dictionary entries have probably changed.
-        self.cache_path = paths.join(
-            config_dirname, config['init']['cache file'])  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path = paths.join(
-            config_dirname, config['run']['cache file']) # folder to save unique simulation and data linked to init
-        self.sim_results = paths.join(
-            config_dirname, config['plot']['media dir']) # folder to auto-save results (graphs, images, animations)
+        # set time profile from yaml
+        self.time_profile_init = config['init time settings']['time profile'] # time profile for initialization run
+        self.time_profile_sim = config['sim time settings']['time profile']   # time profile for sim run
 
-        membrane = config['variables']['membrane diffusion']
-        self.Dm_Na = membrane['Dm_Na']
+        self.time4init = config['init time settings']['total time']      # set the time for the initialization sim [s]
+        self.time4sim = config['sim time settings']['total time']        # set total time for simulation [s]
+        # FIXME need to have a set time profile with config dictionary and custom profile
+
+        # define paths for saving different kinds of files:
+        self.init_path = paths.join(
+            config_dirname, config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
+        self.sim_path = paths.join(
+            config_dirname, config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
+        self.sim_results = paths.join(
+            config_dirname, config['results options']['save directory']) # folder to auto-save results (graphs, images, animations)
+
+        self.init_filename = config['init file saving']['file']
+        self.sim_filename = config['sim file saving']['file']
+
+         # Geometric constants and factors
+        self.wsx = config['world varibles']['world x']  # the x-dimension of the world space
+        self.wsy = self.wsx  # the y-dimension of the world space [m]
+        self.rc = config['world variables']['cell radius']  # radius of single cell
+        self.cell_height = config['world variables']['cell height']  # the height of a cell in the z-direction
+        self.cell_space = config['world variables']['cell spacing']  # the true cell-cell spacing
+        self.nl = config['world variables']['lattice disorder']  # noise level for the lattice
+        self.vol_env = config['world variables']['environmental volume']*self.wsx*self.wsy*self.cell_height
+
+        self.T = config['world variables']['temperature']  # World temperature
+
+        # gap junction constants and network connectivity
+        self.search_d =config['world variables']['search distance'] # distance to search for nearest neighbours
+
+        self.gj_vthresh = config['world variables']['gj voltage threshold'] # voltage threshhold at which gj close [V]
+        self.gj_vgrad  = config['world variables']['gj voltage window']
+
+        # default membrane diffusion constants: easy control of cell's base resting potential
+        self.Dm_Na = config['world variables']['Dm_Na']     # membrane diffusion constant sodium [m2/s]
+        self.Dm_K = config['world variables']['Dm_K']     # membrane diffusion constant potassium [m2/s]
+        self.Dm_Cl = config['world variables']['Dm_Cl']    # membrane diffusion constant chloride [m2/s]
+        self.Dm_Ca = config['world variables']['Dm_Ca']   # membrane diffusion constant calcium [m2/s]
+        self.Dm_H = config['world variables']['Dm_H']    # membrane diffusion constant hydrogen [m2/s]
+        self.Dm_M = config['world variables']['Dm_M']    # membrane diffusion constant anchor ion [m2/s]
+        self.Dm_P = config['world variables']['Dm_P']     # membrane diffusion constant proteins [m2/s]
+
+        # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
+        self.ion_profile = config['general options']['ion profile']
+
+        # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
+        self.Ca_dyn = config['general options']['Ca dynamics']
+
+        # include HK-ATPase in the simulation? Yes =1, No = 0
+        self.HKATPase_dyn = config['general options']['HKATPase pump']
+
+        # include V-ATPase in the simulation? Yes =1, No = 0
+        self.VATPase_dyn = config['general options']['VATPase pump']
+
+        # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
+        self.voltage_dye = config['general options']['voltage dye']
+
+        self.Dm_Dye = config['general options']['voltage dye properties']['Dm_Dye']
+        self.Do_Dye = config['general options']['voltage dye properties']['Do_Dye']
+        self.z_Dye = config['general options']['voltage dye properties']['z_Dye']
+        self.cDye_to = config['general options']['voltage dye properties']['cDye_to']
+
+        # include noise in the simulation?
+        self.channel_noise_level = config['general options']['static noise level']
+
+        self.dynamic_noise = config['general options']['dynamic noise']
+        self.dynamic_noise_level = config['general options']['dynamic noise level']
+        #.....................USER SCHEDULED INTERVENTIONS.............................................................
+
+        # Schedule global changes to all cells in the collective:
+        self.global_options = {}
+        # K_env, Cl_env, Na_env, T_change: [time on, time off, rate change, multiplier]
+        # gj_block, NaKATP_block,HKATP_block, CaATP_block: [time on, time off, rate change]
+
+
+
+        #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
+        self.scheduled_options = {}
+
+        val = config['in this sim change']
+
+        bool_Kenv = val['environmental K+']
+        bool_Clenv = val['environmental Cl-']
+        bool_Naenv = val['environmental Na+']
+        bool_gjblock = val['block gap junctions']
+        bool_temp = val['temperature']
+        bool_NaKblock = val['NaKATPase pump']
+        bool_HKblock = val['HKATPase pump']
+
+
+        # Schedule global changes to all cells in the collective:
+        self.global_options = {'K_env':0,'Cl_env':0,'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,
+            'HKATP_block':0}
+        # K_env, Cl_env, Na_env, T_change: [time on, time off, rate change, multiplier]
+        # gj_block, NaKATP_block,HKATP_block, CaATP_block: [time on, time off, rate change]
+
+
+        if bool_Kenv == False:
+            self.global_options['K_env'] = 0
+        elif bool_Kenv == True:
+            on_Kenv = config['change K env']['change start']
+            off_Kenv = config['change K env']['change finish']
+            rate_Kenv = config['change K env']['change rate']
+            multi_Kenv = config['change K env']['multiplier']
+            kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
+            self.global_options['K_env'] = kenv
+
+        if bool_Clenv == False:
+            self.global_options['Cl_env'] = 0
+        elif bool_Clenv == True:
+            on_Clenv = config['change Cl env']['change start']
+            off_Clenv = config['change Cl env']['change finish']
+            rate_Clenv = config['change Cl env']['change rate']
+            multi_Clenv = config['change Cl env']['multiplier']
+            Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
+            self.global_options['Cl_env'] = Clenv
+
+
+        if bool_Naenv == False:
+            self.global_options['Na_env'] = 0
+        elif bool_Naenv == True:
+            on_Naenv = config['change Na env']['change start']
+            off_Naenv = config['change Na env']['change finish']
+            rate_Naenv = config['change Na env']['change rate']
+            multi_Naenv = config['change Na env']['multiplier']
+            Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
+            self.global_options['Na_env'] = Naenv
+
+        if bool_gjblock == False:
+            self.global_options['gj_block'] = 0
+        elif bool_gjblock == True:
+            on_gj = config['block gap junctions']['change start']
+            off_gj = config['block gap junctions']['change finish']
+            rate_gj = config['block gap junctions']['change rate']
+            gjb = [on_gj,off_gj,rate_gj]
+            self.global_options['gj_block'] = gjb
+
+
+        if bool_temp == False:
+            self.global_options['T_change'] = 0
+        elif bool_temp == True:
+            on_T = config['change temperature']['change start']
+            off_T = config['change temperature']['change finish']
+            rate_T = config['change temperature']['change rate']
+            multi_T = config['change temperature']['multiplier']
+            temper = [on_T, off_T, rate_T, multi_T]
+            self.global_options['T_change'] = temper
+
+        if bool_NaKblock == False:
+            self.global_options['NaKATP_block'] = 0
+        elif bool_NaKblock == True:
+            on_nak = config['block NaKATP pump']['change start']
+            off_nak = config['block NaKATP pump']['change finish']
+            rate_nak = config['block NaKATP pump']['change rate']
+            nak = [on_nak,off_nak,rate_nak]
+            self.global_options['NaKATP_block'] = nak
+
+        if bool_HKblock == False:
+            self.global_options['HKATP_block'] = 0
+
+
+        #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
+        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
+            'IP3':[5,15,1,1e-4]}
+
+        # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
+        self.scheduled_targets = config['scheduled target cells']
+
+        bool_Namem = val['Na membrane permeability']
+        bool_Kmem = val['K membrane permeability']
+        bool_Clmem = val['Cl membrane permeability']
+        bool_Camem = val['Ca membrane permeability']
+        bool_ip3 = val['cell IP3 concentration']
+
+        if bool_Namem == False:
+            self.scheduled_options['Na_mem'] = 0
+
+        if bool_Kmem == False:
+            self.scheduled_options['K_mem'] = 0
+
+        if bool_Clmem == False:
+            self.scheduled_options['Cl_mem'] = 0
+
+        if bool_Camem == False:
+            self.scheduled_options['Ca_mem'] = 0
+
+        if bool_ip3 == False:
+            self.scheduled_options['IP3'] = 0
+
+
 
     def set_time_profile(self,time_profile):
 
@@ -446,6 +638,4 @@ def bal_charge(concentrations,zs):
 
     return bal_conc,valance
 
-#FIXME: Is this actually used anywhere? If not, we should probably remove this;
-#it's probably consuming a bit of memory.
 params = Parameters()

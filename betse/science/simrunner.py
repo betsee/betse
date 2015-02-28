@@ -74,11 +74,12 @@ class SimRunner(object):
             'The initialization took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
-        plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
-        plt.show()
+        if p.turn_all_plots_off == False:
+            plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
+            plt.show()
 
     #FIXME: Configure such simulation with "self._config_filename".
-    # FIXME: throw exception if init cache is empty.
+    # FIXME: throw exception if init cache is empty -- should run an initialization if it's empty...
     def simulate(self):
         '''
         Run simulation from a previously saved initialization.
@@ -100,15 +101,16 @@ class SimRunner(object):
             'The simulation took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
-        plots4Sim(
-            p.plot_cell,cells,sim,p,
-            saveImages = p.autosave,
-            animate=p.createAnimations,
-            saveAni=p.saveAnimations)
-        plt.show()
 
-    #FIXME: Consider renaming to plotInit().
-    def loadInit(self):
+        if p.turn_all_plots_off == False:
+            plots4Sim(
+                p.plot_cell,cells,sim,p,
+                saveImages = p.autosave,
+                animate=p.createAnimations,
+                saveAni=p.saveAnimations)
+            plt.show()
+
+    def plotInit(self):
         '''
         Load and visualize a previously solved initialization.
         '''
@@ -123,8 +125,7 @@ class SimRunner(object):
         plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
         plt.show()
 
-    #FIXME: Consider renaming to plotSim().
-    def loadSim(self):
+    def plotSim(self):
         '''
         Load and visualize a previously solved simulation.
         '''
@@ -143,17 +144,19 @@ class SimRunner(object):
             saveAni=p.saveAnimations)
         plt.show()
 
-#FIXME: This... is pretty intense. When time permits [read: never], contemplate
-#shifting to the "visualize" module and commenting the code a bit. (Until then,
-#no worries; it's not critical. Just... you know.)
 def plots4Init(plot_cell,cells,sim,p,saveImages=False):
+
     if p.plot_single_cell_graphs == True:
+
         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
              ax=None,lncolor='g',ionname='Na+')
+
         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
             ax=axConcs,lncolor='b',ionname='K+')
+
         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
              ax=axConcs,lncolor='r',ionname='M-')
+
         lg = axConcs.legend()
         lg.draw_frame(True)
         titC = 'Concentration of main ions in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
@@ -191,29 +194,52 @@ def plots4Init(plot_cell,cells,sim,p,saveImages=False):
         cbV.set_label('Voltage mV')
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
+
     if saveImages == True:
+
         images_path = p.sim_results
         image_cache_dir = os.path.expanduser(images_path)
         os.makedirs(image_cache_dir, exist_ok=True)
         savedImg = os.path.join(image_cache_dir, 'fig_')
 
     if p.plot_single_cell_graphs == True:
-        figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
+
+        figConcsNa, axConcsNa = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
              ax=None,lncolor='g',ionname='Na+')
-        figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
-            ax=axConcs,lncolor='b',ionname='K+')
-        figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
-             ax=axConcs,lncolor='r',ionname='M-')
-        lg = axConcs.legend()
-        lg.draw_frame(True)
-        titC = 'Main ions in cell index ' + str(plot_cell)
-        axConcs.set_title(titC)
+
+        titNa = 'Sodium concentration in cell ' + str(plot_cell)
+        axConcsNa.set_title(titNa)
 
         if saveImages == True:
-            savename1 = savedImg + 'conc_time'
+            savename1 = savedImg + 'concNa_time'
             plt.savefig(savename1,dpi=300,format='png')
 
         plt.show(block=False)
+
+        figConcsK, axConcsK = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=None,
+            ax=None,lncolor='b',ionname='K+')
+
+        titK = 'Potassium concentration in cell ' + str(plot_cell)
+        axConcsK.set_title(titK)
+
+        if saveImages == True:
+            savename1 = savedImg + 'concK_time'
+            plt.savefig(savename1,dpi=300,format='png')
+
+        plt.show(block=False)
+
+        figConcsM, axConcsM = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=None,
+             ax=None,lncolor='r',ionname='M-')
+
+        titM = 'M Anion concentration in cell ' + str(plot_cell)
+        axConcsK.set_title(titM)
+
+        if saveImages == True:
+            savename1 = savedImg + 'concM_time'
+            plt.savefig(savename1,dpi=300,format='png')
+
+        plt.show(block=False)
+
         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
         titV = 'Voltage (Vmem) in cell ' + str(plot_cell)
         axVt.set_title(titV)
