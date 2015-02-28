@@ -17,26 +17,28 @@ from os import path
 import os, shutil
 
 # ....................{ EXCEPTIONS                         }....................
-def die_unless_found(filename: str) -> None:
+def die_unless_found(pathname: str) -> None:
     '''
-    Raise an exception unless the passed non-directory file exists.
+    Raise an exception unless the passed non-directory file exists *after*
+    following symbolic links.
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    if not is_file(filename):
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    if not is_file(pathname):
         raise BetseExceptionFile(
-            'File "{}" not found or not a readable file.'.format(filename))
+            'File "{}" not found or not a readable file.'.format(pathname))
 
 # ....................{ TESTERS                            }....................
-def is_file(filename: str) -> bool:
+def is_file(pathname: str) -> bool:
     '''
-    True if the passed non-directory file exists.
+    True if the passed non-directory file exists *after* following symbolic
+    links.
 
     Versus path.isfile()
     ----------
     This function fundamentally differs from the stock `path.isfile()` function.
     Whereas the latter returns True only for non-special files and hence False
-    for all non-directory special files (e.g., device nodes, symbolic links),
-    this function returns True for for *all* non-directory files regardless of
+    for all non-directory special files (e.g., device nodes, sockets), this
+    function returns True for for *all* non-directory files regardless of
     whether such files are special or not.
 
     Why? Because this function complies with POSIX semantics, whereas
@@ -45,8 +47,8 @@ def is_file(filename: str) -> bool:
     or not. For example, the external command `rm` removes only non-directory
     files and the external command `rmdir` removes only empty directories.
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    return path.exists(filename) and not path.isdir(filename)
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    return path.exists(pathname) and not path.isdir(pathname)
 
 # ....................{ COPIERS                            }....................
 def copy(filename_source: str, filename_target: str) -> None:
@@ -129,6 +131,24 @@ def open_for_writing_text(filename: str):
     return open(filename, 'w')
 
 # --------------------( WASTELANDS                         )--------------------
+    # return path.isfile(filename)
+    # Versus path.isfile()
+    # ----------
+    # This function fundamentally differs from the stock `path.isfile()` function.
+    # Whereas the latter returns True only for non-special files and hence False
+    # for all non-directory special files (e.g., device nodes, symbolic links),
+    # this function returns True for for *all* non-directory files regardless of
+    # whether such files are special or not.
+    #
+    # Why? Because this function complies with POSIX semantics, whereas
+    # `path.isfile()` does *not*. Under POSIX, it is largely irrelevant whether a non-directory
+    # file is special or not; it simply matters whether such file is a directory
+    # or not. For example, the external command `rm` removes only non-directory
+    # files and the external command `rmdir` removes only empty directories.
+    # '''
+    # assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+    # return path.exists(filename) and not path.isdir(filename)
+
     # Such file will be copied in a manner preserving some but *not* all metadata,
     # in accordance with standard POSIX behaviour. Specifically, the permissions
     # but *not* owner, group, or times of such file

@@ -8,8 +8,9 @@
 
 # ....................{ IMPORTS                            }....................
 # Manually read and evaluate 'betse.core.spec', a mandatory dependency
-# performing logic common to both this file and "betse.dir.spec".
-with open('betse.core.spec') as core_spec:
+# performing logic common to both this file and "betse.dir.spec". Such file is
+# *NOT* a valid Python module and hence is *NOT* importable in the usual way.
+with open('freeze/betse.core.spec') as core_spec:
     exec(core_spec.read())
 
 # ....................{ MAIN                               }....................

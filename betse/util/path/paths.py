@@ -66,7 +66,15 @@ def is_special(pathname: str) -> bool:
     Special files include directories, device nodes, sockets, and symbolic
     links.
     '''
-    return is_path(pathname) and not path.isfile(pathname)
+    # True if such path exists and...
+    return is_path(pathname) and (
+        # ...is either a symbolic link *OR* neither a regular file nor symbolic
+        # link to such a file. In the latter case, predicate logic guarantees
+        # such file to *NOT* be a symbolic link, thus reducing this test to:
+        # "...is either a symbolic link *OR* not a regular file."
+        path.islink(pathname) or\
+        not path.isfile(pathname)
+    )
 
 # ....................{ GETTERS                            }....................
 def get_dirname(pathname: str) -> str:
@@ -141,6 +149,8 @@ def join(*pathnames) -> str:
     return path.join(*pathnames)
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Obviously insufficient. This should also test whether such path is a
+
 # ....................{ REMOVERS                           }....................
 # def remove(filename: str) -> None:
 #     '''

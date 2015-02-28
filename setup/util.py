@@ -220,6 +220,29 @@ def output_warning(*warnings) -> None:
     '''
     print('WARNING: ', *warnings, file = sys.stderr)
 
+# ....................{ MAKERS                             }....................
+def make_dir_unless_found(dirname: str) -> None:
+    '''
+    Create the passed directory if such directory does *not* already exist.
+
+    All nonexistent parents of such directory will also be recursively created,
+    mimicking the action of the conventional shell command `mkdir -p`.
+    '''
+    assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
+    assert len(dirname), 'Dirname empty.'
+
+    # If such directory does *NOT* already exist, create such directory. To
+    # support logging, such condition is explicitly tested for. To avoid race
+    # conditions (e.g., in the event such directory is created between testing
+    # and creating such directory), we preserve the makedirs() keyword argument
+    # "exist_ok = True".
+    if not is_dir(dirname):
+        # Log such creation.
+        print('Creating directory "{}".'.format(dirname))
+
+        # Create such directory if still needed.
+        os.makedirs(dirname, exist_ok = True)
+
 # ....................{ MOVERS                             }....................
 def move_file(filename_source: str, filename_target: str) -> None:
     '''

@@ -15,9 +15,11 @@
 # Ignore the top-level "output" directory.
 /output/
 
-# Ignore all top-level setuptools- and/or PyInstaller-specific directories.
-/build/
-/dist/
+# Ignore all top-level PyInstaller-specific directories.
+/freeze/build/
+/freeze/dist/
+
+# Ignore all top-level setuptools-specific directories.
 /*.egg-info/
 
 # ....................{ DIRECTORIES ~ general              }....................

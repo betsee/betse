@@ -135,39 +135,69 @@ class freeze(Command, metaclass = ABCMeta):
                 'All frozen executables will be uncompressed.'
             )
 
+        # Relative path of the top-level PyInstaller directory.
+        pyinstaller_dirname = 'freeze'
+
+        # Relative path of the input hooks subdirectory.
+        pyinstaller_hooks_dirname = path.join(pyinstaller_dirname, 'hooks')
+
+        # Relative path of the intermediate build subdirectory.
+        pyinstaller_work_dirname = path.join(pyinstaller_dirname, 'build')
+
+        # Relative path of the final output subdirectory.
+        pyinstaller_dist_dirname = path.join(pyinstaller_dirname, 'dist')
+
+        # Create such hooks subdirectory if not found, as failing to do so
+        # will induce fatal PyInstaller errors.
+        util.make_dir_unless_found(pyinstaller_hooks_dirname)
+
+        # List of "pyinstaller" options common to running such command for
+        # both reuse and regeneration of spec files. Most such options are
+        # specific to the latter only.
+        pyinstaller_options_common = [
+            # Overwrite existing output paths under the "dist/" subdirectory
+            # without confirmation, the default behaviour.
+            '--noconfirm',
+
+            # Non-default PyInstaller directories.
+            '--workpath=' + pyinstaller_work_dirname,
+            '--distpath=' + pyinstaller_dist_dirname,
+        ]
+
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, _ in util.command_entry_points(self):
             # Relative path of the output frozen executable file or directory.
-            frozen_pathname = path.join('dist', script_basename)
+            frozen_pathname = path.join(
+                pyinstaller_dist_dirname, script_basename)
 
             # Validate such path.
-            self._check_frozen_pathname(frozen_pathname)
+            self._check_frozen_path(frozen_pathname)
 
-            # Basename of the PyInstaller spec file converting such
+            # Filename of the PyInstaller spec file converting such
             # platform-independent script into a platform-specific executable.
-            script_spec_basename = self._get_script_spec_basename(
-                script_basename)
+            script_spec_filename = path.join(
+                pyinstaller_dirname,
+                self._get_script_spec_basename(script_basename))
 
             # If such spec exists, instruct PyInstaller to reuse rather than
             # recreate such file, thus preserving edits to such file.
-            if util.is_file(script_spec_basename):
-                print('Reusing spec file "{}".'.format(script_spec_basename))
+            if util.is_file(script_spec_filename):
+                print('Reusing spec file "{}".'.format(script_spec_filename))
 
-                # Freeze such script with such ".spec" file. Note that
-                # "pyinstaller" supports substantially command-line options
-                # under this mode of operation than when passed a Python script.
-                util.die_unless_command_succeeds(
-                    'pyinstaller',
+                # List of all shell words of the PyInstaller command to be run.
+                pyinstaller_command = ['pyinstaller']
 
-                    # Overwrite existing output paths under the "dist/" subdirectory
-                    # without confirmation, the default behaviour.
-                    '--noconfirm',
+                # Append all common options.
+                pyinstaller_command.extend(pyinstaller_options_common)
 
-                    script_spec_basename,
-                )
+                # Append the relative path of such spec file.
+                pyinstaller_command.append(script_spec_filename)
+
+                # Freeze such script with such spec file.
+                util.die_unless_command_succeeds(*pyinstaller_command)
             # Else, instruct PyInstaller to (re)create such ".spec" file.
             else:
-                print('Generating spec file "{}".'.format(script_spec_basename))
+                print('Generating spec file "{}".'.format(script_spec_filename))
 
                 # Absolute path of such script.
                 script_filename = path.join(
@@ -180,13 +210,16 @@ class freeze(Command, metaclass = ABCMeta):
                     ),
                 )
 
-                # List of shell words of the PyInstaller command to be run.
+                # List of all shell words of the PyInstaller command to be run.
                 pyinstaller_command = [
                     'pyinstaller',
 
-                    # Overwrite existing output paths under the "dist/" subdirectory
-                    # without confirmation, the default behaviour.
-                    '--noconfirm',
+                    #FIXME: The following paths should be shell-quoted. Sadly,
+                    #we were unable to grok a simple solution, so the current
+                    #lethargic approach stands.
+
+                    # Non-default PyInstaller directories.
+                    '--additional-hooks-dir=' + pyinstaller_hooks_dirname,
 
                     # If this is a console script, configure standard input and
                     # output for console handling; else, do *NOT* and, if the
@@ -194,6 +227,9 @@ class freeze(Command, metaclass = ABCMeta):
                     # application bundle rather than a customary executable.
                     '--console' if script_type == 'console' else '--windowed',
                 ]
+
+                # Append all common options.
+                pyinstaller_command.extend(pyinstaller_options_common)
 
                 # Append all subclass-specific options.
                 pyinstaller_command.extend(self._get_pyinstaller_options())
@@ -215,7 +251,7 @@ class freeze(Command, metaclass = ABCMeta):
                 # such file. Unfortunately, such option *ALSO* specifies the
                 # basename of the generated executable. Since we only
                 util.move_file(
-                    script_spec_basename_current, script_spec_basename)
+                    script_spec_basename_current, script_spec_filename)
 
             # Report such results to the user.
             if util.is_file(frozen_pathname):
@@ -228,7 +264,7 @@ class freeze(Command, metaclass = ABCMeta):
 
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
-    def _check_frozen_pathname(self, frozen_pathname: str) -> None:
+    def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
         Validate the passed path to which PyInstaller will subsequently write
         the output frozen executable file or directory for the current input
@@ -283,7 +319,7 @@ class freeze_dir(freeze):
     Command description printed when running `./setup.py --help-commands`.
     '''
 
-    def _check_frozen_pathname(self, frozen_pathname: str) -> None:
+    def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
         Validate that the directory to be generated is *NOT* an existing file
         (e.g., due to a prior run of the `freeze_file` command).
@@ -317,7 +353,7 @@ class freeze_file(freeze):
     Command description printed when running `./setup.py --help-commands`.
     '''
 
-    def _check_frozen_pathname(self, frozen_pathname: str) -> None:
+    def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
         Validate that the file to be generated is *NOT* an existing directory
         (e.g., due to a prior run of the "freeze_dir" command).
@@ -335,6 +371,9 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+#  Note that
+                # "pyinstaller" supports substantially command-line options
+                # under this mode of operation than when passed a Python script.
         # Validate that the file to be generated is *NOT* an existing directory
         # (e.g., due to a prior run of the "freeze_dir" command).
         # util.die_unless_file_or_not_found(path.join('dist', script_basename))
