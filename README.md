@@ -95,8 +95,8 @@ Expect the installation of dependencies to take several hours to several days.
 which Python-specific package managers (e.g., `pip`, `setuptools`) install for
 you and hence require no manual installation:
 
-* PyInstaller `python3` branch for optionally freezing `betse`. (See below.)
-* nose >= 1.3.0 for optionally running unit tests. (See below.)
+* PyInstaller `python3` branch, for optionally freezing `betse`. (See below.)
+* nose >= 1.3.0, for optionally running unit tests. (See below.)
 
 Assuming the common `git` and `pip3` commands to already be installed, such
 dependencies are installable in a system-wide manner as follows:
@@ -293,14 +293,14 @@ one of two ways:
 Assuming one-file mode, executables will be output as:
 
 * Under Linux:
-  * `dist/betse` for `betse`'s CLI wrapper.
-  * `dist/betse-qt` for `betse`'s GUI wrapper.
+  * `freeze/dist/betse` for `betse`'s CLI wrapper.
+  * `freeze/dist/betse-qt` for `betse`'s GUI wrapper.
 * Under OS X:
-  * `dist/betse` for `betse`'s CLI wrapper.
-  * `dist/betse-qt.app` for `betse`'s GUI wrapper.
+  * `freeze/dist/betse` for `betse`'s CLI wrapper.
+  * `freeze/dist/betse-qt.app` for `betse`'s GUI wrapper.
 * Under Windows:
-  * `dist/betse.exe` for `betse`'s CLI wrapper.
-  * `dist/betse-qt.exe` for `betse`'s GUI wrapper.
+  * `freeze/dist/betse.exe` for `betse`'s CLI wrapper.
+  * `freeze/dist/betse-qt.exe` for `betse`'s GUI wrapper.
 
 Such executables may be moved (and hence distributed to end users) as is but
 should *not* be renamed. Doing so typically invalidates code signing (as well as
