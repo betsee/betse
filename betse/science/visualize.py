@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 import matplotlib.cm as cm
 from betse.science import toolbox as tb
-from betse.science.parameters import params as p
 from matplotlib import animation
 import os, os.path
 
@@ -22,11 +21,11 @@ class AnimateCellData(object):
 
     """
 
-    def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', colormap=p.default_cm, save=False,ani_repeat=False,
+    def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', save=False,ani_repeat=False,
         number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
 
         self.zdata_t = zdata_t
-        self.colormap = colormap
+        self.colormap = p.default_cm
         self.time = time
         self.save = save
 
@@ -98,11 +97,11 @@ class AnimateCellData(object):
 
 class AnimateCellData_smoothed(object):
 
-    def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', colormap=p.default_cm, save=False,ani_repeat=False,
+    def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', save=False,ani_repeat=False,
         number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
 
         self.zdata_t = zdata_t
-        self.colormap = colormap
+        self.colormap = p.default_cm
         self.time = time
         self.save = save
 
@@ -175,7 +174,7 @@ class AnimateGJData(object):
     Animate the gap junction open state as a function of time.
     """
 
-    def __init__(self,cells,sim,p,tit=' ', colormap=p.default_cm, save=False,saveFolder = '/animation',
+    def __init__(self,cells,sim,p,tit=' ', save=False,saveFolder = '/animation',
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
         #self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
@@ -184,7 +183,7 @@ class AnimateGJData(object):
         self.zdata_t = gjI_t/normI
 
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
-        self.colormap = colormap
+        self.colormap = p.default_cm
         self.time = sim.time
 
         self.gjI_t = np.sign(sim.Igj_time)
@@ -276,7 +275,7 @@ class AnimateGJData(object):
 
 class AnimateGJData_smoothed(object):
 
-    def __init__(self,cells,sim,p,tit=' ', colormap=p.default_cm, save=False,saveFolder = '/animation',
+    def __init__(self,cells,sim,p,tit=' ', save=False,saveFolder = '/animation',
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
         # self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
@@ -285,7 +284,7 @@ class AnimateGJData_smoothed(object):
         self.zdata_t = gjI_t/normI
 
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
-        self.colormap = colormap
+        self.colormap = p.default_cm
         self.time = sim.time
 
         self.gjI_t = np.sign(sim.Igj_time)
@@ -373,7 +372,7 @@ class AnimateGJData_smoothed(object):
 
 class PlotWhileSolving(object):
 
-    def __init__(self,cells,sim,p,number_cells=p.enumerate_cells):
+    def __init__(self,cells,sim,p,number_cells=False):
 
 
 
@@ -432,7 +431,7 @@ class PlotWhileSolving(object):
 
         plt.show(block=False)
 
-    def updatePlot(self,sim):
+    def updatePlot(self,sim,p):
 
         zv = sim.vm_time[-1]*1000
         time = sim.time[-1]
@@ -461,19 +460,15 @@ def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'
         fig = plt.figure()# define the figure and axes instances
     if ax == None:
         ax = plt.subplot(111)
-        #ax = plt.axes()
 
     ax.plot(simtime, tvect_data,lncolor)
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('Voltage [mV]')
-    #ax.axis('equal')
 
     return fig, ax
 
 def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
 
-    # ccIon = [arr[ion] for arr in simdata_time]  # get all cells at all times at one ion
-    # ccIon_cell = [x[0] for x in ccIon]  # get one cell at all times at one ion
 
     ccIon_cell = [arr[ioni][celli] for arr in simdata_time]
 
@@ -493,7 +488,6 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
     ax.plot(simtime, ccIon_cell,lncolor,label=lab)
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('Concentration [mol/m3]')
-    # ax.axis([xmin,xmax,ymin,ymax])
 
     return fig, ax
 
@@ -514,7 +508,6 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
     ax.plot(simtime, data_cell,lncolor,label=lab)
     ax.set_xlabel('Time [s]')
     ax.set_ylabel(lab)
-    # ax.axis([xmin,xmax,ymin,ymax])
 
 
     return fig, ax
@@ -707,7 +700,7 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
 
         return fig, ax, ax_cb
 
-def plotMemData(cells, fig= None, ax = None, zdata=None,clrmap=None):
+def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         """
 
         Assigns color-data to edges in a 2D Voronoi diagram and returns a plot instance (fig, axes)
@@ -775,7 +768,7 @@ def plotMemData(cells, fig= None, ax = None, zdata=None,clrmap=None):
 
         return fig, ax, ax_cb
 
-def plotConnectionData(cells, fig = None, ax=None, zdata=None,clrmap=None,colorbar = None, pickable=None):
+def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,colorbar = None, pickable=None):
         """
         Assigns color-data to connections between a cell and its nearest neighbours and returns plot instance
 
@@ -852,7 +845,7 @@ def plotConnectionData(cells, fig = None, ax=None, zdata=None,clrmap=None,colorb
 
         return fig, ax, ax_cb
 
-def plotBoundCells(points_flat,bflags,cells, fig=None, ax=None):
+def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
         """
         Plot elements tagged on the boundary as red points.
 
@@ -903,7 +896,7 @@ def plotBoundCells(points_flat,bflags,cells, fig=None, ax=None):
 
         return fig, ax
 
-def plotVects(cells, fig=None, ax=None):
+def plotVects(cells, p, fig=None, ax=None):
         """
         This function plots all unit vectors in the tissue system as a cross-check.
         Normals to cell membranes are shown as red arrows.

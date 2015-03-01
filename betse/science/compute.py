@@ -1164,7 +1164,7 @@ class Simulator(object):
 
                 if p.plot_while_solving == True:
 
-                    checkPlot.updatePlot(self)
+                    checkPlot.updatePlot(self,p)
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []

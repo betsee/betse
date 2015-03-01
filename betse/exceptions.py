@@ -31,6 +31,12 @@ class BetseExceptionModule(BetseException):
     '''
     pass
 
+class BetseExceptionParameters(BetseException):
+    '''
+    Parameters-specific exception.
+    '''
+    pass
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetseExceptionPath(BetseException):
     '''
@@ -49,5 +55,6 @@ class BetseExceptionFile(BetseExceptionPath):
     File-specific exception.
     '''
     pass
+
 
 # --------------------( WASTELANDS                         )--------------------

@@ -26,8 +26,8 @@
 #
 # A Note on YAML
 # ----------
-# This file is formatted according to the YAML ("[Y]AML [A]in't [M]arkup
-# [L]anguage") standard. YAML is a human-readable data serialization format
+# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
+# [L]anguage) standard. YAML is a human-readable data serialization format
 # useful for configuration files -- like this one. For details, please see
 # https://en.wikipedia.org/wiki/YAML.
 
@@ -38,7 +38,7 @@
 
 init file saving:
 
-    directory: betse_data          # name of the directory to save this initialization
+    directory: betse_data          # name of the directory to save the initialization
 
     file: init_run.betse        # Specify the filename saving the initialization run.
 
@@ -46,21 +46,21 @@ init file saving:
 init time settings:
 
   time profile: 'initialize'   # choose a pre-defined time profile for the init
-                               # choices, 'initialize' or 'customized'
-                               # settings for 'customized' time-profile can be
+                               # choices are 'initialize' or 'custom init'
+                               # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 10*60             # set the time for the initialization run [s]
-                               # recommend 2 to 10 minutes of initialization.
+  total time: 600               # set the time for the initialization run [s]
+                                # recommend 120 to 600 s (2 to 10 minutes) of initialization.
     
-  customized time profile:  # set the following params if you desire more control over init run
-                            # settings. To use it call 'customized' in time profile
-                            # setting above.
+  custom init time profile:     # set the following params if you desire more control over init run
+                                # settings. To use it call 'custom init' in time profile
+                                # setting above.
 
     time step: 1e-2               # Simulation step-size [s] (recommended range 1e-2 to 1e-3 for init runs)
-    end time: 10*60               # time to end the initialization run [s] (recommended range 2 to 10 minutes)
-    sampling rate: 1.0            # time period to sample data from init run [s]
-    gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0 e-9 m)
+    end time: 600                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
+    sampling rate: 1.0            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
+    gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # SIMULATION
@@ -75,25 +75,26 @@ sim file saving:
 sim time settings:
 
   time profile: 'simulate_somatic'    # choose a pre-defined time profile for the sim run
-                                      # choices, 'simulate_somatic' or 'simulate_excitable'
+                                      # choices are 'simulate_somatic', 'simulate_excitable'
+                                      # or 'custom sim'
                                       # 'simulate_somatic' is for cells without voltage-gated
-                                      #  sodium and potassium channels.
+                                      #  sodium and potassium channels (slower dynamics, longer sim times).
                                       # 'simulate_excitable' is for cells with voltage-gated
-                                      # sodium and potassium channels (rapid change).
-                                      # settings for 'customized' time-profile can be
+                                      # sodium and potassium channels (rapid changes, short sim times).
+                                      # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 1*60       # set the total time for the sim run [s]
-                         # recommend 1 s to 30 min for 'simulate_somatic' time profile and
-                         # 0.01 to 5 seconds for 'simulate_excitable' time profile.
+  total time: 10            # set the total time for the sim run [s]
+                            # recommend 1 s to 30 min for 'simulate_somatic' time profile and
+                            # 0.01 to 5 seconds for 'simulate_excitable' time profile.
 
-  customized time profile:  # set the following params if you desire more control over sim run
-                            # settings. To use it call 'customized' in time profile
+  custom sim time profile:  # set the following params if you desire more control over sim run
+                            # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
     time step: 5e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    end time: 10*60               # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    end time: 10                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
     sampling rate: 1.0            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
@@ -112,17 +113,23 @@ sim time settings:
 
 general options:
 
-  ion profile: 'basic_Ca'       # set the ion profile to be used in the simulation
+  ion profile: 'animal'         # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
                                 # 'invertebrate' (Na+, K+, Cl-, Ca2+, H+ and proteins)
+                                # 'customized' (user-specified settings)
                                 # each profile also contains a charge-balance anion, M-
-                                # note as ion number increases, time to run an init
+                                # In 'animal' and 'invertebrate' profiles
+                                # M- represents HCO3- (bicarbonate).
+                                # Note as ion number increases, time to run an init
                                 # or sim increases proportionally.
+                                # Note if 'customized' profile selected, ion levels must
+                                # be defined in the customized profile at the end of this
+                                # General Options section.
 
 
-  Ca dynamics: True         # include full calcium dynamics in the situation?
+  Ca dynamics: False        # include full calcium dynamics in the situation?
                             # this creates an endoplasmic reticulum (ER) in each cell and
                             # IP3 mediated calcium release from the ER
                             # note this only works for an ion profile with Ca2+ ions
@@ -130,21 +137,20 @@ general options:
 
 
   HKATPase pump: False     # include the HK-ATPase pump in the simulation?
-                          # note this only works for an ion profile with H+ ions
-                          # options True or False (case sensitive)
+                           # only works for an ion profile with H+ ions (animal or invertebrate)
+                           # options True or False (case sensitive)
 
-  VATPase pump: False        # include the plasma membrane V-ATPase pump?
-                            # note this only works for an ion profile with H+ ions
+  VATPase pump: False       # include the plasma membrane V-ATPase pump?
+                            # only works for an ion profile with H+ ions (animal or invertebrate)
                             # options True or False (case sensitive)
 
 
-
-  voltage dye: False     # include diffusion of a voltage sensitive dye?
+  voltage dye: False     # include electrodiffusion of a voltage sensitive dye?
                          # this is intended to help link sim output to real-world
                          # experimental methods.
                          # options True or False (case sensitive)
 
-  voltage dye properties:  # specify the properties of the voltage sensitive dye
+  voltage dye properties:  # specify the properties of the voltage sensitive dye if included
 
     Dm_Dye: 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
     Do_Dye: 1.0e-9         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
@@ -152,14 +158,48 @@ general options:
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
 
   static noise level: 0    # level of variance in K+ leaks on cell membranes
-                           # appropriate range 0 (all cells equivalent) to 10.0
+                           # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
 
   dynamic noise: False      # is dynamic noise desired?
                             # simulated as random-walk on cellular protein concentrations
 
   dynamic noise level: 1e-7     # level of dynamic noise
                                 # appropriate range 0 to 1e-6
-                                # note high values may cause simulation instability
+                                # Note high values may cause simulation instability
+
+  customized ion profile:      # set user-defined initial values of ion concentrations
+                               # for the initialization run
+                               # note both extracellular and cytosolic levels of all
+                               # ions must add up to a net positive charge.
+                               # this is because an anion (M-) is used to create
+                               # charge neutrality in each compartment.
+
+    # if any of the following are set to False, they won't be included
+    # in the initialization or the simulations.
+    # note Na+ and K+ are included by default.
+    # including H+ automatically generates a bicarbonate buffer.
+    # for realistic Vmem it is recommended to always include negatively charged proteins, P-.
+
+    include Cl-: True        # include chloride (True or False) ?
+    include Ca2+: True        # include calcium (True or False) ?
+    include H+: True         # include protons (True or False) ?
+    include P-: True         # include negatively charged proteins (True or False)?
+
+    extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
+    extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
+    extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
+    extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
+    extracellular H+ concentration: 3.98e-5         # extracellular protons [mmol/L]
+    extracellular protein- concentration: 9.0       # extracellular protein [mmol/L]
+
+    cytosolic Na+ concentration: 5.4                # intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 140.44              # intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 6.0                # intracellular chloride [mmol/L]
+    cytosolic Ca2+ concentration: 1.0e-3            # intracellular calcium [mmol/L]
+    cytosolic H+ concentration: 6.31e-5             # intracellular protons [mmol/L]
+    cytosolic protein- concentration: 138.0         # intracellular protein [mmol/L]
+
+    endoplasmic reticulum Ca2+: 0.5             # level of Ca2+ in the ER store [mmol/L]
 
 # ---------------------------------------------------------------------------------------------------------------------
 # WORLD VARIABLES
@@ -170,7 +210,7 @@ general options:
 
 world variables:
 
-  world x: 500e-6         # the x-dimension of the world space [m]
+  world x: 100e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -191,7 +231,7 @@ world variables:
                               # square grid is created.
 
 
-  environmental volume: 2     # volume of the environmental space as a multiplier
+  environmental volume: 2.0   # volume of the environmental space as a multiplier
                               # of total volume of the cell cluster.
 
   temperature: 310            # World temperature [K]
@@ -199,13 +239,16 @@ world variables:
   search distance: 1.5        # distance to search for nearest neighbours
                               # relative to cell diameter
                               # min 1.1 max 3.5
+                              # warning high search distances can produce
+                              # extremely long simulation time
 
   gj voltage threshold: 60e-3    # cell-cell voltage at which gj close [V]
 
   gj voltage window: 30e-3        # the range over which gj goes from open to shut
-                                  # with the threshhold as midpoint [V]
+                                  # with the gj voltage threshold as midpoint [V]
 
-  membrane diffusion:    # specify the base membrane diffusion constants
+  membrane diffusion:    # specify the base membrane diffusion constants below
+                         # this is an easy way to control resting Vmem of cells
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -225,21 +268,22 @@ world variables:
 
 in this sim change:    # First indicate the type of changes you want to schedule
 
-  environmental K+: True              # Change the environmental concentration of K+  ?
-  environmental Cl-: True             # Change the environmental concentration of Cl- ?
+  environmental K+: False              # Change the environmental concentration of K+  ?
+  environmental Cl-: False             # Change the environmental concentration of Cl- ?
   environmental Na+: False            # Change the environmental concentration of Na+ ?
   block gap junctions: False          # Apply a total block to gap junctions ?
-  temperature: True                   # Change the temperature ?
-  NaKATPase pump: True                # Apply a total block to the NaKATPase pump ?
-  HKATPase pump: True                 # Apply a total block to the HKATPase pump ?
-  Na membrane permeability: True      # Change the membrane Na+ permeability ?
-  K membrane permeability: True       # Change the membrane K+ permeability ?
-  Cl membrane permeability: True      # Change the membrane Cl- permeability ?
-  Ca membrane permeability: True      # Change the membrane Ca2+ permeability ?
+  temperature: False                   # Change the temperature ?
+  NaKATPase pump: False                # Apply a total block to the NaKATPase pump ?
+  HKATPase pump: False                 # Apply a total block to the HKATPase pump ?
+  Na membrane permeability: False      # Change the membrane Na+ permeability ?
+  K membrane permeability: False       # Change the membrane K+ permeability ?
+  Cl membrane permeability: False      # Change the membrane Cl- permeability ?
+  Ca membrane permeability: False      # Change the membrane Ca2+ permeability ?
   cell IP3 concentration: False       # Produce inositol tri-phosphate (IP3) ?
 
 # Next, specify the details of scheduled changes.
-# The following are global changes affecting all cells:
+# The following are global changes affecting all cells
+# Note if something above is set to false the change will not happen.
 
 change K env:       # Change the environmental concentration of K+
 
@@ -290,12 +334,12 @@ block HKATP pump:
 # The following are scheduled changes that can be applied to one or more cells.
 # First select how to apply the following changes to the cell cluster:
 
-scheduled target cells: 'all'           # Select ways to apply targeted changes from
-                                        # 'none' void all scheduled changes (no cells)
+scheduled target cells: 'none'           # Select ways to apply targeted changes from choices
+                                        # 'none' void all scheduled changes (no cells targeted)
                                         # 'random1' randomly pick a cell to target
                                         # 'random50' randomly pick half of cells to target
                                         # 'all'  target all cells in the cluster
-                                        # [0,5,7] provide a list of cell indices
+                                        # [0,5,7] provide a list of cell indices to target
 
 change Na mem:       # Change the membrane permeability to Na+
 
@@ -341,7 +385,7 @@ produce IP3:        # Schedule cell production of IP3
 # will be updated with introduction of tissue types in future versions.
 
 
-ion channel target cells: 'all'    # specify cells to affect with dynamic channels.
+ion channel target cells: 'none'    # specify cells to affect with dynamic channels.
                                    # choices
                                    # 'none' void all scheduled changes (no cells)
                                    # 'random1' randomly pick a cell to target
@@ -359,7 +403,11 @@ include the following ion channels:  # the following channels will be applied to
 
 include calcium dynamics:
 
-  ip3 induced Ca2+ release: False     # include IP3 induced Ca2+ release from the ER ?
+  ip3 induced Ca2+ release: False       # include IP3 induced Ca2+ release from the ER ?
+
+  calcium regulation: False             # let the IP3 receptor be co-regulated by Ca2+ levels?
+
+  frequency modulation by IP3: False     # IP3 concentrations change frequency of Ca2+ oscillations?
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -369,61 +417,80 @@ include calcium dynamics:
 
 results options:
 
-
-  save directory: results         # Name of directory containing saved plots and animations.
-
+  save directory: results         # Name of directory to save plots and animations.
 
 
-  default colormap: cm.coolwarm   # Specify the colormap to be used for main data on all graphs.
-                                  # options include
-                                  # cm.rainbow, cm.jet, cm.Blues, cm.Greens, cm.bone
-                                  # to reverse a colormap add _r to the name (e.g. cm.jet_r)
-                                  # for all options please see
-                                  # http://matplotlib.org/examples/color/colormaps_reference.html
+  turn all plots off: False      # This option allows you to turn all plots on/off
+                                 # note this doesn't turn plot while solving off.
+                                 # options True or False (case sensitive)
 
-  gj colormap: cm.bone           # colormap used for plotting gj currents on top of default colormap
+  plot while solving: True       # shows a continuously updating 2d plot of cell Vmems
+                                 # while the sim run is computing
+                                 # options True or False (case sensitive)
 
-  plot while solving: True       # show a continuously updating 2d plot of cell Vmems
-                                 # while the sim run is computing?
-                                 # options True or False
+  save solving plot: False      # save the plot while solving figure
+                                # as the sim progresses (as 300 dpi png
+                                # in folder in the results directory)
+                                # warning: this can slow down simulations
+                                # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
-                                 # this can help to decide which cell you are interested in getting
-                                 # specific data on.
-
-  plot cell index: 0              # State the cell index to use for single-cell time plots
-
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
-                                  # (the plot cell) for all simulation time
-
-  show cells: True                # if True, plots and animations show individual cells
-                                  # each displayed with color-coded data. If False,
-                                  # plots and animations show data as interpolated over a 2D
-                                  # surface.
-                                  # note if you're working with a large cluster (>500 um) do not
-                                  # show cells as it will plot very slowly.
-
-  plot Vmem: True                # 2d plot of final vmem ?
-  plot Ca: True                # 2d plot of final cell calcium ?
-  plot IP3: True               # 2d plot of final cIP3 ?
-  plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
+  automatically save plots: True     # autosave all still images (as 300 dpi pngs)
+                                     # to the results directory
+                                     # options True or False (case sensitive)
 
   create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
+                                  # options True or False (case sensitive)
 
-  animate Vmem: True                # 2d animation of vmem with time?
-  animate Ca2+: True                # 2d animation of cell calcium with time ?
-  animate IP3: True               # 2d animation of cIP3 with time?
-  animate Dye: True               # 2d animation of voltage sensitive dye in cell collective with time?
-  animate Vmem with gj: True              # 2d animation of vmem with superimposed gj network showing current direction
-
-  automatically save plots: True     # autosave all still images to the results directory in the simulation folder
-  save animations: False            # save all animations as png sequences in animation-specific folders
+  save animations: False           # save all animations as png sequences in animation-specific folders
+                                   # inside the results directory
+                                   # options True or False (case sensitive)
 
   export data to file: True        # export all stored data for the plot cell to a
                                    # comma-delimited (csv) text file
+                                   # options True or False (case sensitive)
 
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+                                 # this can help to decide which cell you are interested in getting
+                                 # specific data on (for single cell graphs plotted over time).
+                                 # options True or False (case sensitive)
+                                 # warning: should not be used for world sizes over 200 um.
+
+  plot cell index: 0              # State the cell index to use for single-cell time plots
+                                  # the index of cells can be seen using enumerate cells feature.
+
+  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+                                  # (the plot cell) as a function of simulation time
+
+  show cells: True                # if True, plots and animations show individual cells,
+                                  # each displayed with color-coded data. If False,
+                                  # plots and animations show data as interpolated over a 2D
+                                  # surface so individual cells are not shown.
+                                  # Note if working with a large cluster (>500 um) do not
+                                  # show cells (set to False) as it will plot very slowly.
+                                  # options True or False (case sensitive)
+
+  plot Vmem: True              # 2d plot of final vmem ?
+  plot Ca: True                # 2d plot of final cell calcium ?
+  plot IP3: True               # 2d plot of final cIP3 ?
+  plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
+
+  animate Vmem: True           # 2d animation of vmem with time?
+  animate Ca2+: True           # 2d animation of cell calcium with time ?
+  animate IP3: True            # 2d animation of cIP3 with time?
+  animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+  animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+
+
+  default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
+                               # options include
+                               # cm.rainbow, cm.jet, cm.Blues, cm.Greens, cm.bone
+                               # to reverse a colormap add _r to the name (e.g. cm.jet_r)
+                               # for all options please see
+                               # http://matplotlib.org/examples/color/colormaps_reference.html
+
+  gj colormap: bone            # colormap used for plotting gj currents on top of default colormap
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERNAL USE ONLY
@@ -465,9 +532,37 @@ gated ion channel options:   # changing these will alter network dynamics -- but
         hill n: 3                   # Hill function coefficient
 
 
+calcium dynamics parameters:
+
+    IP3 frequency modulation level: 0.8     # How strongly does IP3 induce frequency modulation
+                                            # of Ca2+ oscillations ?
+                                            # Range 0 to 0.9, higher more effect
+
+    ER max: 5.0e-15             # Maximum diffusion coefficient of open ER channel [m2/s]
+    ER burst: 0.8               # ER Ca2+ level at which ER opens [mmol/L]
+    ER close: 0.5               # ER Ca2+ level at which ER closes [mmol/L]
+
+    IP3 K half: 1e-3        # Concentration of IP3 at which ER Ca channel is half closed [mmol/L]
+                            # Based on a Hill function.
+    IP3 hill n: 3.4         # Hill function n coefficient
+
+    CICR Ca peak: 700.0e-6      # Ca induced Ca release peak emission with cytosolic calcium [mmol/L]
+    CICR Ca width: 80.0e-6      # Ca induced Ca release width of Ca-regulated emission curve [mmol/L]
+
+    ER_vol:  0.1               # volume of endoplasmic reticulum as a fraction of cell volume
+    ER_sa:  1.0                # surface area of endoplasmic reticulum as a fraction of cell surface area
+
+    Dm_IP3: 1.0e-18             # membrane diffusion constant of IP3 [m2/s]
+    Do_IP3: 1.0e-5              # IP3 free diffusion constant [m2/s]
+    z_IP3: -3                   # charge (oxidation state) of IP3
+    cIP3_to: 1e-6               # initial value of IP3 in all cells [mmol/L]
+    cIP3_to_env: 1e-6           # initial value of IP3 in environment [mmol/L]
+
+
 internal parameters:
 
   # default free diffusion constants (cytoplasmic)
+
   Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
   Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
   Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
@@ -477,32 +572,24 @@ internal parameters:
   Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
 
   # pump parameters
-  alpha_NaK:  5.0e-17   # maximum rate constant sodium-potassium ATPase [m3/mols] (range 1e-17 to 5e-16)
+
+  alpha_NaK:  5.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  1.0e-15    # pump rate for calcium ATPase in membrane [m3/mols] 2.0e-15
-  alpha_CaER:  1.0e-14  # pump rate for calcium ATPase in endoplasmic reticulum
+  alpha_Ca:  2.5e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  2.5e-4  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  1.0e-13    # pump rate for the H-K-ATPase
+  alpha_HK:  1.0e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
   halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
   slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  # Endoplasmic reticulum
-  ER_vol:  0.1               # volume of endoplasmic reticulum as a fraction of cell volume
-  ER_sa:  1.0                # surface area of endoplasmic reticulum as a fraction of cell surface area
+  alpha_V:  2.0e-4     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-
-  Dm_IP3: 1.0e-18             # membrane diffusion constant of IP3 [m2/s]
-  Do_IP3: 1.0e-5              # IP3 free diffusion constant [m2/s]
-                              # (this is artificially high due to somatic gj radius
-                              #  being artificially low for sim stability)
-
-  z_IP3: -3                   # charge (oxidation state) of IP3
-  cIP3_to: 1e-6               # initial value of IP3 in all cells [mmol/L]
-  cIP3_to_env: 1e-6           # initial value of IP3 in environment [mmol/L]
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

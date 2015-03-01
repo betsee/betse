@@ -45,7 +45,6 @@ class SimRunner(object):
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 
-    #FIXME: Configure such initialization with "self._config_filename".
     def initialize(self):
         '''
         Run an initialization simulation from scratch and save it to the
@@ -58,13 +57,15 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        cells = World(vorclose='circle',worldtype='full')  # create an instance of world
+        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+
+        cells = World(p,vorclose='circle',worldtype='full')  # create an instance of world
         loggers.log_info('Cell cluster is being created...')
-        cells.makeWorld()     # call function to create the world
+        cells.makeWorld(p)     # call function to create the world
         loggers.log_info('Cell cluster creation complete!')
 
-        p = Parameters()     # create an instance of Parameters
-        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+
         sim = Simulator(p)   # create an instance of Simulator
         sim.baseInit(cells, p)   # initialize simulation data structures
         sim.runInit(cells,p)     # run and save the initialization
@@ -78,7 +79,7 @@ class SimRunner(object):
             plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
             plt.show()
 
-    #FIXME: Configure such simulation with "self._config_filename".
+
     # FIXME: throw exception if init cache is empty -- should run an initialization if it's empty...
     def simulate(self):
         '''
@@ -90,7 +91,7 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        p = Parameters()     # create an instance of Parameters
+        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be initialize
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
@@ -118,7 +119,7 @@ class SimRunner(object):
             'Plotting initialization with configuration "{}".'.format(
                 self._config_basename))
 
-        p = Parameters()     # create an instance of Parameters
+        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
@@ -133,7 +134,7 @@ class SimRunner(object):
             'Plotting simulation with configuration "{}".'.format(
                 self._config_basename))
 
-        p = Parameters()     # create an instance of Parameters
+        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
         sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
 

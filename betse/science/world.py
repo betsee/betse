@@ -29,7 +29,6 @@ from matplotlib.path import Path
 import copy
 import math
 from betse.science import toolbox as tb
-from betse.science.parameters import params as p
 import os, os.path
 
 class World(object):
@@ -160,16 +159,16 @@ class World(object):
 
     """
 
-    def __init__(self,crop_mask=None, vorclose=None, worldtype = None):
+    def __init__(self, p, crop_mask=None, vorclose=None, worldtype = None):
         # Extract the constants from the input object:
         self.vorclose = vorclose   # whether or not to close the voronoi
         self.crop_mask = crop_mask # whether or not to clip the cluster
         self.worldtype = worldtype # the complexity of cluster to create
-        self.fileInit()
+        self.fileInit(p)
 
         self.um = 1e6    # multiplication factor to convert m to um
 
-    def fileInit(self):
+    def fileInit(self,p):
 
         """
         Initializes file saving and loading directory as the betse cach.
@@ -185,7 +184,7 @@ class World(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedWorld = os.path.join(betse_cache_dir, 'saved_world.pickle')
 
-    def makeWorld(self):
+    def makeWorld(self,p):
 
         """
         Call internal methods to set up the cell cluster.
@@ -193,33 +192,33 @@ class World(object):
         """
 
         if self.worldtype == None or self.worldtype == 'full':
-            self.makeSeeds()    # Create the grid for the system (irregular)
-            self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
-            self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
-            self.cell_index()            # Calculate the correct centre and index for each cell
-            self.cellVerts()   # create individual cell polygon vertices
-            self.clean_ecm(clean='no')  # pop ecm vertices around the outer cell membranes
-            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique)   # flag ecm domains on the env bound
-            self.cellGeo(close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+            self.makeSeeds(p)    # Create the grid for the system (irregular)
+            self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
+            self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
+            self.cell_index(p)            # Calculate the correct centre and index for each cell
+            self.cellVerts(p)   # create individual cell polygon vertices
+            self.clean_ecm(p,clean='no')  # pop ecm vertices around the outer cell membranes
+            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
+            self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
             self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
-            self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat)   # flag mem domains on the env bound
-            self.near_neigh()    # Calculate the nn array for each cell
-            self.cleanUp()       # Free up memory...
+            self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat,p)   # flag mem domains on the env bound
+            self.near_neigh(p)    # Calculate the nn array for each cell
+            self.cleanUp(p)       # Free up memory...
 
         elif self.worldtype == 'basic':
-            self.makeSeeds()    # Create the grid for the system (irregular)
-            self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
-            self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
-            self.cell_index()            # Calculate the correct centre and index for each cell
-            self.cellVerts()   # create individual cell polygon vertices
-            self.vor_area()              # Calculate the area of each cell polygon
-            self.near_neigh()    # Calculate the nn array for each cell
-            self.cleanUp()      # Free up memory...
+            self.makeSeeds(p)    # Create the grid for the system (irregular)
+            self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
+            self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
+            self.cell_index(p)            # Calculate the correct centre and index for each cell
+            self.cellVerts(p)   # create individual cell polygon vertices
+            self.vor_area(p)              # Calculate the area of each cell polygon
+            self.near_neigh(p)    # Calculate the nn array for each cell
+            self.cleanUp(p)      # Free up memory...
 
         self.cell_number = self.cell_centres.shape[0]
 
-    def makeSeeds(self):
+    def makeSeeds(self,p):
 
         """
         makeSeeds returns an irregular scatter
@@ -272,7 +271,7 @@ class World(object):
 
         self.centre = self.xypts.mean(axis=0)
 
-    def cropSeeds(self, crop_mask):
+    def cropSeeds(self, crop_mask,p):
 
         """
         cropSeeds returns a geometrically
@@ -339,7 +338,7 @@ class World(object):
 
             self.clust_xy = np.delete(self.clust_xy, 0, 0)    # delete the initialization value.
 
-    def makeVoronoi(self, vorclose = None):
+    def makeVoronoi(self, p, vorclose = None):
 
         """
         Calculates, closes and clips the Voronoi diagram to cell seed points.
@@ -488,7 +487,7 @@ class World(object):
 
         #self.ecm_polyinds = np.asarray(self.ecm_polyinds)
 
-    def vor_area(self):
+    def vor_area(self,p):
 
         """
         Calculates the area of each cell in a closed 2D Voronoi diagram, and multiplying by height, returns cell volume
@@ -506,7 +505,7 @@ class World(object):
         for poly in self.cell_verts:
             self.cell_vol.append(p.cell_height*tb.area(poly))
 
-    def cell_index(self):
+    def cell_index(self,p):
 
         """
         Calculate the cell centre for each voronoi polygon and return a list
@@ -535,7 +534,7 @@ class World(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
-    def near_neigh(self):
+    def near_neigh(self,p):
 
         """
         Calculate the nearest neighbours for each cell centre in the cluster and return a numpy
@@ -615,7 +614,7 @@ class World(object):
 
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
-    def clean_ecm(self,clean=None):
+    def clean_ecm(self,p,clean=None):
 
         """
         Calculates ecm points on the environmental boundary using the alpha-shape concave hull method,
@@ -694,7 +693,7 @@ class World(object):
 
         self.ecm_verts_unique = self.ecm_verts_unique[polyinds_unique]
 
-    def boundTag(self,points):
+    def boundTag(self,points,p):
 
         """
 
@@ -730,7 +729,7 @@ class World(object):
 
         return bflags, bmask
 
-    def cellVerts(self):
+    def cellVerts(self,p):
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
         of the closed & clipped Voronoi diagram.
@@ -758,7 +757,7 @@ class World(object):
 
         self.cell_verts = np.asarray(self.cell_verts)
 
-    def cellGeo(self,close_ecm=None):
+    def cellGeo(self,p,close_ecm=None):
         """
         Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
 
@@ -954,7 +953,7 @@ class World(object):
         self.ecm_edges_i = np.asarray(self.ecm_edges_i)
         self.ecm_vols = np.asarray(self.ecm_vols)
 
-    def cleanUp(self):
+    def cleanUp(self,p):
 
         """
         Nulls unused data structures to free up memory.

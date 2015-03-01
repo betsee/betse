@@ -2,14 +2,14 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME this module will load parameters from a yaml file!
-
 # Lodish H, Berk A, Zipursky SL, et al. Molecular Cell Biology. 4th edition. New York: W. H. Freeman;
 # 2000. Section 15.4, Intracellular Ion Environment and Membrane Electric Potential.
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
+from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
 from betse.util.path import paths
+from matplotlib.colors import Colormap
 import numpy as np
 import math
 import matplotlib.cm as cm
@@ -21,11 +21,10 @@ class Parameters(object):
     The object that stores all constants used in world-building, simulation, and
     plotting.
     '''
-    def __init__(self):
+    def __init__(self, config_filename: str):
 
-        self.inbuiltInit()
-
-
+        #self.inbuiltInit()
+        self.yamlconfigInit(config_filename)
 
     def inbuiltInit(self):
 
@@ -379,96 +378,96 @@ class Parameters(object):
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
-    def load_yaml(self, config_filename: str):
+    def yamlconfigInit(self, config_filename: str):
+
         # Dictionary loaded from such YAML file.
-        config = simconfig.load(config_filename)
+        self.config = simconfig.load(config_filename)
 
         # Absolute path of the parent directory of such file.
         config_dirname = paths.get_dirname(config_filename)
 
         # set time profile from yaml
-        self.time_profile_init = config['init time settings']['time profile'] # time profile for initialization run
-        self.time_profile_sim = config['sim time settings']['time profile']   # time profile for sim run
+        self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
+        self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
 
-        self.time4init = config['init time settings']['total time']      # set the time for the initialization sim [s]
-        self.time4sim = config['sim time settings']['total time']        # set total time for simulation [s]
-        # FIXME need to have a set time profile with config dictionary and custom profile
+        self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
+        self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
 
         # define paths for saving different kinds of files:
         self.init_path = paths.join(
-            config_dirname, config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
+            config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = paths.join(
-            config_dirname, config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
+            config_dirname, self.config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
         self.sim_results = paths.join(
-            config_dirname, config['results options']['save directory']) # folder to auto-save results (graphs, images, animations)
+            config_dirname, self.config['results options']['save directory']) # folder to auto-save results (graphs, images, animations)
 
-        self.init_filename = config['init file saving']['file']
-        self.sim_filename = config['sim file saving']['file']
+        self.init_filename = self.config['init file saving']['file']
+        self.sim_filename = self.config['sim file saving']['file']
 
          # Geometric constants and factors
-        self.wsx = config['world varibles']['world x']  # the x-dimension of the world space
+        self.wsx = float(self.config['world variables']['world x'])  # the x-dimension of the world space
         self.wsy = self.wsx  # the y-dimension of the world space [m]
-        self.rc = config['world variables']['cell radius']  # radius of single cell
-        self.cell_height = config['world variables']['cell height']  # the height of a cell in the z-direction
-        self.cell_space = config['world variables']['cell spacing']  # the true cell-cell spacing
-        self.nl = config['world variables']['lattice disorder']  # noise level for the lattice
-        self.vol_env = config['world variables']['environmental volume']*self.wsx*self.wsy*self.cell_height
+        self.rc = float(self.config['world variables']['cell radius'])  # radius of single cell
+        self.cell_height = float(self.config['world variables']['cell height'])  # the height of a cell in the z-direction
+        self.cell_space = float(self.config['world variables']['cell spacing'])  # the true cell-cell spacing
+        self.nl = float(self.config['world variables']['lattice disorder'])  # noise level for the lattice
 
-        self.T = config['world variables']['temperature']  # World temperature
+        volmult = float(self.config['world variables']['environmental volume'])
+
+        self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
+
+        self.T = float(self.config['world variables']['temperature'])  # World temperature
 
         # gap junction constants and network connectivity
-        self.search_d =config['world variables']['search distance'] # distance to search for nearest neighbours
+        self.search_d = float(self.config['world variables']['search distance']) # distance to search for nearest neighbours
 
-        self.gj_vthresh = config['world variables']['gj voltage threshold'] # voltage threshhold at which gj close [V]
-        self.gj_vgrad  = config['world variables']['gj voltage window']
+        self.gj_vthresh = float(self.config['world variables']['gj voltage threshold'])
+        self.gj_vgrad  = float(self.config['world variables']['gj voltage window'])
 
         # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = config['world variables']['Dm_Na']     # membrane diffusion constant sodium [m2/s]
-        self.Dm_K = config['world variables']['Dm_K']     # membrane diffusion constant potassium [m2/s]
-        self.Dm_Cl = config['world variables']['Dm_Cl']    # membrane diffusion constant chloride [m2/s]
-        self.Dm_Ca = config['world variables']['Dm_Ca']   # membrane diffusion constant calcium [m2/s]
-        self.Dm_H = config['world variables']['Dm_H']    # membrane diffusion constant hydrogen [m2/s]
-        self.Dm_M = config['world variables']['Dm_M']    # membrane diffusion constant anchor ion [m2/s]
-        self.Dm_P = config['world variables']['Dm_P']     # membrane diffusion constant proteins [m2/s]
+        self.Dm_Na = float(self.config['world variables']['membrane diffusion']['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K = float(self.config['world variables']['membrane diffusion']['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(self.config['world variables']['membrane diffusion']['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(self.config['world variables']['membrane diffusion']['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H = float(self.config['world variables']['membrane diffusion']['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M = float(self.config['world variables']['membrane diffusion']['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P = float(self.config['world variables']['membrane diffusion']['Dm_P'])     #  proteins [m2/s]
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
-        self.ion_profile = config['general options']['ion profile']
+        self.ion_profile = self.config['general options']['ion profile']
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = config['general options']['Ca dynamics']
+        self.Ca_dyn = self.config['general options']['Ca dynamics']
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = config['general options']['HKATPase pump']
+        self.HKATPase_dyn = self.config['general options']['HKATPase pump']
 
         # include V-ATPase in the simulation? Yes =1, No = 0
-        self.VATPase_dyn = config['general options']['VATPase pump']
+        self.VATPase_dyn = self.config['general options']['VATPase pump']
 
         # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
-        self.voltage_dye = config['general options']['voltage dye']
+        self.voltage_dye = self.config['general options']['voltage dye']
 
-        self.Dm_Dye = config['general options']['voltage dye properties']['Dm_Dye']
-        self.Do_Dye = config['general options']['voltage dye properties']['Do_Dye']
-        self.z_Dye = config['general options']['voltage dye properties']['z_Dye']
-        self.cDye_to = config['general options']['voltage dye properties']['cDye_to']
+        self.Dm_Dye = float(self.config['general options']['voltage dye properties']['Dm_Dye'])
+        self.Do_Dye = float(self.config['general options']['voltage dye properties']['Do_Dye'])
+        self.z_Dye = float(self.config['general options']['voltage dye properties']['z_Dye'])
+        self.cDye_to = float(self.config['general options']['voltage dye properties']['cDye_to'])
 
         # include noise in the simulation?
-        self.channel_noise_level = config['general options']['static noise level']
+        self.channel_noise_level = float(self.config['general options']['static noise level'])
 
-        self.dynamic_noise = config['general options']['dynamic noise']
-        self.dynamic_noise_level = config['general options']['dynamic noise level']
+        self.dynamic_noise = float(self.config['general options']['dynamic noise'])
+        self.dynamic_noise_level = float(self.config['general options']['dynamic noise level'])
+
         #.....................USER SCHEDULED INTERVENTIONS.............................................................
 
-        # Schedule global changes to all cells in the collective:
+        # initialize dictionary keeping track of global scheduled options for the sim:
         self.global_options = {}
-        # K_env, Cl_env, Na_env, T_change: [time on, time off, rate change, multiplier]
-        # gj_block, NaKATP_block,HKATP_block, CaATP_block: [time on, time off, rate change]
 
-
-
-        #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
+        # initialize dictionary keeping track of targeted scheduled options for the sim:
         self.scheduled_options = {}
 
-        val = config['in this sim change']
+        val = self.config['in this sim change']
 
         bool_Kenv = val['environmental K+']
         bool_Clenv = val['environmental Cl-']
@@ -479,83 +478,75 @@ class Parameters(object):
         bool_HKblock = val['HKATPase pump']
 
 
-        # Schedule global changes to all cells in the collective:
-        self.global_options = {'K_env':0,'Cl_env':0,'Na_env':0,'gj_block':0,'T_change':0,'NaKATP_block':0,
-            'HKATP_block':0}
-        # K_env, Cl_env, Na_env, T_change: [time on, time off, rate change, multiplier]
-        # gj_block, NaKATP_block,HKATP_block, CaATP_block: [time on, time off, rate change]
-
-
         if bool_Kenv == False:
             self.global_options['K_env'] = 0
         elif bool_Kenv == True:
-            on_Kenv = config['change K env']['change start']
-            off_Kenv = config['change K env']['change finish']
-            rate_Kenv = config['change K env']['change rate']
-            multi_Kenv = config['change K env']['multiplier']
+            on_Kenv = float(self.config['change K env']['change start'])
+            off_Kenv = float(self.config['change K env']['change finish'])
+            rate_Kenv = self.config['change K env']['change rate']
+            multi_Kenv = self.config['change K env']['multiplier']
             kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
             self.global_options['K_env'] = kenv
 
         if bool_Clenv == False:
             self.global_options['Cl_env'] = 0
         elif bool_Clenv == True:
-            on_Clenv = config['change Cl env']['change start']
-            off_Clenv = config['change Cl env']['change finish']
-            rate_Clenv = config['change Cl env']['change rate']
-            multi_Clenv = config['change Cl env']['multiplier']
+            on_Clenv = self.config['change Cl env']['change start']
+            off_Clenv = self.config['change Cl env']['change finish']
+            rate_Clenv = self.config['change Cl env']['change rate']
+            multi_Clenv = self.config['change Cl env']['multiplier']
             Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
             self.global_options['Cl_env'] = Clenv
-
 
         if bool_Naenv == False:
             self.global_options['Na_env'] = 0
         elif bool_Naenv == True:
-            on_Naenv = config['change Na env']['change start']
-            off_Naenv = config['change Na env']['change finish']
-            rate_Naenv = config['change Na env']['change rate']
-            multi_Naenv = config['change Na env']['multiplier']
+            on_Naenv = self.config['change Na env']['change start']
+            off_Naenv = self.config['change Na env']['change finish']
+            rate_Naenv = self.config['change Na env']['change rate']
+            multi_Naenv = self.config['change Na env']['multiplier']
             Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
             self.global_options['Na_env'] = Naenv
 
         if bool_gjblock == False:
             self.global_options['gj_block'] = 0
         elif bool_gjblock == True:
-            on_gj = config['block gap junctions']['change start']
-            off_gj = config['block gap junctions']['change finish']
-            rate_gj = config['block gap junctions']['change rate']
+            on_gj = self.config['block gap junctions']['change start']
+            off_gj = self.config['block gap junctions']['change finish']
+            rate_gj = self.config['block gap junctions']['change rate']
             gjb = [on_gj,off_gj,rate_gj]
             self.global_options['gj_block'] = gjb
-
 
         if bool_temp == False:
             self.global_options['T_change'] = 0
         elif bool_temp == True:
-            on_T = config['change temperature']['change start']
-            off_T = config['change temperature']['change finish']
-            rate_T = config['change temperature']['change rate']
-            multi_T = config['change temperature']['multiplier']
+            on_T = self.config['change temperature']['change start']
+            off_T = self.config['change temperature']['change finish']
+            rate_T = self.config['change temperature']['change rate']
+            multi_T = self.config['change temperature']['multiplier']
             temper = [on_T, off_T, rate_T, multi_T]
             self.global_options['T_change'] = temper
 
         if bool_NaKblock == False:
             self.global_options['NaKATP_block'] = 0
         elif bool_NaKblock == True:
-            on_nak = config['block NaKATP pump']['change start']
-            off_nak = config['block NaKATP pump']['change finish']
-            rate_nak = config['block NaKATP pump']['change rate']
+            on_nak = self.config['block NaKATP pump']['change start']
+            off_nak = self.config['block NaKATP pump']['change finish']
+            rate_nak = self.config['block NaKATP pump']['change rate']
             nak = [on_nak,off_nak,rate_nak]
             self.global_options['NaKATP_block'] = nak
 
         if bool_HKblock == False:
             self.global_options['HKATP_block'] = 0
-
-
-        #self.ion_options specifications list is [time on, time off, rate of change, multiplier]
-        self.scheduled_options = {'Na_mem':0,'K_mem':0,'Cl_mem':0,'Ca_mem':0,'K_env':0,'Cl_env':0,
-            'IP3':[5,15,1,1e-4]}
+        elif bool_HKblock == True:
+            on_hk = self.config['block HKATP pump']['change start']
+            off_hk = self.config['block HKATP pump']['change finish']
+            rate_hk = self.config['block HKATP pump']['change rate']
+            hk = [on_hk,off_hk,rate_hk]
+            self.global_options['HKATP_block'] = hk
 
         # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
-        self.scheduled_targets = config['scheduled target cells']
+        self.scheduled_targets = self.config['scheduled target cells']
 
         bool_Namem = val['Na membrane permeability']
         bool_Kmem = val['K membrane permeability']
@@ -565,19 +556,468 @@ class Parameters(object):
 
         if bool_Namem == False:
             self.scheduled_options['Na_mem'] = 0
+        elif bool_Namem == True:
+            on_Namem = self.config['change Na mem']['change start']
+            off_Namem = self.config['change Na mem']['change finish']
+            rate_Namem = self.config['change Na mem']['change rate']
+            multi_Namem = self.config['change Na mem']['multiplier']
+            Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem]
+            self.scheduled_options['Na_mem'] = Namem
 
         if bool_Kmem == False:
             self.scheduled_options['K_mem'] = 0
+        elif bool_Kmem == True:
+            on_Kmem = self.config['change K mem']['change start']
+            off_Kmem = self.config['change K mem']['change finish']
+            rate_Kmem = self.config['change K mem']['change rate']
+            multi_Kmem = self.config['change K mem']['multiplier']
+            Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem]
+            self.scheduled_options['K_mem'] = Kmem
 
         if bool_Clmem == False:
             self.scheduled_options['Cl_mem'] = 0
+        elif bool_Clmem == True:
+            on_Clmem = self.config['change Cl mem']['change start']
+            off_Clmem = self.config['change Cl mem']['change finish']
+            rate_Clmem = self.config['change Cl mem']['change rate']
+            multi_Clmem = self.config['change Cl mem']['multiplier']
+            Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem]
+            self.scheduled_options['Cl_mem'] = Clmem
 
         if bool_Camem == False:
             self.scheduled_options['Ca_mem'] = 0
+        elif bool_Camem == True:
+            on_Camem = self.config['change Ca mem']['change start']
+            off_Camem = self.config['change Ca mem']['change finish']
+            rate_Camem = self.config['change Ca mem']['change rate']
+            multi_Camem = self.config['change Ca mem']['multiplier']
+            Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem]
+            self.scheduled_options['Ca_mem'] = Camem
 
         if bool_ip3 == False:
             self.scheduled_options['IP3'] = 0
+        elif bool_ip3 == True:
+            on_ip3 = self.config['produce IP3']['change start']
+            off_ip3 = self.config['produce IP3']['change finish']
+            rate_ip3 = self.config['produce IP3']['change rate']
+            multi_ip3 = self.config['produce IP3']['multiplier']
+            ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3]
+            self.scheduled_options['IP3'] = ip3
 
+        #.........................DYNAMIC CHANNELS.....................................................................
+
+        # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
+        self.gated_targets = self.config['ion channel target cells']
+
+        val2 = self.config['include the following ion channels']
+
+        bool_vgNa = val2['voltage gated Na+']
+        bool_vgK = val2['voltage gated K+']
+        bool_vgCa = val2['voltage gated Ca2+']
+        bool_cagK = val2['calcium gated K+']
+
+        # set specific character of gated ion channel dynamics:
+        opNa = self.config['gated ion channel options']['voltage gated Na']
+        opK = self.config['gated ion channel options']['voltage gated K']
+        opCa = self.config['gated ion channel options']['voltage gated Ca']
+        opcK = self.config['gated ion channel options']['calcium gated K']
+
+        vgNa = [opNa['max Dmem Na'],opNa['activation v'],opNa['inactivation v'],opNa['deactivation v'],
+            opNa['live time'],opNa['dead time']]
+
+        vgK = [opK['max Dmem K'],opK['activation v'],opK['deactivation v'],opK['live time']]
+
+        vgCa = [opCa['max Dmem Ca'],opCa['activation v'],opCa['inactivation v'],opCa['inactivation Ca'],
+            opCa['reactivation Ca']]
+
+        cagK = [opcK['max Dmem K'],opcK['hill K_half'],opcK['hill n']]
+
+        # initialize dictionary holding options for dynamic channels:
+        self.vg_options = {}
+
+        if bool_vgNa == False:
+            self.vg_options['Na_vg'] = 0
+        elif bool_vgNa == True:
+            self.vg_options['Na_vg'] = vgNa
+
+        if bool_vgK == False:
+            self.vg_options['K_vg'] = 0
+        elif bool_vgK == True:
+            self.vg_options['K_vg'] = vgK
+
+        if bool_vgCa == False:
+            self.vg_options['Ca_vg'] = 0
+        elif bool_vgCa == True:
+            self.vg_options['Ca_vg'] = vgCa
+
+        if bool_cagK == False:
+            self.vg_options['K_cag'] = 0
+        elif bool_cagK == True:
+            self.vg_options['K_cag'] = cagK
+
+        # Calcium Dynamics: Calcium Induced Calcium Release (CICR).....................................................
+
+        cdy = self.config['include calcium dynamics']
+        cdp = self.config['calcium dynamics parameters']
+
+        bool_CICR = cdy['ip3 induced Ca2+ release']
+        bool_calReg = cdy['calcium regulation']
+        bool_frequMod = cdy['frequency modulation by IP3']
+
+        camid = float(cdp['CICR Ca peak'])
+        cawidth = float(cdp['CICR Ca width'])
+
+        self.Ca_dyn_options = {}
+
+        if bool_CICR == False:
+
+            self.Ca_dyn_options['CICR'] = 0
+
+        elif bool_CICR == True:
+
+            ERmax = float(cdp['ER max'])
+            ERburst = float(cdp['ER burst'])
+            ERclose = float(cdp['ER close'])
+
+            ERstore_dyn = [ERmax,ERburst,ERclose]   # base dynamics of endoplasmic reticulum Ca2+ store.
+
+            IP3_Khalf = float(cdp['IP3 K half'])
+            IP3_hilln = float(cdp['IP3 hill n'])
+
+            ip3_reg = [IP3_Khalf,IP3_hilln]   #  IP3 half-max, Hill coefficient
+
+            if bool_calReg == False:
+                ca_reg = []   # central concentration for Ca-act-Ca release [Ca mid, Ca width]
+            elif bool_calReg == True:
+                ca_reg = [camid, cawidth]
+
+            if bool_frequMod == False:
+                self.FMmod = 0              # frequency modulate ER response to IP3? 1 = yes, 0 = no
+            elif bool_frequMod == True:
+                self.FMmod = 1
+                self.ip3FM = float(cdp['IP3 frequency modulation level'])
+
+            cicr = [ERstore_dyn,ca_reg,ip3_reg]
+            self.Ca_dyn_options['CICR'] = cicr
+
+
+        #........................RESULTS OUPUT and PLOTTING............................................................
+
+        ro = self.config['results options']
+
+        self.turn_all_plots_off = ro['turn all plots off']    # turn off all plots and animations for init and sim runs
+
+
+         # Default colormap
+        self.default_cm = get_colormap(ro['default colormap'])
+           # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
+                                        # http://matplotlib.org/examples/color/colormaps_reference.html
+
+        self.gj_cm = get_colormap(ro['gj colormap'])    # colormap for plotting gj currents on top of default colormap
+
+        self.plot_while_solving = ro['plot while solving']  # create a 2d plot of cell vmems while solution is taking place
+
+        self.save_solving_plot = ro['save solving plot']   # save the 2d plot generated while solving
+
+        self.enumerate_cells = ro['enumerate cells']    # number cells on the static 2D maps
+
+        self.plot_cell = ro['plot cell index']             # State the cell index to use for single-cell time plots
+
+        self.plot_single_cell_graphs = ro['plot single cell graphs'] # plot graphs of concentration and voltage with t
+
+        self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
+
+        self.plot_vm2d = ro['plot Vmem']                # 2d plot of final vmem ?
+        self.plot_ca2d = ro['plot Ca']                # 2d plot of final cell calcium ?
+        self.plot_ip32d = ro['plot IP3']               # 2d plot of final cIP3 ?
+        self.plot_dye2d = ro['plot Dye']               # 2d plot of voltage sensitive dye in cell collective?
+
+        self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
+
+        # specify desired animations:
+        self.ani_vm2d = ro['animate Vmem']                # 2d animation of vmem with time?
+        self.ani_ca2d = ro['animate Ca2+']                # 2d animation of cell calcium with time ?
+        self.ani_ip32d = ro['animate IP3']               # 2d animation of cIP3 with time?
+        self.ani_dye2d = ro['animate Dye']               # 2d animation of voltage sensitive dye with time?
+        self.ani_vmgj2d = ro['animate Vmem with gj']     # 2d animation of vmem with superimposed gj network
+
+        self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
+        self.saveAnimations = ro['save animations']    # save all animations as png sequences
+
+        self.exportData = ro['export data to file']        # export all stored data for the plot_cell to a csv text file
+
+        self.clip = 20e-6
+
+        #........................INTERNAL USE ONLY.....................................................................
+
+        iu = self.config['internal parameters']
+
+         # default free diffusion constants (cytoplasmic)
+        self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
+        self.Do_K = float(iu['Do_K'])      # free diffusion constant potassium [m2/s]
+        self.Do_Cl = float(iu['Do_Cl'])     # free diffusion constant chloride [m2/s]
+        self.Do_Ca = float(iu['Do_Ca'])     # free diffusion constant calcium [m2/s]
+        self.Do_H = float(iu['Do_H'])      # free diffusion constant hydrogen [m2/s]
+        self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
+        self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
+
+        # pump parameters
+        self.alpha_NaK = float(iu['alpha_NaK']) # maximum rate constant sodium-potassium ATPase per unit surface area
+        self.halfmax_NaK = float(iu['halfmax_NaK'])   # the free energy level at which pump activity is halved [kJ]
+        self.slope_NaK = float(iu['slope_NaK'])  # the energy window width of the NaK-ATPase pump [kJ]
+
+        self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
+        self.alpha_CaER = float(iu['alpha_CaER'])  # pump rate for calcium ATPase in endoplasmic reticulum
+        self.halfmax_Ca = float(iu['halfmax_Ca'])
+        self.slope_Ca = float(iu['slope_Ca'])
+
+        self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
+        self.halfmax_HK = float(iu['halfmax_HK'])
+        self.slope_HK = float(iu['slope_HK'])
+
+        self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
+        self.halfmax_V = float(iu['halfmax_V'])
+        self.slope_V = float(iu['slope_V'])
+
+         # Calcium dynamics parameters
+        self.ER_vol = float(cdp['ER_vol'])                  # volume of endoplasmic reticulum as a fraction of cell volume
+        self.ER_sa = float(cdp['ER_sa'])                    # surface area of endoplasmic reticulum as a fraction of cell surface area
+
+        self.Dm_IP3 = float(cdp['Dm_IP3'])   # membrane diffusion constant of IP3
+        self.Do_IP3 = float(cdp['Do_IP3'])    # IP3 free diffusion constant [m2/s]
+        self.z_IP3 = float(cdp['z_IP3'])        # charge valence of IP3
+        self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
+        self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
+
+        # partial pressure dissolved CO2
+        self.CO2 = 50.0   # [mmHg]
+
+        # charge states of ions
+        self.z_Na = 1
+        self.z_K = 1
+        self.z_Cl = -1
+        self.z_Ca = 2
+        self.z_H = 1
+        self.z_P = -1
+        self.z_M = -1
+
+        # fundamental constants
+        self.F = 96485 # Faraday constant [J/V*mol]
+        self.R = 8.314  # Gas constant [J/K*mol]
+
+        self.deltaGATP = 20*self.R*self.T    # free energy released in ATP hydrolysis [J/mol]
+
+        self.ac = 1e-6  # cell-cell separation for drawing
+        self.scale_cell = 0.9          # the amount to scale cell membranes in from ecm edges (only affects drawing)
+        self.cm = 0.022            # patch capacitance of cell membrane up to 0.022 [F/m2]
+        self.tm = 7.5e-9           # thickness of cell membrane [m]
+        self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
+        self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
+
+        self.d_cell = self.rc * 2  # diameter of single cell
+        self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index
+        self.ny = int(self.wsy / self.d_cell)  # number of lattice sites in world y index
+        self.wsx = self.wsx + 5 * self.nl * self.d_cell  # readjust the world size for noise
+        self.wsy = self.wsy + 5 * self.nl * self.d_cell
+
+        self.gjl = 2*self.tm + self.cell_space     # gap junction length
+
+        self.um = 1e6    # multiplication factor to convert m to um
+
+        # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
+        if self.ion_profile == 'basic':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+            self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 5.4
+            self.cK_cell = 140.44
+            self.cP_cell = 138.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
+
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
+
+
+        if self.ion_profile == 'basic_Ca':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+            self.cCa_env = 1.0
+            self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_Ca, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cCa_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 5.4
+            self.cK_cell = 140.44
+            self.cCa_cell = 1.0e-3
+            self.cP_cell = 138.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
+
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.cCa_er = 0.5
+            self.cM_er = self.cCa_er
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
+
+        # default environmental and cytoplasmic initial values mammalian cells
+        if self.ion_profile == 'animal':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+            self.cCl_env = 105.0
+            self.cCa_env = 1.0
+            self.cH_env = 3.98e-5
+            self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 5.4
+            self.cK_cell = 140.44
+            self.cCl_cell = 6.0
+            self.cCa_cell = 1.0e-3
+            self.cH_cell = 6.31e-5
+            self.cP_cell = 138.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.cCa_er = 0.5
+            self.cM_er = - self.cCa_er
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
+         # default environmental and cytoplasm values invertebrate cells
+        if self.ion_profile == 'invertebrate':
+            self.cNa_env = 440.0
+            self.cK_env = 20.0
+            self.cCl_env = 460.0
+            self.cCa_env = 10.0
+            self.cH_env = 3.98e-5
+            self.cP_env = 7.0
+
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 8.66
+            self.cK_cell = 406.09
+            self.cCl_cell = 45.56
+            self.cCa_cell = 3.0e-4
+            self.cH_cell = 6.31e-5
+            self.cP_cell = 350.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.cCa_er = 0.5
+            self.cM_er = -self.cCa_er
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
+        # user-specified environmental and cytoplasm values (customized)
+        if self.ion_profile == 'customized':
+
+            cip = self.config['general options']['customized ion profile']
+
+            bool_cl = cip['include Cl-']
+            bool_ca = cip['include Ca2+']
+            bool_h = cip['include H+']
+            bool_p = cip['include P-']
+
+            self.cNa_env = float(cip['extracellular Na+ concentration'])
+            self.cK_env = float(cip['extracellular K+ concentration'])
+            self.cCl_env = float(cip['extracellular Cl- concentration'])
+            self.cCa_env = float(cip['extracellular Ca2+ concentration'])
+            self.cH_env = float(cip['extracellular H+ concentration'])
+            self.cP_env = float(cip['extracellular protein- concentration'])
+
+            self.cNa_cell = float(cip['cytosolic Na+ concentration'])
+            self.cK_cell = float(cip['cytosolic K+ concentration'])
+            self.cCl_cell = float(cip['cytosolic Cl- concentration'])
+            self.cCa_cell = float(cip['cytosolic Ca2+ concentration'])
+            self.cH_cell = float(cip['cytosolic H+ concentration'])
+            self.cP_cell = float(cip['cytosolic protein- concentration'])
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':0,'M':1} # initialize ions dictionary
+
+            zs = [self.z_Na, self.z_K] # initialize the oxidation state vector
+
+            conc_env = [self.cNa_env,self.cK_env]
+            conc_cell = [self.cNa_cell,self.cK_cell]
+
+            if bool_cl == True:
+                zs.append(self.z_Cl)
+                conc_env.append(self.cCl_env)
+                conc_cell.append(self.cCl_cell)
+                self.ions_dict['Cl'] = 1
+
+            if bool_ca == True:
+                zs.append(self.z_Ca)
+                conc_env.append(self.cCa_env)
+                conc_cell.append(self.cCa_cell)
+                self.ions_dict['Ca'] = 1
+
+            if bool_h == True:
+                zs.append(self.z_H)
+                conc_env.append(self.cH_env)
+                conc_cell.append(self.cH_cell)
+                self.ions_dict['H'] = 1
+
+            if bool_p == True:
+                zs.append(self.z_P)
+                conc_env.append(self.cP_env)
+                conc_cell.append(self.cCl_cell)
+                self.ions_dict['P'] = 1
+
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)  # find the concentration of the charge-balance anion
+
+            if self.z_M_env == 1:
+                raise BetseExceptionParameters("You have defined a net negative charge profile in the environment: "
+                                               "it cannot be charge balanced by an anion. Please try again.")
+
+
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            if self.z_M_cell == 1:
+                raise BetseExceptionParameters("You have defined a net negative charge profile in the cell: "
+                                               "it cannot be charge balanced by an anion. Please try again.")
+
+            self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
+            self.cM_er = -self.cCa_er
 
 
     def set_time_profile(self,time_profile):
@@ -595,7 +1035,7 @@ class Parameters(object):
             self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
             self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
-        if time_profile == 'simulate_excitable':
+        elif time_profile == 'simulate_excitable':
 
             self.dt = 5e-5    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
             self.sim_end = self.time4sim         # world time to end the simulation
@@ -622,6 +1062,37 @@ class Parameters(object):
             self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
             self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
+        elif time_profile == 'custom init':
+
+            self.dt = self.config['init time settings']['custom init time profile']['time step']
+            self.init_end = self.config['init time settings']['custom init time profile']['end time']
+            self.init_tsteps = self.init_end/self.dt
+            self.resample = self.config['init time settings']['custom init time profile']['sampling rate']
+            self.t_resample = self.resamp/self.dt
+            self.method = 0
+            self.gj_radius = self.config['init time settings']['custom init time profile']['gap junction radius']
+            self.gjsa = math.pi*((self.gj_radius)**2)
+
+        elif time_profile == 'custom sim':
+
+            self.dt = self.config['sim time settings']['custom sim time profile']['time step']
+            self.init_end = self.config['sim time settings']['custom sim time profile']['end time']
+            self.init_tsteps = self.init_end/self.dt
+            self.resample = self.config['sim time settings']['custom sim time profile']['sampling rate']
+            self.t_resample = self.resamp/self.dt
+            self.method = 0
+            self.gj_radius = self.config['sim time settings']['custom sim time profile']['gap junction radius']
+            self.gjsa = math.pi*((self.gj_radius)**2)
+
+
+def get_colormap(colormap_name: str) -> Colormap:
+    '''
+    Get the colormap with the passed name.
+    '''
+    colormap = getattr(cm, colormap_name, None)
+    if not isinstance(colormap, Colormap):
+        raise BetseExceptionParameters('matplotlib colormap "{}" unrecognized.'.format(colormap_name))
+    return colormap
 
 def bal_charge(concentrations,zs):
 
@@ -638,4 +1109,4 @@ def bal_charge(concentrations,zs):
 
     return bal_conc,valance
 
-params = Parameters()
+#params = Parameters()
