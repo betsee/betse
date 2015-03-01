@@ -233,7 +233,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
              ax=None,lncolor='r',ionname='M-')
 
         titM = 'M Anion concentration in cell ' + str(plot_cell)
-        axConcsK.set_title(titM)
+        axConcsM.set_title(titM)
 
         if saveImages == True:
             savename1 = savedImg + 'concM_time'

@@ -1000,7 +1000,7 @@ class Parameters(object):
             if bool_p == True:
                 zs.append(self.z_P)
                 conc_env.append(self.cP_env)
-                conc_cell.append(self.cCl_cell)
+                conc_cell.append(self.cP_cell)
                 self.ions_dict['P'] = 1
 
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)  # find the concentration of the charge-balance anion
@@ -1022,7 +1022,7 @@ class Parameters(object):
 
     def set_time_profile(self,time_profile):
 
-        if time_profile == 'simulate_somatic':
+        if time_profile == 'simulate somatic':
 
             self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
             self.sim_end = self.time4sim         # world time to end the simulation
@@ -1035,7 +1035,7 @@ class Parameters(object):
             self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
             self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
-        elif time_profile == 'simulate_excitable':
+        elif time_profile == 'simulate excitable':
 
             self.dt = 5e-5    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
             self.sim_end = self.time4sim         # world time to end the simulation
@@ -1064,24 +1064,24 @@ class Parameters(object):
 
         elif time_profile == 'custom init':
 
-            self.dt = self.config['init time settings']['custom init time profile']['time step']
-            self.init_end = self.config['init time settings']['custom init time profile']['end time']
+            self.dt = float(self.config['init time settings']['custom init time profile']['time step'])
+            self.init_end = float(self.config['init time settings']['custom init time profile']['end time'])
             self.init_tsteps = self.init_end/self.dt
-            self.resample = self.config['init time settings']['custom init time profile']['sampling rate']
-            self.t_resample = self.resamp/self.dt
+            self.resample = float(self.config['init time settings']['custom init time profile']['sampling rate'])
+            self.t_resample = self.resample/self.dt
             self.method = 0
-            self.gj_radius = self.config['init time settings']['custom init time profile']['gap junction radius']
+            self.gj_radius = float(self.config['init time settings']['custom init time profile']['gap junction radius'])
             self.gjsa = math.pi*((self.gj_radius)**2)
 
         elif time_profile == 'custom sim':
 
-            self.dt = self.config['sim time settings']['custom sim time profile']['time step']
-            self.init_end = self.config['sim time settings']['custom sim time profile']['end time']
-            self.init_tsteps = self.init_end/self.dt
-            self.resample = self.config['sim time settings']['custom sim time profile']['sampling rate']
-            self.t_resample = self.resamp/self.dt
+            self.dt = float(self.config['sim time settings']['custom sim time profile']['time step'])
+            self.sim_end = float(self.config['sim time settings']['custom sim time profile']['end time'])
+            self.sim_tsteps = self.sim_end/self.dt
+            self.resample = float(self.config['sim time settings']['custom sim time profile']['sampling rate'])
+            self.t_resample = self.resample/self.dt
             self.method = 0
-            self.gj_radius = self.config['sim time settings']['custom sim time profile']['gap junction radius']
+            self.gj_radius = float(self.config['sim time settings']['custom sim time profile']['gap junction radius'])
             self.gjsa = math.pi*((self.gj_radius)**2)
 
 

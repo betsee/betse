@@ -326,18 +326,13 @@ class Simulator(object):
         self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
         self.VATP_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
 
-        if p.Ca_dyn == 1:
+        self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
+        self.cc_er_to = np.copy(self.cc_er)
 
-            self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
-            self.cc_er_to = np.copy(self.cc_er)
+        self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
 
-        if p.voltage_dye == 1:
-
-            self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
-
-            self.cDye_env = np.zeros(len(cells.cell_i))
-            self.cDye_env[:] = p.cDye_to
-
+        self.cDye_env = np.zeros(len(cells.cell_i))
+        self.cDye_env[:] = p.cDye_to
 
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(len(cells.cell_i))
@@ -345,7 +340,9 @@ class Simulator(object):
 
         # add a random walk on protein concentration to generate dynamic noise:
         self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
-        self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
+
+        if p.ions_dict['P']==1:
+            self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
         print('This world contains ',cells.cell_number, ' cells.')
         print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
@@ -358,7 +355,6 @@ class Simulator(object):
         Runs initializations for all user-specified options that will be used in the main simulation.
 
         """
-
 
         # add channel noise to the model:
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
@@ -794,7 +790,7 @@ class Simulator(object):
                         electrofuse(self.cDye_env,self.cDye_cell,p.Dm_Dye*self.id_cells,self.tm,cells.cell_sa,
                             self.envV,cells.cell_vol,p.z_Dye,self.vm,self.T,p)
 
-            if p.dynamic_noise == 1:
+            if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
                 self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
@@ -859,7 +855,7 @@ class Simulator(object):
             final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
             print('environmental pH',np.round(final_pH_env,2))
 
-        if p.Ca_dyn == 1:
+        if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 
                 endconc_er = np.round(np.mean(self.cc_er[0]),6)
                 label = self.ionlabel[self.iCa]
@@ -1123,7 +1119,7 @@ class Simulator(object):
                 # update cell voltage-sensitive dye concentration due to gap junction flux:
                 self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
 
-            if p.dynamic_noise == 1:
+            if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
                 self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
@@ -1209,7 +1205,7 @@ class Simulator(object):
         print('Final IP3 concentration in the environment: ',np.round(IP3_env_final,6), ' mmol/L')
         print('Final average IP3 concentration in cells: ', np.round(IP3_cell_final,6), ' mmol/L')
 
-        if p.Ca_dyn == 1:
+        if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
             endconc_er = np.round(np.mean(self.cc_er[0]),6)
             label = self.ionlabel[self.iCa]

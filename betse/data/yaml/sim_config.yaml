@@ -38,19 +38,19 @@
 
 init file saving:
 
-    directory: betse_data          # name of the directory to save the initialization
+    directory: test_init          # name of the directory to save the initialization
 
-    file: init_run.betse        # Specify the filename saving the initialization run.
+    file: init_run1.betse        # Specify the filename saving the initialization run.
 
 
 init time settings:
 
-  time profile: 'initialize'   # choose a pre-defined time profile for the init
+  time profile: 'custom init'   # choose a pre-defined time profile for the init
                                # choices are 'initialize' or 'custom init'
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 600               # set the time for the initialization run [s]
+  total time: 300               # set the time for the initialization run [s]
                                 # recommend 120 to 600 s (2 to 10 minutes) of initialization.
     
   custom init time profile:     # set the following params if you desire more control over init run
@@ -58,7 +58,7 @@ init time settings:
                                 # setting above.
 
     time step: 1e-2               # Simulation step-size [s] (recommended range 1e-2 to 1e-3 for init runs)
-    end time: 600                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
+    end time: 100                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
     sampling rate: 1.0            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
     gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
 
@@ -68,18 +68,21 @@ init time settings:
 
 sim file saving:
 
-    directory: sim_run1    # Specify a directory to hold the sim and its results
+    directory: test_init/sim_run1    # Specify a directory to hold the sim and its results
+                                     # As each simulation needs to be associated with the right
+                                     # init run, we recommend putting simulation directories within
+                                     # the corresponding init directory.
 
-    file: sim_run.betse    # Specify the file name saving the results of the simulation run.
+    file: sim_run1.betse    # Specify the file name saving the results of the simulation run.
 
 sim time settings:
 
-  time profile: 'simulate_somatic'    # choose a pre-defined time profile for the sim run
-                                      # choices are 'simulate_somatic', 'simulate_excitable'
+  time profile: 'simulate excitable'    # choose a pre-defined time profile for the sim run
+                                      # choices are 'simulate somatic', 'simulate excitable'
                                       # or 'custom sim'
-                                      # 'simulate_somatic' is for cells without voltage-gated
+                                      # 'simulate somatic' is for cells without voltage-gated
                                       #  sodium and potassium channels (slower dynamics, longer sim times).
-                                      # 'simulate_excitable' is for cells with voltage-gated
+                                      # 'simulate excitable' is for cells with voltage-gated
                                       # sodium and potassium channels (rapid changes, short sim times).
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
@@ -113,7 +116,7 @@ sim time settings:
 
 general options:
 
-  ion profile: 'animal'         # set the ion profile to be used in the simulation
+  ion profile: 'customized'         # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -127,6 +130,7 @@ general options:
                                 # Note if 'customized' profile selected, ion levels must
                                 # be defined in the customized profile at the end of this
                                 # General Options section.
+                                # Note you cannot change this option between an init and sim run.
 
 
   Ca dynamics: False        # include full calcium dynamics in the situation?
@@ -160,7 +164,7 @@ general options:
   static noise level: 0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
 
-  dynamic noise: False      # is dynamic noise desired?
+  dynamic noise: True      # is dynamic noise desired? Options True or False
                             # simulated as random-walk on cellular protein concentrations
 
   dynamic noise level: 1e-7     # level of dynamic noise
@@ -180,10 +184,10 @@ general options:
     # including H+ automatically generates a bicarbonate buffer.
     # for realistic Vmem it is recommended to always include negatively charged proteins, P-.
 
-    include Cl-: True        # include chloride (True or False) ?
-    include Ca2+: True        # include calcium (True or False) ?
-    include H+: True         # include protons (True or False) ?
-    include P-: True         # include negatively charged proteins (True or False)?
+    include Cl-: False        # include chloride (True or False) ?
+    include Ca2+: False        # include calcium (True or False) ?
+    include H+: False         # include protons (True or False) ?
+    include P-: False         # include negatively charged proteins (True or False)?
 
     extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
@@ -417,7 +421,10 @@ include calcium dynamics:
 
 results options:
 
-  save directory: results         # Name of directory to save plots and animations.
+  save directory: test_init/sim_run2/results    # Name of directory to save plots and animations.
+                                                # We recommend collecting all results (plots, animations)
+                                                # for a particular sim inside a results directory within
+                                                # that sim's directory.
 
 
   turn all plots off: False      # This option allows you to turn all plots on/off
@@ -451,7 +458,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -485,7 +492,7 @@ results options:
 
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
                                # options include
-                               # cm.rainbow, cm.jet, cm.Blues, cm.Greens, cm.bone
+                               # rainbow, jet, Blues, Greens, bone
                                # to reverse a colormap add _r to the name (e.g. cm.jet_r)
                                # for all options please see
                                # http://matplotlib.org/examples/color/colormaps_reference.html
