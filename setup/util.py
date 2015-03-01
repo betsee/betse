@@ -10,7 +10,7 @@ from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsPlatformError)
 from os import path
 from setuptools import Command
-import os, pkg_resources, shutil, subprocess, sys
+import os, pkg_resources, shutil, subprocess, sys, time
 
 # ....................{ EXCEPTIONS                         }....................
 def die_if_os_non_posix() -> None:
@@ -78,6 +78,22 @@ def die_unless_file_or_not_found(
             '"{}" not a string.'.format(exception_message)
 
         # Raise such exception.
+        raise DistutilsFileError(exception_message)
+
+def die_unless_dir(dirname: str, exception_message: str = None) -> None:
+    '''
+    Raise a fatal exception unless the passed directory exists.
+    '''
+    # If such dir is not found, fail.
+    if not is_dir(dirname):
+        # If no such message was passed, default such message.
+        if not exception_message:
+            exception_message = 'Directory "{}" not found.'.format(dirname)
+        assert isinstance(exception_message, str),\
+            '"{}" not a string.'.format(exception_message)
+
+        # Raise such exception. Since there exists no
+        # DistutilsDirError(), we raise the next best thing.
         raise DistutilsFileError(exception_message)
 
 def die_unless_file(filename: str, exception_message: str = None) -> None:
@@ -256,6 +272,26 @@ def move_file(filename_source: str, filename_target: str) -> None:
     shutil.move(filename_source, filename_target)
 
 # ....................{ REMOVERS                           }....................
+def remove_dir(dirname: str) -> None:
+    '''
+    Recursively remove the passed directory in a safe manner (e.g., *not*
+    following symbolic links outside such directory).
+
+    This is an inherently dangerous operation and hence delayed for several
+    seconds, allowing sufficiently aware users to jam the panic button.
+    '''
+    # If such directory does *NOT* exist, fail.
+    die_unless_dir(dirname)
+
+    # For safety, wait several seconds to do so. (Read: panic button.)
+    sleep_seconds = 8
+    print('Removing "{}" in {} seconds...'.format(dirname, sleep_seconds))
+    time.sleep(sleep_seconds)
+
+    # Remove such directory.
+    print('Removing directory "{}".'.format(dirname))
+    shutil.rmtree(dirname)
+
 def remove_file(filename: str) -> None:
     '''
     Remove the passed non-special file.

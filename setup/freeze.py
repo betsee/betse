@@ -84,14 +84,30 @@ class freeze(Command, metaclass = ABCMeta):
 
     Attributes
     ----------
+    clean : bool
+        True if the user passed the `--clean` option to the current `setuptools`
+        command.
     install_scripts_dir : str
         Absolute path of the directory to which all wrapper scripts were
         previously installed.
     '''
 
-    user_options = []
+    user_options = [
+        ('clean', None,
+         'clean PyInstaller cache of temporary paths before building'),
+    ]
     '''
     List of 3-tuples specifying command-line options accepted by this command.
+
+    For each such option, an attribute of the same name as such option's long
+    form *must* be explicitly initialized in method `initialize_options()`.
+    `setuptools` fails to recognize options for which this is *not* the case.
+    (You fail a simple sanity check yet again, `setuptools`.)
+
+    See Also
+    ----------
+    http://ilostmynotes.blogspot.ca/2009/04/python-distutils-installer-and.html
+        Inarguably, the best (albeit unofficial) documentation on such list.
     '''
 
     # ..................{ SUPERCLASS                         }..................
@@ -106,6 +122,7 @@ class freeze(Command, metaclass = ABCMeta):
         `self.set_undefined_options()` raises an inscrutable `setuptools`
         exception. (This is terrible. So much hate.)
         '''
+        self.clean = False
         self.install_scripts_dir = None
 
     def finalize_options(self):
@@ -163,6 +180,11 @@ class freeze(Command, metaclass = ABCMeta):
             '--workpath=' + pyinstaller_work_dirname,
             '--distpath=' + pyinstaller_dist_dirname,
         ]
+
+        # If the user passed the custom option "--clean" to the current
+        # setuptools command, pass such option on to "pyinstaller".
+        if self.clean:
+            pyinstaller_options_common.append('--clean')
 
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, _ in util.command_entry_points(self):
@@ -321,10 +343,18 @@ class freeze_dir(freeze):
 
     def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
-        Validate that the directory to be generated is *NOT* an existing file
+        Validate that the directory to be generated is *not* an existing file
         (e.g., due to a prior run of the `freeze_file` command).
+
+        Additionally, if such directory exists *and* the user passed option
+        `--clean`, such directory will be recursively deleted in a safe manner
+        (e.g., *not* following symbolic links outside such directory).
         '''
         util.die_unless_dir_or_not_found(frozen_pathname)
+
+        # If cleaning and such directory exists, remove such directory.
+        if self.clean and util.is_dir(frozen_pathname):
+            util.remove_dir(frozen_pathname)
 
     def _get_script_spec_basename(self, script_basename: str) -> str:
         assert isinstance(script_basename, str),\
@@ -355,10 +385,17 @@ class freeze_file(freeze):
 
     def _check_frozen_path(self, frozen_pathname: str) -> None:
         '''
-        Validate that the file to be generated is *NOT* an existing directory
+        Validate that the file to be generated is *not* an existing directory
         (e.g., due to a prior run of the "freeze_dir" command).
+
+        Additionally, if such file exists *and* the user passed option
+        `--clean`, such file will be deleted.
         '''
         util.die_unless_file_or_not_found(frozen_pathname)
+
+        # If cleaning and such file exists, remove such file.
+        if self.clean and util.is_file(frozen_pathname):
+            util.remove_file(frozen_pathname)
 
     def _get_script_spec_basename(self, script_basename: str) -> str:
         assert isinstance(script_basename, str),\
@@ -371,6 +408,13 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+#hasattr(self, 'clean')
+    # user_options = freeze.user_options
+    # user_options = [
+    #     ('clean', 'c',
+    #      'clean PyInstaller cache of temporary paths before building'),
+    # ]
+
 #  Note that
                 # "pyinstaller" supports substantially command-line options
                 # under this mode of operation than when passed a Python script.
