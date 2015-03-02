@@ -8,11 +8,10 @@ High-level application initialization common to both the CLI and GUI.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse import pathtree
+from betse import dependencies, pathtree
 from betse.util.io import loggers
-# from betse.util.python import dependencies
 
-# ....................{ INITIALIZATION                     }....................
+# ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
     Initialize the current application.
@@ -35,7 +34,7 @@ def init() -> None:
 
     # Configure logging *AFTER* creating such directories, as such logging
     # writes to files in such directories.
-    loggers.config.init()
+    loggers.config.init(filename = pathtree.LOG_DEFAULT_FILENAME)
     # self._logger.error('ERROR!')
     # self._logger.warning('WARNING!')
     # self._logger.info('INFO!')
@@ -47,6 +46,6 @@ def init() -> None:
 
     # Validate mandatory dependency *AFTER* configuring logging,
     # ensuring that exceptions raised by such validation will be logged.
-    # dependencies.die_unless_satisfied_all()
+    dependencies.init()
 
 # --------------------( WASTELANDS                         )--------------------

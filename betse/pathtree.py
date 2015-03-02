@@ -147,7 +147,8 @@ def _init_pathnames() -> None:
         DOT_DIRNAME = paths.join(HOME_DIRNAME, '.' + metadata.SCRIPT_NAME_CLI)
 
     # Absolute path of the default user-specific file with which `betse` logs.
-    LOG_DEFAULT_FILENAME = paths.join(DOT_DIRNAME, 'debug.log')
+    LOG_DEFAULT_FILENAME = paths.join(
+        DOT_DIRNAME, metadata.NAME.lower() + '.log')
 
     # Absolute path of the application-wide YAML file providing the default
     # tissue simulation configuration.

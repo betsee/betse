@@ -19,11 +19,22 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 from betse import metadata
 from betse.util.python import modules
 
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Initialize all mandatory runtime dependencies of `betse`.
+
+    Specifically:
+
+    * Raise an exception unless all such dependencies are currently satisfiable.
+    '''
+    die_unless_satisfiable()
+
 # ....................{ EXCEPTIONS                         }....................
-def die_unless_satisfied_all() -> None:
+def die_unless_satisfiable() -> None:
     '''
     Raise an exception unless mandatory runtime dependencies of `betse` are
-    **satisfied** (i.e., importable and of a satisfactory version).
+    **satisfiable** (i.e., importable and of a satisfactory version).
 
     Equivalently, an exception is raised if at least one such dependency is
     unsatisfied.

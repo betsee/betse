@@ -19,13 +19,6 @@
 #* Remove the existing file handler from the root logger.
 #* Create a new file handler writing to the passed file.
 #* Set such handler on the root logger.
-#
-#Why not simply pass such filename to such class's __init__()? Because the
-#desired log filename will only be available sometime after startup (e.g., after
-#parsing command-line arguments and/or configuration files), whereas we would
-#prefer that all LoggerConfig() objects come preconfigured with logfile output.
-#Why? Because this ensures that, in the event of sufficiently early exceptions,
-#there will still exist a logfile for clients to send us.
 
 '''
 Low-level logging facilities.
@@ -245,8 +238,10 @@ class LoggerConfig(object):
 
     Attributes
     ----------
-    is_initted : bool
+    _is_initted : bool
         True if the init() method has been previously called.
+    _log_filename : str
+        Absolute path of the file to which `_logger_root_handler_file` logs.
     _logger_root : Logger
         Root logger.
     _logger_root_handler_file : Handler
@@ -257,22 +252,28 @@ class LoggerConfig(object):
         Stream handler for the root logger printing to standard output.
     '''
     def __init__(self):
-        self.is_initted = False
+        self._is_initted = False
+        self._log_filename = None
         self._logger_root = None
         self._logger_root_handler_file = None
         self._logger_root_handler_stderr = None
         self._logger_root_handler_stdout = None
 
-    def init(self):
+    def init(self, filename: str):
         '''
-        Initialize the root logger for application-wide logging.
+        Initialize the root logger for application-wide logging to the passed
+        filename.
         '''
+        assert isinstance(filename, str),\
+            '"{}" not a string.'.format(filename)
         super().__init__()
 
         # Import modules required below.
-        from betse import pathtree
         from betse.util.system import processes
         from betse.util.type import ints
+
+        # Record such filename.
+        self._log_filename = filename
 
         # Root logger.
         logger_root = logging.getLogger()
@@ -300,12 +301,11 @@ class LoggerConfig(object):
         # logger having been insufficiently configured) or subtle errors in the
         # best case. Instead, create such directory with standard low-level
         # Python functions.
-        os.makedirs(
-            path.dirname(pathtree.LOG_DEFAULT_FILENAME), exist_ok = True)
+        os.makedirs(path.dirname(self._log_filename), exist_ok = True)
 
         # Root logger file handler, preconfigured as documented above.
         self._logger_root_handler_file = RotatingFileHandler(
-            filename = pathtree.LOG_DEFAULT_FILENAME,
+            filename = self._log_filename,
 
             # Append rather than overwrite such file.
             mode = 'a',
@@ -356,27 +356,42 @@ class LoggerConfig(object):
 
         # Report this object as having been initialized to callers *AFTER*
         # successfully performing the above initialization.
-        self.is_initted = False
+        self._is_initted = True
 
     # ..................{ PROPERTIES                         }..................
     @property
-    def file(self) -> logging.Handler:
+    def is_initted(self) -> bool:
         '''
-        Get the root logger handler appending to the current logfile.
+        True if the init() method has been previously called.
+        '''
+        return self._is_initted
+
+    @property
+    def filename(self) -> str:
+        '''
+        Absolute path of the file to which `_logger_root_handler_file` logs.
+        '''
+        return self._log_filename
+
+    # ..................{ PROPERTIES ~ handler               }..................
+    @property
+    def handler_file(self) -> logging.Handler:
+        '''
+        Root logger handler appending to the current logfile.
         '''
         return self._logger_root_handler_file
 
     @property
-    def stderr(self) -> logging.Handler:
+    def handler_stderr(self) -> logging.Handler:
         '''
-        Get the root logger handler printing to standard error.
+        Root logger handler printing to standard error.
         '''
         return self._logger_root_handler_stderr
 
     @property
-    def stdout(self) -> logging.Handler:
+    def handler_stdout(self) -> logging.Handler:
         '''
-        Get the root logger handler printing to standard output.
+        Root logger handler printing to standard output.
         '''
         return self._logger_root_handler_stdout
 
@@ -418,6 +433,13 @@ command-line arguments or configuration file settings).
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+#Why not simply pass such filename to such class's __init__()? Because the
+#desired log filename will only be available sometime after startup (e.g., after
+#parsing command-line arguments and/or configuration files), whereas we would
+#prefer that all LoggerConfig() objects come preconfigured with logfile output.
+#Why? Because this ensures that, in the event of sufficiently early exceptions,
+#there will still exist a logfile for clients to send us.
+
 # from betse.util.path import dirs
 # from betse.util.type import ints
 # and hence logging globally configured. at least once

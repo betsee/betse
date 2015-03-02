@@ -15,6 +15,7 @@ from betse.cli import help
 from betse.util.io import loggers, stderr
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
+from betse.util.type import regexes, strs
 from io import StringIO
 import sys, traceback
 
@@ -154,7 +155,7 @@ class CLI(metaclass = ABCMeta):
         # If verbosity was requested, decrease the log level for the stdout-
         # specific logger handler from default "INFO" to all-inclusive "ALL".
         if self._args.is_verbose:
-            loggers.config.stdout.setLevel(loggers.ALL)
+            loggers.config.handler_stdout.setLevel(loggers.ALL)
 
     def _format_help_template(self, text: str) -> str:
         '''
@@ -184,6 +185,11 @@ class CLI(metaclass = ABCMeta):
             '"{}" not an exception.'.format(exception)
 
         try:
+            # Log a descriptive header as an error, thus printing such header to
+            # standard error as well by default.
+            loggers.log_error(
+                'Exiting prematurely due to fatal error:\n')
+
             # While all loggers provide an exception() method for logging
             # exceptions, the output produced by such method is in the same
             # format as that produced by the Python interpreter on uncaught
@@ -207,66 +213,101 @@ class CLI(metaclass = ABCMeta):
             exception_parents = traceback._iter_chain(
                 exception, exception_traceback)
 
-            # String buffer formatting such exception and all parents of
-            # such exception in the current exception chain.
-            exception_string_buffer = StringIO()
+            # String buffer to be printed to standard error, formatting such
+            # exception and all parents of such exception in the current
+            # exception chain in a user-centric [read: terse] manner.
+            stderr_buffer = StringIO()
 
-            # Begin such string with a descriptive header.
-            exception_string_buffer.write(
-                'Halting prematurely due to uncaught exception:\n\n')
+            # String buffer to be logged to the current logfile, formatting
+            # such metadata in a developer-centric [read: verbose] manner.
+            log_buffer = StringIO()
 
             # Append each parent exception and such exception's traceback.
             for exception_parent, exception_parent_traceback in\
                 exception_parents:
-                # If such exception is a string, append such string as is
-                # and continue to the next parent.
+                # If such exception is a string, append such string to such
+                # buffers as is and continue to the next parent.
                 if isinstance(exception_parent, str):
-                    exception_string_buffer.write(exception_parent)
-                    exception_string_buffer.write('\n')
+                    stderr_buffer.write(exception_parent + '\n')
+                    log_buffer   .write(exception_parent + '\n')
                     continue
 
-                # Append such exception's message.
-                exception_string_buffer.write(''.join(
-                    traceback.format_exception_only(
-                        type(exception_parent), exception_parent)
-                ))
+                # List of exception message lines, excluding traceback and hence
+                # consisting only of such exception type and original message.
+                exception_message_lines = traceback.format_exception_only(
+                    type(exception_parent), exception_parent)
 
-                # If such exception has a traceback, append such traceback.
+                # Append such message to the log buffer *BEFORE* appending such
+                # message to the standard error buffer. (The latter requires
+                # truncating such message for human-readability.)
+                log_buffer.write(strs.join(exception_message_lines))
+
+                # Strip the non-human-readable exception class from the last
+                # line of such message. If such exception is not None *AND* is
+                # convertable without raising exceptions to a string, both
+                # format_exception_only() and _format_final_exc_line() guarantee
+                # such line to be formatted as follows:
+                #     "${exception_class}: ${exception_message}"
+                assert len(exception_message_lines),\
+                    'Exception message lines empty.'
+                exception_message_lines[-1] = regexes.remove_substrings(
+                    exception_message_lines[-1],
+                    '^{}:\s+'.format(regexes.PYTHON_IDENTIFIER_REGEX_RAW),
+                )
+
+                # Append such message to the standard error buffer. For
+                # readability, wrap such message to the default terminal width
+                # and prefix each wrapped line with indentation.
+                stderr_buffer.write(
+                    strs.wrap_lines(
+                        lines = exception_message_lines,
+                        line_prefix = '    ',))
+
+                # If such exception has a traceback, append such traceback to
+                # such log but *NOT* standard error buffer.
                 if exception_parent_traceback:
                     # Append a traceback header.
-                    exception_string_buffer.write('\n')
-                    exception_string_buffer.write(
-                        'Traceback (most recent call last):\n')
+                    log_buffer.write('\nTraceback (most recent call last):\n')
 
-                    # Append such traceback itself.
-                    exception_string_buffer.write(''.join(
-                        # Get a list of lines formatted from such list.
+                    # Append such traceback.
+                    log_buffer.write(strs.join(
+                        # List of lines formatted from such list.
                         traceback.format_list(
-                            # Get a list of stack trace entries from such
-                            # traceback.
+                            # List of stack trace entries from such traceback.
                             traceback.extract_tb(
                                 exception_parent_traceback))))
 
-            # Append a random error haiku.
-            exception_string_buffer.write('\n')
-            exception_string_buffer.write(stderr.get_haiku_random())
+            # Append a logfile reference to such standard error message.
+            stderr_buffer.write('\n\nFor details, see "{}".'.format(
+                loggers.config.filename))
 
-            # Exception string.
-            exception_string = exception_string_buffer.getvalue()
+            # Append a random error haiku to such log message.
+            log_buffer.write('\n' + stderr.get_haiku_random())
 
-            # If a logger has been initialized, print such exception by logging
-            # such exception. Assuming such logger retains its default
-            # configuration, such exception will be propagated up to the root
-            # logger and then handled by the stderr handler.
+            # Exception messages.
+            stderr_message = stderr_buffer.getvalue()
+            log_message = log_buffer.getvalue()
+
+            # If a logger has been initialized, log such exception as a debug
+            # message. Unless the user explicitly passed command-line option
+            # "--verbose" to this script, logging with the debug level confines
+            # such traceback to the logfile. This is a (largely) good thing;
+            # tracebacks convey more details than expected by customary users.
             if loggers.config.is_initted:
-                loggers.log_error(exception_string)
-            # Else, print such exception to stderr.
+                # Log such message.
+                loggers.log_debug(log_message)
+
+                # Print such message to standard error.
+                stderr.output(stderr_message)
+            # Else, print such exception to standard error. Since the log
+            # message is more verbose than and hence subsumes the standard error
+            # message, print only the former.
             else:
-                stderr.output(exception_string)
+                stderr.output(log_message)
         # If such printing raises an exception, catch and print such exception
         # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
-            stderr.output('print_exception() recursively raised exception:\n')
+            stderr.output('_print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
     # ..................{ SUBCLASS ~ mandatory               }..................
@@ -289,6 +330,27 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+            # raise Exception('Governments, if they endure, always tend increasingly toward aristocratic forms. No government in history has been known to evade this pattern. And as the aristocracy develops, government tends more and more to act exclusively in the interests of the ruling class -- whether that class be hereditary royalty, oligarchs of financial empires, or entrenched bureaucracy.')
+            # Initialize such buffers with descriptive headers.
+            # stderr_buffer.write(
+            #     'Exiting prematurely due to fatal error:\n\n')
+            # log_buffer.write(
+            #     'Halting prematurely due to uncaught exception:\n\n')
+
+            # Initialize such buffers with descriptive headers.
+            # stderr_buffer.write(
+            #     'Exiting prematurely due to fatal error:\n\n')
+            # log_buffer.write(
+            #     'Halting prematurely due to uncaught exception:\n\n')
+
+                # Exception message concatenated from such lines.
+                # exception_message = ''.join(exception_message_lines)
+
+            # are likely to feel comfortable viewing.
+            # from being printed to either standard output or error.
+            # Assuming such logger retains its default
+            # configuration, such exception will be propagated up to the root
+            # logger and then handled by the stderr handler.
     # ..................{ LOGGING                            }..................
     #         self._configure_logging()
     # def _configure_logging(self) -> None:
