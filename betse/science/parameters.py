@@ -437,7 +437,7 @@ class Parameters(object):
         self.ion_profile = self.config['general options']['ion profile']
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = self.config['general options']['Ca dynamics']
+        self.Ca_dyn = self.config['Ca dynamics']
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = self.config['general options']['HKATPase pump']
@@ -483,65 +483,65 @@ class Parameters(object):
         elif bool_Kenv == True:
             on_Kenv = float(self.config['change K env']['change start'])
             off_Kenv = float(self.config['change K env']['change finish'])
-            rate_Kenv = self.config['change K env']['change rate']
-            multi_Kenv = self.config['change K env']['multiplier']
+            rate_Kenv = float(self.config['change K env']['change rate'])
+            multi_Kenv = float(self.config['change K env']['multiplier'])
             kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
             self.global_options['K_env'] = kenv
 
         if bool_Clenv == False:
             self.global_options['Cl_env'] = 0
         elif bool_Clenv == True:
-            on_Clenv = self.config['change Cl env']['change start']
-            off_Clenv = self.config['change Cl env']['change finish']
-            rate_Clenv = self.config['change Cl env']['change rate']
-            multi_Clenv = self.config['change Cl env']['multiplier']
+            on_Clenv = float(self.config['change Cl env']['change start'])
+            off_Clenv = float(self.config['change Cl env']['change finish'])
+            rate_Clenv = float(self.config['change Cl env']['change rate'])
+            multi_Clenv = float(self.config['change Cl env']['multiplier'])
             Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
             self.global_options['Cl_env'] = Clenv
 
         if bool_Naenv == False:
             self.global_options['Na_env'] = 0
         elif bool_Naenv == True:
-            on_Naenv = self.config['change Na env']['change start']
-            off_Naenv = self.config['change Na env']['change finish']
-            rate_Naenv = self.config['change Na env']['change rate']
-            multi_Naenv = self.config['change Na env']['multiplier']
+            on_Naenv = float(self.config['change Na env']['change start'])
+            off_Naenv = float(self.config['change Na env']['change finish'])
+            rate_Naenv = float(self.config['change Na env']['change rate'])
+            multi_Naenv = float(self.config['change Na env']['multiplier'])
             Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
             self.global_options['Na_env'] = Naenv
 
         if bool_gjblock == False:
             self.global_options['gj_block'] = 0
         elif bool_gjblock == True:
-            on_gj = self.config['block gap junctions']['change start']
-            off_gj = self.config['block gap junctions']['change finish']
-            rate_gj = self.config['block gap junctions']['change rate']
+            on_gj = float(self.config['block gap junctions']['change start'])
+            off_gj = float(self.config['block gap junctions']['change finish'])
+            rate_gj = float(self.config['block gap junctions']['change rate'])
             gjb = [on_gj,off_gj,rate_gj]
             self.global_options['gj_block'] = gjb
 
         if bool_temp == False:
             self.global_options['T_change'] = 0
         elif bool_temp == True:
-            on_T = self.config['change temperature']['change start']
-            off_T = self.config['change temperature']['change finish']
-            rate_T = self.config['change temperature']['change rate']
-            multi_T = self.config['change temperature']['multiplier']
+            on_T = float(self.config['change temperature']['change start'])
+            off_T = float(self.config['change temperature']['change finish'])
+            rate_T = float(self.config['change temperature']['change rate'])
+            multi_T = float(self.config['change temperature']['multiplier'])
             temper = [on_T, off_T, rate_T, multi_T]
             self.global_options['T_change'] = temper
 
         if bool_NaKblock == False:
             self.global_options['NaKATP_block'] = 0
         elif bool_NaKblock == True:
-            on_nak = self.config['block NaKATP pump']['change start']
-            off_nak = self.config['block NaKATP pump']['change finish']
-            rate_nak = self.config['block NaKATP pump']['change rate']
+            on_nak = float(self.config['block NaKATP pump']['change start'])
+            off_nak = float(self.config['block NaKATP pump']['change finish'])
+            rate_nak = float(self.config['block NaKATP pump']['change rate'])
             nak = [on_nak,off_nak,rate_nak]
             self.global_options['NaKATP_block'] = nak
 
         if bool_HKblock == False:
             self.global_options['HKATP_block'] = 0
         elif bool_HKblock == True:
-            on_hk = self.config['block HKATP pump']['change start']
-            off_hk = self.config['block HKATP pump']['change finish']
-            rate_hk = self.config['block HKATP pump']['change rate']
+            on_hk = float(self.config['block HKATP pump']['change start'])
+            off_hk = float(self.config['block HKATP pump']['change finish'])
+            rate_hk = float(self.config['block HKATP pump']['change rate'])
             hk = [on_hk,off_hk,rate_hk]
             self.global_options['HKATP_block'] = hk
 
@@ -557,50 +557,50 @@ class Parameters(object):
         if bool_Namem == False:
             self.scheduled_options['Na_mem'] = 0
         elif bool_Namem == True:
-            on_Namem = self.config['change Na mem']['change start']
-            off_Namem = self.config['change Na mem']['change finish']
-            rate_Namem = self.config['change Na mem']['change rate']
-            multi_Namem = self.config['change Na mem']['multiplier']
+            on_Namem = float(self.config['change Na mem']['change start'])
+            off_Namem = float(self.config['change Na mem']['change finish'])
+            rate_Namem = float(self.config['change Na mem']['change rate'])
+            multi_Namem = float(self.config['change Na mem']['multiplier'])
             Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem]
             self.scheduled_options['Na_mem'] = Namem
 
         if bool_Kmem == False:
             self.scheduled_options['K_mem'] = 0
         elif bool_Kmem == True:
-            on_Kmem = self.config['change K mem']['change start']
-            off_Kmem = self.config['change K mem']['change finish']
-            rate_Kmem = self.config['change K mem']['change rate']
-            multi_Kmem = self.config['change K mem']['multiplier']
+            on_Kmem = float(self.config['change K mem']['change start'])
+            off_Kmem = float(self.config['change K mem']['change finish'])
+            rate_Kmem = float(self.config['change K mem']['change rate'])
+            multi_Kmem = float(self.config['change K mem']['multiplier'])
             Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem]
             self.scheduled_options['K_mem'] = Kmem
 
         if bool_Clmem == False:
             self.scheduled_options['Cl_mem'] = 0
         elif bool_Clmem == True:
-            on_Clmem = self.config['change Cl mem']['change start']
-            off_Clmem = self.config['change Cl mem']['change finish']
-            rate_Clmem = self.config['change Cl mem']['change rate']
-            multi_Clmem = self.config['change Cl mem']['multiplier']
+            on_Clmem = float(self.config['change Cl mem']['change start'])
+            off_Clmem = float(self.config['change Cl mem']['change finish'])
+            rate_Clmem = float(self.config['change Cl mem']['change rate'])
+            multi_Clmem = float(self.config['change Cl mem']['multiplier'])
             Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem]
             self.scheduled_options['Cl_mem'] = Clmem
 
         if bool_Camem == False:
             self.scheduled_options['Ca_mem'] = 0
         elif bool_Camem == True:
-            on_Camem = self.config['change Ca mem']['change start']
-            off_Camem = self.config['change Ca mem']['change finish']
-            rate_Camem = self.config['change Ca mem']['change rate']
-            multi_Camem = self.config['change Ca mem']['multiplier']
+            on_Camem = float(self.config['change Ca mem']['change start'])
+            off_Camem = float(self.config['change Ca mem']['change finish'])
+            rate_Camem = float(self.config['change Ca mem']['change rate'])
+            multi_Camem = float(self.config['change Ca mem']['multiplier'])
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem]
             self.scheduled_options['Ca_mem'] = Camem
 
         if bool_ip3 == False:
             self.scheduled_options['IP3'] = 0
         elif bool_ip3 == True:
-            on_ip3 = self.config['produce IP3']['change start']
-            off_ip3 = self.config['produce IP3']['change finish']
-            rate_ip3 = self.config['produce IP3']['change rate']
-            multi_ip3 = self.config['produce IP3']['multiplier']
+            on_ip3 = float(self.config['produce IP3']['change start'])
+            off_ip3 = float(self.config['produce IP3']['change finish'])
+            rate_ip3 = float(self.config['produce IP3']['change rate'])
+            multi_ip3 = float(self.config['produce IP3']['multiplier'])
             ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3]
             self.scheduled_options['IP3'] = ip3
 
@@ -622,15 +622,15 @@ class Parameters(object):
         opCa = self.config['gated ion channel options']['voltage gated Ca']
         opcK = self.config['gated ion channel options']['calcium gated K']
 
-        vgNa = [opNa['max Dmem Na'],opNa['activation v'],opNa['inactivation v'],opNa['deactivation v'],
-            opNa['live time'],opNa['dead time']]
+        vgNa = [float(opNa['max Dmem Na']),float(opNa['activation v']),float(opNa['inactivation v']),float(opNa['deactivation v']),
+            float(opNa['live time']),float(opNa['dead time'])]
 
-        vgK = [opK['max Dmem K'],opK['activation v'],opK['deactivation v'],opK['live time']]
+        vgK = [float(opK['max Dmem K']),float(opK['activation v']),float(opK['deactivation v']),float(opK['live time'])]
 
-        vgCa = [opCa['max Dmem Ca'],opCa['activation v'],opCa['inactivation v'],opCa['inactivation Ca'],
-            opCa['reactivation Ca']]
+        vgCa = [float(opCa['max Dmem Ca']),float(opCa['activation v']),float(opCa['inactivation v']),float(opCa['inactivation Ca']),
+            float(opCa['reactivation Ca'])]
 
-        cagK = [opcK['max Dmem K'],opcK['hill K_half'],opcK['hill n']]
+        cagK = [float(opcK['max Dmem K']),float(opcK['hill K_half']),float(opcK['hill n'])]
 
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
@@ -1019,7 +1019,6 @@ class Parameters(object):
             self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
             self.cM_er = -self.cCa_er
 
-
     def set_time_profile(self,time_profile):
 
         if time_profile == 'simulate somatic':
@@ -1083,7 +1082,6 @@ class Parameters(object):
             self.method = 0
             self.gj_radius = float(self.config['sim time settings']['custom sim time profile']['gap junction radius'])
             self.gjsa = math.pi*((self.gj_radius)**2)
-
 
 def get_colormap(colormap_name: str) -> Colormap:
     '''

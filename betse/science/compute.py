@@ -675,7 +675,7 @@ class Simulator(object):
                 if p.Ca_dyn ==1:
 
                     self.cc_er[0],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol,cells.cell_sa,
+                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],cells.cell_sa,p.ER_vol*cells.cell_vol,
                             cells.cell_vol,self.v_er,self.T,p,self.CaER_block)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
@@ -960,7 +960,7 @@ class Simulator(object):
                 if p.Ca_dyn ==1:
 
                     self.cc_er[0],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],p.ER_vol*cells.cell_vol, cells.cell_sa,
+                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],cells.cell_sa,p.ER_vol*cells.cell_vol,
                             cells.cell_vol,self.v_er,self.T,p,self.CaER_block)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
@@ -1280,7 +1280,7 @@ class Simulator(object):
 
             self.cc_env[self.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
-        if p.global_options['Cl_env'] != 0:
+        if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
 
             effector_Clenv = pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
@@ -1859,7 +1859,7 @@ def pumpCaER(cCai,cCao,sa,voli,volo,Vm,T,p,block):
     # f_Ca[inds_forwards]  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
     # f_Ca[inds_backwards]  = -alpha*(cCao)      #flux as [mol/s], scaled to concentration out of cell
 
-    alpha = sa*block*p.alpha_CaER
+    alpha = sa*p.alpha_CaER
 
     f_Ca  = alpha*(cCao)*(1.0 - cCai)      #flux as [mol/s]
 
