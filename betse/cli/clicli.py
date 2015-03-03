@@ -13,6 +13,7 @@ from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
 from betse.util.io import loggers
+from betse.util.path import files
 from betse.util.python import pythons
 from betse.util.system import processes, systems
 from collections import OrderedDict
@@ -73,8 +74,6 @@ class CLICLI(CLI):
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
-
-        #FIXME: Implement me.
 
         self._add_arg_subparser_top(
             name = 'try',
@@ -280,6 +279,32 @@ class CLICLI(CLI):
         loggers.log_info(info_buffer.getvalue())
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
+    #FIXME: This could probably use a bit of help. Specifically, the sample
+    #configuration file should be munged so as to *NOT* display plots after
+    #initialization. We think. Hopefully not terribly arduous. *shrug*
+
+    def _run_try(self) -> None:
+        '''
+        Run the `try` subcommand.
+        '''
+        # Basename of the sample configuration file to be created. Since no
+        # dirname for such file is specified, such file will be created in the
+        # current directory.
+        self._args.sim_config_filename = 'sample_sim.yaml'
+
+        # If such file already exists, reuse such file.
+        if files.is_file(self._args.sim_config_filename):
+            loggers.log_info(
+                'Reusing simulation configuration "{}".'.format(
+                    self._args.sim_config_filename))
+        # Else, create such file.
+        else:
+            self._run_sim_cfg()
+
+        # Initialize and run such simulation.
+        self._run_sim_init()
+        self._run_sim_run()
+
     def _run_sim(self) -> None:
         '''
         Run the `sim` subcommand.

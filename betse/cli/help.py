@@ -59,10 +59,12 @@ Help string template for the `info` subcommand.
 
 TEMPLATE_SUBCOMMAND_TRY = '''
 Run a sample tissue simulation by automatically creating a default configuration
-file and initializing, running, and plotting the simulation configured by such
-file. This command is shorthand for the following:
+file and initializing, running, and plotting the simulation specified by such
+file. This subcommand is shorthand for the following:
 
-;    {script_basename} sim cfg init run plot my_sim.yaml
+;    {script_basename} sim cfg  sample_sim.yaml
+;    {script_basename} sim init sample_sim.yaml
+;    {script_basename} sim run  sample_sim.yaml
 '''
 '''
 Help string template for the `try` subcommand.

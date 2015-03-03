@@ -77,21 +77,6 @@ def is_special(pathname: str) -> bool:
     )
 
 # ....................{ GETTERS                            }....................
-def get_dirname(pathname: str) -> str:
-    '''
-    Get the *dirname* (i.e., parent directory) of the passed path if such path
-    has a dirname or None otherwise.
-    '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
-
-    # Such dirname.
-    dirname = path.dirname(pathname)
-
-    # Get such dirname. Since path.dirname() returns the empty string rather
-    # than None for paths without a dirname, convert the former to the latter.
-    return dirname if dirname else None
-
 def get_basename(pathname: str) -> str:
     '''
     Get the **basename** (i.e., last component) of the passed path.
@@ -117,6 +102,23 @@ def get_filetype(pathname: str) -> str:
     # Get such filetype, stripping the prefixing "." from the string returned by
     # the prior call if such path has a filetype or otherwise returning None.
     return filetype[1:] if filetype else None
+
+# ....................{ GETTERS ~ dirname                  }....................
+def get_dirname(pathname: str) -> str:
+    '''
+    Get the *dirname* (i.e., parent directory) of the passed path if such path
+    has a dirname or None otherwise.
+    '''
+    return get_dirname_or_empty(pathname) or None
+
+def get_dirname_or_empty(pathname: str) -> str:
+    '''
+    Get the *dirname* (i.e., parent directory) of the passed path if such path
+    has a dirname or the empty string otherwise.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+    return path.dirname(pathname)
 
 # ....................{ CANONICALIZERS                     }....................
 def canonicalize(pathname: str) -> str:
@@ -149,6 +151,15 @@ def join(*pathnames) -> str:
     return path.join(*pathnames)
 
 # --------------------( WASTELANDS                         )--------------------
+    # assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    # assert len(pathname), 'Pathname empty.'
+    #
+    # # Such dirname.
+    # dirname = path.dirname(pathname)
+    #
+    # # Get such dirname. Since path.dirname() returns the empty string rather
+    # # than None for paths without a dirname, convert the former to the latter.
+    # return dirname if dirname else None
 #FUXME: Obviously insufficient. This should also test whether such path is a
 
 # ....................{ REMOVERS                           }....................

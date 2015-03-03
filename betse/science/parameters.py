@@ -22,12 +22,13 @@ class Parameters(object):
     plotting.
     '''
     def __init__(self, config_filename: str):
-
         #self.inbuiltInit()
-        self.yamlconfigInit(config_filename)
+        self._yamlConfigInit(config_filename)
 
     def inbuiltInit(self):
-
+        '''
+        Initialize parameters to sane hardcoded defaults.
+        '''
         self.time_profile_init = 'initialize'        # choose time profile for initialization sim
         self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'
 
@@ -378,13 +379,16 @@ class Parameters(object):
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
-    def yamlconfigInit(self, config_filename: str):
-
+    def _yamlConfigInit(self, config_filename: str):
+        '''
+        Initialize parameters from the passed YAML-formatted configuration file.
+        '''
         # Dictionary loaded from such YAML file.
         self.config = simconfig.load(config_filename)
 
-        # Absolute path of the parent directory of such file.
-        config_dirname = paths.get_dirname(config_filename)
+        # Absolute path of the parent directory of such file or the empty string
+        # if such file has no dirname (e.g., "sim_config.yaml").
+        config_dirname = paths.get_dirname_or_empty(config_filename)
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -393,7 +397,7 @@ class Parameters(object):
         self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
         self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
 
-        # define paths for saving different kinds of files:
+        # Define paths for saving different kinds of files.
         self.init_path = paths.join(
             config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = paths.join(

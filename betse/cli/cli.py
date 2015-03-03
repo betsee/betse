@@ -290,15 +290,7 @@ class CLI(metaclass = ABCMeta):
             log_message = log_buffer.getvalue()
 
             # True if the user requested verbosity.
-            is_verbose = getattr(self._args, 'is_verbose', True)
-            # is_verbose = getattr(self._args, 'is_verbose', False)
-
-            # If either the user requested verbosity *OR* no loggers have been
-            # initialized, print such exception to standard error. Since the log
-            # message is more verbose than and hence subsumes the standard error
-            # message, only the former is printed.
-            if is_verbose or not loggers.config.is_initted:
-                stderr.output(log_message)
+            is_verbose = getattr(self._args, 'is_verbose', False)
 
             # If a logger has been initialized, log such exception as a debug
             # message. Unless the user explicitly passed command-line option
@@ -313,6 +305,11 @@ class CLI(metaclass = ABCMeta):
                 # to standard error.
                 if not is_verbose:
                     stderr.output(stderr_message)
+            # Else, print such exception to standard error. Since the log
+            # message is more verbose than and hence subsumes the standard error
+            # message, only the former is printed.
+            else:
+                stderr.output(log_message)
         # If such printing raises an exception, catch and print such exception
         # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
@@ -346,6 +343,13 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+            # is_verbose = getattr(self._args, 'is_verbose', False)
+            # If either the user requested verbosity *OR* no loggers have been
+            # initialized, print such exception to standard error. Since the log
+            # message is more verbose than and hence subsumes the standard error
+            # message, only the former is printed.
+            # if is_verbose or not loggers.config.is_initted:
+            #     stderr.output(log_message)
             # Help text printed *AFTER* all other output when such script is
             # passed no command-line arguments.
             # epilog = self._format_help_template(help.TEMPLATE_EPILOG),
