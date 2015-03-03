@@ -8,7 +8,6 @@ Low-level regular expression (regex) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from sre_parse import Pattern
 import re
 
 # ....................{ CONSTANTS ~ python                 }....................
@@ -18,10 +17,21 @@ Character class (excluding `[` and `]` delimiters) matching any character of a
 **Python identifier** (i.e., class, function, module, or variable name).
 '''
 
-PYTHON_IDENTIFIER_REGEX_RAW = r'[{}]+'.format(PYTHON_IDENTIFIER_CHAR_CLASS)
+PYTHON_IDENTIFIER_UNQUALIFIED_REGEX_RAW = r'[{}]+'.format(
+    PYTHON_IDENTIFIER_CHAR_CLASS)
 '''
-Uncompiled regular expression matching a **Python identifier** (i.e., class,
-function, module, or variable name).
+Uncompiled regular expression matching an **unqualified Python identifier**
+(i.e., class, function, module, or variable name *not* prefixed by a package or
+module name).
+'''
+
+PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW =\
+    r'(?:{identifier_unqualified}\.)*{identifier_unqualified}'.format(
+        identifier_unqualified = PYTHON_IDENTIFIER_UNQUALIFIED_REGEX_RAW)
+'''
+Uncompiled regular expression matching an **qualified Python identifier**
+(i.e., class, function, module, or variable name possibly prefixed by a package
+or module name).
 '''
 
 # ....................{ REPLACERS                          }....................
@@ -64,6 +74,7 @@ def substitute_substrings(text: str, regex, substitution, **kwargs) -> str:
     return re.sub(regex, substitution, text, **kwargs)
 
 # --------------------( WASTELANDS                         )--------------------
+# from sre_parse import Pattern
     # if isinstance(regex, Pattern):
     # assert isinstance(substitution, str), '"{}" not a string.'.format(
     #     substitution)

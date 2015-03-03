@@ -51,6 +51,10 @@ def write_default(filename: str) -> None:
     loggers.log_info(
         'Writing default simulation configuration to "{}".'.format(basename))
 
+    # If such file already exists, fail. (For safety, we avoid silently
+    # overwriting existing files.)
+    files.die_if_found(filename)
+
     # If such filename's is *NOT* suffixed by ".yaml", log a warning.
     if filetype != 'yaml':
         loggers.log_warning(
@@ -61,10 +65,7 @@ def write_default(filename: str) -> None:
     dirs.make_parent_unless_found(filename)
 
     # Copy the default configuration file to such file.
-    files.copy(
-        pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME,
-        filename,
-    )
+    files.copy(pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME, filename)
 
 # --------------------( WASTELANDS                         )--------------------
 # ....................{ GETTERS                            }....................

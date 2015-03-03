@@ -39,42 +39,44 @@ class CLICLI(CLI):
 
     Attributes
     ----------
-    _arg_subparsers : ArgumentParser
-        `argparse`-specific list of subparsers parsing top-level subcommands
-        (e.g., `sim`).
+    _arg_subparsers_top : ArgumentParser
+        Subparsers parsing top-level subcommands (e.g., `sim`).
+    _arg_subparsers_sim : ArgumentParser
+        Subparsers parsing `sim` subcommands (e.g., `cfg`).
     _arg_parser_sim : ArgumentParser
-        `argparse`-specific subparser of command-line arguments passed to the
-        `sim` subcommand.
-    _sim_runner : SimRunner
-        Simulation specified by the YAML configuration file passed as a command-
-        line argument to the `sim` subcommand.
+        Subparser of arguments passed to the `sim` subcommand.
     '''
     def __init__(self):
         super().__init__()
 
-        self._arg_subparsers = None
+        # For safety, initialize such attributes.
+        self._arg_subparsers_top = None
+        self._arg_subparsers_sim = None
         self._arg_parser_sim = None
-        self._sim_runner = None
 
     # ..................{ SUPERCLASS                         }..................
+    def _get_arg_parser_top_kwargs(self):
+        return {
+            'epilog': help.TEMPLATE_SUBCOMMANDS_SUFFIX,
+        }
+
     def _configure_arg_parsing(self):
-        # List of argument subparsers parsing arguments for root subcommands.
-        self._arg_subparsers = self._arg_parser.add_subparsers(
-            # Name of the attribute storing the passed command name.
-            dest = 'command_name',
+        # Top-level subcommands.
+        self._arg_subparsers_top = self._arg_parser.add_subparsers(
+            # Name of the attribute storing the passed subcommand name.
+            dest = 'top_command_name',
 
             # Title of the subcommand section in help output.
             title = 'subcommands',
 
-            # Description of the subcommand section in help output.
+            # Description to be printed *BEFORE* subcommand help.
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMANDS),
+                help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
 
-        # ................{ SUBPARSER ~ sim                    }................
         #FIXME: Implement me.
 
-        self._add_subparser(
+        self._add_arg_subparser_top(
             name = 'try',
             help = 'run a sample tissue simulation',
             description = self._format_help_template(
@@ -82,8 +84,7 @@ class CLICLI(CLI):
         )
         self._configure_arg_parsing_sim()
 
-        # ................{ SUBPARSER ~ info                   }................
-        self._add_subparser(
+        self._add_arg_subparser_top(
             name = 'info',
             help = 'print informational metadata about the program',
             description = self._format_help_template(
@@ -95,14 +96,14 @@ class CLICLI(CLI):
         Run `betse`'s command line interface (CLI).
         '''
         # If no subcommand was passed, print help output and return.
-        if not self._args.command_name:
+        if not self._args.top_command_name:
             self._arg_parser.print_help()
             return
 
         # Else, a subcommand was passed.
         #
         # Name of the method running such subcommand.
-        subcommand_method_name = '_run_' + self._args.command_name
+        subcommand_method_name = '_run_' + self._args.top_command_name
 
         # Method running such subcommand. If such method does *NOT* exist,
         # getattr() will raise a non-layman-readable exception. Typically, this
@@ -113,45 +114,111 @@ class CLICLI(CLI):
         # Run such subcommand.
         subcommand_method()
 
-    # ..................{ SUBPARSERS                         }..................
-    def _add_subparser(self, *args, **kwargs) -> ArgumentParser:
+    # ..................{ SUBCOMMAND ~ sim                   }..................
+    def _configure_arg_parsing_sim(self):
         '''
-        Add and return a top-level command-line argument subparser, initialized
-        with the passed positional and keyword arguments.
+        Configure argument parsing for the `sim` subcommand.
+        '''
+        # Such subcommand.
+        self._arg_parser_sim = self._add_arg_subparser_top(
+            name = 'sim',
+            help = 'run tissue simulation subcommand',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM),
+        )
+
+        # Collection of all subcommands of such subcommand.
+        self._arg_subparsers_sim = self._arg_parser_sim.add_subparsers(
+            # Name of the attribute storing the passed subcommand name.
+            dest = 'sim_command_name',
+
+            # Title of the subcommand section in help output.
+            title = 'simulation subcommands',
+
+            # Description to be printed *BEFORE* subcommand help.
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMANDS_PREFIX),
+        )
+
+        # Such subcommands.
+        self._add_arg_subparser_sim(
+            name = 'cfg',
+            help = 'write new simulation configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM_CFG),
+        )
+        self._add_arg_subparser_sim(
+            name = 'init',
+            help = 'initialize simulation specified by configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM_INIT),
+        )
+        self._add_arg_subparser_sim(
+            name = 'run',
+            help = 'run initialized simulation specified by configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM_RUN),
+        )
+        self._add_arg_subparser_sim(
+            name = 'plot_init',
+            help = 'plot initialized simulation specified by configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM_PLOT_INIT),
+        )
+        self._add_arg_subparser_sim(
+            name = 'plot_run',
+            help = 'plot simulation run specified by configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_SIM_PLOT_INIT),
+        )
+
+    # ..................{ SUBPARSER                          }..................
+    def _add_arg_subparser_top(self, *args, **kwargs) -> ArgumentParser:
+        '''
+        Create a new argument subparser, add such subparser to the collection of
+        top-level argument subparsers, and return such subparser.
+        '''
+        return self._add_arg_subparser(
+            self._arg_subparsers_top, *args, **kwargs)
+
+    def _add_arg_subparser_sim(self, *args, **kwargs) -> ArgumentParser:
+        '''
+        Create a new argument subparser, add such subparser to the collection of
+        argument subparsers specific to the top-level `sim` subcommand, and
+        return such subparser.
+        '''
+        # Create such subparser.
+        arg_subparser_sim = self._add_arg_subparser(
+            self._arg_subparsers_sim, *args, **kwargs)
+
+        # Configure such subparser to require a passed configuration file.
+        arg_subparser_sim.add_argument(
+            'sim_config_filename',
+            metavar = 'CONFIG_FILE',
+            help = 'simulation configuration file',
+        )
+
+        # Get such subparser.
+        return arg_subparser_sim
+
+    def _add_arg_subparser(
+        self, arg_subparsers, *args, **kwargs) -> ArgumentParser:
+        '''
+        Create a new **argument subparser** (i.e., an `argparse`-specific object
+        responsible for parsing a single command-line argument), add such
+        subparser to the passed **argument subparsers** (i.e., another
+        `argparse`-specific object cotaining multiple subparsers), and return
+        such subparser.
+
+        All remaining positional and keyword arguments are passed as is to such
+        subparser's `__init__()` method.
         '''
         # Extend the passed dictionary of keyword arguments with the dictionary
         # of preinitialized keyword arguments.
         kwargs.update(self._arg_parser_kwargs)
 
         # Add such subparser.
-        return self._arg_subparsers.add_parser(*args, **kwargs)
-
-    def _configure_arg_parsing_sim(self):
-        '''
-        Configure argument parsing for the `sim` subcommand.
-        '''
-        # Create and return a new simulation-specific argument subparser
-        # initialized with the set of passed keyword parameters.
-        #
-        # Such subparser will be preconfigured to parse options `-c` and
-        # `--config-file`, specifying such simulation's configuration file.
-        self._arg_parser_sim = self._add_subparser(
-            name = 'sim',
-            help = 'run tissue simulation subcommand(s)',
-            description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM),
-        )
-        self._arg_parser_sim.add_argument(
-            'sim_subcommand_names',
-            nargs = '+',
-            metavar = 'SUBCOMMAND_NAME',
-            help = 'simulation subcommand(s) to be run',
-        )
-        self._arg_parser_sim.add_argument(
-            'sim_config_filename',
-            metavar = 'CONFIG_FILE',
-            help = 'simulation configuration file',
-        )
+        return arg_subparsers.add_parser(*args, **kwargs)
 
     # ..................{ SUBCOMMANDS ~ info                 }..................
     def _run_info(self) -> None:
@@ -217,57 +284,10 @@ class CLICLI(CLI):
         '''
         Run the `sim` subcommand.
         '''
-        # loggers.log_debug(
-        #     'sim subcommand names: %s', str(self._args.sim_subcommand_names))
-        # loggers.log_debug(
-        #     'sim_config_filename: %s', self._args.sim_config_filename)
-
-        # Run each simulation-specific subcommand.
-        for sim_subcommand_name in self._args.sim_subcommand_names:
-            # Name of the method running such subcommand.
-            sim_subcommand_method_name = '_run_sim_' + sim_subcommand_name
-
-            # Method running such subcommand, passing "None" to prevent
-            # getattr() from raising a non-layman-readable exception on
-            # unrecognized subcommands.
-            sim_subcommand_method = getattr(
-                self, sim_subcommand_method_name, None)
-
-            # If such subcommand is unrecognized, print help output and exit the
-            # current process with failure.
-            if not sim_subcommand_method:
-                # Error message to be printed.
-                exit_message = (
-                    '"sim" subcommand "{}" unrecognized. '
-                    'See the following usage documentation for '
-                    'the list of subcommands recognized by "sim".\n\n{}'
-                ).format(
-                    sim_subcommand_name,
-                    self._arg_parser_sim.format_help(),
-                )
-
-                # Exit with such message.
-                processes.exit_with_failure(exit_message)
-
-            # If such subcommand is *NOT* creating a configuration file *AND* a
-            # simulation has *NOT* yet been created, created a new simulation
-            # specified by the passed configuration file.
-            #
-            # If such subcommand is creating a configuration file, such file
-            # probably does *NOT* already exist. In such case, attempting to
-            # create a new simulation would justifiably raise an exception.
-            if sim_subcommand_name != 'cfg' and not self._sim_runner:
-                # Import from "betse.science" in a just-in-time manner, as such
-                # importation imports heavy-weight dependencies and hence is
-                # slow.
-                from betse.science.simrunner import SimRunner
-
-                # Create such simulation.
-                self._sim_runner = SimRunner(
-                    config_filename = self._args.sim_config_filename)
-
-            # Run such subcommand.
-            sim_subcommand_method()
+        # Run such subcommand's passed subcommand. See _run() for details.
+        subcommand_method_name = '_run_sim_' + self._args.sim_command_name
+        subcommand_method = getattr(self, subcommand_method_name)
+        subcommand_method()
 
     def _run_sim_cfg(self) -> None:
         '''
@@ -282,27 +302,146 @@ class CLICLI(CLI):
         '''
         Run the `sim` subcommand's `init` subcommand.
         '''
-        self._sim_runner.initialize()
+        self._get_sim_runner().initialize()
 
     def _run_sim_run(self) -> None:
         '''
         Run the `sim` subcommand's `run` subcommand.
         '''
-        self._sim_runner.simulate()
+        self._get_sim_runner().simulate()
 
     def _run_sim_plot_init(self) -> None:
         '''
         Run the `sim` subcommand's `plot_init` subcommand.
         '''
-        self._sim_runner.loadInit()
+        self._get_sim_runner().plotInit()
 
     def _run_sim_plot_run(self) -> None:
         '''
         Run the `sim` subcommand's `plot_run` subcommand.
         '''
-        self._sim_runner.loadSim()
+        self._get_sim_runner().plotSim()
+
+    # ..................{ GETTERS                            }..................
+    def _get_sim_runner(self):
+        '''
+        Get a new simulation runner configured with sane defaults.
+        '''
+        # Import from "betse.science" in a just-in-time manner, as such
+        # importation imports heavy-weight dependencies and hence is slow.
+        from betse.science.simrunner import SimRunner
+
+        # Get such runner.
+        return SimRunner(config_filename = self._args.sim_config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+            # Description to be printed *AFTER* subcommand help.
+            # epilog = self._format_help_template(
+            #     help.TEMPLATE_SUBCOMMANDS_SIM_SUFFIX),
+        #FUXME: Nearly identical to above. Generalize into a new helper.
+
+            # Description of the subcommand section in help output.
+        #FUXME: Ugh. We can probably replace *EVERYTHING* below with the
+        #following three lines. *sigh*
+
+        # loggers.log_debug(
+        #     'sim subcommand names: %s', str(self._args.sim_subcommand_names))
+        # loggers.log_debug(
+        #     'sim_config_filename: %s', self._args.sim_config_filename)
+
+        # # Run each simulation-specific subcommand.
+        # for sim_subcommand_name in self._args.sim_subcommand_names:
+        #     # Name of the method running such subcommand.
+        #     sim_subcommand_method_name = '_run_sim_' + sim_subcommand_name
+        #
+        #     # Method running such subcommand, passing "None" to prevent
+        #     # getattr() from raising a non-layman-readable exception on
+        #     # unrecognized subcommands.
+        #     sim_subcommand_method = getattr(
+        #         self, sim_subcommand_method_name, None)
+        #
+        #     # If such subcommand is unrecognized, print help output and exit the
+        #     # current process with failure.
+        #     if not sim_subcommand_method:
+        #         # Error message to be printed.
+        #         exit_message = (
+        #             '"sim" subcommand "{}" unrecognized. '
+        #             'See the following usage documentation for '
+        #             'the list of subcommands recognized by "sim".\n\n{}'
+        #         ).format(
+        #             sim_subcommand_name,
+        #             self._arg_parser_sim.format_help(),
+        #         )
+        #
+        #         # Exit with such message.
+        #         processes.exit_with_failure(exit_message)
+        #
+        #     # If such subcommand is *NOT* creating a configuration file *AND* a
+        #     # simulation has *NOT* yet been created, created a new simulation
+        #     # specified by the passed configuration file.
+        #     #
+        #     # If such subcommand is creating a configuration file, such file
+        #     # probably does *NOT* already exist. In such case, attempting to
+        #     # create a new simulation would justifiably raise an exception.
+        #     if sim_subcommand_name != 'cfg' and not self._sim_runner:
+        #
+        #         # Create such simulation.
+        #         self._sim_runner = SimRunner(
+        #             config_filename = self._args.sim_config_filename)
+        #
+        #     # Run such subcommand.
+        #     sim_subcommand_method()
+
+    # _sim_runner : SimRunner
+    #     Simulation specified by the YAML configuration file passed as a command-
+    #     line argument to the `sim` subcommand.
+    #     self._sim_runner = None
+
+        # # Create and return a new simulation-specific argument subparser
+        # # initialized with the set of passed keyword parameters.
+        # #
+        # # Such subparser will be preconfigured to parse options `-c` and
+        # # `--config-file`, specifying such simulation's configuration file.
+        # self._arg_parser_sim = self._add_subparser(
+        #     name = 'sim',
+        #     help = 'run tissue simulation subcommand(s)',
+        #     description = self._format_help_template(
+        #         help.TEMPLATE_SUBCOMMAND_SIM),
+        # )
+        # self._arg_parser_sim.add_argument(
+        #     'sim_subcommand_name',
+        #     metavar = 'SIM_SUBCOMMAND_NAME',
+        #     help = 'simulation subcommand to be run',
+        # )
+
+        # assert isinstance(arg_parser, ArgumentParser),\
+        #     '"{}" not an argument parser.'.format(arg_parser)
+        # Such subparser is initialized with the remainder of all passed
+        # positional and keyword arguments.
+    # def _add_subparser(self, *args, **kwargs) -> ArgumentParser:
+    #     '''
+    #     Add and return a top-level command-line argument subparser, initialized
+    #     with the passed positional and keyword arguments.
+    #     '''
+    #     # Extend the passed dictionary of keyword arguments with the dictionary
+    #     # of preinitialized keyword arguments.
+    #     kwargs.update(self._arg_parser_kwargs)
+    #
+    #     # Add such subparser.
+    #     return self._arg_subparsers.add_parser(*args, **kwargs)
+
+        # self._arg_parser_sim.add_argument(
+        #     'sim_subcommand_names',
+        #     nargs = '+',
+        #     metavar = 'SUBCOMMAND_NAME',
+        #     help = 'simulation subcommand(s) to be run',
+        # )
+        # self._arg_parser_sim.add_argument(
+        #     'sim_config_filename',
+        #     metavar = 'CONFIG_FILE',
+        #     help = 'simulation configuration file',
+        # )
+
 # from betse.util.path import dirs, files, paths
 # OrderedDict((
 #                 #FIXME: Shift such functionality to "betse.util.system.systems".

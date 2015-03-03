@@ -108,21 +108,24 @@ class CLI(metaclass = ABCMeta):
         program_version = '{} {}'.format(
             self._script_basename, metadata.__version__)
 
-        # Make a command-line argument parser.
-        self._arg_parser = ArgumentParser(
+        # Dictionary of keyword arguments with which to initialize the top-level
+        # argument parser.
+        arg_parser_kwargs = {
             # Script name.
-            prog = self._script_basename,
+            'prog': self._script_basename,
 
             # Script description.
-            description = metadata.DESCRIPTION,
+            'description': metadata.DESCRIPTION,
+        }
 
-            # Help text printed *AFTER* all other output when such script is
-            # passed no command-line arguments.
-            epilog = self._format_help_template(help.TEMPLATE_EPILOG),
+        # Update such dictionary with preinitialized such arguments.
+        arg_parser_kwargs.update(self._arg_parser_kwargs)
 
-            # Pass preinitialized keyword arguments.
-            **self._arg_parser_kwargs
-        )
+        # Update such dictionary with subclass-specific such arguments.
+        arg_parser_kwargs.update(self._get_arg_parser_top_kwargs())
+
+        # Make a command-line argument parser.
+        self._arg_parser = ArgumentParser(**arg_parser_kwargs)
 
         #FIXME: Enable the "--config" option. More work than we care to invest,
         #at the moment.
@@ -152,8 +155,8 @@ class CLI(metaclass = ABCMeta):
         # Parse arguments.
         self._args = self._arg_parser.parse_args()
 
-        # If verbosity was requested, decrease the log level for the stdout-
-        # specific logger handler from default "INFO" to all-inclusive "ALL".
+        # If the user requested verbosity, set the log level for the standard
+        # output logger handler to the all-inclusive "ALL".
         if self._args.is_verbose:
             loggers.config.handler_stdout.setLevel(loggers.ALL)
 
@@ -175,8 +178,6 @@ class CLI(metaclass = ABCMeta):
         )
 
     # ..................{ EXCEPTIONS                         }..................
-    #FIXME: Confine tracebacks to the logfile.
-
     def _print_exception(self, exception: Exception) -> None:
         '''
         Print the passed exception to standard error *and* log such exception.
@@ -252,8 +253,8 @@ class CLI(metaclass = ABCMeta):
                     'Exception message lines empty.'
                 exception_message_lines[-1] = regexes.remove_substrings(
                     exception_message_lines[-1],
-                    '^{}:\s+'.format(regexes.PYTHON_IDENTIFIER_REGEX_RAW),
-                )
+                    '^{}:\s+'.format(
+                        regexes.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
 
                 # Append such message to the standard error buffer. For
                 # readability, wrap such message to the default terminal width
@@ -288,6 +289,17 @@ class CLI(metaclass = ABCMeta):
             stderr_message = stderr_buffer.getvalue()
             log_message = log_buffer.getvalue()
 
+            # True if the user requested verbosity.
+            is_verbose = getattr(self._args, 'is_verbose', True)
+            # is_verbose = getattr(self._args, 'is_verbose', False)
+
+            # If either the user requested verbosity *OR* no loggers have been
+            # initialized, print such exception to standard error. Since the log
+            # message is more verbose than and hence subsumes the standard error
+            # message, only the former is printed.
+            if is_verbose or not loggers.config.is_initted:
+                stderr.output(log_message)
+
             # If a logger has been initialized, log such exception as a debug
             # message. Unless the user explicitly passed command-line option
             # "--verbose" to this script, logging with the debug level confines
@@ -297,13 +309,10 @@ class CLI(metaclass = ABCMeta):
                 # Log such message.
                 loggers.log_debug(log_message)
 
-                # Print such message to standard error.
-                stderr.output(stderr_message)
-            # Else, print such exception to standard error. Since the log
-            # message is more verbose than and hence subsumes the standard error
-            # message, print only the former.
-            else:
-                stderr.output(log_message)
+                # If the user did *NOT* request verbosity, print a terse message
+                # to standard error.
+                if not is_verbose:
+                    stderr.output(stderr_message)
         # If such printing raises an exception, catch and print such exception
         # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
@@ -323,6 +332,13 @@ class CLI(metaclass = ABCMeta):
     # ..................{ SUBCLASS ~ optional                }..................
     # The following methods may but need *NOT* be implemented by subclasses.
 
+    def _get_arg_parser_top_kwargs(self):
+        '''
+        Get a subclass-specific dictionary of keyword arguments to be passed to
+        the top-level argument parser.
+        '''
+        return {}
+
     def _configure_arg_parsing(self):
         '''
         Configure subclass-specific argument parsing.
@@ -330,6 +346,16 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+            # Help text printed *AFTER* all other output when such script is
+            # passed no command-line arguments.
+            # epilog = self._format_help_template(help.TEMPLATE_EPILOG),
+
+            # Else, print such exception to standard error. Since the log
+            # message is more verbose than and hence subsumes the standard error
+            # message, print only the former.
+            # else:
+            #     stderr.output(log_message)
+
             # raise Exception('Governments, if they endure, always tend increasingly toward aristocratic forms. No government in history has been known to evade this pattern. And as the aristocracy develops, government tends more and more to act exclusively in the interests of the ruling class -- whether that class be hereditary royalty, oligarchs of financial empires, or entrenched bureaucracy.')
             # Initialize such buffers with descriptive headers.
             # stderr_buffer.write(

@@ -17,6 +17,15 @@ from os import path
 import os, shutil
 
 # ....................{ EXCEPTIONS                         }....................
+def die_if_found(pathname: str) -> None:
+    '''
+    Raise an exception if the passed non-directory file exists *after* following
+    symbolic links.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    if is_file(pathname):
+        raise BetseExceptionFile('File "{}" already exists.'.format(pathname))
+
 def die_unless_found(pathname: str) -> None:
     '''
     Raise an exception unless the passed non-directory file exists *after*
