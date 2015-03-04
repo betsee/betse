@@ -6,6 +6,41 @@
 # FIXME work on the vector plotting -- perhaps interpolating data to grid?
 # FIXME saving animations doesn't work
 
+#FIXME: In porting BETSE to OS X, I just stumbled upon a currently ignorable
+#issue that will probably become non-ignorable [read: bad juju] at some future
+#date. The crux is the equality comparison operator, "==". In general, it is
+#*NOT* safe to use "==" to test whether an object is "None" or not. Instead,
+#only the type comparison operator "is" should be used to perform such tests.
+#Hence:
+#
+#    # This is kinda bad.
+#    if my_object == None: print("Help! I'm crusty and smelly.")
+#
+#    # This is muchas better.
+#    if my_object is None: print("Thanks. I am so cleanly now.")
+#
+#At this point, you'd be justified in thinking, "Yeah, bub. So what, huh?"
+#Unfortunately, this isn't simply a matter for the pedantic Pythonistas. Under
+#OS X, Python prints the following ugly warning wherever we currently use "=="
+#to test whether an object is "None" or not:
+#
+#    /opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/betse/science/visualize.py:549: FutureWarning: comparison to `None` will result in an elementwise object comparison in the future.
+#      if zdata == None:  # if user doesn't supply data
+#
+#That's bad. It gets worse, however. In the next release of Numpy, Numpy arrays
+#will be actually redefining the "==" operator such that "== None"-style tests
+#will no longer work as expected. Rather than returning a simple True or False
+#boolean, such tests will actually return a new Numpy array whose elements are
+#booleans! For example:
+#
+#    >>> a = np.array(['Duck','Duck','Duck','Goose',None,1,2,3,1,3,None,4])
+#    >>> print a == None
+#    [ False False False False True False False False False False True False]
+#
+#To preserve us from the dread beasts that lurk, I've gone ahead and replaced
+#every instance of "== None" in the codebase with "is None". You can thank me
+#later. Everything still works, albeit without the warnings. Suck it, Python!
+
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
@@ -512,6 +547,7 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
 
     return fig, ax
 
+#FIXME: Docstring outdated. ("Y u so old, docstring?")
 def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number_cells=False):
         """
         Assigns color-data to each polygon in a cell cluster diagram and returns a plot instance (fig, axes)
