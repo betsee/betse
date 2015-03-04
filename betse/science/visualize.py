@@ -491,9 +491,9 @@ def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'
 
     tvect_data=[x[celli]*1000 for x in simdata_time]
 
-    if fig==None:
+    if fig is None:
         fig = plt.figure()# define the figure and axes instances
-    if ax == None:
+    if ax is None:
         ax = plt.subplot(111)
 
     ax.plot(simtime, tvect_data,lncolor)
@@ -507,9 +507,9 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
 
     ccIon_cell = [arr[ioni][celli] for arr in simdata_time]
 
-    if fig==None:
+    if fig is None:
         fig = plt.figure()# define the figure and axes instances
-    if ax == None:
+    if ax is None:
         ax = plt.subplot(111)
         #ax = plt.axes()
 
@@ -530,9 +530,9 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
 
     data_cell = [arr[celli] for arr in simdata_time]
 
-    if fig==None:
+    if fig is None:
         fig = plt.figure()# define the figure and axes instances
-    if ax == None:
+    if ax is None:
         ax = plt.subplot(111)
 
     xmin = simtime[0]
@@ -576,13 +576,13 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
         Uses matplotlib.collections PolyCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
         Computationally slow -- not recommended for large collectives (500 x 500 um max)
         """
-        if fig==None:
+        if fig is None:
             fig = plt.figure()# define the figure and axes instances
-        if ax == None:
+        if ax is None:
             ax = plt.subplot(111)
             #ax = plt.axes()
 
-        if zdata == None:  # if user doesn't supply data
+        if zdata is None:  # if user doesn't supply data
             z = np.ones(len(cells.cell_verts)) # create flat data for plotting
 
         elif zdata == 'random':  # if user doesn't supply data
@@ -592,7 +592,7 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
             z = zdata
 
         # Make the polygon collection and add it to the plot.
-        if clrmap == None:
+        if clrmap is None:
             clrmap = p.default_cm
 
         points = np.multiply(cells.cell_verts, p.um)
@@ -618,7 +618,7 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
 
             ax_cb = fig.colorbar(coll,ax=ax)
 
-        elif zdata == None:
+        elif zdata is None:
             coll.set_clim(0,1)
             ax_cb = fig.colorbar(coll,ax=ax)
 
@@ -671,13 +671,13 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
 
         """
 
-        if fig==None:
+        if fig is None:
             fig = plt.figure()# define the figure and axes instances
-        if ax == None:
+        if ax is None:
             ax = plt.subplot(111)
             #ax = plt.axes()
 
-        if zdata == None:  # if user doesn't supply data
+        if zdata is None:  # if user doesn't supply data
             z = np.ones(len(cells.cell_centres)) # create flat data for plotting
 
         elif zdata == 'random':  # if user doesn't supply data
@@ -686,7 +686,7 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
         else:
             z = zdata
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = p.default_cm
 
 
@@ -764,9 +764,9 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
 
         """
 
-        if fig==None:
+        if fig is None:
             fig = plt.figure()# define the figure and axes instances
-        if ax == None:
+        if ax is None:
             ax = plt.subplot(111)
             #ax = plt.axes()
 
@@ -774,14 +774,14 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
 
         cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
 
-        if zdata == None:
+        if zdata is None:
             z = np.ones(len(cell_edges_flat))
         elif zdata == 'random':
             z = np.random.random(len(cell_edges_flat))
         else:
             z = zdata
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.rainbow
 
         coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap)
@@ -830,13 +830,13 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         Uses matplotlib.collections LineCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
 
         """
-        if fig==None:
+        if fig is None:
             fig = plt.figure()# define the figure and axes instances
-        if ax == None:
+        if ax is None:
             ax = plt.subplot(111)
             #ax = plt.axes()
 
-        if zdata == None:
+        if zdata is None:
             z = np.ones(len(cells.gap_jun_i))
 
         elif zdata == 'random':
@@ -845,7 +845,7 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         else:
             z = zdata
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.bone_r  # default colormap
 
          # Make a line collection and add it to the plot.
@@ -900,9 +900,9 @@ def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
         This particular plot is extremely slow -- intended for cross-checking purposes only!
 
         """
-        if fig==None:
+        if fig is None:
             fig = plt.figure()# define the figure and axes instances
-        if ax == None:
+        if ax is None:
             ax = plt.subplot(111)
             #ax = plt.axes()
 
@@ -944,10 +944,10 @@ def plotVects(cells, p, fig=None, ax=None):
 
         """
 
-        if fig==None:
+        if fig is None:
             fig = plt.figure()# define the figure and axes instances
 
-        if ax == None:
+        if ax is None:
             ax = plt.subplot(111)
             #ax = plt.axes()
 

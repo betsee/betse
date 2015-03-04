@@ -191,7 +191,7 @@ class World(object):
 
         """
 
-        if self.worldtype == None or self.worldtype == 'full':
+        if self.worldtype is None or self.worldtype == 'full':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
             self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
@@ -300,7 +300,7 @@ class World(object):
 
         """
 
-        if crop_mask==None:  # if there's no crop-mask specified (default)
+        if crop_mask is None:  # if there's no crop-mask specified (default)
             self.clust_xy=self.xypts         # set cluster points to grid points
 
         elif crop_mask =='circle': # if 'circle' is specified:
@@ -421,7 +421,7 @@ class World(object):
 
 
         # finally, clip the Voronoi diagram to polygon, if user-specified by vorclose option
-        if vorclose==None:
+        if vorclose is None:
             self.ecm_verts=[]
             for region in vor.regions:
                 if len(region):
@@ -626,7 +626,7 @@ class World(object):
 
         # get the concave hull for ecm vertices on the outer boundary of the cluster
 
-        if clean == None or clean == 'yes':
+        if clean is None or clean == 'yes':
 
             con_hull = tb.alpha_shape(self.ecm_verts_unique, p.scale_alpha/p.d_cell)
             con_hull = np.asarray(con_hull)
@@ -668,7 +668,7 @@ class World(object):
             verts = self.ecm_verts_unique[poly]  # [x,y] coordinates of polygon
             self.ecm_verts.append(verts)
 
-        if clean == None or clean == 'yes':
+        if clean is None or clean == 'yes':
             self.ecm_verts_unique = np.delete(self.ecm_verts_unique,boundverts,0)   # delete indices from ecm verts list
 
         self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function

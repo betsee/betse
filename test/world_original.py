@@ -170,7 +170,7 @@ class World(object):
 
         """
 
-        if self.worldtype == None or self.worldtype == 'full':
+        if self.worldtype is None or self.worldtype == 'full':
             self.makeSeeds()    # Create the grid for the system (irregular)
             self.cropSeeds(self.crop_mask)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(self.vorclose)    # Make, close, and clip the Voronoi diagram
@@ -282,7 +282,7 @@ class World(object):
 
         """
 
-        if crop_mask==None:  # if there's no crop-mask specified (default)
+        if crop_mask is None:  # if there's no crop-mask specified (default)
             self.clust_xy=self.xypts         # set cluster points to grid points
 
         elif crop_mask =='circle': # if 'circle' is specified:
@@ -402,7 +402,7 @@ class World(object):
 
 
         # finally, clip the Voronoi diagram to polygon, if user-specified by vorclose option
-        if vorclose==None:
+        if vorclose is None:
             self.ecm_verts=[]
             for region in vor.regions:
                 if len(region):
@@ -917,7 +917,7 @@ class World(object):
         Uses matplotlib.collections PolyCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
         Computationally slow -- not recommended for large collectives (500 x 500 um max)
         """
-        if zdata == None:  # if user doesn't supply data
+        if zdata is None:  # if user doesn't supply data
             z = np.ones(len(self.cell_verts)) # create flat data for plotting
 
         elif zdata == 'random':  # if user doesn't supply data
@@ -929,7 +929,7 @@ class World(object):
         fig, ax = plt.subplots()    # define the figure and axes instances
 
         # Make the polygon collection and add it to the plot.
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.rainbow
 
         coll = PolyCollection(self.cell_verts, array=z, cmap=clrmap, edgecolors='none')
@@ -980,7 +980,7 @@ class World(object):
 
 
         """
-        if zdata == None:  # if user doesn't supply data
+        if zdata is None:  # if user doesn't supply data
             z = np.ones(len(self.cell_centres)) # create flat data for plotting
 
         elif zdata == 'random':  # if user doesn't supply data
@@ -989,7 +989,7 @@ class World(object):
         else:
             z = zdata   # FIXME make an assertion to check for right data input
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.rainbow
 
         fig, ax = plt.subplots()    # define the figure and axes instances
@@ -1060,7 +1060,7 @@ class World(object):
 
         vor_verts_flat = np.asarray(vor_verts_flat)
 
-        if zdata == None:  # if user doesn't supply data
+        if zdata is None:  # if user doesn't supply data
             z = np.ones(len(vor_verts_flat)) # create flat data for plotting
 
         elif zdata == 'random':  # if user doesn't supply data
@@ -1069,7 +1069,7 @@ class World(object):
         else:
             z = zdata
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.rainbow
 
         fig, ax = plt.subplots()    # define the figure and axes instances
@@ -1128,14 +1128,14 @@ class World(object):
 
         cell_edges_flat = self.um*np.asarray(cell_edges_flat)
 
-        if zdata == None:
+        if zdata is None:
             z = np.ones(len(cell_edges_flat))
         elif zdata == 'random':
             z = np.random.random(len(cell_edges_flat))
         else:
             z = zdata  # FIXME assert this is in proper format
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.rainbow
 
         coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap)
@@ -1180,7 +1180,7 @@ class World(object):
         """
         fig, ax = plt.subplots()
 
-        if zdata == None:
+        if zdata is None:
             z = np.ones(len(self.gap_jun_i))
 
         elif zdata == 'random':
@@ -1189,7 +1189,7 @@ class World(object):
         else:
             z = zdata
 
-        if clrmap == None:
+        if clrmap is None:
             clrmap = cm.rainbow
 
          # Make a line collection and add it to the plot.

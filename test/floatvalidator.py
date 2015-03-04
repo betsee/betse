@@ -14,7 +14,7 @@ class FloatValidator(QtGui.QValidator):
     def is_valid_float_string(self,string):
         match = self._float_re.search(string)
         return match.groups()[0] == string if match else False
-        # self._float_re.match(string) == None
+        # self._float_re.match(string) is None
 
     def validate(self, string, position):
         if self.is_valid_float_string(string):
