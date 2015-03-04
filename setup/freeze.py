@@ -192,6 +192,13 @@ class freeze(Command, metaclass = ABCMeta):
             frozen_pathname = path.join(
                 pyinstaller_dist_dirname, script_basename)
 
+            # If cleaning and such path exists, remove such path *BEFORE*
+            # validating such path. Why? Because such path could be an existing
+            # file and the current command freezing to a directory (or vice
+            # versa), in which case such validation would raise an exception.
+            if self.clean and util.is_path(frozen_pathname):
+                util.remove_path(frozen_pathname)
+
             # Validate such path.
             self._check_frozen_path(frozen_pathname)
 
@@ -352,10 +359,6 @@ class freeze_dir(freeze):
         '''
         util.die_unless_dir_or_not_found(frozen_pathname)
 
-        # If cleaning and such directory exists, remove such directory.
-        if self.clean and util.is_dir(frozen_pathname):
-            util.remove_dir(frozen_pathname)
-
     def _get_script_spec_basename(self, script_basename: str) -> str:
         assert isinstance(script_basename, str),\
             '"{}" not a string.'.format(script_basename)
@@ -392,10 +395,6 @@ class freeze_file(freeze):
         `--clean`, such file will be deleted.
         '''
         util.die_unless_file_or_not_found(frozen_pathname)
-
-        # If cleaning and such file exists, remove such file.
-        if self.clean and util.is_file(frozen_pathname):
-            util.remove_file(frozen_pathname)
 
     def _get_script_spec_basename(self, script_basename: str) -> str:
         assert isinstance(script_basename, str),\

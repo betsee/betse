@@ -80,6 +80,21 @@ def die_unless_file_or_not_found(
         # Raise such exception.
         raise DistutilsFileError(exception_message)
 
+def die_unless_path(pathname: str, exception_message: str = None) -> None:
+    '''
+    Raise a fatal exception unless the passed path exists.
+    '''
+    # If such path is not found, fail.
+    if not is_path(pathname):
+        # If no such message was passed, default such message.
+        if not exception_message:
+            exception_message = 'Path "{}" not found.'.format(pathname)
+        assert isinstance(exception_message, str),\
+            '"{}" not a string.'.format(exception_message)
+
+        # Raise such exception.
+        raise DistutilsFileError(exception_message)
+
 def die_unless_dir(dirname: str, exception_message: str = None) -> None:
     '''
     Raise a fatal exception unless the passed directory exists.
@@ -272,6 +287,24 @@ def move_file(filename_source: str, filename_target: str) -> None:
     shutil.move(filename_source, filename_target)
 
 # ....................{ REMOVERS                           }....................
+def remove_path(pathname: str) -> None:
+    '''
+    Recursively remove the passed directory in a safe manner (e.g., *not*
+    following symbolic links outside such directory).
+
+    This is an inherently dangerous operation and hence delayed for several
+    seconds, allowing sufficiently aware users to jam the panic button.
+    '''
+    # If such path does *NOT* exist, fail.
+    die_unless_path(pathname)
+
+    # If such path is a directory, remove such directory.
+    if is_dir(pathname):
+        remove_dir(pathname)
+    # Else, remove such file.
+    else:
+        remove_file(pathname)
+
 def remove_dir(dirname: str) -> None:
     '''
     Recursively remove the passed directory in a safe manner (e.g., *not*
@@ -285,7 +318,8 @@ def remove_dir(dirname: str) -> None:
 
     # For safety, wait several seconds to do so. (Read: panic button.)
     sleep_seconds = 8
-    print('Removing "{}" in {} seconds...'.format(dirname, sleep_seconds))
+    print('Removing directory "{}" in {} seconds...'.format(
+        dirname, sleep_seconds))
     time.sleep(sleep_seconds)
 
     # Remove such directory.
