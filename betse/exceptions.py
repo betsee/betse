@@ -31,9 +31,16 @@ class BetseExceptionModule(BetseException):
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ science               }....................
 class BetseExceptionParameters(BetseException):
     '''
     Parameters-specific exception.
+    '''
+    pass
+
+class BetseExceptionSimulation(BetseException):
+    '''
+    Simulation-specific exception.
     '''
     pass
 

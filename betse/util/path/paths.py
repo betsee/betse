@@ -12,17 +12,38 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseExceptionFile
+from betse.exceptions import BetseExceptionPath
 from os import path
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS ~ unless                }....................
+def die_unless_basename(pathname: str, exception_message: str = None) -> None:
+    '''
+    Raise an exception unless the passed pathname is a basename.
+
+    See Also
+    ----------
+    `is_basename()`
+        For further details.
+    '''
+    if not is_basename(pathname):
+        # If no message was passed, default such message.
+        if not exception_message:
+            exception_message =\
+                'Path "{}" contains directory separators.'.format(pathname)
+        assert isinstance(exception_message, str),\
+            '"{}" not a string.'.format(exception_message)
+
+        # Raise such exception.
+        raise BetseExceptionPath(exception_message)
+
+# ....................{ EXCEPTIONS ~ if                    }....................
 def die_if_special(pathname: str, exception_message: str = None) -> None:
     '''
     Raise an exception if the passed path is an existing special path.
 
     See Also
     ----------
-    is_special
+    `is_special()`
         For further details.
     '''
     if is_special(pathname):
@@ -42,12 +63,12 @@ def die_if_special(pathname: str, exception_message: str = None) -> None:
             '"{}" not a string.'.format(exception_message)
 
         # Raise such exception.
-        raise BetseExceptionFile(exception_message)
+        raise BetseExceptionPath(exception_message)
 
 # ....................{ TESTERS                            }....................
 def is_path(pathname: str) -> bool:
     '''
-    True if the passed exists.
+    True if the passed path exists.
 
     If such path is an existing **broken symbolic link** (i.e., a symbolic link
     whose target no longer exists), this function still returns True.
@@ -61,7 +82,7 @@ def is_path(pathname: str) -> bool:
 
 def is_special(pathname: str) -> bool:
     '''
-    True if the passed is an existing special file.
+    True if the passed path is an existing special file.
 
     Special files include directories, device nodes, sockets, and symbolic
     links.
@@ -75,6 +96,15 @@ def is_special(pathname: str) -> bool:
         path.islink(pathname) or\
         not path.isfile(pathname)
     )
+
+def is_basename(pathname: str) -> bool:
+    '''
+    True if the passed pathname is a *basename* (i.e., contains no directory
+    separators and hence has no directory components).
+    '''
+    # While there are more efficient implementations, the simplest should be
+    # fine... for now.
+    return pathname == path.get_basename(pathname)
 
 # ....................{ GETTERS                            }....................
 def get_basename(pathname: str) -> str:

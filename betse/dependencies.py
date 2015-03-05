@@ -18,17 +18,25 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from betse import metadata
 from betse.util.python import modules
+from betse.util.system import oses
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
     Initialize all mandatory runtime dependencies of `betse`.
 
-    Specifically:
+    Specifically (in order):
 
     * Raise an exception unless all such dependencies are currently satisfiable.
+    * Reconfigure `matplotlib` with sane defaults specific to the current
+      system.
     '''
+    # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
+    # (possibly) importing such dependencies.
     die_unless_satisfiable()
+
+    # Configure such dependencies.
+    configure_matplotlib()
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_satisfiable() -> None:
@@ -47,14 +55,13 @@ def die_unless_satisfiable() -> None:
     versions of such dependencies to satisfy `betse` requirements.
     '''
     # Template for exception messages raised on missing dependencies.
-    exception_template = 'Mandatory dependency {} not found.'
+    exception_template = 'Mandatory dependency "{}" not found.'
 
     # If the setuptools-specific "pkg_resources" dependency is missing, fail
     # *BEFORE* attempting to import such dependency below.
     modules.die_unless(
         module_name = 'pkg_resources',
-        exception_message =\
-            exception_template.format(metadata.DEPENDENCY_SETUPTOOLS)
+        exception_message = exception_template.format('pkg_resources')
     )
 
     # Import such dependency and all required classes in such dependency.
@@ -107,7 +114,68 @@ def die_unless_satisfiable() -> None:
                    'Mandatory dependency {} required but only {} found.'.format(
                        requirement_required, requirement_provided))
 
+# ....................{ CONFIGURERS                        }....................
+def configure_matplotlib() -> None:
+    '''
+    Reconfigure `matplotlib` with sane defaults specific to the current system.
+
+    On first importation, `matplotlib` configures itself by loading the contents
+    of the first `matplotlibrc` file found in any of several candidate
+    directories. Technically, `betse` *could* supply an application-specific
+    version of such file to force `matplotlib` to adopt application-specific
+    configuration settings. Since synchronizing such local copy with remote
+    changes is an onerous (if not ultimately infeasible) chore, we elect instead
+    to reconfigure `matplotlib` *after* such file has already been loaded at
+    application startup. While this slightly increases the cost of such startup,
+    the alternatives are impractical at best.
+
+    See Also
+    ----------
+    http://matplotlib.org/users/customizing.html
+        Further details on `matplotlib` configuration.
+    '''
+    # For efficiency, defer until necessary. (This probably gains us little to
+    # nothing, but one harbours demure hope.)
+    import matplotlib
+
+    # Reconfigure the following settings, whose keys are the names of settings
+    # provided by the official "matplotlibrc" file.
+    matplotlib.rcParams.update({
+        #FIXME: If we continue to be plagued by OS X plotting issues, consider
+        #configuring the "verbose.level" parameter at runtime to "debug" below.
+
+        # Print terse messages. By default, *NO* messages are printed. Valid
+        # values include: "silent", "helpful", "debug", and "debug-annoying".
+        'verbose.level': 'helpful',
+        # 'verbose.level': 'debug',
+    })
+
+    #FIXME: It'd be great to raise human-readable exceptions on the specified
+    #backends *NOT* being available. This is certainly feasible, as the
+    #following stackoverflow answer demonstrates -- if somewhat involved:
+    #    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
+
+    # Configure the backend to be implicitly used for *ALL* subsequent plotting.
+    # Such backend *MUST* be configured prior to the first importation of either
+    # the "matplotlib.pyplot" or "matplotlib.pylab" modules.  Since backend
+    # names are case-insensitive, lowercase names are preferred below.
+    #
+    # If the current operating system is Apple OS X, prefer the "CocoaAgg"
+    # backend to the "MacOSX" backend. The former leverages the cross-platform
+    # C++ library AGG (Anti-grain Geometry) and hence tends to be better
+    # supported; the latter does not.
+    if oses.is_os_x():
+        matplotlib.use('cocoaagg')
+    # Else, prefer the "TkAgg" backend. Alternatives include:
+    #
+    # * "Qt4Agg", an aesthetically inferior backend *NOT* appearing to support
+    #   animation out of the box. (That's interesting, in the bad way.)
+    else:
+        matplotlib.use('tkagg')
+
 # --------------------( WASTELANDS                         )--------------------
+        #FUXME: Alternately, perhaps we want to redirect
+            # exception_template.format(metadata.DEPENDENCY_SETUPTOOLS)
     # List of setuptools requirements strings signifying all safely testable
     # mandatory dependencies. Sadly, the following mandatory dependencies are
     # *NOT* safely testable:

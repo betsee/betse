@@ -166,7 +166,7 @@ def die_unless_command(command_basename: str, exception_message: str = None):
     directory separator, an exception is also raised.
     '''
     # If such command is not found, fail.
-    if not is_command(command_basename):
+    if not is_pathable(command_basename):
         # If no such message was passed, default such message.
         if not exception_message:
              exception_message =\
@@ -216,7 +216,7 @@ def is_symlink(filename: str) -> bool:
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.islink(filename)
 
-def is_command(command_basename: str) -> bool:
+def is_pathable(command_basename: str) -> bool:
     '''
     True if the external command with the passed basename exists.
 

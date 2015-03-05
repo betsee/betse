@@ -251,6 +251,7 @@ class CLICLI(CLI):
             ('dependencies', OrderedDict((
                 ('matplotlib version', matplotlib.__version__),
                 ('matplotlib backend', matplotlib.get_backend()),
+                ('matplotlibrc file', matplotlib.matplotlib_fname()),
                 ('numpy version', numpy.__version__),
                 ('scipy version', scipy.__version__),
             ))),

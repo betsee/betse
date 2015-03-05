@@ -146,7 +146,7 @@ class freeze(Command, metaclass = ABCMeta):
         # If UPX is not found, print a warning to standard error. While
         # optional, freezing in the absence of UPX produces uncompressed and
         # hence considerably larger executables.
-        if not util.is_command('upx'):
+        if not util.is_pathable('upx'):
             util.output_warning(
                 'UPX not installed or "upx" not in the current path. '
                 'All frozen executables will be uncompressed.'

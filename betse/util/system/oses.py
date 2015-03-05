@@ -22,7 +22,7 @@ def is_linux() -> bool:
     '''
     return platform.system() == 'Linux'
 
-def is_osx() -> bool:
+def is_os_x() -> bool:
     '''
     True if the current operating system is Apple OS X.
     '''
