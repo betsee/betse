@@ -937,7 +937,7 @@ class World(object):
         ax.axis('equal')
 
         # Add a colorbar for the PolyCollection
-        if zdata != None:
+        if zdata is not None:
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.autoscale_view(tight=True)
@@ -1000,7 +1000,7 @@ class World(object):
         ax.axis('equal')
 
         # Add a colorbar for the z-data
-        if zdata != None:
+        if zdata is not None:
             ax_cb = fig.colorbar(triplt, ax=ax)
 
         if pointOverlay == True:
@@ -1078,7 +1078,7 @@ class World(object):
         ax.axis('equal')
 
         # Add a colorbar for the z-data
-        if zdata != None:
+        if zdata is not None:
             ax_cb = fig.colorbar(triplt, ax=ax)
 
         if pointOverlay == True:
@@ -1144,7 +1144,7 @@ class World(object):
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
-        if zdata != None:
+        if zdata is not None:
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.axis('equal')
@@ -1207,7 +1207,7 @@ class World(object):
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
-        if zdata != None:
+        if zdata is not None:
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.autoscale_view(tight=True)

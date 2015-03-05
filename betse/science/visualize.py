@@ -606,7 +606,7 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
         std = np.std(zdata,axis=0)
         mean = np.mean(zdata,axis=0)
 
-        if zdata != None and std > 1e-13:
+        if zdata is not None and std > 1e-13:
             ax_cb = fig.colorbar(coll,ax=ax)
 
         elif std<1e-13:
@@ -696,14 +696,14 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
         ax.axis('equal')
 
         # Add a colorbar for the z-data
-        # if zdata != None:
+        # if zdata is not None:
         #     ax_cb = fig.colorbar(triplt, ax=ax)
 
          # Add a colorbar for the triplot:
         std = np.std(zdata,axis=0)
         mean = np.mean(zdata,axis=0)
 
-        if zdata != None and std > 1e-13:
+        if zdata is not None and std > 1e-13:
             ax_cb = fig.colorbar(triplt,ax=ax)
 
         elif std<1e-13:
@@ -790,7 +790,7 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
-        if zdata != None:
+        if zdata is not None:
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.axis('equal')
@@ -867,7 +867,7 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
-        if zdata != None and colorbar == 1:
+        if zdata is not None and colorbar == 1:
             ax_cb = fig.colorbar(coll, ax=ax)
         else:
             ax_cb = None

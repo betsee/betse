@@ -62,9 +62,9 @@ Run a sample tissue simulation by automatically creating a default configuration
 file and initializing, running, and plotting the simulation specified by such
 file. This subcommand is shorthand for the following:
 
-;    {script_basename} sim cfg  sample_sim.yaml
-;    {script_basename} sim init sample_sim.yaml
-;    {script_basename} sim run  sample_sim.yaml
+;    {script_basename} sim cfg  sample_sim/sample_sim.yaml
+;    {script_basename} sim init sample_sim/sample_sim.yaml
+;    {script_basename} sim run  sample_sim/sample_sim.yaml
 '''
 '''
 Help string template for the `try` subcommand.

@@ -13,7 +13,7 @@ from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
 from betse.util.io import loggers
-from betse.util.path import files
+from betse.util.path import files, paths
 from betse.util.python import pythons
 from betse.util.system import processes, systems
 from collections import OrderedDict
@@ -220,12 +220,15 @@ class CLICLI(CLI):
         return arg_subparsers.add_parser(*args, **kwargs)
 
     # ..................{ SUBCOMMANDS ~ info                 }..................
+    #FIXME: Also print the versions of installed mandatory dependencies.
+    #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
+
     def _run_info(self) -> None:
         '''
         Run the `info` subcommand.
         '''
-        #FIXME: Also print the versions of installed mandatory dependencies.
-        #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
+        # Dependencies providing additional metadata.
+        import matplotlib, numpy, scipy
 
         # Dictionary of human-readable labels to dictionaries of all
         # human-readable keys and values categorized by such labels. All such
@@ -242,6 +245,14 @@ class CLICLI(CLI):
                 ('log file', pathtree.LOG_DEFAULT_FILENAME),
                 ('default simulation config file',
                 pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
+            ))),
+
+            # Dependencies metadata.
+            ('dependencies', OrderedDict((
+                ('matplotlib version', matplotlib.__version__),
+                ('matplotlib backend', matplotlib.get_backend()),
+                ('numpy version', numpy.__version__),
+                ('scipy version', scipy.__version__),
             ))),
 
             # Python metadata.
@@ -287,16 +298,18 @@ class CLICLI(CLI):
         '''
         Run the `try` subcommand.
         '''
-        # Basename of the sample configuration file to be created. Since no
-        # dirname for such file is specified, such file will be created in the
-        # current directory.
-        self._args.sim_config_filename = 'sample_sim.yaml'
+        # Basename of the sample configuration file to be created.
+        config_basename = 'sample_sim.yaml'
+
+        # Relative path of such file, relative to the current directory.
+        self._args.sim_config_filename = paths.join(
+            'sample_sim', config_basename)
 
         # If such file already exists, reuse such file.
         if files.is_file(self._args.sim_config_filename):
             loggers.log_info(
                 'Reusing simulation configuration "{}".'.format(
-                    self._args.sim_config_filename))
+                    config_basename))
         # Else, create such file.
         else:
             self._run_sim_cfg()
@@ -360,6 +373,9 @@ class CLICLI(CLI):
         return SimRunner(config_filename = self._args.sim_config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+# Since no
+        # dirname for such file is specified, such file will be created in the
+        # current directory.
             # Description to be printed *AFTER* subcommand help.
             # epilog = self._format_help_template(
             #     help.TEMPLATE_SUBCOMMANDS_SIM_SUFFIX),
