@@ -48,7 +48,7 @@ installation.
 '''
 
 # ....................{ METADATA ~ versions                }....................
-__version__ = '0.0.1'
+__version__ = '0.1'
 '''
 Version specifier.
 
@@ -71,7 +71,7 @@ For PEP 8 compliance, such specifier is exposed as the canonical variable
 # installations, typically for performing runtime validation of the current
 # Python environment.
 
-DEPENDENCY_SETUPTOOLS = 'setuptools >= 7.0'
+DEPENDENCY_SETUPTOOLS = 'setuptools >= 5.0'
 '''
 Version of `setuptools` required by `betse` at both install and runtime.
 

@@ -17,6 +17,9 @@ from random import shuffle
 from betse.science import filehandling as fh
 from betse.science import visualize as viz
 import matplotlib.pyplot as plt
+from betse.exceptions import BetseExceptionSimulation
+from betse.util.io import loggers
+import time
 
 
 class Simulator(object):
@@ -80,8 +83,8 @@ class Simulator(object):
         os.makedirs(sim_cache_dir, exist_ok=True)
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedInit = os.path.join(betse_cache_dir, 'saved_init.btse')
-        self.savedSim = os.path.join(sim_cache_dir, 'saved_sim.btse')
+        self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
+        self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
 
     def baseInit(self,cells,p):
         """
@@ -344,11 +347,11 @@ class Simulator(object):
         if p.ions_dict['P']==1:
             self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
-        print('This world contains ',cells.cell_number, ' cells.')
-        print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
-        print('You are running the ion profile: ',p.ion_profile)
-
-        print('Ions in this simulation:', self.ionlabel)
+        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
+        loggers.log_info('Each cell has an average of ' + str(round(cells.average_nn,2)) + ' nearest-neighbours.')
+        loggers.log_info('You are running the ion profile: ' + p.ion_profile)
+        loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
+        loggers.log_info('If you have selected features that use omitted ions they will be ignored.')
 
     def tissueInit(self,cells,p):
         """
@@ -604,11 +607,13 @@ class Simulator(object):
 
 
 
-        print('This world contains ',cells.cell_number, ' cells.')
-        print('Each cell has an average of ',round(cells.average_nn,2), ' nearest-neighbours.')
-        print('You are running the ion profile: ',p.ion_profile)
+        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
+        loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
+        loggers.log_info('You are running the ion profile: '+ p.ion_profile)
 
-        print('Ions in this simulation:', self.ionlabel)
+
+        loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
+        loggers.log_info('If you have selected features that use not included ions, they will be ignored.')
 
     def runInit(self,cells,p):
         """
@@ -644,13 +649,19 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        print('Your initialization is running for', round((p.init_tsteps*p.dt)/60,2),'minutes of in-world time.')
+        loggers.log_info('Your initialization is running for ' + str(round((p.init_tsteps*p.dt)/60,2)) +
+                         ' minutes of in-world time.')
 
         # get the initial net, unbalanced charge and voltage in each cell:
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
         self.vm = get_volt(q_cells,cells.cell_sa,p)
 
+        do_once = True  # a variable to time the loop only once
+
         for t in tt:   # run through the loop
+
+            if do_once == True:
+                loop_measure = time.time()
 
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
@@ -799,6 +810,9 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
+            # check and ensure simulation stability
+            check_v(self.vm)
+
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
@@ -823,51 +837,59 @@ class Simulator(object):
                 if p.plot_while_solving == True:
                     pass
 
+            # get time for loop and estimate total time for simulation
+            if do_once == True:
+                loop_time = time.time() - loop_measure
+                time_estimate = round(loop_time*p.init_tsteps,2)
+                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
+                do_once = False
+
         celf = copy.deepcopy(self)
 
         datadump = [celf,cells,p]
         fh.saveSim(self.savedInit,datadump)
         message_1 = 'Initialization run saved to' + ' ' + p.init_path
-        print(message_1)
+        loggers.log_info(message_1)
 
         self.vm_to = copy.deepcopy(self.vm)
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
             label = self.ionlabel[i]
-            concmess = 'Final cytoplasmic concentration of'+ ' '+ label + ': '
-            print(concmess,endconc,' mmol/L')
+            concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
+            loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final environmental concentration of'+ ' '+ label + ': '
-            print(concmess,endconc,' mmol/L')
+            loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
-        vmess = 'Final cell Vmem of ' + ': '
-        print(vmess,final_vmean, ' mV')
+        vmess = 'Final average cell Vmem of' + ': '
+        loggers.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
-            print('cell pH',np.round(final_pH,2))
+            loggers.log_info('Final average cell pH ' + str(np.round(final_pH,2)))
 
             final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
-            print('environmental pH',np.round(final_pH_env,2))
+            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 
                 endconc_er = np.round(np.mean(self.cc_er[0]),6)
                 label = self.ionlabel[self.iCa]
                 concmess = 'Final ER concentration of'+ ' '+ label + ': '
-                print(concmess,endconc_er,' mmol/L')
+                loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
 
         if p.voltage_dye == 1:
 
             dye_env_final = np.mean(self.cDye_env)
             dye_cell_final = np.mean(self.cDye_cell)
-            print('Final dye concentration in the environment: ',np.round(dye_env_final,6), ' mmol/L')
-            print('Final average dye concentration in cells: ', np.round(dye_cell_final,6), ' mmol/L')
+            loggers.log_info('Final dye concentration in the environment: '+ str(np.round(dye_env_final,6)) + ' mmol/L')
+            loggers.log_info('Final average dye concentration in cells: '+ str(np.round(dye_cell_final,6)) + ' mmol/L')
+
 
     def runSim(self,cells,p,save=None):
         """
@@ -915,7 +937,8 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        print('Your simulation is running from',0,'to',round(p.sim_tsteps*p.dt,3),'seconds of in-world time.')
+        loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
+                         + ' seconds of in-world time.')
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
@@ -925,7 +948,12 @@ class Simulator(object):
 
             checkPlot = viz.PlotWhileSolving(cells,self,p)
 
+        do_once = True  # a variable to time the loop only once
+
         for t in tt:   # run through the loop
+
+            if do_once == True:
+                loop_measure = time.time()
 
             self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
             self.vm_to = copy.deepcopy(self.vm)       # reassign the history-saving vm
@@ -1128,6 +1156,8 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
+            check_v(self.vm)
+
             if t in tsamples:
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
@@ -1159,8 +1189,14 @@ class Simulator(object):
                     self.cc_er_time.append(ccer)
 
                 if p.plot_while_solving == True:
-
                     checkPlot.updatePlot(self,p)
+
+                        # get time for loop and estimate total time for simulation
+            if do_once == True:
+                loop_time = time.time() - loop_measure
+                time_estimate = round(loop_time*p.sim_tsteps,2)
+                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
+                do_once = False
 
         # End off by calculating the current through the gap junction network:
         self.Igj_time = []
@@ -1177,49 +1213,54 @@ class Simulator(object):
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
-            print(message_2)
+            loggers.log_info(message_2)
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            print(concmess,endconc,' mmol/L')
+            loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final environmental concentration of'+ ' '+ label + ': '
-            print(concmess,endconc,' mmol/L')
+            loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
 
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),2)
+        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
         vmess = 'Final average cell Vmem of ' + ': '
-        print(vmess,final_vmean, ' mV')
+        loggers.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
-            print('cell pH',np.round(final_pH,2))
+            loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
+
+            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
+            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
 
         IP3_env_final = np.mean(self.cIP3_env)
         IP3_cell_final = np.mean(self.cIP3)
-        print('Final IP3 concentration in the environment: ',np.round(IP3_env_final,6), ' mmol/L')
-        print('Final average IP3 concentration in cells: ', np.round(IP3_cell_final,6), ' mmol/L')
+        loggers.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final,6)) + ' mmol/L')
+        loggers.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final,6)) + ' mmol/L')
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
             endconc_er = np.round(np.mean(self.cc_er[0]),6)
             label = self.ionlabel[self.iCa]
             concmess = 'Final average ER concentration of'+ ' '+ label + ': '
-            print(concmess,endconc_er,' mmol/L')
+            loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
 
         if p.voltage_dye ==1:
             dye_env_final = np.mean(self.cDye_env)
             dye_cell_final = np.mean(self.cDye_cell)
-            print('Final dye concentration in the environment: ',np.round(dye_env_final,6), ' mmol/L')
-            print('Final average dye concentration in cells: ', np.round(dye_cell_final,6), ' mmol/L')
+            loggers.log_info('Final dye concentration in the environment: '+ str(np.round(dye_env_final,6))
+                             + ' mmol/L')
+            loggers.log_info('Final average dye concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
+                             ' mmol/L')
 
         plt.close()
-        print('Simulation completed successfully.')
+        loggers.log_info('Simulation completed successfully.')
 
     def allDynamics(self,t,p):
 
@@ -2073,7 +2114,7 @@ def get_molarity(concentrations,p):
 
     return netmolarity
 
-def check_c(cA):
+def check_v(vm):
     """
     Does a quick check on two values (concentrations)
     and sets one to zero if it is below zero.
@@ -2084,11 +2125,16 @@ def check_c(cA):
     #         cA2 = 0.0
     #
     # elif isinstance(cA,np.ndarray): # if we have matrix data
-    isubzeros = (cA<0).nonzero()
-    if isubzeros:  # if there's anything in the isubzeros matrix...
-        cA[isubzeros] = 0.0
+    highvar = np.std(vm)
+    isnans = np.isnan(vm)
 
-    return cA
+    if highvar > 20e-3:  # if there's anything in the isubzeros matrix...
+        print("Your simulation appears to have become unstable. Please try a smaller time step to validate "
+              "accuracy of the results.")
+
+    if isnans.any():  # if there's anything in the isubzeros matrix...
+        raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
+                                       "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
 def sigmoid(x,g,y_sat):
     """
