@@ -134,8 +134,9 @@ def configure_matplotlib() -> None:
     http://matplotlib.org/users/customizing.html
         Further details on `matplotlib` configuration.
     '''
-    # For efficiency, defer until necessary. (This probably gains us little to
-    # nothing, but one harbours demure hope.)
+    # Avoid circular import dependencies, as well as optional dependency
+    # imports prohibited at the top-level of this module.
+    from betse.util.io import loggers
     import matplotlib
 
     # Reconfigure the following settings, whose keys are the names of settings
@@ -160,12 +161,20 @@ def configure_matplotlib() -> None:
     # the "matplotlib.pyplot" or "matplotlib.pylab" modules.  Since backend
     # names are case-insensitive, lowercase names are preferred below.
     #
-    # If the current operating system is Apple OS X, prefer the "CocoaAgg"
-    # backend to the "MacOSX" backend. The former leverages the cross-platform
-    # C++ library AGG (Anti-grain Geometry) and hence tends to be better
-    # supported; the latter does not.
+    # If the current operating system is Apple OS X, prefer any non-native
+    # backend leveraging the cross-platform C++ library AGG (Anti-grain
+    # Geometry) to native backends. There exist two native backends for OS X:
+    #
+    # * "CocoaAgg", which leverages AGG but is officially deprecated and
+    #   fundametally broken. (Really.)
+    # * "MacOSX", which does *NOT* leverage AGG and is known to have outstanding
+    #   issues (e.g., the show() method refusing to block).
+    #
+    # There remain numerous non-native, AGG-based backends, including:
+    #
+    # * "TkAgg", known to sporadically crash and hence unsupported under OS X.
     if oses.is_os_x():
-        matplotlib.use('cocoaagg')
+        matplotlib.use('tkagg')
     # Else, prefer the "TkAgg" backend. Alternatives include:
     #
     # * "Qt4Agg", an aesthetically inferior backend *NOT* appearing to support
@@ -174,6 +183,20 @@ def configure_matplotlib() -> None:
         matplotlib.use('tkagg')
 
 # --------------------( WASTELANDS                         )--------------------
+    # If the current operating system is Apple OS X, prefer the "CocoaAgg"
+    # backend to the "MacOSX" backend. The former leverages the cross-platform
+    # C++ library AGG (Anti-grain Geometry) and hence tends to be better
+    # supported; the latter does not.
+        #FIXME: Extract into a new packages.is_package_PyObjC() function.
+        # If PyObjC is installed, enable the "CocoaAgg" backend, which
+        # internally requires such dependency.
+        #if modules.is_module('PyObjCTools'):
+#           loggers.log_warning(
+#               'Optional dependency "PyObjC" not found. '
+#               'Falling back from matplotlib backend "CocoaAgg" to "MacOSX".'
+#           )
+#           matplotlib.use('macosx')
+
         #FUXME: Alternately, perhaps we want to redirect
             # exception_template.format(metadata.DEPENDENCY_SETUPTOOLS)
     # List of setuptools requirements strings signifying all safely testable

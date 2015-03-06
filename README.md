@@ -73,7 +73,7 @@ follows:
 . Open a terminal window (e.g., by running the pre-bundled
   `Applications/Utilities`Terminal.app` application).
 . Install dependencies:
-    >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
+    >>> sudo port install py34-matplotlib py34-numpy py34-pyobjc py34-pyside py34-scipy py34-setuptools py34-yaml
 . Activate the version of Python required by betse:
     >>> sudo port select --set python python34
 . Close the terminal, if you like:
