@@ -38,9 +38,9 @@
 
 init file saving:
 
-    directory: test_init          # name of the directory to save the initialization
+    directory: init_run_1          # name of the directory to save the initialization
 
-    file: init_run1.betse        # Specify the filename saving the initialization run.
+    file: init_run_1.betse        # Specify the filename saving the initialization run.
 
 
 init time settings:
@@ -66,18 +66,22 @@ init time settings:
 # SIMULATION
 # ---------------------------------------------------------------------------------------------------------------------
 
+automatically run initialization: True     # In the case that an initialization file is not found, do you wish to
+                                           # automatically run an initialization with settings as described in this
+                                           # config file?
+
 sim file saving:
 
-    directory: test_init/sim_run1    # Specify a directory to hold the sim and its results
-                                     # As each simulation needs to be associated with the right
-                                     # init run, we recommend putting simulation directories within
-                                     # the corresponding init directory.
+    directory: init_run_1/sim_run_1    # Specify a directory to hold the sim and its results
+                                       # As each simulation needs to be associated with the right
+                                       # init run, we recommend putting simulation directories within
+                                       # the corresponding init directory.
 
     file: sim_run1.betse    # Specify the file name saving the results of the simulation run.
 
 sim time settings:
 
-  time profile: 'simulate somatic'    # choose a pre-defined time profile for the sim run
+  time profile: 'custom sim'    # choose a pre-defined time profile for the sim run
                                       # choices are 'simulate somatic', 'simulate excitable'
                                       # or 'custom sim'
                                       # 'simulate somatic' is for cells without voltage-gated
@@ -91,17 +95,18 @@ sim time settings:
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
 
+
   custom sim time profile:  # set the following params if you desire more control over sim run
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
     time step: 5e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    end time: 10                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    end time: 10.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 1.0            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 5.0e-9 m)
+    gap junction radius: 1.2e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 5.0e-9 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -116,7 +121,7 @@ sim time settings:
 
 general options:
 
-  ion profile: 'animal'         # set the ion profile to be used in the simulation
+  ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -420,7 +425,7 @@ include calcium dynamics:
 
 results options:
 
-  save directory: test_init/sim_run2/results    # Name of directory to save plots and animations.
+  save directory: init_run_1/sim_run_1/results    # Name of directory to save plots and animations.
                                                 # We recommend collecting all results (plots, animations)
                                                 # for a particular sim inside a results directory within
                                                 # that sim's directory.
@@ -449,7 +454,7 @@ results options:
                                   # true, all animations created.
                                   # options True or False (case sensitive)
 
-  save animations: False           # save all animations as png sequences in animation-specific folders
+  save animations: True           # save all animations as png sequences in animation-specific folders
                                    # inside the results directory
                                    # options True or False (case sensitive)
 

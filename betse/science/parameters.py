@@ -397,6 +397,8 @@ class Parameters(object):
         self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
         self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
 
+        self.autoInit = self.config['automatically run initialization']
+
         # Define paths for saving different kinds of files.
         self.init_path = paths.join(
             config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.

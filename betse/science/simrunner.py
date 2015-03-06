@@ -3,10 +3,7 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME: needs to call a comprehensive error if the user tries to run a sim
-# without an existing initialization
-# FIXME: needs to call a comprehensive error if the user tries to run a sim with
-# the wrong initialization
+
 
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
@@ -15,11 +12,14 @@ from betse.science.parameters import Parameters
 from betse.science.world import World
 from betse.util.io import loggers
 from betse.util.path import files, paths
-# import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import os, os.path
 import time
+from betse.util.path import files
+from betse.exceptions import BetseExceptionSimulation
+
+
 
 class SimRunner(object):
     '''
@@ -52,7 +52,7 @@ class SimRunner(object):
         '''
 
         loggers.log_info(
-            'Initializing simulation with configuration "{}".'.format(
+            'Initializing simulation with configuration file "{}".'.format(
                 self._config_basename))
 
         start_time = time.time()  # get a start value for timing the simulation
@@ -64,7 +64,6 @@ class SimRunner(object):
         loggers.log_info('Cell cluster is being created...')
         cells.makeWorld(p)     # call function to create the world
         loggers.log_info('Cell cluster creation complete!')
-
 
         sim = Simulator(p)   # create an instance of Simulator
         sim.baseInit(cells, p)   # initialize simulation data structures
@@ -79,22 +78,40 @@ class SimRunner(object):
             plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
             plt.show()
 
-
-    # FIXME: throw exception if init cache is empty -- should run an initialization if it's empty...
     def simulate(self):
         '''
         Run simulation from a previously saved initialization.
         '''
         loggers.log_info(
-            'Running simulation with configuration "{}".'.format(
+            'Running simulation with configuration file "{}".'.format(
                 self._config_basename))
+
+
 
         start_time = time.time()  # get a start value for timing the simulation
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be initialize
         sim = Simulator(p)   # create an instance of Simulator
-        sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+
+        if files.is_file(sim.savedInit):
+            sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+        else:
+            # raise BetseExceptionParameters("Ooops! No such initialization file found to run this simulation! "
+            #                                "Please run an initialization first.")
+            loggers.log_info("No initialization file found to run this simulation!")
+            answer = p.autoInit
+
+            if p.autoInit == True:
+                loggers.log_info("Automatically running initialization...")
+                self.initialize()
+                loggers.log_info('Now using initialization to run simulation.')
+                sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+
+            elif p.autoInit == False:
+                raise BetseExceptionSimulation("Simulation terminated due to missing initialization. Please run"
+                                               "an initialization and try again.")
+
         sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
         sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
 
@@ -121,7 +138,11 @@ class SimRunner(object):
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
-        sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+
+        if files.is_file(sim.savedInit):
+            sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+        else:
+            raise BetseExceptionSimulation("Ooops! No such initialization file found to plot!")
 
         plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
         plt.show()
@@ -136,7 +157,11 @@ class SimRunner(object):
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
-        sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
+
+        if files.is_file(sim.savedSim):
+            sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
+        else:
+            raise BetseExceptionSimulation("Ooops! No such simulation file found to plot!")
 
         plots4Sim(
             p.plot_cell,cells,sim,p,

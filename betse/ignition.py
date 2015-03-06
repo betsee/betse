@@ -7,6 +7,8 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
+# FIXME dear Sessums B. Delightful -- the issue with the dependancies.init() is still crashing the program... :(
+
 # ....................{ IMPORTS                            }....................
 from betse import dependencies, pathtree
 from betse.util.io import loggers
@@ -46,6 +48,6 @@ def init() -> None:
 
     # Validate mandatory dependency *AFTER* configuring logging,
     # ensuring that exceptions raised by such validation will be logged.
-    dependencies.init()
+    dependencies.init()   # FIXME! This is still causing issues (AP)
 
 # --------------------( WASTELANDS                         )--------------------
