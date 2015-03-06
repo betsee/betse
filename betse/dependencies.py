@@ -10,6 +10,88 @@ This module defines functions intended to be called by high-level interface
 modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 '''
 
+#FIXME: Refactor as follows:
+#
+#* Create a new subpackage "betse.util.dependency".
+#* Split this module into two modules:
+#  * "betse.util.dependency.dependencies", providing the exception handling
+#    function.
+#  * "betse.util.dependency.matplotlib", providing the matplotlib-specific
+#    functions.
+#
+#Hence, this module survives, albeit in *EXTREMELY* limited form. That's fine,
+#for now. (Better minimal than overkill, we should think.)
+
+#FIXME: It'd be great to raise human-readable exceptions on the specified
+#backends *NOT* being available. This is certainly feasible, as the
+#following stackoverflow answer demonstrates -- if somewhat involved:
+#    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
+#That said, we really want to do this *ANYWAY* to print such list when running
+#"betse info". So, let's just get this done, please.
+
+#FIXME: On attempting to enable the "TkAgg" backend under OS X, we receive the
+#following runtime exception from PyInstaller-frozen executables despite such
+#freezing appearing to have succeeded:
+#
+#    Traceback (most recent call last):
+#      File "/Users/osxguest/py/betse/betse/cli/cli.py", line 82, in run
+#        self._run()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 114, in _run
+#        subcommand_method()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 329, in _run_sim
+#        subcommand_method()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 356, in _run_sim_plot_init
+#        self._get_sim_runner().plotInit()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 371, in _get_sim_runner
+#        from betse.science.simrunner import SimRunner
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/Users/osxguest/py/betse/betse/science/simrunner.py", line 11, in <module>
+#        from betse.science import visualize as viz
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/Users/osxguest/py/betse/betse/science/visualize.py", line 46, in <module>
+#        import matplotlib.pyplot as plt
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/pyplot.py", line 109, in <module>
+#        _backend_mod, new_figure_manager, draw_if_interactive, _show = pylab_setup()
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/backends/__init__.py", line 32, in pylab_setup
+#        globals(),locals(),[backend_name],0)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/backends/backend_tkagg.py", line 7, in <module>
+#        from six.moves import tkinter_filedialog as FileDialog
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 89, in __get__
+#        result = self._resolve()
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 108, in _resolve
+#        return _import_module(self.mod)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 79, in _import_module
+#        __import__(name)
+#    ImportError: No module named 'tkinter.filedialog'
+#
+#The crux of the issue is the hidden import
+#"from six.moves import tkinter_filedialog as FileDialog". Given the popularity
+#of the "six" module for purposes of cross-Python[23]-portability, the long-
+#term solution is to patch PyInstaller's imports detection to also detect "six"-
+#style imports. Since there are only a relatively small number of possible
+#imports that "six" supports in this manner, this should be *VERY* feasible.
+#Indeed, "py2exe" recently added support for this very functionality via the
+#following commit:
+#
+#    http://sourceforge.net/p/py2exe/svn/764
+#
+#This is incredibly important. matplotlib officially dropped 2to3 in favor of
+#six starting with version 1.4, implying that PyInstaller now basically requires
+#six support to also support newer matplotlib versions. To quote: "As of
+#matplotlib 1.4, the six library is used to support Python 2 and 3 from a
+#single code base."
+#
+#A short-term solution, alternately, is to patch the "matplotlib_backends()"
+#function in "hookutils.py" to append such hidden imports to the list of
+#returned hidden imports. This is significantly easier and hence the way to go,
+#for now.
+
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
@@ -137,6 +219,9 @@ def configure_matplotlib() -> None:
     # Avoid circular import dependencies, as well as optional dependency
     # imports prohibited at the top-level of this module.
     from betse.util.io import loggers
+
+    #FIXME: Nonsense. After shifting these functions to a new module, shift this
+    #importation to the top of such module.
     import matplotlib
 
     # Reconfigure the following settings, whose keys are the names of settings
@@ -150,11 +235,6 @@ def configure_matplotlib() -> None:
         'verbose.level': 'helpful',
         # 'verbose.level': 'debug',
     })
-
-    #FIXME: It'd be great to raise human-readable exceptions on the specified
-    #backends *NOT* being available. This is certainly feasible, as the
-    #following stackoverflow answer demonstrates -- if somewhat involved:
-    #    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
 
     # Configure the backend to be implicitly used for *ALL* subsequent plotting.
     # Such backend *MUST* be configured prior to the first importation of either
@@ -170,17 +250,40 @@ def configure_matplotlib() -> None:
     # * "MacOSX", which does *NOT* leverage AGG and is known to have outstanding
     #   issues (e.g., the show() method refusing to block).
     #
-    # There remain numerous non-native, AGG-based backends, including:
+    # There remain numerous non-native, AGG-based backends. We currently prefer
+    # "TkAgg" for the following reasons:
     #
-    # * "TkAgg", known to sporadically crash and hence unsupported under OS X.
+    # * Parity (both visual and functional) with the Linux and Windows versions.
+    # * Stability. While once well-known to sporadically crash, such backend
+    #   has proved stable throughout the development of our CLI interface.
+    # * Installability. When installing "matplotlib", MacPorts enables by
+    #   default the "tkinter" variant and hence such backend but *NO* other AGG-
+    #   based backends.
     if oses.is_os_x():
-        matplotlib.use('tkagg')
+        _set_matplotlib_backend_tkagg()
     # Else, prefer the "TkAgg" backend. Alternatives include:
     #
     # * "Qt4Agg", an aesthetically inferior backend *NOT* appearing to support
     #   animation out of the box. (That's interesting, in the bad way.)
     else:
-        matplotlib.use('tkagg')
+        _set_matplotlib_backend_tkagg()
+
+def _set_matplotlib_backend_tkagg() -> None:
+    '''
+    Set `TkAgg` to be the current `matplotlib` backend.
+    '''
+    #FIXME: Nonsense. See above.
+    import matplotlib
+
+    # matplotlib 1.4 dropped the "2to3" compatibility layer in favor of "six",
+    # which hides imports in the form of
+    # "from six.moves import tkinter_filedialog as FileDialog". Since
+    # PyInstaller currently fails to detect such imports, we manually import the
+    # offending modules to notify PyInstaller of these requirements.
+    import tkinter.filedialog
+
+    # Set such backend.
+    matplotlib.use('tkagg')
 
 # --------------------( WASTELANDS                         )--------------------
     # If the current operating system is Apple OS X, prefer the "CocoaAgg"
