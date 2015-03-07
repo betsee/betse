@@ -470,18 +470,19 @@ class Parameters(object):
         # initialize dictionary keeping track of global scheduled options for the sim:
         self.global_options = {}
 
+
         # initialize dictionary keeping track of targeted scheduled options for the sim:
         self.scheduled_options = {}
 
-        val = self.config['in this sim change']
+        val = self.config['in this sim globally change']
 
-        bool_Kenv = val['environmental K+']
-        bool_Clenv = val['environmental Cl-']
-        bool_Naenv = val['environmental Na+']
+        bool_Naenv = val['environmental Na']
+        bool_Kenv = val['environmental K']
+        bool_Clenv = val['environmental Cl']
         bool_gjblock = val['block gap junctions']
         bool_temp = val['temperature']
-        bool_NaKblock = val['NaKATPase pump']
-        bool_HKblock = val['HKATPase pump']
+        bool_NaKblock = val['block NaKATPase pump']
+        bool_HKblock = val['block HKATPase pump']
 
 
         if bool_Kenv == False:
@@ -554,11 +555,13 @@ class Parameters(object):
         # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
         self.scheduled_targets = self.config['scheduled target cells']
 
-        bool_Namem = val['Na membrane permeability']
-        bool_Kmem = val['K membrane permeability']
-        bool_Clmem = val['Cl membrane permeability']
-        bool_Camem = val['Ca membrane permeability']
-        bool_ip3 = val['cell IP3 concentration']
+        valb = self.config['in this sim make targeted changes to']
+
+        bool_Namem = valb['Na membrane permeability']
+        bool_Kmem = valb['K membrane permeability']
+        bool_Clmem = valb['Cl membrane permeability']
+        bool_Camem = valb['Ca membrane permeability']
+        bool_ip3 = valb['cell IP3 concentration']
 
         if bool_Namem == False:
             self.scheduled_options['Na_mem'] = 0
@@ -1042,7 +1045,7 @@ class Parameters(object):
 
         elif time_profile == 'simulate excitable':
 
-            self.dt = 5e-5    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+            self.dt = 5.0e-5    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
             self.sim_end = self.time4sim         # world time to end the simulation
             self.resamp = 5e-4         # time to resample in world time
 
@@ -1070,7 +1073,7 @@ class Parameters(object):
         elif time_profile == 'custom init':
 
             self.dt = float(self.config['init time settings']['custom init time profile']['time step'])
-            self.init_end = float(self.config['init time settings']['custom init time profile']['end time'])
+            self.init_end = float(self.config['init time settings']['custom init time profile']['total time'])
             self.init_tsteps = self.init_end/self.dt
             self.resample = float(self.config['init time settings']['custom init time profile']['sampling rate'])
             self.t_resample = self.resample/self.dt
@@ -1081,7 +1084,7 @@ class Parameters(object):
         elif time_profile == 'custom sim':
 
             self.dt = float(self.config['sim time settings']['custom sim time profile']['time step'])
-            self.sim_end = float(self.config['sim time settings']['custom sim time profile']['end time'])
+            self.sim_end = float(self.config['sim time settings']['custom sim time profile']['total time'])
             self.sim_tsteps = self.sim_end/self.dt
             self.resample = float(self.config['sim time settings']['custom sim time profile']['sampling rate'])
             self.t_resample = self.resample/self.dt

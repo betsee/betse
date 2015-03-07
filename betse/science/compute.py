@@ -2128,7 +2128,7 @@ def check_v(vm):
     highvar = np.std(vm)
     isnans = np.isnan(vm)
 
-    if highvar > 20e-3:  # if there's anything in the isubzeros matrix...
+    if highvar > 50e-3:  # if there's anything in the isubzeros matrix...
         print("Your simulation appears to have become unstable. Please try a smaller time step to validate "
               "accuracy of the results.")
 

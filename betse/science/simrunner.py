@@ -237,7 +237,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         axConcsNa.set_title(titNa)
 
         if saveImages == True:
-            savename1 = savedImg + 'concNa_time'
+            savename1 = savedImg + 'concNa_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png')
 
         plt.show(block=False)
@@ -249,7 +249,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         axConcsK.set_title(titK)
 
         if saveImages == True:
-            savename1 = savedImg + 'concK_time'
+            savename1 = savedImg + 'concK_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png')
 
         plt.show(block=False)
@@ -261,7 +261,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         axConcsM.set_title(titM)
 
         if saveImages == True:
-            savename1 = savedImg + 'concM_time'
+            savename1 = savedImg + 'concM_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png')
 
         plt.show(block=False)
@@ -271,7 +271,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         axVt.set_title(titV)
 
         if saveImages == True:
-            savename2 = savedImg + 'Vmem_time'
+            savename2 = savedImg + 'Vmem_time' + '.png'
             plt.savefig(savename2,dpi=300,format='png')
 
         plt.show(block=False)
@@ -283,7 +283,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             axA.set_title(titCa)
 
             if saveImages == True:
-                savename3 = savedImg + 'cytosol_Ca_time'
+                savename3 = savedImg + 'cytosol_Ca_time' + '.png'
                 plt.savefig(savename3,dpi=300,format='png')
 
             plt.show(block=False)
@@ -295,7 +295,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 axD.set_title(titER)
 
                 if saveImages == True:
-                    savename4 = savedImg + 'ER_Ca_time'
+                    savename4 = savedImg + 'ER_Ca_time' + '.png'
                     plt.savefig(savename4,dpi=300,format='png')
 
                 plt.show(block=False)
@@ -305,7 +305,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 axPro.set_title(titIP3)
 
                 if saveImages == True:
-                    savename5 = savedImg + 'IP3_time'
+                    savename5 = savedImg + 'IP3_time' + '.png'
                     plt.savefig(savename5,dpi=300,format='png')
 
                 plt.show(block=False)
@@ -322,7 +322,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cbV.set_label('Voltage mV')
 
         if saveImages == True:
-            savename5 = savedImg + 'final_Vmem_2D'
+            savename5 = savedImg + 'final_Vmem_2D' + '.png'
             plt.savefig(savename5,dpi=300,format='png')
 
         plt.show(block=False)
@@ -339,7 +339,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cbIP3.set_label('Concentration umol/L')
 
         if saveImages == True:
-            savename6 = savedImg + 'final_IP3_2D'
+            savename6 = savedImg + 'final_IP3_2D' + '.png'
             plt.savefig(savename6,dpi=300,format='png')
 
         plt.show(block=False)
@@ -356,7 +356,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cbVdye.set_label('Concentration umol/L')
 
         if saveImages == True:
-            savename7 = savedImg + 'final_dye_2D'
+            savename7 = savedImg + 'final_dye_2D' + '.png'
             plt.savefig(savename7,dpi=300,format='png')
 
         plt.show(block=False)
@@ -373,7 +373,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cbCa.set_label('Concentration nmol/L')
 
         if saveImages == True:
-            savename8 = savedImg + 'final_Ca_2D'
+            savename8 = savedImg + 'final_Ca_2D' + '.png'
             plt.savefig(savename8,dpi=300,format='png')
 
         plt.show(block=False)

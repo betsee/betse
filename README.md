@@ -1,9 +1,9 @@
 betse
 ===========
 
-`betse` (BioElectric Tissue Simulation Engine) simulates propagation of
-electrical phenomena within biological tissue (e.g., ion channel-gated current
-flow).
+`betse` (BioElectric Tissue Simulation Engine) bio-realistic modelling
+of dynamic electrochemical phenomena in gap junction networked cell collectives,
+with a focus on spatio-temporal pattern formation.
 
 ## System Requirements
 

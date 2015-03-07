@@ -23,11 +23,11 @@ subcommand help:
 For further help with specific subcommands, pass the "-h" or "--help" arguments
 to such subcommands. For example, for further help with the "sim" subcommand:
 
-;    {script_basename} sim --help
+;    betse sim --help
 
 Likewise, for further help with the "sim" subcommand's "cfg" subcommand:
 
-;    {script_basename} sim cfg --help
+;    betse sim cfg --help
 '''
 '''
 Help string template for the **program epilog** (i.e., string printed after
@@ -62,9 +62,9 @@ Run a sample tissue simulation by automatically creating a default configuration
 file and initializing, running, and plotting the simulation specified by such
 file. This subcommand is shorthand for the following:
 
-;    {script_basename} sim cfg  sample_sim/sample_sim.yaml
-;    {script_basename} sim init sample_sim/sample_sim.yaml
-;    {script_basename} sim run  sample_sim/sample_sim.yaml
+;    betse sim cfg  sample_sim/sample_sim.yaml
+;    betse sim init sample_sim/sample_sim.yaml
+;    betse sim run  sample_sim/sample_sim.yaml
 '''
 '''
 Help string template for the `try` subcommand.
@@ -75,7 +75,7 @@ Run the passed tissue simulation subcommand. For example, to initialize the
 simulation specified by an existing configuration file "my_sim.yaml" in the
 current directory:
 
-;    {script_basename} sim init my_sim.yaml
+;    betse sim init my_sim.yaml
 '''
 '''
 Help string template for the `sim` subcommand.

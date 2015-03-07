@@ -24,9 +24,9 @@ NAME = 'BETSE'
 '''Human-readable program name.'''
 
 DESCRIPTION = ''.join((
-    NAME, ', the [B]io[E]lectric [T]issue [S]imulation [E]ngine, models ',
-    'propagation of electrical phenomena through biological tissue ',
-    '(e.g., of ion channel-gated current flow).',
+    NAME, ', the [B]io[E]lectric [T]issue [S]imulation [E]ngine: bio-realistic modelling ',
+    'of dynamic electrochemical phenomena in gap junction networked cell collectives,',
+    'with a focus on spatio-temporal pattern formation.',
 ))
 '''Human-readable program description.'''
 

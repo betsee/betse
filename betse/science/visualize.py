@@ -93,7 +93,7 @@ class AnimateCellData(object):
 
         if self.save == True:
             self.fig.canvas.draw()
-            savename = self.savedAni + str(i)
+            savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
 class AnimateCellData_smoothed(object):
@@ -167,7 +167,7 @@ class AnimateCellData_smoothed(object):
 
         if self.save == True:
             self.fig.canvas.draw()
-            savename = self.savedAni + str(i)
+            savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
 class AnimateGJData(object):
@@ -178,10 +178,10 @@ class AnimateGJData(object):
     def __init__(self,cells,sim,p,tit=' ', save=False,saveFolder = '/animation',
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
-        #self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
-        gjI_t = np.asarray(sim.Igj_time)
-        normI = np.max(gjI_t)
-        self.zdata_t = gjI_t/normI
+        self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
+        # gjI_t = np.asarray(sim.Igj_time)
+        # normI = np.max(gjI_t)
+        # self.zdata_t = gjI_t/normI
 
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
         self.colormap = p.default_cm
@@ -271,7 +271,7 @@ class AnimateGJData(object):
 
         if self.save == True:
             self.fig.canvas.draw()
-            savename = self.savedAni + str(i)
+            savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
 class AnimateGJData_smoothed(object):
@@ -279,10 +279,11 @@ class AnimateGJData_smoothed(object):
     def __init__(self,cells,sim,p,tit=' ', save=False,saveFolder = '/animation',
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
-        # self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
-        gjI_t = np.asarray(sim.Igj_time)
-        normI = np.max(gjI_t)
-        self.zdata_t = gjI_t/normI
+        self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
+
+        # gjI_t = np.asarray(sim.Igj_time)
+        # normI = np.max(gjI_t)
+        # self.zdata_t = gjI_t/normI
 
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
         self.colormap = p.default_cm
@@ -368,7 +369,7 @@ class AnimateGJData_smoothed(object):
 
         if self.save == True:
             self.fig.canvas.draw()
-            savename = self.savedAni + str(i)
+            savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
 class PlotWhileSolving(object):
@@ -450,7 +451,7 @@ class PlotWhileSolving(object):
 
         if p.save_solving_plot == True:
             self.i = self.i + 1
-            savename = self.savedAni + str(self.i)
+            savename = self.savedAni + str(self.i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
