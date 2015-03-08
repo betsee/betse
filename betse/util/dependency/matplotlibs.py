@@ -276,13 +276,13 @@ class MatplotlibConfig(object):
                 from matplotlib import pyplot
                 pyplot.switch_backend(backend_name)
         # Since such functions tend to raise non-human-readable exceptions, log
-        # human-readable errors on catching such exceptions before reraising
-        # such exceptions.
-        except Exception as exception:
+        # a human-readable error on catching such exception before reraising
+        # such exception.
+        except Exception:
             loggers.log_error(
                 'Matplotlib backend "{}" not found or not loadable.'.format(
                     backend_name))
-            raise exception
+            raise
 
         # Log such setting *AFTER* succeeding.
         loggers.log_debug(

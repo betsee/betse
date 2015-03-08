@@ -242,6 +242,11 @@ class CLI(metaclass = ABCMeta):
                 # truncating such message for human-readability.)
                 log_buffer.write(strs.join(exception_message_lines))
 
+                #FIXME: If such exception type is "KeyError", the remaining
+                #exception message consists only of the offending key and hence
+                #is non-human-readable. Correct this by capturing the exception
+                #type to group 1, testing such type, and responding accordingly.
+
                 # Strip the non-human-readable exception class from the last
                 # line of such message. If such exception is not None *AND* is
                 # convertable without raising exceptions to a string, both

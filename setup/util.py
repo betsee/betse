@@ -323,8 +323,8 @@ def remove_dir(dirname: str) -> None:
     time.sleep(sleep_seconds)
 
     # Remove such directory.
-    print('Removing directory "{}".'.format(dirname))
     shutil.rmtree(dirname)
+    print('Removed directory "{}".'.format(dirname))
 
 def remove_file(filename: str) -> None:
     '''

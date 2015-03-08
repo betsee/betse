@@ -312,6 +312,20 @@ While commonly regarded as the best utility for freezing Python applications,
 PyInstaller is *not* without the occasional caveat. Most if not all such caveats
 apply to alternative utilities (e.g., `cx_Freeze`, `py2app`, `py2exe`).
 
+#### Switching Freeze Modes
+
+For safety, attempting to switch freeze modes (i.e., to refreeze `betse` in
+one-directory mode when already frozen in one-file mode *or* in one-file mode
+when already frozen in one-directory mode) currently results in an error.
+
+This is correctable by either manually removing the previously frozen file or
+directory *or* passing option `--clean` to the desired `freeze_file` or
+`freeze_dir` command, which automatically removes such path on your behalf. For
+example, `betse` is switchable from one-directory to one-file mode as follows:
+
+    >>> cd "${BETSE_DIR}"
+    >>> ./setup.py freeze_file --clean
+
 #### Forwards Incompatibilities
 
 Executables frozen on older versions of supported operating systems are
