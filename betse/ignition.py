@@ -7,10 +7,9 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
-# FIXME dear Sessums B. Delightful -- the issue with the dependancies.init() is still crashing the program... :(
-
 # ....................{ IMPORTS                            }....................
-from betse import dependencies, pathtree
+from betse import pathtree
+from betse.util.dependency import dependencies
 from betse.util.io import loggers
 
 # ....................{ INITIALIZERS                       }....................
@@ -42,12 +41,14 @@ def init() -> None:
     # self._logger.info('INFO!')
     # self._logger.debug('DEBUG!')
 
-    #FIXME: Reenable *AFTER* we integrate the CLI frontend with our
-    #scientific backend. For the moment, this unacceptably provokes
-    #fatal exceptions in frozen applications.
-
     # Validate mandatory dependency *AFTER* configuring logging,
     # ensuring that exceptions raised by such validation will be logged.
-    dependencies.init()   # FIXME! This is still causing issues (AP)
+    dependencies.init()
 
 # --------------------( WASTELANDS                         )--------------------
+# FUXME dear Sessums B. Delightful -- the issue with the dependancies.init() is
+# still crashing the program... :(
+    #FUXME: Reenable *AFTER* we integrate the CLI frontend with our
+    #scientific backend. For the moment, this unacceptably provokes
+    #fatal exceptions in frozen applications.
+    # FUXME! This is still causing issues (AP)

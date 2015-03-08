@@ -12,10 +12,11 @@ functionality resides elsewhere.
 '''
 
 # ....................{ IMPORTS                            }....................
+from collections import OrderedDict
 import platform
 
 # ....................{ GETTERS                            }....................
-def get_metadata() -> str:
+def get_metadata() -> OrderedDict:
     '''
     Get an ordered dictionary synopsizing the current system.
 

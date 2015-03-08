@@ -9,15 +9,10 @@
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
-from betse import metadata, pathtree
 from betse.cli import help
 from betse.cli.cli import CLI
 from betse.util.io import loggers
 from betse.util.path import files, paths
-from betse.util.python import pythons
-from betse.util.system import processes, systems
-from collections import OrderedDict
-from io import StringIO
 
 # ....................{ MAIN                               }....................
 def main() -> int:
@@ -227,68 +222,10 @@ class CLICLI(CLI):
         '''
         Run the `info` subcommand.
         '''
-        # Dependencies providing additional metadata.
-        import matplotlib, numpy, scipy
-
-        # Dictionary of human-readable labels to dictionaries of all
-        # human-readable keys and values categorized by such labels. All such
-        # dictionaries are ordered so as to preserve order in output.
-        info_type_to_dict = OrderedDict((
-            # Application metadata.
-            (metadata.NAME.lower(), OrderedDict((
-                ('basename', processes.get_current_basename()),
-                ('version', metadata.__version__),
-                ('authors', metadata.AUTHORS),
-                ('home directory', pathtree.HOME_DIRNAME),
-                ('dot directory',  pathtree.DOT_DIRNAME),
-                ('data directory', pathtree.DATA_DIRNAME),
-                ('log file', pathtree.LOG_DEFAULT_FILENAME),
-                ('default simulation config file',
-                pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
-            ))),
-
-            # Dependencies metadata.
-            ('dependencies', OrderedDict((
-                ('matplotlib version', matplotlib.__version__),
-                ('matplotlib backend', matplotlib.get_backend()),
-                ('matplotlibrc file', matplotlib.matplotlib_fname()),
-                ('numpy version', numpy.__version__),
-                ('scipy version', scipy.__version__),
-            ))),
-
-            # Python metadata.
-            ('python', pythons.get_metadata()),
-
-            # System metadata.
-            ('system', systems.get_metadata()),
-        ))
-
-        # String buffer formatting such information.
-        info_buffer = StringIO()
-        info_buffer.write('\n')
-
-        # True if this is the first label to be output.
-        is_info_type_first = True
-
-        # Format each such dictionary under its categorizing label.
-        for info_type, info_dict in info_type_to_dict.items():
-            # If this is *NOT* the first label, delimit this label from the
-            # prior label.
-            if is_info_type_first:
-                is_info_type_first = False
-            else:
-                info_buffer.write('\n')
-
-            # Format such label.
-            info_buffer.write('{}:\n'.format(info_type))
-
-            # Format such dictionary.
-            for info_key, info_value in info_dict.items():
-                info_buffer.write('  {}: {}\n'.format(info_key, info_value))
-
-        # Log rather than merely output such string, as logging simplifies
-        # cliest-side bug reporting.
-        loggers.log_info(info_buffer.getvalue())
+        # Such module imports heavy-weight dependencies and hence is imported in
+        # a just-in-time (JIT) manner.
+        from betse.cli import info
+        info.output_info()
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
     #FIXME: This could probably use a bit of help. Specifically, the sample
@@ -374,6 +311,66 @@ class CLICLI(CLI):
         return SimRunner(config_filename = self._args.sim_config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+# from betse import metadata, pathtree
+# from betse.util.python import pythons
+# from betse.util.system import processes, systems
+# from collections import OrderedDict
+# from io import StringIO
+
+        # # Dictionary of human-readable labels to dictionaries of all
+        # # human-readable keys and values categorized by such labels. All such
+        # # dictionaries are ordered so as to preserve order in output.
+        # info_type_to_dict = OrderedDict((
+        #     # Application metadata.
+        #     (metadata.NAME.lower(), OrderedDict((
+        #         ('basename', processes.get_current_basename()),
+        #         ('version', metadata.__version__),
+        #         ('authors', metadata.AUTHORS),
+        #         ('home directory', pathtree.HOME_DIRNAME),
+        #         ('dot directory',  pathtree.DOT_DIRNAME),
+        #         ('data directory', pathtree.DATA_DIRNAME),
+        #         ('log file', pathtree.LOG_DEFAULT_FILENAME),
+        #         ('default simulation config file',
+        #         pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
+        #     ))),
+        #
+        #     # Dependencies metadata.
+        #     ('dependencies', dependencies.get_metadata()),
+        #
+        #     # Python metadata.
+        #     ('python', pythons.get_metadata()),
+        #
+        #     # System metadata.
+        #     ('system', systems.get_metadata()),
+        # ))
+        #
+        # # String buffer formatting such information.
+        # info_buffer = StringIO()
+        # info_buffer.write('\n')
+        #
+        # # True if this is the first label to be output.
+        # is_info_type_first = True
+        #
+        # # Format each such dictionary under its categorizing label.
+        # for info_type, info_dict in info_type_to_dict.items():
+        #     # If this is *NOT* the first label, delimit this label from the
+        #     # prior label.
+        #     if is_info_type_first:
+        #         is_info_type_first = False
+        #     else:
+        #         info_buffer.write('\n')
+        #
+        #     # Format such label.
+        #     info_buffer.write('{}:\n'.format(info_type))
+        #
+        #     # Format such dictionary.
+        #     for info_key, info_value in info_dict.items():
+        #         info_buffer.write('  {}: {}\n'.format(info_key, info_value))
+        #
+        # # Log rather than merely output such string, as logging simplifies
+        # # cliest-side bug reporting.
+        # loggers.log_info(info_buffer.getvalue())
+
 # Since no
         # dirname for such file is specified, such file will be created in the
         # current directory.

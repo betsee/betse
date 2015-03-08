@@ -3,6 +3,11 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: Warnings should be prefixed by "<Warning> " in standard error or some
+#such and errors prefixed by "<Error> " in standard error or some such. See
+#the following stackoveflow question for details on how to implement this:
+#    https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3
+
 #FIXME: The following blog post provides useful instructions on deserializing
 #logging settings from a YAML-formatted configuration file. Leveraging such
 #instructions, we could permit users to setup logging as they see fit (e.g.,
@@ -61,9 +66,10 @@ loggers except the root logger to be unconfigured, messages will be logged
 # Since all other modules should *ALWAYS* be able to safely import this module
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-from logging import StreamHandler
+from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
+from textwrap import TextWrapper
 import logging, os, sys
 
 # ....................{ CONSTANTS ~ int                    }....................
@@ -252,6 +258,7 @@ class LoggerConfig(object):
         Stream handler for the root logger printing to standard output.
     '''
     def __init__(self):
+        super().__init__()
         self._is_initted = False
         self._log_filename = None
         self._logger_root = None
@@ -259,7 +266,7 @@ class LoggerConfig(object):
         self._logger_root_handler_stderr = None
         self._logger_root_handler_stdout = None
 
-    def init(self, filename: str):
+    def init(self, filename: str) -> None:
         '''
         Initialize the root logger for application-wide logging to the passed
         filename.
@@ -326,8 +333,8 @@ class LoggerConfig(object):
 
         #FIXME: Colourize me please.
 
-        # Format stdout and stderr output in the conventional way. For a list of
-        # all available log record attributes, see:
+        # Format standard output and error in the conventional way. For a list
+        # of all available log record attributes, see:
         #
         #     https://docs.python.org/3/library/logging.html#logrecord-attributes
         #
@@ -338,16 +345,20 @@ class LoggerConfig(object):
         # Note that "{{" and "}}" substrings in format() strings escape literal
         # "{" and "}" characters, respectively.
         stream_format = '[{}] {{message}}'.format(script_basename)
-        self._logger_root_handler_stdout.setFormatter(logging.Formatter(
-            stream_format, style='{',))
-        self._logger_root_handler_stderr.setFormatter(logging.Formatter(
-            stream_format, style='{',))
 
         # Enforce a Linux-style logfile format.
-        file_format = '[{{asctime}}] {} {{levelname}} ({{module}}.py:{{funcName}}():{{lineno}}):\n    {{message}}'.format(
-            script_basename)
-        self._logger_root_handler_file.setFormatter(logging.Formatter(
-            file_format, style='{',))
+        file_format =\
+            '[{{asctime}}] {} {{levelname}} ({{module}}.py:{{funcName}}():{{lineno}}):\n    {{message}}'.format(
+                script_basename)
+
+        # Formatters for such formats.
+        stream_formatter = LoggerFormatterStream(stream_format, style='{')
+        file_formatter = LoggerFormatterStream(file_format, style='{')
+
+        # Set such formatters on such handlers.
+        self._logger_root_handler_stdout.setFormatter(stream_formatter)
+        self._logger_root_handler_stderr.setFormatter(stream_formatter)
+        self._logger_root_handler_file.setFormatter(file_formatter)
 
         # Register such handlers with the root logger.
         logger_root.addHandler(self._logger_root_handler_stdout)
@@ -406,21 +417,67 @@ class LoggerConfig(object):
         '''
         return get(*args, **kwargs)
 
-# ....................{ CONFIG ~ filter                    }....................
-class LoggerFilterInfoOrLess(logging.Filter):
+# ....................{ CLASSES ~ filter                   }....................
+class LoggerFilterInfoOrLess(Filter):
     '''
     Filter ignoring log records with logging level strictly greater than `INFO`.
 
     This filter retains only log records with logging level of either `INFO` or
     `DEBUG`.
     '''
-    def filter(self, log_record: logging.LogRecord) -> str:
+    def filter(self, log_record: LogRecord) -> str:
         '''
         True if the passed log record has a logging level of `INFO` or less.
         '''
-        assert isinstance(log_record, logging.LogRecord),\
+        assert isinstance(log_record, LogRecord),\
             '"{}" not a log record.'.format(log_record)
         return log_record.levelno <= logging.INFO
+
+# ....................{ CLASSES ~ formatter                }....................
+#FIXME: Unfortunately, this fundamentally fails to work. The reason why? The
+#"TextWrapper" class inserts spurious newlines *EVEN WHEN YOU EXPLICITLY TELL
+#IT NOT TO*. This is crazy, but noted in the documentation:
+#
+#    "If replace_whitespace is False, newlines may appear in the middle of a
+#     line and cause strange output. For this reason, text should be split into
+#     paragraphs (using str.splitlines() or similar) which are wrapped
+#     separately."
+#
+#Until this is resolved, the only remaining means of wrapping log messages will
+#be to define new top-level module functions suffixed by "_wrapped" ensuring
+#that the appropriate formatter is used (e.g., a new log_info_wrapped()
+#function). For now, let's just avoid the topic entirely. It's all a bit
+#cumbersome and we're rather weary of it.
+
+class LoggerFormatterStream(Formatter):
+    '''
+    Formatter wrapping lines in log messages to the default line length.
+
+    Attributes
+    ----------
+    _text_wrapper : TextWrapper
+        Object with which to wrap log messages, cached for efficiency.
+    '''
+    pass
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self._text_wrapper = TextWrapper(
+    #         drop_whitespace = False,
+    #         replace_whitespace = False,
+    #     )
+
+    # def format(self, log_record: LogRecord) -> str:
+    #     # Avoid circular import dependencies.
+    #     from betse.util.type import strs
+    #
+    #     # Get such message by (in order):
+    #     #
+    #     # * Formatting such message according to our superclass.
+    #     # * Wrapping such formatted message.
+    #     return strs.wrap(
+    #         text = super().format(log_record),
+    #         text_wrapper = self._text_wrapper,
+    #     )
 
 # ....................{ SINGLETON                          }....................
 config = LoggerConfig()
@@ -433,6 +490,13 @@ command-line arguments or configuration file settings).
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME; *ALL* messages output to either the standard output or error handlers
+#should be wrapped to the standard line length. While we were oddly unable to
+#successfully google a working implementation, it should be reasonably trivial
+#to modify answers at the URL below for warning- and error-specific prefixes.
+#Actually, yes. This is absolutely trivial, once we've implemented that. So:
+#"Hey, ho! Let'sa go!"
+
 #Why not simply pass such filename to such class's __init__()? Because the
 #desired log filename will only be available sometime after startup (e.g., after
 #parsing command-line arguments and/or configuration files), whereas we would

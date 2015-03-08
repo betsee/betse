@@ -11,7 +11,6 @@ Abstract command line interface (CLI).
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata
-from betse.cli import help
 from betse.util.io import loggers, stderr
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
@@ -343,6 +342,7 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+# from betse.cli import help
             # is_verbose = getattr(self._args, 'is_verbose', False)
             # If either the user requested verbosity *OR* no loggers have been
             # initialized, print such exception to standard error. Since the log

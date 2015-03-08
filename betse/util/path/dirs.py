@@ -18,6 +18,7 @@ from os import path
 import os
 
 # ....................{ EXCEPTIONS                         }....................
+#FIXME: Rename to die_unless_dir() and likewise elsewhere.
 def die_unless_found(dirname: str) -> None:
     '''
     Raise an exception unless the passed directory exists.
@@ -42,6 +43,15 @@ def is_dir(dirname: str) -> bool:
     '''
     assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
     return path.isdir(dirname)
+
+# ....................{ LISTERS                            }....................
+def list_basenames(dirname: str) -> list:
+    '''
+    Get a list of the basenames of all files and subdirectories in the passed
+    directory.
+    '''
+    die_unless_found(dirname)
+    return os.listdir(dirname)
 
 # ....................{ MAKERS                             }....................
 def make_unless_found(dirname: str) -> None:

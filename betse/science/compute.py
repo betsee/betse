@@ -613,7 +613,7 @@ class Simulator(object):
 
 
         loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-        loggers.log_info('If you have selected features that use not included ions, they will be ignored.')
+        loggers.log_info('If you have selected features using other ions, they will be ignored.')
 
     def runInit(self,cells,p):
         """
@@ -1080,7 +1080,7 @@ class Simulator(object):
 
                 # calculate volatge difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
-                vgj = vmB - vmA  
+                vgj = vmB - vmA
 
                 # determine the open state of gap junctions:
                 self.gjopen = self.gj_block*((1.0 - step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2)

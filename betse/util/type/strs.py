@@ -29,6 +29,22 @@ def is_str(obj) -> bool:
     '''
     return isinstance(obj, str)
 
+def is_prefix(text: str, prefix: str) -> bool:
+    '''
+    True if the first passed string is prefixed by the last passed string.
+    '''
+    assert isinstance(text, str), '"{}" not a string.'.format(text)
+    assert isinstance(prefix, str), '"{}" not a string.'.format(prefix)
+    return text.startswith(prefix)
+
+def is_suffix(text: str, suffix: str) -> bool:
+    '''
+    True if the first passed string is suffixed by the last passed string.
+    '''
+    assert isinstance(text, str), '"{}" not a string.'.format(text)
+    assert isinstance(suffix, str), '"{}" not a string.'.format(suffix)
+    return text.endswith(suffix)
+
 # ....................{ JOINERS                            }....................
 def join(*texts) -> str:
     '''
@@ -70,28 +86,38 @@ def join_on(*texts, delimiter: str) -> str:
     # Join such texts.
     return delimiter.join(texts)
 
+# ....................{ ADDERS                             }....................
+def add_prefix_unless_found(text: str, prefix: str) -> str:
+    '''
+    Prefix the passed string by the passed prefix unless such string is already
+    prefixed by such prefix.
+    '''
+    return text if is_prefix(text, prefix) else prefix + text
+
+def add_suffix_unless_found(text: str, suffix: str) -> str:
+    '''
+    Suffix the passed string by the passed suffix unless such string is already
+    suffixed by such suffix.
+    '''
+    return text if is_suffix(text, suffix) else text + suffix
+
 # ....................{ REMOVERS                           }....................
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
     Remove the passed prefix from the passed string if such string is prefixed
     by such prefix *or* such string as is otherwise.
     '''
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
-    assert isinstance(prefix, str), '"{}" not a string.'.format(prefix)
-    return text[len(prefix):] if text.startswith(prefix) else text
+    return text[len(prefix):] if is_prefix(text, prefix) else text
 
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
     Remove the passed suffix from the passed string if such string is suffixed
     by such suffix *or* such string as is otherwise.
     '''
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
-    assert isinstance(suffix, str), '"{}" not a string.'.format(suffix)
-
     # There exists a special case *NOT* present in remove_prefix(). If such
     # suffix is empty, "string[:-0]" is also incorrectly empty. Avoid returning
     # the empty string in such case by explicitly testing for emptiness.
-    return text[:-len(suffix)] if suffix and text.endswith(suffix) else text
+    return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
 
 # ....................{ WRAPPERS                           }....................
 def wrap_lines(lines: list, **kwargs) -> str:
@@ -106,13 +132,21 @@ def wrap_lines(lines: list, **kwargs) -> str:
     '''
     return wrap(join(lines), **kwargs)
 
-def wrap(text: str, line_prefix: str = '', **kwargs) -> str:
+def wrap(
+    text: str,
+    text_wrapper = textwrap,
+    line_prefix: str = '',
+    **kwargs) -> str:
     '''
     Wrap the passed text to the passed line width, prefixing each resulting
     wrapped line by the passed line prefix.
 
-    This function accepts the same keyword arguments as `textwrap.wrap()`, in
-    addition to the `line_prefix` argument specific to this function.
+    This function accepts the following keyword arguments in addition to those
+    accepted by `textwrap.wrap()`:
+
+    * `text_wrapper`, the object on which to call the `wrap()` function or
+      method. For safety, this defaults to module `textwrap`.
+    * `line_prefix`, the substring prefixing each wrapped output line.
 
     See Also
     ----------
@@ -122,6 +156,14 @@ def wrap(text: str, line_prefix: str = '', **kwargs) -> str:
     assert isinstance(text, str), '"{}" not a string.'.format(text)
     assert isinstance(line_prefix, str),\
         '"{}" not a string.'.format(line_prefix)
+    assert hasattr(text_wrapper, 'wrap'),\
+        '"{}" has no wrap() function or method.'.format(text_wrapper)
+
+    # wrap() function or method to be called.
+    wrap_callable = getattr(text_wrapper, 'wrap')
+    assert callable(wrap_callable),\
+        '"{}" attribute "wrap" neither a function nor method.'.format(
+            text_wrapper)
 
     # If passed a nonempty line prefix, add appropriate keyword arguments.
     if line_prefix:
@@ -133,7 +175,7 @@ def wrap(text: str, line_prefix: str = '', **kwargs) -> str:
     # new instance of class "TextWrapper" and hence resets all wrapping
     # attributes to sensible defaults, whereas the latter reuses existing such
     # attributes -- which may no longer retain sensible defaults.
-    return join_on_newline(textwrap.wrap(text, **kwargs))
+    return join_on_newline(wrap_callable(text, **kwargs))
 
 # ....................{ (IN|DE)DENTERS                     }....................
 def dedent(*texts) -> str:

@@ -25,5 +25,13 @@ def is_iterable_nonstring(obj) -> bool:
     '''
     return not isinstance(obj, str) and is_iterable(obj)
 
+# ....................{ SORTERS                            }....................
+def sort_as_lexicographic_ascending(container):
+    '''
+    Sort the passed container in **ascending lexicographic order** (i.e., in the
+    order of conventional dead-tree dictionaries).
+    '''
+    return sorted(container)
+
 # --------------------( WASTELANDS                         )--------------------
     # return hasattr(obj, '__iter__')

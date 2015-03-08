@@ -97,14 +97,31 @@ def is_special(pathname: str) -> bool:
         not path.isfile(pathname)
     )
 
+# ....................{ TESTERS ~ pathname                 }....................
+#FIXME: Rename to is_dirname_empty().
 def is_basename(pathname: str) -> bool:
     '''
     True if the passed pathname is a *basename* (i.e., contains no directory
     separators and hence has no directory components).
     '''
-    # While there are more efficient implementations, the simplest should be
-    # fine... for now.
-    return pathname == path.get_basename(pathname)
+    return path.sep in pathname
+
+def is_filetype(pathname: str, filetype: str) -> bool:
+    '''
+    True if the passed pathname has the passed filetype.
+
+    Such filetype may contain arbitrarily many `.` characters, including an
+    optional prefixing `.`. Regardless, this function behaves as expected.
+    '''
+    assert isinstance(filetype, str), '"{}" not a string.'.format(filetype)
+
+    # Avoid circular import dependencies.
+    from betse.util.type import strs
+
+    # Test such filetype, prefixed by "." unless already prefixed.
+    return strs.is_suffix(
+        pathname,
+        strs.add_prefix_unless_found(filetype, '.'))
 
 # ....................{ GETTERS                            }....................
 def get_basename(pathname: str) -> str:
@@ -117,11 +134,12 @@ def get_basename(pathname: str) -> str:
 
 def get_filetype(pathname: str) -> str:
     '''
-    Get the **filetype** (i.e., last `.`-prefixed substring of the basename) of
-    the passed path has a filetype or None otherwise.
+    Get the last **filetype** (i.e., last `.`-prefixed substring of the
+    basename *not* including such `.`) of the passed path if such path has a
+    filetype or None otherwise.
 
-    If such has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the last
-    such filetype is returned.
+    If such path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
+    last such filetype is returned.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
@@ -150,6 +168,28 @@ def get_dirname_or_empty(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.dirname(pathname)
 
+# ....................{ REMOVERS                           }....................
+def remove_filetype_if_found(pathname: str) -> str:
+    '''
+    Remove the last filetype (including prefixing `.`) from the passed path if
+    such path has a filetype *or* return such path as is otherwise.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+    return path.splitext(pathname)[0]
+
+# ....................{ JOINERS                            }....................
+def join(*pathnames) -> str:
+    '''
+    Join the passed pathnames on the directory separator specific to the current
+    operating system.
+
+    This is a convenience function wrapping the standard `os.path.join()`
+    function, provided to reduce the number of import statements required by
+    other modules.
+    '''
+    return path.join(*pathnames)
+
 # ....................{ CANONICALIZERS                     }....................
 def canonicalize(pathname: str) -> str:
     '''
@@ -168,19 +208,21 @@ def canonicalize(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.abspath(path.expanduser(pathname))
 
-# ....................{ JOINERS                            }....................
-def join(*pathnames) -> str:
-    '''
-    Join the passed pathnames on the directory separator specific to the current
-    operating system.
-
-    This is a convenience function wrapping the standard `os.path.join()`
-    function, provided to reduce the number of import statements required by
-    other modules.
-    '''
-    return path.join(*pathnames)
-
 # --------------------( WASTELANDS                         )--------------------
+    # Strip the prefixing "." from such filetype if any.
+    # filetype = strs.remove_prefix_if_any(filetype, '.')
+    #
+    # # Test such filetype.
+    # return get_filetype(pathname) == filetype
+
+    # Such filetype may be either prefixed by `.` *or* not prefixed by `.`, but
+    # should otherwise contain *no* `.` characters (e.g., `.gz` is accepted but
+    # `.tar.gz` is *not*). In either case, this function operates as expected.
+
+    # While there are more efficient implementations, the simplest should be
+    # fine... for now.
+    # return pathname == path.get_basename(pathname)
+
     # assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     # assert len(pathname), 'Pathname empty.'
     #
