@@ -41,6 +41,9 @@ def init() -> None:
     # self._logger.info('INFO!')
     # self._logger.debug('DEBUG!')
 
+    #FIXME: This appears to be required due to a PyInstaller bug. Research.
+    import tkinter.filedialog
+
     # Validate mandatory dependency *AFTER* configuring logging,
     # ensuring that exceptions raised by such validation will be logged.
     dependencies.init()

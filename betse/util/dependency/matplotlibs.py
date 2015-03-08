@@ -8,7 +8,9 @@ High-level support facilities for `matplotlib`, a mandatory runtime dependency.
 '''
 
 #FIXME: This appears to be required due to a PyInstaller bug. Research.
-import tkinter.filedialog
+#FIXME: Actually, even this appears to fail under OS X. We've temporarily
+#shifted this back to "betse.ignition", which is hardly ideal.
+#import tkinter.filedialog
 
 #FIXME: On attempting to enable the "TkAgg" backend under OS X, we receive the
 #following runtime exception from PyInstaller-frozen executables despite such
@@ -296,7 +298,9 @@ class MatplotlibConfig(object):
         # Since PyInstaller fails to detect such imports, manually import the
         # offending modules to notify PyInstaller of such requirements.
         if backend_name == 'tkagg':
-            import tkinter.filedialog
+            #FIXME: Uncomment after correcting this issue.
+#           import tkinter.filedialog
+            pass
 
     # ..................{ PROPERTIES ~ backend names         }..................
     @property
