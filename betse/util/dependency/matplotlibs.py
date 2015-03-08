@@ -7,6 +7,9 @@
 High-level support facilities for `matplotlib`, a mandatory runtime dependency.
 '''
 
+#FIXME: This appears to be required due to a PyInstaller bug. Research.
+import tkinter.filedialog
+
 #FIXME: On attempting to enable the "TkAgg" backend under OS X, we receive the
 #following runtime exception from PyInstaller-frozen executables despite such
 #freezing appearing to have succeeded:
@@ -311,7 +314,7 @@ class MatplotlibConfig(object):
         '''
         # If this funuction has *NOT* been called at least once, create and
         # cache such list.
-        if not self._backend_names:
+        if self._backend_names is None:
             # Importing such module has side effects and hence is deferred.
             from matplotlib import backends
 
@@ -319,24 +322,34 @@ class MatplotlibConfig(object):
             # currently imported "matplotlib".
             backends_dir = modules.get_dirname(backends)
 
-            # String prefixing the basenames of backend-specific Python modules.
-            BACKEND_BASENAME_PREFIX = 'backend_'
+            # If such directory exists, initialize such list as expected.
+            if dirs.is_dir(backends_dir):
+                # String prefixing the basenames of backend-specific Python modules.
+                BACKEND_BASENAME_PREFIX = 'backend_'
 
-            # Such names, discovered by:
-            #
-            # * Filtering all basenames in such directory for Python modules.
-            # * Converting the remaining basenames to backend names.
-            # * Sorting such names in ascending lexicographic order. While *NOT*
-            #   strictly necessary, of course, such sorting improves output
-            #   (e.g., from the "info" subcommand).
-            self._backend_names = containers.sort_as_lexicographic_ascending([
-                paths.remove_filetype_if_found(
-                    strs.remove_prefix_if_found(
-                        backend_basename, BACKEND_BASENAME_PREFIX))
-                for backend_basename in dirs.list_basenames(backends_dir)
-                if strs.is_prefix(backend_basename, BACKEND_BASENAME_PREFIX) and
-                   paths.is_filetype(backend_basename, 'py')
-            ])
+                # Such names, discovered by:
+                #
+                # * Filtering all basenames in such directory for Python modules.
+                # * Converting the remaining basenames to backend names.
+                # * Sorting such names in ascending lexicographic order. While *NOT*
+                #   strictly necessary, of course, such sorting improves output
+                #   (e.g., from the "info" subcommand).
+                self._backend_names = containers.sort_as_lexicographic_ascending([
+                    paths.remove_filetype_if_found(
+                        strs.remove_prefix_if_found(
+                            backend_basename, BACKEND_BASENAME_PREFIX))
+                    for backend_basename in dirs.list_basenames(backends_dir)
+                    if strs.is_prefix(backend_basename, BACKEND_BASENAME_PREFIX) and
+                       paths.is_filetype(backend_basename, 'py')
+                ])
+            # Else, such directory does *NOT* exist. Log a warning, initialize
+            # such list to the empty list, and continue.
+            else:
+                loggers.log_warning(
+                    'Directory "{}" not found. Matplotlib backends not inspectable.'.format(
+                        backends_dir))
+                self._backend_names = []
+
 
         # Get the cached list.
         return self._backend_names

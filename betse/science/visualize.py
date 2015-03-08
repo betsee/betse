@@ -78,10 +78,21 @@ class AnimateCellData(object):
         self.frames = len(self.zdata_t)
 
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=66, repeat=ani_repeat)
+            frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
-
+        #FIXME: If issues persist, bloggers recommend increasing the above "interval".
+        try:
+            plt.show()
+        # plt.show() unreliably raises exceptions on window close resembling:
+        #     AttributeError: 'NoneType' object has no attribute 'tk'
+        # This error appears to ignorable and hence is caught and squelched.
+        except AttributeError as exception:
+            # If this is such exception, mercilessly squelch it.
+            if str(exception) == "'NoneType' object has no attribute 'tk'":
+                pass
+            # Else, reraise such exception.
+            else:
+                raise
 
     def aniFunc(self,i):
 
@@ -152,7 +163,7 @@ class AnimateCellData_smoothed(object):
         self.frames = len(self.zdata_t)
 
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=66, repeat=ani_repeat)
+            frames=self.frames, interval=100, repeat=ani_repeat)
 
         plt.show()
 
