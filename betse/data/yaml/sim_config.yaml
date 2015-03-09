@@ -599,8 +599,8 @@ internal parameters:
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  2.5e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  2.5e-4  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  alpha_Ca:  0.5e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  1.0e-5  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
