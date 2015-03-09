@@ -87,8 +87,14 @@ DEPENDENCIES_RUNTIME = [
     # setuptools is currently required at both install and runtime. At runtime,
     # setuptools is used to validate that required dependencies are available.
     DEPENDENCY_SETUPTOOLS,
-    # 'PySide >= 1.2.0',
+
+    # matplotlib 1.4.0 switched Python compatability layers from "2to3" to
+    # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
+    # and hence end-user use of such version of matplotlib.
     'matplotlib >= 1.3.0',
+    'matplotlib < 1.4.0',
+
+    # 'PySide >= 1.2.0',
     'numpy >= 1.8.0',
     'scipy >= 0.12.0',
     # 'voluptuous >= 0.8.7',

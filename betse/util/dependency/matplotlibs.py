@@ -7,10 +7,63 @@
 High-level support facilities for `matplotlib`, a mandatory runtime dependency.
 '''
 
-#FIXME: This appears to be required due to a PyInstaller bug. Research.
-#FIXME: Actually, even this appears to fail under OS X. We've temporarily
-#shifted this back to "betse.ignition", which is hardly ideal.
-#import tkinter.filedialog
+#FIXME: "tkinter" support is, frankly, bizarre. It works *ONLY* under
+#"matplotlib-1.3.0". It fails both under "matplotlib-1.4.0" and newer *AND* when
+#imported directly (e.g., via "import tkinter") with an inscrutable "ValueError"
+#Unicode exception of the sort described at:
+#
+#    https://github.com/pyinstaller/pyinstaller/issues/1164
+#
+#This makes absolutely no sense. However, it doesn't have to. Here's what we
+#factually know, from which the truth should be deducible:
+#
+#* The versions of Tcl, Tk, tkinter, and Python are the exact same in all three
+#  scenarious. We have personally verified this by recompiling Python and hence
+#  tkinter.
+#* tkinter works under matplotlib 1.3 and *NOT* under 1.4, both of which are
+#  readily installable under Gentoo.
+#
+#Given that, all we have to do is take the difference of the
+#"matplotlib/backends/backend_tkagg.py" files between the two versions and
+#figure out what changed. The 1.3 version is given locally, of course; the 1.4
+#version is available remotely at:
+#
+#    https://github.com/matplotlib/matplotlib/tree/master/lib/matplotlib/backends
+#
+#Our gut intuition is that this has something to do with the "tkinter"-specific
+#shared library "_tkagg". The 1.3 version does the following, in order:
+#
+#* Directly imports "tkinter" which directly imports the shared library
+#  "_tkinter".
+#* Directly imports "tkagg" which directly imports the shared library
+#  "_tkagg".
+#
+#The 1.4 version similarly does the following, in order:
+#
+#* Indirectly imports "tkinter" which directly imports the shared library
+#  "_tkinter".
+#* Directly imports "tkagg" which:
+#  * Indirectly imports "tkinter" which directly imports the shared library
+#    "_tkinter".
+#  * Directly imports the shared library "_tkagg".
+#
+#It's a small difference, but it's probably enough. The key here is that, since
+#PyInstaller fails to detect the indirect importation of "tkinter" and hence
+#"_tkinter", "tkagg" and hence "_tkagg" is imported *BEFORE* "_tkinter". This
+#absolutely has to be an order-of-shared-library-loading thing. Well, it doesn't
+#*HAVE* to be, but that's all we've got. This could be determined by, at some
+#point:
+#
+#* Reinstalling matplotlib 1.4.
+#* Iteratively reverting the "backends/backend_tkagg.py" and "backends/tkagg.py"
+#  files installed with 1.4 to their 1.3 counterparts *UNTIL* BETSE is
+#  freezable. This is pretty much guaranteed to work, albeit annoyingly. But
+#  there's no alternative, given the blatant inscrutability of the "tkinter"
+#  exception message.
+
+#FIXME: Refactor backend_names() to discover backend names via the standard
+#module "pkg_utils" rather than by manually delving through the filesystem,
+#which fails under frozen executables.
 
 #FIXME: On attempting to enable the "TkAgg" backend under OS X, we receive the
 #following runtime exception from PyInstaller-frozen executables despite such
@@ -298,9 +351,14 @@ class MatplotlibConfig(object):
         # Since PyInstaller fails to detect such imports, manually import the
         # offending modules to notify PyInstaller of such requirements.
         if backend_name == 'tkagg':
-            #FIXME: Uncomment after correcting this issue.
-#           import tkinter.filedialog
             pass
+            # import os
+            # print('tcl library: ' + str(os.environ.get('TCL_LIBRARY')))
+            # print('tk library: ' + str(os.environ.get('TK_LIBRARY')))
+            # import tkinter
+            # import _tkinter
+            # import tkinter.filedialog
+            # import tkinter.messagebox
 
     # ..................{ PROPERTIES ~ backend names         }..................
     @property
@@ -326,7 +384,7 @@ class MatplotlibConfig(object):
             # currently imported "matplotlib".
             backends_dir = modules.get_dirname(backends)
 
-            # If such directory exists, initialize such list as expected.
+            # If such directory exists, find all backends in such directory.
             if dirs.is_dir(backends_dir):
                 # String prefixing the basenames of backend-specific Python modules.
                 BACKEND_BASENAME_PREFIX = 'backend_'
@@ -346,14 +404,13 @@ class MatplotlibConfig(object):
                     if strs.is_prefix(backend_basename, BACKEND_BASENAME_PREFIX) and
                        paths.is_filetype(backend_basename, 'py')
                 ])
-            # Else, such directory does *NOT* exist. Log a warning, initialize
-            # such list to the empty list, and continue.
+            # Else, such directory does *NOT* exist. Log a non-fatal warning and
+            # clear such list.
             else:
                 loggers.log_warning(
                     'Directory "{}" not found. Matplotlib backends not inspectable.'.format(
                         backends_dir))
                 self._backend_names = []
-
 
         # Get the cached list.
         return self._backend_names
@@ -365,6 +422,13 @@ Singleton `matplotlib` configuration wrapper.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: This appears to be required due to a PyInstaller bug. Research.
+#FUXME: Actually, even this appears to fail under OS X. We've temporarily
+#shifted this back to "betse.ignition", which is hardly ideal.
+# import tkinter.filedialog
+
+            #FUXME: Uncomment after correcting this issue.
+            # pass
             # for backend_basename in dirs.list_basenames(backends_dir):
             #     if strs.is_prefix(backend_basename, BACKEND_BASENAME_PREFIX) and\
             #        paths.is_filetype(backend_basename, 'py'):

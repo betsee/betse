@@ -179,6 +179,9 @@ class freeze(Command, metaclass = ABCMeta):
             # Non-default PyInstaller directories.
             '--workpath=' + pyinstaller_work_dirname,
             '--distpath=' + pyinstaller_dist_dirname,
+
+            # Non-default log level.
+            '--log-level=DEBUG',
         ]
 
         # If the user passed the custom option "--clean" to the current
