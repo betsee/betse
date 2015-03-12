@@ -5,7 +5,60 @@
 
 '''
 High-level support facilities for `matplotlib`, a mandatory runtime dependency.
+
+Backends
+----------
+`matplotlib` supports numerous **interactive backends** (i.e., bindings to
+external GUI-specific widget toolkits), only one of which will be imported by
+`matplotlib` at runtime. If the caller specifies no such backend, a default
+backend specific to the current system will be imported. However, all such
+backends including such defaults are fairly fragile and hence prone to raising
+exceptions under common contexts.
+
+The following table summarizes our current findings:
+
+=========  ========   ======  ========  ======  ========  ======  ========
+Backend    Footnote   Is Supported Under?
+                      ----------------------------------------------------
+                      Linux             OS X              Windows
+                      ----------------  ----------------  ----------------
+                      Frozen  Unfrozen  Frozen  Unfrozen  Frozen  Unfrozen
+=========  ========   ======  ========  ======  ========  ======  ========
+CocoaAgg   1          No      No        No      No        No      No
+Gtk3Agg    2          No      No        No      No        No      No
+Gtk3Cairo  3          No      No        ???     ???       ???     ???
+MacOSX                No      No        Yes     Yes       No      No
+Qt4Agg     3          No      No        ???     ???       ???     ???
+TkAgg      4          Yes     Yes       No      Yes       ???     ???
+=========  ========   ======  ========  ======  ========  ======  ========
+
+Footnote descriptions are as follows:
+
+1. Backend "CocoaAgg" is officially deprecated and known to be broken.
+2. Backend "Gtk3Agg" is known to be broken under Python 3.
+3. These backends do *not* support our current animation method, despite
+   otherwise working (e.g., to display static plots).
+4. Backend `TkAgg` is only freezable under `matplotlib` < 1.4.0. `matplotlib`
+   switched Python compatibility layers from `2to3` to `six`, the latter of
+   which currently obstructs freezing. This is provisionally correctable under
+   `matplotlib` >= 1.4.0 by manually patching the
+   `site-packages/matplotlib/backends/backend_tkagg.py` script under the current
+   Python 3 interpreter as follows:
+
+    # Replace these header imports...
+    from six.moves import tkinter as Tk
+    from six.moves import tkinter_filedialog as FileDialog
+
+    # ...with this header import.
+    import tkinter as Tk
 '''
+
+#FIXME: O.K.; so, basically, Tcl/Tk is absolutely terrible and fundamentally
+#does *NOT* work anywhere. At the very least, we need to revert back the change
+#that conditionally set the "macosx" backend for that operating system. I'm not
+#convinced that the frozen Linux version will actually work in the absence of
+#Tcl/Tk data files in the expected system locations. We'll want to test this on
+#a pristine laptop -- and soon.
 
 #FIXME: "tkinter" support is, frankly, bizarre. It works *ONLY* under
 #"matplotlib-1.3.0". It fails both under "matplotlib-1.4.0" and newer *AND* when
@@ -137,6 +190,7 @@ High-level support facilities for `matplotlib`, a mandatory runtime dependency.
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.python import modules
+from betse.util.system import oses
 from betse.util.type import containers, strs
 from collections import OrderedDict
 import matplotlib
@@ -199,6 +253,7 @@ class MatplotlibConfig(object):
         # provided by the official "matplotlibrc" file.
         matplotlib.rcParams.update(RCPARAMS)
 
+        #FIXME: Excise commentary.
         # Configure the backend to be implicitly used for subsequent plotting.
         # Such backend *MUST* be configured prior to the first importation of
         # matplotlib's "pyplot", "matplotlib", or "backends" modules.
@@ -228,7 +283,19 @@ class MatplotlibConfig(object):
         # * Installability. When installing "matplotlib", MacPorts enables by
         #   default the "tkinter" variant and hence such backend but *NO* other
         #   AGG-based backends.
-        self.backend_name = 'TkAgg'
+
+        # If the current operating system is OS X, enable the only backend known
+        # to survive freezing: the typical default for such system, "MacOSX".
+        if oses.is_os_x():
+            self.backend_name = 'MacOSX'
+        # Else, the current operating system is Linux or Windows. In such case,
+        # enable the only backend known to survive freezing: again, the typical
+        # default for such systems, "TkAgg". Unlike backend "MacOSX", however,
+        # backend "TkAgg" is fragile and currently requires matplotlib < 1.4.0.
+        else:
+            # self.backend_name = 'Gtk3Cairo'
+            # self.backend_name = 'Qt4Agg'
+            self.backend_name = 'TkAgg'
 
     # ..................{ TESTERS                            }..................
     def is_backend_usable(self, backend_name: str) -> bool:
@@ -317,6 +384,26 @@ class MatplotlibConfig(object):
         # Since backend names are case-insensitive, lowercase such name.
         backend_name = backend_name.lower()
 
+        #FIXME: Excise this after adding "six" support to PyInstaller.
+
+        # If such backend is "TkAgg", manually import "tkinter". matplotlib 1.4
+        # dropped the "2to3" compatibility layer in favor of "six", which hides
+        # imports in the form of:
+        #
+        #     from six.moves import tkinter_filedialog as FileDialog
+        #
+        # Since PyInstaller fails to detect such imports, manually import the
+        # offending modules to notify PyInstaller of such requirements.
+        if backend_name == 'tkagg':
+            pass
+            # import os
+            # print('tcl library: ' + str(os.environ.get('TCL_LIBRARY')))
+            # print('tk library: ' + str(os.environ.get('TK_LIBRARY')))
+            # import tkinter
+            # import _tkinter
+            # import tkinter.filedialog
+            # import tkinter.messagebox
+
         try:
             # If neither the "matplotlib.pyplot" nor "matplotlib.pylab" modules
             # have been imported yet, prefer setting such backend by calling the
@@ -342,23 +429,6 @@ class MatplotlibConfig(object):
         # Log such setting *AFTER* succeeding.
         loggers.log_debug(
             'Enabled matplotlib backend "{}".'.format(backend_name))
-
-        # If such backend is "TkAgg", manually import "tkinter". matplotlib 1.4
-        # dropped the "2to3" compatibility layer in favor of "six", which hides
-        # imports in the form of:
-        #     from six.moves import tkinter_filedialog as FileDialog
-        #
-        # Since PyInstaller fails to detect such imports, manually import the
-        # offending modules to notify PyInstaller of such requirements.
-        if backend_name == 'tkagg':
-            pass
-            # import os
-            # print('tcl library: ' + str(os.environ.get('TCL_LIBRARY')))
-            # print('tk library: ' + str(os.environ.get('TK_LIBRARY')))
-            # import tkinter
-            # import _tkinter
-            # import tkinter.filedialog
-            # import tkinter.messagebox
 
     # ..................{ PROPERTIES ~ backend names         }..................
     @property
@@ -422,6 +492,17 @@ Singleton `matplotlib` configuration wrapper.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+            # self.backend_name = 'Cairo'
+# In the above table, `(`- and `)`-delimited numbers signify the following
+# footnotes of the same number:
+# (e.g., under Windows or when frozen
+# (e.g., on operating systems, freeze),
+# , exactly one of which will be used to
+# . If `matplotlib` is *not* explicitly
+#  of a the caller fails to notify
+#  of its preferred  backend is explicitly specified `matplotlib`
+#  *and* , the following
+
 #FUXME: This appears to be required due to a PyInstaller bug. Research.
 #FUXME: Actually, even this appears to fail under OS X. We've temporarily
 #shifted this back to "betse.ignition", which is hardly ideal.

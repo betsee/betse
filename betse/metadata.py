@@ -92,13 +92,19 @@ DEPENDENCIES_RUNTIME = [
     # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
     # and hence end-user use of such version of matplotlib.
     'matplotlib >= 1.3.0',
-    'matplotlib < 1.4.0',
+    # 'matplotlib < 1.4.0',
 
+    # Dependencies directly required by BETSE.
     # 'PySide >= 1.2.0',
     'numpy >= 1.8.0',
     'scipy >= 0.12.0',
     # 'voluptuous >= 0.8.7',
     'yaml >= 3.10',
+
+    # Dependencies transitively but *NOT* directly required by BETSE. To detect
+    # missing such dependencies in a human-readable manner, such dependencies
+    # are explicitly listed as well.
+    'six >= 1.8.0',
 ]
 '''
 Set of all mandatory runtime dependencies for `betse`.

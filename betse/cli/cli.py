@@ -76,6 +76,8 @@ class CLI(metaclass = ABCMeta):
             # Parse CLI arguments *AFTER* logging, ensuring that exceptions
             # raised by such parsing will be logged.
             self._parse_args()
+            # from six.moves import _dummy_thread
+            # from six.moves import tkinter
 
             # Perform subclass-specific logic.
             self._run()
