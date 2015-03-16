@@ -193,7 +193,40 @@ from betse.util.python import modules
 from betse.util.system import oses
 from betse.util.type import containers, strs
 from collections import OrderedDict
+import sys
+
+# ....................{ IMPORTS ~ matplotlib               }....................
+# Import matplotlib in a safe manner. Unfortunately, the "matplotlib.__init__"
+# module implicitly imported on the first matplotlib importation performs the
+# following unsafe logic:
+#
+# * The current command-line argument list "sys.argv" is iteratively searched
+#   for arguments prefixed by "-d" of length >= 3 (e.g., "-dtkagg" but *NOT*
+#   simply "-d").
+# * For each such argument, "matplotlib.__init__" attempts to enable the backend
+#   whose name is given by such argument excluding the prefixing "-d", silently
+#   ignoring exceptions.
+#
+# This is utterly horrible. Since enabling arbitrary backends can have non-
+# negligible side effects, "matplotlib.__init__" *MUST* be prevented from
+# performing such logic. Since such module is imported *ONLY* on the first
+# importation of a matplotlib module, it suffices to perform such preventation
+# *ONLY* for the following importation of the top-level matplotlib package.
+
+# Copy the current argument list into a temporary list.
+_sys_argv_old = sys.argv[:]
+
+# Remove all arguments following the mandatory basename of the current process
+# from the current argument list, preventing matplotlib from inspecting
+# arguments and hence enabling arbitrary backends.
+del(sys.argv[1:])
+
+# Import matplotlib safely.
 import matplotlib
+
+# Restore the prior argument list from such temporary list.
+sys.argv = _sys_argv_old
+del(_sys_argv_old)
 
 # ....................{ CONSTANTS                          }....................
 RCPARAMS = {
