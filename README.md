@@ -61,6 +61,8 @@ dependencies are installable in a system-wide manner as follows:
 
 #### Apple OS X
 
+!!!! FIXME: Push OS X instruction changes from our virtual machine.
+
 Under Apple OS X, such dependencies are installable in a system-wide manner as
 follows:
 
@@ -74,20 +76,63 @@ follows:
   `Applications/Utilities`Terminal.app` application).
 . Install dependencies:
     >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
-. Activate the version of Python required by betse:
+. Activate the version of Python required by `betse`:
     >>> sudo port select --set python python34
 . Close the terminal, if you like:
     >>> exit
 . Manually add the
-  "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin" directory
-  to the current ${PATH}. To do so permanently, edit the ".profile" file in your
-  home directory and change the line beginning with "export PATH" to resemble
+  `/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin` directory
+  to the current ${PATH}. To do so permanently, edit the `.profile` file in your
+  home directory and change the line beginning with `export PATH` to resemble
   the following:
     export PATH="/opt/local/bin:/opt/local/sbin:/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin:$PATH"
 
 Note that MacPorts is a source-based package manager and hence extremely slow.
 Expect the installation of dependencies to take several hours to several days.
 (We're not kidding.)
+
+#### Microsoft Windows
+
+Such dependencies are installable under both Microsoft Windows *and* Wine
+prefixes emulating Windows on non-Windows systems (e.g., Linux, OS X).
+
+##### Wine
+
+Under non-Windows systems, such dependencies are installable in a system-wide
+manner via Wine emulation. For simplicity, the following instructions assume use
+of the PlayOnLinux Wine manager *and* Miniconda Python distribution under 64-bit
+Ubuntu Linux. Thanks to the cross-platform portability of both Wine and
+Anaconda (if not PlayOnLinux, for obvious reasons), these instructions should
+trivially generalize to alternate setups (e.g., 32-bit OS X) as well:
+
+. Download the 64-bit Windows installer for Miniconda, an open-source,
+  cross-platform, binary-based Python package manager, from
+  `http://conda.pydata.org/miniconda.html`. Miniconda is a minimalist version of
+  Anaconda, a popular full-stack SciPy distribution. Whereas Anaconda comes
+  pre-bundled with numerous Python and non-Python dependencies, Miniconda
+  requires manual installation of such dependencies. We prefer the latter.
+  Either suffices, however.
+. Install PlayOnLinux, an open-source Wine manager simplifying Wine usage.
+    sudo apt-get install playonlinux
+. Install the newest 64-bit version of Wine via PlayOnLinux.
+  . Run PlayOnLinux.
+  .
+. Create a new Wine prefix named `betse` via PlayOnLinux.
+  . 
+. Open a terminal window.
+. Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
+  be replaced by the installed version number (e.g., `1.7.40`).
+    >>> export WINE_HOME="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin"
+    >>> export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
+    >>> export PATH="${WINE_HOME}:${PATH}"
+. Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
+  by the path to the previously downloaded Miniconda installer (e.g.,
+  `~/Downloads/Miniconda3-latest-Windows-x86\_64.exe`).
+    >>> wine "${MINICONDA_INSTALLER}"
+. Active the newly installed version of Python, where `${PYTHON\_VERSION}`
+  should be replaced by the installed version number (e.g., `3.4.3`).
+    >>> export PYTHON_HOME="C:\\?????"
+    >>> export PATH="${PYTHON_HOME}:${PATH}"
 
 ### Optional
 
