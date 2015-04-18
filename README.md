@@ -73,7 +73,7 @@ follows:
 . Install XCode, ensuring the "UNIX Development Support" checkbox is checked.
 . Download and install [MacPorts](https://www.macports.org).
 . Open a terminal window (e.g., by running the pre-bundled
-  `Applications/Utilities`Terminal.app` application).
+  `Applications/Utilities/Terminal.app` application).
 . Install dependencies:
     >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
 . Activate the version of Python required by `betse`:
@@ -96,43 +96,75 @@ Expect the installation of dependencies to take several hours to several days.
 Such dependencies are installable under both Microsoft Windows *and* Wine
 prefixes emulating Windows on non-Windows systems (e.g., Linux, OS X).
 
+##### Native
+
+Under native Microsoft Windows, such dependencies are installable in a
+system-wide manner via the Miniconda Python distribution as follows:
+
+. Download and install the 64-bit Python 3 Windows installer for Miniconda. (See
+  the **"Wine"** subsection below for further details.)
+. Download, install, and run your preferred terminal emulator, if needed.  We
+  recommend Cygwin and PuTTY, in that order. (Your mileage may vary.)
+. Open a terminal window.
+. Install dependencies via `conda`, Miniconda's package manager:
+    >>> conda install numpy matplotlib pyside scipy
+
 ##### Wine
 
 Under non-Windows systems, such dependencies are installable in a system-wide
-manner via Wine emulation. For simplicity, the following instructions assume use
+manner via Wine emulation. Such emulation requires the following packages:
+
+* Wine >= 1.7.41. Prior versions of Wine fail to implement Windows API functions
+  transitively required by Anaconda (e.g., `GetSystemTime()`).
+
+For simplicity, the following instructions assume use
 of the PlayOnLinux Wine manager *and* Miniconda Python distribution under 64-bit
 Ubuntu Linux. Thanks to the cross-platform portability of both Wine and
 Anaconda (if not PlayOnLinux, for obvious reasons), these instructions should
 trivially generalize to alternate setups (e.g., 32-bit OS X) as well:
 
-. Download the 64-bit Windows installer for Miniconda, an open-source,
+. Download the 64-bit Python 3 Windows installer for Miniconda, an open-source,
   cross-platform, binary-based Python package manager, from
   `http://conda.pydata.org/miniconda.html`. Miniconda is a minimalist version of
   Anaconda, a popular full-stack SciPy distribution. Whereas Anaconda comes
   pre-bundled with numerous Python and non-Python dependencies, Miniconda
   requires manual installation of such dependencies. We prefer the latter.
   Either suffices, however.
+. If using Linux *and* your preferred Linux distribution provides a readily
+  installable package for Wine Staging, consider installing Wine Staging.
 . Install PlayOnLinux, an open-source Wine manager simplifying Wine usage.
     sudo apt-get install playonlinux
 . Install the newest 64-bit version of Wine via PlayOnLinux.
   . Run PlayOnLinux.
-  .
+  . Select the *Tools* -> *Manage Wine versions* menu item.
+  . Select the *Wine versions (amd64)* tab.
+  . Select the topmost list item under *Available Wine versions*. Note that this
+    version of Wine *must* be greater than or equal to that stipulated above.
+  . Click the right arrow.
+  . Click the *Next* button until complete.
 . Create a new Wine prefix named `betse` via PlayOnLinux.
-  . 
+  . Click the *Configure* toolbar button.
+  . Click the *New* button.
+  . Click the *Next* button.
+  . Select the *64 bits windows installation* list item and click the *Next*
+    button.
+  . Select the list item corresponding to the newly installed version of Wine
+    and click the *Next* button.
+  . Enter `betse` and click the *Next* button.
 . Open a terminal window.
 . Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
   be replaced by the installed version number (e.g., `1.7.40`).
-    >>> export WINE_HOME="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin"
     >>> export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
-    >>> export PATH="${WINE_HOME}:${PATH}"
+    >>> export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
 . Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
   by the path to the previously downloaded Miniconda installer (e.g.,
   `~/Downloads/Miniconda3-latest-Windows-x86\_64.exe`).
     >>> wine "${MINICONDA_INSTALLER}"
-. Active the newly installed version of Python, where `${PYTHON\_VERSION}`
-  should be replaced by the installed version number (e.g., `3.4.3`).
-    >>> export PYTHON_HOME="C:\\?????"
-    >>> export PATH="${PYTHON_HOME}:${PATH}"
+. Active Miniconda.
+    >>> export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
+    >>> export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
+. Install dependencies via `conda`, Miniconda's package manager:
+    >>> wine conda install numpy matplotlib pyside scipy
 
 ### Optional
 
