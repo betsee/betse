@@ -107,7 +107,7 @@ system-wide manner via the Miniconda Python distribution as follows:
   recommend Cygwin and PuTTY, in that order. (Your mileage may vary.)
 . Open a terminal window.
 . Install dependencies via `conda`, Miniconda's package manager:
-    >>> conda install numpy matplotlib pyside scipy
+    >>> conda install numpy matplotlib pyside pywin32 scipy
 
 ##### Wine
 
@@ -164,7 +164,7 @@ trivially generalize to alternate setups (e.g., 32-bit OS X) as well:
     >>> export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
     >>> export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
 . Install dependencies via `conda`, Miniconda's package manager:
-    >>> wine conda install numpy matplotlib pyside scipy
+    >>> wine conda install numpy matplotlib pyside pywin32 scipy
 
 ### Optional
 
@@ -454,3 +454,4 @@ We recommend the open-source product VMware for this purpose.
 
 ## License
 
+To be decided.
