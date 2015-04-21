@@ -10,9 +10,50 @@ from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsPlatformError)
 from os import path
 from setuptools import Command
-import os, pkg_resources, shutil, subprocess, sys, time
+import os, platform, pkg_resources, shutil, subprocess, sys, time
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS ~ command               }....................
+def die_unless_command_succeeds(*command_words) -> None:
+    '''
+    Raise an exception unless running the passed command succeeds.
+
+    For portability, such command *must* be passed as a list of shell words
+    whose first element is the pathname of such command and all subsequent
+    elements the command-line arguments to be passed to such command (e.g.,
+    `['ls', '/']`).
+    '''
+    # Die unless the first passed shell word is an existing command.
+    die_unless_command(command_words[0])
+
+    # Print the command to be run before doing so.
+    print('Running "{}".'.format(' '.join(command_words)))
+
+    # Run such command.
+    subprocess.check_call(command_words)
+
+def die_unless_command(command_basename: str, exception_message: str = None):
+    '''
+    Raise a fatal exception with the passed message if the external command with
+    the passed basename does *not* exist.
+
+    Specifically, raise such exception if such basename is not that of an
+    executable file in the current `${PATH}`. If such basename contains a
+    directory separator, an exception is also raised.
+    '''
+    # If such command is not found, fail.
+    if not is_pathable(command_basename):
+        # If no such message was passed, default such message.
+        if not exception_message:
+             exception_message =\
+                 'Command "{}" not found in the current PATH or found but not an executable file.'.format(
+                    command_basename)
+        assert isinstance(exception_message, str),\
+            '"{}" not a string.'.format(exception_message)
+
+        # Raise such exception.
+        raise DistutilsExecError(exception_message)
+
+# ....................{ EXCEPTIONS ~ os                    }....................
 def die_if_os_non_posix() -> None:
     '''
     Raise a fatal exception if the current operating system does `not` comply
@@ -20,7 +61,7 @@ def die_if_os_non_posix() -> None:
 
     Typically, this implies such system to be Windows.
     '''
-    if os.name != 'posix':
+    if not is_os_posix():
         raise DistutilsPlatformError(
             'This command requires POSIX compliance. Distressingly, the current '
             'operating system is POSIX-noncompliant (e.g., Windows).'
@@ -137,48 +178,23 @@ def die_unless_symlink(filename: str) -> None:
         raise DistutilsFileError(
             'Symbolic link "{}" not found.'.format(filename))
 
-# ....................{ EXCEPTIONS ~ command               }....................
-def die_unless_command_succeeds(*command_words) -> None:
+# ....................{ TESTERS ~ os                       }....................
+def is_os_posix() -> bool:
     '''
-    Raise an exception unless running the passed command succeeds.
+    True if the current operating system does `not` complies with POSIX
+    standards (e.g., as required for symbolic link manipulation).
 
-    For portability, such command *must* be passed as a list of shell words
-    whose first element is the pathname of such command and all subsequent
-    elements the command-line arguments to be passed to such command (e.g.,
-    `['ls', '/']`).
+    Typically, this implies such system to *not* be Microsoft Windows.
     '''
-    # Die unless the first passed shell word is an existing command.
-    die_unless_command(command_words[0])
+    return os.name == 'posix'
 
-    # Print the command to be run before doing so.
-    print('Running "{}".'.format(' '.join(command_words)))
-
-    # Run such command.
-    subprocess.check_call(command_words)
-
-def die_unless_command(command_basename: str, exception_message: str = None):
+def is_os_windows() -> bool:
     '''
-    Raise a fatal exception with the passed message if the external command with
-    the passed basename does *not* exist.
-
-    Specifically, raise such exception if such basename is not that of an
-    executable file in the current `${PATH}`. If such basename contains a
-    directory separator, an exception is also raised.
+    True if the current operating system is Microsoft Windows.
     '''
-    # If such command is not found, fail.
-    if not is_pathable(command_basename):
-        # If no such message was passed, default such message.
-        if not exception_message:
-             exception_message =\
-                 'Command "{}" not found in the current PATH or found but not an executable file.'.format(
-                    command_basename)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+    return platform.system() == 'Windows'
 
-        # Raise such exception.
-        raise DistutilsExecError(exception_message)
-
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS ~ path                     }....................
 def is_path(pathname: str) -> bool:
     '''
     True if the passed path exists.
@@ -250,6 +266,40 @@ def output_warning(*warnings) -> None:
     Print the passed warning messages to standard error.
     '''
     print('WARNING: ', *warnings, file = sys.stderr)
+
+# ....................{ QUOTERS                            }....................
+def shell_quote(text: str) -> str:
+    '''
+    Shell-quote the passed string.
+
+    If the current operating system is:
+
+    * *Not* Windows (e.g., Linux, OS X), the returned string is guaranteed to be
+      suitable for passing as an arbitrary positional argument to external
+      commands.
+    * Windows, the returned string is suitable for passing *only* to external
+      commands parsing arguments according in the same manner as the Microsoft C
+      runtime. Whereas *all* applications running under POSIX-compliant systems
+      are required to parse arguments in the same manner (e.g., according to
+      Bourne shell lexing), no such standard applies to applications running
+      under Windows. For this reason, shell quoting is inherently unreliable
+      under Windows.
+    '''
+    assert isinstance(text, str), '"{}" not a string.'.format(text)
+
+    # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
+    # Windows is POSIX-incompatible and hence does *NOT* parse command-line
+    # arguments according to POSIX standards. In particular, Windows does *NOT*
+    # treat single-quoted arguments as single arguments but rather as multiple
+    # shell words delimited by the raw literal `'`.  This is circumventable by
+    # calling an officially undocumented Windows-specific function. (Awesome.)
+    if is_os_windows():
+        import subprocess
+        return subprocess.list2cmdline([text])
+    # Else, perform POSIX-compatible quoting.
+    else:
+        import shlex
+        return shlex.quote(text)
 
 # ....................{ MAKERS                             }....................
 def make_dir_unless_found(dirname: str) -> None:
@@ -441,6 +491,7 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
             yield script_basename, script_type, entry_point
 
 # --------------------( WASTELANDS                         )--------------------
+    # The latter constraint implies shell quo this function to *not* be a general-purpose  inherently
     # If such path is *NOT* a symbolic link, fail.
     # Remove such link.
     # print('Removing symbolic link "{}".'.format(filename))

@@ -137,11 +137,22 @@ class freeze(Command, metaclass = ABCMeta):
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
+        # Basename of the PyInstaller command to be run. To avoid confusion with
+        # non-Windows executables in the current ${PATH} when running under Wine
+        # emulation, accept only Windows executables when running under Windows.
+        pyinstaller_command_name = 'pyinstaller'
+        if util.is_os_windows():
+            pyinstaller_command_name += '.exe'
+
         # If PyInstaller is not found, fail.
         util.die_unless_command(
-            'pyinstaller',
-            'PyInstaller not installed or "pyinstaller" not in the current PATH'
+            pyinstaller_command_name,
+            'PyInstaller not installed or "{}" not in the current ${{PATH}}.'.format(
+                pyinstaller_command_name)
         )
+
+        # List of all shell words of the PyInstaller command to be run.
+        pyinstaller_command = [pyinstaller_command_name]
 
         # If UPX is not found, print a warning to standard error. While
         # optional, freezing in the absence of UPX produces uncompressed and
@@ -168,26 +179,26 @@ class freeze(Command, metaclass = ABCMeta):
         # will induce fatal PyInstaller errors.
         util.make_dir_unless_found(pyinstaller_hooks_dirname)
 
-        # List of "pyinstaller" options common to running such command for
-        # both reuse and regeneration of spec files. Most such options are
-        # specific to the latter only.
-        pyinstaller_options_common = [
+        # Append all PyInstaller command options common to running such command
+        # for both reuse and regeneration of spec files. (Most such options are
+        # specific to the latter only and hence omitted.)
+        pyinstaller_command.extend([
             # Overwrite existing output paths under the "dist/" subdirectory
             # without confirmation, the default behaviour.
             '--noconfirm',
 
             # Non-default PyInstaller directories.
-            '--workpath=' + pyinstaller_work_dirname,
-            '--distpath=' + pyinstaller_dist_dirname,
+            '--workpath=' + util.shell_quote(pyinstaller_work_dirname),
+            '--distpath=' + util.shell_quote(pyinstaller_dist_dirname),
 
             # Non-default log level.
             '--log-level=DEBUG',
-        ]
+        ])
 
         # If the user passed the custom option "--clean" to the current
         # setuptools command, pass such option on to "pyinstaller".
         if self.clean:
-            pyinstaller_options_common.append('--clean')
+            pyinstaller_command.append('--clean')
 
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, _ in util.command_entry_points(self):
@@ -216,14 +227,9 @@ class freeze(Command, metaclass = ABCMeta):
             if util.is_file(script_spec_filename):
                 print('Reusing spec file "{}".'.format(script_spec_filename))
 
-                # List of all shell words of the PyInstaller command to be run.
-                pyinstaller_command = ['pyinstaller']
-
-                # Append all common options.
-                pyinstaller_command.extend(pyinstaller_options_common)
-
                 # Append the relative path of such spec file.
-                pyinstaller_command.append(script_spec_filename)
+                pyinstaller_command.append(
+                    util.shell_quote(script_spec_filename))
 
                 # Freeze such script with such spec file.
                 util.die_unless_command_succeeds(*pyinstaller_command)
@@ -243,31 +249,23 @@ class freeze(Command, metaclass = ABCMeta):
                 )
 
                 # List of all shell words of the PyInstaller command to be run.
-                pyinstaller_command = [
-                    'pyinstaller',
-
-                    #FIXME: The following paths should be shell-quoted. Sadly,
-                    #we were unable to grok a simple solution, so the current
-                    #lethargic approach stands.
-
+                pyinstaller_command.extend([
                     # Non-default PyInstaller directories.
-                    '--additional-hooks-dir=' + pyinstaller_hooks_dirname,
+                    '--additional-hooks-dir=' + util.shell_quote(
+                        pyinstaller_hooks_dirname),
 
                     # If this is a console script, configure standard input and
                     # output for console handling; else, do *NOT* and, if the
                     # current operating system is OS X, generate an ".app"-suffixed
                     # application bundle rather than a customary executable.
                     '--console' if script_type == 'console' else '--windowed',
-                ]
-
-                # Append all common options.
-                pyinstaller_command.extend(pyinstaller_options_common)
+                ])
 
                 # Append all subclass-specific options.
                 pyinstaller_command.extend(self._get_pyinstaller_options())
 
                 # Append the absolute path of such script.
-                pyinstaller_command.append(script_filename)
+                pyinstaller_command.append(util.shell_quote(script_filename))
 
                 # Freeze such script and generate a spec file.
                 util.die_unless_command_succeeds(*pyinstaller_command)
@@ -410,6 +408,13 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+            #FUXME: The following paths should be shell-quoted. Sadly,
+            #we were unable to grok a simple solution, so the current
+            #lethargic approach stands.
+
+                # Append all common options.
+                # pyinstaller_command.extend(pyinstaller_options_common)
+
 #hasattr(self, 'clean')
     # user_options = freeze.user_options
     # user_options = [

@@ -119,6 +119,41 @@ def remove_suffix_if_found(text: str, suffix: str) -> str:
     # the empty string in such case by explicitly testing for emptiness.
     return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
 
+# ....................{ QUOTERS                            }....................
+def shell_quote(text: str) -> str:
+    '''
+    Shell-quote the passed string.
+
+    If the current operating system is:
+
+    * *Not* Windows (e.g., Linux, OS X), the returned string is guaranteed to be
+      suitable for passing as an arbitrary positional argument to external
+      commands.
+    * Windows, the returned string is suitable for passing *only* to external
+      commands parsing arguments according in the same manner as the Microsoft C
+      runtime. Whereas *all* applications running under POSIX-compliant systems
+      are required to parse arguments in the same manner (e.g., according to
+      Bourne shell lexing), no such standard applies to applications running
+      under Windows. For this reason, shell quoting is inherently unreliable
+      under Windows.
+    '''
+    from betse.util.system import oses
+    assert isinstance(text, str), '"{}" not a string.'.format(text)
+
+    # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
+    # Windows is POSIX-incompatible and hence does *NOT* parse command-line
+    # arguments according to POSIX standards. In particular, Windows does *NOT*
+    # treat single-quoted arguments as single arguments but rather as multiple
+    # shell words delimited by the raw literal `'`.  This is circumventable by
+    # calling an officially undocumented Windows-specific function. (Awesome.)
+    if oses.is_windows():
+        import subprocess
+        return subprocess.list2cmdline([text])
+    # Else, perform POSIX-compatible quoting.
+    else:
+        import shlex
+        return shlex.quote(text)
+
 # ....................{ WRAPPERS                           }....................
 def wrap_lines(lines: list, **kwargs) -> str:
     '''
