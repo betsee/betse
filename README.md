@@ -154,6 +154,7 @@ trivially generalize to alternate setups (e.g., 32-bit OS X) as well:
 . Open a terminal window.
 . Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
   be replaced by the installed version number (e.g., `1.7.40`).
+    >>> export WINEDEBUG='-all'
     >>> export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
     >>> export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
 . Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
