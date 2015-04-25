@@ -172,16 +172,13 @@ trivially generalize to alternate setups (e.g., 32-bit OS X) as well:
 which Python-specific package managers (e.g., `pip`, `setuptools`) install for
 you and hence require no manual installation:
 
-* PyInstaller `python3` branch, for optionally freezing `betse`. (See below.)
 * nose >= 1.3.0, for optionally running unit tests. (See below.)
+* PyInstaller `python3` branch, for optionally freezing `betse`. (See below.)
 
 Assuming the common `git` and `pip3` commands to already be installed, such
 dependencies are installable in a system-wide manner as follows:
 
     >>> sudo pip3 install nose
-    >>> git clone --branch python3 https://github.com/pyinstaller/pyinstaller.git
-    >>> cd pyinstaller
-    >>> sudo python3 setup.py install
 
 ## Program Installation
 
@@ -198,7 +195,7 @@ dependencies of such packages. Since several dependencies are heavy-weight
 (e.g., Qt4) and hence costly to reinstall, this is a notable disadvantage.
 
 Note that the string `${BETSE\_DIR}` should be replaced everywhere below by the
-absolute path of the directory containing this file.
+absolute path of the top-level directory containing the source for `betse`.
 
 ### System-wide
 
@@ -346,8 +343,78 @@ equivalent commands:
 ## Program Freezing
 
 `betse` is **freezable** (i.e., convertable to platform-specific executable
-binaries distributable to end users) via the optional dependency PyInstaller in
-one of two ways:
+binaries distributable to end users) via PyInstaller, a cross-platform open-
+source utility for performing such freezing. While other such utilities exist
+(e.g., the Windows-specific `py2exe`, the OS X-specific `py2app`), only
+PyInstaller satisfies the basic requirements of both platform portability and
+freedom (as in both beer and speech). `betse` offers setuptools-automated
+support for *only* PyInstaller.
+
+### Dependencies
+
+`betse`'s setuptools-automated freezing support has additional dependencies
+beyond those required for core `betse` installation and usage. In no particular
+order, these are:
+
+#### `betse` Installation
+
+`betse` *must* be installed in a system-wide manner first -- either:
+
+* Editably (e.g., via `sudo python3 setup.py symlink`).
+* Non-editably (e.g., via `sudo python3 setup.py install`).
+
+See above for further details.
+
+#### PyInstaller
+
+The `scipy` branch of [Cecil Curry](https://github.com/leycec)'s [unofficial
+PyInstaller fork](https://github.com/leycec/pyinstaller) *must* be installed as
+follows:
+
+* Make a local directory to which the PyInstaller codebase will be downloaded
+  and change to such directory: e.g.,
+    >>> mkdir ~/py
+    >>> cd ~/py
+* Download the PyInstaller codebase.
+    >>> git clone --branch scipy https://github.com/leycec/pyinstaller.git
+* Change to the downloaded directory.
+    >>> cd pyinstaller
+* Install PyInstaller.
+    >>> sudo python3 setup.py install
+
+This branch provides critical patches submitted to but *not* yet accepted into
+PyInstaller's [official Python 3
+branch](https://github.com/pyinstaller/pyinstaller/tree/python3). If this branch
+is remotely updated (e.g., with new patches{, consider reinstalling PyInstaller
+as follows:
+
+* Change to the PyInstaller codebase: e.g.,
+    >>> cd ~/py/pyinstaller
+* Update the PyInstaller codebase.
+* Reinstall PyInstaller.
+    >>> sudo python3 setup.py install
+
+#### UPX
+
+The Ultimate Packer for Executables (UPX) should ideally also be installed,
+though this is *not* strictly necessary. UPX is a cross-platform utility for
+compressing executables. When installed, PyInstaller automatically compresses
+all written executables.
+
+##### Windows
+
+UPX does *not* appear to be readily available under Microsoft Windows.
+
+##### Linux
+
+Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), UPX is
+installable in a system-wide manner as follows:
+
+    >>> sudo apt-get install upx-ucl
+
+### Usage
+
+`betse` is freezable in either:
 
 * One-file mode, in which case PyInstaller will generate one executable file for
   each of `betse`'s wrapper scripts (e.g., `betse`, `betse-qt`).
@@ -365,9 +432,9 @@ one of two ways:
     >>> cd "${BETSE_DIR}"
     >>> ./setup.py freeze_dir
 
-### Output
+### Paths
 
-Assuming one-file mode, executables will be output as:
+Assuming one-file mode, executables will be frozen to the following paths:
 
 * Under Linux:
   * `freeze/dist/betse` for `betse`'s CLI wrapper.

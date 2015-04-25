@@ -55,6 +55,7 @@ from abc import ABCMeta, abstractmethod
 from os import path
 from setup import util
 from setuptools import Command
+from distutils.errors import DistutilsExecError
 
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(setup_options: dict) -> None:
@@ -200,8 +201,14 @@ class freeze(Command, metaclass = ABCMeta):
         if self.clean:
             pyinstaller_command.append('--clean')
 
+	# True if at least one script wrapper has been installed.
+        is_script_installed = False
+
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, _ in util.command_entry_points(self):
+            # Note at least one script wrapper to be installed.
+            is_script_installed = True
+
             # Relative path of the output frozen executable file or directory.
             frozen_pathname = path.join(
                 pyinstaller_dist_dirname, script_basename)
@@ -291,6 +298,11 @@ class freeze(Command, metaclass = ABCMeta):
 
             #FIXME: Excise when beginning GUI work.
             break
+
+        # If no script wrappers have been installed, fail.
+        if not is_script_installed:
+            raise DistutilsExecError(
+                'Script wrapper not installed. Please run either the "install" or "symlink" setuptools commands and try again. See "README.md" for details.')
 
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
