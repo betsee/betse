@@ -32,15 +32,32 @@
 # https://en.wikipedia.org/wiki/YAML.
 
 # -----------------------------------------------------------------------------
-# INITIALIZATION SETTINGS
-# -----------------------------------------------------------------------------
-# Settings specific to the initialization
+# FILE HANDLING
+# Settings specific to saving simulations and results output
 
 init file saving:
 
-    directory: init_run_1          # name of the directory to save the initialization
+    directory: init_run_1         # name of the directory to save the initialization
 
     file: init_run_1.betse        # Specify the filename saving the initialization run.
+
+
+sim file saving:
+
+    directory: init_run_1/sim_run_1    # Specify a directory to hold the sim and its results
+
+    file: sim_run_1.betse    # Specify the file name saving the results of the simulation run.
+
+results file saving:
+
+    directory: init_run_1/sim_run_1/results_1    # Name of directory to save plots and animations.
+
+
+
+# -----------------------------------------------------------------------------
+# INITIALIZATION SETTINGS
+# -----------------------------------------------------------------------------
+# Settings specific to the initialization
 
 
 init time settings:
@@ -71,15 +88,6 @@ init time settings:
 automatically run initialization: True     # In the case that an initialization file is not found, do you wish to
                                            # automatically run an initialization with settings as described in this
                                            # config file?
-
-sim file saving:
-
-    directory: init_run_1/sim_run_1    # Specify a directory to hold the sim and its results
-                                       # As each simulation needs to be associated with the right
-                                       # init run, we recommend putting simulation directories within
-                                       # the corresponding init directory.
-
-    file: sim_run1.betse    # Specify the file name saving the results of the simulation run.
 
 sim time settings:
 
@@ -124,7 +132,7 @@ sim time settings:
 
 general options:
 
-  ion profile: 'basic'          # set the ion profile to be used in the simulation
+  ion profile: 'basic_Ca'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -150,7 +158,7 @@ general options:
                             # options True or False (case sensitive)
 
 
-  voltage dye: False     # include electrodiffusion of a voltage sensitive dye?
+  voltage dye: True     # include electrodiffusion of a voltage sensitive dye?
                          # this is intended to help link sim output to real-world
                          # experimental methods.
                          # options True or False (case sensitive)
@@ -436,11 +444,6 @@ include calcium dynamics:
 
 results options:
 
-  save directory: init_run_1/sim_run_1/results_1    # Name of directory to save plots and animations.
-                                                # We recommend collecting all results (plots, animations)
-                                                # for a particular sim inside a results directory within
-                                                # that sim's directory.
-
 
   turn all plots off: False      # This option allows you to turn all plots on/off
                                  # note this doesn't turn plot while solving off.
@@ -485,7 +488,7 @@ results options:
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: True                # if True, plots and animations show individual cells,
+  show cells: False                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.
@@ -493,16 +496,70 @@ results options:
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
 
-  plot Vmem: True              # 2d plot of final vmem ?
-  plot Ca: True                # 2d plot of final cell calcium ?
-  plot IP3: False               # 2d plot of final cIP3 ?
-  plot Dye: False               # 2d plot of voltage sensitive dye in cell collective?
 
-  animate Vmem: True           # 2d animation of vmem with time?
-  animate Ca2+: True           # 2d animation of cell calcium with time ?
-  animate IP3: False            # 2d animation of cIP3 with time?
-  animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
-  animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+  Vmem 2D:
+
+    plot Vmem: True              # 2d plot of final vmem ?
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 80.0                # maximum colorbar value in mV
+    min val: -80.0               # minimum colorbar value in mV
+
+  Ca 2D:
+
+    plot Ca: True                # 2d plot of final cell calcium ?
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 1000                 # maximum colorbar value in nmol/L
+    min val: 0                    # minimum colorbar value in nmol/L
+
+  IP3 2D:
+
+    plot IP3: True               # 2d plot of final cIP3 ?
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 100                  # maximum colorbar value in umol/L
+    min val: 0                    # minimum colorbar value, in umol/L
+
+  Dye 2D:
+
+    plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 3.0                  # maximum colorbar value in umol/L
+    min val: 0                     # minimum colorbar value in umol/L
+
+
+  Vmem Ani:
+
+    animate Vmem: True           # 2d animation of vmem with time?
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 80.0                # maximum colorbar value in mV
+    min val: -80.0               # maximum colorbar value in mV
+
+  Ca Ani:
+
+    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 1000                # maximum colorbar value in nmol/L
+    min val: 0                   # minimum colorbar vlue in nmol/L
+
+  IP3 Ani:
+
+    animate IP3: False            # 2d animation of cIP3 with time?
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 100                 # maximum colorbar value in umol/L
+    min val: 0                   # minimum colorbar value in umol/L
+
+  Dye Ani:
+
+    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 3.0                  # maximum colorbar value in umol/L
+    min val: 0                    # minimum colorbar value in umol/L
+
+  Vmem GJ Ani:
+
+    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 80.0                # maximum colorbar value in mV
+    min val: -80.0               # minimum colorbar value in mV
 
 
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.

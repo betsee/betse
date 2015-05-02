@@ -23,10 +23,11 @@ class AnimateCellData(object):
     """
 
     def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', save=False,ani_repeat=False,
+        clrAutoscale = True, clrMin = None, clrMax = None, clrmap = cm.rainbow,
         number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
 
         self.zdata_t = zdata_t
-        self.colormap = p.default_cm
+        self.colormap = clrmap
         self.time = time
         self.save = save
 
@@ -45,9 +46,21 @@ class AnimateCellData(object):
         self.collection.set_array(self.zdata_t[0])
 
         # set range of the colormap
-        self.cmean = np.mean(self.zdata_t)
-        self.cmin = np.min(self.zdata_t)
-        self.cmax = np.max(self.zdata_t)
+
+        if clrAutoscale == True:
+            self.cmean = np.mean(self.zdata_t)
+            self.cmin = round(np.min(self.zdata_t),1)
+            self.cmax = round(np.max(self.zdata_t),1)
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 1
+                self.cmax = self.cmax + 1
+
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
@@ -110,10 +123,11 @@ class AnimateCellData(object):
 class AnimateCellData_smoothed(object):
 
     def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', save=False,ani_repeat=False,
+        clrAutoscale = True, clrMin = None, clrMax = None, clrmap = cm.rainbow,
         number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
 
         self.zdata_t = zdata_t
-        self.colormap = p.default_cm
+        self.colormap = clrmap
         self.time = time
         self.save = save
 
@@ -127,9 +141,20 @@ class AnimateCellData_smoothed(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
 
         # set range of the colormap
-        self.cmean = np.mean(self.zdata_t)
-        self.cmin = np.min(self.zdata_t)
-        self.cmax = np.max(self.zdata_t)
+        if clrAutoscale == True:
+            self.cmean = np.mean(self.zdata_t)
+            self.cmin = round(np.min(self.zdata_t),1)
+            self.cmax = round(np.max(self.zdata_t),1)
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 1
+                self.cmax = self.cmax + 1
+
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
@@ -187,6 +212,7 @@ class AnimateGJData(object):
     """
 
     def __init__(self,cells,sim,p,tit=' ', save=False,saveFolder = '/animation',
+        clrAutoscale = True, clrMin = None, clrMax = None, clrmap = cm.rainbow,
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
@@ -195,7 +221,7 @@ class AnimateGJData(object):
         # self.zdata_t = gjI_t/normI
 
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
-        self.colormap = p.default_cm
+        self.colormap = clrmap
         self.time = sim.time
 
         self.gjI_t = np.sign(sim.Igj_time)
@@ -225,10 +251,24 @@ class AnimateGJData(object):
         points = np.multiply(cells.cell_verts, p.um)
         self.coll2 =  PolyCollection(points, array=self.vdata_t[0], edgecolors='none', cmap=self.colormap)
         self.coll2.set_alpha(1.0)
-         # set range of the colormap
-        self.cmean = np.mean(self.vdata_t)
-        self.cmin = np.min(self.vdata_t)
-        self.cmax = np.max(self.vdata_t)
+
+        # set range of the colormap
+
+        if clrAutoscale == True:
+            self.cmean = np.mean(self.zdata_t)
+            self.cmin = round(np.min(self.zdata_t),1)
+            self.cmax = round(np.max(self.zdata_t),1)
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 1
+                self.cmax = self.cmax + 1
+
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
+
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
         self.ax.add_collection(self.coll2)
@@ -288,6 +328,7 @@ class AnimateGJData(object):
 class AnimateGJData_smoothed(object):
 
     def __init__(self,cells,sim,p,tit=' ', save=False,saveFolder = '/animation',
+        clrAutoscale = True, clrMin = None, clrMax = None, clrmap = cm.rainbow,
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
@@ -297,7 +338,7 @@ class AnimateGJData_smoothed(object):
         # self.zdata_t = gjI_t/normI
 
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
-        self.colormap = p.default_cm
+        self.colormap = clrmap
         self.time = sim.time
 
         self.gjI_t = np.sign(sim.Igj_time)
@@ -326,10 +367,23 @@ class AnimateGJData_smoothed(object):
         # Next add a triplot with interpolated and animated voltage data
         self.triplt = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
             self.vdata_t[0],shading='gouraud', cmap=self.colormap)
+
          # set range of the colormap
-        self.cmean = np.mean(self.vdata_t)
-        self.cmin = np.min(self.vdata_t)
-        self.cmax = np.max(self.vdata_t)
+        if clrAutoscale == True:
+            self.cmean = np.mean(self.zdata_t)
+            self.cmin = round(np.min(self.zdata_t),1)
+            self.cmax = round(np.max(self.zdata_t),1)
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 1
+                self.cmax = self.cmax + 1
+
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
+
         self.triplt.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.triplt)   # define colorbar for figure
 
@@ -385,9 +439,7 @@ class AnimateGJData_smoothed(object):
 
 class PlotWhileSolving(object):
 
-    def __init__(self,cells,sim,p,number_cells=False):
-
-
+    def __init__(self,cells,sim,p,number_cells=False,clrAutoscale = True, clrMin = None, clrMax = None):
 
         vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
         self.colormap = p.default_cm
@@ -397,9 +449,23 @@ class PlotWhileSolving(object):
 
         self.tit = 'Vmem check while solving'
 
-        self.cmean = np.mean(vdata)
-        self.cmin = np.min(vdata)
-        self.cmax = np.max(vdata)
+        self.clrAutoscale = clrAutoscale
+
+        if clrAutoscale == True:
+
+            self.cmean = np.mean(vdata)
+            self.cmin = round(np.min(vdata),1)
+            self.cmax = round(np.max(vdata),1)
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 0.1
+                self.cmax = self.cmax + 0.1
+
+        elif clrAutoscale == False:
+
+            self.cmin = clrMin
+            self.cmax = clrMax
 
         if p.showCells == True:
             # Add a collection of cell polygons, with animated voltage data
@@ -449,11 +515,14 @@ class PlotWhileSolving(object):
         zv = sim.vm_time[-1]*1000
         time = sim.time[-1]
 
-        cmin = np.min(zv)
-        cmax = np.max(zv)
-
         self.coll2.set_array(zv)
-        self.coll2.set_clim(cmin,cmax)
+
+        if self.clrAutoscale == True:
+
+            cmin = np.min(zv)
+            cmax = np.max(zv)
+            self.coll2.set_clim(cmin,cmax)
+
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'
         self.ax.set_title(titani)
@@ -525,24 +594,30 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
 
     return fig, ax
 
-#FIXME: Docstring outdated. ("Y u so old, docstring?")
-def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number_cells=False):
+
+def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
+    clrmap = None, number_cells=False):
         """
         Assigns color-data to each polygon in a cell cluster diagram and returns a plot instance (fig, axes)
 
         Parameters
         ----------
-        vor_verts              Nested list of [x,y] points defining each polygon. May be ecm_verts or
-                               cell_verts
+        cells                  Data structure holding all world information about cell geometry
 
-        zdata_t                  A data array with each scalar entry corresponding to a polygon entry in
-                               vor_verts. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
+        zdata                  A data array with each scalar entry corresponding to a cell's data value
+                               (for instance, concentration or voltage). If zdata is not supplied, the
+                               cells will be plotted with a uniform color; if zdata = random a random
+                               data set will be created and plotted.
+
+        clrAutoscale           If True, the colorbar is autoscaled to the max and min of zdata.
+
+        clrMin                 Sets the colorbar to a user-specified minimum value.
+
+        clrMax                 Set the colorbar to a user-specified maximum value
 
         clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
                                available mapnames is supplied at
                                http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
 
 
         Returns
@@ -571,28 +646,31 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
 
         # Make the polygon collection and add it to the plot.
         if clrmap is None:
-            clrmap = p.default_cm
+            #clrmap = p.default_cm
+            clrmap = cm.rainbow
 
         points = np.multiply(cells.cell_verts, p.um)
 
         coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
-        # coll.set_picker(True)
         ax.add_collection(coll)
         ax.axis('equal')
 
         # Add a colorbar for the PolyCollection
-        std = np.std(zdata,axis=0)
-        mean = np.mean(zdata,axis=0)
+        maxval = round(np.max(zdata,axis=0),1)
+        minval = round(np.min(zdata,axis=0),1)
+        checkval = maxval - minval
 
-        if zdata is not None and std > 1e-13:
+        if checkval == 0:
+            minval = minval - 0.1
+            maxval = maxval + 0.1
+
+        if zdata is not None and clrAutoscale == True:
+            coll.set_clim(minval,maxval)
             ax_cb = fig.colorbar(coll,ax=ax)
 
-        elif std<1e-13:
+        elif clrAutoscale == False:
 
-            if mean < 0:
-                coll.set_clim(mean,0)
-            if mean > 0:
-                coll.set_clim(0,mean)
+            coll.set_clim(clrMin,clrMax)
 
             ax_cb = fig.colorbar(coll,ax=ax)
 
@@ -613,7 +691,8 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None,clrmap = None, number
 
         return fig,ax,ax_cb
 
-def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay = None,pointOverlay=None):
+def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
+    clrmap=None,edgeOverlay = None,pointOverlay=None):
         """
         The work-horse of pre-defined plotting methods, this method assigns color-data to each node in cell_centres
         and interpolates data to generate a smooth surface plot. The method returns a plot instance (fig, axes)
@@ -627,7 +706,13 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
         clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
                                available mapnames is supplied at
                                http://matplotlib.org/examples/color/colormaps_reference.html
-                               Default is cm.rainbow. Good options are cm.coolwarm, cm.Blues, cm.jet
+
+        clrAutoscale           If True, the colorbar is autoscaled to the max and min of zdata.
+
+        clrMin                 Sets the colorbar to a user-specified minimum value.
+
+        clrMax                 Set the colorbar to a user-specified maximum value
+
 
         edgeOverlay             This option allows the user to specify whether or not they want cell edges overlayed.
                                 Default is False, set to True to use.
@@ -674,19 +759,22 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
         ax.axis('equal')
 
          # Add a colorbar for the triplot:
-        std = np.std(zdata,axis=0)
-        mean = np.mean(zdata,axis=0)
 
-        if zdata is not None and std > 1e-13:
+        maxval = round(np.max(zdata,axis=0),1)
+        minval = round(np.min(zdata,axis=0),1)
+        checkval = maxval - minval
+
+        if checkval == 0:
+            minval = minval - 0.1
+            maxval = maxval + 0.1
+
+        if zdata is not None and clrAutoscale == True:
+            triplt.set_clim(minval,maxval)
             ax_cb = fig.colorbar(triplt,ax=ax)
 
-        elif std<1e-13:
+        elif clrAutoscale == False:
 
-            if mean < 0:
-                triplt.set_clim(mean,0)
-            if mean > 0:
-                triplt.set_clim(0,mean)
-
+            triplt.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(triplt,ax=ax)
 
         if pointOverlay == True:
@@ -698,7 +786,6 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrmap=None,edgeOverlay
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
-
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)

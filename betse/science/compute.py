@@ -890,7 +890,6 @@ class Simulator(object):
             loggers.log_info('Final dye concentration in the environment: '+ str(np.round(dye_env_final,6)) + ' mmol/L')
             loggers.log_info('Final average dye concentration in cells: '+ str(np.round(dye_cell_final,6)) + ' mmol/L')
 
-
     def runSim(self,cells,p,save=None):
         """
         Drives the time-loop for the main simulation, including gap-junction connections and all dynamics.
@@ -946,7 +945,8 @@ class Simulator(object):
 
         if p.plot_while_solving == True:
 
-            checkPlot = viz.PlotWhileSolving(cells,self,p)
+            checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+                clrMax = p.Vmem_max_clr)
 
         do_once = True  # a variable to time the loop only once
 
@@ -2064,7 +2064,6 @@ def bicarbBuffer(cH,cM,cHM,delH,p):
 
     cM2 = cM - delH
 
-    #cHM2 = cHM + delH
     cHM2 = 0.03*p.CO2
 
     pH = 6.1 + np.log10(cM/cHM2)

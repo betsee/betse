@@ -15,11 +15,17 @@ import math
 import matplotlib.cm as cm
 import os
 
-# define the basic class that holds variables
+# Parses the configuration file to define basic class holding all simulation variables
 class Parameters(object):
     '''
     The object that stores all constants used in world-building, simulation, and
     plotting.
+
+    The 'inbuiltInit' method is intended for in-house testing purposes when new functionality is built in
+    but before it's added to the configuration file.
+
+    The '_yamlConfigInit' method parses the main configuration file used in simulations.
+
     '''
     def __init__(self, config_filename: str):
         #self.inbuiltInit()
@@ -405,7 +411,7 @@ class Parameters(object):
         self.sim_path = paths.join(
             config_dirname, self.config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
         self.sim_results = paths.join(
-            config_dirname, self.config['results options']['save directory']) # folder to auto-save results (graphs, images, animations)
+            config_dirname, self.config['results file saving']['directory']) # folder to auto-save results (graphs, images, animations)
 
         self.init_filename = self.config['init file saving']['file']
         self.sim_filename = self.config['sim file saving']['file']
@@ -736,19 +742,54 @@ class Parameters(object):
 
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
 
-        self.plot_vm2d = ro['plot Vmem']                # 2d plot of final vmem ?
-        self.plot_ca2d = ro['plot Ca']                # 2d plot of final cell calcium ?
-        self.plot_ip32d = ro['plot IP3']               # 2d plot of final cIP3 ?
-        self.plot_dye2d = ro['plot Dye']               # 2d plot of voltage sensitive dye in cell collective?
+        # options for individual 2D plots
+        self.plot_vm2d = ro['Vmem 2D']['plot Vmem']                # 2d plot of final vmem ?
+        self.autoscale_Vmem = ro['Vmem 2D']['autoscale colorbar']
+        self.Vmem_min_clr = float(ro['Vmem 2D']['min val'])
+        self.Vmem_max_clr = float(ro['Vmem 2D']['max val'])
+
+        self.plot_ca2d = ro['Ca 2D']['plot Ca']                # 2d plot of final cell calcium ?
+        self.autoscale_Ca = ro['Ca 2D']['autoscale colorbar']
+        self.Ca_min_clr = float(ro['Ca 2D']['min val'])
+        self.Ca_max_clr = float(ro['Ca 2D']['max val'])
+
+        self.plot_ip32d = ro['IP3 2D']['plot IP3']               # 2d plot of final cIP3 ?
+        self.autoscale_IP3 = ro['IP3 2D']['autoscale colorbar']
+        self.IP3_min_clr = float(ro['IP3 2D']['min val'])
+        self.IP3_max_clr = float(ro['IP3 2D']['max val'])
+
+        self.plot_dye2d = ro['Dye 2D']['plot Dye']               # 2d plot of voltage sensitive dye in cell collective?
+        self.autoscale_Dye = ro['Dye 2D']['autoscale colorbar']
+        self.Dye_min_clr = float(ro['Dye 2D']['min val'])
+        self.Dye_max_clr = float(ro['Dye 2D']['max val'])
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 
         # specify desired animations:
-        self.ani_vm2d = ro['animate Vmem']                # 2d animation of vmem with time?
-        self.ani_ca2d = ro['animate Ca2+']                # 2d animation of cell calcium with time ?
-        self.ani_ip32d = ro['animate IP3']               # 2d animation of cIP3 with time?
-        self.ani_dye2d = ro['animate Dye']               # 2d animation of voltage sensitive dye with time?
-        self.ani_vmgj2d = ro['animate Vmem with gj']     # 2d animation of vmem with superimposed gj network
+        self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
+        self.autoscale_Vmem_ani = ro['Vmem Ani']['autoscale colorbar']
+        self.Vmem_ani_min_clr = float(ro['Vmem Ani']['min val'])
+        self.Vmem_ani_max_clr = float(ro['Vmem Ani']['max val'])
+
+        self.ani_ca2d = ro['Ca Ani']['animate Ca2+']                # 2d animation of cell calcium with time ?
+        self.autoscale_Ca_ani = ro['Ca Ani']['autoscale colorbar']
+        self.Ca_ani_min_clr = float(ro['Ca Ani']['min val'])
+        self.Ca_ani_max_clr = float(ro['Ca Ani']['max val'])
+
+        self.ani_ip32d = ro['IP3 Ani']['animate IP3']               # 2d animation of cIP3 with time?
+        self.autoscale_IP3_ani = ro['IP3 Ani']['autoscale colorbar']
+        self.IP3_ani_min_clr = float(ro['IP3 Ani']['min val'])
+        self.IP3_ani_max_clr = float(ro['IP3 Ani']['max val'])
+
+        self.ani_dye2d = ro['Dye Ani']['animate Dye']               # 2d animation of voltage sensitive dye with time?
+        self.autoscale_Dye_ani = ro['Dye Ani']['autoscale colorbar']
+        self.Dye_ani_min_clr = float(ro['Dye Ani']['min val'])
+        self.Dye_ani_max_clr = float(ro['Dye Ani']['max val'])
+
+        self.ani_vmgj2d = ro['Vmem GJ Ani']['animate Vmem with gj']     # 2d animation of vmem with superimposed gj network
+        self.autoscale_Vgj_ani = ro['Vmem GJ Ani']['autoscale colorbar']
+        self.Vgj_ani_min_clr = float(ro['Vmem GJ Ani']['min val'])
+        self.Vgj_ani_max_clr = float(ro['Vmem GJ Ani']['max val'])
 
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
         self.saveAnimations = ro['save animations']    # save all animations as png sequences
@@ -789,8 +830,8 @@ class Parameters(object):
         self.slope_V = float(iu['slope_V'])
 
          # Calcium dynamics parameters
-        self.ER_vol = float(cdp['ER_vol'])                  # volume of endoplasmic reticulum as a fraction of cell volume
-        self.ER_sa = float(cdp['ER_sa'])                    # surface area of endoplasmic reticulum as a fraction of cell surface area
+        self.ER_vol = float(cdp['ER_vol'])   # volume of endoplasmic reticulum as a fraction of cell volume
+        self.ER_sa = float(cdp['ER_sa'])     # surface area of endoplasmic reticulum as a fraction of cell surface area
 
         self.Dm_IP3 = float(cdp['Dm_IP3'])   # membrane diffusion constant of IP3
         self.Do_IP3 = float(cdp['Do_IP3'])    # IP3 free diffusion constant [m2/s]
