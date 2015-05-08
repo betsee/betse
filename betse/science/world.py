@@ -74,7 +74,7 @@ class World(object):
 
     self.ecm_mids       a python list of midpoint [x,y] for each unique ecm segment (in ecm_i order)
 
-    self.ecm_vols     a python list of the length of each ecm segment (in ecm_i order)
+    self.ecm_vol     a python list of the length of each ecm segment (in ecm_i order)
 
     self.ecm_vects      a numpy array of [x, y, tx, ty] for each ecm segment (in ecm_i order)
 
@@ -773,7 +773,7 @@ class World(object):
         self.mem_length
         self.mem_mids
         self.mem_vects_flat
-        self.ecm_vols
+        self.ecm_vol
         self.ecm_edges_i
         self.ecm_mids
         self.ecm_vects
@@ -838,6 +838,8 @@ class World(object):
             self.mem_mids.append(mps)
             self.mem_length.append(surfa)
 
+
+
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
         self.cell_sa = np.asarray(self.cell_sa)
 
@@ -885,7 +887,7 @@ class World(object):
         len_unique_edges = len(self.ecm_edges_i)
 
         self.ecm_mids = [0]*len_unique_edges
-        self.ecm_vols = [0]*len_unique_edges
+        self.ecm_vol = [0]*len_unique_edges
 
         ev_x=[0]*len_unique_edges
         ev_y=[0]*len_unique_edges
@@ -921,7 +923,7 @@ class World(object):
                         lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
                         vol = lgth*p.cell_height*p.cell_space
                         self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
-                        self.ecm_vols[mapval] = vol
+                        self.ecm_vol[mapval] = vol
                         tang_a = pnt2 - pnt1
                         tang = tang_a/np.linalg.norm(tang_a)
                         ev_x[mapval] = midpoint[0]
@@ -938,7 +940,7 @@ class World(object):
                         lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
                         vol = lgth*p.cell_height*p.cell_space
                         self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
-                        self.ecm_vols[mapval] = vol
+                        self.ecm_vol[mapval] = vol
                         tang_a = pnt2 - pnt1
                         tang = tang_a/np.linalg.norm(tang_a)
                         ev_x[mapval] = midpoint[0]
@@ -951,7 +953,7 @@ class World(object):
         self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
         self.ecm_mids = np.array(self.ecm_mids)
         self.ecm_edges_i = np.asarray(self.ecm_edges_i)
-        self.ecm_vols = np.asarray(self.ecm_vols)
+        self.ecm_vol = np.asarray(self.ecm_vol)
 
     def cleanUp(self,p):
 
@@ -971,8 +973,34 @@ class World(object):
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
         self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
         self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
+        self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
 
         self.cell_vol = np.asarray(self.cell_vol)
+
+        self.indmap_mem = np.asarray(self.indmap_mem)
+
+        self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
+
+        self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
+
+        for cell_index in self.cell_i:
+
+            index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
+            self.cell_to_mems.append(index2mems)
+
+        self.cell_to_mems = np.asarray(self.cell_to_mems)
+
+
+        self.mem_to_ecm,_,_ = tb.flatten(self.cell2ecm_map)  # gives ecm index for each mem_i index placeholder
+
+        self.mem_length,_,_ = tb.flatten(self.mem_length)
+
+        self.mem_length = np.asarray(self.mem_length)
+
+        self.mem_capacitance = p.cm*self.mem_length
+
+
+
 
         self.clust_centre = np.mean(self.cell_centres)
         self.clust_x_max = np.max(self.cell_centres[:,0])
