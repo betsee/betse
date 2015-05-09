@@ -854,6 +854,7 @@ class Parameters(object):
         # fundamental constants
         self.F = 96485 # Faraday constant [J/V*mol]
         self.R = 8.314  # Gas constant [J/K*mol]
+        self.eo = 8.854e-12 # permeability of free space [F/m]
 
         self.deltaGATP = 20*self.R*self.T    # free energy released in ATP hydrolysis [J/mol]
 
@@ -873,6 +874,8 @@ class Parameters(object):
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
 
         self.um = 1e6    # multiplication factor to convert m to um
+
+        self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':

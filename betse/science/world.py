@@ -821,7 +821,7 @@ class World(object):
                 mps.append(mid)
 
                 lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
-                sa = lgth*p.cell_height    # surface area
+                sa = lgth*p.cell_height    # surface area of membrane
                 surfa.append(lgth)
 
                 tang_a = pt2 - pt1       # tangent
@@ -997,10 +997,26 @@ class World(object):
 
         self.mem_length = np.asarray(self.mem_length)
 
-        self.mem_capacitance = p.cm*self.mem_length
+        self.mem_capacitance = p.cm*self.mem_length*p.cell_height
 
+        self.self_cap_ecm = (8 + 4.1*((self.mem_length/p.cell_space)**0.76))*p.eo*80*p.cell_space
 
+        # calculate the Maxwell capacitance matrix and its inverse for cell-ecm couplings:
 
+        # terms of the forward matrix: [Qcell, Qecm] = [[Cmat_a, Cmat_b],[Cmat_c],[Cmat_d]]* [Vcell,Vecm]
+        Cmat_a = p.self_cap_cell + self.mem_capacitance
+        Cmat_b = -self.mem_capacitance
+        Cmat_c = -self.mem_capacitance
+        Cmat_d = self.mem_capacitance + self.self_cap_ecm
+
+        Cmat_denom = 1/(Cmat_a*Cmat_d - Cmat_b*Cmat_c)   # term for calculating the matrix inverse
+
+        self.Cinv_a = Cmat_d*Cmat_denom
+        self.Cinv_b= -Cmat_b*Cmat_denom
+        self.Cinv_c= -Cmat_c*Cmat_denom
+        self.Cinv_d = Cmat_a*Cmat_denom
+
+        # calculating centre, min, max of cluster after all modifications
 
         self.clust_centre = np.mean(self.cell_centres)
         self.clust_x_max = np.max(self.cell_centres[:,0])
@@ -1008,6 +1024,7 @@ class World(object):
         self.clust_y_max = np.max(self.cell_centres[:,1])
         self.clust_y_min = np.min(self.cell_centres[:,1])
 
+        # calculating matrix for gap junction flux calculation between cells
         self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
         for igj, pair in enumerate(self.gap_jun_i):
             ci = pair[0]

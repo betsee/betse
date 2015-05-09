@@ -361,7 +361,7 @@ class Simulator(object):
         self.id_cells = np.ones(len(cells.cell_i))
 
         self.cc_cells = []  # cell concentrations initialized
-        self.cc_env = []   # environmental concentrations initialized
+        # self.cc_env = []   # environmental concentrations initialized
         self.cc_er = []   # endoplasmic reticulum ion concentrations
 
         self.cc_ecm = []  # extracellular spaces ion concentrations
@@ -399,7 +399,7 @@ class Simulator(object):
             DmNa[:] = p.Dm_Na
 
             self.cc_cells.append(cNa_cells)
-            self.cc_env.append(cNa_ecm)
+            self.cc_ecm.append(cNa_ecm)
             self.zs.append(p.z_Na)
             self.Dm_mems.append(DmNa)
             self.D_free.append(p.Do_Na)
@@ -447,7 +447,7 @@ class Simulator(object):
             DmCl[:] = p.Dm_Cl
 
             self.cc_cells.append(cCl_cells)
-            self.cc_env.append(cCl_ecm)
+            self.cc_ecm.append(cCl_ecm)
             self.zs.append(p.z_Cl)
             self.Dm_mems.append(DmCl)
             self.D_free.append(p.Do_Cl)
@@ -566,7 +566,7 @@ class Simulator(object):
             DmH[:] = p.Dm_H
 
             self.cc_cells.append(cH_cells)
-            self.cc_env.append(cH_ecm)
+            self.cc_ecm.append(cH_ecm)
             self.zs.append(p.z_H)
             self.Dm_mems.append(DmH)
             self.D_free.append(p.Do_H)
@@ -1470,7 +1470,7 @@ class Simulator(object):
         """
         # Reinitialize data structures that hold time data
         self.cc_time = []  # data array holding the cell concentrations at time points
-        self.cc_env_time = []  # data array holding the environmental concentrations at time points
+        self.cc_ecm_time = []  # data array holding the environmental concentrations at time points
         self.cc_er_time = []  # data array holding endoplasmic reticulum concentrations at time points
 
         self.vm_time = []  # data array holding voltage at time points
@@ -1489,12 +1489,15 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        loggers.log_info('Your initialization is running for ' + str(round((p.init_tsteps*p.dt)/60,2)) +
+        loggers.log_info('Your initialization (with extracellular spaces) is running for '
+                         + str(round((p.init_tsteps*p.dt)/60,2)) +
                          ' minutes of in-world time.')
 
-        # get the initial net, unbalanced charge and voltage in each cell:
-        q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-        self.vm = get_volt(q_cells,cells.cell_sa,p)
+        # get the initial net, unbalanced charge and voltage in each cell and ecm space:
+        q_cells = get_charge(self.cc_cells, self.zs, cells.cell_vol, p)
+        q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+        self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)   # FIXME you are here!!!
 
         do_once = True  # a variable to time the loop only once
 
@@ -1510,7 +1513,9 @@ class Simulator(object):
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-            self.vm = get_volt(q_cells,cells.cell_sa,p)
+            q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+            self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
             if  p.ions_dict['Ca'] == 1:
@@ -1521,7 +1526,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                 if p.Ca_dyn ==1:
 
@@ -1531,7 +1538,9 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                     q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1556,7 +1565,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
 
                 if p.HKATPase_dyn == 1:
@@ -1578,7 +1589,9 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                 if p.VATPase_dyn == 1:
 
@@ -1599,7 +1612,9 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
             shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
@@ -1612,7 +1627,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                     # electrodiffusion of ions between cell and endoplasmic reticulum
@@ -1628,7 +1645,9 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                     q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1648,7 +1667,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             # check and ensure simulation stability
             check_v(self.vm)
@@ -1659,7 +1680,7 @@ class Simulator(object):
                 self.cc_time.append(concs)
 
                 concs_env = copy.deepcopy(self.cc_env)
-                self.cc_env_time.append(concs_env)
+                self.cc_ecm_time.append(concs_env)
 
                 vmm = copy.deepcopy(self.vm)
                 self.vm_time.append(vmm)
@@ -1700,7 +1721,7 @@ class Simulator(object):
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
+            endconc = np.round(np.mean(self.cc_ecm_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final environmental concentration of'+ ' '+ label + ': '
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
@@ -1713,7 +1734,7 @@ class Simulator(object):
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
             loggers.log_info('Final average cell pH ' + str(np.round(final_pH,2)))
 
-            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
+            final_pH_env = -np.log10(np.mean((self.cc_ecm_time[-1][self.iH])/1000))
             loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
@@ -2153,7 +2174,8 @@ class Simulator(object):
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
         q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-        self.vm = get_volt(q_cells,cells.cell_sa,p)
+        q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+        self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
         if p.plot_while_solving == True:
 
@@ -2185,7 +2207,8 @@ class Simulator(object):
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-            self.vm = get_volt(q_cells,cells.cell_sa,p)
+            q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+            self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             if p.ions_dict['Ca'] == 1:
 
@@ -2195,7 +2218,8 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                 if p.Ca_dyn ==1:
 
@@ -2205,7 +2229,8 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                     q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -2230,7 +2255,8 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
 
                 if p.HKATPase_dyn == 1:
@@ -2252,7 +2278,8 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                 if p.VATPase_dyn == 1:
 
@@ -2273,7 +2300,8 @@ class Simulator(object):
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+                    self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
             shuffle(cells.gj_i)
@@ -2288,9 +2316,10 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
-                # calculate volatge difference between cells:
+                # calculate voltage difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
                 vgj = vmB - vmA
 
@@ -2307,7 +2336,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                 self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
@@ -2338,7 +2369,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
                 q_er = get_charge(self.cc_er,self.z_er,p.ER_vol*cells.cell_vol,p)
                 v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -2366,7 +2399,9 @@ class Simulator(object):
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
+
+                self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
 
             check_v(self.vm)
 
@@ -3297,13 +3332,55 @@ def get_volt(q,sa,p):
     Returns
     -------
     V               Voltage on the capacitive space holding charge
+
     """
 
     cap = sa*p.cm
     V = (1/cap)*q
     return V
 
+def get_volt_ECM(q_cells,q_ecm,cells):
+
+    """
+    Makes use of the cell <--> ecm Maxwell Capacitance Matrix defined in World module
+    to calculate the distinct voltage of the cell interior, its extracellular space, and the
+    voltage difference across the membrane. The cell interior and the extracellular space
+    are taken to be two conductors (each with self-capacitance) connected by the capacitor of
+    the plasma membrane.
+
+    Parameters
+    -----------------
+    q_cells             An array storing the net charge inside each cell space
+    q_ecm               An array storing the net charge in each extracellular space
+    cells               An object storing World module properties
+
+    Returns
+    -----------------
+    v_mem               The voltage across the membrane as Vcell - Vecm
+    v_cells             The voltage in the intracellular space at the membrane
+    v_ecm               The voltage in the extracellular space at the membrane
+
+    """
+
+    v_cells = cells.Cinv_a*q_cells[cells.mem_to_cells] + cells.Cinv_b*q_ecm[cells.mem_to_ecm]
+    v_ecm = cells.Cinv_c*q_cells[cells.mem_to_cells] + cells.Cinv_d*q_ecm[cells.mem_to_ecm]
+    v_mem = v_cells - v_ecm
+
+    return v_mem, v_cells, v_ecm
+
 def get_charge(concentrations,zs,vol,p):
+    """
+    Calculates the total charge in a space given a set of concentrations
+    and their ionic charges, along with the space volume.
+
+    Parameters
+    ---------------
+    concentrations       An array of arrays listing concentrations of different ions in multiple spaces.
+    zs                   An array
+    :param vol:
+    :param p:
+    :return:
+    """
 
     q = 0
 

@@ -993,6 +993,93 @@ def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
 
         return fig, ax
 
+def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
+    clrmap=None):
+
+        """
+        This plotting function plots data on both cell centres and ecm midpoints, as patch objects.
+
+
+        Parameters
+        ----------------
+
+        cells                   Data structure created by World module
+        p                       Parameters data structure created by Parameters module
+        fig, ax                 Figure and axes instances
+        zdata                   Contains data array matching cell and ecm indices, e.g. zdata = [Vcell, Vecm]
+        clrAutoscale            True or False
+        clrMin, clrMax          Minimum, maximum colorbar values (for zdata)
+        clrmap                  Colormap for the plot
+
+
+        Returns
+        -----------
+        fig, ax, ax_cb          Figure, axes, and colorbar instances
+        """
+
+        if fig is None:
+            fig = plt.figure()# define the figure and axes instances
+        if ax is None:
+            ax = plt.subplot(111)
+            #ax = plt.axes()
+
+        data_length = len(cells.cell_i) + len(cells.ecm_i)
+
+        if zdata is None:  # if user doesn't supply data
+            z = np.ones(data_length) # create flat data for plotting
+
+        elif zdata == 'random':  # if user doesn't supply data
+            z = np.random.random(data_length) # create some random data for plotting
+
+        else:
+            zCells = zdata[0]
+            zEcm = zdata[1]
+
+        if clrmap is None:
+            clrmap = p.default_cm
+
+        points = np.multiply(cells.cell_verts, p.um)
+
+        coll = PolyCollection(points, array = zCells, cmap = clrmap, edgecolors='k',zorder=1)
+
+        ax.add_collection(coll)
+
+        scat = ax.scatter(p.um*cells.ecm_mids[:,0],p.um*cells.ecm_mids[:,1],c=zEcm,cmap=clrmap)
+
+        ax.axis('equal')
+
+         # Add a colorbar for the plot:
+
+        maxval = round(np.max(zdata,axis=0),1)
+        minval = round(np.min(zdata,axis=0),1)
+        checkval = maxval - minval
+
+        if checkval == 0:
+            minval = minval - 0.1
+            maxval = maxval + 0.1
+
+        if zdata is not None and clrAutoscale == True:
+            coll.set_clim(minval,maxval)
+            scat.set_clim(minval,maxval)
+            ax_cb = fig.colorbar(coll,ax=ax)
+
+        elif clrAutoscale == False:
+
+            coll.set_clim(clrMin,clrMax)
+            scat.set_clim(clrMin,clrMax)
+            ax_cb = fig.colorbar(coll,ax=ax)
+
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
+
+
+        return fig, ax, ax_cb
+
+
 def plotVects(cells, p, fig=None, ax=None):
         """
         This function plots all unit vectors in the tissue system as a cross-check.
