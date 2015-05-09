@@ -1032,3 +1032,18 @@ class World(object):
             self.gjMatrix[igj,ci] = -1
             self.gjMatrix[igj,cj] = 1
 
+        # define matrix for updating cells with fluxes from membranes:
+
+        ecm_n = len(self.ecm_i)
+        cell_n = len(self.cell_i)
+        mem_n = len(self.mem_i)
+
+        self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
+        self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
+
+        for i, cell_index in enumerate(self.mem_to_cells):
+            self.cell_UpdateMatrix[i,cell_index] =1
+
+        for i, ecm_index in enumerate(self.mem_to_ecm):
+            self.ecm_UpdateMatrix[i, ecm_index] = 1
+

@@ -416,6 +416,8 @@ class Parameters(object):
         self.init_filename = self.config['init file saving']['file']
         self.sim_filename = self.config['sim file saving']['file']
 
+        self.sim_ECM = self.config['simulate ECM']    # boolean letting us know if extracellular spaces are included
+
          # Geometric constants and factors
         self.wsx = float(self.config['world variables']['world x'])  # the x-dimension of the world space
         self.wsy = self.wsx  # the y-dimension of the world space [m]

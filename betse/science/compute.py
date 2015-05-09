@@ -7,7 +7,8 @@
 # FIXME ECM diffusion and discrete membrane domains
 # FIXME implement VATPase pump
 
-# FIXME you are about to start mucking with runInit_ECM!
+# FIXME you had success with NaKATPase and get_volt_ECM reformulations...now you're on to systematically change the other ion pumps and electrodiffuse
+# FIXME after that you need to do electrodiffusion in the ECM spaces.
 
 
 
@@ -1473,12 +1474,14 @@ class Simulator(object):
         self.cc_ecm_time = []  # data array holding the environmental concentrations at time points
         self.cc_er_time = []  # data array holding endoplasmic reticulum concentrations at time points
 
-        self.vm_time = []  # data array holding voltage at time points
+        self.vm_time = []  # data array holding voltage across membrane at time points
+        self.vcells_time = []  # data array holding intracellular voltages (at membranes) at time points
+        self.vecm_time = []    # data array holding ecm voltages (at membrane) at time points
         self.cDye_time = [] # data array holding voltage-sensitive dye concentrations at time points
 
         self.time = []     # time values of the simulation
 
-        tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
+        tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timstep vector
 
         i = 0 # resample the time vector to save data at specific times:
         tsamples =[]
@@ -1496,8 +1499,7 @@ class Simulator(object):
         # get the initial net, unbalanced charge and voltage in each cell and ecm space:
         q_cells = get_charge(self.cc_cells, self.zs, cells.cell_vol, p)
         q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
-
-        self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)   # FIXME you are here!!!
+        self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)   # calculate voltages
 
         do_once = True  # a variable to time the loop only once
 
@@ -1507,15 +1509,33 @@ class Simulator(object):
                 loop_measure = time.time()
 
             # run the Na-K-ATPase pump:
-            self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
-                pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
+            _,_,_,_, f_Na, f_K =\
+                pumpNaKATP(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_ecm[self.iNa][cells.mem_to_ecm],
+                    self.cc_cells[self.iK][cells.mem_to_cells],self.cc_ecm[self.iK][cells.mem_to_ecm],
+                    cells.cell_sa[cells.mem_to_cells],cells.cell_vol[cells.mem_to_cells],
+                    cells.ecm_vol[cells.mem_to_ecm],self.vm,self.T,p,self.NaKATP_block,
+                    cellM=cells.cell_UpdateMatrix, ecmM=cells.ecm_UpdateMatrix)
+
+            # update the cell and extracellular concentrations as a result of pump fluxes:
+
+            self.cc_cells[self.iNa] = self.cc_cells[self.iNa] + \
+                                      np.dot((f_Na/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
+
+            self.cc_ecm[self.iNa] = self.cc_ecm[self.iNa] - \
+                                    np.dot((f_Na/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
+
+            self.cc_cells[self.iK] = self.cc_cells[self.iK] + \
+                                     np.dot(p.dt*(f_K/cells.cell_vol[cells.mem_to_cells]),cells.cell_UpdateMatrix)
+
+            self.cc_ecm[self.iK] = self.cc_ecm[self.iK]  - \
+                                   np.dot(p.dt*(f_K/cells.ecm_vol[cells.mem_to_ecm]),cells.ecm_UpdateMatrix)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             q_cells = get_charge(self.cc_cells,self.zs,cells.cell_vol,p)
             q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
-
             self.vm, self.v_cell_at_mem, self.v_ecm = get_volt_ECM(q_cells,q_ecm,cells)
+
+            # FIXME you are here: about to change the electrodiffuse and other pumps to coincide with NaKATPase success!
 
             # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
             if  p.ions_dict['Ca'] == 1:
@@ -2973,7 +2993,7 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p):
 
     return cA2, cB2, flux
 
-def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block):
+def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block,cellM = None, ecmM = None):
 
     """
     Parameters
@@ -3025,33 +3045,48 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block):
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
-    if p.method == 0:
+    if p.sim_ECM == True: # if extracellular spaces are included, concentrations need to be updated by matrix math
 
-        dmol = f_Na*p.dt
+        cNai2 = None
+        cNao2 = None
+        cKi2 = None
+        cKo2 = None
 
-        cNai2 = cNai + dmol/voli
-        cNao2 = cNao - dmol/volo
+        # cNai2 = cNai + np.dot((f_Na/voli)*p.dt,cellM)
+        # cNao2 = cNao - np.dot((f_Na/volo)*p.dt,ecmM)
+        #
+        # cKi2 = cKi + np.dot(p.dt*(f_K/voli),cellM)
+        # cKo2 = cKo - np.dot(p.dt*(f_K/volo),ecmM)
 
-        cKi2 = cKi - (2/3)*dmol/voli
-        cKo2 = cKo + (2/3)*dmol/volo
+    elif p.sim_ECM == False:
 
-    elif p.method == 1:
+        if p.method == 0:
 
-        k1 = alpha*cNai*cKo
+            dmol = f_Na*p.dt
 
-        k2 = alpha*(cNai+(1/2)*k1*p.dt)*cKo
+            cNai2 = cNai + dmol/voli
+            cNao2 = cNao - dmol/volo
 
-        k3 = alpha*(cNai+(1/2)*k2*p.dt)*cKo
+            cKi2 = cKi - (2/3)*dmol/voli
+            cKo2 = cKo + (2/3)*dmol/volo
 
-        k4 = alpha*(cNai+ k3*p.dt)*cKo
+        elif p.method == 1:
 
-        dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+            k1 = alpha*cNai*cKo
 
-        cNai2 = cNai - dmol/voli
-        cNao2 = cNao + dmol/volo
+            k2 = alpha*(cNai+(1/2)*k1*p.dt)*cKo
 
-        cKi2 = cKi + (2/3)*dmol/voli
-        cKo2 = cKo - (2/3)*dmol/volo
+            k3 = alpha*(cNai+(1/2)*k2*p.dt)*cKo
+
+            k4 = alpha*(cNai+ k3*p.dt)*cKo
+
+            dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+            cNai2 = cNai - dmol/voli
+            cNao2 = cNao + dmol/volo
+
+            cKi2 = cKi + (2/3)*dmol/voli
+            cKo2 = cKo - (2/3)*dmol/volo
 
 
     return cNai2,cNao2,cKi2,cKo2, f_Na, f_K

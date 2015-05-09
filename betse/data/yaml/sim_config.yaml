@@ -59,6 +59,8 @@ results file saving:
 # -----------------------------------------------------------------------------
 # Settings specific to the initialization
 
+simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem
+
 
 init time settings:
 
