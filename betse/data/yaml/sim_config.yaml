@@ -61,6 +61,7 @@ results file saving:
 
 simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem
 
+backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
 
 init time settings:
 
@@ -490,7 +491,7 @@ results options:
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: False                # if True, plots and animations show individual cells,
+  show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.
@@ -654,7 +655,7 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  5.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 

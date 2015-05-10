@@ -2,6 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+
 # FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 # FIXME get all parameters into the parameters file (i.e. vorclose, etc)!
@@ -990,12 +991,16 @@ class World(object):
 
         self.cell_to_mems = np.asarray(self.cell_to_mems)
 
-
-        self.mem_to_ecm,_,_ = tb.flatten(self.cell2ecm_map)  # gives ecm index for each mem_i index placeholder
+        # calculate the mapping between ecm indices and membrane indices:
+        cell_tree = sps.KDTree(self.ecm_mids)
+        matches = cell_tree.query(self.mem_mids_flat)
+        self.mem_to_ecm = list(matches)[1]
 
         self.mem_length,_,_ = tb.flatten(self.mem_length)
 
         self.mem_length = np.asarray(self.mem_length)
+
+        self.mem_sa = self.mem_length*p.cell_height
 
         self.mem_capacitance = p.cm*self.mem_length*p.cell_height
 
@@ -1004,17 +1009,17 @@ class World(object):
         # calculate the Maxwell capacitance matrix and its inverse for cell-ecm couplings:
 
         # terms of the forward matrix: [Qcell, Qecm] = [[Cmat_a, Cmat_b],[Cmat_c],[Cmat_d]]* [Vcell,Vecm]
-        Cmat_a = p.self_cap_cell + self.mem_capacitance
-        Cmat_b = -self.mem_capacitance
-        Cmat_c = -self.mem_capacitance
-        Cmat_d = self.mem_capacitance + self.self_cap_ecm
+        self.Cmat_a = p.self_cap_cell + self.mem_capacitance
+        self.Cmat_b = -self.mem_capacitance
+        self.Cmat_c = -self.mem_capacitance
+        self.Cmat_d = self.mem_capacitance + self.self_cap_ecm
 
-        Cmat_denom = 1/(Cmat_a*Cmat_d - Cmat_b*Cmat_c)   # term for calculating the matrix inverse
+        Cmat_denom = 1/(self.Cmat_a*self.Cmat_d - self.Cmat_b*self.Cmat_c)   # term for calculating the matrix inverse
 
-        self.Cinv_a = Cmat_d*Cmat_denom
-        self.Cinv_b= -Cmat_b*Cmat_denom
-        self.Cinv_c= -Cmat_c*Cmat_denom
-        self.Cinv_d = Cmat_a*Cmat_denom
+        self.Cinv_a = self.Cmat_d*Cmat_denom
+        self.Cinv_b= -self.Cmat_b*Cmat_denom
+        self.Cinv_c= -self.Cmat_c*Cmat_denom
+        self.Cinv_d = self.Cmat_a*Cmat_denom
 
         # calculating centre, min, max of cluster after all modifications
 

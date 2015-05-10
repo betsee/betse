@@ -214,12 +214,21 @@ def plots4Init(plot_cell,cells,sim,p,saveImages=False):
                 plt.show(block=False)
 
     if p.plot_vm2d == True:
-        if p.showCells == True:
-            figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
-        else:
-            figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1], clrAutoscale = p.autoscale_Vmem,
-                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
+
+        if p.sim_ECM == True:
+
+            figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                edgeOverlay = p.showCells)
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
+            else:
+                figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1], clrAutoscale = p.autoscale_Vmem,
+                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
 
         axV.set_title('Final Vmem in cell collection')
         axV.set_xlabel('Spatial distance [um]')

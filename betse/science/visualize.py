@@ -594,6 +594,133 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
 
     return fig, ax
 
+def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
+    clrmap=None,edgeOverlay = True,pointOverlay=None, number_cells = False, number_mems = False, number_ecm = False):
+        """
+        This plotting method assigns color-data to each node in the cell cluster that has distinct
+        membrane domains for each cell. Data is interpolated to generate a smooth surface plot.
+        The method returns a plot instance (fig, axes)
+
+        When using p.sim_ECM, this plotting method overrides both plotPolyData and plotCellData.
+
+        Parameters
+        ----------
+        zdata                  A data array with each scalar entry corresponding to a point in
+                               mem_mids_flat. If not specified the default is z=1. If 'random'
+                               is specified the method creates random vales from 0 to 1..
+
+        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
+                               available mapnames is supplied at
+                               http://matplotlib.org/examples/color/colormaps_reference.html
+
+        clrAutoscale           If True, the colorbar is autoscaled to the max and min of zdata.
+
+        clrMin                 Sets the colorbar to a user-specified minimum value.
+
+        clrMax                 Set the colorbar to a user-specified maximum value
+
+
+        edgeOverlay             This option allows the user to specify whether or not they want cell edges overlayed.
+                                Default is False, set to True to use.
+
+        pointOverlay            This option allows user to specify whether or not they want cell_centre points plotted
+                                Default is False, set to True to use.
+
+        number_cells,           Booleans that control whether or not cell, membrane, and ecm spaces are labeled
+        number_ecm,             with their indices.
+        number_mems
+
+
+        Returns
+        -------
+        fig, ax                Matplotlib figure and axes instances for the plot.
+
+        Notes
+        -------
+        Uses matplotlib.pyplot and numpy arrays
+        With edgeOverlay and pointOverlay == None, this is computationally fast and *is* recommended for plotting data
+        on large collectives.
+
+
+        """
+
+        if fig is None:
+            fig = plt.figure()# define the figure and axes instances
+        if ax is None:
+            ax = plt.subplot(111)
+            #ax = plt.axes()
+
+        if zdata is None:  # if user doesn't supply data
+            z = np.ones(len(cells.mem_i)) # create flat data for plotting
+
+        elif zdata == 'random':  # if user doesn't supply data
+            z = np.random.random(len(cells.mem_i)) # create some random data for plotting
+
+        else:
+            z = zdata
+
+        if clrmap is None:
+            clrmap = p.default_cm
+
+
+        triplt = ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
+            z,shading='gouraud', cmap=clrmap)
+
+        if pointOverlay == True:
+            scat = ax.scatter(p.um*cells.mem_mids_flat[:,0],p.um*cells.mem_mids_flat[:,1], c='k')
+
+        if edgeOverlay == True:
+            cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+            cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+            coll = LineCollection(cell_edges_flat,colors='k')
+            coll.set_alpha(0.5)
+            ax.add_collection(coll)
+
+        ax.axis('equal')
+
+         # Add a colorbar for the triplot:
+
+        maxval = round(np.max(zdata,axis=0),1)
+        minval = round(np.min(zdata,axis=0),1)
+        checkval = maxval - minval
+
+        if checkval == 0:
+            minval = minval - 0.1
+            maxval = maxval + 0.1
+
+        if zdata is not None and clrAutoscale == True:
+            triplt.set_clim(minval,maxval)
+            ax_cb = fig.colorbar(triplt,ax=ax)
+
+        elif clrAutoscale == False:
+
+            triplt.set_clim(clrMin,clrMax)
+            ax_cb = fig.colorbar(triplt,ax=ax)
+
+        if number_cells == True:
+
+            for i,cll in enumerate(cells.cell_centres):
+                ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
+
+        if number_mems == True:
+
+            for i,mem in enumerate(cells.mem_mids_flat):
+                ax.text(p.um*mem[0],p.um*mem[1],i,ha='center',va='center')
+
+        if number_ecm == True:
+
+            for i,ecm in enumerate(cells.ecm_mids):
+                ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center')
+
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.axis([xmin,xmax,ymin,ymax])
+
+
+        return fig, ax, ax_cb
 
 def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap = None, number_cells=False):

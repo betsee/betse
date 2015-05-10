@@ -418,6 +418,8 @@ class Parameters(object):
 
         self.sim_ECM = self.config['simulate ECM']    # boolean letting us know if extracellular spaces are included
 
+        self.backward_pumps = self.config['backward running pumps']   # boolean letting us know if pumps can run backwards
+
          # Geometric constants and factors
         self.wsx = float(self.config['world variables']['world x'])  # the x-dimension of the world space
         self.wsy = self.wsx  # the y-dimension of the world space [m]
