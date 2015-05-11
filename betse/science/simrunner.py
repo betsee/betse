@@ -3,6 +3,7 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME need to do animations for heterogeneous Vmems...
 
 
 from betse.science import visualize as viz
@@ -66,8 +67,16 @@ class SimRunner(object):
         loggers.log_info('Cell cluster creation complete!')
 
         sim = Simulator(p)   # create an instance of Simulator
-        sim.baseInit(cells, p)   # initialize simulation data structures
-        sim.runInit(cells,p)     # run and save the initialization
+
+        if p.sim_ECM == False:
+
+            sim.baseInit(cells, p)   # initialize simulation data structures
+            sim.runInit(cells,p)     # run and save the initialization
+
+        elif p.sim_ECM == True:
+
+            sim.baseInit_ECM(cells, p)   # initialize simulation data structures
+            sim.runInit_ECM(cells,p)     # run and save the initialization
 
         loggers.log_info('Initialization run complete!')
         loggers.log_info(
@@ -117,7 +126,14 @@ class SimRunner(object):
                                                "an initialization and try again.")
 
         sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
-        sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
+
+        if p.sim_ECM == False:
+
+            sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
+
+        elif p.sim_ECM == True:
+
+            sim.runSim_ECM(cells,p,save=True)   # run and optionally save the simulation to the cache
 
         loggers.log_info(
             'The simulation took {} seconds to complete.'.format(
@@ -327,12 +343,20 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 plt.show(block=False)
 
     if p.plot_vm2d == True:
-        if p.showCells == True:
-            figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells, clrmap = p.default_cm)
-        else:
-            figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
+
+        if p.sim_ECM == True:
+
+            figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                edgeOverlay = p.showCells)
+
+        elif p.sim_ECM == False:
+            if p.showCells == True:
+                figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
+                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells, clrmap = p.default_cm)
+            else:
+                figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
+                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
 
         axV.set_title('Final Vmem')
         axV.set_xlabel('Spatial distance [um]')
@@ -346,12 +370,21 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     if p.plot_ip32d == True and p.scheduled_options['IP3'] != 0:
-        if p.showCells == True:
-            figIP3, axIP3, cbIP3 = viz.plotPolyData(cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
-        else:
-             figIP3, axIP3, cbIP3 = viz.plotCellData(cells,p,zdata=sim.cIP3_time[-1]*1e3,
-             clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+
+        if p.sim_ECM == True:
+
+            figIP3, axIP3, cbIP3 = viz.plotHetMem(cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                edgeOverlay = p.showCells)
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                figIP3, axIP3, cbIP3 = viz.plotPolyData(cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            else:
+                 figIP3, axIP3, cbIP3 = viz.plotCellData(cells,p,zdata=sim.cIP3_time[-1]*1e3,
+                 clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
 
         axIP3.set_title('Final IP3 concentration')
         axIP3.set_xlabel('Spatial distance [um]')
@@ -365,12 +398,21 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     if p.plot_dye2d == True and p.voltage_dye == 1:
-        if p.showCells == True:
-            figVdye, axVdye, cbVdye = viz.plotPolyData(cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
-        else:
-            figVdye, axVdye, cbVdye = viz.plotCellData(cells,p,zdata=sim.cDye_time[-1]*1e3,
-            clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+
+        if p.sim_ECM == True:
+
+            figVdye, axVdye, cbVdye = viz.plotHetMem(cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                edgeOverlay = p.showCells)
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                figVdye, axVdye, cbVdye = viz.plotPolyData(cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+            else:
+                figVdye, axVdye, cbVdye = viz.plotCellData(cells,p,zdata=sim.cDye_time[-1]*1e3,
+                clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
 
         axVdye.set_title('Final voltage-sensitive dye')
         axVdye.set_xlabel('Spatial distance [um]')
@@ -384,12 +426,21 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     if p.plot_ca2d ==True and p.ions_dict['Ca'] == 1:
-        if p.showCells == True:
-            figCa, axCa, cbCa = viz.plotPolyData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells= p.enumerate_cells,
-            clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
-        else:
-            figCa, axCa, cbCa = viz.plotCellData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
-            clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
+
+        if p.sim_ECM == True:
+
+            figCa, axCa, cbCa = viz.plotHetMem(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6, number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                edgeOverlay = p.showCells)
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                figCa, axCa, cbCa = viz.plotPolyData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells= p.enumerate_cells,
+                clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
+            else:
+                figCa, axCa, cbCa = viz.plotCellData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
+                clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
         axCa.set_title('Final cytosolic Ca2+')
         axCa.set_xlabel('Spatial distance [um]')
@@ -406,61 +457,92 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
-        if p.showCells == True:
-            viz.AnimateCellData(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/IP3', saveFile = 'ip3_')
-        else:
-            viz.AnimateCellData_smoothed(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
+        if p.sim_ECM == True:
+
+            pass # FIXME do animation for this...
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+
+                viz.AnimateCellData(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
+                    clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
+                    save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/IP3', saveFile = 'ip3_')
+            else:
+                viz.AnimateCellData_smoothed(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
+                    clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
+                    save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
 
     if p.ani_dye2d == True and p.voltage_dye == 1 and animate ==1:
         Dyeplotting = np.asarray(sim.cDye_time)
         Dyeplotting = np.multiply(Dyeplotting,1e3)
 
-        if p.showCells == True:
-            viz.AnimateCellData(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye', saveFile = 'dye_')
-        else:
-            viz.AnimateCellData_smoothed(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'dye_')
+        if p.sim_ECM == True:
+
+            pass       # FIXME do animation...
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                viz.AnimateCellData(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+                    clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
+                    save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye', saveFile = 'dye_')
+            else:
+                viz.AnimateCellData_smoothed(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+                    clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
+                    save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'dye_')
 
     if p.ani_ca2d==True and p.ions_dict['Ca'] == 1 and animate == 1:
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
-        if p.showCells == True:
-            viz.AnimateCellData(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
-                clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Ca', saveFile = 'ca_')
-        else:
-            viz.AnimateCellData_smoothed(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
-                clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
+        if p.sim_ECM == True:
+
+            pass
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                viz.AnimateCellData(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
+                    clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
+                    ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Ca', saveFile = 'ca_')
+            else:
+                viz.AnimateCellData_smoothed(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
+                    clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
+                    ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
 
     if p.ani_vm2d==True and animate == 1:
         vmplt = [1000*arr for arr in sim.vm_time]
 
-        if p.showCells == True:
-            viz.AnimateCellData(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
-                 clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Vmem', saveFile = 'vm_')
-        else:
-            viz.AnimateCellData_smoothed(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
-                 clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=False,saveFolder = '/animation/Vmem', saveFile = 'vm_')
+        if p.sim_ECM == True:
+
+            pass
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                viz.AnimateCellData(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
+                     clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
+                    ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Vmem', saveFile = 'vm_')
+            else:
+                viz.AnimateCellData_smoothed(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
+                     clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
+                    ani_repeat=True,number_cells=False,saveFolder = '/animation/Vmem', saveFile = 'vm_')
 
     if p.ani_vmgj2d == True and animate == 1:
-        if p.showCells == True:
-            viz.AnimateGJData(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
-                clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
-                saveFile = 'vmem_gj_', number_cells=False)
-        else:
-            viz.AnimateGJData_smoothed(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
-                clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
-                saveFile = 'vmem_gj', number_cells=False)
+
+        if p.sim_ECM == True:
+            pass
+
+        elif p.sim_ECM == False:
+
+            if p.showCells == True:
+                viz.AnimateGJData(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
+                    clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
+                    saveFile = 'vmem_gj_', number_cells=False)
+            else:
+                viz.AnimateGJData_smoothed(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
+                    clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
+                    saveFile = 'vmem_gj', number_cells=False)
 
     if p.exportData == True:
         viz.exportData(cells, sim, p)

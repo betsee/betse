@@ -2,7 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME create a plotting method for ecm data
+# FIXME animations and animate while solving for heterogeneous Vmems...
 # FIXME work on the vector plotting -- perhaps interpolating data to grid?
 # FIXME saving animations doesn't work
 
