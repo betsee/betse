@@ -98,15 +98,23 @@ prefixes emulating Windows on non-Windows systems (e.g., Linux, OS X).
 
 ##### Native
 
-Under native Microsoft Windows, such dependencies are installable in a
-system-wide manner via the Miniconda Python distribution as follows:
+Under native Microsoft Windows, such dependencies are installable as follows.
+For simplicity, the following instructions assume use of the
+[Miniconda](http://conda.pydata.org/miniconda.html) Python distribution *and*
+[Babun](http://babun.github.io) POSIX compatibility layer under 64-bit Windows:
 
-. Download and install the 64-bit Python 3 Windows installer for Miniconda. (See
-  the **"Wine"** subsection below for further details.)
-. Download, install, and run your preferred terminal emulator, if needed.  We
-  recommend Cygwin and PuTTY, in that order. (Your mileage may vary.)
+. Download and install **Babun**, an open-source Cygwin convenience wrapper
+  complete with `pact`, a CLI-based package manager for Windows. Due to
+  unreconcilable flaws in Windows' non-POSIX-compatible process model, Cygwin
+  and hence Babun is incompatible with all Windows applications on the [Big List
+  of Dodgy Apps (BLODA)](https://cygwin.com/faq/faq.html#faq.using.bloda).
+  Unfortunately, this includes most antivirus software. If Babun begins behaving
+  erratically, consider temporarily disabling such software for the duration of
+  Babun usage. (This is the fault of neither Babun nor Cygwin!)
+. Download and install the 64-bit Python 3 Windows version of **Miniconda**.
+  (See the "Wine" subsection below for further details.)
 . Open a terminal window.
-. Install dependencies via `conda`, Miniconda's package manager:
+. Install Python dependencies via `conda`, Miniconda's package manager:
     >>> conda install numpy matplotlib pyside pywin32 scipy
 
 ##### Wine
@@ -117,11 +125,12 @@ manner via Wine emulation. Such emulation requires the following packages:
 * Wine >= 1.7.41. Prior versions of Wine fail to implement Windows API functions
   transitively required by Anaconda (e.g., `GetSystemTime()`).
 
-For simplicity, the following instructions assume use
-of the PlayOnLinux Wine manager *and* Miniconda Python distribution under 64-bit
-Ubuntu Linux. Thanks to the cross-platform portability of both Wine and
-Anaconda (if not PlayOnLinux, for obvious reasons), these instructions should
-trivially generalize to alternate setups (e.g., 32-bit OS X) as well:
+For simplicity, the following instructions assume use of the
+[Miniconda](http://conda.pydata.org/miniconda.html) Python distribution *and*
+[PlayOnLinux](https://www.playonlinux.com) Wine manager under 64-bit Ubuntu
+Linux. Thanks to the cross-platform portability of both Wine and Anaconda (if
+not PlayOnLinux, for obvious reasons), these instructions should trivially
+generalize to alternate setups (e.g., 32-bit OS X) as well:
 
 . Download the 64-bit Python 3 Windows installer for Miniconda, an open-source,
   cross-platform, binary-based Python package manager, from
@@ -212,6 +221,10 @@ Curiously, although the `develop` command for `setuptools` provides a
 `--no-deps` option, the `install` command does not. Hence, the `easy\_install`
 command is called above instead.
 
+`betse` is subsequently uninstallable via `pip` as follows:
+
+    >>> sudo pip uninstall betse
+
 ### User-specific
 
 `betse` is installable into a user-specific venv by running the following
@@ -225,6 +238,10 @@ dependencies of `betse` already installed by the system-wide package manager
 (e.g., `apt-get`). This may superficially appear to work but invites obscure and
 difficult to debug conflicts at `betse` runtime between dependencies reinstalled
 by `setuptools` and dependencies already installed by such package maneger.
+
+`betse` is subsequently uninstallable via `pip` as follows:
+
+    >>> pip uninstall betse
 
 ## Program Usage
 
