@@ -79,7 +79,7 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1e-2               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
+    time step: 1e-3               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
     total time: 100                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
     sampling rate: 1.0            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
     gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
@@ -655,20 +655,20 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-10   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  0.5e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1.0e-5  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  alpha_Ca:  0.5e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  1.0e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  1.0e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
   halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
   slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  2.0e-4     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  alpha_V:  2.0e-6     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
   halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
   slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
 

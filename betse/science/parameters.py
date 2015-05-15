@@ -1107,7 +1107,7 @@ class Parameters(object):
 
         elif time_profile == 'initialize':
 
-            self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+            self.dt = 1e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
             self.init_end = self.time4init      # world time to end the initialization simulation time [s]
             self.resamp = 1.0         # time to resample in world time
 

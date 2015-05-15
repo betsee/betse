@@ -2210,7 +2210,7 @@ class Simulator(object):
                 self.update_V_ecm(cells,p)
 
                 # calculate voltage difference between cells:
-                vmA,vmB = self.vm_cell_ave[cells.gap_jun_i][:,0], self.vm_cell_ave[cells.gap_jun_i][:,1]
+                vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
                 vgj = vmB - vmA
 
                 # determine the open state of gap junctions:
@@ -2696,9 +2696,11 @@ class Simulator(object):
 
     def update_V_ecm(self,cells,p):
 
-        q_cells = get_charge(self.cc_cells, self.zs, cells.cell_vol, p)
-        q_ecm = get_charge(self.cc_ecm, self.zs, cells.ecm_vol, p)
-        self.vm, v_cell_at_mem, v_ecm_at_mem = get_volt_ECM(q_cells,q_ecm,cells)   # calculate voltages
+        self.rho_cells = get_charge_density(self.cc_cells, self.zs, p)
+        self.rho_ecm = get_charge_density(self.cc_ecm, self.zs, p)
+        self.v_cell = get_Vcell(self.rho_cells,p)
+        self.v_ecm = get_Vecm(self.rho_ecm,p)
+        self.vm = self.v_cell[cells.mem_to_cells] - self.v_ecm[cells.mem_to_ecm]  # calculate v_mem
         self.vm_cell_ave = cell_ave(cells,self.vm)  # calculate average vm for each cell
 
     def update_C_ecm(self,ion_i,flux,cells,p):
@@ -2907,12 +2909,12 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p):
          # calculate the flux for those elements [mol/s]:
         flux[izero] = -(sa[izero]/d[izero])*Dc[izero]*(cB[izero] - cA[izero])
 
-        if p.sim_ECM == False:  # if we're simulating extracellular spaces, just calculate the flux
+        if p.sim_ECM == True:  # if we're simulating extracellular spaces, just calculate the flux
 
             cA2 = None
             cB2 = None
 
-        elif p.sim_ECM == True:
+        elif p.sim_ECM == False:
 
             if p.method == 0:
 
@@ -3457,6 +3459,72 @@ def get_charge(concentrations,zs,vol,p):
     netcharge = p.F*q*vol
 
     return netcharge
+
+def get_charge_density(concentrations,zs,p):
+
+    """
+    Calculates the charge density given ion concentrations in an array of spaces.
+
+    Parameters
+    --------------
+    concentrations:  an array of array of concentration of ions in spaces [mol/m3]
+    zs:              valence of each ion
+    p:               Parameters object instance
+
+    Returns
+    -------------
+    netcharge     the net charge density in spaces C/m3
+    """
+
+    q = 0
+
+    for conc,z in zip(concentrations,zs):
+
+        q = q + conc*z
+
+    netcharge = p.F*q
+
+    return netcharge
+
+def get_Vcell(rho_cell,p):
+
+    """
+    Calculates the voltage in each cell from Poisson equation charge density
+
+    Parameters
+    --------------
+    rho_cell:      an array of charge density in each cell space [C/m3]
+    p:             an instance of the Parameters object
+
+    Returns
+    -------------
+    v_cell          an array of voltages in each cell space  [V]
+
+    """
+
+    v_cell = rho_cell*(p.rc**2)/(4*p.eo*80.0)
+
+    return v_cell
+
+def get_Vecm(rho_ecm,p):
+
+    """
+    Calculates the voltage in each extracellular space from Poisson equation charge density
+
+    Parameters
+    ---------------
+    rho_ecm:        an array listing charge density in each ecm space [C/m3]
+    p:              an instance of the Parameters object
+
+    Returns
+    ---------
+    v_ecm           the voltage in each ecm space   [V]
+
+    """
+
+    v_ecm = (rho_ecm*(p.cell_space**2))/(8*p.eo*80.0)
+
+    return v_ecm
 
 def get_molarity(concentrations,p):
 
