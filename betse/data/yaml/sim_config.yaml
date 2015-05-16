@@ -70,7 +70,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 300               # set the time for the initialization run [s]
+  total time: 5               # set the time for the initialization run [s]
                                 # recommend 120 to 600 s (2 to 10 minutes) of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -94,7 +94,7 @@ automatically run initialization: True     # In the case that an initialization 
 
 sim time settings:
 
-  time profile: 'simulate excitable'    # choose a pre-defined time profile for the sim run
+  time profile: 'custom sim'    # choose a pre-defined time profile for the sim run
                                       # choices are 'simulate somatic', 'simulate excitable'
                                       # or 'custom sim'
                                       # 'simulate somatic' is for cells without voltage-gated
@@ -104,7 +104,7 @@ sim time settings:
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 0.30            # set the total time for the sim run [s]
+  total time: 0.01            # set the total time for the sim run [s]
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
                             # Note this is over-ridden if you are using 'custom sim'
@@ -114,13 +114,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 10.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.05            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 5.0e-9 m)
+    gap junction radius: 0        # radius of gap junctions connecting cells [m] (recommended range 0 to 5.0e-9 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -135,7 +135,7 @@ sim time settings:
 
 general options:
 
-  ion profile: 'basic_Ca'          # set the ion profile to be used in the simulation
+  ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -278,6 +278,11 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
+  ecm diffusion factor: 0     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
+
+  ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 # SCHEDULED INTERVENTIONS
 # ----------------------------------------------------------------------------------------------------------------------
@@ -291,7 +296,7 @@ in this sim globally change:    # First indicate the type of changes you want to
   environmental K: False              # Change the environmental concentration of K+  ?
   environmental Cl: False             # Change the environmental concentration of Cl- ?
   environmental Na: False            # Change the environmental concentration of Na+ ?
-  block gap junctions: True          # Apply a total block to gap junctions ?
+  block gap junctions: False          # Apply a total block to gap junctions ?
   temperature: False                   # Change the temperature ?
   block NaKATPase pump: False                # Apply a total block to the NaKATPase pump ?
   block HKATPase pump: False                 # Apply a total block to the HKATPase pump ?
@@ -352,7 +357,7 @@ block HKATP pump:
 
 in this sim make targeted changes to:    # First indicate the type of changes you want to schedule
 
-  Na membrane permeability: True      # Change the membrane Na+ permeability ?
+  Na membrane permeability: False      # Change the membrane Na+ permeability ?
   K membrane permeability: False       # Change the membrane K+ permeability ?
   Cl membrane permeability: False      # Change the membrane Cl- permeability ?
   Ca membrane permeability: False      # Change the membrane Ca2+ permeability ?
@@ -409,7 +414,7 @@ produce IP3:        # Schedule cell production of IP3
 # will be updated with introduction of tissue types in future versions.
 
 
-ion channel target cells: 'all'    # specify cells to affect with dynamic channels.
+ion channel target cells: 'none'    # specify cells to affect with dynamic channels.
                                    # choices
                                    # 'none' void all scheduled changes (no cells)
                                    # 'random1' randomly pick a cell to target
@@ -420,8 +425,8 @@ ion channel target cells: 'all'    # specify cells to affect with dynamic channe
 
 include the following ion channels:  # the following channels will be applied to target cells defined above
 
-  voltage gated Na+: True            # voltage gated sodium channel ?
-  voltage gated K+ : True            # voltage gated potassium channel ?
+  voltage gated Na+: False            # voltage gated sodium channel ?
+  voltage gated K+ : False            # voltage gated potassium channel ?
   voltage gated Ca2+ : False          # voltage gated calcium channel ?
   calcium gated K+ : False            # calcium gated potassium channel ?
 
@@ -503,7 +508,7 @@ results options:
   Vmem 2D:
 
     plot Vmem: True              # 2d plot of final vmem ?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 80.0                # maximum colorbar value in mV
     min val: -80.0               # minimum colorbar value in mV
 

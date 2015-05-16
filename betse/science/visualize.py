@@ -1155,8 +1155,8 @@ def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = Tr
         if zdata is None:  # if user doesn't supply data
             z = np.ones(data_length) # create flat data for plotting
 
-        elif zdata == 'random':  # if user doesn't supply data
-            z = np.random.random(data_length) # create some random data for plotting
+        # elif zdata == 'random':  # if user doesn't supply data
+        #     z = np.random.random(data_length) # create some random data for plotting
 
         else:
             zCells = zdata[0]
@@ -1177,24 +1177,32 @@ def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = Tr
 
          # Add a colorbar for the plot:
 
-        maxval = round(np.max(zdata,axis=0),1)
-        minval = round(np.min(zdata,axis=0),1)
-        checkval = maxval - minval
+        maxval_cells = round(np.max(zCells,axis=0),1)
+        minval_cells = round(np.min(zCells,axis=0),1)
+        checkval_cells = maxval_cells - minval_cells
 
-        if checkval == 0:
-            minval = minval - 0.1
-            maxval = maxval + 0.1
+        maxval_ecm = round(np.max(zEcm,axis=0),1)
+        minval_ecm = round(np.min(zEcm,axis=0),1)
+        checkval_ecm = maxval_ecm - minval_ecm
+
+        if checkval_cells == 0:
+            minval_cells = minval_cells - 0.1
+            maxval_cells = maxval_cells + 0.1
+
+        if checkval_ecm == 0:
+            minval_ecm = minval_ecm - 0.1
+            maxval_ecm = maxval_ecm + 0.1
 
         if zdata is not None and clrAutoscale == True:
-            coll.set_clim(minval,maxval)
-            scat.set_clim(minval,maxval)
-            ax_cb = fig.colorbar(coll,ax=ax)
+            coll.set_clim(minval_cells,maxval_cells)
+            scat.set_clim(minval_ecm,maxval_ecm)
+            ax_cb = fig.colorbar(scat,ax=ax)
 
         elif clrAutoscale == False:
 
             coll.set_clim(clrMin,clrMax)
             scat.set_clim(clrMin,clrMax)
-            ax_cb = fig.colorbar(coll,ax=ax)
+            ax_cb = fig.colorbar(scat,ax=ax)
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)

@@ -449,6 +449,9 @@ class Parameters(object):
         self.Dm_M = float(self.config['world variables']['membrane diffusion']['Dm_M'])    #  anchor ion [m2/s]
         self.Dm_P = float(self.config['world variables']['membrane diffusion']['Dm_P'])     #  proteins [m2/s]
 
+        self.D_ecm_mult = float(self.config['world variables']['ecm diffusion factor'])  # re-scale diffusion in ecms
+        self.ecm_bound_open = self.config['world variables']['ecm boundary open'] # organism open to the environment?
+
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = self.config['general options']['ion profile']
 

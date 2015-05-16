@@ -201,6 +201,7 @@ class World(object):
             self.clean_ecm(p,clean='no')  # pop ecm vertices around the outer cell membranes
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
             self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
             self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
             self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat,p)   # flag mem domains on the env bound
@@ -615,6 +616,43 @@ class World(object):
 
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
+
+        # repeat process for ecms
+        ecm_tree = sps.KDTree(self.ecm_mids)
+        nn_ecm = list(ecm_tree.query(self.ecm_mids,k=5))[1]
+
+        nn_ecm_refined = []
+        for i,ind_matches in enumerate(nn_ecm):
+            aa = np.delete(ind_matches,0)   # get rid of the self indice
+            nn_ecm_refined.append(aa)
+        nn_ecm_refined = np.asarray(nn_ecm_refined)
+
+        ecm_nn_set = set()
+
+        for ecm_ind1, ecm_inds in enumerate(nn_ecm_refined):
+
+            for ecm_ind2 in ecm_inds:
+                if ecm_ind1 == ecm_ind2:
+                    pass
+                elif ecm_ind1 < ecm_ind2:
+                    indpair = ecm_ind1,ecm_ind2
+                    ecm_nn_set.add(indpair)
+                elif ecm_ind1 > ecm_ind2:
+                    indpair = ecm_ind2,ecm_ind1
+                    ecm_nn_set.add(indpair)
+
+        self.ecm_nn_i = []
+        for val in ecm_nn_set:
+            vallist=list(val)
+            self.ecm_nn_i.append(vallist)
+        self.ecm_nn_i = np.asarray(self.ecm_nn_i)
+
+        # calculate lengths of ecm-ecm junctions
+        seg1=self.ecm_mids[self.ecm_nn_i[:,0]]
+        seg2=self.ecm_mids[self.ecm_nn_i[:,1]]
+        nn_diff_ecm = (seg2 - seg1)**2
+        self.len_ecm_junc = np.sqrt(nn_diff_ecm[:,0] + nn_diff_ecm[:,1])
+
     def clean_ecm(self,p,clean=None):
 
         """
@@ -1006,6 +1044,8 @@ class World(object):
 
         self.self_cap_ecm = (8 + 4.1*((self.mem_length/p.cell_space)**0.76))*p.eo*80*p.cell_space
 
+        self.R = self.cell_sa/(2*math.pi*p.cell_height)    # effective radius of each cell
+
         # calculate the Maxwell capacitance matrix and its inverse for cell-ecm couplings:
 
         # terms of the forward matrix: [Qcell, Qecm] = [[Cmat_a, Cmat_b],[Cmat_c],[Cmat_d]]* [Vcell,Vecm]
@@ -1036,6 +1076,14 @@ class World(object):
             cj = pair[1]
             self.gjMatrix[igj,ci] = -1
             self.gjMatrix[igj,cj] = 1
+
+        # matrix for flux concentration updates between ecm spaces
+        self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
+        for iecm, pair in enumerate(self.ecm_nn_i):
+            ci = pair[0]
+            cj = pair[1]
+            self.ecmMatrix[iecm,ci] = -1
+            self.ecmMatrix[iecm,cj] = 1
 
         # define matrix for updating cells with fluxes from membranes:
 

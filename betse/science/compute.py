@@ -572,8 +572,25 @@ class Simulator(object):
         self.tm[:] = p.tm
 
         # Initialize environmental volume:
-        self.envV = np.zeros(len(cells.cell_i))
-        self.envV[:] = p.vol_env
+        # self.envV = np.zeros(len(cells.cell_i))
+        # self.envV[:] = p.vol_env
+
+        # initialize diffusion constants for the ecm-ecm junctions:
+        id_ecm = np.ones(len(cells.ecm_nn_i))
+
+        self.D_ecm_juncs = []
+        for D in self.D_free:
+            DD = D*id_ecm*p.D_ecm_mult
+            self.D_ecm_juncs.append(DD)
+
+        self.D_ecm_juncs = np.asarray(self.D_ecm_juncs)
+
+        # initialize surface area matrix for ecm-ecm junctions:
+        self.ec2ec_sa = p.cell_space*p.cell_height*id_ecm
+
+        # if open boundary, save initial ecm values for environmental re-establishment
+        if p.ecm_bound_open == True:
+            self.cc_ecm_env = copy.deepcopy(self.cc_ecm)
 
         flx = np.zeros(len(cells.gj_i))
         self.fluxes_gj = [flx,flx,flx,flx,flx,flx,flx]   # stores gj fluxes for each ion
@@ -584,8 +601,8 @@ class Simulator(object):
 
         # self.Dm_er = copy.deepcopy(self.Dm_cells)
 
-        self.vm_to_cells = np.zeros(len(cells.cell_i))
-        self.vm_to_ecm = np.zeros(len(cells.ecm_i))
+        # self.vm_to_cells = np.zeros(len(cells.cell_i))
+        # self.vm_to_ecm = np.zeros(len(cells.ecm_i))
         self.v_er = np.zeros(len(cells.cell_i))
 
         self.NaKATP_block = np.ones(len(cells.mem_i))  # initialize NaKATP blocking vector
@@ -2097,7 +2114,7 @@ class Simulator(object):
         self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
         self.gjsa[:] = p.gjsa
 
-        vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
+        self.vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
 
         # create a time-steps vector:
         tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
@@ -2138,7 +2155,7 @@ class Simulator(object):
                 self.cc_er_to = copy.deepcopy(self.cc_er)
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
-            self.allDynamics(t,p)  # user-scheduled (forced) interventions
+            # self.allDynamics(t,p)  # user-scheduled (forced) interventions
 
             # run the Na-K-ATPase pump:
             _,_,_,_,fNa_NaK, fK_NaK =\
@@ -2207,6 +2224,24 @@ class Simulator(object):
                 self.update_C_ecm(i,f_ED,cells,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
+                self.update_V_ecm(cells,p)
+
+                # calculate voltage differences between ecm <---> ecm nearest neighbours:
+                self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,0]] - self.v_ecm[cells.ecm_nn_i[:,1]]
+
+                # electrodiffuse through ecm <---> ecm junctions
+
+                _,_,flux_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
+                        self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
+                        cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                        self.zs[i],self.v_ec2ec,self.T,p)
+
+                self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(flux_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
+
+                if p.ecm_bound_open == True: # if the geometry is open to the environment
+                    self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
+
+                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p)
 
                 # calculate voltage difference between cells:
@@ -2698,7 +2733,7 @@ class Simulator(object):
 
         self.rho_cells = get_charge_density(self.cc_cells, self.zs, p)
         self.rho_ecm = get_charge_density(self.cc_ecm, self.zs, p)
-        self.v_cell = get_Vcell(self.rho_cells,p)
+        self.v_cell = get_Vcell(self.rho_cells,cells,p)
         self.v_ecm = get_Vecm(self.rho_ecm,p)
         self.vm = self.v_cell[cells.mem_to_cells] - self.v_ecm[cells.mem_to_ecm]  # calculate v_mem
         self.vm_cell_ave = cell_ave(cells,self.vm)  # calculate average vm for each cell
@@ -3486,7 +3521,7 @@ def get_charge_density(concentrations,zs,p):
 
     return netcharge
 
-def get_Vcell(rho_cell,p):
+def get_Vcell(rho_cell,cells,p):
 
     """
     Calculates the voltage in each cell from Poisson equation charge density
