@@ -114,13 +114,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5e-5               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 0.1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.001            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1.5e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 1.0e-10        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -135,7 +135,7 @@ sim time settings:
 
 general options:
 
-  ion profile: 'basic'          # set the ion profile to be used in the simulation
+  ion profile: 'basic_Ca'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -278,7 +278,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-2     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
+  ecm diffusion factor: 1e-9     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
 
   ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -515,21 +515,21 @@ results options:
   Ca 2D:
 
     plot Ca: True                # 2d plot of final cell calcium ?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
 
   IP3 2D:
 
     plot IP3: True               # 2d plot of final cIP3 ?
-    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
 
   Dye 2D:
 
     plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
-    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 3.0                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
 
@@ -537,36 +537,36 @@ results options:
   Vmem Ani:
 
     animate Vmem: True           # 2d animation of vmem with time?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 80.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
     animate Ca2+: True           # 2d animation of cell calcium with time ?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: False            # 2d animation of cIP3 with time?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    animate IP3: True            # 2d animation of cIP3 with time?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Dye Ani:
 
-    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
-    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 3.0                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
 
     animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
-    max val: 80.0                # maximum colorbar value in mV
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 0.0                # maximum colorbar value in mV
     min val: -80.0               # minimum colorbar value in mV
 
 

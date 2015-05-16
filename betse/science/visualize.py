@@ -24,7 +24,7 @@ class AnimateCellData(object):
 
     def __init__(self,cells,zdata_t,time,p,tit=' ',cbtit = ' ', save=False,ani_repeat=False,
         clrAutoscale = True, clrMin = None, clrMax = None, clrmap = cm.rainbow,
-        number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
+        number_cells = False, saveFolder = '/animation', saveFile = 'sim_', ignore_simECM = False):
 
         self.zdata_t = zdata_t
         self.colormap = clrmap
@@ -33,6 +33,9 @@ class AnimateCellData(object):
 
         self.cbtit = cbtit
 
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
         if self.save == True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
@@ -40,10 +43,27 @@ class AnimateCellData(object):
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
 
-        # define a polygon collection based on individual cell polygons
-        self.points = np.multiply(cells.cell_verts, p.um)
-        self.collection =  PolyCollection(self.points, cmap=self.colormap, edgecolors='none')
-        self.collection.set_array(self.zdata_t[0])
+
+        if p.sim_ECM == True and ignore_simECM == False:
+
+            self.collection = self.ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
+            self.zdata_t[0],shading='gouraud', cmap=self.colormap)
+
+            if p.showCells == True:
+
+                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                coll = LineCollection(cell_edges_flat,colors='k')
+                coll.set_alpha(0.5)
+                self.ax.add_collection(coll)
+
+        elif p.sim_ECM == False or ignore_simECM == True:
+
+            # define a polygon collection based on individual cell polygons
+            self.points = np.multiply(cells.cell_verts, p.um)
+            self.collection =  PolyCollection(self.points, cmap=self.colormap, edgecolors='none')
+            self.collection.set_array(self.zdata_t[0])
+            self.ax.add_collection(self.collection)
 
         # set range of the colormap
 
@@ -62,14 +82,13 @@ class AnimateCellData(object):
             self.cmin = clrMin
             self.cmax = clrMax
 
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
+
         self.collection.set_clim(self.cmin,self.cmax)
 
         self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
         self.cb.set_label(self.cbtit)
 
-        self.ax.add_collection(self.collection)
+
 
         self.tit = tit
 
@@ -220,7 +239,7 @@ class AnimateGJData(object):
         # normI = np.max(gjI_t)
         # self.zdata_t = gjI_t/normI
 
-        self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
+        self.vdata_t = [1000*arr for arr in sim.vm_time]   # data array for cell coloring
         self.colormap = clrmap
         self.time = sim.time
 
@@ -248,16 +267,33 @@ class AnimateGJData(object):
         self.ax.add_collection(self.collection)
 
         # Next add a collection of cell polygons, with animated voltage data
-        points = np.multiply(cells.cell_verts, p.um)
-        self.coll2 =  PolyCollection(points, array=self.vdata_t[0], edgecolors='none', cmap=self.colormap)
-        self.coll2.set_alpha(1.0)
+
+        if p.sim_ECM == False:
+            points = np.multiply(cells.cell_verts, p.um)
+            self.coll2 =  PolyCollection(points, array=self.vdata_t[0], edgecolors='none', cmap=self.colormap)
+            self.coll2.set_alpha(1.0)
+            self.ax.add_collection(self.coll2)
+
+        elif p.sim_ECM == True:
+
+            self.coll2 = self.ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
+            self.vdata_t[0],shading='gouraud', cmap=self.colormap)
+            self.coll2.set_alpha(1.0)
+
+            if p.showCells == True:
+
+                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                coll_mems = LineCollection(cell_edges_flat,colors='k')
+                coll_mems.set_alpha(0.5)
+                self.ax.add_collection(coll_mems)
 
         # set range of the colormap
 
         if clrAutoscale == True:
-            self.cmean = np.mean(self.zdata_t)
-            self.cmin = round(np.min(self.zdata_t),1)
-            self.cmax = round(np.max(self.zdata_t),1)
+            self.cmean = np.mean(self.vdata_t)
+            self.cmin = round(np.min(self.vdata_t),1)
+            self.cmax = round(np.max(self.vdata_t),1)
             clrCheck = self.cmax - self.cmin
 
             if clrCheck == 0:
@@ -271,7 +307,7 @@ class AnimateGJData(object):
 
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
-        self.ax.add_collection(self.coll2)
+
 
         # Next add in gap junction current direction
         vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
@@ -467,16 +503,31 @@ class PlotWhileSolving(object):
             self.cmin = clrMin
             self.cmax = clrMax
 
-        if p.showCells == True:
-            # Add a collection of cell polygons, with animated voltage data
-            points = np.multiply(cells.cell_verts, p.um)
-            self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
-            self.coll2.set_alpha(1.0)
+        if p.sim_ECM == False:
 
-        else:
-             # Next add a triplot with interpolated and animated voltage data
-            self.coll2 = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
-                vdata,shading='gouraud', cmap=self.colormap)
+            if p.showCells == True:
+                # Add a collection of cell polygons, with animated voltage data
+                points = np.multiply(cells.cell_verts, p.um)
+                self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
+                self.coll2.set_alpha(1.0)
+
+            else:
+                 # Next add a triplot with interpolated and animated voltage data
+                self.coll2 = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
+                    vdata,shading='gouraud', cmap=self.colormap)
+
+        elif p.sim_ECM == True:
+
+            self.coll2 = self.ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
+            vdata,shading='gouraud', cmap=self.colormap)
+
+            if p.showCells == True:
+
+                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                coll = LineCollection(cell_edges_flat,colors='k')
+                coll.set_alpha(0.5)
+                self.ax.add_collection(coll)
 
          # set range of the colormap
         self.coll2.set_clim(self.cmin,self.cmax)
@@ -1281,13 +1332,23 @@ def exportData(cells,sim,p):
         cc_m = np.asarray(cc_m)
         cc_cell.append(cc_m)
 
-    # create the header moving on to env concentrations
-    for i in range(0,len(sim.ionlabel)):
-        label = sim.ionlabel[i]
-        headr = headr + ',' + 'env_' + label + '_mmol/L'
-        cc_m2 = [arr[i][ci] for arr in sim.cc_env_time]
-        cc_m2 = np.asarray(cc_m2)
-        cc_env.append(cc_m2)
+    if p.sim_ECM == False:
+        # create the header moving on to env concentrations
+        for i in range(0,len(sim.ionlabel)):
+            label = sim.ionlabel[i]
+            headr = headr + ',' + 'env_' + label + '_mmol/L'
+            cc_m2 = [arr[i][ci] for arr in sim.cc_env_time]
+            cc_m2 = np.asarray(cc_m2)
+            cc_env.append(cc_m2)
+
+    elif p.sim_ECM == True:
+
+         for i in range(0,len(sim.ionlabel)):
+            label = sim.ionlabel[i]
+            headr = headr + ',' + 'env_' + label + '_mmol/L'
+            cc_m2 = [arr[i][ci] for arr in sim.cc_ecm_time]
+            cc_m2 = np.asarray(cc_m2)
+            cc_env.append(cc_m2)
 
     vm = [arr[ci]*1000 for arr in sim.vm_time]
     vm = np.asarray(vm)

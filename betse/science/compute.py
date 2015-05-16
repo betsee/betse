@@ -603,6 +603,8 @@ class Simulator(object):
 
         # self.vm_to_cells = np.zeros(len(cells.cell_i))
         # self.vm_to_ecm = np.zeros(len(cells.ecm_i))
+
+        # FIXME we don't need to create all of these arrays if they're not needed!
         self.v_er = np.zeros(len(cells.cell_i))
 
         self.NaKATP_block = np.ones(len(cells.mem_i))  # initialize NaKATP blocking vector
@@ -1619,8 +1621,8 @@ class Simulator(object):
                 self.cDye_cell = self.cDye_cell + \
                                     np.dot((flux_dye/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
 
-                self.cDye_ecm = self.cDye_ecm - \
-                                    np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
+                # self.cDye_ecm = self.cDye_ecm - \
+                #                     np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
 
             if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
@@ -2316,8 +2318,8 @@ class Simulator(object):
                 self.cDye_cell = self.cDye_cell + \
                                     np.dot((flux_dye/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
 
-                self.cDye_ecm = self.cDye_ecm - \
-                                    np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
+                # self.cDye_ecm = self.cDye_ecm - \
+                #                     np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
 
                 # determine flux through gap junctions for voltage dye:
                 _,_,fDye = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
@@ -2401,7 +2403,7 @@ class Simulator(object):
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
+            endconc = np.round(np.mean(self.cc_ecm_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final extracellular concentration of'+ ' '+ label + ': '
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
