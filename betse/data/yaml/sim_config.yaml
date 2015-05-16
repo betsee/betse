@@ -114,18 +114,18 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 5e-5               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 0.1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.05            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.001            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 0        # radius of gap junctions connecting cells [m] (recommended range 0 to 5.0e-9 m)
+    gap junction radius: 1.5e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
-                                  # rule of thumb, gap junction radii up to 1.0e-9 for time step of 5e-3 s
-                                  # gap junction radii up to 5.0e-9 for time step of 5e-5 s.
+                                  # rule of thumb, gap junction radii up to 1.0e-10 for time step of 5e-4 s
+                                  # gap junction radii up to 1.5e-9 for time step of 5e-5 s.
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ general options:
   voltage dye properties:  # specify the properties of the voltage sensitive dye if included
 
     Dm_Dye: 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
-    Do_Dye: 1.0e-9         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
+    Do_Dye: 1.0e-12         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
     z_Dye: 1               # charge of dye (oxidation state)
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
 
@@ -278,7 +278,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 0     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
+  ecm diffusion factor: 1e-2     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
 
   ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 

@@ -2128,7 +2128,7 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
+        loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
@@ -2218,7 +2218,7 @@ class Simulator(object):
                 _,_,f_ED = \
                     electrofuse(self.cc_ecm[i][cells.mem_to_ecm],self.cc_cells[i][cells.mem_to_cells],
                         self.Dm_mems[i],self.tm[cells.mem_to_cells],cells.mem_sa,
-                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol,self.zs[i],self.vm,self.T,p)
+                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],self.zs[i],self.vm,self.T,p)
 
                 # update ion concentrations in cell and ecm:
                 self.update_C_ecm(i,f_ED,cells,p)
