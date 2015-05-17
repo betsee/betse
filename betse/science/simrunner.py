@@ -61,10 +61,20 @@ class SimRunner(object):
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
 
-        cells = World(p,vorclose='circle',worldtype='full')  # create an instance of world
-        loggers.log_info('Cell cluster is being created...')
-        cells.makeWorld(p)     # call function to create the world
-        loggers.log_info('Cell cluster creation complete!')
+
+        if p.sim_ECM == False:
+
+            cells = World(p,vorclose='circle',worldtype='basic')  # create an instance of world
+            loggers.log_info('Cell cluster is being created...')
+            cells.makeWorld(p)     # call function to create the world
+            loggers.log_info('Cell cluster creation complete!')
+
+        elif p.sim_ECM == True:
+
+            cells = World(p,vorclose='circle',worldtype='full')  # create an instance of world
+            loggers.log_info('Cell cluster is being created...')
+            cells.makeWorld(p)     # call function to create the world
+            loggers.log_info('Cell cluster creation complete!')
 
         sim = Simulator(p)   # create an instance of Simulator
 
@@ -352,6 +362,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 edgeOverlay = p.showCells)
 
         elif p.sim_ECM == False:
+
             if p.showCells == True:
                 figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
                     clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells, clrmap = p.default_cm)
@@ -445,6 +456,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
 
     if p.ani_dye2d == True and p.voltage_dye == 1 and animate ==1:
+
         Dyeplotting = np.asarray(sim.cDye_time)
         Dyeplotting = np.multiply(Dyeplotting,1e3)
 
@@ -459,6 +471,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'dye_')
 
     if p.ani_ca2d==True and p.ions_dict['Ca'] == 1 and animate == 1:
+
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
         if p.showCells == True:
@@ -471,6 +484,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
 
     if p.ani_vm2d==True and animate == 1:
+
         vmplt = [1000*arr for arr in sim.vm_time]
 
         if p.sim_ECM == True:

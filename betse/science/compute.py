@@ -3,8 +3,7 @@
 # See "LICENSE" for further details.
 
 
-# FIXME after that you need to do electrodiffusion in the ECM spaces...
-# FIXME boundary ECMs...
+
 # FIXME currents in ECM and gj networks...
 
 import numpy as np
@@ -322,28 +321,36 @@ class Simulator(object):
         self.v_er = np.zeros(len(cells.cell_i))
 
         self.NaKATP_block = np.ones(len(cells.cell_i))  # initialize NaKATP blocking vector
-        self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
-        self.CaATP_block = np.ones(len(cells.cell_i))  # initialize CaATP (plasm membrane) blocking vector
-        self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
-        self.VATP_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
 
-        self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
-        self.cc_er_to = np.copy(self.cc_er)
+        if p.HKATPase_dyn == True:
+            self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
 
-        self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+        if p.ions_dict['Ca'] == 1:
+            self.CaATP_block = np.ones(len(cells.cell_i))  # initialize CaATP (plasm membrane) blocking vector
 
-        self.cDye_env = np.zeros(len(cells.cell_i))
-        self.cDye_env[:] = p.cDye_to
+            if p.Ca_dyn == True:
+                self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
+                self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
+                self.cc_er_to = np.copy(self.cc_er)
+
+        if p.VATPase_dyn == True:
+            self.VATP_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
+
+        if p.voltage_dye == True:
+            self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+            self.cDye_env = np.zeros(len(cells.cell_i))
+            self.cDye_env[:] = p.cDye_to
 
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(len(cells.cell_i))
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
 
-        # add a random walk on protein concentration to generate dynamic noise:
-        self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
+        if p.dynamic_noise == True:
+            # add a random walk on protein concentration to generate dynamic noise:
+            self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
 
-        if p.ions_dict['P']==1:
-            self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
+            if p.ions_dict['P']==1:
+                self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
         loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
         loggers.log_info('Each cell has an average of ' + str(round(cells.average_nn,2)) + ' nearest-neighbours.')
@@ -571,10 +578,6 @@ class Simulator(object):
         self.tm = np.zeros(len(cells.cell_i))
         self.tm[:] = p.tm
 
-        # Initialize environmental volume:
-        # self.envV = np.zeros(len(cells.cell_i))
-        # self.envV[:] = p.vol_env
-
         # initialize diffusion constants for the ecm-ecm junctions:
         id_ecm = np.ones(len(cells.ecm_nn_i))
 
@@ -599,37 +602,41 @@ class Simulator(object):
         self.Igj =[]            # current for each gj
         self.Igj_time = []      # current for each gj at each time
 
-        # self.Dm_er = copy.deepcopy(self.Dm_cells)
-
-        # self.vm_to_cells = np.zeros(len(cells.cell_i))
-        # self.vm_to_ecm = np.zeros(len(cells.ecm_i))
-
-        # FIXME we don't need to create all of these arrays if they're not needed!
-        self.v_er = np.zeros(len(cells.cell_i))
+        if p.Ca_dyn == True:
+            self.v_er = np.zeros(len(cells.cell_i))
+            self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
+            self.cc_er_to = np.copy(self.cc_er)
 
         self.NaKATP_block = np.ones(len(cells.mem_i))  # initialize NaKATP blocking vector
-        self.HKATP_block = np.ones(len(cells.mem_i))  # initialize HKATP blocking vector
-        self.CaATP_block = np.ones(len(cells.mem_i))  # initialize CaATP (plasm membrane) blocking vector
-        self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
-        self.VATP_block = np.ones(len(cells.mem_i)) # initialize VATP (plasma membrane) blocking vector
 
-        self.cc_er = np.asarray(self.cc_er)   # initialize endoplasmic reticulum concentration array
-        self.cc_er_to = np.copy(self.cc_er)
+        if p.HKATPase_dyn == True and p.ions_dict['H'] ==1:
 
-        self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+            self.HKATP_block = np.ones(len(cells.mem_i))  # initialize HKATP blocking vector
 
-        self.cDye_ecm = np.zeros(len(cells.ecm_i))
-        self.cDye_ecm[:] = p.cDye_to
+        if p.ions_dict['Ca'] == 1:
+
+            self.CaATP_block = np.ones(len(cells.mem_i))  # initialize CaATP (plasm membrane) blocking vector
+            self.CaER_block = np.ones(len(cells.cell_i)) # initialize CaATP (ER membrane) blocking vector
+
+        if p.VATPase_dyn == True and p.ions_dict['H'] ==1:
+            self.VATP_block = np.ones(len(cells.mem_i)) # initialize VATP (plasma membrane) blocking vector
+
+        if p.voltage_dye == True:
+
+            self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+            self.cDye_ecm = np.zeros(len(cells.ecm_i))
+            self.cDye_ecm[:] = p.cDye_to
 
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(len(cells.mem_i))
         self.Dm_mems[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_mems[self.iK]
 
-        # add a random walk on protein concentration to generate dynamic noise:
-        self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
+        if p.dynamic_noise == True:
+            # add a random walk on protein concentration to generate dynamic noise:
+            self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
 
-        if p.ions_dict['P']==1:
-            self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
+            if p.ions_dict['P']==1:
+                self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
         loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
         loggers.log_info('Each cell has an average of ' + str(round(cells.average_nn,2)) + ' nearest-neighbours.')
@@ -1045,7 +1052,6 @@ class Simulator(object):
             self.toffHK = p.global_options['HKATP_block'][1]
             self.trampHK = p.global_options['HKATP_block'][2]
 
-
         if p.vg_options['Na_vg'] != 0:
 
             # Initialization of logic values for voltage gated sodium channel
@@ -1104,6 +1110,24 @@ class Simulator(object):
             # Initialize matrices defining states of cag K channels for each cell membrane:
             self.active_Kcag = np.zeros(len(cells.mem_i))
 
+        # if isinstance(p.gated_targets,str):
+        #     getattr(self, '_init_gated_targets_' + p.gated_targets)()
+        # elif isinstance(p.gated_targets,list):
+        #     ...
+
+        # def _init_gated_targets_random1(self):
+        #     shuffle(cells.cell_i)
+        #     trgt = cells.cell_i[0]
+        #     self.target_cells = np.zeros(len(cells.cell_i))
+        #     self.target_mems = np.zeros(len(cells.mem_i))
+        #
+        #     self.target_cells[trgt] = 1
+        #
+        #     target_mems_inds = cells.cell_to_mems[self.target_cells]
+        #     target_mems_inds,_,_ = tb.flatten(self.target_mems_inds)
+        #
+        #     self.target_mems[target_mems_inds] = 1
+
         # Initialize target cell sets for dynamically gated channels from user options:
         if p.gated_targets == 'none':
             self.target_cells = np.zeros(len(cells.cell_i))
@@ -1149,7 +1173,7 @@ class Simulator(object):
 
             self.target_mems[target_mems_inds] = 1
 
-        # allow for option to independently schedule an intervention to cells distinct from voltage gated:
+        # allow for option to independently globals()['omelet'](100)schedule an intervention to cells distinct from voltage gated:
         if p.scheduled_targets == 'none':
             self.scheduled_target_inds = []
             self.scheduled_target_mem_inds = []
@@ -2445,6 +2469,10 @@ class Simulator(object):
     def allDynamics(self,t,p):
 
         target_length = len(self.scheduled_target_inds)
+
+        # if p.scheduled_options['Na_mem'] != 0 and p.ions_dict['Na'] != 0 and target_length != 0:
+        #     effector_Na = pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
+        #     self.Dm_scheduled[self.iNa][self.scheduled_target_inds] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
         if p.scheduled_options['Na_mem'] != 0:
 

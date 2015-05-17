@@ -396,6 +396,8 @@ class Parameters(object):
         # if such file has no dirname (e.g., "sim_config.yaml").
         config_dirname = paths.get_dirname_or_empty(config_filename)
 
+        self.sim_ECM = self.config['general options']['simulate ECM']    # boolean letting us know if extracellular spaces are included
+
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
         self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
@@ -416,9 +418,7 @@ class Parameters(object):
         self.init_filename = self.config['init file saving']['file']
         self.sim_filename = self.config['sim file saving']['file']
 
-        self.sim_ECM = self.config['simulate ECM']    # boolean letting us know if extracellular spaces are included
-
-        self.backward_pumps = self.config['backward running pumps']   # boolean letting us know if pumps can run backwards
+        self.backward_pumps = self.config['general options']['backward running pumps']   # boolean letting us know if pumps can run backwards
 
          # Geometric constants and factors
         self.wsx = float(self.config['world variables']['world x'])  # the x-dimension of the world space
@@ -475,7 +475,7 @@ class Parameters(object):
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['general options']['static noise level'])
 
-        self.dynamic_noise = float(self.config['general options']['dynamic noise'])
+        self.dynamic_noise = self.config['general options']['dynamic noise']
         self.dynamic_noise_level = float(self.config['general options']['dynamic noise level'])
 
         #.....................USER SCHEDULED INTERVENTIONS.............................................................
@@ -1083,43 +1083,88 @@ class Parameters(object):
 
         if time_profile == 'simulate somatic':
 
-            self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
-            self.sim_end = self.time4sim         # world time to end the simulation
-            self.resamp = 0.1         # time to resample in world time
+            if self.sim_ECM == False:
 
-            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+                self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.sim_end = self.time4sim         # world time to end the simulation
+                self.resamp = 0.1         # time to resample in world time
 
-            self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-            self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+
+            elif self.sim_ECM == True:
+
+                self.dt = 5e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.sim_end = self.time4sim         # world time to end the simulation
+                self.resamp = 0.1         # time to resample in world time
+
+                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+                self.gj_radius = 1.0e-10              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':
 
-            self.dt = 5.0e-5    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
-            self.sim_end = self.time4sim         # world time to end the simulation
-            self.resamp = 5e-4         # time to resample in world time
+            if self.sim_ECM == False:
 
-            self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+                self.dt = 5.0e-5    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.sim_end = self.time4sim         # world time to end the simulation
+                self.resamp = 5e-4         # time to resample in world time
 
-            self.gj_radius = 5.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-            self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+                self.gj_radius = 5.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+
+            elif self.sim_ECM == True:
+
+                self.dt = 2.0e-5    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.sim_end = self.time4sim         # world time to end the simulation
+                self.resamp = 5e-4         # time to resample in world time
+
+                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
+                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+                self.gj_radius = 2.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
 
         elif time_profile == 'initialize':
 
-            self.dt = 1e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-            self.init_end = self.time4init      # world time to end the initialization simulation time [s]
-            self.resamp = 1.0         # time to resample in world time
+            if self.sim_ECM == False:
 
-            self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-            self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-            self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+                self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.init_end = self.time4init      # world time to end the initialization simulation time [s]
+                self.resamp = 1.0         # time to resample in world time
 
-            self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-            self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
+                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+
+            elif self.sim_ECM == True:
+
+                self.dt = 1e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.init_end = self.time4init      # world time to end the initialization simulation time [s]
+                self.resamp = 1.0         # time to resample in world time
+
+                self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
+                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
+                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
+
+                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'custom init':
 

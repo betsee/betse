@@ -59,9 +59,9 @@ results file saving:
 # -----------------------------------------------------------------------------
 # Settings specific to the initialization
 
-simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem
 
-backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
+
+
 
 init time settings:
 
@@ -94,7 +94,7 @@ automatically run initialization: True     # In the case that an initialization 
 
 sim time settings:
 
-  time profile: 'custom sim'    # choose a pre-defined time profile for the sim run
+  time profile: 'simulate excitable'    # choose a pre-defined time profile for the sim run
                                       # choices are 'simulate somatic', 'simulate excitable'
                                       # or 'custom sim'
                                       # 'simulate somatic' is for cells without voltage-gated
@@ -114,13 +114,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 2.0e-5               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 0.1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.001            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1.0e-10        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 2.0e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -135,7 +135,9 @@ sim time settings:
 
 general options:
 
-  ion profile: 'basic_Ca'          # set the ion profile to be used in the simulation
+  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+
+  ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -151,6 +153,8 @@ general options:
                                 # General Options section.
                                 # Note you cannot change this option between an init and sim run.
 
+  backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
+
 
   HKATPase pump: False     # include the HK-ATPase pump in the simulation?
                            # only works for an ion profile with H+ ions (animal or invertebrate)
@@ -161,7 +165,7 @@ general options:
                             # options True or False (case sensitive)
 
 
-  voltage dye: True     # include electrodiffusion of a voltage sensitive dye?
+  voltage dye: False     # include electrodiffusion of a voltage sensitive dye?
                          # this is intended to help link sim output to real-world
                          # experimental methods.
                          # options True or False (case sensitive)
@@ -173,7 +177,7 @@ general options:
     z_Dye: 1               # charge of dye (oxidation state)
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
 
-  static noise level: 0    # level of variance in K+ leaks on cell membranes
+  static noise level: 0.0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
 
   dynamic noise: False      # is dynamic noise desired? Options True or False
@@ -278,7 +282,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-9     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
+  ecm diffusion factor: 1e-6     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
 
   ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -296,7 +300,7 @@ in this sim globally change:    # First indicate the type of changes you want to
   environmental K: False              # Change the environmental concentration of K+  ?
   environmental Cl: False             # Change the environmental concentration of Cl- ?
   environmental Na: False            # Change the environmental concentration of Na+ ?
-  block gap junctions: False          # Apply a total block to gap junctions ?
+  block gap junctions: True          # Apply a total block to gap junctions ?
   temperature: False                   # Change the temperature ?
   block NaKATPase pump: False                # Apply a total block to the NaKATPase pump ?
   block HKATPase pump: False                 # Apply a total block to the HKATPase pump ?

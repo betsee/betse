@@ -59,16 +59,11 @@ class World(object):
 
     self.centre     [x,y] coordinate of world lattice co-ords (after noise, before cropping)
 
+    self.cluster_centre     x,y coordinate of cluster centre
+
     self.xypts      numpy array holding [x,y] points of irregular world grid
 
-    self.ecm_verts     a nested python list containing Voronoi cell regions which specify [x,y] points of region
-                        vertices for a clipped Voronoi diagram (arranged to cell index)
-
     self.ecm_verts_unique   a numpy array listing [x,y] coordinates of ecm vertices (flattened from ecm_verts)
-
-    self.indmap_ecm     a python list returning [n,m] indices into ecm_verts for each index k of ecm_verts_unique
-
-    self.rindmap_ecm    a python list-of-lists returning indek k of ecm_verts at [n][m] indices
 
     self.ecm_edges_i    a list of [n,m] indices into ecm_verts_unique which return two points defining a unique ecm
                         segment. Note the index of ecm_edges_i is *the* ecm index: ecm_i
@@ -78,6 +73,15 @@ class World(object):
     self.ecm_vol     a python list of the length of each ecm segment (in ecm_i order)
 
     self.ecm_vects      a numpy array of [x, y, tx, ty] for each ecm segment (in ecm_i order)
+
+    self.ecmMatrix     a 2D numpy array allowing ecm fluxes to be propperly applied to ecm<-->ecm distributions
+
+    self.mem_to_ecm    a numpy array mapping ecm spaces (ecm_i) to the appropriate membrane
+
+    self.ecm_UpdateMatrix    a matrix updating ecm space concentrations for cell <---> ecm fluxes
+
+    self.cell_UpdateMatrix   a matrix updating cell space concentrations for cell <----> ecm fluxes
+
 
     self.cell2ecm_map   a nested numpy array returns the k-ecm indices given the cell [cell_i] and membrane [mem_j] inds
 
@@ -107,21 +111,17 @@ class World(object):
 
     self.cell2GJ_map    a nested list of indices to gj_i given a particular cell_i
 
+    self.mem_to_cells   a numpy array allowing cell data to be mapped to respective membrane domains
+
     self.mem_edges     nested python list of segments defining each membrane domain of a cell (arranged cc to cell_i)
 
     self.mem_length       the length of each membrane domain
 
+    self.mem_sa         the surface area of each membrane domain (pseudo 3D)
+
     self.mem_mids       nested python list of [x,y] coordinates defining midpoint of each membrane (arranged to cell_i)
 
     self.mem_mids_flat  numpy array of [x,y] coordinates as flattened version of mem_mids
-
-    self.indmap_mem     returns indices to mem_mids from index in mem_mids_flat
-
-    self.rindmap_mem    returns incice to mem_mids_flat from nested indices corresponding to mem_mids
-
-    self.bflags_mems    a list of membrane midpoints on the boundary (indices to mem_mids_flat)
-
-    self.bmask_mems     a list of booleans with midpoints on boundary = 1 (arranged to mem_mids_flat)
 
     self.mem_vects_flat     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
                         domain of a cell. Normals point into the cell when positive.
@@ -131,6 +131,8 @@ class World(object):
     self.ecm_i          a python list of indices to ecm data arrays (ecm_i)
 
     self.gj_i           a python list of indices to gj data arrays (gj_i)
+
+    self.mem_i          a python list of indices to membrane data arrays (mem_i)
 
     self.gjMatrix       a matrix allowing a quantity, such as flux, to be properly distributed to cells in network
 
@@ -201,10 +203,10 @@ class World(object):
             self.clean_ecm(p,clean='no')  # pop ecm vertices around the outer cell membranes
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
-            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
+            self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
             self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
             self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
-            self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat,p)   # flag mem domains on the env bound
+            # self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat,p)   # flag mem domains on the env bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)       # Free up memory...
 
@@ -616,42 +618,42 @@ class World(object):
 
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
+        if self.worldtype == 'full':
+            # repeat process for ecms
+            ecm_tree = sps.KDTree(self.ecm_mids)
+            nn_ecm = list(ecm_tree.query(self.ecm_mids,k=5))[1]
 
-        # repeat process for ecms
-        ecm_tree = sps.KDTree(self.ecm_mids)
-        nn_ecm = list(ecm_tree.query(self.ecm_mids,k=5))[1]
+            nn_ecm_refined = []
+            for i,ind_matches in enumerate(nn_ecm):
+                aa = np.delete(ind_matches,0)   # get rid of the self indice
+                nn_ecm_refined.append(aa)
+            nn_ecm_refined = np.asarray(nn_ecm_refined)
 
-        nn_ecm_refined = []
-        for i,ind_matches in enumerate(nn_ecm):
-            aa = np.delete(ind_matches,0)   # get rid of the self indice
-            nn_ecm_refined.append(aa)
-        nn_ecm_refined = np.asarray(nn_ecm_refined)
+            ecm_nn_set = set()
 
-        ecm_nn_set = set()
+            for ecm_ind1, ecm_inds in enumerate(nn_ecm_refined):
 
-        for ecm_ind1, ecm_inds in enumerate(nn_ecm_refined):
+                for ecm_ind2 in ecm_inds:
+                    if ecm_ind1 == ecm_ind2:
+                        pass
+                    elif ecm_ind1 < ecm_ind2:
+                        indpair = ecm_ind1,ecm_ind2
+                        ecm_nn_set.add(indpair)
+                    elif ecm_ind1 > ecm_ind2:
+                        indpair = ecm_ind2,ecm_ind1
+                        ecm_nn_set.add(indpair)
 
-            for ecm_ind2 in ecm_inds:
-                if ecm_ind1 == ecm_ind2:
-                    pass
-                elif ecm_ind1 < ecm_ind2:
-                    indpair = ecm_ind1,ecm_ind2
-                    ecm_nn_set.add(indpair)
-                elif ecm_ind1 > ecm_ind2:
-                    indpair = ecm_ind2,ecm_ind1
-                    ecm_nn_set.add(indpair)
+            self.ecm_nn_i = []
+            for val in ecm_nn_set:
+                vallist=list(val)
+                self.ecm_nn_i.append(vallist)
+            self.ecm_nn_i = np.asarray(self.ecm_nn_i)
 
-        self.ecm_nn_i = []
-        for val in ecm_nn_set:
-            vallist=list(val)
-            self.ecm_nn_i.append(vallist)
-        self.ecm_nn_i = np.asarray(self.ecm_nn_i)
-
-        # calculate lengths of ecm-ecm junctions
-        seg1=self.ecm_mids[self.ecm_nn_i[:,0]]
-        seg2=self.ecm_mids[self.ecm_nn_i[:,1]]
-        nn_diff_ecm = (seg2 - seg1)**2
-        self.len_ecm_junc = np.sqrt(nn_diff_ecm[:,0] + nn_diff_ecm[:,1])
+            # calculate lengths of ecm-ecm junctions
+            seg1=self.ecm_mids[self.ecm_nn_i[:,0]]
+            seg2=self.ecm_mids[self.ecm_nn_i[:,1]]
+            nn_diff_ecm = (seg2 - seg1)**2
+            self.len_ecm_junc = np.sqrt(nn_diff_ecm[:,0] + nn_diff_ecm[:,1])
 
     def clean_ecm(self,p,clean=None):
 
@@ -817,8 +819,6 @@ class World(object):
         self.ecm_mids
         self.ecm_vects
         self.cell2ecm_map
-
-
         """
 
         self.cell_vol = []   # storage for cell volumes
@@ -876,8 +876,6 @@ class World(object):
             self.mem_edges.append(edge)
             self.mem_mids.append(mps)
             self.mem_length.append(surfa)
-
-
 
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
         self.cell_sa = np.asarray(self.cell_sa)
@@ -1010,56 +1008,13 @@ class World(object):
         self.clust_xy = None
 
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
-        self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
         self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
-        self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
 
         self.cell_vol = np.asarray(self.cell_vol)
 
-        self.indmap_mem = np.asarray(self.indmap_mem)
+        self.R = np.sqrt(self.cell_vol/(math.pi*p.cell_height))    # effective radius of each cell
 
-        self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
-
-        self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
-
-        for cell_index in self.cell_i:
-
-            index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
-            self.cell_to_mems.append(index2mems)
-
-        self.cell_to_mems = np.asarray(self.cell_to_mems)
-
-        # calculate the mapping between ecm indices and membrane indices:
-        cell_tree = sps.KDTree(self.ecm_mids)
-        matches = cell_tree.query(self.mem_mids_flat)
-        self.mem_to_ecm = list(matches)[1]
-
-        self.mem_length,_,_ = tb.flatten(self.mem_length)
-
-        self.mem_length = np.asarray(self.mem_length)
-
-        self.mem_sa = self.mem_length*p.cell_height
-
-        self.mem_capacitance = p.cm*self.mem_length*p.cell_height
-
-        self.self_cap_ecm = (8 + 4.1*((self.mem_length/p.cell_space)**0.76))*p.eo*80*p.cell_space
-
-        self.R = self.cell_sa/(2*math.pi*p.cell_height)    # effective radius of each cell
-
-        # calculate the Maxwell capacitance matrix and its inverse for cell-ecm couplings:
-
-        # terms of the forward matrix: [Qcell, Qecm] = [[Cmat_a, Cmat_b],[Cmat_c],[Cmat_d]]* [Vcell,Vecm]
-        self.Cmat_a = p.self_cap_cell + self.mem_capacitance
-        self.Cmat_b = -self.mem_capacitance
-        self.Cmat_c = -self.mem_capacitance
-        self.Cmat_d = self.mem_capacitance + self.self_cap_ecm
-
-        Cmat_denom = 1/(self.Cmat_a*self.Cmat_d - self.Cmat_b*self.Cmat_c)   # term for calculating the matrix inverse
-
-        self.Cinv_a = self.Cmat_d*Cmat_denom
-        self.Cinv_b= -self.Cmat_b*Cmat_denom
-        self.Cinv_c= -self.Cmat_c*Cmat_denom
-        self.Cinv_d = self.Cmat_a*Cmat_denom
+        self.cell_sa = 2*math.pi*self.R*p.cell_height
 
         # calculating centre, min, max of cluster after all modifications
 
@@ -1077,26 +1032,60 @@ class World(object):
             self.gjMatrix[igj,ci] = -1
             self.gjMatrix[igj,cj] = 1
 
-        # matrix for flux concentration updates between ecm spaces
-        self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
-        for iecm, pair in enumerate(self.ecm_nn_i):
-            ci = pair[0]
-            cj = pair[1]
-            self.ecmMatrix[iecm,ci] = -1
-            self.ecmMatrix[iecm,cj] = 1
-
         # define matrix for updating cells with fluxes from membranes:
 
-        ecm_n = len(self.ecm_i)
-        cell_n = len(self.cell_i)
-        mem_n = len(self.mem_i)
+        if self.worldtype == 'full':
 
-        self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
-        self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
+            self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
+            self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
 
-        for i, cell_index in enumerate(self.mem_to_cells):
-            self.cell_UpdateMatrix[i,cell_index] =1
+            self.indmap_mem = np.asarray(self.indmap_mem)
 
-        for i, ecm_index in enumerate(self.mem_to_ecm):
-            self.ecm_UpdateMatrix[i, ecm_index] = 1
+            self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
+
+            self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
+
+            for cell_index in self.cell_i:
+
+                index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
+                self.cell_to_mems.append(index2mems)
+
+            self.cell_to_mems = np.asarray(self.cell_to_mems)
+
+            # calculate the mapping between ecm indices and membrane indices:
+            cell_tree = sps.KDTree(self.ecm_mids)
+            matches = cell_tree.query(self.mem_mids_flat)
+            self.mem_to_ecm = list(matches)[1]
+
+            self.mem_length,_,_ = tb.flatten(self.mem_length)
+
+            self.mem_length = np.asarray(self.mem_length)
+
+            self.mem_sa = self.mem_length*p.cell_height
+
+            ecm_n = len(self.ecm_i)
+            cell_n = len(self.cell_i)
+            mem_n = len(self.mem_i)
+
+            self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
+            self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
+
+            for i, cell_index in enumerate(self.mem_to_cells):
+                self.cell_UpdateMatrix[i,cell_index] =1
+
+            for i, ecm_index in enumerate(self.mem_to_ecm):
+                self.ecm_UpdateMatrix[i, ecm_index] = 1
+
+            self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
+            for iecm, pair in enumerate(self.ecm_nn_i):
+                ci = pair[0]
+                cj = pair[1]
+                self.ecmMatrix[iecm,ci] = -1
+                self.ecmMatrix[iecm,cj] = 1
+
+            self.indmap_mem = None
+            self.rindmap_mem = None
+            self.ecm_verts = None
+            self.mem_mids = None
+
 
