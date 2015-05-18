@@ -1083,9 +1083,32 @@ class World(object):
                 self.ecmMatrix[iecm,ci] = -1
                 self.ecmMatrix[iecm,cj] = 1
 
+            # create a flattened version of cell_verts that will serve as membrane verts:
+            self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+            self.mem_verts = np.asarray(self.mem_verts)
+
+            cellVertTree = sps.KDTree(self.mem_verts)
+
+            # create a map from flattened mem midpoints to corresponding edge points of mem segment:
+            self.index_to_mem_verts = []
+            for cell_nest in self.mem_edges:
+                for mem_points in cell_nest:
+                    pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
+                    pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
+                    self.index_to_mem_verts.append([pt_ind1,pt_ind2])
+            self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
+
+            # create a matrix that will map and interpolate data on mem mids to the mem verts
+            # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
+
+            self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
+            for i, indices in enumerate(self.index_to_mem_verts):
+                self.matrixMap2Verts[i,indices[0]]=1/2
+                self.matrixMap2Verts[i,indices[1]]=1/2
+
             self.indmap_mem = None
             self.rindmap_mem = None
             self.ecm_verts = None
-            self.mem_mids = None
+
 
 

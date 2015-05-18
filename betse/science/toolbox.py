@@ -231,3 +231,96 @@ def alpha_shape(points, alpha):
     # self.interior_edges = None
 
     return concave_hull
+
+def sigmoid(x,g,y_sat):
+    """
+    A sigmoidal function (logistic curve) allowing user
+    to specify a saturation level (y_sat) and growth rate (g).
+
+    Parameters
+    ----------
+    x            Input values, may be numpy array or float
+    g            Growth rate
+    y_sat        Level at which growth saturates
+
+    Returns
+    --------
+    y            Numpy array or float of values
+
+    """
+    y = (y_sat*np.exp(g*x))/(y_sat + (np.exp(g*x)-1))
+    return y
+
+def hill(x,K,n):
+
+    """
+    The Hill equation (log-transformed sigmoid). Function ranges
+    from y = 0 to +1.
+
+    Parameters
+    ----------
+    x            Input values, may be numpy array or float. Note all x>0 !
+    K            Value of x at which curve is 1/2 maximum (y=0.5)
+    n            Hill co-efficient n<1 negative cooperativity, n>1 positive.
+
+    Returns
+    --------
+    y            Numpy array or float of values
+
+    """
+    # assert x.all() > 0
+
+    y = x**n/((K**n)+(x**n))
+
+    return y
+
+def step(t,t_on,t_change):
+    """
+    A step function (bounded by 0 and 1) based on a logistic curve
+    and allowing user to specify time for step to come on (t_on) and time for
+    change from zero to one to happen.
+
+    Parameters
+    ----------
+    t            Input values, may be numpy array or float
+    t_on         Time step turns on
+    t_change     Time for change from 0 to 1 (off to on)
+
+    Returns
+    --------
+    y            Numpy array or float of values
+
+    """
+    g = (1/t_change)*10
+    y = 1/(1 + (np.exp(-g*(t-t_on))))
+    return y
+
+def pulse(t,t_on,t_off,t_change):
+    """
+    A pulse function (bounded by 0 and 1) based on logistic curves
+    and allowing user to specify time for step to come on (t_on) and time for
+    change from zero to one to happen, and time for step to come off (t_change).
+
+    Parameters
+    ----------
+    t            Input values, may be numpy array or float
+    t_on         Time step turns on
+    t_off        Time step turns off
+    t_change     Time for change from 0 to 1 (off to on)
+
+    Returns
+    --------
+    y            Numpy array or float of values
+
+    """
+    g = (1/t_change)*10
+    y1 = 1/(1 + (np.exp(-g*(t-t_on))))
+    y2 = 1/(1 + (np.exp(-g*(t-t_off))))
+    y = y1 - y2
+    return y
+
+def H(x):
+
+    y = 0.5*(np.sign(x) +1)
+
+    return y

@@ -713,9 +713,13 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
         if clrmap is None:
             clrmap = p.default_cm
 
+        verts_data = np.dot(zdata,cells.matrixMap2Verts)
 
-        triplt = ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
-            z,shading='gouraud', cmap=clrmap)
+        plot_data = np.hstack((zdata,verts_data))
+        plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+
+
+        triplt = ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],plot_data,shading='gouraud', cmap=clrmap)
 
         if pointOverlay == True:
             scat = ax.scatter(p.um*cells.mem_mids_flat[:,0],p.um*cells.mem_mids_flat[:,1], c='k')
@@ -760,7 +764,8 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
 
         if number_ecm == True:
 
-            for i,ecm in enumerate(cells.ecm_mids):
+            for bflag_ecm in cells.bflags_ecm:
+                ecm = cells.ecm_mids[bflag_ecm]
                 ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center')
 
         xmin = p.um*(cells.clust_x_min - p.clip)

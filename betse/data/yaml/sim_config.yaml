@@ -288,126 +288,168 @@ world variables:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# SCHEDULED INTERVENTIONS
+# GLOBAL INTERVENTIONS
 # ----------------------------------------------------------------------------------------------------------------------
-# Schedule changes to key simulation variables such as membrane permeability,
-# pump and gap junction function, and environmental concentrations.
-# This simulates the application of a pharmaceutical agent to block pumps
+# Schedule changes to globally-applied simulation variables such as
+# pump and gap junction function and environmental concentrations of ions.
+# This can simulate the application of a pharmaceutical agent to block pumps
 # or alter membrane ion channels.
 
-in this sim globally change:    # First indicate the type of changes you want to schedule
-
-  environmental K: False              # Change the environmental concentration of K+  ?
-  environmental Cl: False             # Change the environmental concentration of Cl- ?
-  environmental Na: False            # Change the environmental concentration of Na+ ?
-  block gap junctions: True          # Apply a total block to gap junctions ?
-  temperature: False                   # Change the temperature ?
-  block NaKATPase pump: False                # Apply a total block to the NaKATPase pump ?
-  block HKATPase pump: False                 # Apply a total block to the HKATPase pump ?
-
-
-# Next, specify the details of scheduled changes.
-# The following are global changes affecting all cells
-# Note if something above is set to false the change will not happen.
+# The following are global changes affecting the entire cluster
 
 change K env:       # Change the environmental concentration of K+
 
-  change start: 5       # sim time to start change [s]
-  change finish: 10      # sim time to end change and return to original [s]
-  change rate: 1          # rate of change [s]
-  multiplier: 10          # factor to multiply base level
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 5           # sim time to start change [s]
+  change finish: 10         # sim time to end change and return to original [s]
+  change rate: 1            # rate of change [s]
+  multiplier: 10            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
 
-  change start: 5       # sim time to start change [s]
-  change finish: 10      # sim time to end change and return to original [s]
-  change rate: 1          # rate of change [s]
-  multiplier: 5          # factor to multiply base level
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 5           # sim time to start change [s]
+  change finish: 10         # sim time to end change and return to original [s]
+  change rate: 1            # rate of change [s]
+  multiplier: 5             # factor to multiply base level
 
 change Na env:       # Change the environmental concentration of K+
 
+  event happens: False     # turn the even on (True) or off (False)
   change start: 5          # sim time to start change [s]
-  change finish: 15          # sim time to end change and return to original [s]
+  change finish: 15        # sim time to end change and return to original [s]
   change rate: 1           # rate of change [s]
-  multiplier: 5           # factor to multiply base level
+  multiplier: 5            # factor to multiply base level
 
 change temperature:
 
-  change start: 5     # sim time to start change [s]
-  change finish: 15    # sim time to end change and return to original [s]
-  change rate: 1        # rate of change [s]
-  multiplier: 0.8       # factor to multiply base level
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 5           # sim time to start change [s]
+  change finish: 15         # sim time to end change and return to original [s]
+  change rate: 1            # rate of change [s]
+  multiplier: 0.8           # factor to multiply base level
 
 block gap junctions:     # block the gap junctions between cells
 
-  change start: 0.15           # sim time to start change [s]
-  change finish: 0.25          # sim time to end change and return to original [s]
-  change rate: 0.05            # rate of change [s]
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 0.15        # sim time to start change [s]
+  change finish: 0.25       # sim time to end change and return to original [s]
+  change rate: 0.05         # rate of change [s]
 
 block NaKATP pump:
 
-  change start: 5     # sim time to start change [s]
-  change finish: 15    # sim time to end change and return to original [s]
-  change rate: 1        # rate of change [s]
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 5           # sim time to start change [s]
+  change finish: 15         # sim time to end change and return to original [s]
+  change rate: 1            # rate of change [s]
 
 block HKATP pump:
 
-  change start: 5     # sim time to start change [s]
-  change finish: 15    # sim time to end change and return to original [s]
-  change rate: 1        # rate of change [s]
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 5           # sim time to start change [s]
+  change finish: 15         # sim time to end change and return to original [s]
+  change rate: 1            # rate of change [s]
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# TISSUE DESIGNATION
+#-----------------------------------------------------------------------------------------------------------------------
+
+number of tissue profiles: 2
+
+tissue profile 1:
+    name: 'excitable cells'
+    cell indices: 'random50'
+    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+tissue profile 2:
+    name: 'somatic cells'
+    cell indices: 'random1'
+    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+number of boundary profiles: 2      # boundary profiles only apply if simulating extracellular spaces
+
+boundary profile 1:
+    name: 'applied pos voltage'
+    boundary indices: [0,6,7,8]
+
+boundary profile 2:
+    name: 'applied neg voltage'
+    boundary indices: [9,8,1,2]
+
+#-----------------------------------------------------------------------------------------------------------------------
+# TARGETED INTERVENTIONS
+#-----------------------------------------------------------------------------------------------------------------------
 
 # The following are scheduled changes that can be applied to one or more cells.
 # First select how to apply the following changes to the cell cluster:
 
-in this sim make targeted changes to:    # First indicate the type of changes you want to schedule
-
-  Na membrane permeability: False      # Change the membrane Na+ permeability ?
-  K membrane permeability: False       # Change the membrane K+ permeability ?
-  Cl membrane permeability: False      # Change the membrane Cl- permeability ?
-  Ca membrane permeability: False      # Change the membrane Ca2+ permeability ?
-  cell IP3 concentration: False       # Produce inositol tri-phosphate (IP3) ?
-
-scheduled target cells: [0]             # Select ways to apply targeted changes from choices
-                                        # 'none' void all scheduled changes (no cells targeted)
-                                        # 'random1' randomly pick a cell to target
-                                        # 'random50' randomly pick half of cells to target
-                                        # 'all'  target all cells in the cluster
-                                        # [0,5,7] provide a list of cell indices to target
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  change start: 0.02          # sim time to start change [s]
-  change finish: 0.40         # sim time to end change and return to original [s]
-  change rate: 0.01           # rate of change [s]
-  multiplier: 1000            # factor to multiply base level
+  event happens: False              # turn the even on (True) or off (False)
+  change start: 0.02                # sim time to start change [s]
+  change finish: 0.40               # sim time to end change and return to original [s]
+  change rate: 0.01                 # rate of change [s]
+  multiplier: 1000                  # factor to multiply base level
+  apply to: ['excitable cells','somatic cells']        # name of the profile to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
-  change start: 9       # sim time to start change [s]
-  change finish: 11      # sim time to end change and return to original [s]
-  change rate: 1          # rate of change [s]
-  multiplier: 10          # factor to multiply base level
+  event happens: False              # turn the even on (True) or off (False)
+  change start: 9                   # sim time to start change [s]
+  change finish: 11                 # sim time to end change and return to original [s]
+  change rate: 1                    # rate of change [s]
+  multiplier: 10                    # factor to multiply base level
+  apply to: ['excitable cells']        # name of the profile to apply it to
 
 change Cl mem:      # Change the membrane permeability to Cl-
 
-  change start: 15       # sim time to start change [s]
-  change finish: 17      # sim time to end change and return to original [s]
-  change rate: 1          # rate of change [s]
-  multiplier: 10           # factor to multiply base level
+  event happens: False              # turn the even on (True) or off (False)
+  change start: 15                  # sim time to start change [s]
+  change finish: 17                 # sim time to end change and return to original [s]
+  change rate: 1                    # rate of change [s]
+  multiplier: 10                    # factor to multiply base level
+  apply to: ['excitable cells']        # name of the profile to apply it to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
 
-  change start: 20           # sim time to start change [s]
-  change finish: 22          # sim time to end change and return to original [s]
-  change rate: 1            # rate of change [s]
-  multiplier: 10             # factor to multiply base level
+  event happens: False              # turn the even on (True) or off (False)
+  change start: 20                  # sim time to start change [s]
+  change finish: 22                 # sim time to end change and return to original [s]
+  change rate: 1                    # rate of change [s]
+  multiplier: 10                    # factor to multiply base level
+  apply to: ['excitable cells']        # name of the profile to apply it to
 
 produce IP3:        # Schedule cell production of IP3
 
-  change start: 5           # sim time to start IP3 production [s]
-  change finish: 20          # sim time to end IP3 production [s]
-  change rate: 1              # rate of production ramp up [s]
-  multiplier: 1e-4            # maximum rate of production [mol/(s*m3)]
+  event happens: False              # turn the even on (True) or off (False)
+  change start: 5                   # sim time to start IP3 production [s]
+  change finish: 20                 # sim time to end IP3 production [s]
+  change rate: 1                    # rate of production ramp up [s]
+  multiplier: 1e-4                  # maximum rate of production [mol/(s*m3)]
+  apply to: ['excitable cells']        # name of the profile to apply it to
+
+apply external voltage:       # voltages can only be applied if extracellular spaces are simulated
+
+    event happens: False      # turn the even on (True) or off (False)
+    change start: 5
+    change finish: 20
+    change rate: 1
+    peak value: 1
+    apply to: 'applied pos voltage'
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS
@@ -417,36 +459,33 @@ produce IP3:        # Schedule cell production of IP3
 # but you can't apply different channels to different cells. This
 # will be updated with introduction of tissue types in future versions.
 
+voltage gated Na+:
+    turn on: False                    # voltage gated sodium channel ?
+    apply to: ['excitable cells']        # name of the tissue profile to apply it to
 
-ion channel target cells: 'none'    # specify cells to affect with dynamic channels.
-                                   # choices
-                                   # 'none' void all scheduled changes (no cells)
-                                   # 'random1' randomly pick a cell to target
-                                   # 'random50' randomly pick half of cells to target
-                                   # 'all'  target all cells in the cluster
-                                   # [0,5,7] provide a list of cell indices
+voltage gated K+:                      # voltage gated potassium channel ?
+    turn on: False
+    apply to: ['excitable cells']         # name of the profile to apply it to
 
+voltage gated Ca2+:                # voltage gated calcium channel ?
+    turn on: False
+    apply to: ['somatic cells']
 
-include the following ion channels:  # the following channels will be applied to target cells defined above
+calcium gated K+:             # calcium gated potassium channel ?
+    turn on: False
+    apply to: ['somatic cells']
 
-  voltage gated Na+: False            # voltage gated sodium channel ?
-  voltage gated K+ : False            # voltage gated potassium channel ?
-  voltage gated Ca2+ : False          # voltage gated calcium channel ?
-  calcium gated K+ : False            # calcium gated potassium channel ?
+Ca dynamics:                      # include full calcium dynamics in the situation?
+    turn on: False                # this creates an endoplasmic reticulum (ER) in each cell and
+    apply to: ['somatic cells']     # IP3 mediated calcium release from the ER
+                                  # note this only works for an ion profile with Ca2+ ions
+                                  # options True or False (case sensitive)
 
-Ca dynamics: False        # include full calcium dynamics in the situation?
-                            # this creates an endoplasmic reticulum (ER) in each cell and
-                            # IP3 mediated calcium release from the ER
-                            # note this only works for an ion profile with Ca2+ ions
-                            # options True or False (case sensitive)
+    include:
 
-include calcium dynamics:
+        calcium regulation: False             # let the IP3 receptor be co-regulated by Ca2+ levels?
 
-  ip3 induced Ca2+ release: False       # include IP3 induced Ca2+ release from the ER ?
-
-  calcium regulation: False             # let the IP3 receptor be co-regulated by Ca2+ levels?
-
-  frequency modulation by IP3: False     # IP3 concentrations change frequency of Ca2+ oscillations?
+        frequency modulation by IP3: False     # IP3 concentrations change frequency of Ca2+ oscillations?
 
 
 # ----------------------------------------------------------------------------------------------------------------------

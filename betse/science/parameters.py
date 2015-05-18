@@ -478,24 +478,22 @@ class Parameters(object):
         self.dynamic_noise = self.config['general options']['dynamic noise']
         self.dynamic_noise_level = float(self.config['general options']['dynamic noise level'])
 
-        #.....................USER SCHEDULED INTERVENTIONS.............................................................
+        #---------------------------------------------------------------------------------------------------------------
+        # Global Interventions
+        #---------------------------------------------------------------------------------------------------------------
 
         # initialize dictionary keeping track of global scheduled options for the sim:
         self.global_options = {}
 
 
-        # initialize dictionary keeping track of targeted scheduled options for the sim:
-        self.scheduled_options = {}
 
-        val = self.config['in this sim globally change']
-
-        bool_Naenv = val['environmental Na']
-        bool_Kenv = val['environmental K']
-        bool_Clenv = val['environmental Cl']
-        bool_gjblock = val['block gap junctions']
-        bool_temp = val['temperature']
-        bool_NaKblock = val['block NaKATPase pump']
-        bool_HKblock = val['block HKATPase pump']
+        bool_Naenv = bool(self.config['change Na env']['event happens'])
+        bool_Kenv = bool(self.config['change K env']['event happens'])
+        bool_Clenv = bool(self.config['change Cl env']['event happens'])
+        bool_gjblock = bool(self.config['block gap junctions']['event happens'])
+        bool_temp =  bool(self.config['change temperature']['event happens'])
+        bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
+        bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
 
 
         if bool_Kenv == False:
@@ -565,16 +563,57 @@ class Parameters(object):
             hk = [on_hk,off_hk,rate_hk]
             self.global_options['HKATP_block'] = hk
 
-        # cell to effect in scheduled intervention: (choices = 'none','all','random1','random50', [1,2,3])
-        self.scheduled_targets = self.config['scheduled target cells']
+        #--------------------------------------------------------------------------------------------------------------
+        # Tissue Definition
+        #--------------------------------------------------------------------------------------------------------------
+        # Import information used for defining tissues and boundary properties in the collective:
 
-        valb = self.config['in this sim make targeted changes to']
+        self.tissue_profile_number = int(self.config['number of tissue profiles'])
+        self.boundary_profile_number = int(self.config['number of boundary profiles'])
 
-        bool_Namem = valb['Na membrane permeability']
-        bool_Kmem = valb['K membrane permeability']
-        bool_Clmem = valb['Cl membrane permeability']
-        bool_Camem = valb['Ca membrane permeability']
-        bool_ip3 = valb['cell IP3 concentration']
+        self.tissue_profiles = {}
+        self.boundary_profiles = {}
+
+        for pn in range(1,self.tissue_profile_number+1):
+
+            profile_string = 'tissue profile ' + str(pn)
+            profile_name = self.config[profile_string]['name']
+            profile_target_method = self.config[profile_string]['cell indices']
+
+            DmNa = self.config[profile_string]['Dm_Na']       # Na+ membrane diffusion constant [m2/s]
+            DmK = self.config[profile_string]['Dm_K']     # K+ membrane diffusion constant [m2/s]
+            DmCl = self.config[profile_string]['Dm_Cl']        # Cl- membrane diffusion constant [m2/s]
+            DmCa = self.config[profile_string]['Dm_Ca']        # Ca2+ membrane diffusion constant [m2/s]
+            DmH = self.config[profile_string]['Dm_H']         # H+ membrane diffusion constant [m2/s]
+            DmM = self.config[profile_string]['Dm_M']         # M- membrane diffusion constant [m2/s]
+            DmP = self.config[profile_string]['Dm_P']             # proteins membrane diffusion constant [m2/s]
+
+            mem_perms = [DmNa, DmK, DmCl, DmCa, DmH, DmM, DmP]
+
+            profile_features = [profile_target_method, mem_perms]
+
+            self.tissue_profiles[profile_name] = profile_features
+
+        for bn in range(1,self.boundary_profile_number +1):
+
+            profile_string_b = 'boundary profile ' + str(pn)
+            profile_name_b = self.config[profile_string_b]['name']
+            profile_target_method_b = self.config[profile_string_b]['boundary indices']
+
+            self.boundary_profiles[profile_name_b] = profile_target_method_b
+
+        #---------------------------------------------------------------------------------------------------------------
+        # Targeted Interventions
+        #---------------------------------------------------------------------------------------------------------------
+         # initialize dictionary keeping track of targeted scheduled options for the sim:
+        self.scheduled_options = {}
+
+        bool_Namem = bool(self.config['change Na mem']['event happens'])
+        bool_Kmem = bool(self.config['change K mem']['event happens'])
+        bool_Clmem = bool(self.config['change Cl mem']['event happens'])
+        bool_Camem = bool(self.config['change Ca mem']['event happens'])
+        bool_ip3 = bool(self.config['produce IP3']['event happens'])
+        bool_extV = bool(self.config['apply external voltage']['event happens'])
 
         if bool_Namem == False:
             self.scheduled_options['Na_mem'] = 0
@@ -583,7 +622,8 @@ class Parameters(object):
             off_Namem = float(self.config['change Na mem']['change finish'])
             rate_Namem = float(self.config['change Na mem']['change rate'])
             multi_Namem = float(self.config['change Na mem']['multiplier'])
-            Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem]
+            apply_Namem = self.config['change Na mem']['apply to']
+            Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem]
             self.scheduled_options['Na_mem'] = Namem
 
         if bool_Kmem == False:
@@ -593,7 +633,8 @@ class Parameters(object):
             off_Kmem = float(self.config['change K mem']['change finish'])
             rate_Kmem = float(self.config['change K mem']['change rate'])
             multi_Kmem = float(self.config['change K mem']['multiplier'])
-            Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem]
+            apply_Kmem = self.config['change K mem']['apply to']
+            Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem]
             self.scheduled_options['K_mem'] = Kmem
 
         if bool_Clmem == False:
@@ -603,7 +644,8 @@ class Parameters(object):
             off_Clmem = float(self.config['change Cl mem']['change finish'])
             rate_Clmem = float(self.config['change Cl mem']['change rate'])
             multi_Clmem = float(self.config['change Cl mem']['multiplier'])
-            Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem]
+            apply_Clmem = self.config['change Cl mem']['apply to']
+            Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem]
             self.scheduled_options['Cl_mem'] = Clmem
 
         if bool_Camem == False:
@@ -613,7 +655,8 @@ class Parameters(object):
             off_Camem = float(self.config['change Ca mem']['change finish'])
             rate_Camem = float(self.config['change Ca mem']['change rate'])
             multi_Camem = float(self.config['change Ca mem']['multiplier'])
-            Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem]
+            apply_Camem = self.config['change Ca mem']['apply to']
+            Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem]
             self.scheduled_options['Ca_mem'] = Camem
 
         if bool_ip3 == False:
@@ -623,20 +666,30 @@ class Parameters(object):
             off_ip3 = float(self.config['produce IP3']['change finish'])
             rate_ip3 = float(self.config['produce IP3']['change rate'])
             multi_ip3 = float(self.config['produce IP3']['multiplier'])
-            ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3]
+            apply_ip3 = self.config['produce IP3']['apply to']
+            ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3, apply_ip3]
             self.scheduled_options['IP3'] = ip3
+
+        if bool_extV == False:
+            self.scheduled_options['extV'] = 0
+        elif bool_extV == True:
+            on_extV = float(self.config['apply external voltage']['change start'])
+            off_extV = float(self.config['apply external voltage']['change finish'])
+            rate_extV = float(self.config['apply external voltage']['change rate'])
+            peak_extV = float(self.config['apply external voltage']['peak value'])
+            apply_extV = self.config['apply external voltage']['apply to']
+            extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV]
+            self.scheduled_options['extV'] = extV
 
         #.........................DYNAMIC CHANNELS.....................................................................
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
-        self.gated_targets = self.config['ion channel target cells']
+        # self.gated_targets = self.config['ion channel target cells']
 
-        val2 = self.config['include the following ion channels']
-
-        bool_vgNa = val2['voltage gated Na+']
-        bool_vgK = val2['voltage gated K+']
-        bool_vgCa = val2['voltage gated Ca2+']
-        bool_cagK = val2['calcium gated K+']
+        bool_vgNa = bool(self.config['voltage gated Na+']['turn on'])
+        bool_vgK = bool(self.config['voltage gated K+']['turn on'])
+        bool_vgCa = bool(self.config['voltage gated Ca2+']['turn on'])
+        bool_cagK = bool(self.config['calcium gated K+']['turn on'])
 
         # set specific character of gated ion channel dynamics:
         opNa = self.config['gated ion channel options']['voltage gated Na']
@@ -647,12 +700,28 @@ class Parameters(object):
         vgNa = [float(opNa['max Dmem Na']),float(opNa['activation v']),float(opNa['inactivation v']),float(opNa['deactivation v']),
             float(opNa['live time']),float(opNa['dead time'])]
 
+        apply_vgNa = self.config['voltage gated Na+']['apply to']
+
+        vgNa.append(apply_vgNa)
+
         vgK = [float(opK['max Dmem K']),float(opK['activation v']),float(opK['deactivation v']),float(opK['live time'])]
+
+        apply_vgK = self.config['voltage gated K+']['apply to']
+
+        vgK.append(apply_vgK)
 
         vgCa = [float(opCa['max Dmem Ca']),float(opCa['activation v']),float(opCa['inactivation v']),float(opCa['inactivation Ca']),
             float(opCa['reactivation Ca'])]
 
+        apply_vgCa = self.config['voltage gated Ca2+']['apply to']
+
+        vgCa.append(apply_vgCa)
+
         cagK = [float(opcK['max Dmem K']),float(opcK['hill K_half']),float(opcK['hill n'])]
+
+        apply_cagK = self.config['calcium gated K+']['apply to']
+
+        cagK.append(apply_cagK)
 
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
@@ -679,12 +748,11 @@ class Parameters(object):
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR).....................................................
 
-        cdy = self.config['include calcium dynamics']
         cdp = self.config['calcium dynamics parameters']
 
-        bool_CICR = cdy['ip3 induced Ca2+ release']
-        bool_calReg = cdy['calcium regulation']
-        bool_frequMod = cdy['frequency modulation by IP3']
+        bool_CICR = bool(self.config['Ca dynamics']['turn on'])
+        bool_calReg = bool(self.config['Ca dynamics']['include']['calcium regulation'])
+        bool_frequMod = bool(self.config['Ca dynamics']['include']['frequency modulation by IP3'])
 
         camid = float(cdp['CICR Ca peak'])
         cawidth = float(cdp['CICR Ca width'])
@@ -719,7 +787,9 @@ class Parameters(object):
                 self.FMmod = 1
                 self.ip3FM = float(cdp['IP3 frequency modulation level'])
 
-            cicr = [ERstore_dyn,ca_reg,ip3_reg]
+            apply_CICR = self.config['Ca dynamics']['apply to']
+
+            cicr = [ERstore_dyn,ca_reg,ip3_reg,apply_CICR]
             self.Ca_dyn_options['CICR'] = cicr
 
 

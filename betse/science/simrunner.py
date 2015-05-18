@@ -3,7 +3,6 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME need to do animations for heterogeneous Vmems...
 
 
 from betse.science import visualize as viz
@@ -246,7 +245,7 @@ def plots4Init(plot_cell,cells,sim,p,saveImages=False):
 
             figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                edgeOverlay = p.showCells)
+                edgeOverlay = p.showCells, number_ecm = p.enumerate_cells)
 
         elif p.sim_ECM == False:
 
@@ -359,7 +358,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                edgeOverlay = p.showCells)
+                edgeOverlay = p.showCells,  number_ecm = p.enumerate_cells)
 
         elif p.sim_ECM == False:
 
