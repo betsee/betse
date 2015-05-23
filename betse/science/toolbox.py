@@ -50,9 +50,6 @@ def flatten(ls_of_ls):
 
     return ls_flat, ind_map, rind_map   # return the flattened list and the map and reverse map
 
-
-
-
 def area(p):
     """
     Calculates the area of an arbitrarily shaped polygon defined by a set of
@@ -324,3 +321,29 @@ def H(x):
     y = 0.5*(np.sign(x) +1)
 
     return y
+
+def emptyDict(dic):
+    """
+    Tests a dictionary to see if all keys are zero
+    and returns True if so.
+
+    Parameters:
+    --------------
+    dic            a dictionary
+
+    :return:
+    """
+    # search_success = False
+    #
+    # while search_success == False:
+    for entry in dic.values():
+
+        if entry == 0:
+            zero_dic = True
+
+        elif type(entry) == list or type(entry)==str or entry != 0:
+            zero_dic = False
+            break
+
+
+    return zero_dic

@@ -764,9 +764,9 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
 
         if number_ecm == True:
 
-            for bflag_ecm in cells.bflags_ecm:
+            for i,bflag_ecm in enumerate(cells.bflags_ecm):
                 ecm = cells.ecm_mids[bflag_ecm]
-                ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center')
+                ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center',color='b')
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)

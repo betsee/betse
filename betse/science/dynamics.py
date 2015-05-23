@@ -123,7 +123,6 @@ class Dynamics(object):
             self.peak_val_extV = p.scheduled_options['extV'][3]
             self.apply_extV = p.scheduled_options['extV'][4]
 
-
     def dynamicInit(self,sim,cells,p):
 
         if p.vg_options['Na_vg'] != 0:
@@ -210,42 +209,59 @@ class Dynamics(object):
 
             self.apply_Ca = p.Ca_dyn_options['CICR'][3]
 
-
-    def globalDyn(self,sim,cells,p):
+    def globalDyn(self,sim,cells,p,t):
 
         if p.global_options['K_env'] != 0:
 
             effector_Kenv = tb.pulse(t,self.t_on_Kenv,self.t_off_Kenv,self.t_change_Kenv)
 
-            self.cc_env[self.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
+            if p.sim_ECM == False:
+
+                sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
+
+            elif p.sim_ECM == True:
+
+                sim.cc_ecm[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env  # FIXME change cells at env bound only
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
 
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
-            self.cc_env[self.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+            if p.sim_ECM == False:
+
+                sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+
+            elif p.sim_ECM == True:
+
+                sim.cc_ecm[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
 
         if p.global_options['Na_env'] != 0:
 
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
 
-            self.cc_env[self.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+            if p.sim_ECM == False:
+
+                sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+
+            elif p.sim_ECM == True:
+
+                sim.cc_ecm[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
         if p.global_options['T_change'] != 0:
 
-            self.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
+            sim.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
 
         if p.global_options['gj_block'] != 0:
 
-            self.gj_block = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
+            sim.gj_block = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
 
         if p.global_options['NaKATP_block'] != 0:
 
-            self.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
+            sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
 
         if p.global_options['HKATP_block'] != 0:
 
-            self.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
+            sim.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
 
     def scheduledDyn(self,sim,cells,p):
 
@@ -297,7 +313,6 @@ class Dynamics(object):
 
             self.cIP3[self.scheduled_target_inds] = self.cIP3[self.scheduled_target_inds] + self.rate_IP3*pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
-
 
     def dynamicDyn(self,sim,cells,p):
 
@@ -422,7 +437,6 @@ class Dynamics(object):
 
         self.Dm_vg[self.iCa] = self.maxDmCa*self.active_Ca
 
-
     def cagPotassium(self,sim,cells,p):
 
         inds_cagK_targets = (self.target_cells).nonzero()
@@ -434,7 +448,6 @@ class Dynamics(object):
 
         # finally, add together all effects to make change on the cell membrane permeabilities:
         self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_cag + self.Dm_base
-
 
     def calciumDynamics(self,sim,cells,p):
 

@@ -455,8 +455,8 @@ class Parameters(object):
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = self.config['general options']['ion profile']
 
-        # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)? Yes = 1, No =0
-        self.Ca_dyn = self.config['Ca dynamics']
+        # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
+        self.Ca_dyn = self.config['Ca dynamics']['turn on']
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = self.config['general options']['HKATPase pump']
@@ -485,8 +485,6 @@ class Parameters(object):
         # initialize dictionary keeping track of global scheduled options for the sim:
         self.global_options = {}
 
-
-
         bool_Naenv = bool(self.config['change Na env']['event happens'])
         bool_Kenv = bool(self.config['change K env']['event happens'])
         bool_Clenv = bool(self.config['change Cl env']['event happens'])
@@ -494,7 +492,6 @@ class Parameters(object):
         bool_temp =  bool(self.config['change temperature']['event happens'])
         bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
         bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
-
 
         if bool_Kenv == False:
             self.global_options['K_env'] = 0
@@ -940,7 +937,8 @@ class Parameters(object):
         self.cm = 0.022            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
-        self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
+        self.scale_alpha = 1.4   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
+        self.merge_cut_off = (1/16)  # the fraction of nominal cell perimeter at which nearby ecm points are merged
 
         self.d_cell = self.rc * 2  # diameter of single cell
         self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index

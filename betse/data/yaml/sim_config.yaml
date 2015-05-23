@@ -94,7 +94,7 @@ automatically run initialization: True     # In the case that an initialization 
 
 sim time settings:
 
-  time profile: 'simulate excitable'    # choose a pre-defined time profile for the sim run
+  time profile: 'simulate somatic'    # choose a pre-defined time profile for the sim run
                                       # choices are 'simulate somatic', 'simulate excitable'
                                       # or 'custom sim'
                                       # 'simulate somatic' is for cells without voltage-gated
@@ -104,7 +104,7 @@ sim time settings:
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 0.01            # set the total time for the sim run [s]
+  total time: 20            # set the total time for the sim run [s]
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
                             # Note this is over-ridden if you are using 'custom sim'
@@ -135,7 +135,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -300,18 +300,18 @@ world variables:
 change K env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 5           # sim time to start change [s]
-  change finish: 10         # sim time to end change and return to original [s]
-  change rate: 1            # rate of change [s]
-  multiplier: 10            # factor to multiply base level
+  change start: 10           # sim time to start change [s]
+  change finish: 40         # sim time to end change and return to original [s]
+  change rate: 5            # rate of change [s]
+  multiplier: 20            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 5           # sim time to start change [s]
-  change finish: 10         # sim time to end change and return to original [s]
-  change rate: 1            # rate of change [s]
-  multiplier: 5             # factor to multiply base level
+  change start: 10           # sim time to start change [s]
+  change finish: 40         # sim time to end change and return to original [s]
+  change rate: 5            # rate of change [s]
+  multiplier: 20             # factor to multiply base level
 
 change Na env:       # Change the environmental concentration of K+
 
@@ -327,20 +327,20 @@ change temperature:
   change start: 5           # sim time to start change [s]
   change finish: 15         # sim time to end change and return to original [s]
   change rate: 1            # rate of change [s]
-  multiplier: 0.8           # factor to multiply base level
+  multiplier: 0.5           # factor to multiply base level
 
 block gap junctions:     # block the gap junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 0.15        # sim time to start change [s]
-  change finish: 0.25       # sim time to end change and return to original [s]
+  change start: 10        # sim time to start change [s]
+  change finish: 40       # sim time to end change and return to original [s]
   change rate: 0.05         # rate of change [s]
 
 block NaKATP pump:
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 5           # sim time to start change [s]
-  change finish: 15         # sim time to end change and return to original [s]
+  change start: 10           # sim time to start change [s]
+  change finish: 40         # sim time to end change and return to original [s]
   change rate: 1            # rate of change [s]
 
 block HKATP pump:
