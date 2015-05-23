@@ -192,7 +192,7 @@ def alpha_shape(points, alpha):
     tri_edges_len = len(tri_edges)
     concave_hull = []
 
-    i = 1
+    i = 0
     # Now step through to find and remove all duplicating entities and add them to a new list
     while i < tri_edges_len:
         j = i + 1

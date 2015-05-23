@@ -200,7 +200,7 @@ class World(object):
             self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            self.clean_ecm(p,clean='no')  # pop ecm vertices around the outer cell membranes
+            # self.clean_ecm(p,clean='no')  # pop ecm vertices around the outer cell membranes
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
@@ -421,58 +421,6 @@ class World(object):
                             sorted_region_b = sorted_region.tolist()
                             vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
 
-        # # collapse any edges of the voronoi diagram that are very short:
-        # perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
-        #
-        # # FIXME this part the reasoning is incorrect....need to compare length of each region's vertice edges
-        # # FIXME and merge the two points together if the edge is too short
-        #
-        # searchVoronoi = sps.KDTree(vor.vertices)  # KD tree for searching voronoi verticies
-        #
-        # nn_verts = list(searchVoronoi.query(vor.vertices,k=2))  # find the true nearest neighbours for each vert
-        # nn_vert_distances = nn_verts[0][:,1]  # distance to nn partner to ecm_verts_unique
-        # nn_vert_partners = nn_verts[1][:,1]   # index of nn partner to ecm_verts_unique
-        #
-        # flag_closeby_ecms = []
-        #
-        # for i, partner in enumerate(nn_vert_partners):     # find indices of segments that are really short
-        #     dist = nn_vert_distances[i]
-        #     if dist < perm_cut:
-        #         flag_closeby_ecms.append([i,partner])
-        #
-        # flagged_close_ecms = set()            # sort these into unique pairs
-        # for flag_inds in flag_closeby_ecms:
-        #     ind1 = flag_inds[0]
-        #     ind2 = flag_inds[1]
-        #     if ind1 < ind2:
-        #         flagged_close_ecms.add((ind1,ind2))
-        #     else:
-        #         flagged_close_ecms.add((ind2,ind1))
-        #
-        # flagged_close_ecms = [list(flagged) for flagged in list(flagged_close_ecms)]
-        # flagged_close_ecms = sorted(flagged_close_ecms, key=lambda flagged: flagged[0])
-        # self.flagged_close_ecms = np.asarray(flagged_close_ecms)
-        #
-        # if len(self.flagged_close_ecms) != 0:
-        #
-        #     kill_indices = self.flagged_close_ecms[:,1]  # points we're going to get rid of
-        #
-        #     # redefine vor.regions by removing the indices of closeby points
-        #     # vor.regions = [[item for item in region if item not in kill_indices] for region in vor.regions]
-        #
-        #     for j, region in enumerate(vor.regions):    # step through each polygon region and sort again
-        #
-        #         if len(region):
-        #
-        #             verts = vor.vertices[region]   # get the vertices for this region
-        #             region = np.asarray(region)      # convert region to a numpy array so it can be sorted
-        #             cent = verts.mean(axis=0)     # calculate the centre point
-        #             angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
-        #             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-        #             sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
-        #             sorted_region_b = sorted_region.tolist()
-        #             vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
-
 
         # self.ecm_verts_unique = vor.vertices
 
@@ -552,91 +500,84 @@ class World(object):
 
         #--------------------remove small edges---------------------------------------------------
 
-         # collapse any edges of the voronoi diagram that are very short:
         perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
 
-        # FIXME this part the reasoning is incorrect....need to compare length of each region's vertice edges
-        # FIXME and merge the two points together if the edge is too short
+        ecm_verts_2 = []
 
-        searchVoronoi = sps.KDTree(self.ecm_verts_unique)  # KD tree for searching voronoi verticies
+        for poly in self.ecm_verts: # step through each closed and clipped region of the Voronoi
+            hold_verts = []
 
-        nn_verts = list(searchVoronoi.query(self.ecm_verts_unique,k=2))  # find the true nearest neighbours for each vert
-        nn_vert_distances = nn_verts[0][:,1]  # distance to nn partner to ecm_verts_unique
-        nn_vert_partners = nn_verts[1][:,1]   # index of nn partner to ecm_verts_unique
+            if len(poly)<4:
 
-        flag_closeby_ecms = []
-
-        for i, partner in enumerate(nn_vert_partners):     # find indices of segments that are really short
-            dist = nn_vert_distances[i]
-            if dist < perm_cut:
-                flag_closeby_ecms.append([i,partner])
-
-        flagged_close_ecms = set()            # sort these into unique pairs
-        for flag_inds in flag_closeby_ecms:
-            ind1 = flag_inds[0]
-            ind2 = flag_inds[1]
-            if ind1 < ind2:
-                flagged_close_ecms.add((ind1,ind2))
-            else:
-                flagged_close_ecms.add((ind2,ind1))
-
-        flagged_close_ecms = [list(flagged) for flagged in list(flagged_close_ecms)]
-        flagged_close_ecms = sorted(flagged_close_ecms, key=lambda flagged: flagged[0])
-        flagged_close_ecms = np.asarray(flagged_close_ecms)
-
-        if len(flagged_close_ecms) != 0:
-
-            kill_indices = flagged_close_ecms[:,1]  # points we're going to get rid of
-
-            # redefine vor.regions by removing the indices of closeby points
-            self.ecm_polyinds = [[item for item in region if item not in kill_indices] for region in self.ecm_polyinds]
-
-            for j, region in enumerate(self.ecm_polyinds):    # step through each polygon region and sort again
-
-                if len(region):
-
-                    verts = self.ecm_verts_unique[region]   # get the vertices for this region
-                    region = np.asarray(region)      # convert region to a numpy array so it can be sorted
-                    cent = verts.mean(axis=0)     # calculate the centre point
-                    angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
-                    #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-                    sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
-                    sorted_region_b = sorted_region.tolist()
-                    self.ecm_polyinds[j] = sorted_region_b   # add sorted list to the regions structure
-
-            self.ecm_verts = []
-            for region in self.ecm_polyinds:
-                verts = self.ecm_verts_unique[region]
-                self.ecm_verts.append(verts)
-
-            ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
-
-            ecm_verts_set = set()
-
-            for vert in ecm_verts_flat:
-                ptx = vert[0]
-                pty = vert[1]
-                ecm_verts_set.add((ptx,pty))
-
-            self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
-
-            self.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
-
-            for poly in self.ecm_verts:
-                verthold = []
                 for vert in poly:
-                    vert = list(vert)
-                    ind = self.ecm_verts_unique.index(vert)
-                    verthold.append(ind)
+                    hold_verts.append(vert)  # if the region has less than 5 verts, we can only append the points
 
-                self.ecm_polyinds.append(verthold)
+            elif len(poly) >= 4:      # if the region has greater than or equal to 5 vertices, then proceed
 
-            self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
+                for i,vert in enumerate(poly):
 
+                    xo = poly[i-1][0]
+                    yo = poly[i-1][1]
+                    x1 = vert[0]
+                    y1 = vert[1]
 
+                    length = math.sqrt((x1-xo)**2 + (y1 -yo)**2)
 
+                    if length > perm_cut:
+                        hold_verts.append(poly[i-1])
 
+            hold_verts = np.asarray(hold_verts)
 
+            ecm_verts_2.append(hold_verts)
+
+        self.ecm_verts = ecm_verts_2
+
+         # next redefine the set of unique vertex points from ecm_verts arrangement
+        ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
+
+        ecm_verts_set = set()
+
+        for vert in ecm_verts_flat:
+            ptx = vert[0]
+            pty = vert[1]
+            ecm_verts_set.add((ptx,pty))
+
+        self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
+
+        # Finally, re-do indicies for ecm polygons in terms of unique vertices list
+        # self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function
+
+        self.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
+
+        for poly in self.ecm_verts:
+            verthold = []
+            for vert in poly:
+                vert = list(vert)
+                ind = self.ecm_verts_unique.index(vert)
+                verthold.append(ind)
+
+            self.ecm_polyinds.append(verthold)
+
+        self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
+
+        # ensure every point in the regions are in order:
+
+        for j, region in enumerate(self.ecm_polyinds):    # step through each polygon region
+
+            verts = self.ecm_verts_unique[region]   # get the vertices for this region
+            region = np.asarray(region)      # convert region to a numpy array so it can be sorted
+            cent = verts.mean(axis=0)     # calculate the centre point
+            angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
+            #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+            sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
+            sorted_region_b = sorted_region.tolist()
+            self.ecm_polyinds[j] = sorted_region_b   # add sorted list to the regions structure
+
+        # Go back yet again and redo the ecm verts with the organized polyinds
+        self.ecm_verts = []
+        for i, inds in enumerate(self.ecm_polyinds):
+            verts = self.ecm_verts_unique[inds]
+            self.ecm_verts.append(verts)
 
         #-----------------------------------------------------------------------------------------
 

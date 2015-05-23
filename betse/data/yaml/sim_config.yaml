@@ -70,7 +70,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 5               # set the time for the initialization run [s]
+  total time: 10               # set the time for the initialization run [s]
                                 # recommend 120 to 600 s (2 to 10 minutes) of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -104,7 +104,7 @@ sim time settings:
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 20            # set the total time for the sim run [s]
+  total time: 10            # set the total time for the sim run [s]
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
                             # Note this is over-ridden if you are using 'custom sim'
@@ -135,7 +135,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)

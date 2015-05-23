@@ -33,6 +33,9 @@ class AnimateCellData(object):
 
         self.cbtit = cbtit
 
+        self.cells = cells
+        self.p = p
+
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
@@ -46,8 +49,12 @@ class AnimateCellData(object):
 
         if p.sim_ECM == True and ignore_simECM == False:
 
-            self.collection = self.ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
-            self.zdata_t[0],shading='gouraud', cmap=self.colormap)
+            verts_data = np.dot(self.zdata_t[0],cells.matrixMap2Verts)
+            plot_data = np.hstack((self.zdata_t[0],verts_data))
+            plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+
+            self.collection = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            plot_data,shading='gouraud', cmap=self.colormap)
 
             if p.showCells == True:
 
@@ -87,8 +94,6 @@ class AnimateCellData(object):
 
         self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
         self.cb.set_label(self.cbtit)
-
-
 
         self.tit = tit
 
@@ -130,7 +135,15 @@ class AnimateCellData(object):
 
         zz = self.zdata_t[i]
 
-        self.collection.set_array(zz)
+        if self.p.sim_ECM == True:
+
+            verts_data = np.dot(zz,self.cells.matrixMap2Verts)
+            plot_data = np.hstack((zz,verts_data))
+            self.collection.set_array(plot_data)
+
+        else:
+            self.collection.set_array(zz)
+
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
@@ -246,6 +259,9 @@ class AnimateGJData(object):
         self.gjI_t = np.sign(sim.Igj_time)
         self.gjvects = cells.gj_vects
 
+        self.cells = cells
+        self.p = p
+
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
@@ -276,8 +292,12 @@ class AnimateGJData(object):
 
         elif p.sim_ECM == True:
 
-            self.coll2 = self.ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
-            self.vdata_t[0],shading='gouraud', cmap=self.colormap)
+            verts_data = np.dot(self.vdata_t[0],cells.matrixMap2Verts)
+            plot_data = np.hstack((self.vdata_t[0],verts_data))
+            plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+
+            self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            plot_data,shading='gouraud', cmap=self.colormap)
             self.coll2.set_alpha(1.0)
 
             if p.showCells == True:
@@ -350,7 +370,16 @@ class AnimateGJData(object):
 
         self.collection.set_array(zz)
 
-        self.coll2.set_array(zv)
+        if self.p.sim_ECM == True:
+
+            verts_data = np.dot(zv,self.cells.matrixMap2Verts)
+            plot_data = np.hstack((zv,verts_data))
+            self.coll2.set_array(plot_data)
+
+        else:
+
+             self.coll2.set_array(zv)
+
         self.Qplot.set_UVC(vx,vy,zz)
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
@@ -487,6 +516,9 @@ class PlotWhileSolving(object):
 
         self.clrAutoscale = clrAutoscale
 
+        self.cells = cells
+        self.p = p
+
         if clrAutoscale == True:
 
             self.cmean = np.mean(vdata)
@@ -518,8 +550,12 @@ class PlotWhileSolving(object):
 
         elif p.sim_ECM == True:
 
-            self.coll2 = self.ax.tripcolor(p.um*cells.mem_mids_flat[:, 0], p.um*cells.mem_mids_flat[:, 1],
-            vdata,shading='gouraud', cmap=self.colormap)
+            verts_data = np.dot(vdata,cells.matrixMap2Verts)
+            plot_data = np.hstack((vdata,verts_data))
+            plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+
+            self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            plot_data,shading='gouraud', cmap=self.colormap)
 
             if p.showCells == True:
 
@@ -566,7 +602,14 @@ class PlotWhileSolving(object):
         zv = sim.vm_time[-1]*1000
         time = sim.time[-1]
 
-        self.coll2.set_array(zv)
+        if p.sim_ECM == True:
+
+            verts_data = np.dot(zv,self.cells.matrixMap2Verts)
+            plot_data = np.hstack((zv,verts_data))
+            self.coll2.set_array(plot_data)
+
+        else:
+            self.coll2.set_array(zv)
 
         if self.clrAutoscale == True:
 

@@ -938,7 +938,7 @@ class Parameters(object):
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
         self.scale_alpha = 1.4   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
-        self.merge_cut_off = (1/16)  # the fraction of nominal cell perimeter at which nearby ecm points are merged
+        self.merge_cut_off = (1/50)  # the fraction of nominal cell perimeter at which nearby ecm points are merged
 
         self.d_cell = self.rc * 2  # diameter of single cell
         self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index
