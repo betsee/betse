@@ -7,7 +7,6 @@ The toolbox module contains a number of functions that are used throughout the
 BETSE project.
 """
 
-# FIXME there are almost always 2 points left in the interior for the alpha shape function!
 
 import numpy as np
 import scipy.spatial as sps

@@ -2,6 +2,9 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME create an applied voltage method
+# FIXME create a gradient vmem method
+
 import numpy as np
 from random import shuffle
 from betse.science import toolbox as tb
@@ -17,6 +20,17 @@ class Dynamics(object):
 
         elif p.sim_ECM == False:
             self.data_length = len(cells.cell_i)
+
+    def runAllInit(self,sim,cells,p):
+        self.globalInit(sim,cells,p)
+        self.scheduledInit(sim,cells,p)
+        self.dynamicInit(sim,cells,p)
+
+    def runAllDynamics(self,sim,cells,p,t):
+        self.globalDyn(sim,cells,p,t)
+        self.scheduledDyn(sim,cells,p,t)
+        self.dynamicDyn(sim,cells,p,t)
+        self.makeAllChanges(sim)
 
     def globalInit(self,sim,cells,p):
 
@@ -143,13 +157,21 @@ class Dynamics(object):
 
             self.targets_IP3 = [item for sublist in self.targets_IP3 for item in sublist]
 
-        if p.scheduled_options['extV'] != 0:   # FIXME need a method for this
+        if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
             self.t_on_extV = p.scheduled_options['extV'][0]
             self.t_off_extV = p.scheduled_options['extV'][1]
             self.t_change_extV = p.scheduled_options['extV'][2]
             self.peak_val_extV = p.scheduled_options['extV'][3]
             self.apply_extV = p.scheduled_options['extV'][4]
+
+            self.targets_extV_positive = []
+            self.targets_extV_negative = []
+            name_positive = self.apply_extV[0]
+            name_negative = self.apply_extV[1]
+
+            self.targets_extV_positive = self.ecm_target_inds[name_positive]
+            self.targets_extV_negative = self.ecm_target_inds[name_negative]
 
     def dynamicInit(self,sim,cells,p):
 
@@ -162,7 +184,7 @@ class Dynamics(object):
             self.v_deactivate_Na = p.vg_options['Na_vg'][3]
             self.t_alive_Na = p.vg_options['Na_vg'][4]
             self.t_dead_Na = p.vg_options['Na_vg'][5]
-            self.targets_vgNa = p.vg_options['Na_vg'][6]
+            self.apply_vgNa = p.vg_options['Na_vg'][6]
 
             # Initialize matrices defining states of vgNa channels for each cell membrane:
             self.inactivated_Na = np.zeros(self.data_length)
@@ -171,6 +193,14 @@ class Dynamics(object):
             self.vgNa_aliveTimer = np.zeros(self.data_length) # sim time at which vgNa starts to close if activated
             self.vgNa_deadTimer = np.zeros(self.data_length) # sim time at which vgNa reactivates after inactivation
 
+            self.targets_vgNa = []
+            for profile in self.apply_vgNa:
+                targets = self.tissue_target_inds[profile]
+                self.targets_vgNa.append(targets)
+
+            self.targets_vgNa = [item for sublist in self.targets_vgNa for item in sublist]
+            self.targets_vgNa = np.asarray(self.targets_vgNa)
+
         if p.vg_options['K_vg'] !=0:
 
             # Initialization of logic values forr voltage gated potassium channel
@@ -178,7 +208,7 @@ class Dynamics(object):
             self.v_on_K = p.vg_options['K_vg'][1]
             self.v_off_K = p.vg_options['K_vg'][2]
             self.t_alive_K = p.vg_options['K_vg'][3]
-            self.targets_vgK = p.vg_options['K_vg'][4]
+            self.apply_vgK = p.vg_options['K_vg'][4]
 
             # Initialize matrices defining states of vgK channels for each cell:
             self.active_K = np.zeros(self.data_length)
@@ -189,6 +219,15 @@ class Dynamics(object):
             self.vgK_state = np.zeros(self.data_length)   # state can be 0 = off, 1 = open
             self.vgK_OFFtime = np.zeros(self.data_length) # sim time at which vgK starts to close
 
+            self.targets_vgK = []
+            for profile in self.apply_vgK:
+                targets = self.tissue_target_inds[profile]
+                self.targets_vgK.append(targets)
+
+            self.targets_vgK = [item for sublist in self.targets_vgK for item in sublist]
+
+            self.targets_vgK = np.asarray(self.targets_vgK)
+
 
         if p.vg_options['Ca_vg'] !=0:
 
@@ -198,23 +237,40 @@ class Dynamics(object):
             self.v_off_Ca = p.vg_options['Ca_vg'][2]
             self.ca_upper_ca = p.vg_options['Ca_vg'][3]
             self.ca_lower_ca = p.vg_options['Ca_vg'][4]
-            self.targets_vgCa = p.vg_options['Ca_vg'][5]
+            self.apply_vgCa = p.vg_options['Ca_vg'][5]
 
             # Initialize matrices defining states of vgK channels for each cell membrane:
             self.active_Ca = np.zeros(self.data_length)
 
             self.vgCa_state = np.zeros(self.data_length)   # state can be 0 = off, 1 = open
 
+            self.targets_vgCa = []
+            for profile in self.apply_vgCa:
+                targets = self.tissue_target_inds[profile]
+                self.targets_vgCa.append(targets)
+
+            self.targets_vgCa = [item for sublist in self.targets_vgCa for item in sublist]
+
+            self.targets_vgCa = np.asarray(self.targets_vgCa)
+
         if p.vg_options['K_cag'] != 0:
 
             self.maxDmKcag = p.vg_options['K_cag'][0]
             self.Kcag_halfmax = p.vg_options['K_cag'][1]
             self.Kcag_n = p.vg_options['K_cag'][2]
-            self.targets_cagK = p.vg_options['K_cag'][3]
+            self.apply_cagK = p.vg_options['K_cag'][3]
 
             # Initialize matrices defining states of cag K channels for each cell membrane:
-            self.active_Kcag = np.zeros(self.data_length)
+            self.active_cagK = np.zeros(self.data_length)
 
+            self.targets_cagK = []
+            for profile in self.apply_cagK:
+                targets = self.tissue_target_inds[profile]
+                self.targets_cagK.append(targets)
+
+            self.targets_cagK = [item for sublist in self.targets_cagK for item in sublist]
+
+            self.targets_cagK = np.asarray(self.targets_cagK)
 
         # calcium dynamics
         if p.Ca_dyn_options['CICR'] != 0:
@@ -236,6 +292,15 @@ class Dynamics(object):
                 self.n_IP3 = p.Ca_dyn_options['CICR'][2][1]
 
             self.apply_Ca = p.Ca_dyn_options['CICR'][3]
+
+            self.targets_Ca = []
+            for profile in self.apply_Ca:
+                targets = self.tissue_target_inds[profile]
+                self.targets_Ca.append(targets)
+
+            self.targets_Ca = [item for sublist in self.targets_Ca for item in sublist]
+
+            self.targets_Ca = np.asarray(self.targets_Ca)
 
     def globalDyn(self,sim,cells,p,t):
 
@@ -293,13 +358,13 @@ class Dynamics(object):
 
     def scheduledDyn(self,sim,cells,p,t):
 
-        if p.scheduled_options['Na_mem'] != 0 and p.ions_dict['Na'] != 0:
+        if p.scheduled_options['Na_mem'] != 0:
 
             effector_Na = tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
 
             sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
-        if p.scheduled_options['K_mem'] != 0 and p.ions_dict['K'] != 0:
+        if p.scheduled_options['K_mem'] != 0:
 
             effector_K = tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
 
@@ -322,21 +387,45 @@ class Dynamics(object):
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
 
-    def dynamicDyn(self,sim,cells,p):
+        if p.scheduled_options['extV'] != 0 and p.sim_ECM == True: # FIXME complete this extV section
 
-        self.dvsign = np.sign(self.dvm)
+            pass
 
-    def vgSodium(self,sim,cells,p):
+    def dynamicDyn(self,sim,cells,p,t):
+
+        self.dvsign = np.sign(sim.dvm)
+
+        if p.vg_options['Na_vg'] != 0:
+
+            self.vgSodium(sim,cells,p,t)
+
+        if p.vg_options['K_vg'] !=0:
+
+            self.vgPotassium(sim,cells,p,t)
+
+        if p.vg_options['Ca_vg'] !=0 and p.ions_dict['Ca'] != 0:
+
+            self.vgCalcium(sim,cells,p,t)
+
+        if p.vg_options['K_cag'] != 0 and p.ions_dict['Ca'] != 0:
+
+            self.cagPotassium(sim,cells,p,t)
+
+        if p.Ca_dyn_options['CICR'] != 0 and p.ions_dict['Ca'] != 0:
+
+            self.calciumDynamics(sim,cells,p)
+
+    def vgSodium(self,sim,cells,p,t):
 
         # Logic phase 1: find out which cells have activated their vgNa channels
-        truth_vmGTvon_Na = self.vm > self.v_activate_Na  # returns bools of vm that are bigger than threshhold
+        truth_vmGTvon_Na = sim.vm > self.v_activate_Na  # returns bools of vm that are bigger than threshhold
         #truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
         truth_not_inactivated_Na = self.inactivated_Na == 0  # return bools of vm that can activate
         truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
 
         # find the cell indicies that correspond to all statements of logic phase 1:
         inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*
-                            self.target_cells).nonzero()
+                            self.targets_vgNa).nonzero()
 
         self.vgNa_state[inds_activate_Na] = 1 # open the channel
         self.vgNa_aliveTimer[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
@@ -344,9 +433,9 @@ class Dynamics(object):
 
         # Logic phase 2: find out which cells have closed their gates due to crossing inactivating voltage:
         truth_vgNa_On = self.vgNa_state == 1  # channel must be on already
-        truth_vmGTvoff_Na = self.vm > self.v_inactivate_Na  # bools of cells that have vm greater than shut-off volts
+        truth_vmGTvoff_Na = sim.vm > self.v_inactivate_Na  # bools of cells that have vm greater than shut-off volts
 
-        inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.target_cells).nonzero()
+        inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.targets_vgNa).nonzero()
 
         self.vgNa_state[inds_inactivate_Na] = 0    # close the vg sodium channels
         self.inactivated_Na[inds_inactivate_Na] = 1   # switch these so cells do not re-activate
@@ -357,7 +446,7 @@ class Dynamics(object):
 
         truth_vgNa_act_timeout = self.vgNa_aliveTimer < t   # find cells that have timed out their vgNa open state
         truth_vgNa_On = self.vgNa_state == 1 # ensure the vgNa is indeed open
-        inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.target_cells).nonzero()
+        inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.targets_vgNa).nonzero()
 
         self.vgNa_state[inds_timeout_Na_act] = 0             # set the state to closed
         self.vgNa_aliveTimer[inds_timeout_Na_act] = 0            # reset the timers to zero
@@ -367,42 +456,40 @@ class Dynamics(object):
         # Logic phase 4: find out if inactivation timers have timed out:
         truth_vgNa_inact_timeout = self.vgNa_deadTimer <t  # find cells that have timed out their vgNa inact state
         truth_vgNa_Off = self.vgNa_state == 0 # check to make sure these channels are indeed closed
-        inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.target_cells).nonzero()
+        inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.targets_vgNa).nonzero()
 
         self.vgNa_deadTimer[inds_timeout_Na_inact] = 0    # reset the inactivation timer
         self.inactivated_Na[inds_timeout_Na_inact] = 0    # remove inhibition to activation
 
         # Logic phase 5: find out if cells have passed below threshhold to become deactivated:
-        truth_vmLTvreact_Na = self.vm < self.v_deactivate_Na # voltage is lower than the deactivate voltage
+        truth_vmLTvreact_Na = sim.vm < self.v_deactivate_Na # voltage is lower than the deactivate voltage
 
-        inds_deactivate_Na = (truth_vmLTvreact_Na*self.target_cells).nonzero()
+        inds_deactivate_Na = (truth_vmLTvreact_Na*self.targets_vgNa).nonzero()
 
         self.inactivated_Na[inds_deactivate_Na] = 0  # turn any inhibition to activation off
         self.vgNa_state[inds_deactivate_Na] = 0   # shut the Na channel off if it's on
         self.vgNa_aliveTimer[inds_deactivate_Na] = 0       # reset any alive-timers to zero
         self.vgNa_deadTimer[inds_deactivate_Na] = 0   # reset any dead-timers to zero
 
-
         # Define ultimate activity of the vgNa channel:
+        sim.Dm_vg[sim.iNa] = self.maxDmNa*self.vgNa_state
 
-        self.Dm_vg[self.iNa] = self.maxDmNa*self.vgNa_state
-
-    def vgPotassium(self,sim,cells,p):
+    def vgPotassium(self,sim,cells,p,t):
          # detecting channels to turn on:
 
-        truth_vmGTvon_K = self.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
+        truth_vmGTvon_K = sim.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
         truth_depol_K = self.dvsign == 1  # bools matrix for cells that are depolarizing
         truth_vgK_OFF = self.vgK_state == 0   # bools matrix for cells that are in the off state
 
         # cells at these indices will become activated in this time step:
-        inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.target_cells).nonzero()
+        inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.targets_vgK).nonzero()
         self.vgK_state[inds_activate_K] = 1  # set the state of these channels to "open"
         self.vgK_OFFtime[inds_activate_K] = self.t_alive_K + t  # set the time at which these channels will close
 
         #  detecting channels to turn off:
         truth_vgK_ON = self.vgK_state == 1  # detect cells that are in their on state
         truth_vgK_timeout = self.vgK_OFFtime < t     # detect the cells that have expired off timers
-        inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.target_cells).nonzero()
+        inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.targets_vgK).nonzero()
         self.vgK_state[inds_deactivate_K] = 0 # turn off the channels to closed
         self.vgK_OFFtime[inds_deactivate_K] = 0
 
@@ -412,30 +499,29 @@ class Dynamics(object):
         inds_closed_K =(self.vgK_state == 0).nonzero()
         self.active_K[inds_closed_K] = 0
 
-        self.Dm_vg[self.iK] = self.maxDmK*self.active_K
+        sim.Dm_vg[sim.iK] = self.maxDmK*self.active_K
 
-    def vgCalcium(self,sim,cells,p):
+    def vgCalcium(self,sim,cells,p,t):
          # detect condition to turn vg_Ca channel on:
-        truth_vmGTvon_Ca = self.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
-        truth_caLTcaOff = self.cc_cells[self.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
+        truth_vmGTvon_Ca = sim.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
+        truth_caLTcaOff = sim.cc_cells[sim.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
         truth_depol_Ca = self.dvsign == 1  # bools matrix for cells that are depolarizing
         truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
 
         # cells at these indices will become activated in this time step:
-        inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_cells).nonzero()
+        inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.targets_vgCa).nonzero()
         self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
 
         # detect condition to turn off vg_Ca channel:
-        truth_caGTcaOff = self.cc_cells[self.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
+        truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
         truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
-        inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_cells).nonzero()
+        inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.targets_vgCa).nonzero()
         self.vgCa_state[inds_inactivate_Ca] = 0
 
         # additional condition to turn off vg_Ca via depolarizing voltage:
-        truth_vmGTvcaOff = self.vm > self.v_off_Ca
-        inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_cells*truth_vgCa_ON).nonzero()
+        truth_vmGTvcaOff = sim.vm > self.v_off_Ca
+        inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.targets_vgCa*truth_vgCa_ON).nonzero()
         self.vgCa_state[inds_inactivate_Ca_2] = 0
-
 
         inds_open_Ca = (self.vgCa_state == 1).nonzero()
         self.active_Ca[inds_open_Ca] = 1
@@ -443,37 +529,34 @@ class Dynamics(object):
         inds_closed_Ca =(self.vgCa_state == 0).nonzero()
         self.active_Ca[inds_closed_Ca] = 0
 
-        self.Dm_vg[self.iCa] = self.maxDmCa*self.active_Ca
+        sim.Dm_vg[sim.iCa] = self.maxDmCa*self.active_Ca
 
-    def cagPotassium(self,sim,cells,p):
+    def cagPotassium(self,sim,cells,p,t):
 
-        inds_cagK_targets = (self.target_cells).nonzero()
+        inds_cagK_targets = (self.targets_cagK).nonzero()
 
-        self.active_Kcag[inds_cagK_targets] = tb.hill(self.cc_cells[self.iCa][inds_cagK_targets],
+        self.active_cagK[inds_cagK_targets] = tb.hill(sim.cc_cells[sim.iCa][inds_cagK_targets],
             self.Kcag_halfmax,self.Kcag_n)
 
-        self.Dm_cag[self.iK] = self.maxDmKcag*self.active_Kcag
+        sim.Dm_cag[sim.iK] = self.maxDmKcag*self.active_cagK
 
-        # finally, add together all effects to make change on the cell membrane permeabilities:
-        self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_cag + self.Dm_base
-
-    def calciumDynamics(self,sim,cells,p):
+    def calciumDynamics(self,sim,cells,p):    # FIXME should calcium dynamics be targeted or global?
 
         if p.Ca_dyn_options['CICR'] != 0:
 
-            dcc_CaER_sign = np.sign(self.dcc_ER[0])
+            dcc_CaER_sign = np.sign(sim.dcc_ER[0])
 
             if len(p.Ca_dyn_options['CICR'][1])==0:
                 term_Ca_reg = 1.0
 
             else:
-                term_Ca_reg = (np.exp(-((self.cc_cells[self.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
+                term_Ca_reg = (np.exp(-((sim.cc_cells[sim.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
 
             if len(p.Ca_dyn_options['CICR'][2]) == 0:
                 term_IP3_reg = 1.0
 
             else:
-                term_IP3_reg = tb.hill(self.cIP3,self.KhmIP3,self.n_IP3)
+                term_IP3_reg = tb.hill(sim.cIP3,self.KhmIP3,self.n_IP3)
 
             if p.FMmod == 1:
                 span = self.topCa - self.bottomCa
@@ -482,12 +565,12 @@ class Dynamics(object):
             else:
                 topCa = self.topCa
 
-            truth_overHighCa = self.cc_er[0] >=  topCa
+            truth_overHighCa = sim.cc_er[0] >=  topCa
             truth_increasingCa = dcc_CaER_sign == 1
             truth_alreadyClosed = self.stateER == 0.0
             inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
 
-            truth_underBottomCa = self.cc_er[0]< self.bottomCa
+            truth_underBottomCa = sim.cc_er[0]< self.bottomCa
             truth_decreasingCa = dcc_CaER_sign == -1
             truth_alreadyOpen = self.stateER == 1.0
             inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
@@ -495,12 +578,17 @@ class Dynamics(object):
             self.stateER[inds_open_ER] = 1.0
             self.stateER[inds_close_ER] = 0.0
 
-            self.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
+            sim.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
 
-            self.Dm_er = self.Dm_er_CICR + self.Dm_er_base
+            sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
 
     def tissueProfiles(self,sim,cells,p):
 
+        """
+        Reads in parameters data to build cell and membrane specific (if p.sim_ECM == True) index
+        sets for each user-defined tissue profile.
+
+        """
         profile_names = list(p.tissue_profiles.keys())
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
@@ -543,7 +631,13 @@ class Dynamics(object):
                 dP = dmem_list[6]
                 sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
 
-    def ecmProfiles(self,sim,cells,p):
+    def ecmBoundProfiles(self,sim,cells,p):
+
+        """
+        Reads in parameters data to build ecm-boundary specific (if p.sim_ECM == True) index
+        sets for each user-defined boundary profile.
+
+        """
 
         profile_names = list(p.boundary_profiles.keys())
         self.ecm_target_inds = {}
@@ -554,6 +648,9 @@ class Dynamics(object):
 
             self.ecm_target_inds[name] = getEcmTargets(target_method,cells,p)
 
+    def makeAllChanges(self,sim):
+        # Add together all effects to make change on the cell membrane permeabilities:
+        sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_base
 
 def getCellTargets(targets_description,cells,p,ignoreECM = False):
 

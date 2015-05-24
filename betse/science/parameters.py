@@ -6,6 +6,9 @@
 # 2000. Section 15.4, Intracellular Ion Environment and Membrane Electric Potential.
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
+# FIXME create a planaria-specific (aquatic invertebrate) ion profile
+# FIXME move ecm diffusion into time profile, similar to gj radius
+
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
 from betse.util.path import paths
@@ -1166,7 +1169,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 5.0e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 2.5e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 

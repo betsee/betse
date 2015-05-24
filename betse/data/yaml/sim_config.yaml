@@ -101,7 +101,7 @@ sim time settings:
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 10            # set the total time for the sim run [s]
+  total time: 12            # set the total time for the sim run [s]
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
                             # Note this is over-ridden if you are using 'custom sim'
@@ -262,7 +262,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gj voltage threshold: 60e-3    # cell-cell voltage at which gj close [V]
+  gj voltage threshold: 50e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 20 to 80e-3 V
 
   gj voltage window: 30e-3        # the range over which gj goes from open to shut
@@ -280,7 +280,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-8     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
+  ecm diffusion factor: 1e-8     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-8)
 
   ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -298,10 +298,10 @@ world variables:
 change K env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 10           # sim time to start change [s]
-  change finish: 40         # sim time to end change and return to original [s]
+  change start: 2           # sim time to start change [s]
+  change finish: 15         # sim time to end change and return to original [s]
   change rate: 5            # rate of change [s]
-  multiplier: 20            # factor to multiply base level
+  multiplier: 2            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
 
@@ -356,8 +356,8 @@ block HKATP pump:
 number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: 'excitable cells'       # give your profile a name that will be used to apply the profile
-    cell indices: 'random50'      # The string 'random##' will target specified percentage of cell pop.
+    name: 'hyperpolarized'       # give your profile a name that will be used to apply the profile
+    cell indices: [32,49,29]      # The string 'random##' will target specified percentage of cell pop.
                                   # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -368,11 +368,11 @@ tissue profile 1:
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
 tissue profile 2:
-    name: 'somatic cells'
-    cell indices: [5,8,9,10]
+    name: 'depolarized'
+    cell indices: [6,10,47,46]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -399,20 +399,20 @@ boundary profile 2:
 change Na mem:       # Change the membrane permeability to Na+
 
   event happens: True              # turn the even on (True) or off (False)
-  change start: 0.02                # sim time to start change [s]
-  change finish: 0.40               # sim time to end change and return to original [s]
-  change rate: 0.01                 # rate of change [s]
-  multiplier: 1000                  # factor to multiply base level
-  apply to: ['excitable cells','somatic cells']        # name(s) of the tissue profile(s) to apply it to
+  change start: 3.0                # sim time to start change [s]
+  change finish: 6.0               # sim time to end change and return to original [s]
+  change rate: 2.0                 # rate of change [s]
+  multiplier: 10.0                  # factor to multiply base level
+  apply to: ['depolarized']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
   event happens: True              # turn the even on (True) or off (False)
-  change start: 9                   # sim time to start change [s]
-  change finish: 11                 # sim time to end change and return to original [s]
-  change rate: 1                    # rate of change [s]
-  multiplier: 10                    # factor to multiply base level
-  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
+  change start: 3.0                   # sim time to start change [s]
+  change finish: 6.0                 # sim time to end change and return to original [s]
+  change rate: 2.0                    # rate of change [s]
+  multiplier: 2.0                    # factor to multiply base level
+  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
 
 change Cl mem:      # Change the membrane permeability to Cl-
 
@@ -421,7 +421,7 @@ change Cl mem:      # Change the membrane permeability to Cl-
   change finish: 17                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
-  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
 
@@ -430,7 +430,7 @@ change Ca mem:       # Change the membrane permeability to Ca2+
   change finish: 22                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
-  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
 
 produce IP3:        # Schedule cell production of IP3
 
@@ -439,16 +439,16 @@ produce IP3:        # Schedule cell production of IP3
   change finish: 20                 # sim time to end IP3 production [s]
   change rate: 1                    # rate of production ramp up [s]
   multiplier: 1e-4                  # maximum rate of production [mol/(s*m3)]
-  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
 
-apply external voltage:       # voltages can only be applied if extracellular spaces are simulated
-
-    event happens: False      # turn the even on (True) or off (False)
-    change start: 5
-    change finish: 20
-    change rate: 1
-    peak value: 1
-    apply to: 'applied pos voltage'
+apply external voltage:             # apply external voltage to ecm spaces on the boundary
+                                    # voltages can only be applied if extracellular spaces are simulated
+    event happens: False            # turn the even on (True) or off (False)
+    change start: 5                 # time event starts [s]
+    change finish: 20               # time event finishes [s]
+    change rate: 1                  # time to reach peak value [s]
+    peak value: 1                   # peak value [V]
+    apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS
@@ -460,23 +460,23 @@ apply external voltage:       # voltages can only be applied if extracellular sp
 
 voltage gated Na+:
     turn on: False                      # voltage gated sodium channel ?
-    apply to: ['excitable cells']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['hyperpolarized']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated K+:                       # voltage gated potassium channel ?
     turn on: False
-    apply to: ['excitable cells']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['hyperpolarized']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated Ca2+:                     # voltage gated calcium channel ?
     turn on: False
-    apply to: ['somatic cells']         # name(s) of the tissue profile(s) to apply it to
+    apply to: ['depolarized']         # name(s) of the tissue profile(s) to apply it to
 
 calcium gated K+:                       # calcium gated potassium channel ?
     turn on: False
-    apply to: ['somatic cells']         # name(s) of the tissue profile(s) to apply it to
+    apply to: ['depolarized']         # name(s) of the tissue profile(s) to apply it to
 
 Ca dynamics:                      # include full calcium dynamics in the situation?
     turn on: False                # this creates an endoplasmic reticulum (ER) in each cell and
-    apply to: ['somatic cells']     # IP3 mediated calcium release from the ER
+    apply to: ['depolarized']     # IP3 mediated calcium release from the ER
                                   # note this only works for an ion profile with Ca2+ ions
                                   # options True or False (case sensitive)
 
@@ -526,7 +526,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)

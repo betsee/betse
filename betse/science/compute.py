@@ -2,7 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-
 # FIXME currents in ECM and gj networks...
 # FIXME pumps should use Hill functions, not linear to concentrations
 
@@ -775,6 +774,9 @@ class Simulator(object):
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
 
+        if p.sim_ECM == True:
+            self.dyna.ecmBoundProfiles(self,cells,p) # initialize boundary profiles
+
         # add channel noise to the model:
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
 
@@ -782,28 +784,30 @@ class Simulator(object):
         Dm_cellsA = np.asarray(self.Dm_cells)
         Dm_cellsER = np.asarray(self.Dm_er)
 
-        if tb.emptyDict(p.scheduled_options) == False or tb.emptyDict(p.vg_options) == False or p.Ca_dyn == True:
+        # if tb.emptyDict(p.scheduled_options) == False or tb.emptyDict(p.vg_options) == False or p.Ca_dyn == True:
 
-            self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
+        self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
-        if tb.emptyDict(p.scheduled_options) == False:
-            self.Dm_scheduled = np.copy(Dm_cellsA)
-            self.Dm_scheduled[:] = 0
+        # if tb.emptyDict(p.scheduled_options) == False:
+        self.Dm_scheduled = np.copy(Dm_cellsA)
+        self.Dm_scheduled[:] = 0
 
-        if tb.emptyDict(p.vg_options) == False:
+        # if tb.emptyDict(p.vg_options) == False:
             # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
-            self.Dm_vg = np.copy(Dm_cellsA)
-            self.Dm_vg[:] = 0
+        self.Dm_vg = np.copy(Dm_cellsA)
+        self.Dm_vg[:] = 0
 
-        if p.Ca_dyn == True:
+        # if p.Ca_dyn == True:
             # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
-            self.Dm_cag = np.copy(Dm_cellsA)
-            self.Dm_cag[:] = 0
+        self.Dm_cag = np.copy(Dm_cellsA)
+        self.Dm_cag[:] = 0
 
-            self.Dm_er_base = np.copy(Dm_cellsER)
+        self.Dm_er_base = np.copy(Dm_cellsER)
 
-            self.Dm_er_CICR = np.copy(Dm_cellsER)
-            self.Dm_er_CICR[:] = 0
+        self.Dm_er_CICR = np.copy(Dm_cellsER)
+        self.Dm_er_CICR[:] = 0
+
+        self.dcc_ER = []
 
         if p.global_options['gj_block'] != 0:
 
@@ -1433,7 +1437,7 @@ class Simulator(object):
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
             # self.allDynamics(t,p)  # user-scheduled (forced) interventions
 
-            self.dyna.globalDyn(self,cells,p,t)
+            self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
@@ -1811,7 +1815,7 @@ class Simulator(object):
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
             # self.allDynamics(t,p)  # user-scheduled (forced) interventions
-            self.dyna.globalDyn(self,cells,p,t)
+            self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
             _,_,_,_,fNa_NaK, fK_NaK =\
@@ -1905,7 +1909,7 @@ class Simulator(object):
                 vgj = vmB - vmA
 
                 # determine the open state of gap junctions:
-                self.gjopen = self.gj_block*((1.0 - tb.step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2)
+                self.gjopen = self.gj_block*((1.0 - tb.step(abs(vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
                 # determine flux through gap junctions for this ion:
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
@@ -2101,299 +2105,6 @@ class Simulator(object):
 
         plt.close()
         loggers.log_info('Simulation completed successfully.')
-
-    def allDynamics(self,t,p):
-
-        target_length = len(self.scheduled_target_inds)
-
-        # if p.scheduled_options['Na_mem'] != 0 and p.ions_dict['Na'] != 0 and target_length != 0:
-        #     effector_Na = pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
-        #     self.Dm_scheduled[self.iNa][self.scheduled_target_inds] = self.mem_mult_Namem*effector_Na*p.Dm_Na
-
-        if p.scheduled_options['Na_mem'] != 0:
-
-            if p.ions_dict['Na'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                effector_Na = tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
-
-                self.Dm_scheduled[self.iNa][self.scheduled_target_inds] = self.mem_mult_Namem*effector_Na*p.Dm_Na
-
-        if p.scheduled_options['K_mem'] != 0:
-
-            if p.ions_dict['K'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                effector_K = tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
-
-                self.Dm_scheduled[self.iK][self.scheduled_target_inds] = self.mem_mult_Kmem*effector_K*p.Dm_K
-
-        if p.scheduled_options['Cl_mem'] != 0:
-
-            if p.ions_dict['Cl'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                effector_Cl = tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
-
-                self.Dm_scheduled[self.iCl][self.scheduled_target_inds] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
-
-        if p.scheduled_options['Ca_mem'] != 0:
-
-            if p.ions_dict['Ca'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                effector_Ca = tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
-
-                self.Dm_scheduled[self.iCa][self.scheduled_target_inds] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
-
-        if p.scheduled_options['IP3'] != 0:
-
-            self.cIP3[self.scheduled_target_inds] = self.cIP3[self.scheduled_target_inds] + self.rate_IP3*pulse(t,self.t_onIP3,
-                self.t_offIP3,self.t_changeIP3)
-
-        if p.global_options['K_env'] != 0:
-
-            effector_Kenv = tb.pulse(t,self.t_on_Kenv,self.t_off_Kenv,self.t_change_Kenv)
-
-            self.cc_env[self.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
-
-        if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
-
-            effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
-
-            self.cc_env[self.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
-
-        if p.global_options['Na_env'] != 0:
-
-            effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
-
-            self.cc_env[self.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
-
-        if p.global_options['T_change'] != 0:
-
-            self.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
-
-        if p.global_options['gj_block'] != 0:
-
-            self.gj_block = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
-
-        if p.global_options['NaKATP_block'] != 0:
-
-            self.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
-
-        if p.global_options['HKATP_block'] != 0:
-
-            self.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
-
-
-        # Voltage gated channel effects ................................................................................
-
-        dvsign = np.sign(self.dvm)
-
-        if p.vg_options['Na_vg'] != 0:
-
-            if p.ions_dict['Na'] == 0:
-                pass
-
-            else:
-
-                # Logic phase 1: find out which cells have activated their vgNa channels
-                truth_vmGTvon_Na = self.vm > self.v_activate_Na  # returns bools of vm that are bigger than threshhold
-                #truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
-                truth_not_inactivated_Na = self.inactivated_Na == 0  # return bools of vm that can activate
-                truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
-
-                # find the cell indicies that correspond to all statements of logic phase 1:
-                inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*
-                                    self.target_cells).nonzero()
-
-                self.vgNa_state[inds_activate_Na] = 1 # open the channel
-                self.vgNa_aliveTimer[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
-                self.vgNa_deadTimer[inds_activate_Na] = 0  # reset any timers for an inactivated state to zero
-
-                # Logic phase 2: find out which cells have closed their gates due to crossing inactivating voltage:
-                truth_vgNa_On = self.vgNa_state == 1  # channel must be on already
-                truth_vmGTvoff_Na = self.vm > self.v_inactivate_Na  # bools of cells that have vm greater than shut-off volts
-
-                inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.target_cells).nonzero()
-
-                self.vgNa_state[inds_inactivate_Na] = 0    # close the vg sodium channels
-                self.inactivated_Na[inds_inactivate_Na] = 1   # switch these so cells do not re-activate
-                self.vgNa_aliveTimer[inds_inactivate_Na] = 0            # reset any alive timers to zero
-                self.vgNa_deadTimer[inds_inactivate_Na] = t + self.t_dead_Na # set the timer of the inactivated state
-
-                 # Logic phase 3: find out if cell activation state has timed out, also rendering inactivated state:
-
-                truth_vgNa_act_timeout = self.vgNa_aliveTimer < t   # find cells that have timed out their vgNa open state
-                truth_vgNa_On = self.vgNa_state == 1 # ensure the vgNa is indeed open
-                inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.target_cells).nonzero()
-
-                self.vgNa_state[inds_timeout_Na_act] = 0             # set the state to closed
-                self.vgNa_aliveTimer[inds_timeout_Na_act] = 0            # reset the timers to zero
-                self.inactivated_Na[inds_timeout_Na_act] = 1    # inactivate the channel so it can't reactivate
-                self.vgNa_deadTimer[inds_timeout_Na_act] = t + self.t_dead_Na # set the timer of the inactivated state
-
-                # Logic phase 4: find out if inactivation timers have timed out:
-                truth_vgNa_inact_timeout = self.vgNa_deadTimer <t  # find cells that have timed out their vgNa inact state
-                truth_vgNa_Off = self.vgNa_state == 0 # check to make sure these channels are indeed closed
-                inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.target_cells).nonzero()
-
-                self.vgNa_deadTimer[inds_timeout_Na_inact] = 0    # reset the inactivation timer
-                self.inactivated_Na[inds_timeout_Na_inact] = 0    # remove inhibition to activation
-
-                # Logic phase 5: find out if cells have passed below threshhold to become deactivated:
-                truth_vmLTvreact_Na = self.vm < self.v_deactivate_Na # voltage is lower than the deactivate voltage
-
-                inds_deactivate_Na = (truth_vmLTvreact_Na*self.target_cells).nonzero()
-
-                self.inactivated_Na[inds_deactivate_Na] = 0  # turn any inhibition to activation off
-                self.vgNa_state[inds_deactivate_Na] = 0   # shut the Na channel off if it's on
-                self.vgNa_aliveTimer[inds_deactivate_Na] = 0       # reset any alive-timers to zero
-                self.vgNa_deadTimer[inds_deactivate_Na] = 0   # reset any dead-timers to zero
-
-
-                # Define ultimate activity of the vgNa channel:
-
-                self.Dm_vg[self.iNa] = self.maxDmNa*self.vgNa_state
-
-        if p.vg_options['K_vg'] != 0:
-
-            if p.ions_dict['K'] == 0:
-                pass
-
-            else:
-
-                # detecting channels to turn on:
-
-                truth_vmGTvon_K = self.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
-                truth_depol_K = dvsign == 1  # bools matrix for cells that are depolarizing
-                truth_vgK_OFF = self.vgK_state == 0   # bools matrix for cells that are in the off state
-
-                # cells at these indices will become activated in this time step:
-                inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.target_cells).nonzero()
-                self.vgK_state[inds_activate_K] = 1  # set the state of these channels to "open"
-                self.vgK_OFFtime[inds_activate_K] = self.t_alive_K + t  # set the time at which these channels will close
-
-                #  detecting channels to turn off:
-                truth_vgK_ON = self.vgK_state == 1  # detect cells that are in their on state
-                truth_vgK_timeout = self.vgK_OFFtime < t     # detect the cells that have expired off timers
-                inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.target_cells).nonzero()
-                self.vgK_state[inds_deactivate_K] = 0 # turn off the channels to closed
-                self.vgK_OFFtime[inds_deactivate_K] = 0
-
-                inds_open_K = (self.vgK_state == 1).nonzero()
-                self.active_K[inds_open_K] = 1
-
-                inds_closed_K =(self.vgK_state == 0).nonzero()
-                self.active_K[inds_closed_K] = 0
-
-                self.Dm_vg[self.iK] = self.maxDmK*self.active_K
-
-
-        if p.vg_options['Ca_vg'] != 0:
-
-            if p.ions_dict['Ca'] == 0:
-                pass
-
-            else:
-                # detect condition to turn vg_Ca channel on:
-                truth_vmGTvon_Ca = self.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
-                truth_caLTcaOff = self.cc_cells[self.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
-                truth_depol_Ca = dvsign == 1  # bools matrix for cells that are depolarizing
-                truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
-
-                # cells at these indices will become activated in this time step:
-                inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_cells).nonzero()
-                self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
-
-                # detect condition to turn off vg_Ca channel:
-                truth_caGTcaOff = self.cc_cells[self.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
-                truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
-                inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_cells).nonzero()
-                self.vgCa_state[inds_inactivate_Ca] = 0
-
-                # additional condition to turn off vg_Ca via depolarizing voltage:
-                truth_vmGTvcaOff = self.vm > self.v_off_Ca
-                inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_cells*truth_vgCa_ON).nonzero()
-                self.vgCa_state[inds_inactivate_Ca_2] = 0
-
-
-                inds_open_Ca = (self.vgCa_state == 1).nonzero()
-                self.active_Ca[inds_open_Ca] = 1
-
-                inds_closed_Ca =(self.vgCa_state == 0).nonzero()
-                self.active_Ca[inds_closed_Ca] = 0
-
-                self.Dm_vg[self.iCa] = self.maxDmCa*self.active_Ca
-
-        if p.vg_options['K_cag'] != 0:
-
-            if p.ions_dict['Ca'] == 0:
-                pass
-
-            else:
-
-                inds_cagK_targets = (self.target_cells).nonzero()
-
-                self.active_Kcag[inds_cagK_targets] = tb.hill(self.cc_cells[self.iCa][inds_cagK_targets],
-                    self.Kcag_halfmax,self.Kcag_n)
-
-                self.Dm_cag[self.iK] = self.maxDmKcag*self.active_Kcag
-
-        # finally, add together all effects to make change on the cell membrane permeabilities:
-        self.Dm_cells = self.Dm_scheduled + self.Dm_vg + self.Dm_cag + self.Dm_base    # FIXME this is the one spot where original and ECM values contradict each other
-
-        # Calcium Dynamics options including Calicum-Induced-Calcium-Release (CICR) and IP3 mediated calcium release....
-
-        if p.ions_dict['Ca'] ==1 and p.Ca_dyn == 1:
-
-            if p.Ca_dyn_options['CICR'] != 0:
-
-                dcc_CaER_sign = np.sign(self.dcc_ER[0])
-
-                if len(p.Ca_dyn_options['CICR'][1])==0:
-                    term_Ca_reg = 1.0
-
-                else:
-                    term_Ca_reg = (np.exp(-((self.cc_cells[self.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
-
-                if len(p.Ca_dyn_options['CICR'][2]) == 0:
-                    term_IP3_reg = 1.0
-
-                else:
-                    term_IP3_reg = tb.hill(self.cIP3,self.KhmIP3,self.n_IP3)
-
-                if p.FMmod == 1:
-                    span = self.topCa - self.bottomCa
-                    FMmod = p.ip3FM*span
-                    topCa = self.topCa - FMmod*term_IP3_reg
-                else:
-                    topCa = self.topCa
-
-                truth_overHighCa = self.cc_er[0] >=  topCa
-                truth_increasingCa = dcc_CaER_sign == 1
-                truth_alreadyClosed = self.stateER == 0.0
-                inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
-
-                truth_underBottomCa = self.cc_er[0]< self.bottomCa
-                truth_decreasingCa = dcc_CaER_sign == -1
-                truth_alreadyOpen = self.stateER == 1.0
-                inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
-
-                self.stateER[inds_open_ER] = 1.0
-                self.stateER[inds_close_ER] = 0.0
-
-                self.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
-
-                self.Dm_er = self.Dm_er_CICR + self.Dm_er_base
 
     def update_V_ecm(self,cells,p):
 
