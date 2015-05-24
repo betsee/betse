@@ -3,10 +3,8 @@
 # See "LICENSE" for further details.
 
 
-
 # FIXME currents in ECM and gj networks...
-
-# FIXME if no blocks are applied, don't make the matrices! Change pump behaviours...
+# FIXME pumps should use Hill functions, not linear to concentrations
 
 import numpy as np
 import os, os.path
@@ -763,7 +761,6 @@ class Simulator(object):
 
     def tissueInit(self,cells,p):
 
-
         if p.sim_ECM == True:
              # re-initialize diffusion constants for the ecm-ecm junctions in case value changed:
             id_ecm = np.ones(len(cells.ecm_nn_i))
@@ -775,9 +772,8 @@ class Simulator(object):
 
             self.D_ecm_juncs = np.asarray(self.D_ecm_juncs)
 
-        # create the tissue dynamics object:
-        self.dyna = Dynamics(self,cells,p)
-        self.dyna.globalInit(self,cells,p)
+        self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
+        self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
 
         # add channel noise to the model:
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
@@ -786,7 +782,9 @@ class Simulator(object):
         Dm_cellsA = np.asarray(self.Dm_cells)
         Dm_cellsER = np.asarray(self.Dm_er)
 
-        self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
+        if tb.emptyDict(p.scheduled_options) == False or tb.emptyDict(p.vg_options) == False or p.Ca_dyn == True:
+
+            self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
         if tb.emptyDict(p.scheduled_options) == False:
             self.Dm_scheduled = np.copy(Dm_cellsA)
@@ -797,14 +795,15 @@ class Simulator(object):
             self.Dm_vg = np.copy(Dm_cellsA)
             self.Dm_vg[:] = 0
 
-        # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
-        self.Dm_cag = np.copy(Dm_cellsA)
-        self.Dm_cag[:] = 0
+        if p.Ca_dyn == True:
+            # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
+            self.Dm_cag = np.copy(Dm_cellsA)
+            self.Dm_cag[:] = 0
 
-        self.Dm_er_base = np.copy(Dm_cellsER)
+            self.Dm_er_base = np.copy(Dm_cellsER)
 
-        self.Dm_er_CICR = np.copy(Dm_cellsER)
-        self.Dm_er_CICR[:] = 0
+            self.Dm_er_CICR = np.copy(Dm_cellsER)
+            self.Dm_er_CICR[:] = 0
 
         if p.global_options['gj_block'] != 0:
 
@@ -827,108 +826,9 @@ class Simulator(object):
                 self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
                 self.cIP3_env[:] = p.cIP3_to_env
 
-
-        # if isinstance(p.gated_targets,str):
-        #     getattr(self, '_init_gated_targets_' + p.gated_targets)()
-        # elif isinstance(p.gated_targets,list):
-        #     ...
-
-        # def _init_gated_targets_random1(self):
-        #     shuffle(cells.cell_i)
-        #     trgt = cells.cell_i[0]
-        #     self.target_cells = np.zeros(len(cells.cell_i))
-        #     self.target_mems = np.zeros(len(cells.mem_i))
-        #
-        #     self.target_cells[trgt] = 1
-        #
-        #     target_mems_inds = cells.cell_to_mems[self.target_cells]
-        #     target_mems_inds,_,_ = tb.flatten(self.target_mems_inds)
-        #
-        #     self.target_mems[target_mems_inds] = 1
-
-        # # Initialize target cell sets for dynamically gated channels from user options:
-        # if p.gated_targets == 'none':
-        #     self.target_cells = np.zeros(len(cells.cell_i))
-        #     self.target_mems = np.zeros(len(cells.mem_i))
-        #
-        # elif p.gated_targets == 'all':
-        #     self.target_cells = np.ones(len(cells.cell_i))
-        #     self.target_mems = np.ones(len(cells.mem_i))
-        #
-        # elif p.gated_targets == 'random1':
-        #     shuffle(cells.cell_i)
-        #     trgt = cells.cell_i[0]
-        #     self.target_cells = np.zeros(len(cells.cell_i))
-        #     self.target_mems = np.zeros(len(cells.mem_i))
-        #
-        #     self.target_cells[trgt] = 1
-        #
-        #     target_mems_inds = cells.cell_to_mems[self.target_cells]
-        #     target_mems_inds,_,_ = tb.flatten(self.target_mems_inds)
-        #
-        #     self.target_mems[target_mems_inds] = 1
-        #
-        # elif p.gated_targets == 'random50':
-        #
-        #     self.target_cells = np.random.random(len(cells.cell_i))
-        #     self.target_cells = np.rint(self.target_cells)
-        #
-        #     self.target_mems = np.zeros(len(cells.mem_i))
-        #
-        #     target_mems_inds = cells.cell_to_mems[self.target_cells]
-        #     target_mems_inds,_,_ = tb.flatten(target_mems_inds)
-        #
-        #     self.target_mems[target_mems_inds] = 1
-        #
-        # elif isinstance(p.gated_targets,list):
-        #     self.target_cells = np.zeros(len(cells.cell_i))
-        #     self.target_cells[p.gated_targets] = 1
-        #
-        #     self.target_mems = np.zeros(len(cells.mem_i))
-        #
-        #     target_mems_inds = cells.cell_to_mems[self.target_cells]
-        #     target_mems_inds,_,_ = tb.flatten(target_mems_inds)
-        #
-        #     self.target_mems[target_mems_inds] = 1
-        #
-        # # allow for option to independently globals()['omelet'](100)schedule an intervention to cells distinct from voltage gated:
-        # if p.scheduled_targets == 'none':
-        #     self.scheduled_target_inds = []
-        #     self.scheduled_target_mem_inds = []
-        #
-        # elif p.scheduled_targets == 'all':
-        #     self.scheduled_target_inds = cells.cell_i
-        #     self.scheduled_target_mem_inds = cells.mem_i
-        #
-        # elif p.scheduled_targets =='random1':
-        #     shuffle(cells.cell_i)
-        #     trgt2 = cells.cell_i[0]
-        #
-        #     self.scheduled_target_inds = [trgt2]
-        #
-        #     self.scheduled_target_mems_inds = cells.cell_to_mems[trgt2]
-        #     self.scheduled_target_mems_inds,_,_ = tb.flatten(self.scheduled_target_mems_inds)
-        #
-        # elif p.scheduled_targets == 'random50':
-        #     shuffle(cells.cell_i)
-        #     halflength = int(len(cells.cell_i)/2)
-        #     self.scheduled_target_inds = [cells.cell_i[x] for x in range(0,halflength)]
-        #
-        #     trgt3 = self.scheduled_target_inds
-        #
-        #     self.scheduled_target_mems_inds = cells.cell_to_mems[trgt3]
-        #     self.scheduled_target_mems_inds,_,_ = tb.flatten(self.scheduled_target_mems_inds)
-        #
-        #
-        # elif isinstance(p.scheduled_targets, list):
-        #
-        #     self.scheduled_target_inds = p.scheduled_targets
-        #
-        #     trgt4 = self.scheduled_target_inds
-        #
-        #     self.scheduled_target_mems_inds = cells.cell_to_mems[trgt4]
-        #     self.scheduled_target_mems_inds,_,_ = tb.flatten(self.scheduled_target_mems_inds)
-
+        self.dyna.globalInit(self,cells,p)     # initialize any global interventions
+        self.dyna.scheduledInit(self,cells,p)  # initialize any scheduled interventions
+        self.dyna.dynamicInit(self,cells,p)    # initialize any dynamic channel properties
 
         loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
         loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')

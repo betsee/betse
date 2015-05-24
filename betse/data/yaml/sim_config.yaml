@@ -60,9 +60,6 @@ results file saving:
 # Settings specific to the initialization
 
 
-
-
-
 init time settings:
 
   time profile: 'initialize'   # choose a pre-defined time profile for the init
@@ -245,6 +242,7 @@ world variables:
 
   cell spacing: 26.0e-9       # the spacing between cells [m]
                               # recommended 26.0e-9 m for animal cells
+                              # 1.0e-6 for plant cells and animal cells with ecm
 
   lattice disorder: 0.8       # noise level for the lattice
                               # recommended range 0 to 0.9
@@ -282,7 +280,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-6     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
+  ecm diffusion factor: 1e-8     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes
 
   ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -355,11 +353,12 @@ block HKATP pump:
 # TISSUE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
 
-number of tissue profiles: 2
+number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: 'excitable cells'
-    cell indices: 'random50'
+    name: 'excitable cells'       # give your profile a name that will be used to apply the profile
+    cell indices: 'random50'      # The string 'random##' will target specified percentage of cell pop.
+                                  # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -370,7 +369,7 @@ tissue profile 1:
 
 tissue profile 2:
     name: 'somatic cells'
-    cell indices: 'random1'
+    cell indices: [5,8,9,10]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -383,7 +382,7 @@ number of boundary profiles: 2      # boundary profiles only apply if simulating
 
 boundary profile 1:
     name: 'applied pos voltage'
-    boundary indices: [0,6,7,8]
+    boundary indices: [0,6,7,8]      # options include 'all' to select everything, or specify a list of inds [9,8,10]
 
 boundary profile 2:
     name: 'applied neg voltage'
@@ -399,21 +398,21 @@ boundary profile 2:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False              # turn the even on (True) or off (False)
+  event happens: True              # turn the even on (True) or off (False)
   change start: 0.02                # sim time to start change [s]
   change finish: 0.40               # sim time to end change and return to original [s]
   change rate: 0.01                 # rate of change [s]
   multiplier: 1000                  # factor to multiply base level
-  apply to: ['excitable cells','somatic cells']        # name of the profile to apply it to
+  apply to: ['excitable cells','somatic cells']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
-  event happens: False              # turn the even on (True) or off (False)
+  event happens: True              # turn the even on (True) or off (False)
   change start: 9                   # sim time to start change [s]
   change finish: 11                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
-  apply to: ['excitable cells']        # name of the profile to apply it to
+  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
 
 change Cl mem:      # Change the membrane permeability to Cl-
 
@@ -422,7 +421,7 @@ change Cl mem:      # Change the membrane permeability to Cl-
   change finish: 17                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
-  apply to: ['excitable cells']        # name of the profile to apply it to
+  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
 
@@ -431,7 +430,7 @@ change Ca mem:       # Change the membrane permeability to Ca2+
   change finish: 22                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
-  apply to: ['excitable cells']        # name of the profile to apply it to
+  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
 
 produce IP3:        # Schedule cell production of IP3
 
@@ -440,7 +439,7 @@ produce IP3:        # Schedule cell production of IP3
   change finish: 20                 # sim time to end IP3 production [s]
   change rate: 1                    # rate of production ramp up [s]
   multiplier: 1e-4                  # maximum rate of production [mol/(s*m3)]
-  apply to: ['excitable cells']        # name of the profile to apply it to
+  apply to: ['excitable cells']     # name(s) of the tissue profile(s) to apply it to
 
 apply external voltage:       # voltages can only be applied if extracellular spaces are simulated
 
@@ -460,20 +459,20 @@ apply external voltage:       # voltages can only be applied if extracellular sp
 # will be updated with introduction of tissue types in future versions.
 
 voltage gated Na+:
-    turn on: False                    # voltage gated sodium channel ?
-    apply to: ['excitable cells']        # name of the tissue profile to apply it to
+    turn on: False                      # voltage gated sodium channel ?
+    apply to: ['excitable cells']       # name(s) of the tissue profile(s) to apply it to
 
-voltage gated K+:                      # voltage gated potassium channel ?
+voltage gated K+:                       # voltage gated potassium channel ?
     turn on: False
-    apply to: ['excitable cells']         # name of the profile to apply it to
+    apply to: ['excitable cells']       # name(s) of the tissue profile(s) to apply it to
 
-voltage gated Ca2+:                # voltage gated calcium channel ?
+voltage gated Ca2+:                     # voltage gated calcium channel ?
     turn on: False
-    apply to: ['somatic cells']
+    apply to: ['somatic cells']         # name(s) of the tissue profile(s) to apply it to
 
-calcium gated K+:             # calcium gated potassium channel ?
+calcium gated K+:                       # calcium gated potassium channel ?
     turn on: False
-    apply to: ['somatic cells']
+    apply to: ['somatic cells']         # name(s) of the tissue profile(s) to apply it to
 
 Ca dynamics:                      # include full calcium dynamics in the situation?
     turn on: False                # this creates an endoplasmic reticulum (ER) in each cell and
@@ -527,7 +526,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: True         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -703,20 +702,20 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-10   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-12   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  0.5e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  0.5e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  1.0e-7    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
   halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
   slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  2.0e-6     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  alpha_V:  2.0e-8     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
   halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
   slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
 

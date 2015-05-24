@@ -3,17 +3,10 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-import os, os.path
-import copy
 from random import shuffle
-from betse.science import filehandling as fh
-from betse.science import visualize as viz
 from betse.science import toolbox as tb
-import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionSimulation
 from betse.util.io import loggers
-import time
-
 
 class Dynamics(object):
 
@@ -83,6 +76,13 @@ class Dynamics(object):
             self.mem_mult_Namem = p.scheduled_options['Na_mem'][3]
             self.apply_Namem = p.scheduled_options['Na_mem'][4]
 
+            self.targets_Namem = []
+            for profile in self.apply_Namem:
+                targets = self.tissue_target_inds[profile]
+                self.targets_Namem.append(targets)
+
+            self.targets_Namem = [item for sublist in self.targets_Namem for item in sublist]
+
         if p.scheduled_options['K_mem'] != 0:
 
             self.t_on_Kmem = p.scheduled_options['K_mem'][0]
@@ -90,6 +90,13 @@ class Dynamics(object):
             self.t_change_Kmem = p.scheduled_options['K_mem'][2]
             self.mem_mult_Kmem = p.scheduled_options['K_mem'][3]
             self.apply_Kmem = p.scheduled_options['K_mem'][4]
+
+            self.targets_Kmem = []
+            for profile in self.apply_Kmem:
+                targets = self.tissue_target_inds[profile]
+                self.targets_Kmem.append(targets)
+
+            self.targets_Kmem = [item for sublist in self.targets_Kmem for item in sublist]
 
         if p.scheduled_options['Cl_mem'] != 0:
 
@@ -99,6 +106,13 @@ class Dynamics(object):
             self.mem_mult_Clmem = p.scheduled_options['Cl_mem'][3]
             self.apply_Clmem = p.scheduled_options['Cl_mem'][4]
 
+            self.targets_Clmem = []
+            for profile in self.apply_Clmem:
+                targets = self.tissue_target_inds[profile]
+                self.targets_Namem.append(targets)
+
+            self.targets_Clmem = [item for sublist in self.targets_Clmem for item in sublist]
+
         if p.scheduled_options['Ca_mem'] != 0:
 
             self.t_on_Camem = p.scheduled_options['Ca_mem'][0]
@@ -106,6 +120,13 @@ class Dynamics(object):
             self.t_change_Camem = p.scheduled_options['Ca_mem'][2]
             self.mem_mult_Camem = p.scheduled_options['Ca_mem'][3]
             self.apply_Camem = p.scheduled_options['Ca_mem'][4]
+
+            self.targets_Camem = []
+            for profile in self.apply_Camem:
+                targets = self.tissue_target_inds[profile]
+                self.targets_Namem.append(targets)
+
+            self.targets_Camem = [item for sublist in self.targets_Camem for item in sublist]
 
         if p.scheduled_options['IP3'] != 0:
 
@@ -115,7 +136,14 @@ class Dynamics(object):
             self.rate_IP3 = p.scheduled_options['IP3'][3]
             self.apply_IP3 = p.scheduled_options['IP3'][4]
 
-        if p.scheduled_options['extV'] != 0:
+            self.targets_IP3 = []
+            for profile in self.apply_IP3:
+                targets = self.cell_target_inds[profile]
+                self.targets_IP3.append(targets)
+
+            self.targets_IP3 = [item for sublist in self.targets_IP3 for item in sublist]
+
+        if p.scheduled_options['extV'] != 0:   # FIXME need a method for this
 
             self.t_on_extV = p.scheduled_options['extV'][0]
             self.t_off_extV = p.scheduled_options['extV'][1]
@@ -221,7 +249,7 @@ class Dynamics(object):
 
             elif p.sim_ECM == True:
 
-                sim.cc_ecm[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env  # FIXME change cells at env bound only
+                sim.cc_ecm[sim.iK][cells.bflags_ecm] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
 
@@ -233,7 +261,7 @@ class Dynamics(object):
 
             elif p.sim_ECM == True:
 
-                sim.cc_ecm[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+                sim.cc_ecm[sim.iCl][cells.bflags_ecm] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
 
         if p.global_options['Na_env'] != 0:
 
@@ -245,7 +273,7 @@ class Dynamics(object):
 
             elif p.sim_ECM == True:
 
-                sim.cc_ecm[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+                sim.cc_ecm[sim.iNa][cells.bflags_ecm] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
         if p.global_options['T_change'] != 0:
 
@@ -263,55 +291,35 @@ class Dynamics(object):
 
             sim.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
 
-    def scheduledDyn(self,sim,cells,p):
+    def scheduledDyn(self,sim,cells,p,t):
 
-        if p.scheduled_options['Na_mem'] != 0:
+        if p.scheduled_options['Na_mem'] != 0 and p.ions_dict['Na'] != 0:
 
-            if p.ions_dict['Na'] == 0 or target_length == 0:
-                pass
+            effector_Na = tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
 
-            else:
+            sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
-                effector_Na = tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
+        if p.scheduled_options['K_mem'] != 0 and p.ions_dict['K'] != 0:
 
-                self.Dm_scheduled[self.iNa][self.scheduled_target_inds] = self.mem_mult_Namem*effector_Na*p.Dm_Na
+            effector_K = tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
 
-        if p.scheduled_options['K_mem'] != 0:
+            sim.Dm_scheduled[sim.iK][self.targets_Kmem] = self.mem_mult_Kmem*effector_K*p.Dm_K
 
-            if p.ions_dict['K'] == 0 or target_length == 0:
-                pass
+        if p.scheduled_options['Cl_mem'] != 0 and p.ions_dict['Cl'] != 0:
 
-            else:
+            effector_Cl = tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
 
-                effector_K = tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
+            sim.Dm_scheduled[sim.iCl][self.targets_Clmem] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
 
-                self.Dm_scheduled[self.iK][self.scheduled_target_inds] = self.mem_mult_Kmem*effector_K*p.Dm_K
+        if p.scheduled_options['Ca_mem'] != 0 and p.ions_dict['Ca'] != 0:
 
-        if p.scheduled_options['Cl_mem'] != 0:
+            effector_Ca = tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
 
-            if p.ions_dict['Cl'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                effector_Cl = tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
-
-                self.Dm_scheduled[self.iCl][self.scheduled_target_inds] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
-
-        if p.scheduled_options['Ca_mem'] != 0:
-
-            if p.ions_dict['Ca'] == 0 or target_length == 0:
-                pass
-
-            else:
-
-                effector_Ca = tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
-
-                self.Dm_scheduled[self.iCa][self.scheduled_target_inds] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
+            sim.Dm_scheduled[sim.iCa][self.targets_Camem] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
 
         if p.scheduled_options['IP3'] != 0:
 
-            self.cIP3[self.scheduled_target_inds] = self.cIP3[self.scheduled_target_inds] + self.rate_IP3*pulse(t,self.t_onIP3,
+            sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
 
     def dynamicDyn(self,sim,cells,p):
@@ -491,54 +499,187 @@ class Dynamics(object):
 
             self.Dm_er = self.Dm_er_CICR + self.Dm_er_base
 
-    def tissueDefine(self,sim,cells,p):
+    def tissueProfiles(self,sim,cells,p):
 
-        if p.scheduled_targets == 'none':
-            self.scheduled_target_inds = []
-            self.scheduled_target_mem_inds = []
+        profile_names = list(p.tissue_profiles.keys())
+        self.tissue_target_inds = {}
+        self.cell_target_inds = {}
 
-        elif p.scheduled_targets == 'all':
-            self.scheduled_target_inds = cells.cell_i
-            self.scheduled_target_mem_inds = cells.mem_i
+        for name in profile_names:
 
-        elif p.scheduled_targets =='random1':
+            data_stream = p.tissue_profiles[name]
+            target_method = data_stream[0]
+            dmem_list = data_stream[1]
+
+            self.tissue_target_inds[name] = getCellTargets(target_method, cells, p)
+            self.cell_target_inds[name] = getCellTargets(target_method, cells, p, ignoreECM=True)
+
+            # set the values of Dmems based on the identified target indices
+            if p.ions_dict['Na'] == 1:
+                dNa = dmem_list[0]
+                sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
+
+            if p.ions_dict['K'] == 1:
+                dK = dmem_list[1]
+                sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
+
+            if p.ions_dict['Cl'] == 1:
+                dCl = dmem_list[2]
+                sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
+
+            if p.ions_dict['Ca'] == 1:
+                dCa = dmem_list[3]
+                sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
+
+            if p.ions_dict['H'] == 1:
+                dH = dmem_list[4]
+                sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
+
+            if p.ions_dict['M'] == 1:
+                dM = dmem_list[5]
+                sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
+
+            if p.ions_dict['P'] == 1:
+                dP = dmem_list[6]
+                sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+
+    def ecmProfiles(self,sim,cells,p):
+
+        profile_names = list(p.boundary_profiles.keys())
+        self.ecm_target_inds = {}
+
+        for name in profile_names:
+
+            target_method = p.boundary_profiles[name]
+
+            self.ecm_target_inds[name] = getEcmTargets(target_method,cells,p)
+
+
+def getCellTargets(targets_description,cells,p,ignoreECM = False):
+
+    """
+    Using an input description flag, which is a string in the format of
+    'random40', a list of integers corresponding to cell indices,
+    [4,5,7], this returns the cell or membrane indices to used to define
+    tissue profiles.The string format targets the specified random fraction of total
+    indices, for instance 'random20' would randomly select 20% of the cell population.
+
+    Parameters
+    ---------------------------------
+    targets_description                  a string in the format 'random50', 'all', or a list of indices to cell_i
+    cells                                an instance of the world module object
+    p                                    an instance of the parameters module object
+    ignoreECM                            a flag telling the function to ignore p.sim_ECM
+
+    Returns
+    ---------------------------------
+    target_inds                          a list of integers corresponding to targeted cell or membrane indices
+
+    """
+
+    if isinstance(targets_description,str):
+
+        chaff = targets_description[0:6]
+        numo = targets_description[6:len(targets_description)]
+
+        if chaff == 'random':
+
+            numo = int(numo)
+
+            if numo > 100:
+                numo = 100
+            elif numo < 1:
+                numo = 1
+
+            target_inds_cell = []
+
+            data_length = len(cells.cell_i)
+            data_fraction = int((numo/100)*data_length)
+
             shuffle(cells.cell_i)
-            trgt2 = cells.cell_i[0]
 
-            self.scheduled_target_inds = [trgt2]
+            target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
 
-            self.scheduled_target_mems_inds = cells.cell_to_mems[trgt2]
-            self.scheduled_target_mems_inds,_,_ = tb.flatten(self.scheduled_target_mems_inds)
+            if p.sim_ECM == False or ignoreECM == True:
+                target_inds = target_inds_cell
 
-        elif p.scheduled_targets == 'random50':
-            shuffle(cells.cell_i)
-            halflength = int(len(cells.cell_i)/2)
-            self.scheduled_target_inds = [cells.cell_i[x] for x in range(0,halflength)]
+            elif p.sim_ECM == True and ignoreECM == False:
+                target_inds = cells.cell_to_mems[target_inds_cell]
+                target_inds,_,_ = tb.flatten(target_inds)
 
-            trgt3 = self.scheduled_target_inds
+        elif targets_description == 'all':
 
-            self.scheduled_target_mems_inds = cells.cell_to_mems[trgt3]
-            self.scheduled_target_mems_inds,_,_ = tb.flatten(self.scheduled_target_mems_inds)
+            if p.sim_ECM == False or ignoreECM == True:
+                target_inds = cells.cell_i
 
+            elif p.sim_ECM == True and ignoreECM == False:
+                target_inds = cells.cell_to_mems[cells.cell_i]
+                target_inds,_,_ = tb.flatten(target_inds)
 
-        elif isinstance(p.scheduled_targets, list):
-
-            self.scheduled_target_inds = p.scheduled_targets
-
-            trgt4 = self.scheduled_target_inds
-
-            self.scheduled_target_mems_inds = cells.cell_to_mems[trgt4]
-            self.scheduled_target_mems_inds,_,_ = tb.flatten(self.scheduled_target_mems_inds)
+        else:
+            raise BetseExceptionSimulation("Error in specifying cell targets for tissue profile."
+            "String must be in the format: 'random10'")
 
 
-# To call a function "omelet" defined in the current module, any of the following should work:
-#     globals()['omelet']()
-#
-#     getattr(sys.modules[__name__], 'omelet')()
-#
-#     import dynamics
-#     getattr(dynamics, 'omelet')()
-#
-# To call a function "bomblet" defined in another module "fastido", the following should work:
-#     import fastido
-#     getattr(fastido, 'bomblet')()
+    elif isinstance(targets_description, list):
+
+        target_inds_cell = targets_description
+
+        if p.sim_ECM == False or ignoreECM == True:
+            target_inds = target_inds_cell
+
+        elif p.sim_ECM == True and ignoreECM == False:
+            target_inds = cells.cell_to_mems[target_inds_cell]
+            target_inds,_,_ = tb.flatten(target_inds)
+
+    return target_inds
+
+def getEcmTargets(targets_description,cells,p,boundaryOnly = True):
+
+    """
+    Using an input description flag, which is a string in the format of
+    'random40', or a list of integers corresponding to ecm indices,
+    [4,5,7], this returns the ecm indices to used to define
+    tissue profiles.The string format targets the specified random fraction of total
+    indices, for instance 'random20' would randomly select 20% of the ecm spaces.
+
+    Parameters
+    ---------------------------------
+    targets_description                  a list [8,9,10] of indices to bflags_ecm or ecm_i or the string 'all'
+    cells                                an instance of the world module object
+    p                                    an instance of the parameters module object
+    boundaryOnly                         a flag telling the function we're only interested in bflags_ecm
+
+    Returns
+    ---------------------------------
+    target_inds                          a list of integers corresponding to targeted ecm indices
+
+    """
+    if isinstance(targets_description,str):
+
+        if targets_description == 'all':
+
+            inds_ecm = np.asarray(cells.ecm_i)
+
+            if boundaryOnly == True:
+                target_inds = inds_ecm[cells.bflags_ecm].tolist()
+
+            else:
+                target_inds = inds_ecm
+
+
+    if isinstance(targets_description, list):
+
+        target_inds_bound = targets_description
+        inds_ecm = np.asarray(cells.ecm_i)
+
+        if boundaryOnly == True:
+            target_inds = inds_ecm[cells.bflags_ecm[target_inds_bound]].tolist()
+
+        else:
+            target_inds = target_inds_bound
+
+
+    return target_inds
+
+
