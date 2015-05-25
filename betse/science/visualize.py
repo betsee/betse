@@ -30,6 +30,7 @@ class AnimateCellData(object):
         self.colormap = clrmap
         self.time = time
         self.save = save
+        self.ignore_simECm = ignore_simECM
 
         self.cbtit = cbtit
 
@@ -135,7 +136,7 @@ class AnimateCellData(object):
 
         zz = self.zdata_t[i]
 
-        if self.p.sim_ECM == True:
+        if self.p.sim_ECM == True and self.ignore_simECm == False:
 
             verts_data = np.dot(zz,self.cells.matrixMap2Verts)
             plot_data = np.hstack((zz,verts_data))

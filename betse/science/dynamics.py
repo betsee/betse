@@ -165,8 +165,6 @@ class Dynamics(object):
             self.peak_val_extV = p.scheduled_options['extV'][3]
             self.apply_extV = p.scheduled_options['extV'][4]
 
-            self.targets_extV_positive = []
-            self.targets_extV_negative = []
             name_positive = self.apply_extV[0]
             name_negative = self.apply_extV[1]
 
@@ -387,9 +385,16 @@ class Dynamics(object):
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
 
+    def externalVoltage(self,sim,cells,p,t,v_ecm_o):
+
         if p.scheduled_options['extV'] != 0 and p.sim_ECM == True: # FIXME complete this extV section
 
-            pass
+            effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
+
+            sim.v_ecm_mod[self.targets_extV_positive] = self.peak_val_extV*effector_extV
+            sim.v_ecm_mod[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
+
+            sim.v_ecm = sim.v_ecm_mod + v_ecm_o
 
     def dynamicDyn(self,sim,cells,p,t):
 
@@ -640,6 +645,7 @@ class Dynamics(object):
         """
 
         profile_names = list(p.boundary_profiles.keys())
+
         self.ecm_target_inds = {}
 
         for name in profile_names:

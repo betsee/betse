@@ -3,6 +3,7 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME do a Vcell plot option
 
 
 from betse.science import visualize as viz
@@ -352,6 +353,16 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
                 plt.show(block=False)
 
+    if p.plot_vcell2d == True and p.sim_ECM == True:
+
+        figX, axX, cbX = viz.plotPolyData(cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr, clrmap = p.default_cm)
+
+        axX.set_title('Final Vcell')
+        axX.set_xlabel('Spatial distance [um]')
+        axX.set_ylabel('Spatial distance [um]')
+        cbX.set_label('Voltage mV')
+
     if p.plot_vm2d == True:
 
         if p.sim_ECM == True:
@@ -521,6 +532,20 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 viz.AnimateGJData_smoothed(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
                     clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
                     saveFile = 'vmem_gj', number_cells=False)
+
+    if p.ani_vcell == True and animate == 1 and p.sim_ECM == 1:
+
+        vcellplt = [1000*arr for arr in sim.vcell_time]
+
+        if p.showCells == True:
+
+            viz.AnimateCellData(cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
+                clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/vcell', saveFile = 'vcell_', ignore_simECM =True)
+        else:
+            viz.AnimateCellData_smoothed(cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
+                clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_')
 
     if p.exportData == True:
         viz.exportData(cells, sim, p)

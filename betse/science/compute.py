@@ -4,6 +4,7 @@
 
 # FIXME currents in ECM and gj networks...
 # FIXME pumps should use Hill functions, not linear to concentrations
+# FIXME why isn't voltage sensitive dye travelling through gj spaces?
 
 import numpy as np
 import os, os.path
@@ -420,6 +421,19 @@ class Simulator(object):
 
         i = -1                           # an index to track place in ion list
 
+        flx_gj_i = np.zeros(len(cells.gj_i))   # vector for making ion flux storage matrix
+        self.fluxes_gj = []   # stores gj fluxes for each ion
+        self.gjopen_time = []   # stores gj open fraction at each time
+        self.fgj_time = []      # stores the gj fluxes for each ion at each time
+        self.Igj =[]            # current for each gj
+        self.Igj_time = []      # current for each gj at each time
+
+        flx_ecm_i = np.zeros(len(cells.ecm_i))
+        self.fluxes_ecm = []   # stores gj fluxes for each ion
+        self.Igj =[]            # current for each gj
+        self.Igj_time = []      # current for each gj at each time
+
+
         # Initialize cellular concentrations of ions:
         if p.ions_dict['Na'] == 1:
 
@@ -453,6 +467,9 @@ class Simulator(object):
 
             self.Dm_cells.append(DmNa)
             self.D_free.append(p.Do_Na)
+
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
 
 
         if p.ions_dict['K'] == 1:
@@ -488,6 +505,9 @@ class Simulator(object):
             self.Dm_cells.append(DmK)
             self.D_free.append(p.Do_K)
 
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
+
 
         if p.ions_dict['Cl'] == 1:
 
@@ -522,6 +542,9 @@ class Simulator(object):
             self.Dm_cells.append(DmCl)
             self.D_free.append(p.Do_Cl)
 
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
+
 
         if p.ions_dict['Ca'] == 1:
 
@@ -555,6 +578,9 @@ class Simulator(object):
 
             self.Dm_cells.append(DmCa)
             self.D_free.append(p.Do_Ca)
+
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
 
             if p.ions_dict['Ca'] ==1:
                 cCa_er = np.zeros(len(cells.cell_i))
@@ -595,6 +621,9 @@ class Simulator(object):
             self.Dm_cells.append(DmP)
             self.D_free.append(p.Do_P)
 
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
+
         if p.ions_dict['M'] == 1:
 
             i =i+1
@@ -627,6 +656,9 @@ class Simulator(object):
 
             self.Dm_cells.append(DmM)
             self.D_free.append(p.Do_M)
+
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
 
             if p.ions_dict['Ca'] ==1:
                 cM_er = np.zeros(len(cells.cell_i))
@@ -681,6 +713,9 @@ class Simulator(object):
             self.Dm_cells.append(DmH)
             self.D_free.append(p.Do_H)
 
+            self.fluxes_gj.append(flx_gj_i)
+            self.fluxes_ecm.append(flx_ecm_i)
+
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
         self.tm[:] = p.tm
@@ -701,13 +736,6 @@ class Simulator(object):
         # if open boundary, save initial ecm values for environmental re-establishment
         if p.ecm_bound_open == True:
             self.cc_ecm_env = copy.deepcopy(self.cc_ecm)
-
-        flx = np.zeros(len(cells.gj_i))
-        self.fluxes_gj = [flx,flx,flx,flx,flx,flx,flx]   # stores gj fluxes for each ion
-        self.gjopen_time = []   # stores gj open fraction at each time
-        self.fgj_time = []      # stores the gj fluxes for each ion at each time
-        self.Igj =[]            # current for each gj
-        self.Igj_time = []      # current for each gj at each time
 
         if p.Ca_dyn == True:
             self.v_er = np.zeros(len(cells.cell_i))
@@ -733,6 +761,7 @@ class Simulator(object):
         if p.voltage_dye == True:
 
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+            self.cDye_cell[:] = p.cDye_to_cell
             self.cDye_ecm = np.zeros(len(cells.ecm_i))
             self.cDye_ecm[:] = p.cDye_to
 
@@ -762,14 +791,17 @@ class Simulator(object):
 
         if p.sim_ECM == True:
              # re-initialize diffusion constants for the ecm-ecm junctions in case value changed:
-            id_ecm = np.ones(len(cells.ecm_nn_i))
+            self.id_ecm = np.ones(len(cells.ecm_nn_i))
 
             self.D_ecm_juncs = []
             for D in self.D_free:
-                DD = D*id_ecm*p.D_ecm_mult
+                DD = D*self.id_ecm*p.D_ecm_mult
                 self.D_ecm_juncs.append(DD)
 
             self.D_ecm_juncs = np.asarray(self.D_ecm_juncs)
+
+            # create a v_ecm copy that will let us change the voltage externally:
+            self.v_ecm_mod = np.zeros(len(cells.ecm_i))
 
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
@@ -829,6 +861,13 @@ class Simulator(object):
             elif p.sim_ECM == False:
                 self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
                 self.cIP3_env[:] = p.cIP3_to_env
+
+        if p.voltage_dye == True:
+
+            self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+            self.cDye_cell[:] = p.cDye_to_cell
+            self.cDye_ecm = np.zeros(len(cells.ecm_i))
+            self.cDye_ecm[:] = p.cDye_to
 
         self.dyna.globalInit(self,cells,p)     # initialize any global interventions
         self.dyna.scheduledInit(self,cells,p)  # initialize any scheduled interventions
@@ -1378,7 +1417,6 @@ class Simulator(object):
         self.time = []     # time values of the simulation
 
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
-        self.fgj_time = []      # stores the gj fluxes for each ion at each time
         self.Igj_time = []      # current for each gj at each time
 
         self.cc_er_time = []   # retains er concentrations as a function of time
@@ -1640,7 +1678,6 @@ class Simulator(object):
                 vmm = copy.deepcopy(self.vm)
                 dvmm = copy.deepcopy(self.dvm)
 
-
                 ggjopen = copy.deepcopy(self.gjopen)
 
                 self.time.append(t)
@@ -1753,6 +1790,8 @@ class Simulator(object):
         self.cc_ecm_time = [] # data array holding extracellular concentrations at time points
 
         self.vm_time = []  # data array holding voltage at time points
+        self.vcell_time = []
+        self.vecm_time = []
 
         self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
@@ -1791,7 +1830,7 @@ class Simulator(object):
                          + ' seconds of in-world time.')
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
-        self.update_V_ecm(cells,p)
+        self.update_V_ecm(cells,p,0)
 
         if p.plot_while_solving == True:
 
@@ -1829,7 +1868,7 @@ class Simulator(object):
             self.update_C_ecm(self.iK,fK_NaK,cells,p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V_ecm(cells,p)
+            self.update_V_ecm(cells,p,t)
 
             if p.ions_dict['Ca'] == 1:
 
@@ -1842,7 +1881,7 @@ class Simulator(object):
                 self.update_C_ecm(self.iCa,f_CaATP,cells,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
 
@@ -1851,7 +1890,7 @@ class Simulator(object):
                             cells.cell_vol,self.v_er,self.T,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    self.update_V_ecm(cells,p)
+                    self.update_V_ecm(cells,p,t)
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1884,7 +1923,7 @@ class Simulator(object):
                 self.update_C_ecm(i,f_ED,cells,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
                 # calculate voltage differences between ecm <---> ecm nearest neighbours:
                 self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,0]] - self.v_ecm[cells.ecm_nn_i[:,1]]
@@ -1902,7 +1941,7 @@ class Simulator(object):
                     self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
 
                  # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
                 # calculate voltage difference between cells:
                 vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
@@ -1920,7 +1959,7 @@ class Simulator(object):
                 self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
                 self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
@@ -1946,6 +1985,14 @@ class Simulator(object):
                 self.cIP3_ecm = self.cIP3_ecm - \
                                     np.dot((flux_IP3/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
 
+                 # electrodiffuse IP3 through ecm <---> ecm junctions
+                _,_,flux_ecm_IP3 = electrofuse(self.cIP3_ecm[cells.ecm_nn_i[:,0]],self.cIP3_ecm[cells.ecm_nn_i[:,1]],
+                        self.id_ecm*p.Do_IP3,cells.len_ecm_junc,self.ec2ec_sa,
+                        cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                        self.zs[i],self.v_ec2ec,self.T,p)
+
+                self.cIP3_ecm = (self.cIP3_ecm*cells.ecm_vol + np.dot(flux_ecm_IP3*p.dt,cells.ecmMatrix))/cells.ecm_vol
+
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
                 # electrodiffusion of ions between cell and endoplasmic reticulum
@@ -1960,7 +2007,7 @@ class Simulator(object):
                     cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
                 q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                 self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1988,13 +2035,21 @@ class Simulator(object):
                 # update cell voltage-sensitive dye concentration due to gap junction flux:
                 self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
 
+                # electrodiffuse dye through ecm <---> ecm junctions
+                # _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
+                #         self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
+                #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                #         self.zs[i],self.v_ec2ec,self.T,p)
+                #
+                # self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
+
             if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
                 self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
             check_v(self.vm)
 
@@ -2007,16 +2062,21 @@ class Simulator(object):
                 dvmm = copy.deepcopy(self.dvm)
                 ggjopen = copy.deepcopy(self.gjopen)
 
+                vvcell = copy.deepcopy(self.v_cell)
+                vvecm = copy.deepcopy(self.v_ecm)
+
                 self.time.append(t)
 
                 self.cc_time.append(concs)
                 self.cc_ecm_time.append(ecmsc)
                 self.vm_time.append(vmm)
 
+                self.vcell_time.append(vvcell)
+                self.vecm_time.append(vvecm)
+
                 self.fgj_time.append(flxs)
                 self.gjopen_time.append(ggjopen)
                 self.dvm_time.append(dvmm)
-
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                     ccIP3 = copy.deepcopy(self.cIP3)
@@ -2106,12 +2166,16 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
-    def update_V_ecm(self,cells,p):
+    def update_V_ecm(self,cells,p,t):
 
         self.rho_cells = get_charge_density(self.cc_cells, self.z_array_cells, p)
         self.rho_ecm = get_charge_density(self.cc_ecm, self.z_array_ecm, p)
         self.v_cell = get_Vcell(self.rho_cells,cells,p)
         self.v_ecm = get_Vecm(self.rho_ecm,p)
+
+        if p.scheduled_options['extV'] != 0:
+            self.dyna.externalVoltage(self,cells,p,t,self.v_ecm)
+
         self.vm = self.v_cell[cells.mem_to_cells] - self.v_ecm[cells.mem_to_ecm]  # calculate v_mem
 
     def update_C_ecm(self,ion_i,flux,cells,p):
@@ -2966,9 +3030,9 @@ def check_v(vm):
     highvar = np.std(vm)
     isnans = np.isnan(vm)
 
-    if highvar > 50e-3:  # if there's anything in the isubzeros matrix...
-        print("Your simulation appears to have become unstable. Please try a smaller time step to validate "
-              "accuracy of the results.")
+    # if highvar > 50e-3:  # if there's anything in the isubzeros matrix...
+    #     print("Your simulation appears to have become unstable. Please try a smaller time step to validate "
+    #           "accuracy of the results.")
 
     if isnans.any():  # if there's anything in the isubzeros matrix...
         raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"

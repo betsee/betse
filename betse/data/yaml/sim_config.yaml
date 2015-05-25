@@ -67,7 +67,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 10               # set the time for the initialization run [s]
+  total time: 120               # set the time for the initialization run [s]
                                 # recommend 120 to 600 s (2 to 10 minutes) of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -101,7 +101,7 @@ sim time settings:
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 12            # set the total time for the sim run [s]
+  total time: 15            # set the total time for the sim run [s]
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
                             # Note this is over-ridden if you are using 'custom sim'
@@ -162,7 +162,7 @@ general options:
                             # options True or False (case sensitive)
 
 
-  voltage dye: False     # include electrodiffusion of a voltage sensitive dye?
+  voltage dye: True     # include electrodiffusion of a voltage sensitive dye?
                          # this is intended to help link sim output to real-world
                          # experimental methods.
                          # options True or False (case sensitive)
@@ -170,9 +170,10 @@ general options:
   voltage dye properties:  # specify the properties of the voltage sensitive dye if included
 
     Dm_Dye: 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
-    Do_Dye: 1.0e-12         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
+    Do_Dye: 1.0e-7         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
     z_Dye: 1               # charge of dye (oxidation state)
-    cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
+    cDye_to: 1.0e-6        # initial concentration of voltage sensitive dye in the environment [mmol/L]
+    cDye_to_cell: 1.0e-6    # initial concentration of dye in the cell [mmol/L]
 
   static noise level: 0.0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
@@ -282,7 +283,7 @@ world variables:
 
   ecm diffusion factor: 1e-8     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-8)
 
-  ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
+  ecm boundary open: False       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -357,7 +358,7 @@ number of tissue profiles: 2     # specify any number of profiles, which are giv
 
 tissue profile 1:
     name: 'hyperpolarized'       # give your profile a name that will be used to apply the profile
-    cell indices: [32,49,29]      # The string 'random##' will target specified percentage of cell pop.
+    cell indices: [20,18,21,16]      # The string 'random##' will target specified percentage of cell pop.
                                   # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -369,7 +370,7 @@ tissue profile 1:
 
 tissue profile 2:
     name: 'depolarized'
-    cell indices: [6,10,47,46]
+    cell indices: [46,45,44,40]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -382,11 +383,11 @@ number of boundary profiles: 2      # boundary profiles only apply if simulating
 
 boundary profile 1:
     name: 'applied pos voltage'
-    boundary indices: [0,6,7,8]      # options include 'all' to select everything, or specify a list of inds [9,8,10]
+    boundary indices: [33,45,8,41,9,25,32,13,38]   # options include 'all' to select everything, or specify a list of inds [9,8,10]
 
 boundary profile 2:
     name: 'applied neg voltage'
-    boundary indices: [9,8,1,2]
+    boundary indices: [40,43,6,28,24,20,36,4,34,0,5]
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -398,7 +399,7 @@ boundary profile 2:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True              # turn the even on (True) or off (False)
+  event happens: False              # turn the even on (True) or off (False)
   change start: 3.0                # sim time to start change [s]
   change finish: 6.0               # sim time to end change and return to original [s]
   change rate: 2.0                 # rate of change [s]
@@ -407,7 +408,7 @@ change Na mem:       # Change the membrane permeability to Na+
 
 change K mem:       # Change the membrane permeability to K+
 
-  event happens: True              # turn the even on (True) or off (False)
+  event happens: False              # turn the even on (True) or off (False)
   change start: 3.0                   # sim time to start change [s]
   change finish: 6.0                 # sim time to end change and return to original [s]
   change rate: 2.0                    # rate of change [s]
@@ -443,11 +444,11 @@ produce IP3:        # Schedule cell production of IP3
 
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
-    event happens: False            # turn the even on (True) or off (False)
-    change start: 5                 # time event starts [s]
-    change finish: 20               # time event finishes [s]
-    change rate: 1                  # time to reach peak value [s]
-    peak value: 1                   # peak value [V]
+    event happens: True            # turn the even on (True) or off (False)
+    change start: 1                 # time event starts [s]
+    change finish: 10               # time event finishes [s]
+    change rate: 2                  # time to reach peak value [s]
+    peak value: 2.5                   # peak value [V]
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -571,9 +572,16 @@ results options:
   Dye 2D:
 
     plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
-    autoscale colorbar: True     # autoscale colorbar to min max of data set?
-    max val: 3.0                  # maximum colorbar value in umol/L
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
+
+  Vcell 2D:
+
+    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
+    max val: 100                    # maximum colorbar value in mV
+    min val: -100                   # minimum colorbar value in mV
 
 
   Vmem Ani:
@@ -600,16 +608,23 @@ results options:
   Dye Ani:
 
     animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
-    autoscale colorbar: True     # autoscale colorbar to min max of data set?
-    max val: 3.0                  # maximum colorbar value in umol/L
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
 
     animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 0.0                # maximum colorbar value in mV
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 80.0                # maximum colorbar value in mV
     min val: -80.0               # minimum colorbar value in mV
+
+  Vcell Ani:
+
+    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
+    max val: 100                  # maximum colorbar value in mV
+    min val: -100                 # minimum colorbar value in mV
 
 
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.

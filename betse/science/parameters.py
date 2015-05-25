@@ -474,6 +474,7 @@ class Parameters(object):
         self.Do_Dye = float(self.config['general options']['voltage dye properties']['Do_Dye'])
         self.z_Dye = float(self.config['general options']['voltage dye properties']['z_Dye'])
         self.cDye_to = float(self.config['general options']['voltage dye properties']['cDye_to'])
+        self.cDye_to_cell = float(self.config['general options']['voltage dye properties']['cDye_to_cell'])
 
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['general options']['static noise level'])
@@ -594,9 +595,9 @@ class Parameters(object):
 
             self.tissue_profiles[profile_name] = profile_features
 
-        for bn in range(1,self.boundary_profile_number +1):
+        for bn in range(1,self.boundary_profile_number+1):     # FIXME bug here not updating continuous list...
 
-            profile_string_b = 'boundary profile ' + str(pn)
+            profile_string_b = 'boundary profile ' + str(bn)
             profile_name_b = self.config[profile_string_b]['name']
             profile_target_method_b = self.config[profile_string_b]['boundary indices']
 
@@ -840,6 +841,11 @@ class Parameters(object):
         self.Dye_min_clr = float(ro['Dye 2D']['min val'])
         self.Dye_max_clr = float(ro['Dye 2D']['max val'])
 
+        self.plot_vcell2d = ro['Vcell 2D']['plot Vcell']
+        self.autoscale_vcell = ro['Vcell 2D']['autoscale colorbar']
+        self.vcell_min_clr = float(ro['Vcell 2D']['min val'])
+        self.vcell_max_clr = float(ro['Vcell 2D']['max val'])
+
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 
         # specify desired animations:
@@ -867,6 +873,11 @@ class Parameters(object):
         self.autoscale_Vgj_ani = ro['Vmem GJ Ani']['autoscale colorbar']
         self.Vgj_ani_min_clr = float(ro['Vmem GJ Ani']['min val'])
         self.Vgj_ani_max_clr = float(ro['Vmem GJ Ani']['max val'])
+
+        self.ani_vcell = ro['Vcell Ani']['animate Vcell']
+        self.autoscale_vcell_ani = ro['Vcell Ani']['autoscale colorbar']
+        self.vcell_ani_min_clr = float(ro['Vcell Ani']['min val'])
+        self.vcell_ani_max_clr = float(ro['Vcell Ani']['max val'])
 
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
         self.saveAnimations = ro['save animations']    # save all animations as png sequences
@@ -1169,7 +1180,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 2.5e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 1.0e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 
@@ -1177,7 +1188,7 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-10              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':
@@ -1197,7 +1208,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 2.0e-5    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.dt = 1.0e-6    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
 
@@ -1205,7 +1216,7 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 2.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gj_radius = 5.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
 
@@ -1226,7 +1237,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 1e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.dt = 5e-4    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
                 self.resamp = 1.0         # time to resample in world time
 
