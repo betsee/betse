@@ -67,7 +67,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 120               # set the time for the initialization run [s]
+  total time: 10               # set the time for the initialization run [s]
                                 # recommend 120 to 600 s (2 to 10 minutes) of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -169,11 +169,11 @@ general options:
 
   voltage dye properties:  # specify the properties of the voltage sensitive dye if included
 
-    Dm_Dye: 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
+    Dm_Dye: 1.0e-16        # voltage sensitive dye membrane diffusion coefficient [m2/s]
     Do_Dye: 1.0e-7         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
     z_Dye: 1               # charge of dye (oxidation state)
-    cDye_to: 1.0e-6        # initial concentration of voltage sensitive dye in the environment [mmol/L]
-    cDye_to_cell: 1.0e-6    # initial concentration of dye in the cell [mmol/L]
+    cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
+    cDye_to_cell: 1.0e-3    # initial concentration of dye in the cell [mmol/L]
 
   static noise level: 0.0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
@@ -281,7 +281,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-8     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-8)
+  ecm diffusion factor: 1e-6     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-8)
 
   ecm boundary open: False       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -572,7 +572,7 @@ results options:
   Dye 2D:
 
     plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
-    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
 
@@ -608,7 +608,7 @@ results options:
   Dye Ani:
 
     animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
-    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 

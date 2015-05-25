@@ -4,7 +4,9 @@
 
 # FIXME currents in ECM and gj networks...
 # FIXME pumps should use Hill functions, not linear to concentrations
-# FIXME why isn't voltage sensitive dye travelling through gj spaces?
+# FIXME need to modularize code, possibly get rid of runInit and runInit_ECM using p.run_type variable
+# FIXME need to have set of extended ecm points at boundary, separate boundary electrodiffusion and setting V and concs at these extended points!
+
 
 import numpy as np
 import os, os.path
@@ -1926,7 +1928,7 @@ class Simulator(object):
                 self.update_V_ecm(cells,p,t)
 
                 # calculate voltage differences between ecm <---> ecm nearest neighbours:
-                self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,0]] - self.v_ecm[cells.ecm_nn_i[:,1]]
+                self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,1]] - self.v_ecm[cells.ecm_nn_i[:,0]]
 
                 # electrodiffuse through ecm <---> ecm junctions
 
@@ -2036,10 +2038,10 @@ class Simulator(object):
                 self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
 
                 # electrodiffuse dye through ecm <---> ecm junctions
-                # _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
-                #         self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
-                #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                #         self.zs[i],self.v_ec2ec,self.T,p)
+                _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
+                        self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
+                        cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                        self.zs[i],self.v_ec2ec,self.T,p)
                 #
                 # self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
