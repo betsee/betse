@@ -61,6 +61,8 @@ class SimRunner(object):
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
 
+        p.run_sim = False # let the simulator know we're just running an initialization
+
 
         if p.sim_ECM == False:
 
@@ -81,11 +83,13 @@ class SimRunner(object):
         if p.sim_ECM == False:
 
             sim.baseInit(cells, p)   # initialize simulation data structures
+            sim.tissueInit(cells,p)
             sim.runInit(cells,p)     # run and save the initialization
 
         elif p.sim_ECM == True:
 
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
+            sim.tissueInit(cells,p)
             sim.runInit_ECM(cells,p)     # run and save the initialization
 
         loggers.log_info('Initialization run complete!')
@@ -107,12 +111,11 @@ class SimRunner(object):
             'Running simulation with configuration file "{}".'.format(
                 self._config_basename))
 
-
-
         start_time = time.time()  # get a start value for timing the simulation
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be initialize
+        p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
         sim = Simulator(p)   # create an instance of Simulator
 
         if files.is_file(sim.savedInit):

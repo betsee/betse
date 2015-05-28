@@ -67,7 +67,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 10               # set the time for the initialization run [s]
+  total time: 100               # set the time for the initialization run [s]
                                 # recommend 120 to 600 s (2 to 10 minutes) of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -101,7 +101,7 @@ sim time settings:
                                       # settings for 'custom sim' time-profile can be
                                       # edited below.
 
-  total time: 15            # set the total time for the sim run [s]
+  total time: 5            # set the total time for the sim run [s]
                             # recommend 1 s to 30 min for 'simulate_somatic' time profile and
                             # 0.01 to 5 seconds for 'simulate_excitable' time profile.
                             # Note this is over-ridden if you are using 'custom sim'
@@ -132,7 +132,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -281,7 +281,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-6     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-8)
+  ecm diffusion factor: 1e-2     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-3)
 
   ecm boundary open: False       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -360,9 +360,9 @@ tissue profile 1:
     name: 'hyperpolarized'       # give your profile a name that will be used to apply the profile
     cell indices: [20,18,21,16]      # The string 'random##' will target specified percentage of cell pop.
                                   # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Na: 0.5e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 25.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -372,8 +372,8 @@ tissue profile 2:
     name: 'depolarized'
     cell indices: [46,45,44,40]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]

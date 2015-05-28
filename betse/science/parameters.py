@@ -1180,7 +1180,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 5.0e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 2.0e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 

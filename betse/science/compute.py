@@ -868,8 +868,10 @@ class Simulator(object):
 
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
-            self.cDye_ecm = np.zeros(len(cells.ecm_i))
-            self.cDye_ecm[:] = p.cDye_to
+
+            if p.sim_ECM == True:
+                self.cDye_ecm = np.zeros(len(cells.ecm_i))
+                self.cDye_ecm[:] = p.cDye_to
 
         self.dyna.globalInit(self,cells,p)     # initialize any global interventions
         self.dyna.scheduledInit(self,cells,p)  # initialize any scheduled interventions
@@ -1476,8 +1478,8 @@ class Simulator(object):
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
             # self.allDynamics(t,p)  # user-scheduled (forced) interventions
-
-            self.dyna.runAllDynamics(self,cells,p,t)
+            if p.run_sim == True:
+                self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
             self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], fNa_NaK, fK_NaK =\
@@ -1831,7 +1833,7 @@ class Simulator(object):
         loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
 
-        # get the net, unbalanced charge and corresponding voltage in each cell:
+        # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
         self.update_V_ecm(cells,p,0)
 
         if p.plot_while_solving == True:
@@ -1855,8 +1857,8 @@ class Simulator(object):
                 self.cc_er_to = copy.deepcopy(self.cc_er)
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
-            # self.allDynamics(t,p)  # user-scheduled (forced) interventions
-            self.dyna.runAllDynamics(self,cells,p,t)
+            if p.run_sim == True:
+                self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
             _,_,_,_,fNa_NaK, fK_NaK =\
@@ -1927,123 +1929,25 @@ class Simulator(object):
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
 
-                # calculate voltage differences between ecm <---> ecm nearest neighbours:
-                self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,1]] - self.v_ecm[cells.ecm_nn_i[:,0]]
+                # update the charge and voltage between extracellular spaces and other extracellular spaces:
+                self.update_ecm(cells,p,t,i)
 
-                # electrodiffuse through ecm <---> ecm junctions
+                # update the charge transfer between cells via gap junctions
+                self.update_gj(cells,p,t,i)
 
-                _,_,flux_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
-                        self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
-                        cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                        self.zs[i],self.v_ec2ec,self.T,p)
-
-                self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(flux_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
-
-                if p.ecm_bound_open == True: # if the geometry is open to the environment
-                    self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
-
-                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p,t)
-
-                # calculate voltage difference between cells:
-                vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
-                vgj = vmB - vmA
-
-                # determine the open state of gap junctions:
-                self.gjopen = self.gj_block*((1.0 - tb.step(abs(vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
-
-                # determine flux through gap junctions for this ion:
-                _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-                    self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-                    cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],vgj,self.T,p)
-
-                # update cell concentration due to gap junction flux:
-                self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p,t)
-
-                self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
-                # determine flux through gap junctions for IP3:
-                _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
-                    self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-                    cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,vgj,self.T,p)
 
-                # update cell IP3 concentration due to gap junction flux:
-                self.cIP3 = (self.cIP3*cells.cell_vol + np.dot((fIP3*p.dt), cells.gjMatrix))/cells.cell_vol
-
-                # electrodiffuse IP3 between cell and environment:
-                _,_,flux_IP3 = \
-                            electrofuse(self.cIP3_ecm[cells.mem_to_ecm],self.cIP3[cells.mem_to_cells],
-                                p.Dm_IP3*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
-                                cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_IP3,self.vm,self.T,p)
-
-                # update the IP3 concentrations in the cell and ecm due to ED fluxes at membrane
-                self.cIP3 = self.cIP3 + \
-                                    np.dot((flux_IP3/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
-
-                self.cIP3_ecm = self.cIP3_ecm - \
-                                    np.dot((flux_IP3/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
-
-                 # electrodiffuse IP3 through ecm <---> ecm junctions
-                _,_,flux_ecm_IP3 = electrofuse(self.cIP3_ecm[cells.ecm_nn_i[:,0]],self.cIP3_ecm[cells.ecm_nn_i[:,1]],
-                        self.id_ecm*p.Do_IP3,cells.len_ecm_junc,self.ec2ec_sa,
-                        cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                        self.zs[i],self.v_ec2ec,self.T,p)
-
-                self.cIP3_ecm = (self.cIP3_ecm*cells.ecm_vol + np.dot(flux_ecm_IP3*p.dt,cells.ecmMatrix))/cells.ecm_vol
+                self.update_IP3(cells,p,t)
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
-                # electrodiffusion of ions between cell and endoplasmic reticulum
-                # Electrodiffusio of calcium
-                self.cc_cells[self.iCa],self.cc_er[0],_ = \
-                electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
-                    cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
-
-                # Electrodiffusion of charge compensation anion
-                self.cc_cells[self.iM],self.cc_er[1],_ = \
-                electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
-                    cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p,t)
-
-                q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-                self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+               self.update_er(cells,p,t)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
 
-                _,_,flux_dye = \
-                        electrofuse(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
-                            p.Dm_Dye*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
-                            cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_Dye,self.vm,self.T,p)
-
-                 # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-                self.cDye_cell = self.cDye_cell + \
-                                    np.dot((flux_dye/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
-
-                # self.cDye_ecm = self.cDye_ecm - \
-                #                     np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
-
-                # determine flux through gap junctions for voltage dye:
-                _,_,fDye = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
-                    self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-                    cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,vgj,self.T,p)
-
-                # update cell voltage-sensitive dye concentration due to gap junction flux:
-                self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
-
-                # electrodiffuse dye through ecm <---> ecm junctions
-                _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
-                        self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
-                        cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                        self.zs[i],self.v_ec2ec,self.T,p)
-                #
-                # self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
+                self.update_dye(cells,p,t)
 
             if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
@@ -2271,6 +2175,124 @@ class Simulator(object):
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p)
+
+    def update_gj(self,cells,p,t,i):
+         # calculate voltage difference between cells:
+        vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
+        self.vgj = vmB - vmA
+
+        # determine the open state of gap junctions:
+        self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+
+        # determine flux through gap junctions for this ion:
+        _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
+            self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+            cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],self.vgj,self.T,p)
+
+        # update cell concentration due to gap junction flux:
+        self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
+
+        # recalculate the net, unbalanced charge and voltage in each cell:
+        self.update_V_ecm(cells,p,t)
+
+        self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
+
+    def update_ecm(self,cells,p,t,i):
+         # calculate voltage differences between ecm <---> ecm nearest neighbours:
+        self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,1]] - self.v_ecm[cells.ecm_nn_i[:,0]]
+
+        # electrodiffuse through ecm <---> ecm junctions
+
+        _,_,flux_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
+                self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
+                cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                self.zs[i],self.v_ec2ec,self.T,p)
+
+        self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(flux_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
+
+        if p.ecm_bound_open == True: # if the geometry is open to the environment
+            self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
+
+         # recalculate the net, unbalanced charge and voltage in each cell:
+        self.update_V_ecm(cells,p,t)
+
+    def update_er(self,cells,p,t):
+
+         # electrodiffusion of ions between cell and endoplasmic reticulum
+        self.cc_cells[self.iCa],self.cc_er[0],_ = \
+        electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
+            cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
+
+        # Electrodiffusion of charge compensation anion
+        self.cc_cells[self.iM],self.cc_er[1],_ = \
+        electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
+            cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
+
+        # recalculate the net, unbalanced charge and voltage in each cell:
+        self.update_V_ecm(cells,p,t)
+
+        q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
+        self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+
+    def update_dye(self,cells,p,t):
+
+        _,_,flux_dye = \
+                        electrofuse(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
+                            p.Dm_Dye*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
+                            cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_Dye,self.vm,self.T,p)
+
+         # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
+        self.cDye_cell = self.cDye_cell + \
+                            np.dot((flux_dye/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
+
+        # self.cDye_ecm = self.cDye_ecm - \
+        #                     np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
+
+        # determine flux through gap junctions for voltage dye:
+        _,_,fDye = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
+            self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+            cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,self.vgj,self.T,p)
+
+        # update cell voltage-sensitive dye concentration due to gap junction flux:
+        self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye*p.dt), cells.gjMatrix))/cells.cell_vol
+
+        # electrodiffuse dye through ecm <---> ecm junctions
+        _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
+                self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
+                cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                p.z_Dye,self.v_ec2ec,self.T,p)
+                #
+                # self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
+
+    def update_IP3(self,cells,p,t):
+         # determine flux through gap junctions for IP3:
+        _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
+            self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+            cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,self.vgj,self.T,p)
+
+        # update cell IP3 concentration due to gap junction flux:
+        self.cIP3 = (self.cIP3*cells.cell_vol + np.dot((fIP3*p.dt), cells.gjMatrix))/cells.cell_vol
+
+        # electrodiffuse IP3 between cell and environment:
+        _,_,flux_IP3 = \
+                    electrofuse(self.cIP3_ecm[cells.mem_to_ecm],self.cIP3[cells.mem_to_cells],
+                        p.Dm_IP3*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
+                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_IP3,self.vm,self.T,p)
+
+        # update the IP3 concentrations in the cell and ecm due to ED fluxes at membrane
+        self.cIP3 = self.cIP3 + \
+                            np.dot((flux_IP3/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
+
+        self.cIP3_ecm = self.cIP3_ecm - \
+                            np.dot((flux_IP3/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
+
+         # electrodiffuse IP3 through ecm <---> ecm junctions
+        _,_,flux_ecm_IP3 = electrofuse(self.cIP3_ecm[cells.ecm_nn_i[:,0]],self.cIP3_ecm[cells.ecm_nn_i[:,1]],
+                self.id_ecm*p.Do_IP3,cells.len_ecm_junc,self.ec2ec_sa,
+                cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+                p.z_IP3,self.v_ec2ec,self.T,p)
+
+        self.cIP3_ecm = (self.cIP3_ecm*cells.ecm_vol + np.dot(flux_ecm_IP3*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
 def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
     """
