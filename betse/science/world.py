@@ -166,7 +166,7 @@ class World(object):
 
     """
 
-    def __init__(self, p, crop_mask=None, vorclose=None, worldtype = None):
+    def __init__(self, p, crop_mask=None, vorclose='circle', worldtype = 'basic'):
         # Extract the constants from the input object:
         self.vorclose = vorclose   # whether or not to close the voronoi
         self.crop_mask = crop_mask # whether or not to clip the cluster
@@ -224,7 +224,7 @@ class World(object):
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
 
-        self.cell_number = self.cell_centres.shape[0]
+
 
     def makeSeeds(self,p):
 
@@ -346,7 +346,7 @@ class World(object):
 
             self.clust_xy = np.delete(self.clust_xy, 0, 0)    # delete the initialization value.
 
-    def makeVoronoi(self, p, vorclose = None):
+    def makeVoronoi(self, p, vorclose = 'circle'):
 
         """
         Calculates, closes and clips the Voronoi diagram to cell seed points.
@@ -1207,6 +1207,9 @@ class World(object):
             self.indmap_mem = None
             self.rindmap_mem = None
             # self.ecm_verts = None
+
+        self.cell_number = self.cell_centres.shape[0]
+        self.sim_ECM = p.sim_ECM
 
         # save the cell cluster
 

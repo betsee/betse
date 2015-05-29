@@ -46,7 +46,7 @@ class SimRunner(object):
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 
-    def makeWorld(self):
+    def makeWorld(self,plotWorld = True):
 
         """
         In order to set up tissue profiles and other geometry-specific features, it is necessary
@@ -69,11 +69,15 @@ class SimRunner(object):
             cells.makeWorld(p)     # call function to create the world
             loggers.log_info('Cell cluster creation complete!')
 
-            fig, ax, cb = viz.plotPolyData(cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+            if plotWorld == True:
 
-            ax.set_title('Cell collection')
-            ax.set_xlabel('Spatial distance [um]')
-            ax.set_ylabel('Spatial distance [um]')
+                fig, ax, cb = viz.plotPolyData(cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+
+                ax.set_title('Cell collection')
+                ax.set_xlabel('Spatial distance [um]')
+                ax.set_ylabel('Spatial distance [um]')
+
+                print(cells.cell_number)
 
         elif p.sim_ECM == True:
 
@@ -83,19 +87,19 @@ class SimRunner(object):
             cells.makeWorld(p)     # call function to create the world
             loggers.log_info('Cell cluster creation complete!')
 
-            fig, ax, cb = viz.plotHetMem(cells,p,number_cells=p.enumerate_cells,
-                number_ecm=p.enumerate_cells,clrmap=p.default_cm)
+            if plotWorld == True:
 
-            ax.set_title('Cell collection')
-            ax.set_xlabel('Spatial distance [um]')
-            ax.set_ylabel('Spatial distance [um]')
+                fig, ax, cb = viz.plotHetMem(cells,p,number_cells=p.enumerate_cells,
+                    number_ecm=p.enumerate_cells,clrmap=p.default_cm)
 
+                print(cells.cell_number)
 
+                ax.set_title('Cell collection')
+                ax.set_xlabel('Spatial distance [um]')
+                ax.set_ylabel('Spatial distance [um]')
 
         plt.show()
 
-        # FIXME do an automatic plot of the cells with numbering on....
-        # FIXME figure out how to load the world and plot it...
 
     def initialize(self):
         '''
@@ -111,24 +115,39 @@ class SimRunner(object):
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
-
         p.run_sim = False # let the simulator know we're just running an initialization
 
         # cells, _ = fh.loadSim(cells.savedWorld)
 
-        if p.sim_ECM == False:
+        cells = World(p)  # create an instance of world
 
-            cells = World(p,vorclose='circle',worldtype='basic')  # create an instance of world
-            loggers.log_info('Cell cluster is being created...')
-            cells.makeWorld(p)     # call function to create the world
-            loggers.log_info('Cell cluster creation complete!')
 
-        elif p.sim_ECM == True:
+        if files.is_file(cells.savedWorld):
+            cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            loggers.log_info('Cell cluster loaded.')
 
-            cells = World(p,vorclose='circle',worldtype='full')  # create an instance of world
-            loggers.log_info('Cell cluster is being created...')
-            cells.makeWorld(p)     # call function to create the world
-            loggers.log_info('Cell cluster creation complete!')
+            if p.sim_ECM != cells.sim_ECM:
+                loggers.log_info("Ooops! Cell cluster and config settings don't match!")
+                loggers.log_info("Automatically creating cell cluster from current config file settings...")
+                loggers.log_info("Warning: specified tissue profiles may no longer be correctly assigned.")
+                self.makeWorld(plotWorld=False)  # create an instance of world
+                loggers.log_info('Now using cell cluster to run initialization.')
+                cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+
+
+        else:
+            loggers.log_info("Ooops! No such cell cluster file found to load!")
+
+            if p.autoInit == True:
+                loggers.log_info("Automatically creating cell cluster from config file settings...")
+                self.makeWorld(plotWorld=False)  # create an instance of world
+                loggers.log_info('Now using cell cluster to run initialization.')
+                cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+
+
+            elif p.autoInit == False:
+                raise BetseExceptionSimulation("Simulation terminated due to missing initialization. Please run"
+                                               "an initialization and try again.")
 
         sim = Simulator(p)   # create an instance of Simulator
 
@@ -149,11 +168,21 @@ class SimRunner(object):
             'The initialization took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
+        if p.turn_all_plots_off == False:
+            plots4Sim(
+                p.plot_cell,cells,sim,p,
+                saveImages = p.autosave,
+                animate=p.createAnimations,
+                saveAni=p.saveAnimations)
+            plt.show()
+
         loggers.log_info('When ready, close all of the figure windows to proceed with scheduled simulation runs.')
 
-        if p.turn_all_plots_off == False:
-            plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
-            plt.show()
+        # if p.turn_all_plots_off == False:
+        #     plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
+        #     plt.show()
+
+
 
     def simulate(self):
         '''
@@ -170,10 +199,10 @@ class SimRunner(object):
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
         sim = Simulator(p)   # create an instance of Simulator
 
+
         if files.is_file(sim.savedInit):
             sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-
-            # FIXME there should be some way to tell if p.sim_ECM is out of sync between init and sim...
+            p.sim_ECM = cells.sim_ECM
 
         else:
 
@@ -280,6 +309,8 @@ class SimRunner(object):
             ax.set_xlabel('Spatial distance [um]')
             ax.set_ylabel('Spatial distance [um]')
 
+            print(cells.cell_number)
+
             plt.show()
 
         elif p.sim_ECM == True:
@@ -290,6 +321,8 @@ class SimRunner(object):
             ax.set_title('Cell collection')
             ax.set_xlabel('Spatial distance [um]')
             ax.set_ylabel('Spatial distance [um]')
+
+            print(cells.cell_number)
 
             plt.show()
 
