@@ -2,8 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME LIC plots for currents
-# FIXME work on the vector plotting -- perhaps interpolating data to grid?
+# FIXME create streamline plot for currents
 # FIXME saving animations doesn't work
 
 
@@ -757,9 +756,9 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
         if clrmap is None:
             clrmap = p.default_cm
 
-        verts_data = np.dot(zdata,cells.matrixMap2Verts)
+        verts_data = np.dot(z,cells.matrixMap2Verts)
 
-        plot_data = np.hstack((zdata,verts_data))
+        plot_data = np.hstack((z,verts_data))
         plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
 
 
@@ -777,15 +776,17 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
 
         ax.axis('equal')
 
-         # Add a colorbar for the triplot:
+        if zdata is not None:
 
-        maxval = round(np.max(zdata,axis=0),1)
-        minval = round(np.min(zdata,axis=0),1)
-        checkval = maxval - minval
+             # Add a colorbar for the triplot:
 
-        if checkval == 0:
-            minval = minval - 0.1
-            maxval = maxval + 0.1
+            maxval = round(np.max(zdata,axis=0),1)
+            minval = round(np.min(zdata,axis=0),1)
+            checkval = maxval - minval
+
+            if checkval == 0:
+                minval = minval - 0.1
+                maxval = maxval + 0.1
 
         if zdata is not None and clrAutoscale == True:
             triplt.set_clim(minval,maxval)
@@ -795,6 +796,9 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
 
             triplt.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(triplt,ax=ax)
+
+        else:
+            ax_cb = None
 
         if number_cells == True:
 
@@ -810,7 +814,7 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
 
             for i,bflag_ecm in enumerate(cells.bflags_ecm):
                 ecm = cells.ecm_mids[bflag_ecm]
-                ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center',color='b')
+                ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center',color='k',weight ='bold')
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)
@@ -883,13 +887,15 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True,
         ax.axis('equal')
 
         # Add a colorbar for the PolyCollection
-        maxval = round(np.max(zdata,axis=0),1)
-        minval = round(np.min(zdata,axis=0),1)
-        checkval = maxval - minval
 
-        if checkval == 0:
-            minval = minval - 0.1
-            maxval = maxval + 0.1
+        if zdata is not None:
+            maxval = round(np.max(zdata,axis=0),1)
+            minval = round(np.min(zdata,axis=0),1)
+            checkval = maxval - minval
+
+            if checkval == 0:
+                minval = minval - 0.1
+                maxval = maxval + 0.1
 
         if zdata is not None and clrAutoscale == True:
             coll.set_clim(minval,maxval)
@@ -902,8 +908,7 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True,
             ax_cb = fig.colorbar(coll,ax=ax)
 
         elif zdata is None:
-            coll.set_clim(0,1)
-            ax_cb = fig.colorbar(coll,ax=ax)
+            ax_cb = None
 
         if number_cells == True:
             for i,cll in enumerate(cells.cell_centres):

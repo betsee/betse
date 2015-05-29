@@ -33,6 +33,8 @@ import copy
 import math
 from betse.science import toolbox as tb
 import os, os.path
+from betse.science import filehandling as fh
+from betse.util.io import loggers
 
 class World(object):
     """
@@ -187,7 +189,7 @@ class World(object):
         os.makedirs(betse_cache_dir, exist_ok=True)
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedWorld = os.path.join(betse_cache_dir, 'saved_world.pickle')
+        self.savedWorld = os.path.join(betse_cache_dir, p.world_filename)
 
     def makeWorld(self,p):
 
@@ -1205,6 +1207,14 @@ class World(object):
             self.indmap_mem = None
             self.rindmap_mem = None
             # self.ecm_verts = None
+
+        # save the cell cluster
+
+        celf = copy.deepcopy(self)
+        datadump = [celf,p]
+        fh.saveSim(self.savedWorld,datadump)
+        message = 'Cell cluster saved to' + ' ' + self.savedWorld
+        loggers.log_info(message)
 
 
 

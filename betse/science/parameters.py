@@ -420,6 +420,7 @@ class Parameters(object):
 
         self.init_filename = self.config['init file saving']['file']
         self.sim_filename = self.config['sim file saving']['file']
+        self.world_filename = self.config['init file saving']['worldfile']
 
         self.backward_pumps = self.config['general options']['backward running pumps']   # boolean letting us know if pumps can run backwards
 
@@ -1224,7 +1225,7 @@ class Parameters(object):
 
             if self.sim_ECM == False:
 
-                self.dt = 1e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.dt = 5e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
                 self.resamp = 1.0         # time to resample in world time
 
@@ -1245,7 +1246,7 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gj_radius = 1.0e-10              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'custom init':

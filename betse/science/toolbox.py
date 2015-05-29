@@ -10,6 +10,7 @@ BETSE project.
 
 import numpy as np
 import scipy.spatial as sps
+from scipy import interpolate as interp
 import math
 import copy
 
@@ -346,3 +347,72 @@ def emptyDict(dic):
 
 
     return zero_dic
+
+def grid_vector_data(xpts,ypts,zdata_x,zdata_y,gridsize):
+
+    """
+    Takes irregularly spaced vector data in the form of linear arrays of x,y,ux,uy and
+    returns grids of X, Y, and Z_x and Z_y. Suitable for streamline plots (streamplot)
+
+    Parameters
+    ------------
+    xpts                        Linear array of x-coordinates
+    ypts                        Linear array of y-coordinates
+    zdata_x                     Linear array of vector x-components
+    zdata_y                     Linear array of vector y-components
+    gridsize                    Resolution of the interpolation grid (recommended 40x40)
+
+    Returns
+    ---------
+    X, Y, zi_x, zi_y            Arrays corresponding to xpts, ypts and the vector data points
+    """
+
+    xmin = np.min(xpts)
+    xmax = np.max(xpts)
+    ymin = np.min(ypts)
+    ymax = np.max(ypts)
+
+    xlin = np.linspace(xmin,xmax,gridsize)
+    ylin = np.linspace(ymin,ymax,gridsize)
+
+    X,Y = np.meshgrid(xlin,ylin)
+
+    zi_x = interp.griddata((xpts,ypts),zdata_x,(X,Y))
+    zi_y = interp.griddata((xpts,ypts),zdata_y,(X,Y))
+
+    return X,Y,zi_x,zi_y
+
+def griddata(xpts,ypts,zdata,gridsize):
+
+    """
+    Takes irregularly spaced data in the form of linear arrays of x,y,z and
+    returns grids of X, Y, and Z.
+
+    Parameters
+    ------------
+    xpts                        Linear array of x-coordinates
+    ypts                        Linear array of y-coordinates
+    zdata                       Linear array of data values at x-y coordinate points
+    gridsize                    Resolution of the interpolation grid (recommended 100x100)
+
+    Returns
+    ---------
+    X, Y, zi_m                  Arrays corresponding to xpts, ypts and the zdata values. Note
+                                zi_m is a masked array.
+
+    """
+
+    xmin = np.min(xpts)
+    xmax = np.max(xpts)
+    ymin = np.min(ypts)
+    ymax = np.max(ypts)
+
+    xlin = np.linspace(xmin,xmax,gridsize)
+    ylin = np.linspace(ymin,ymax,gridsize)
+
+    X,Y = np.meshgrid(xlin,ylin)
+
+    zi = interp.griddata((xpts,ypts),zdata,(X,Y))
+    zi_m = np.ma.masked_where(np.isnan(zi),zi)
+
+    return X, Y, zi_m

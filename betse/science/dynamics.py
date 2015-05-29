@@ -387,7 +387,7 @@ class Dynamics(object):
 
     def externalVoltage(self,sim,cells,p,t,v_ecm_o):
 
-        if p.scheduled_options['extV'] != 0 and p.sim_ECM == True: # FIXME complete this extV section
+        if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
             effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
 

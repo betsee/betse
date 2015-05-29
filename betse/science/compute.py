@@ -1200,7 +1200,8 @@ class Simulator(object):
                          ' minutes of in-world time.')
 
         # get the initial net, unbalanced charge and voltage in each cell and ecm space:
-        self.update_V_ecm(cells,p)
+        t=0
+        self.update_V_ecm(cells,p,t)
 
         do_once = True  # a variable to time the loop only once
 
@@ -1221,7 +1222,7 @@ class Simulator(object):
             self.update_C_ecm(self.iK,f_K,cells,p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V_ecm(cells,p)
+            self.update_V_ecm(cells,p,t)
 
             # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
             if  p.ions_dict['Ca'] == 1:
@@ -1234,7 +1235,7 @@ class Simulator(object):
                 self.update_C_ecm(self.iCa,f_Ca_ATP,cells,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
 
@@ -1278,7 +1279,7 @@ class Simulator(object):
                     self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
@@ -1295,7 +1296,7 @@ class Simulator(object):
                         cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    self.update_V_ecm(cells,p)
+                    self.update_V_ecm(cells,p,t)
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1322,7 +1323,7 @@ class Simulator(object):
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p)
+                self.update_V_ecm(cells,p,t)
 
             # check and ensure simulation stability
             check_v(self.vm)
@@ -1435,10 +1436,17 @@ class Simulator(object):
         self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
         self.gjsa[:] = p.gjsa
 
+        # get the net, unbalanced charge and corresponding voltage in each cell:
+        q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+        self.vm = get_volt(q_cells,cells.cell_sa,p)
+
         vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
 
-        # create a time-steps vector:
-        tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
+        # create a time-steps vector appropriate for the simulation type:
+        if p.run_sim == True:
+            tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
+        else:
+            tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
 
         i = 0 # resample the time vector to save data at specific times:
         tsamples =[]
@@ -1449,12 +1457,16 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
+
+        if p.run_sim == True:
+
+            loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
 
-        # get the net, unbalanced charge and corresponding voltage in each cell:
-        q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-        self.vm = get_volt(q_cells,cells.cell_sa,p)
+        else:
+             loggers.log_info('Your initialization is running from '+ str(0) + ' to '+ str(round(p.init_tsteps*p.dt,3))
+                         + ' seconds of in-world time.')
+
 
         if p.plot_while_solving == True:
 
@@ -1712,7 +1724,10 @@ class Simulator(object):
                         # get time for loop and estimate total time for simulation
             if do_once == True:
                 loop_time = time.time() - loop_measure
-                time_estimate = round(loop_time*p.sim_tsteps,2)
+                if p.run_sim == True:
+                    time_estimate = round(loop_time*p.sim_tsteps,2)
+                else:
+                    time_estimate = round(loop_time*p.init_tsteps,2)
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
@@ -1726,7 +1741,16 @@ class Simulator(object):
             igj = p.F*igj
             self.Igj_time.append(igj)
 
-        if save==True:
+        if p.run_sim == False:
+
+            celf = copy.deepcopy(self)
+
+            datadump = [celf,cells,p]
+            fh.saveSim(self.savedInit,datadump)
+            message_1 = 'Initialization run saved to' + ' ' + p.init_path
+            loggers.log_info(message_1)
+
+        elif p.run_sim == True:
             celf = copy.deepcopy(self)
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
@@ -1816,10 +1840,16 @@ class Simulator(object):
         self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
         self.gjsa[:] = p.gjsa
 
+        # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
+        self.update_V_ecm(cells,p,0)
+
         self.vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
 
-        # create a time-steps vector:
-        tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
+         # create a time-steps vector appropriate for simulation type:
+        if p.run_sim == True:
+            tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
+        else:
+            tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
 
         i = 0 # resample the time vector to save data at specific times:
         tsamples =[]
@@ -1830,11 +1860,15 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
+        if p.run_sim == True:
+
+            loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
 
-        # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
-        self.update_V_ecm(cells,p,0)
+        else:
+            loggers.log_info('Your initialization (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.init_tsteps*p.dt,3))
+                         + ' seconds of in-world time.')
+
 
         if p.plot_while_solving == True:
 
@@ -1935,7 +1969,6 @@ class Simulator(object):
                 # update the charge transfer between cells via gap junctions
                 self.update_gj(cells,p,t,i)
 
-
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
                 self.update_IP3(cells,p,t)
@@ -2002,7 +2035,11 @@ class Simulator(object):
                         # get time for loop and estimate total time for simulation
             if do_once == True:
                 loop_time = time.time() - loop_measure
-                time_estimate = round(loop_time*p.sim_tsteps,2)
+
+                if p.run_sim == True:
+                    time_estimate = round(loop_time*p.sim_tsteps,2)
+                else:
+                    time_estimate = round(loop_time*p.init_tsteps,2)
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
@@ -2016,7 +2053,16 @@ class Simulator(object):
             igj = p.F*igj
             self.Igj_time.append(igj)
 
-        if save==True:
+        if p.run_sim == False:
+
+            celf = copy.deepcopy(self)
+
+            datadump = [celf,cells,p]
+            fh.saveSim(self.savedInit,datadump)
+            message_1 = 'Initialization run saved to' + ' ' + p.init_path
+            loggers.log_info(message_1)
+
+        elif p.run_sim == True:
             celf = copy.deepcopy(self)
             datadump = [celf,cells,p]
             fh.saveSim(self.savedSim,datadump)
@@ -2079,7 +2125,7 @@ class Simulator(object):
         self.v_cell = get_Vcell(self.rho_cells,cells,p)
         self.v_ecm = get_Vecm(self.rho_ecm,p)
 
-        if p.scheduled_options['extV'] != 0:
+        if p.scheduled_options['extV'] != 0 and p.run_sim == True:
             self.dyna.externalVoltage(self,cells,p,t,self.v_ecm)
 
         self.vm = self.v_cell[cells.mem_to_cells] - self.v_ecm[cells.mem_to_ecm]  # calculate v_mem
@@ -2261,7 +2307,7 @@ class Simulator(object):
                 self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
                 cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
                 p.z_Dye,self.v_ec2ec,self.T,p)
-                #
+                    #
                 # self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
     def update_IP3(self,cells,p,t):

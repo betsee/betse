@@ -46,6 +46,57 @@ class SimRunner(object):
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 
+    def makeWorld(self):
+
+        """
+        In order to set up tissue profiles and other geometry-specific features, it is necessary
+        to first create and plot the cells data structure. This will be loaded into the init
+        and sim runs.
+
+        """
+
+        loggers.log_info(
+            'Initializing simulation with configuration file "{}".'.format(
+                self._config_basename))
+
+        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+
+        if p.sim_ECM == False:
+
+            cells = World(p,vorclose='circle',worldtype='basic')  # create an instance of world
+            cells.containsECM = False
+            loggers.log_info('Cell cluster is being created...')
+            cells.makeWorld(p)     # call function to create the world
+            loggers.log_info('Cell cluster creation complete!')
+
+            fig, ax, cb = viz.plotPolyData(cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+
+            ax.set_title('Cell collection')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+
+        elif p.sim_ECM == True:
+
+            cells = World(p,vorclose='circle',worldtype='full')  # create an instance of world
+            cells.containsECM = True
+            loggers.log_info('Cell cluster is being created...')
+            cells.makeWorld(p)     # call function to create the world
+            loggers.log_info('Cell cluster creation complete!')
+
+            fig, ax, cb = viz.plotHetMem(cells,p,number_cells=p.enumerate_cells,
+                number_ecm=p.enumerate_cells,clrmap=p.default_cm)
+
+            ax.set_title('Cell collection')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+
+
+
+        plt.show()
+
+        # FIXME do an automatic plot of the cells with numbering on....
+        # FIXME figure out how to load the world and plot it...
+
     def initialize(self):
         '''
         Run an initialization simulation from scratch and save it to the
@@ -63,6 +114,7 @@ class SimRunner(object):
 
         p.run_sim = False # let the simulator know we're just running an initialization
 
+        # cells, _ = fh.loadSim(cells.savedWorld)
 
         if p.sim_ECM == False:
 
@@ -84,13 +136,13 @@ class SimRunner(object):
 
             sim.baseInit(cells, p)   # initialize simulation data structures
             sim.tissueInit(cells,p)
-            sim.runInit(cells,p)     # run and save the initialization
+            sim.runSim(cells,p)     # run and save the initialization
 
         elif p.sim_ECM == True:
 
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
             sim.tissueInit(cells,p)
-            sim.runInit_ECM(cells,p)     # run and save the initialization
+            sim.runSim_ECM(cells,p)     # run and save the initialization
 
         loggers.log_info('Initialization run complete!')
         loggers.log_info(
@@ -122,7 +174,6 @@ class SimRunner(object):
             sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             # FIXME there should be some way to tell if p.sim_ECM is out of sync between init and sim...
-
 
         else:
 
@@ -204,6 +255,43 @@ class SimRunner(object):
             animate=p.createAnimations,
             saveAni=p.saveAnimations)
         plt.show()
+
+    def plotWorld(self):
+
+        loggers.log_info(
+            'Initializing simulation with configuration file "{}".'.format(
+                self._config_basename))
+
+        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+
+        cells = World(p,vorclose ='circle',worldtype='basic')
+
+        if files.is_file(cells.savedWorld):
+            cells,p = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            loggers.log_info('Cell cluster loaded.')
+        else:
+            raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
+
+        if p.sim_ECM == False:
+
+            fig, ax, cb = viz.plotPolyData(cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+
+            ax.set_title('Cell collection')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+
+            plt.show()
+
+        elif p.sim_ECM == True:
+
+            fig, ax, cb = viz.plotHetMem(cells,p,number_cells=p.enumerate_cells,
+                number_ecm=p.enumerate_cells,clrmap=p.default_cm)
+
+            ax.set_title('Cell collection')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+
+            plt.show()
 
 def plots4Init(plot_cell,cells,sim,p,saveImages=False):
 

@@ -25,6 +25,6 @@ def loadSim(loadPath):
 def loadWorld(loadPath):
 
     with open(loadPath, 'rb') as f:
-        cells = pickle.load(f)
+        cells,_ = pickle.load(f)
 
-    return cells
+    return cells,_
