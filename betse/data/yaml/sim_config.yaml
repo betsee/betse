@@ -31,6 +31,16 @@
 # useful for configuration files -- like this one. For details, please see
 # https://en.wikipedia.org/wiki/YAML.
 
+#------------------------------------------------------------------------------
+# Time-step Recommendations
+#
+# GJ sa          no ecm space      ecm spaces    sampling t      effect
+#--------       -------------      ----------   -----------     --------
+# 0.1e-9             1e-2             5e-4          0.1         closed gap junctions
+# 0.5e-9             5e-3             2.5e-4        0.1         moderate flux gap junctions
+# 1.0e-9             1e-3             1.0e-4        0.1         high flux gap junctions
+# 5.0e-9             1e-4             5.0e-6        0.01        very high flux gap junctions
+
 # -----------------------------------------------------------------------------
 # FILE HANDLING
 # Settings specific to saving simulations and results output
@@ -78,7 +88,7 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5e-3               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
+    time step: 5.0e-3               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
     total time: 10.0                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
     gap junction radius: 0.5e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
@@ -360,7 +370,7 @@ number of tissue profiles: 2     # specify any number of profiles, which are giv
 
 tissue profile 1:
     name: 'hyperpolarized'       # give your profile a name that will be used to apply the profile
-    cell indices: [10,9,8,7]      # The string 'random##' will target specified percentage of cell pop.
+    cell indices: [23,24,13,14]      # The string 'random##' will target specified percentage of cell pop.
                                   # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
     Dm_Na: 0.5e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 25.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -372,7 +382,7 @@ tissue profile 1:
 
 tissue profile 2:
     name: 'depolarized'
-    cell indices: [41,27,48,47]
+    cell indices: [34,35,30,33]
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -529,7 +539,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: True         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -538,7 +548,7 @@ results options:
   plot cell index: 5              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
   show cells: True                # if True, plots and animations show individual cells,
@@ -548,6 +558,8 @@ results options:
                                   # Note if working with a large cluster (>500 um) do not
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
+
+  overlay currents: True          # overlay current streamlines on 2d plotted data
 
 
   Vmem 2D:
@@ -585,6 +597,13 @@ results options:
     max val: 100                    # maximum colorbar value in mV
     min val: -100                   # minimum colorbar value in mV
 
+  Currents 2D:
+
+    plot Currents: True               # 2d plot of net current flow in the collective?
+    autoscale colorbar: True          # autoscale colorbar to min max of data set?
+    max val: 1e-13                    # maximum colorbar value in A
+    min val: 0                        # minimum colorbar value in A
+
 
   Vmem Ani:
 
@@ -617,7 +636,7 @@ results options:
   Vmem GJ Ani:
 
     animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 80.0                # maximum colorbar value in mV
     min val: -80.0               # minimum colorbar value in mV
 

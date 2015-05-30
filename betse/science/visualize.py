@@ -256,7 +256,7 @@ class AnimateGJData(object):
         self.colormap = clrmap
         self.time = sim.time
 
-        self.gjI_t = np.sign(sim.Igj_time)
+        self.gjI_t = np.sign(sim.I_time)
         self.gjvects = cells.gj_vects
 
         self.cells = cells
@@ -327,7 +327,6 @@ class AnimateGJData(object):
 
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
-
 
         # Next add in gap junction current direction
         vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
@@ -406,7 +405,7 @@ class AnimateGJData_smoothed(object):
         self.colormap = clrmap
         self.time = sim.time
 
-        self.gjI_t = np.sign(sim.Igj_time)
+        self.gjI_t = np.sign(sim.I_time)
         self.gjvects = cells.gj_vects
 
         self.fig = plt.figure()       # define figure
@@ -826,7 +825,7 @@ def plotHetMem(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrM
 
         return fig, ax, ax_cb
 
-def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
+def plotPolyData(sim,cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap = None, number_cells=False):
         """
         Assigns color-data to each polygon in a cell cluster diagram and returns a plot instance (fig, axes)
@@ -914,6 +913,34 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True,
             for i,cll in enumerate(cells.cell_centres):
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
+        if p.I_overlay == True:  # FIXME make another params field to cover streamline overlays
+
+            if p.sim_ECM == False:
+
+                xpts = cells.gj_vects[:,0]
+                ypts = cells.gj_vects[:,1]
+                nx = cells.gj_vects[:,2]
+                ny = cells.gj_vects[:,3]
+
+                Jmag = sim.I_time[-1]
+
+                jx = Jmag*nx
+                jy = Jmag*ny
+
+                X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
+                Jmag_M = np.sqrt(J_x**2 + J_y**2)
+
+                J_x = J_x/Jmag_M
+                J_y = J_y/Jmag_M
+
+                J_x = np.nan_to_num(J_x)
+                J_y = np.nan_to_num(J_y)
+                Jmag_M = np.nan_to_num(Jmag_M)
+
+                lw = 3.0*Jmag_M/Jmag_M.max()
+
+                ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)
         ymin = p.um*(cells.clust_y_min - p.clip)
@@ -923,7 +950,7 @@ def plotPolyData(cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True,
 
         return fig,ax,ax_cb
 
-def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
+def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap=None,edgeOverlay = None,pointOverlay=None):
         """
         The work-horse of pre-defined plotting methods, this method assigns color-data to each node in cell_centres
@@ -1018,6 +1045,34 @@ def plotCellData(cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, cl
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
+
+        if p.I_overlay == True:
+
+            if p.sim_ECM == False:
+
+                xpts = cells.gj_vects[:,0]
+                ypts = cells.gj_vects[:,1]
+                nx = cells.gj_vects[:,2]
+                ny = cells.gj_vects[:,3]
+
+                Jmag = sim.I_time[-1]
+
+                jx = Jmag*nx
+                jy = Jmag*ny
+
+                X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
+                Jmag_M = np.sqrt(J_x**2 + J_y**2)
+
+                J_x = J_x/Jmag_M
+                J_y = J_y/Jmag_M
+
+                J_x = np.nan_to_num(J_x)
+                J_y = np.nan_to_num(J_y)
+                Jmag_M = np.nan_to_num(Jmag_M)
+
+                lw = 3.0*Jmag_M/Jmag_M.max()
+
+                ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)
@@ -1319,7 +1374,6 @@ def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = Tr
 
         return fig, ax, ax_cb
 
-
 def plotVects(cells, p, fig=None, ax=None):
         """
         This function plots all unit vectors in the tissue system as a cross-check.
@@ -1361,7 +1415,90 @@ def plotVects(cells, p, fig=None, ax=None):
 
         return fig, ax
 
-def exportData(cells,sim,p):
+def streamingCurrent(sim, cells,p,fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
+    clrmap= cm.coolwarm,edgeOverlay = True,number_cells = False):
+
+    if fig is None:
+        fig = plt.figure()# define the figure and axes instances
+    if ax is None:
+        ax = plt.subplot(111)
+
+    if p.sim_ECM == False:
+
+        xpts = cells.gj_vects[:,0]
+        ypts = cells.gj_vects[:,1]
+        nx = cells.gj_vects[:,2]
+        ny = cells.gj_vects[:,3]
+
+        Jmag = sim.I_time[-1]
+
+        jx = Jmag*nx
+        jy = Jmag*ny
+
+        X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
+        Jmag_M = np.sqrt(J_x**2 + J_y**2)
+
+        J_x = J_x/Jmag_M
+        J_y = J_y/Jmag_M
+
+        J_x = np.nan_to_num(J_x)
+        J_y = np.nan_to_num(J_y)
+        Jmag_M = np.nan_to_num(Jmag_M)
+
+        lw = 3.0*Jmag_M/Jmag_M.max()
+
+        streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color=Jmag_M,cmap=clrmap,arrowsize=1.5)
+
+        # Add a colorbar for the streamplot:
+
+        # maxval = round(np.max(Jmag,axis=0),1)
+        # minval = round(np.min(Jmag,axis=0),1)
+        # checkval = maxval - minval
+        #
+        # if checkval == 0:
+        #     minval = minval - 0.1
+        #     maxval = maxval + 0.1
+
+        if clrAutoscale == True:
+            # streamplot.lines.set_clim(minval,maxval)
+            ax_cb = fig.colorbar(streamplot.lines,ax=ax)
+
+        elif clrAutoscale == False:
+
+            streamplot.lines.set_clim(clrMin,clrMax)
+            streamplot.arrows.set_clim(clrMin,clrMax)
+            ax_cb = fig.colorbar(streamplot.lines,ax=ax)
+
+        if edgeOverlay == True:
+            cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+            cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+            coll = LineCollection(cell_edges_flat,colors='k')
+            coll.set_alpha(0.2)
+            ax.add_collection(coll)
+
+        ax.axis('equal')
+
+        if number_cells == True:
+
+            for i,cll in enumerate(cells.cell_centres):
+                ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
+
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        ax.set_title('Final Gap Junction Current')
+        ax.set_xlabel('Spatial distance [um]')
+        ax.set_ylabel('Spatial distance [um]')
+        ax_cb.set_label('Current [A]')
+
+        ax.axis([xmin,xmax,ymin,ymax])
+
+        return fig,ax,ax_cb
+
+
+def exportData(cells,sim,p):   # FIXME this needs to be revised for ecm and no ecm...
 
     results_path = p.sim_results
     os.makedirs(results_path, exist_ok=True)

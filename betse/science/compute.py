@@ -113,6 +113,14 @@ class Simulator(object):
 
         i = -1                           # an index to track place in ion list
 
+        flx_gj_i = np.zeros(len(cells.gj_i))
+        self.fluxes_gj = []
+
+        self.current =np.zeros(len(cells.gj_i))     # total current in the network
+        self.I_time = []                            # total current in the network at each time
+
+        self.gjopen_time = []   # stores gj open fraction at each time
+
         # Initialize cellular concentrations of ions:
         if p.ions_dict['Na'] == 1:
 
@@ -140,6 +148,8 @@ class Simulator(object):
             self.z_array.append(zNa)
             self.Dm_cells.append(DmNa)
             self.D_free.append(p.Do_Na)
+
+            self.fluxes_gj.append(flx_gj_i)
 
 
         if p.ions_dict['K'] == 1:
@@ -169,6 +179,8 @@ class Simulator(object):
             self.Dm_cells.append(DmK)
             self.D_free.append(p.Do_K)
 
+            self.fluxes_gj.append(flx_gj_i)
+
 
         if p.ions_dict['Cl'] == 1:
 
@@ -197,6 +209,8 @@ class Simulator(object):
             self.Dm_cells.append(DmCl)
             self.D_free.append(p.Do_Cl)
 
+            self.fluxes_gj.append(flx_gj_i)
+
 
         if p.ions_dict['Ca'] == 1:
 
@@ -224,6 +238,8 @@ class Simulator(object):
             self.z_array.append(zCa)
             self.Dm_cells.append(DmCa)
             self.D_free.append(p.Do_Ca)
+
+            self.fluxes_gj.append(flx_gj_i)
 
             if p.ions_dict['Ca'] ==1:
                 cCa_er = np.zeros(len(cells.cell_i))
@@ -263,6 +279,8 @@ class Simulator(object):
             self.Dm_cells.append(DmP)
             self.D_free.append(p.Do_P)
 
+            self.fluxes_gj.append(flx_gj_i)
+
         if p.ions_dict['M'] == 1:
 
             i =i+1
@@ -290,6 +308,8 @@ class Simulator(object):
             self.Dm_cells.append(DmM)
             self.D_free.append(p.Do_M)
 
+            self.fluxes_gj.append(flx_gj_i)
+
             if p.ions_dict['Ca'] ==1:
                 cM_er = np.zeros(len(cells.cell_i))
                 cM_er[:]=p.cM_er
@@ -301,6 +321,7 @@ class Simulator(object):
                 self.z_er.append(p.z_M)
                 self.z_array_er(zM_er)
                 self.Dm_er.append(p.Dm_M)
+
 
         if p.ions_dict['H'] == 1:
 
@@ -342,6 +363,8 @@ class Simulator(object):
             self.Dm_cells.append(DmH)
             self.D_free.append(p.Do_H)
 
+            self.fluxes_gj.append(flx_gj_i)
+
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
         self.tm[:] = p.tm
@@ -349,13 +372,6 @@ class Simulator(object):
         # Initialize environmental volume:
         self.envV = np.zeros(len(cells.cell_i))
         self.envV[:] = p.vol_env
-
-        flx = np.zeros(len(cells.gj_i))
-        self.fluxes_gj = [flx,flx,flx,flx,flx,flx,flx]   # stores gj fluxes for each ion
-        self.gjopen_time = []   # stores gj open fraction at each time
-        self.fgj_time = []      # stores the gj fluxes for each ion at each time
-        self.Igj =[]            # current for each gj
-        self.Igj_time = []      # current for each gj at each time
 
         self.Dm_er = copy.deepcopy(self.Dm_cells)
 
@@ -426,14 +442,15 @@ class Simulator(object):
         flx_gj_i = np.zeros(len(cells.gj_i))   # vector for making ion flux storage matrix
         self.fluxes_gj = []   # stores gj fluxes for each ion
         self.gjopen_time = []   # stores gj open fraction at each time
-        self.fgj_time = []      # stores the gj fluxes for each ion at each time
-        self.Igj =[]            # current for each gj
-        self.Igj_time = []      # current for each gj at each time
 
         flx_ecm_i = np.zeros(len(cells.ecm_i))
         self.fluxes_ecm = []   # stores gj fluxes for each ion
-        self.Igj =[]            # current for each gj
-        self.Igj_time = []      # current for each gj at each time
+
+        flx_mem_i = np.zeros(len(cells.mem_i))
+        self.fluxes_mem = []   # stores gj fluxes for each ion
+
+        self.I =[]            # total current for the cluster network
+        self.I_time = []      # total current for the cluster at each time point
 
 
         # Initialize cellular concentrations of ions:
@@ -884,527 +901,6 @@ class Simulator(object):
         loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
         loggers.log_info('If you have selected features using other ions, they will be ignored.')
 
-    def runInit(self,cells,p):
-        """
-        Runs an initialization simulation from the existing data state of the Simulation object,
-        and saves the resulting data (including the cell world geometry) to files that can be read later.
-
-        Parameters:
-        -----------
-        cells               An instance of the World class. This is required because simulation data is specific
-                            to the cell world data so it needs the reference to save.
-        timesteps           The number of timesteps over which the simulation is run. Note the size of the time
-                            interval is specified as dt in the parameters module.
-
-        """
-        # Reinitialize data structures that hold time data
-        self.cc_time = []  # data array holding the cell concentrations at time points
-        self.cc_env_time = []  # data array holding the environmental concentrations at time points
-        self.cc_er_time = []  # data array holding endoplasmic reticulum concentrations at time points
-
-        self.vm_time = []  # data array holding voltage at time points
-        self.cDye_time = [] # data array holding voltage-sensitive dye concentrations at time points
-
-        self.time = []     # time values of the simulation
-
-        tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
-
-        i = 0 # resample the time vector to save data at specific times:
-        tsamples =[]
-        resample = p.t_resample
-        while i < len(tt)-resample:
-            i = i + resample
-            tsamples.append(tt[i])
-        tsamples = set(tsamples)
-
-        # report
-        loggers.log_info('Your initialization is running for ' + str(round((p.init_tsteps*p.dt)/60,2)) +
-                         ' minutes of in-world time.')
-
-        # get the initial net, unbalanced charge and voltage in each cell:
-        q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-        self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-        do_once = True  # a variable to time the loop only once
-
-        for t in tt:   # run through the loop
-
-            if do_once == True:
-                loop_measure = time.time()
-
-            # run the Na-K-ATPase pump:
-            self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK], _, _ =\
-                pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],self.cc_env[self.iK],
-                    cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.NaKATP_block)
-
-            # recalculate the net, unbalanced charge and voltage in each cell:
-            q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-            self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-            # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
-            if  p.ions_dict['Ca'] == 1:
-
-                self.cc_cells[self.iCa],self.cc_env[self.iCa], _ =\
-                    pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],cells.cell_sa,cells.cell_vol,
-                        self.envV,self.vm,self.T,p)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-                if p.Ca_dyn ==1:
-
-                    self.cc_er[0],self.cc_cells[self.iCa], _ =\
-                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],cells.cell_sa,p.ER_vol*cells.cell_vol,
-                            cells.cell_vol,self.v_er,self.T,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-                    q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-                    v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-                    self.v_er = v_er_o - self.vm
-
-            if p.ions_dict['H'] == 1:
-
-                # electrofuse the H+ ion between the cytoplasm and the environment
-                self.cc_env[self.iH],self.cc_cells[self.iH],f_H1 = \
-                    electrofuse(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,cells.cell_sa,
-                        self.envV,cells.cell_vol,self.zs[self.iH],self.vm,self.T,p)
-
-                # buffer what's happening with H+ flux to or from the cell and environment:
-                delH_cell = (f_H1*p.dt/cells.cell_vol)    # relative change in H wrt the cell
-                delH_env =  -(f_H1*p.dt/p.vol_env)    # relative change in H wrt to environment
-
-                self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-                    self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-                self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-                    self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-
-                if p.HKATPase_dyn == 1:
-
-                    # if HKATPase pump is desired, run the H-K-ATPase pump:
-                    self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK], f_H2, _ =\
-                    pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],self.cc_env[self.iK],
-                        cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p,self.HKATP_block)
-
-                     # buffer what's happening with H+ flux to or from the cell and environment:
-                    delH_cell = (f_H2*p.dt/cells.cell_vol)    # relative change in H wrt the cell
-                    delH_env = -(f_H2*p.dt/p.vol_env)    # relative change in H wrt to environment
-
-                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-                if p.VATPase_dyn == 1:
-
-                     # if HKATPase pump is desired, run the H-K-ATPase pump:
-                    self.cc_cells[self.iH],self.cc_env[self.iH], f_H3 =\
-                    pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],
-                        cells.cell_sa,cells.cell_vol,self.envV,self.vm,self.T,p)
-
-                     # buffer what's happening with H+ flux to or from the cell and environment:
-                    delH_cell = (f_H3*p.dt/cells.cell_vol)    # relative change in H wrt the cell
-                    delH_env = -(f_H3*p.dt/p.vol_env)    # relative change in H wrt to environment
-
-                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-            # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
-            shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
-
-            for i in self.movingIons:
-
-                self.cc_env[i],self.cc_cells[i],_ = \
-                    electrofuse(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,cells.cell_sa,
-                        self.envV,cells.cell_vol,self.zs[i],self.vm,self.T,p)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-                    # electrodiffusion of ions between cell and endoplasmic reticulum
-                    # First do calciu:m
-                    self.cc_cells[self.iCa],self.cc_er[0],_ = \
-                    electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
-
-                    # next do charge compensation anion:
-                    self.cc_cells[self.iM],self.cc_er[1],_ = \
-                    electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-                    q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-                    v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-                    self.v_er = v_er_o - self.vm
-
-            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
-            if p.voltage_dye ==1:
-
-                self.cDye_env,self.cDye_cell,_ = \
-                        electrofuse(self.cDye_env,self.cDye_cell,p.Dm_Dye*self.id_cells,self.tm,cells.cell_sa,
-                            self.envV,cells.cell_vol,p.z_Dye,self.vm,self.T,p)
-
-            if p.dynamic_noise == 1 and p.ions_dict['P']==1:
-                # add a random walk on protein concentration to generate dynamic noise:
-                self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
-                self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
-
-            # check and ensure simulation stability
-            check_v(self.vm)
-
-            if t in tsamples:
-                # add the new concentration and voltage data to the time-storage matrices:
-                concs = copy.deepcopy(self.cc_cells)
-                self.cc_time.append(concs)
-
-                concs_env = copy.deepcopy(self.cc_env)
-                self.cc_env_time.append(concs_env)
-
-                vmm = copy.deepcopy(self.vm)
-                self.vm_time.append(vmm)
-
-                self.time.append(t)
-
-                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-                    concs_er = copy.deepcopy(self.cc_er)
-                    self.cc_er_time.append(concs_er)
-
-                if p.voltage_dye == 1:
-                    cvdye = copy.deepcopy(self.cDye_cell)
-                    self.cDye_time.append(cvdye)
-
-                if p.plot_while_solving == True:
-                    pass
-
-            # get time for loop and estimate total time for simulation
-            if do_once == True:
-                loop_time = time.time() - loop_measure
-                time_estimate = round(loop_time*p.init_tsteps,2)
-                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
-                do_once = False
-
-        celf = copy.deepcopy(self)
-
-        datadump = [celf,cells,p]
-        fh.saveSim(self.savedInit,datadump)
-        message_1 = 'Initialization run saved to' + ' ' + p.init_path
-        loggers.log_info(message_1)
-
-        self.vm_to = copy.deepcopy(self.vm)
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final environmental concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
-
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
-        vmess = 'Final average cell Vmem of' + ': '
-        loggers.log_info(vmess + str(final_vmean) + ' mV')
-
-        if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
-            loggers.log_info('Final average cell pH ' + str(np.round(final_pH,2)))
-
-            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
-            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
-
-        if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-
-                endconc_er = np.round(np.mean(self.cc_er[0]),6)
-                label = self.ionlabel[self.iCa]
-                concmess = 'Final ER concentration of'+ ' '+ label + ': '
-                loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
-
-        if p.voltage_dye == 1:
-
-            dye_env_final = np.mean(self.cDye_env)
-            dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final dye concentration in the environment: '+ str(np.round(dye_env_final,6)) + ' mmol/L')
-            loggers.log_info('Final average dye concentration in cells: '+ str(np.round(dye_cell_final,6)) + ' mmol/L')
-
-    def runInit_ECM(self,cells,p):
-        """
-        Runs an initialization simulation from the existing data state of the Simulation object,
-        and saves the resulting data (including the cell world geometry) to files that can be read later.
-
-        Parameters:
-        -----------
-        cells               An instance of the World class. This is required because simulation data is specific
-                            to the cell world data so it needs the reference to save.
-        timesteps           The number of timesteps over which the simulation is run. Note the size of the time
-                            interval is specified as dt in the parameters module.
-
-        """
-        # Reinitialize data structures that hold time data
-        self.cc_time = []  # data array holding the cell concentrations at time points
-        self.cc_ecm_time = []  # data array holding the environmental concentrations at time points
-        self.cc_er_time = []  # data array holding endoplasmic reticulum concentrations at time points
-
-        self.vm_time = []  # data array holding voltage across membrane at time points
-        self.vcells_time = []  # data array holding intracellular voltages (at membranes) at time points
-        self.vecm_time = []    # data array holding ecm voltages (at membrane) at time points
-        self.cDye_time = [] # data array holding voltage-sensitive dye concentrations at time points
-
-        self.time = []     # time values of the simulation
-
-        tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
-
-        i = 0 # resample the time vector to save data at specific times:
-        tsamples =[]
-        resample = p.t_resample
-        while i < len(tt)-resample:
-            i = i + resample
-            tsamples.append(tt[i])
-        tsamples = set(tsamples)
-
-        # report
-        loggers.log_info('Your initialization (with extracellular spaces) is running for '
-                         + str(round((p.init_tsteps*p.dt)/60,2)) +
-                         ' minutes of in-world time.')
-
-        # get the initial net, unbalanced charge and voltage in each cell and ecm space:
-        t=0
-        self.update_V_ecm(cells,p,t)
-
-        do_once = True  # a variable to time the loop only once
-
-        for t in tt:   # run through the loop
-
-            if do_once == True:
-                loop_measure = time.time()
-
-            # run the Na-K-ATPase pump:
-            _,_,_,_, f_Na, f_K =\
-                pumpNaKATP(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_ecm[self.iNa][cells.mem_to_ecm],
-                    self.cc_cells[self.iK][cells.mem_to_cells],self.cc_ecm[self.iK][cells.mem_to_ecm],
-                    cells.mem_sa,cells.cell_vol[cells.mem_to_cells], cells.ecm_vol[cells.mem_to_ecm],
-                    self.vm,self.T,p,self.NaKATP_block)
-
-            # update the cell and extracellular concentrations as a result of pump fluxes:
-            self.update_C_ecm(self.iNa,f_Na,cells,p)
-            self.update_C_ecm(self.iK,f_K,cells,p)
-
-            # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V_ecm(cells,p,t)
-
-            # if calcium is present, run the Ca-ATPase pump and fill up the endoplasmic reticulum:
-            if  p.ions_dict['Ca'] == 1:
-
-                _,_,f_Ca_ATP = pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],
-                    self.cc_ecm[self.iCa][cells.mem_to_ecm],cells.mem_sa, cells.cell_vol[cells.mem_to_cells],
-                    cells.ecm_vol[cells.mem_to_ecm],self.vm,self.T,p)
-
-                # update concentration of calcium in cells and ecm from pump activity:
-                self.update_C_ecm(self.iCa,f_Ca_ATP,cells,p)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p,t)
-
-                if p.Ca_dyn ==1:
-
-                    self.cc_er[0],self.cc_cells[self.iCa], f_Ca_er =\
-                        pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],cells.cell_sa,p.ER_vol*cells.cell_vol,
-                            cells.cell_vol,self.v_er,self.T,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    # self.update_V_ecm(cells,p)
-
-                    q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-                    self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)  # calculate voltage across er membrane
-
-            if p.ions_dict['H'] == 1:
-
-                self.Hplus_electrofuse_ecm(cells,p)
-
-                if p.HKATPase_dyn == 1:
-
-                    self.Hplus_HKATP_ecm(cells,p)
-
-                if p.VATPase_dyn == 1:
-
-                    self.Hplus_VATP_ecm(cells,p)
-
-            # electro-diffuse all ions (except for proteins, which don't move!) across the cell membrane:
-            shuffle(self.movingIons)  # shuffle the ion indices so it's not the same order every time step
-
-            for i in self.movingIons:
-
-                _,_,flux_ED = \
-                    electrofuse(self.cc_ecm[i][cells.mem_to_ecm],self.cc_cells[i][cells.mem_to_cells],
-                        self.Dm_cells[i],self.tm[cells.mem_to_cells],cells.mem_sa,
-                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],
-                        self.zs[i],self.vm,self.T,p)
-
-                # update the concentrations in the cell and ecm due to ED fluxes at membrane:
-                self.update_C_ecm(i,flux_ED,cells,p)
-
-                if p.ecm_bound_open == True: # if the geometry is open to the environment
-                    self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p,t)
-
-            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-                    # electrodiffusion of ions between cell and endoplasmic reticulum
-
-                    # First do calciu:m
-                    self.cc_cells[self.iCa],self.cc_er[0],_ = \
-                    electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
-
-                    # next do charge compensation anion:
-                    self.cc_cells[self.iM],self.cc_er[1],_ = \
-                    electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
-                        cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    self.update_V_ecm(cells,p,t)
-
-                    q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-                    self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-
-            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
-            if p.voltage_dye ==1:
-
-                _,_, flux_dye = \
-                        electrofuse(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
-                            p.Dm_Dye*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],
-                            cells.mem_sa,cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],
-                            p.z_Dye,self.vm,self.T,p)
-
-                 # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-                self.cDye_cell = self.cDye_cell + \
-                                    np.dot((flux_dye/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
-
-                # self.cDye_ecm = self.cDye_ecm - \
-                #                     np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
-
-            if p.dynamic_noise == 1 and p.ions_dict['P']==1:
-                # add a random walk on protein concentration to generate dynamic noise:
-                self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
-                self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V_ecm(cells,p,t)
-
-            # check and ensure simulation stability
-            check_v(self.vm)
-
-            if t in tsamples:
-                # add the new concentration and voltage data to the time-storage matrices:
-                concs = copy.deepcopy(self.cc_cells)
-                self.cc_time.append(concs)
-
-                concs_ecm = copy.deepcopy(self.cc_ecm)
-                self.cc_ecm_time.append(concs_ecm)
-
-                vmm = copy.deepcopy(self.vm)
-                self.vm_time.append(vmm)
-
-                self.time.append(t)
-
-                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-                    concs_er = copy.deepcopy(self.cc_er)
-                    self.cc_er_time.append(concs_er)
-
-                if p.voltage_dye == 1:
-                    cvdye = copy.deepcopy(self.cDye_cell)
-                    self.cDye_time.append(cvdye)
-
-                if p.plot_while_solving == True:
-                    pass
-
-            # get time for loop and estimate total time for simulation
-            if do_once == True:
-                loop_time = time.time() - loop_measure
-                time_estimate = round(loop_time*p.init_tsteps,2)
-                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
-                do_once = False
-
-        celf = copy.deepcopy(self)
-
-        datadump = [celf,cells,p]
-        fh.saveSim(self.savedInit,datadump)
-        message_1 = 'Initialization run saved to' + ' ' + p.init_path
-        loggers.log_info(message_1)
-
-        self.vm_to = copy.deepcopy(self.vm)
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_ecm_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final average extracellular concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
-
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
-        vmess = 'Final average cell Vmem of' + ': '
-        loggers.log_info(vmess + str(final_vmean) + ' mV')
-
-        if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
-            loggers.log_info('Final average cell pH ' + str(np.round(final_pH,2)))
-
-            final_pH_ecm = -np.log10(np.mean((self.cc_ecm_time[-1][self.iH])/1000))
-            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_ecm,2)))
-
-        if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-
-                endconc_er = np.round(np.mean(self.cc_er[0]),6)
-                label = self.ionlabel[self.iCa]
-                concmess = 'Final ER concentration of'+ ' '+ label + ': '
-                loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
-
-        if p.voltage_dye == 1:
-
-            dye_ecm_final = np.mean(self.cDye_ecm)
-            dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final dye concentration in the environment: '+ str(np.round(dye_ecm_final,6)) + ' mmol/L')
-            loggers.log_info('Final average dye concentration in cells: '+ str(np.round(dye_cell_final,6)) + ' mmol/L')
-
     def runSim(self,cells,p,save=None):
         """
         Drives the time-loop for the main simulation, including gap-junction connections and all dynamics.
@@ -1422,7 +918,7 @@ class Simulator(object):
         self.time = []     # time values of the simulation
 
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
-        self.Igj_time = []      # current for each gj at each time
+        self.I_time = []      # current for each gj at each time
 
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
@@ -1687,10 +1183,13 @@ class Simulator(object):
             check_v(self.vm)
 
             if t in tsamples:
+
+                self.get_current(cells,p)   # get the current in the gj network connection of cells
+
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 envsc = copy.deepcopy(self.cc_env)
-                flxs = copy.deepcopy(self.fluxes_gj)
+                Igj = copy.deepcopy(self.current)
                 vmm = copy.deepcopy(self.vm)
                 dvmm = copy.deepcopy(self.dvm)
 
@@ -1702,9 +1201,10 @@ class Simulator(object):
                 self.cc_env_time.append(envsc)
                 self.vm_time.append(vmm)
 
-                self.fgj_time.append(flxs)
                 self.gjopen_time.append(ggjopen)
                 self.dvm_time.append(dvmm)
+
+                self.I_time.append(Igj)
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                     ccIP3 = copy.deepcopy(self.cIP3)
@@ -1730,16 +1230,6 @@ class Simulator(object):
                     time_estimate = round(loop_time*p.init_tsteps,2)
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
-
-        # End off by calculating the current through the gap junction network:
-        self.Igj_time = []
-        for tflux in self.fgj_time:
-            igj=0
-            for zi, flx in zip(self.zs,tflux):
-                igj = igj+ zi*flx
-
-            igj = p.F*igj
-            self.Igj_time.append(igj)
 
         if p.run_sim == False:
 
@@ -1996,7 +1486,7 @@ class Simulator(object):
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 ecmsc = copy.deepcopy(self.cc_ecm)
-                flxs = copy.deepcopy(self.fluxes_gj)
+                # flxs = copy.deepcopy(self.fluxes_gj)
                 vmm = copy.deepcopy(self.vm)
                 dvmm = copy.deepcopy(self.dvm)
                 ggjopen = copy.deepcopy(self.gjopen)
@@ -2013,7 +1503,7 @@ class Simulator(object):
                 self.vcell_time.append(vvcell)
                 self.vecm_time.append(vvecm)
 
-                self.fgj_time.append(flxs)
+                # self.fgj_time.append(flxs)
                 self.gjopen_time.append(ggjopen)
                 self.dvm_time.append(dvmm)
 
@@ -2340,58 +1830,18 @@ class Simulator(object):
 
         self.cIP3_ecm = (self.cIP3_ecm*cells.ecm_vol + np.dot(flux_ecm_IP3*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
-def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
-    """
-    Returns updated concentrations for diffusion between two
-    connected volumes.
+    def get_current(self,cells,p):
 
-    Parameters
-    ----------
-    cA          Initial concentration of c in region A [mol/m3]
-    cB          Initial concentration of c in region B [mol/m3]
-    Dc          Diffusion constant of c  [m2/s]
-    d           Distance between region A and region B [m]
-    sa          Surface area separating region A and B [m2]
-    vola        volume of region A [m3]
-    volb        volume of region B [m3]
-    dt          time step   [s]
-    method      EULER or RK4 for Euler and Runge-Kutta 4
-                integration methods, respectively.
+        if p.sim_ECM == False:
 
-    Returns
-    --------
-    cA2         Updated concentration of cA in region A [mol/m3]
-    cB2         Updated concentration of cB in region B [mol/m3]
-    flux        Chemical flux magnitude between region A and B [mol/s]
+            self.current = np.zeros(len(cells.gj_i))
 
-    """
+            for flux_array, zi in zip(self.fluxes_gj,self.zs):
 
+                # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
+                I_i = flux_array*zi*p.F
 
-    flux = -sa*Dc*(cB - cA)/d
-
-    if p.method == 0:
-
-        dmol = sa*p.dt*Dc*(cB - cA)/d
-
-        cA2 = cA + dmol/vola
-        cB2 = cB - dmol/volb
-
-    elif p.method == 1:
-
-        k1 = sa*Dc*(cB - cA)/d
-
-        k2 = sa*Dc*(cB - (cA + (1/2)*k1*p.dt))/d
-
-        k3 = sa*Dc*(cB - (cA + (1/2)*k2*p.dt))/d
-
-        k4 = sa*Dc*(cB - (cA + k3*p.dt))/d
-
-        dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
-
-        cA2 = cA + dmol/vola
-        cB2 = cB - dmol/volb
-
-    return cA2, cB2, flux
+                self.current = self.current + I_i
 
 def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p):
     """
@@ -3233,6 +2683,60 @@ def check_v(vm):
     #
     #     loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
     #     loggers.log_info('If you have selected features using other ions, they will be ignored.')
+
+
+# def diffuse(cA,cB,Dc,d,sa,vola,volb,p):
+#     """
+#     Returns updated concentrations for diffusion between two
+#     connected volumes.
+#
+#     Parameters
+#     ----------
+#     cA          Initial concentration of c in region A [mol/m3]
+#     cB          Initial concentration of c in region B [mol/m3]
+#     Dc          Diffusion constant of c  [m2/s]
+#     d           Distance between region A and region B [m]
+#     sa          Surface area separating region A and B [m2]
+#     vola        volume of region A [m3]
+#     volb        volume of region B [m3]
+#     dt          time step   [s]
+#     method      EULER or RK4 for Euler and Runge-Kutta 4
+#                 integration methods, respectively.
+#
+#     Returns
+#     --------
+#     cA2         Updated concentration of cA in region A [mol/m3]
+#     cB2         Updated concentration of cB in region B [mol/m3]
+#     flux        Chemical flux magnitude between region A and B [mol/s]
+#
+#     """
+#
+#
+#     flux = -sa*Dc*(cB - cA)/d
+#
+#     if p.method == 0:
+#
+#         dmol = sa*p.dt*Dc*(cB - cA)/d
+#
+#         cA2 = cA + dmol/vola
+#         cB2 = cB - dmol/volb
+#
+#     elif p.method == 1:
+#
+#         k1 = sa*Dc*(cB - cA)/d
+#
+#         k2 = sa*Dc*(cB - (cA + (1/2)*k1*p.dt))/d
+#
+#         k3 = sa*Dc*(cB - (cA + (1/2)*k2*p.dt))/d
+#
+#         k4 = sa*Dc*(cB - (cA + k3*p.dt))/d
+#
+#         dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+#
+#         cA2 = cA + dmol/vola
+#         cB2 = cB - dmol/volb
+#
+#     return cA2, cB2, flux
 
 
 

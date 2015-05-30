@@ -208,8 +208,8 @@ class World(object):
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
-            self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
-            self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+            # self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
+            # self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
             # self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat,p)   # flag mem domains on the env bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)       # Free up memory...
@@ -219,12 +219,10 @@ class World(object):
             self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
-            self.cellVerts(p)   # create individual cell polygon vertices
-            self.vor_area(p)              # Calculate the area of each cell polygon
+            self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
+            # self.vor_area(p)              # Calculate the area of each cell polygon
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
-
-
 
     def makeSeeds(self,p):
 
@@ -896,6 +894,69 @@ class World(object):
 
         self.cell_verts = np.asarray(self.cell_verts)
 
+        self.cell_vol = []   # storage for cell volumes
+        self.cell_sa = []    # whole cell surface areas
+        self.cell_area = []
+
+        self.mem_edges = []  # storage for membrane edge points
+        self.mem_length = []   # storage for membrane surface area values
+        self.mem_mids = []   # storage for membrane midpoints
+
+        # storage for various vector properties of membrane
+        cv_x=[]
+        cv_y=[]
+        cv_nx=[]
+        cv_ny=[]
+        cv_tx=[]
+        cv_ty=[]
+
+        perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
+
+        for polyc in self.cell_verts:
+            # First calculate individual cell volumes from cell vertices:
+            poly = [x for x in reversed(polyc)]
+            self.cell_vol.append(p.cell_height*tb.area(poly))
+            self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
+            self.cell_area.append(tb.area(poly))
+            # Next calculate individual membrane domains, midpoints, and vectors:
+            edge = []
+            mps = []
+            surfa = []
+
+            for i in range(0,len(poly)):
+                pt1 = poly[i-1]
+                pt2 = poly[i]
+                pt1 = np.asarray(pt1)
+                pt2 = np.asarray(pt2)
+                edge.append([pt1,pt2])
+                mid = (pt1 + pt2)/2       # midpoint calculation
+                mps.append(mid)
+
+                lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
+                sa = lgth*p.cell_height    # surface area of membrane
+                surfa.append(lgth)
+
+                tang_a = pt2 - pt1       # tangent
+                tang = tang_a/np.linalg.norm(tang_a)
+                normal = np.array([-tang[1],tang[0]])
+                cv_x.append(mid[0])
+                cv_y.append(mid[1])
+                cv_nx.append(normal[0])
+                cv_ny.append(normal[1])
+                cv_tx.append(tang[0])
+                cv_ty.append(tang[1])
+
+            self.mem_edges.append(edge)
+            self.mem_mids.append(mps)
+            self.mem_length.append(surfa)
+
+        self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+
+        self.mem_mids_flat, _, _ = tb.flatten(self.mem_mids)
+        self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+
+        self.cell_sa = np.asarray(self.cell_sa)
+
     def cellGeo(self,p,close_ecm=None):
         """
         Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
@@ -976,6 +1037,9 @@ class World(object):
             self.mem_length.append(surfa)
 
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+        self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
+        self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+
         self.cell_sa = np.asarray(self.cell_sa)
 
         # Extracellular matrix specific data
@@ -1108,11 +1172,19 @@ class World(object):
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
         self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
 
+        self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
+
         self.cell_vol = np.asarray(self.cell_vol)
 
         self.R = np.sqrt(self.cell_vol/(math.pi*p.cell_height))    # effective radius of each cell
 
         self.cell_sa = 2*math.pi*self.R*p.cell_height
+
+        self.mem_length,_,_ = tb.flatten(self.mem_length)
+
+        self.mem_length = np.asarray(self.mem_length)
+
+        self.mem_sa = self.mem_length*p.cell_height
 
         # calculating centre, min, max of cluster after all modifications
 
@@ -1135,7 +1207,6 @@ class World(object):
         if self.worldtype == 'full':
 
             self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
-            self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
 
             self.indmap_mem = np.asarray(self.indmap_mem)
 
@@ -1155,11 +1226,7 @@ class World(object):
             matches = cell_tree.query(self.mem_mids_flat)
             self.mem_to_ecm = list(matches)[1]
 
-            self.mem_length,_,_ = tb.flatten(self.mem_length)
 
-            self.mem_length = np.asarray(self.mem_length)
-
-            self.mem_sa = self.mem_length*p.cell_height
 
             ecm_n = len(self.ecm_i)
             cell_n = len(self.cell_i)

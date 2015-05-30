@@ -821,6 +821,8 @@ class Parameters(object):
 
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
 
+        self.I_overlay = ro['overlay currents']
+
         # options for individual 2D plots
         self.plot_vm2d = ro['Vmem 2D']['plot Vmem']                # 2d plot of final vmem ?
         self.autoscale_Vmem = ro['Vmem 2D']['autoscale colorbar']
@@ -846,6 +848,11 @@ class Parameters(object):
         self.autoscale_vcell = ro['Vcell 2D']['autoscale colorbar']
         self.vcell_min_clr = float(ro['Vcell 2D']['min val'])
         self.vcell_max_clr = float(ro['Vcell 2D']['max val'])
+
+        self.plot_I2d = ro['Currents 2D']['plot Currents']
+        self.autoscale_I2d = ro['Currents 2D']['autoscale colorbar']
+        self.I_min_clr = float(ro['Currents 2D']['min val'])
+        self.I_max_clr = float(ro['Currents 2D']['max val'])
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 

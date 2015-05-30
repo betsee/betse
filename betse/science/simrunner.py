@@ -100,7 +100,6 @@ class SimRunner(object):
 
         plt.show()
 
-
     def initialize(self):
         '''
         Run an initialization simulation from scratch and save it to the
@@ -182,8 +181,6 @@ class SimRunner(object):
         #     plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
         #     plt.show()
 
-
-
     def simulate(self):
         '''
         Run simulation from a previously saved initialization.
@@ -259,7 +256,8 @@ class SimRunner(object):
         else:
             raise BetseExceptionSimulation("Ooops! No such initialization file found to plot!")
 
-        plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
+        plots4Sim(p.plot_cell,cells,sim,p,saveImages=p.autosave, animate=p.createAnimations,
+            saveAni=p.saveAnimations)
         plt.show()
 
     def plotSim(self):
@@ -479,13 +477,19 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_vcell2d == True and p.sim_ECM == True:
 
-        figX, axX, cbX = viz.plotPolyData(cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
+        figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr, clrmap = p.default_cm)
 
         axX.set_title('Final Vcell')
         axX.set_xlabel('Spatial distance [um]')
         axX.set_ylabel('Spatial distance [um]')
         cbX.set_label('Voltage mV')
+
+        if saveImages == True:
+            savename9 = savedImg + 'final_cellVoltage' + '.png'
+            plt.savefig(savename9,format='png')
+
+        plt.show(block=False)
 
     if p.plot_vm2d == True:
 
@@ -498,11 +502,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         elif p.sim_ECM == False:
 
             if p.showCells == True:
-                figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
+                figV, axV, cbV = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
                     clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells, clrmap = p.default_cm)
             else:
-                figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
+                figV, axV, cbV = viz.plotCellData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
                     clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
+
 
         axV.set_title('Final Vmem')
         axV.set_xlabel('Spatial distance [um]')
@@ -511,17 +516,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages == True:
             savename5 = savedImg + 'final_Vmem_2D' + '.png'
-            plt.savefig(savename5,dpi=300,format='png')
+            plt.savefig(savename5,format='png')
 
         plt.show(block=False)
 
     if p.plot_ip32d == True and p.scheduled_options['IP3'] != 0:
 
         if p.showCells == True:
-            figIP3, axIP3, cbIP3 = viz.plotPolyData(cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
+            figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
         else:
-             figIP3, axIP3, cbIP3 = viz.plotCellData(cells,p,zdata=sim.cIP3_time[-1]*1e3,
+             figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,
              clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
 
         axIP3.set_title('Final IP3 concentration')
@@ -531,17 +536,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages == True:
             savename6 = savedImg + 'final_IP3_2D' + '.png'
-            plt.savefig(savename6,dpi=300,format='png')
+            plt.savefig(savename6,format='png')
 
         plt.show(block=False)
 
     if p.plot_dye2d == True and p.voltage_dye == 1:
 
         if p.showCells == True:
-            figVdye, axVdye, cbVdye = viz.plotPolyData(cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
+            figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
         else:
-            figVdye, axVdye, cbVdye = viz.plotCellData(cells,p,zdata=sim.cDye_time[-1]*1e3,
+            figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,
             clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
 
         axVdye.set_title('Final voltage-sensitive dye')
@@ -551,17 +556,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages == True:
             savename7 = savedImg + 'final_dye_2D' + '.png'
-            plt.savefig(savename7,dpi=300,format='png')
+            plt.savefig(savename7,format='png')
 
         plt.show(block=False)
 
     if p.plot_ca2d ==True and p.ions_dict['Ca'] == 1:
 
         if p.showCells == True:
-            figCa, axCa, cbCa = viz.plotPolyData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells= p.enumerate_cells,
+            figCa, axCa, cbCa = viz.plotPolyData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells= p.enumerate_cells,
             clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
         else:
-            figCa, axCa, cbCa = viz.plotCellData(cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
+            figCa, axCa, cbCa = viz.plotCellData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
             clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
         axCa.set_title('Final cytosolic Ca2+')
@@ -571,7 +576,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages == True:
             savename8 = savedImg + 'final_Ca_2D' + '.png'
-            plt.savefig(savename8,dpi=300,format='png')
+            plt.savefig(savename8,format='png')
+
+        plt.show(block=False)
+
+    if p.plot_I2d == True:
+
+        viz.streamingCurrent(sim, cells,p,clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr,
+        clrmap= p.default_cm,edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+
+        if saveImages == True:
+            savename10 = savedImg + 'Final_Current' + '.png'
+            plt.savefig(savename10,format='png')
 
         plt.show(block=False)
 
@@ -671,6 +687,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_')
 
-    if p.exportData == True:
-        viz.exportData(cells, sim, p)
+
+    # if p.exportData == True:
+    #     viz.exportData(cells, sim, p)
 
