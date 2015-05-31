@@ -203,14 +203,11 @@ class World(object):
             self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            # self.clean_ecm(p,clean='no')  # pop ecm vertices around the outer cell membranes
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
-            # self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
-            # self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
-            # self.bflags_mems,self.bmask_mems = self.boundTag(self.mem_mids_flat,p)   # flag mem domains on the env bound
             self.near_neigh(p)    # Calculate the nn array for each cell
+            self.make_env_points(p)  # get the environmental interaction points for each boundary ecm
             self.cleanUp(p)       # Free up memory...
 
         elif self.worldtype == 'basic':
@@ -219,7 +216,6 @@ class World(object):
             self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
-            # self.vor_area(p)              # Calculate the area of each cell polygon
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
 
@@ -771,6 +767,19 @@ class World(object):
 
             self.ecm_vects = np.array([ec_x,ec_y,ec_tx,ec_ty]).T
 
+    def make_env_points(self,p):
+
+        """
+        Defines points in contact with the environment, which are extrapolated from
+        extracellular space boundary points.
+
+        """
+
+        delta = p.cell_space
+
+        ecm_bound_points = self.ecm_mids[self.bflags_ecm]
+        ecm_bound_norm = self.ecm_seg_vects[self.bflags_ecm,4:6]
+        self.env_points = ecm_bound_points + delta*ecm_bound_norm
 
     def clean_ecm(self,p,clean=None):
 
@@ -1109,10 +1118,13 @@ class World(object):
         self.ecm_mids = [0]*len_unique_edges
         self.ecm_vol = [0]*len_unique_edges
 
-        # ev_x=[0]*len_unique_edges
-        # ev_y=[0]*len_unique_edges
-        # ev_tx=[0]*len_unique_edges
-        # ev_ty=[0]*len_unique_edges
+        ev_x=[0]*len_unique_edges
+        ev_y=[0]*len_unique_edges
+        ev_tx=[0]*len_unique_edges
+        ev_ty=[0]*len_unique_edges
+        ev_nx=[0]*len_unique_edges
+        ev_ny=[0]*len_unique_edges
+
 
         for i, poly in enumerate(self.ecm_verts):
             holdinds = []
@@ -1146,10 +1158,12 @@ class World(object):
                         self.ecm_vol[mapval] = vol
                         tang_a = pnt2 - pnt1
                         tang = tang_a/np.linalg.norm(tang_a)
-                        # ev_x[mapval] = midpoint[0]
-                        # ev_y[mapval] = midpoint[1]
-                        # ev_tx[mapval] = tang[0]
-                        # ev_ty[mapval] = tang[1]
+                        ev_x[mapval] = midpoint[0]
+                        ev_y[mapval] = midpoint[1]
+                        ev_tx[mapval] = tang[0]
+                        ev_ty[mapval] = tang[1]
+                        ev_nx[mapval] = tang[1]
+                        ev_ny[mapval] = -tang[0]
 
                     if edge_ind2 < edge_ind1:
                         mapval = self.ecm_edges_i.index([edge_ind2,edge_ind1])
@@ -1161,16 +1175,18 @@ class World(object):
                         vol = lgth*p.cell_height*p.cell_space
                         self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
                         self.ecm_vol[mapval] = vol
-                        # tang_a = pnt2 - pnt1
-                        # tang = tang_a/np.linalg.norm(tang_a)
-                        # ev_x[mapval] = midpoint[0]
-                        # ev_y[mapval] = midpoint[1]
-                        # ev_tx[mapval] = tang[0]
-                        # ev_ty[mapval] = tang[1]
+                        tang_a = pnt2 - pnt1
+                        tang = tang_a/np.linalg.norm(tang_a)
+                        ev_x[mapval] = midpoint[0]
+                        ev_y[mapval] = midpoint[1]
+                        ev_tx[mapval] = tang[0]
+                        ev_ty[mapval] = tang[1]
+                        ev_nx[mapval] = -tang[1]
+                        ev_ny[mapval] = tang[0]
 
             self.cell2ecm_map.append(holdinds)
 
-        # self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
+        self.ecm_seg_vects = np.array([ev_x,ev_y,ev_tx,ev_ty,ev_nx,ev_ny]).T
         self.ecm_mids = np.array(self.ecm_mids)
         self.ecm_edges_i = np.asarray(self.ecm_edges_i)
         self.ecm_vol = np.asarray(self.ecm_vol)
@@ -1228,6 +1244,8 @@ class World(object):
         if self.worldtype == 'full':
 
             self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
+
+            self.env_i = [x for x in range(0,len(self.env_points))]
 
             self.indmap_mem = np.asarray(self.indmap_mem)
 

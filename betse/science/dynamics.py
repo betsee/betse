@@ -168,8 +168,8 @@ class Dynamics(object):
             name_positive = self.apply_extV[0]
             name_negative = self.apply_extV[1]
 
-            self.targets_extV_positive = self.ecm_target_inds[name_positive]
-            self.targets_extV_negative = self.ecm_target_inds[name_negative]
+            self.targets_extV_positive = self.env_target_inds[name_positive]
+            self.targets_extV_negative = self.env_target_inds[name_negative]
 
     def dynamicInit(self,sim,cells,p):
 
@@ -385,16 +385,16 @@ class Dynamics(object):
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
 
-    def externalVoltage(self,sim,cells,p,t,v_ecm_o):
+    def externalVoltage(self,sim,cells,p,t,v_env_o):
 
         if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
             effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
 
-            sim.v_ecm_mod[self.targets_extV_positive] = self.peak_val_extV*effector_extV
-            sim.v_ecm_mod[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
+            sim.v_env_mod[self.targets_extV_positive] = self.peak_val_extV*effector_extV
+            sim.v_env_mod[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
 
-            sim.v_ecm = sim.v_ecm_mod + v_ecm_o
+            sim.v_env = sim.v_env_mod + v_env_o
 
     def dynamicDyn(self,sim,cells,p,t):
 
@@ -646,13 +646,13 @@ class Dynamics(object):
 
         profile_names = list(p.boundary_profiles.keys())
 
-        self.ecm_target_inds = {}
+        self.env_target_inds = {}
 
         for name in profile_names:
 
             target_method = p.boundary_profiles[name]
 
-            self.ecm_target_inds[name] = getEcmTargets(target_method,cells,p)
+            self.env_target_inds[name] = getEcmTargets(target_method,cells,p)
 
     def makeAllChanges(self,sim):
         # Add together all effects to make change on the cell membrane permeabilities:
@@ -758,14 +758,16 @@ def getEcmTargets(targets_description,cells,p,boundaryOnly = True):
     target_inds                          a list of integers corresponding to targeted ecm indices
 
     """
+
     if isinstance(targets_description,str):
+
+        inds_ecm = np.asarray(cells.ecm_i)
+        inds_env = np.asarray(cells.env_i)
 
         if targets_description == 'all':
 
-            inds_ecm = np.asarray(cells.ecm_i)
-
             if boundaryOnly == True:
-                target_inds = inds_ecm[cells.bflags_ecm].tolist()
+                target_inds = inds_env
 
             else:
                 target_inds = inds_ecm
@@ -773,15 +775,7 @@ def getEcmTargets(targets_description,cells,p,boundaryOnly = True):
 
     if isinstance(targets_description, list):
 
-        target_inds_bound = targets_description
-        inds_ecm = np.asarray(cells.ecm_i)
-
-        if boundaryOnly == True:
-            target_inds = inds_ecm[cells.bflags_ecm[target_inds_bound]].tolist()
-
-        else:
-            target_inds = target_inds_bound
-
+        target_inds = targets_description
 
     return target_inds
 

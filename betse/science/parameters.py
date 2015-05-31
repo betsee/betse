@@ -183,11 +183,11 @@ class Parameters(object):
         self.createAnimations = True   # create all animations = True; turn off all animations = False
 
         # specify desired animations:
-        self.ani_vm2d = True                # 2d animation of vmem with time?
-        self.ani_ca2d = False                # 2d animation of cell calcium with time ?
-        self.ani_ip32d = False               # 2d animation of cIP3 with time?
-        self.ani_dye2d = False               # 2d animation of voltage sensitive dye in cell collective with time?
-        self.ani_vmgj2d = False              # 2d animation of vmem with superimposed gj network showing I_gj direction
+        self.ani_vm2d = True              # 2d animation of vmem with time?
+        self.ani_ca2d = False             # 2d animation of cell calcium with time ?
+        self.ani_ip32d = False            # 2d animation of cIP3 with time?
+        self.ani_dye2d = False            # 2d animation of voltage sensitive dye in cell collective with time?
+        self.ani_vmgj2d = False           # 2d animation of vmem with superimposed gj network showing current direction
 
         self.autosave = True           # autosave all still images to a results directory in the simulation folder
         self.saveAnimations = True    # save all animations as png sequences in animation-specific folders
@@ -1194,12 +1194,12 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gj_radius = 0.5e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM == True:
 
-                self.dt = 2.0e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 2.5e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 
@@ -1207,14 +1207,14 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                self.gj_radius = 0.5e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':
 
             if self.sim_ECM == False:
 
-                self.dt = 5.0e-5    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
 
@@ -1227,7 +1227,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 1.0e-6    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.dt = 5.0e-6    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
 

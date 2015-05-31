@@ -58,7 +58,7 @@ class SimRunner(object):
                 self._config_basename))
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
-        p.I_overlay = False  # force the I_gj overlay to be null
+        p.I_overlay = False  # force the current overlay to be null
         sim = Simulator(p)   # create an instance of Simulator as it's needed by plotting objects
 
         if p.sim_ECM == False:
@@ -94,7 +94,7 @@ class SimRunner(object):
 
             if plotWorld == True:
 
-                fig, ax, cb = viz.plotHetMem(cells,p,number_cells=p.enumerate_cells,
+                fig, ax, cb = viz.plotHetMem(sim,cells,p,number_cells=p.enumerate_cells,
                     number_ecm=p.enumerate_cells,clrmap=p.default_cm)
 
                 print(cells.cell_number)
@@ -132,7 +132,7 @@ class SimRunner(object):
 
             if p.sim_ECM != cells.sim_ECM:
                 loggers.log_info("Ooops! Cell cluster and config settings don't match!")
-                loggers.log_info("Automatically creating cell cluster from I_gj config file settings...")
+                loggers.log_info("Automatically creating cell cluster from current config file settings...")
                 loggers.log_info("Warning: specified tissue profiles may no longer be correctly assigned.")
                 self.makeWorld(plotWorld=False)  # create an instance of world
                 loggers.log_info('Now using cell cluster to run initialization.')
@@ -295,7 +295,7 @@ class SimRunner(object):
                 self._config_basename))
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
-        p.I_overlay = False # force the I_gj overlay to be false as there's no data for it
+        p.I_overlay = False # force the current overlay to be false as there's no data for it
         sim = Simulator(p)
 
         cells = World(p,vorclose ='circle',worldtype='basic')
@@ -326,7 +326,7 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            fig, ax, cb = viz.plotHetMem(cells,p,number_cells=p.enumerate_cells,
+            fig, ax, cb = viz.plotHetMem(sim,cells,p,number_cells=p.enumerate_cells,
                 number_ecm=p.enumerate_cells,clrmap=p.default_cm)
 
             ax.set_title('Cell collection')
@@ -567,14 +567,14 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         ax_2 = plt.subplot(2,1,2)
 
         fig_IandV, ax_1, cb_1 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_1,zdata=1000*sim.vm_time[-1],
-            number_cells=p.enumerate_cells, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+            number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
             clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
-            number_ecm = p.enumerate_cells,current_overlay = True,plotIecm = True)
+            number_ecm = False,current_overlay = True,plotIecm = True)
 
         fig_IandV, ax_2, cb_2 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_2,zdata=1000*sim.vm_time[-1],
-            number_cells=p.enumerate_cells, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+            number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
             clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
-            number_ecm = p.enumerate_cells,current_overlay = True,plotIecm = False)
+            number_ecm = False,current_overlay = True,plotIecm = False)
 
         fig_IandV.suptitle('Final Vmem and Currents in Cell Cluster',fontsize=14, fontweight='bold')
         ax_1.set_ylabel('Spatial distance [um]')
@@ -596,11 +596,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         figIandI, ax_1b, cb_1b = viz.streamingCurrent(sim, cells,p,fig=fig_IandI, ax=ax_1b, plot_Iecm = True, zdata = None,
             clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.I_colormap,
-            edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+            edgeOverlay = p.showCells,number_cells = False)
 
         figIandI, ax_2b, cb_2b = viz.streamingCurrent(sim, cells,p,fig=fig_IandI, ax=ax_2b, plot_Iecm = False, zdata = None,
             clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr,
-            clrmap=p.I_colormap,edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+            clrmap=p.I_colormap,edgeOverlay = p.showCells,number_cells = False)
 
         fig_IandI.suptitle('Final Currents in Cell Cluster',fontsize=14, fontweight='bold')
         ax_1b.set_ylabel('Spatial distance [um]')

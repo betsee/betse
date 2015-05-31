@@ -4,13 +4,13 @@
 
 # FIXME saving animations doesn't work
 
-
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 import matplotlib.cm as cm
 from betse.science import toolbox as tb
+# from betse.science.compute import cell_ave
 from matplotlib import animation
 import os, os.path
 
@@ -53,6 +53,7 @@ class AnimateCellData(object):
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
 
 
         if p.sim_ECM == True and ignore_simECM == False:
@@ -91,6 +92,8 @@ class AnimateCellData(object):
 
                 Jmag = sim.I_gj_time[0]
 
+                tit_extra = '(gap junction current overlay)'
+
             elif p.IecmPlot == True:
 
                 self.xpts = cells.ecm_vects[:,0]
@@ -99,6 +102,8 @@ class AnimateCellData(object):
                 self.ny = cells.ecm_vects[:,3]
 
                 Jmag = sim.I_ecm_time[0]
+
+                tit_extra = '(extracellular current overlay)'
 
             jx = Jmag*self.nx
             jy = Jmag*self.ny
@@ -141,7 +146,7 @@ class AnimateCellData(object):
         self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
         self.cb.set_label(self.cbtit)
 
-        self.tit = tit
+        self.tit = tit + tit_extra
 
         if number_cells == True:
             for i,cll in enumerate(cells.cell_centres):
@@ -218,10 +223,10 @@ class AnimateCellData(object):
             self.streams.lines.remove()
             self.ax.patches = []
 
-            self.streams = self.ax.streamplot(X*1e6,Y*1e6,J_x,J_y,density=2.0,
-                linewidth=lw,color='k',arrowsize=1.5)
+            self.streams = self.ax.streamplot(X*1e6,Y*1e6,J_x,J_y,density=2.0,linewidth=lw,color='k',
+                cmap=self.colormap,arrowsize=1.5)
 
-        titani = self.tit + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
+        titani = self.tit + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
         if self.save == True:
@@ -266,7 +271,6 @@ class AnimateCellData_smoothed(object):
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
 
-
         elif clrAutoscale == False:
             self.cmin = clrMin
             self.cmax = clrMax
@@ -300,6 +304,8 @@ class AnimateCellData_smoothed(object):
 
                 Jmag = sim.I_gj_time[0]
 
+                tit_extra = '(gap junction current overlay)'
+
             elif p.IecmPlot == True:
 
                 self.xpts = cells.ecm_vects[:,0]
@@ -308,6 +314,8 @@ class AnimateCellData_smoothed(object):
                 self.ny = cells.ecm_vects[:,3]
 
                 Jmag = sim.I_ecm_time[0]
+
+                title_extra = '(extracellular current overlay)'
 
             jx = Jmag*self.nx
             jy = Jmag*self.ny
@@ -327,6 +335,7 @@ class AnimateCellData_smoothed(object):
             self.streams = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',
                 cmap=clrmap,arrowsize=1.5)
 
+            self.tit = self.tit + tit_extra
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
@@ -402,9 +411,6 @@ class AnimateGJData(object):
         saveFile = 'sim_',ani_repeat=False,number_cells=False):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
-        # gjI_t = np.asarray(sim.Igj_time)
-        # normI = np.max(gjI_t)
-        # self.zdata_t = gjI_t/normI
 
         self.vdata_t = [1000*arr for arr in sim.vm_time]   # data array for cell coloring
         self.colormap = clrmap
@@ -429,6 +435,7 @@ class AnimateGJData(object):
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
 
         con_segs = cells.cell_centres[cells.gap_jun_i]
         connects = p.um*np.asarray(con_segs)
@@ -551,10 +558,6 @@ class AnimateGJData_smoothed(object):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
 
-        # gjI_t = np.asarray(sim.Igj_time)
-        # normI = np.max(gjI_t)
-        # self.zdata_t = gjI_t/normI
-
         self.vdata_t = np.multiply(sim.vm_time,1000)   # data array for cell coloring
         self.colormap = clrmap
         self.time = sim.time
@@ -575,6 +578,7 @@ class AnimateGJData_smoothed(object):
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
 
         con_segs = cells.cell_centres[cells.gap_jun_i]
         connects = p.um*np.asarray(con_segs)
@@ -596,7 +600,6 @@ class AnimateGJData_smoothed(object):
             if clrCheck == 0:
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
-
 
         elif clrAutoscale == False:
             self.cmin = clrMin
@@ -966,9 +969,8 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         if number_ecm == True:
 
-            for i,bflag_ecm in enumerate(cells.bflags_ecm):
-                ecm = cells.ecm_mids[bflag_ecm]
-                ax.text(p.um*ecm[0],p.um*ecm[1],i,ha='center',va='center',color='k',weight ='bold')
+            for i,point in enumerate(cells.env_points):
+                ax.text(p.um*point[0],p.um*point[1],i,ha='center',va='center',color='k',weight ='bold')
 
         if current_overlay == True:
 
@@ -1544,7 +1546,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
     if ax is None:
         ax = plt.subplot(111)
 
-    if p.sim_ECM == False:
+    if p.sim_ECM == False or plot_Iecm == False:
 
         xpts = cells.gj_vects[:,0]
         ypts = cells.gj_vects[:,1]
@@ -1553,89 +1555,36 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         Jmag = sim.I_gj_time[-1]
 
-        jx = Jmag*nx
-        jy = Jmag*ny
-
-        X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
-        Jmag_M = np.sqrt(J_x**2 + J_y**2) +1e-30
-
-        J_x = J_x/Jmag_M
-        J_y = J_y/Jmag_M
-
-        J_x = np.nan_to_num(J_x)
-        J_y = np.nan_to_num(J_y)
-        Jmag_M = np.nan_to_num(Jmag_M)
-
-        lw = 3.0*Jmag_M/Jmag_M.max()
-
-        # gradJplot = ax.tripcolor(p.um*xpts, p.um*ypts,Jmag,shading='gouraud', cmap=clrmap)
-        streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color=Jmag_M*1e15,
-            cmap=clrmap,arrowsize=1.5)
-
         ax.set_title('Final gap junction currents')
 
-    if p.sim_ECM == True:
+    elif plot_Iecm == True:
 
-        if plot_Iecm == False:
+        xpts = cells.ecm_vects[:,0]
+        ypts = cells.ecm_vects[:,1]
+        nx = cells.ecm_vects[:,2]
+        ny = cells.ecm_vects[:,3]
 
-            xpts = cells.gj_vects[:,0]
-            ypts = cells.gj_vects[:,1]
-            nx = cells.gj_vects[:,2]
-            ny = cells.gj_vects[:,3]
+        Jmag = sim.I_ecm_time[-1]
 
-            Jmag = sim.I_gj_time[-1]
+        ax.set_title('Final extracellular currents')
 
-            jx = Jmag*nx
-            jy = Jmag*ny
+    jx = Jmag*nx
+    jy = Jmag*ny
 
-            X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
-            Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
+    X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
+    Jmag_M = np.sqrt(J_x**2 + J_y**2) +1e-30
 
-            J_x = J_x/Jmag_M
-            J_y = J_y/Jmag_M
+    J_x = J_x/Jmag_M
+    J_y = J_y/Jmag_M
 
-            J_x = np.nan_to_num(J_x)
-            J_y = np.nan_to_num(J_y)
-            Jmag_M = np.nan_to_num(Jmag_M)
+    J_x = np.nan_to_num(J_x)
+    J_y = np.nan_to_num(J_y)
+    Jmag_M = np.nan_to_num(Jmag_M)
 
-            lw = 3.0*Jmag_M/Jmag_M.max()
+    lw = 3.0*Jmag_M/Jmag_M.max()
 
-            # gradJplot = ax.tripcolor(p.um*xpts, p.um*ypts,Jmag,shading='gouraud', cmap=clrmap)
-            streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color=Jmag_M*1e15,
-                cmap=clrmap,arrowsize=1.5)
-
-            ax.set_title('Final gap junction currents')
-
-        if plot_Iecm == True:
-
-            xpts_ecm = cells.ecm_vects[:,0]
-            ypts_ecm = cells.ecm_vects[:,1]
-            nx_ecm = cells.ecm_vects[:,2]
-            ny_ecm = cells.ecm_vects[:,3]
-
-            Jmag_ecm = sim.I_ecm_time[-1]
-
-            jx_ecm = Jmag_ecm*nx_ecm
-            jy_ecm = Jmag_ecm*ny_ecm
-
-            X_ecm,Y_ecm,J_x_ecm,J_y_ecm = tb.grid_vector_data(xpts_ecm,ypts_ecm,jx_ecm,jy_ecm,40)
-            Jmag_M_ecm = np.sqrt(J_x_ecm**2 + J_y_ecm**2) + 1e-30
-
-            J_x_ecm = J_x_ecm/Jmag_M_ecm
-            J_y_ecm = J_y_ecm/Jmag_M_ecm
-
-            J_x_ecm = np.nan_to_num(J_x_ecm)
-            J_y_ecm = np.nan_to_num(J_y_ecm)
-            Jmag_M_ecm = np.nan_to_num(Jmag_M_ecm)
-
-            lw_ecm = 3.0*Jmag_M_ecm/Jmag_M_ecm.max()
-
-            # gradJplot = ax.tripcolor(p.um*xpts, p.um*ypts,Jmag,shading='gouraud', cmap=clrmap)
-            streamplot = ax.streamplot(X_ecm*p.um,Y_ecm*p.um,J_x_ecm,J_y_ecm,density=2.0,linewidth=lw_ecm,
-                color=Jmag_M_ecm*1e15,cmap=clrmap,arrowsize=1.5)
-
-            ax.set_title('Final extracellular currents')
-
+    streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color=Jmag_M*1e15,
+        cmap=clrmap,arrowsize=1.5)
 
     if clrAutoscale == True:
         ax_cb = fig.colorbar(streamplot.lines,ax=ax)
@@ -1665,22 +1614,17 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
     ymin = p.um*(cells.clust_y_min - p.clip)
     ymax = p.um*(cells.clust_y_max + p.clip)
 
-    # ax.set_xlabel('Spatial distance [um]')
-    # ax.set_ylabel('Spatial distance [um]')
-    # ax_cb.set_label('Current [pA]')
-
     ax.axis([xmin,xmax,ymin,ymax])
 
     return fig,ax,ax_cb
 
-def exportData(cells,sim,p):   # FIXME this needs to be revised for ecm and no ecm...
+def exportData(cells,sim,p):
 
     results_path = p.sim_results
     os.makedirs(results_path, exist_ok=True)
     savedData = os.path.join(results_path, 'ExportedData.csv')
 
     cc_cell = []
-    cc_env = []
 
     ci = p.plot_cell  # index of cell to get time data for
 
@@ -1699,36 +1643,28 @@ def exportData(cells,sim,p):   # FIXME this needs to be revised for ecm and no e
         cc_cell.append(cc_m)
 
     if p.sim_ECM == False:
-        # create the header moving on to env concentrations
-        for i in range(0,len(sim.ionlabel)):
-            label = sim.ionlabel[i]
-            headr = headr + ',' + 'env_' + label + '_mmol/L'
-            cc_m2 = [arr[i][ci] for arr in sim.cc_env_time]
-            cc_m2 = np.asarray(cc_m2)
-            cc_env.append(cc_m2)
-
         vm = [arr[ci]*1000 for arr in sim.vm_time]
-        vm = np.asarray(vm)
 
-    elif p.sim_ECM == True:
+    else:
+        vm = []
+        for vm_at_mem in sim.vm_time:
+            vm_t = 1000*cell_ave(cells,vm_at_mem)[ci]
+            vm.append(vm_t)
 
-        for i in range(0,len(sim.ionlabel)):
-            label = sim.ionlabel[i]
-            headr = headr + ',' + 'NAN_' + label + '_NAN'
-            cc_m2 = [arr[i][ci] for arr in sim.cc_time]
-            cc_m2 = np.asarray(cc_m2)
-            cc_env.append(cc_m2)
-
-        vm = [arr[ci]*1000 for arr in sim.vcell_time]
-        vm = np.asarray(vm)
+    vm = np.asarray(vm)
 
     t = np.asarray(sim.time)
     cc_cell = np.asarray(cc_cell)
-    cc_env = np.asarray(cc_env)
 
-    IP3_time = [arr[ci] for arr in sim.cIP3_time]
-    IP3_time = np.asarray(IP3_time)
-    headr = headr + ',' + 'cell_cIP3_mmol/L'
+    if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+
+        IP3_time = [arr[ci] for arr in sim.cIP3_time]
+        IP3_time = np.asarray(IP3_time)
+        headr = headr + ',' + 'cell_cIP3_mmol/L'
+
+    else:
+        IP3_time = np.zeros(len(sim.time))
+        headr = headr + ',' + 'cell_cIP3_mmol/L'
 
     if p.voltage_dye ==1:
         dye_time = [arr[ci] for arr in sim.cDye_time]
@@ -1747,7 +1683,7 @@ def exportData(cells,sim,p):   # FIXME this needs to be revised for ecm and no e
         headr = headr + ',' + 'CaER_mmol/L'
 
 
-    dataM = np.column_stack((t,vm,cc_cell.T, cc_env.T,IP3_time,dye_time,Ca_er))
+    dataM = np.column_stack((t,vm,cc_cell.T,IP3_time,dye_time,Ca_er))
 
     np.savetxt(savedData,dataM,delimiter = ',',header = headr)
 
@@ -1771,23 +1707,6 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         Jmag = sim.I_gj_time[time]
 
-        jx = Jmag*nx
-        jy = Jmag*ny
-
-        X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
-        Jmag_M = np.sqrt(J_x**2 + J_y**2)
-
-        J_x = J_x/Jmag_M
-        J_y = J_y/Jmag_M
-
-        J_x = np.nan_to_num(J_x)
-        J_y = np.nan_to_num(J_y)
-        Jmag_M = np.nan_to_num(Jmag_M)
-
-        lw = 3.0*Jmag_M/Jmag_M.max()
-
-        ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
-
         ax.set_title('(gap junction current overlay)')
 
     elif plotIecm == True:
@@ -1799,24 +1718,53 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         Jmag = sim.I_ecm_time[time]
 
-        jx = Jmag*nx
-        jy = Jmag*ny
-
-        X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
-        Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
-
-        J_x = J_x/Jmag_M
-        J_y = J_y/Jmag_M
-
-        J_x = np.nan_to_num(J_x)
-        J_y = np.nan_to_num(J_y)
-        Jmag_M = np.nan_to_num(Jmag_M)
-
-        lw = 3.0*Jmag_M/Jmag_M.max()
-
-        ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
-
         ax.set_title('(extracellular current overlay)')
+
+    jx = Jmag*nx
+    jy = Jmag*ny
+
+    X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
+    Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
+
+    J_x = J_x/Jmag_M
+    J_y = J_y/Jmag_M
+
+    J_x = np.nan_to_num(J_x)
+    J_y = np.nan_to_num(J_y)
+    Jmag_M = np.nan_to_num(Jmag_M)
+
+    lw = 3.0*Jmag_M/Jmag_M.max()
+
+    ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+
+def cell_ave(cells,vm_at_mem):
+
+    """
+    Averages Vmem over membrane domains to return a mean value for each cell
+
+    Parameters
+    ----------
+    cells               An instance of the World module cells object
+    vm_at_mem           Vmem at individual membrane domains
+
+
+    Returns
+    --------
+    v_cell              Cell Vm averaged over the whole cell
+
+    """
+
+    v_cell = []
+
+    for i in cells.cell_i:
+        cellinds = (cells.mem_to_cells == i).nonzero()
+        v_cell_array = vm_at_mem[cellinds]
+        v_cell_ave = np.mean(v_cell_array)
+        v_cell.append(v_cell_ave)
+
+    v_cell = np.asarray(v_cell)
+
+    return v_cell
 
 
 

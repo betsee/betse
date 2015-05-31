@@ -88,8 +88,8 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
-    total time: 20.0                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
+    total time: 10.0                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
     gap junction radius: 0.5e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
 
@@ -103,7 +103,7 @@ automatically run initialization: True     # In the case that an initialization 
 
 sim time settings:
 
-  time profile: 'simulate somatic'    # choose a pre-defined time profile for the sim run
+  time profile: 'custom sim'    # choose a pre-defined time profile for the sim run
                                       # choices are 'simulate somatic', 'simulate excitable'
                                       # or 'custom sim'
                                       # 'simulate somatic' is for cells without voltage-gated
@@ -123,13 +123,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 2.0e-5               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 0.1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 20                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.001            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 2.0e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 0.5e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -144,7 +144,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -181,8 +181,8 @@ general options:
 
   voltage dye properties:  # specify the properties of the voltage sensitive dye if included
 
-    Dm_Dye: 1.0e-12        # voltage sensitive dye membrane diffusion coefficient [m2/s]
-    Do_Dye: 1.0e-9         # gap junction diffusion constant of voltage-sensitive dye [m2/s]
+    Dm_Dye: 1.0e-15        # voltage sensitive dye membrane diffusion coefficient [m2/s]
+    Do_Dye: 1.0e-10         # free diffusion constant of voltage-sensitive dye [m2/s]
     z_Dye: 1               # charge of dye (oxidation state)
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
     cDye_to_cell: 1.0e-3    # initial concentration of dye in the cell [mmol/L]
@@ -295,7 +295,7 @@ world variables:
 
   ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-3)
 
-  ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
+  ecm boundary open: False       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -366,11 +366,11 @@ block HKATP pump:
 # TISSUE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
 
-number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: 'hyperpolarized'       # give your profile a name that will be used to apply the profile
-    cell indices: [50,47,52,51]      # The string 'random##' will target specified percentage of cell pop.
+    cell indices: [0,47,8]      # The string 'random##' will target specified percentage of cell pop.
                                   # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
     Dm_Na: 0.5e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 25.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -393,13 +393,13 @@ tissue profile 2:
 
 number of boundary profiles: 2      # boundary profiles only apply if simulating extracellular spaces
 
-boundary profile 1:
+boundary profile 1:   # options include 'all' to select everything, or specify a list of inds [9,8,10]
     name: 'applied pos voltage'
-    boundary indices: [33,45,8,41,9,25,32,13,38]   # options include 'all' to select everything, or specify a list of inds [9,8,10]
+    boundary indices: [37,17,27,41,20,33,10,4,36,22,12,23,8]
 
 boundary profile 2:
     name: 'applied neg voltage'
-    boundary indices: [40,43,6,28,24,20,36,4,34,0,5]
+    boundary indices: [44,49,38,42,29,45,39,1,15]
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -456,9 +456,9 @@ produce IP3:        # Schedule cell production of IP3
 
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
-    event happens: False            # turn the even on (True) or off (False)
-    change start: 1                 # time event starts [s]
-    change finish: 10               # time event finishes [s]
+    event happens: True            # turn the even on (True) or off (False)
+    change start: 2                 # time event starts [s]
+    change finish: 12               # time event finishes [s]
     change rate: 2                  # time to reach peak value [s]
     peak value: 2.5                   # peak value [V]
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
@@ -539,7 +539,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -548,10 +548,10 @@ results options:
   plot cell index: 5              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: False                # if True, plots and animations show individual cells,
+  show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.
@@ -559,9 +559,9 @@ results options:
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
 
-  overlay currents: True          # overlay current streamlines on 2d plotted data
+  overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
 
-  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   Vmem 2D:
@@ -618,9 +618,9 @@ results options:
   Vmem Ani:
 
     animate Vmem: True           # 2d animation of vmem with time?
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 80.0                # maximum colorbar value in mV
-    min val: -80.0               # maximum colorbar value in mV
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: -16.0                # maximum colorbar value in mV
+    min val: -48.0               # maximum colorbar value in mV
 
   Ca Ani:
 
@@ -646,16 +646,16 @@ results options:
   Vmem GJ Ani:
 
     animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 80.0                # maximum colorbar value in mV
-    min val: -80.0               # minimum colorbar value in mV
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 50.0                # maximum colorbar value in mV
+    min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
 
     animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
-    autoscale colorbar: True     # autoscale colorbar to min max of data set?
-    max val: 100                  # maximum colorbar value in mV
-    min val: -100                 # minimum colorbar value in mV
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: -24                  # maximum colorbar value in mV
+    min val: -40                 # minimum colorbar value in mV
 
   Current Ani:
 
