@@ -86,7 +86,6 @@ class World(object):
 
     self.cell_UpdateMatrix   a matrix updating cell space concentrations for cell <----> ecm fluxes
 
-
     self.cell2ecm_map   a nested numpy array returns the k-ecm indices given the cell [cell_i] and membrane [mem_j] inds
 
     self.bflags_ecm     a python list of indices to ecm vertices on the env bound (ordered to ecm_verts_unique)
@@ -751,6 +750,28 @@ class World(object):
             nn_diff_ecm = (seg2 - seg1)**2
             self.len_ecm_junc = np.sqrt(nn_diff_ecm[:,0] + nn_diff_ecm[:,1])
 
+            ec_x = []
+            ec_y = []
+            ec_tx = []
+            ec_ty = []
+
+            # next calculate tangent unit vectors between ecm and its neighbour:
+            for ind_pair in self.ecm_nn_i:
+                ind1 = ind_pair[0]
+                ind2 = ind_pair[1]
+                pt1 = self.ecm_mids[ind1]
+                pt2 = self.ecm_mids[ind2]
+                mid = (pt1 + pt2)/2
+                tang_a = (pt2 - pt1)
+                tang = tang_a/np.linalg.norm(tang_a)
+                ec_x.append(mid[0])
+                ec_y.append(mid[1])
+                ec_tx.append(tang[0])
+                ec_ty.append(tang[1])
+
+            self.ecm_vects = np.array([ec_x,ec_y,ec_tx,ec_ty]).T
+
+
     def clean_ecm(self,p,clean=None):
 
         """
@@ -1088,10 +1109,10 @@ class World(object):
         self.ecm_mids = [0]*len_unique_edges
         self.ecm_vol = [0]*len_unique_edges
 
-        ev_x=[0]*len_unique_edges
-        ev_y=[0]*len_unique_edges
-        ev_tx=[0]*len_unique_edges
-        ev_ty=[0]*len_unique_edges
+        # ev_x=[0]*len_unique_edges
+        # ev_y=[0]*len_unique_edges
+        # ev_tx=[0]*len_unique_edges
+        # ev_ty=[0]*len_unique_edges
 
         for i, poly in enumerate(self.ecm_verts):
             holdinds = []
@@ -1125,10 +1146,10 @@ class World(object):
                         self.ecm_vol[mapval] = vol
                         tang_a = pnt2 - pnt1
                         tang = tang_a/np.linalg.norm(tang_a)
-                        ev_x[mapval] = midpoint[0]
-                        ev_y[mapval] = midpoint[1]
-                        ev_tx[mapval] = tang[0]
-                        ev_ty[mapval] = tang[1]
+                        # ev_x[mapval] = midpoint[0]
+                        # ev_y[mapval] = midpoint[1]
+                        # ev_tx[mapval] = tang[0]
+                        # ev_ty[mapval] = tang[1]
 
                     if edge_ind2 < edge_ind1:
                         mapval = self.ecm_edges_i.index([edge_ind2,edge_ind1])
@@ -1140,16 +1161,16 @@ class World(object):
                         vol = lgth*p.cell_height*p.cell_space
                         self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
                         self.ecm_vol[mapval] = vol
-                        tang_a = pnt2 - pnt1
-                        tang = tang_a/np.linalg.norm(tang_a)
-                        ev_x[mapval] = midpoint[0]
-                        ev_y[mapval] = midpoint[1]
-                        ev_tx[mapval] = tang[0]
-                        ev_ty[mapval] = tang[1]
+                        # tang_a = pnt2 - pnt1
+                        # tang = tang_a/np.linalg.norm(tang_a)
+                        # ev_x[mapval] = midpoint[0]
+                        # ev_y[mapval] = midpoint[1]
+                        # ev_tx[mapval] = tang[0]
+                        # ev_ty[mapval] = tang[1]
 
             self.cell2ecm_map.append(holdinds)
 
-        self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
+        # self.ecm_vects = np.array([ev_x,ev_y,ev_tx,ev_ty]).T
         self.ecm_mids = np.array(self.ecm_mids)
         self.ecm_edges_i = np.asarray(self.ecm_edges_i)
         self.ecm_vol = np.asarray(self.ecm_vol)
@@ -1225,8 +1246,6 @@ class World(object):
             cell_tree = sps.KDTree(self.ecm_mids)
             matches = cell_tree.query(self.mem_mids_flat)
             self.mem_to_ecm = list(matches)[1]
-
-
 
             ecm_n = len(self.ecm_i)
             cell_n = len(self.cell_i)

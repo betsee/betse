@@ -2,9 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME currents in ECM and gj networks...
 # FIXME pumps should use Hill functions, not linear to concentrations
-# FIXME need to modularize code, possibly get rid of runInit and runInit_ECM using p.run_type variable
 # FIXME need to have set of extended ecm points at boundary, separate boundary electrodiffusion and setting V and concs at these extended points!
 
 
@@ -116,8 +114,8 @@ class Simulator(object):
         flx_gj_i = np.zeros(len(cells.gj_i))
         self.fluxes_gj = []
 
-        self.current =np.zeros(len(cells.gj_i))     # total current in the network
-        self.I_time = []                            # total current in the network at each time
+        self.I_gj =np.zeros(len(cells.gj_i))     # total I_gj in the network
+        self.I_gj_time = []                            # total I_gj in the network at each time
 
         self.gjopen_time = []   # stores gj open fraction at each time
 
@@ -443,14 +441,13 @@ class Simulator(object):
         self.fluxes_gj = []   # stores gj fluxes for each ion
         self.gjopen_time = []   # stores gj open fraction at each time
 
-        flx_ecm_i = np.zeros(len(cells.ecm_i))
+        flx_ecm_i = np.zeros(len(cells.ecm_nn_i))
         self.fluxes_ecm = []   # stores gj fluxes for each ion
 
-        flx_mem_i = np.zeros(len(cells.mem_i))
-        self.fluxes_mem = []   # stores gj fluxes for each ion
-
-        self.I =[]            # total current for the cluster network
-        self.I_time = []      # total current for the cluster at each time point
+        self.I_gj =[]            # total I_gj for the cluster network
+        self.I_ecm = []
+        self.I_gj_time = []      # total I_gj for the cluster at each time point
+        self.I_ecm_time = []
 
 
         # Initialize cellular concentrations of ions:
@@ -1189,7 +1186,7 @@ class Simulator(object):
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 envsc = copy.deepcopy(self.cc_env)
-                Igj = copy.deepcopy(self.current)
+                Igj = copy.deepcopy(self.I_gj)
                 vmm = copy.deepcopy(self.vm)
                 dvmm = copy.deepcopy(self.dvm)
 
@@ -1204,7 +1201,7 @@ class Simulator(object):
                 self.gjopen_time.append(ggjopen)
                 self.dvm_time.append(dvmm)
 
-                self.I_time.append(Igj)
+                self.I_gj_time.append(Igj)
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                     ccIP3 = copy.deepcopy(self.cIP3)
@@ -1459,6 +1456,7 @@ class Simulator(object):
                 # update the charge transfer between cells via gap junctions
                 self.update_gj(cells,p,t,i)
 
+
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
                 self.update_IP3(cells,p,t)
@@ -1483,6 +1481,8 @@ class Simulator(object):
             check_v(self.vm)
 
             if t in tsamples:
+
+                self.get_current(cells,p)   # get the I_gj in the gj network connection of cells
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = copy.deepcopy(self.cc_cells)
                 ecmsc = copy.deepcopy(self.cc_ecm)
@@ -1494,6 +1494,9 @@ class Simulator(object):
                 vvcell = copy.deepcopy(self.v_cell)
                 vvecm = copy.deepcopy(self.v_ecm)
 
+                Igj = copy.deepcopy(self.I_gj)
+                Iecm = copy.deepcopy(self.I_ecm)
+
                 self.time.append(t)
 
                 self.cc_time.append(concs)
@@ -1502,6 +1505,9 @@ class Simulator(object):
 
                 self.vcell_time.append(vvcell)
                 self.vecm_time.append(vvecm)
+
+                self.I_gj_time.append(Igj)
+                self.I_ecm_time.append(Iecm)
 
                 # self.fgj_time.append(flxs)
                 self.gjopen_time.append(ggjopen)
@@ -1533,15 +1539,6 @@ class Simulator(object):
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
-        # End off by calculating the current through the gap junction network:
-        self.Igj_time = []
-        for tflux in self.fgj_time:
-            igj=0
-            for zi, flx in zip(self.zs,tflux):
-                igj = igj+ zi*flx
-
-            igj = p.F*igj
-            self.Igj_time.append(igj)
 
         if p.run_sim == False:
 
@@ -1739,18 +1736,20 @@ class Simulator(object):
 
         # electrodiffuse through ecm <---> ecm junctions
 
-        _,_,flux_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
+        _,_,f_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
                 self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
                 cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
                 self.zs[i],self.v_ec2ec,self.T,p)
 
-        self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(flux_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
+        self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(f_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
         if p.ecm_bound_open == True: # if the geometry is open to the environment
             self.cc_ecm[i][cells.bflags_ecm] = self.cc_ecm_env[i]  # make outer ecm spaces equal to env conc
 
          # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
+
+        self.fluxes_ecm[i] = f_ecm  # store ecm junction flux for this ion
 
     def update_er(self,cells,p,t):
 
@@ -1832,16 +1831,26 @@ class Simulator(object):
 
     def get_current(self,cells,p):
 
-        if p.sim_ECM == False:
 
-            self.current = np.zeros(len(cells.gj_i))
+        self.I_gj = np.zeros(len(cells.gj_i))
 
-            for flux_array, zi in zip(self.fluxes_gj,self.zs):
+        for flux_array, zi in zip(self.fluxes_gj,self.zs):
+
+            # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
+            I_i = flux_array*zi*p.F
+
+            self.I_gj = self.I_gj + I_i
+
+        if p.sim_ECM == True:
+
+            self.I_ecm = np.zeros(len(cells.ecm_nn_i))
+
+            for flux_array, zi in zip(self.fluxes_ecm,self.zs):
 
                 # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
                 I_i = flux_array*zi*p.F
 
-                self.current = self.current + I_i
+                self.I_ecm = self.I_ecm + I_i
 
 def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p):
     """

@@ -3,8 +3,6 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME do a Vcell plot option
-
 
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
@@ -60,6 +58,8 @@ class SimRunner(object):
                 self._config_basename))
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        p.I_overlay = False  # force the I_gj overlay to be null
+        sim = Simulator(p)   # create an instance of Simulator as it's needed by plotting objects
 
         if p.sim_ECM == False:
 
@@ -71,7 +71,12 @@ class SimRunner(object):
 
             if plotWorld == True:
 
-                fig, ax, cb = viz.plotPolyData(cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+                if p.showCells == True:
+
+                    fig, ax, cb = viz.plotPolyData(sim,cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+
+                else:
+                    fig, ax, cb = viz.plotCellData(sim,cells,p,number_cells = p.enumerate_cells,clrmap=p.default_cm)
 
                 ax.set_title('Cell collection')
                 ax.set_xlabel('Spatial distance [um]')
@@ -127,7 +132,7 @@ class SimRunner(object):
 
             if p.sim_ECM != cells.sim_ECM:
                 loggers.log_info("Ooops! Cell cluster and config settings don't match!")
-                loggers.log_info("Automatically creating cell cluster from current config file settings...")
+                loggers.log_info("Automatically creating cell cluster from I_gj config file settings...")
                 loggers.log_info("Warning: specified tissue profiles may no longer be correctly assigned.")
                 self.makeWorld(plotWorld=False)  # create an instance of world
                 loggers.log_info('Now using cell cluster to run initialization.')
@@ -290,18 +295,26 @@ class SimRunner(object):
                 self._config_basename))
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        p.I_overlay = False # force the I_gj overlay to be false as there's no data for it
+        sim = Simulator(p)
 
         cells = World(p,vorclose ='circle',worldtype='basic')
 
         if files.is_file(cells.savedWorld):
-            cells,p = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            p.sim_ECM = cells.sim_ECM
             loggers.log_info('Cell cluster loaded.')
         else:
             raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
 
         if p.sim_ECM == False:
 
-            fig, ax, cb = viz.plotPolyData(cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+            if p.showCells == True:
+
+                fig, ax, cb = viz.plotPolyData(sim, cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
+
+            else:
+                fig, ax, cb = viz.plotCellData(sim,cells,p,number_cells = p.enumerate_cells,clrmap=p.default_cm)
 
             ax.set_title('Cell collection')
             ax.set_xlabel('Spatial distance [um]')
@@ -323,66 +336,6 @@ class SimRunner(object):
             print(cells.cell_number)
 
             plt.show()
-
-def plots4Init(plot_cell,cells,sim,p,saveImages=False):
-
-    if p.plot_single_cell_graphs == True:
-
-        figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
-             ax=None,lncolor='g',ionname='Na+')
-
-        figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
-            ax=axConcs,lncolor='b',ionname='K+')
-
-        figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
-             ax=axConcs,lncolor='r',ionname='M-')
-
-        lg = axConcs.legend()
-        lg.draw_frame(True)
-        titC = 'Concentration of main ions in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
-        axConcs.set_title(titC)
-        plt.show(block=False)
-
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
-        titV = 'Voltage (Vmem) in cell index ' + str(plot_cell) + ' as a function of time'
-        axVt.set_title(titV)
-        plt.show(block=False)
-
-        if p.ions_dict['Ca'] ==1:
-            figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
-                 ax=None,lncolor='g',ionname='Ca2+ cell')
-            titCa =  'Calcium concentration in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
-            axA.set_title(titCa)
-            plt.show(block=False)
-
-            if p.Ca_dyn == 1:
-                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,0,plot_cell,fig=None,
-                     ax=None,lncolor='b',ionname='Ca2+ cell')
-                titER =  'Calcium concentration in cell index ' + str(plot_cell) + ' ER as a function of time'
-                axD.set_title(titER)
-                plt.show(block=False)
-
-    if p.plot_vm2d == True:
-
-        if p.sim_ECM == True:
-
-            figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                edgeOverlay = p.showCells, number_ecm = p.enumerate_cells)
-
-        elif p.sim_ECM == False:
-
-            if p.showCells == True:
-                figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
-            else:
-                figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1], clrAutoscale = p.autoscale_Vmem,
-                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
-
-        axV.set_title('Final Vmem in cell collection')
-        axV.set_xlabel('Spatial distance [um]')
-        axV.set_ylabel('Spatial distance [um]')
-        cbV.set_label('Voltage mV')
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
@@ -477,10 +430,19 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_vcell2d == True and p.sim_ECM == True:
 
-        figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr, clrmap = p.default_cm)
+        if p.showCells == True:
 
-        axX.set_title('Final Vcell')
+            figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr,
+                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+
+        else:
+
+            figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata=1000*sim.vcell_time[-1],clrAutoscale = p.autoscale_vcell,
+                    clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr, clrmap = p.default_cm,
+                    number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+
+        figX.suptitle('Final Vcell',fontsize=14, fontweight='bold')
         axX.set_xlabel('Spatial distance [um]')
         axX.set_ylabel('Spatial distance [um]')
         cbX.set_label('Voltage mV')
@@ -495,21 +457,23 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.sim_ECM == True:
 
-            figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
+            figV, axV, cbV = viz.plotHetMem(sim,cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                edgeOverlay = p.showCells,  number_ecm = p.enumerate_cells)
+                edgeOverlay = p.showCells,  number_ecm = p.enumerate_cells,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
         elif p.sim_ECM == False:
 
             if p.showCells == True:
                 figV, axV, cbV = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells, clrmap = p.default_cm)
+                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
+                    clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
             else:
                 figV, axV, cbV = viz.plotCellData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
+                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                    number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 
 
-        axV.set_title('Final Vmem')
+        figV.suptitle('Final Vmem',fontsize=14, fontweight='bold')
         axV.set_xlabel('Spatial distance [um]')
         axV.set_ylabel('Spatial distance [um]')
         cbV.set_label('Voltage mV')
@@ -526,7 +490,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
         else:
-             figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,
+             figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
 
         axIP3.set_title('Final IP3 concentration')
@@ -546,7 +510,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
         else:
-            figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,
+            figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
 
         axVdye.set_title('Final voltage-sensitive dye')
@@ -566,7 +530,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             figCa, axCa, cbCa = viz.plotPolyData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells= p.enumerate_cells,
             clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
         else:
-            figCa, axCa, cbCa = viz.plotCellData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
+            figCa, axCa, cbCa = viz.plotCellData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
         axCa.set_title('Final cytosolic Ca2+')
@@ -582,8 +546,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_I2d == True:
 
-        viz.streamingCurrent(sim, cells,p,clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr,
-        clrmap= p.default_cm,edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+        figI, axI, cbI = viz.streamingCurrent(sim, cells,p,plot_Iecm = p.IecmPlot, clrAutoscale = p.autoscale_I2d,
+            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.I_colormap,
+            edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+
+        axI.set_xlabel('Spatial distance [um]')
+        axI.set_ylabel('Spatial distance [um]')
+        cbI.set_label('Current [pA]')
 
         if saveImages == True:
             savename10 = savedImg + 'Final_Current' + '.png'
@@ -591,17 +560,74 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+    if p.plot_Vmem_and_current == True and p.sim_ECM == True:
+
+        fig_IandV = plt.figure(figsize=(6,10))
+        ax_1 = plt.subplot(2,1,1)
+        ax_2 = plt.subplot(2,1,2)
+
+        fig_IandV, ax_1, cb_1 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_1,zdata=1000*sim.vm_time[-1],
+            number_cells=p.enumerate_cells, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+            clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
+            number_ecm = p.enumerate_cells,current_overlay = True,plotIecm = True)
+
+        fig_IandV, ax_2, cb_2 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_2,zdata=1000*sim.vm_time[-1],
+            number_cells=p.enumerate_cells, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+            clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
+            number_ecm = p.enumerate_cells,current_overlay = True,plotIecm = False)
+
+        fig_IandV.suptitle('Final Vmem and Currents in Cell Cluster',fontsize=14, fontweight='bold')
+        ax_1.set_ylabel('Spatial distance [um]')
+        cb_1.set_label('Voltage mV')
+        ax_2.set_xlabel('Spatial distance [um]')
+        ax_2.set_ylabel('Spatial distance [um]')
+        cb_2.set_label('Voltage mV')
+
+        plt.show(block=False)
+
+        if saveImages == True:
+            savename11 = savedImg + 'Final_Vmem_and_Currents' + '.png'
+            plt.savefig(savename11,dpi=150,format='png')
+
+        fig_IandI = plt.figure(figsize=(6,10))
+        ax_1b = plt.subplot(2,1,1)
+        ax_2b = plt.subplot(2,1,2)
+
+
+        figIandI, ax_1b, cb_1b = viz.streamingCurrent(sim, cells,p,fig=fig_IandI, ax=ax_1b, plot_Iecm = True, zdata = None,
+            clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.I_colormap,
+            edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+
+        figIandI, ax_2b, cb_2b = viz.streamingCurrent(sim, cells,p,fig=fig_IandI, ax=ax_2b, plot_Iecm = False, zdata = None,
+            clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr,
+            clrmap=p.I_colormap,edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+
+        fig_IandI.suptitle('Final Currents in Cell Cluster',fontsize=14, fontweight='bold')
+        ax_1b.set_ylabel('Spatial distance [um]')
+        cb_1b.set_label('Current [pA]')
+        ax_2b.set_xlabel('Spatial distance [um]')
+        ax_2b.set_ylabel('Spatial distance [um]')
+        cb_2b.set_label('Current [pA]')
+
+        plt.show(block=False)
+
+        if saveImages == True:
+            savename12 = savedImg + 'Final_gj_and_ec_currents' + '.png'
+            plt.savefig(savename12,dpi=150,format='png')
+
+
     if p.ani_ip32d ==True and p.scheduled_options['IP3'] != 0 and animate == 1:
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
         if p.showCells == True:
 
-            viz.AnimateCellData(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
+            viz.AnimateCellData(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
                 clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/IP3', saveFile = 'ip3_', ignore_simECM =True)
+                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/IP3',
+                saveFile = 'ip3_', ignore_simECM =True, current_overlay=p.I_overlay)
         else:
-            viz.AnimateCellData_smoothed(cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
+            viz.AnimateCellData_smoothed(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
                 clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
 
@@ -612,11 +638,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
 
         if p.showCells == True:
-            viz.AnimateCellData(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+            viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
                 clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye', saveFile = 'dye_',ignore_simECM =True)
+                save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye',
+                saveFile = 'dye_',ignore_simECM =True)
         else:
-            viz.AnimateCellData_smoothed(cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+            viz.AnimateCellData_smoothed(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
                 clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
                 save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'dye_')
 
@@ -625,11 +652,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
         if p.showCells == True:
-            viz.AnimateCellData(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
+            viz.AnimateCellData(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
                 clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Ca', saveFile = 'ca_',ignore_simECM = True)
+                ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Ca',
+                saveFile = 'ca_',ignore_simECM = True)
         else:
-            viz.AnimateCellData_smoothed(cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
+            viz.AnimateCellData_smoothed(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
                 clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
                 ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
 
@@ -639,21 +667,22 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.sim_ECM == True:
 
-            viz.AnimateCellData(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
+            viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
                 clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr,
-                clrmap = p.default_cm, ani_repeat=True,number_cells=p.enumerate_cells,
+                clrmap = p.default_cm, ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
                 saveFolder = '/animation/Vmem', saveFile = 'vm_')
 
         elif p.sim_ECM == False:
 
             if p.showCells == True:
-                viz.AnimateCellData(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
+                viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
                      clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
-                    ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Vmem', saveFile = 'vm_')
+                    ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
+                    saveFolder = '/animation/Vmem', saveFile = 'vm_')
             else:
-                viz.AnimateCellData_smoothed(cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
+                viz.AnimateCellData_smoothed(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
                      clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
-                    ani_repeat=True,number_cells=False,saveFolder = '/animation/Vmem', saveFile = 'vm_')
+                    ani_repeat=True,number_cells=False,saveFolder = '/animation/Vmem', saveFile = 'vm_',current_overlay=p.I_overlay)
 
     if p.ani_vmgj2d == True and animate == 1:
 
@@ -679,15 +708,80 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.showCells == True:
 
-            viz.AnimateCellData(cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
+            viz.AnimateCellData(sim,cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
                 clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/vcell', saveFile = 'vcell_', ignore_simECM =True)
+                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/vcell',
+                saveFile = 'vcell_', ignore_simECM =True, current_overlay=p.I_overlay)
         else:
-            viz.AnimateCellData_smoothed(cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
+            viz.AnimateCellData_smoothed(sim,cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
                 clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_')
+                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_',
+                current_overlay=p.I_overlay)
 
 
-    # if p.exportData == True:
-    #     viz.exportData(cells, sim, p)
+    if p.exportData == True:
+        viz.exportData(cells, sim, p)
 
+
+
+
+
+# def plots4Init(plot_cell,cells,sim,p,saveImages=False):
+#
+#     if p.plot_single_cell_graphs == True:
+#
+#         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
+#              ax=None,lncolor='g',ionname='Na+')
+#
+#         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
+#             ax=axConcs,lncolor='b',ionname='K+')
+#
+#         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
+#              ax=axConcs,lncolor='r',ionname='M-')
+#
+#         lg = axConcs.legend()
+#         lg.draw_frame(True)
+#         titC = 'Concentration of main ions in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
+#         axConcs.set_title(titC)
+#         plt.show(block=False)
+#
+#         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
+#         titV = 'Voltage (Vmem) in cell index ' + str(plot_cell) + ' as a function of time'
+#         axVt.set_title(titV)
+#         plt.show(block=False)
+#
+#         if p.ions_dict['Ca'] ==1:
+#             figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
+#                  ax=None,lncolor='g',ionname='Ca2+ cell')
+#             titCa =  'Calcium concentration in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
+#             axA.set_title(titCa)
+#             plt.show(block=False)
+#
+#             if p.Ca_dyn == 1:
+#                 figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,0,plot_cell,fig=None,
+#                      ax=None,lncolor='b',ionname='Ca2+ cell')
+#                 titER =  'Calcium concentration in cell index ' + str(plot_cell) + ' ER as a function of time'
+#                 axD.set_title(titER)
+#                 plt.show(block=False)
+#
+#     if p.plot_vm2d == True:
+#
+#         if p.sim_ECM == True:
+#
+#             figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
+#                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+#                 edgeOverlay = p.showCells, number_ecm = p.enumerate_cells)
+#
+#         elif p.sim_ECM == False:
+#
+#             if p.showCells == True:
+#                 figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
+#                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
+#             else:
+#                 figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1], clrAutoscale = p.autoscale_Vmem,
+#                     clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm, number_cells=p.enumerate_cells)
+#
+#         axV.set_title('Final Vmem in cell collection')
+#         axV.set_xlabel('Spatial distance [um]')
+#         axV.set_ylabel('Spatial distance [um]')
+#         cbV.set_label('Voltage mV')

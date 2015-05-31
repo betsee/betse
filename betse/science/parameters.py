@@ -7,7 +7,8 @@
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
 # FIXME create a planaria-specific (aquatic invertebrate) ion profile
-# FIXME move ecm diffusion into time profile, similar to gj radius
+# FIXME parameter to control plot of Igj or Iecm in plotting
+
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
@@ -186,7 +187,7 @@ class Parameters(object):
         self.ani_ca2d = False                # 2d animation of cell calcium with time ?
         self.ani_ip32d = False               # 2d animation of cIP3 with time?
         self.ani_dye2d = False               # 2d animation of voltage sensitive dye in cell collective with time?
-        self.ani_vmgj2d = False              # 2d animation of vmem with superimposed gj network showing current direction
+        self.ani_vmgj2d = False              # 2d animation of vmem with superimposed gj network showing I_gj direction
 
         self.autosave = True           # autosave all still images to a results directory in the simulation folder
         self.saveAnimations = True    # save all animations as png sequences in animation-specific folders
@@ -596,7 +597,7 @@ class Parameters(object):
 
             self.tissue_profiles[profile_name] = profile_features
 
-        for bn in range(1,self.boundary_profile_number+1):     # FIXME bug here not updating continuous list...
+        for bn in range(1,self.boundary_profile_number+1):
 
             profile_string_b = 'boundary profile ' + str(bn)
             profile_name_b = self.config[profile_string_b]['name']
@@ -823,6 +824,8 @@ class Parameters(object):
 
         self.I_overlay = ro['overlay currents']
 
+        self.IecmPlot = ro['plot extracellular I']    # True = plot extracellular currents, false plot gj
+
         # options for individual 2D plots
         self.plot_vm2d = ro['Vmem 2D']['plot Vmem']                # 2d plot of final vmem ?
         self.autoscale_Vmem = ro['Vmem 2D']['autoscale colorbar']
@@ -853,6 +856,14 @@ class Parameters(object):
         self.autoscale_I2d = ro['Currents 2D']['autoscale colorbar']
         self.I_min_clr = float(ro['Currents 2D']['min val'])
         self.I_max_clr = float(ro['Currents 2D']['max val'])
+
+        self.plot_Vmem_and_current = ro['Current and Vmem 2D']['plot Current and Vmem']
+        self.autoscale_VandI = ro['Current and Vmem 2D']['autoscale colorbar']
+        self.VandI_min_clr = float(ro['Current and Vmem 2D']['min val'])
+        self.VandI_max_clr = float(ro['Current and Vmem 2D']['max val'])
+
+
+        self.I_colormap = get_colormap(ro['Currents 2D']['colormap'])
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 
