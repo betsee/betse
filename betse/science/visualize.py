@@ -92,6 +92,9 @@ class AnimateCellData(object):
 
                 Jmag = sim.I_gj_time[0]
 
+                jx = Jmag*self.nx
+                jy = Jmag*self.ny
+
                 tit_extra = '(gap junction current overlay)'
 
             elif p.IecmPlot == True:
@@ -103,10 +106,23 @@ class AnimateCellData(object):
 
                 Jmag = sim.I_ecm_time[0]
 
-                tit_extra = '(extracellular current overlay)'
+                jx = Jmag*self.nx
+                jy = Jmag*self.ny
 
-            jx = Jmag*self.nx
-            jy = Jmag*self.ny
+                # data on environmental currents
+                nx_env = cells.ecm_seg_vects[:,4][cells.bflags_ecm]
+                ny_env = cells.ecm_seg_vects[:,5][cells.bflags_ecm]
+                Jmag_env = sim.I_env_time[0]
+
+                # environmental <---> boundary ecm current components:
+                jx_env = nx_env*Jmag_env
+                jy_env = ny_env*Jmag_env
+
+                # update ecm currents to include environmental current:
+                jx[cells.bflags_ecm] = jx[cells.bflags_ecm] + jx_env
+                jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
+
+                tit_extra = '(extracellular current overlay)'
 
             X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,40)
             Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
@@ -146,7 +162,7 @@ class AnimateCellData(object):
         self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
         self.cb.set_label(self.cbtit)
 
-        self.tit = tit + tit_extra
+        self.tit = tit
 
         if number_cells == True:
             for i,cll in enumerate(cells.cell_centres):
@@ -335,7 +351,7 @@ class AnimateCellData_smoothed(object):
             self.streams = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',
                 cmap=clrmap,arrowsize=1.5)
 
-            self.tit = self.tit + tit_extra
+            self.tit = self.tit
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
@@ -1555,6 +1571,9 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         Jmag = sim.I_gj_time[-1]
 
+        jx = Jmag*nx
+        jy = Jmag*ny
+
         ax.set_title('Final gap junction currents')
 
     elif plot_Iecm == True:
@@ -1566,10 +1585,25 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         Jmag = sim.I_ecm_time[-1]
 
+        jx = Jmag*nx
+        jy = Jmag*ny
+
+         # data on environmental currents
+        nx_env = cells.ecm_seg_vects[:,4][cells.bflags_ecm]
+        ny_env = cells.ecm_seg_vects[:,5][cells.bflags_ecm]
+        Jmag_env = sim.I_env_time[-1]
+
+        # environmental <---> boundary ecm current components:
+        jx_env = nx_env*Jmag_env
+        jy_env = ny_env*Jmag_env
+
+        # update ecm currents to include environmental current:
+        jx[cells.bflags_ecm] = jx[cells.bflags_ecm] + jx_env
+        jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
+
         ax.set_title('Final extracellular currents')
 
-    jx = Jmag*nx
-    jy = Jmag*ny
+
 
     X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
     Jmag_M = np.sqrt(J_x**2 + J_y**2) +1e-30
@@ -1707,9 +1741,14 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         Jmag = sim.I_gj_time[time]
 
+        jx = Jmag*nx
+        jy = Jmag*ny
+
         ax.set_title('(gap junction current overlay)')
 
     elif plotIecm == True:
+
+        ax.set_title('(extracellular current overlay)')
 
         xpts = cells.ecm_vects[:,0]
         ypts = cells.ecm_vects[:,1]
@@ -1718,10 +1757,23 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         Jmag = sim.I_ecm_time[time]
 
-        ax.set_title('(extracellular current overlay)')
+        # current components in extracellular spaces
+        jx = Jmag*nx
+        jy = Jmag*ny
 
-    jx = Jmag*nx
-    jy = Jmag*ny
+        # data on environmental currents
+        nx_env = cells.ecm_seg_vects[:,4][cells.bflags_ecm]
+        ny_env = cells.ecm_seg_vects[:,5][cells.bflags_ecm]
+        Jmag_env = sim.I_env_time[time]
+
+        # environmental <---> boundary ecm current components:
+        jx_env = nx_env*Jmag_env
+        jy_env = ny_env*Jmag_env
+
+        # update ecm currents to include environmental current:
+        jx[cells.bflags_ecm] = jx[cells.bflags_ecm] + jx_env
+        jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
+
 
     X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,40)
     Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30

@@ -62,7 +62,7 @@ sim file saving:
 
 results file saving:
 
-    directory: init_run_1/sim_run_1/results_1    # Name of directory to save plots and animations.
+    directory: init_run_1/sim_run_1/results_ecm    # Name of directory to save plots and animations.
 
 
 
@@ -539,7 +539,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: True         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -561,7 +561,7 @@ results options:
 
   overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
 
-  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   Vmem 2D:
