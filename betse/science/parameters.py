@@ -7,7 +7,7 @@
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
 # FIXME create a planaria-specific (aquatic invertebrate) ion profile
-# FIXME parameter to control plot of Igj or Iecm in plotting
+# FIXME parameter to control use of bitmaps in cluster and tissue definition
 
 
 from betse.exceptions import BetseExceptionParameters
@@ -411,7 +411,26 @@ class Parameters(object):
 
         self.autoInit = self.config['automatically run initialization']
 
-        # Define paths for saving different kinds of files.
+        # define paths for loading bitmaps:
+
+        gdb = self.config['geometry defining bitmaps']
+
+        self.bitmap_path = paths.join(
+            config_dirname, gdb['directory'])  # world, inits, and sims are saved and read to/from this directory.
+
+        self.bitmap_number = int(gdb['number of bitmaps'])
+
+        self.bitmap_profiles = {}
+
+        for bm in range(1,self.bitmap_number + 1):
+
+            bitmap_string = 'bitmap ' + str(bm)
+            bitmap_designation = gdb[bitmap_string]['designation']
+            bitmap_filename = gdb[bitmap_string]['file']
+
+            self.bitmap_profiles[bitmap_designation] = bitmap_filename
+
+        # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(
             config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = paths.join(

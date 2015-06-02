@@ -31,19 +31,22 @@
 # useful for configuration files -- like this one. For details, please see
 # https://en.wikipedia.org/wiki/YAML.
 
-#------------------------------------------------------------------------------
-# Time-step Recommendations
-#
-# GJ sa          no ecm space      ecm spaces    sampling t      effect
-#--------       -------------      ----------   -----------     --------
-# 0.1e-9             1e-2             5e-4          0.1         closed gap junctions
-# 0.5e-9             5e-3             2.5e-4        0.1         moderate flux gap junctions
-# 1.0e-9             1e-3             1.0e-4        0.1         high flux gap junctions
-# 5.0e-9             1e-4             5.0e-6        0.01        very high flux gap junctions
-
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------
 # FILE HANDLING
+#------------------------------------------------------------------------------------------------------------------------
 # Settings specific to saving simulations and results output
+
+geometry defining bitmaps:
+
+    directory: geo              # directory where geometry-defining bitmaps can be found
+
+    number of bitmaps: 1          # total number of bitmaps to load
+
+    bitmap 1:
+
+        file: test_1.jpg        # name of the first bitmap defining geometry
+
+        designation: clipping   # designation of the file ('clipping" or 'tissue profile 1')
 
 init file saving:
 
@@ -63,7 +66,6 @@ sim file saving:
 results file saving:
 
     directory: init_run_1/sim_run_1/results_ecm    # Name of directory to save plots and animations.
-
 
 
 # -----------------------------------------------------------------------------
@@ -92,6 +94,18 @@ init time settings:
     total time: 10.0                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
     gap junction radius: 0.5e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
+
+#------------------------------------------------------------------------------
+# Time-step Recommendations
+#
+# GJ sa          no ecm space      ecm spaces    sampling t      effect
+#--------       -------------      ----------   -----------     --------
+# 0.1e-9             1e-2             5e-4          0.1         closed gap junctions
+# 0.5e-9             5e-3             2.5e-4        0.1         moderate flux gap junctions
+# 1.0e-9             1e-3             1.0e-4        0.1         high flux gap junctions
+# 5.0e-9             1e-4             5.0e-6        0.01        very high flux gap junctions
+
+# -----------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------
 # SIMULATION SETTINGS
@@ -135,6 +149,18 @@ sim time settings:
                                   # the simulation will become unstable and an error message will appear.
                                   # rule of thumb, gap junction radii up to 1.0e-10 for time step of 5e-4 s
                                   # gap junction radii up to 1.5e-9 for time step of 5e-5 s.
+
+#------------------------------------------------------------------------------
+# Time-step Recommendations
+#
+# GJ sa          no ecm space      ecm spaces    sampling t      effect
+#--------       -------------      ----------   -----------     --------
+# 0.1e-9             1e-2             5e-4          0.1         closed gap junctions
+# 0.5e-9             5e-3             2.5e-4        0.1         moderate flux gap junctions
+# 1.0e-9             1e-3             1.0e-4        0.1         high flux gap junctions
+# 5.0e-9             1e-4             5.0e-6        0.01        very high flux gap junctions
+
+# -----------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -242,7 +268,7 @@ general options:
 
 world variables:
 
-  world x: 100e-6         # the x-dimension of the world space [m]
+  world x: 200e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 

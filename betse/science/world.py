@@ -265,10 +265,10 @@ class World(object):
         self.xypts = np.vstack((self.x_2d.ravel(), self.y_2d.ravel())).T
 
         # define geometric limits and centre for the cluster of points
-        self.xmin = np.min(self.x_2d)
-        self.xmax = np.max(self.x_2d)
-        self.ymin = np.min(self.y_2d)
-        self.ymax = np.max(self.y_2d)
+        self.xmin = np.min(self.xypts[:,0])
+        self.xmax = np.max(self.xypts[:,0])
+        self.ymin = np.min(self.xypts[:,1])
+        self.ymax = np.max(self.xypts[:,1])
 
         self.centre = self.xypts.mean(axis=0)
 
