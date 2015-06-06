@@ -38,13 +38,15 @@
 
 geometry defining bitmaps:
 
+    use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
+
     directory: geo              # directory where geometry-defining bitmaps can be found
 
     number of bitmaps: 1          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: test_1.jpg        # name of the first bitmap defining geometry
+        file: test_1_sm.png        # name of the first bitmap defining geometry
 
         designation: clipping   # designation of the file ('clipping" or 'tissue profile 1')
 
@@ -170,7 +172,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)

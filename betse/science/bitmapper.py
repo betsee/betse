@@ -94,37 +94,55 @@ class Bitmapper(object):
 
         """
 
-        # Make a call to the BETSE-specific cache directory indicated in the params file:
-        bitmap_cache_dir = os.path.expanduser(p.bitmap_path)
-        os.makedirs(bitmap_cache_dir, exist_ok=True)
+        if p.use_bitmaps == True:
 
-        # Find the filename of the bitmap that's indicated by the designation:
-        file_name = p.bitmap_profiles[desired_bitmap]
+            # Make a call to the BETSE-specific cache directory indicated in the params file:
+            bitmap_cache_dir = os.path.expanduser(p.bitmap_path)
+            os.makedirs(bitmap_cache_dir, exist_ok=True)
 
-        # Define data paths for loading the desired bitmap:
-        self.bitmapFile = os.path.join(bitmap_cache_dir, file_name)
+            # Find the filename of the bitmap that's indicated by the designation:
+            file_name = p.bitmap_profiles[desired_bitmap]
 
-        # Read the bitmap as a flattened (grayscale) array using scipy's imread function:
-        bitmap = misc.imread(self.bitmapFile,flatten=1)
+            # Define data paths for loading the desired bitmap:
+            self.bitmapFile = os.path.join(bitmap_cache_dir, file_name)
 
-        if bitmap.shape[0] != bitmap.shape[1]:
+            # Read the bitmap as a flattened (grayscale) array using scipy's imread function:
+            bitmap = misc.imread(self.bitmapFile,flatten=1)
 
-            raise BetseExceptionSimulation("Error! Your bitmaps must be square (equal pixels length & width)"
-            "File " + self.bitmapFile + " did not conform to the requirements, Simulation terminated.")
+            if bitmap.shape[0] != bitmap.shape[1]:
 
-        msize = bitmap.shape[0]
+                raise BetseExceptionSimulation("Error! Your bitmaps must be square (equal pixels length & width)"
+                "File " + self.bitmapFile + " did not conform to the requirements, Simulation terminated.")
 
-        # find the black pixels (a really basic threshholding!)
-        point_inds = (bitmap == 0).nonzero()
+            self.msize = bitmap.shape[0]
 
-        # define a new matrix the same shape as the image and set values to 0 or 1:
-        self.clippingMatrix = np.zeros((msize,msize))
-        self.clippingMatrix[point_inds]= 1.0
-        self.clippingMatrix = np.flipud(self.clippingMatrix)
+            # find the black pixels (a really basic threshholding!)
+            point_inds = (bitmap == 0).nonzero()
+
+            # define a new matrix the same shape as the image and set values to 0 or 1:
+            self.clippingMatrix = np.zeros((self.msize,self.msize))
+            self.clippingMatrix[point_inds]= 1.0
+            self.clippingMatrix = np.flipud(self.clippingMatrix)
+
+        elif p.use_bitmaps == False:
+
+            # for default geometry, create a circular mask instead of a bitmap
+
+            self.msize = 200
+            self.clippingMatrix = np.zeros((self.msize,self.msize))
+            xmat = np.linspace(0,self.msize,self.msize)
+            ymat = np.linspace(0,self.msize,self.msize)
+
+            Xmat, Ymat = np.meshgrid(xmat,ymat)
+            rad = int(self.msize/2)
+            Rmat = np.sqrt((Xmat-rad)**2 + (Ymat-rad)**2)
+            r_inds = (Rmat < 0.9*rad).nonzero()
+            self.clippingMatrix[r_inds]=1.0
+
 
         # create spatial data vectors that span the extent of the cell seeds and match bitmap pixel number:
-        xpts = np.linspace(xmin,xmax,msize)
-        ypts = np.linspace(ymin,ymax,msize)
+        xpts = np.linspace(xmin,xmax,self.msize)
+        ypts = np.linspace(ymin,ymax,self.msize)
 
         # create an interpolation function that returns zero if the query point is outside the mask and
         # 1 if the query point is in the mask:

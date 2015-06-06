@@ -32,6 +32,7 @@ from matplotlib.path import Path
 import copy
 import math
 from betse.science import toolbox as tb
+from betse.science.bitmapper import Bitmapper
 import os, os.path
 from betse.science import filehandling as fh
 from betse.util.io import loggers
@@ -165,10 +166,10 @@ class World(object):
 
     """
 
-    def __init__(self, p, crop_mask=None, vorclose='circle', worldtype = 'basic'):
+    def __init__(self, p, worldtype = 'basic'):
         # Extract the constants from the input object:
-        self.vorclose = vorclose   # whether or not to close the voronoi
-        self.crop_mask = crop_mask # whether or not to clip the cluster
+        # self.vorclose = vorclose   # whether or not to close the voronoi
+        # self.crop_mask = crop_mask # whether or not to clip the cluster
         self.worldtype = worldtype # the complexity of cluster to create
         self.fileInit(p)
 
@@ -199,8 +200,8 @@ class World(object):
 
         if self.worldtype is None or self.worldtype == 'full':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
-            self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
-            self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
+            # self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
+            self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
@@ -212,8 +213,8 @@ class World(object):
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
-            self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
-            self.makeVoronoi(p,self.vorclose)    # Make, close, and clip the Voronoi diagram
+            # self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
+            self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
             self.near_neigh(p)    # Calculate the nn array for each cell
@@ -247,22 +248,22 @@ class World(object):
         """
 
         # first begin with linear vectors which are the "ticks" of the x and y dimensions
-        self.x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
-        self.y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
+        x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
+        y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
 
         # next define a 2d array of lattice points using the x- and y- vectors
-        x_2d, y_2d = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
+        x_2d, y_2d = np.meshgrid(x_v, y_v)  # create 2D array of lattice points
 
         # now create a matrix of points that will add a +/- deviation to each point centre
         x_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
         y_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
 
         # add the noise effect to the world point matrices and redefine the results
-        self.x_2d = x_2d + x_rnd
-        self.y_2d = y_2d + y_rnd
+        x_2d = x_2d + x_rnd
+        y_2d = y_2d + y_rnd
 
         # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
-        self.xypts = np.vstack((self.x_2d.ravel(), self.y_2d.ravel())).T
+        self.xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
 
         # define geometric limits and centre for the cluster of points
         self.xmin = np.min(self.xypts[:,0])
@@ -272,74 +273,10 @@ class World(object):
 
         self.centre = self.xypts.mean(axis=0)
 
-    def cropSeeds(self, crop_mask,p):
-
-        """
-        cropSeeds returns a geometrically
-        cropped version of an irregular points scatter in 2D.
-
-        The option crop_mask specifies the type of cropping where
-        crop_mask=None gives no cropping and crop_mask='circle' crops
-        to a circle with the diameter of the points scatter.
-
-        Parameters
-        ----------
-        crop_mask          None = no cropping, 'circle'= crop to circle
+        self.clust_xy = self.xypts
 
 
-        Creates
-        -------
-        self.clust_xy      an array listing [x,y] points of each cell seed
-                            in the cropped cluster
-        Notes
-        -------
-        Uses Numpy arrays.
-
-        Important: bug found that if points are cropped first, and then a Voronoi is created and closed,
-        the result is sporadically totally messed up. Therefore, the points are not being pre-cropped and
-        crop_mask is always = None in the instancing of this World class!
-
-        """
-
-        if crop_mask is None:  # if there's no crop-mask specified (default)
-            self.clust_xy=self.xypts         # set cluster points to grid points
-
-        elif crop_mask =='circle': # if 'circle' is specified:
-
-            cres = 15  # how many points desired in polygon
-            d_circ = self.xmax - self.xmin  # diameter of circle in x-direction
-            r_circ = d_circ / 2  # radius of circle
-            ind1 = np.linspace(0, 1, cres + 1)  # indices of angles defining circle points
-
-            angs = ind1 * 360 * (np.pi / 180)  # angles in radians defining circle points
-            circ_ptsx = r_circ * np.cos(angs) + self.centre[0]  # points of the circle
-            circ_ptsy = r_circ * np.sin(angs) + self.centre[1]  # points of the circle
-
-            crop_pts = np.vstack((circ_ptsx, circ_ptsy)).T  # reorganize points of the circle as [x,y] pairs
-
-            crop_path = Path(crop_pts, closed=True)  # transform cropping points to a functional path
-            # create a boolean matrix mask which is 1 for points inside the circle and 0 for points outside
-            ws_mask_xy = crop_path.contains_points(self.xypts)  # create the mask for point inside the path
-            ws_mask = ws_mask_xy.reshape(self.x_2d.shape)  # reshape the boolean mask to correspond to the data grid
-            self.clust_x2d = np.ma.masked_array(self.x_2d, ~ws_mask)  # created a masked data structure of the x-grid
-            self.clust_y2d = np.ma.masked_array(self.y_2d, ~ws_mask)  # create a masked data structure of the y-grid
-
-            # finally, create a data structure of [x,y] points that only contains the points of the cluster
-
-            self.clust_xy = np.array([0,0])  # initialize the x,y points array
-
-            for new_edge in range(0, len(self.y_v)):  # indices to step through grid
-                for j in range(0, len(self.x_v)):  # indices to step through grid
-                    # if point is not masked (i.e. in the cell cluster)...
-                     if self.clust_x2d[new_edge,j] is not np.ma.masked:
-                          # get the value of the x,y point by accessing x-grid and y-grid
-                            aa=[self.x_2d[new_edge,j],self.y_2d[new_edge, j]]
-                           # augment the points list by adding in the new value
-                            self.clust_xy = np.vstack((self.clust_xy,aa))
-
-            self.clust_xy = np.delete(self.clust_xy, 0, 0)    # delete the initialization value.
-
-    def makeVoronoi(self, p, vorclose = 'circle'):
+    def makeVoronoi(self, p):
 
         """
         Calculates, closes and clips the Voronoi diagram to cell seed points.
@@ -421,52 +358,35 @@ class World(object):
 
         # self.ecm_verts_unique = vor.vertices
 
-        # finally, clip the Voronoi diagram to polygon, if user-specified by vorclose option
-        if vorclose is None:
-            self.ecm_verts=[]
-            for region in vor.regions:
-                if len(region):
-                    cell_poly = vor.vertices[region]
-                    if len(cell_poly)>3:
-                        self.ecm_verts.append(vor.vertices[region])
+        self.ecm_verts = []
 
+        # finally, clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
 
-        elif vorclose=='circle':
-            #cluster_axis = vor.points.ptp(axis=0)    # calculate the extent of the cell points
-            #centx = vor.points.mean(axis=0)       # calculate the centre of the cell points
+        # load the bitmap used to clip the cell cluster and create a clipping function
+        bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
 
-            cres = 15  # how many points desired in cropping polygon
+        for poly_ind in vor.regions: # step through the regions of the voronoi diagram
 
-            d_circ = self.xmax - self.xmin
-            r_circ = 1.01*(d_circ / 2)  # radius of cropping polygon
-            ind1 = np.linspace(0, 1, cres + 1)  # indices of angles defining polygon points
-            angs = ind1 * 360 * (np.pi / 180)  # angles in radians defining polygon points
+            if len(poly_ind) >= p.cell_sides:
 
-            circ_ptsx = r_circ * np.cos(angs) + self.centre[0]  # points of the polygon
-            circ_ptsy = r_circ * np.sin(angs) + self.centre[1]  # points of the polygon
+                cell_poly = vor.vertices[poly_ind]
+                point_check = np.zeros(len(cell_poly))
 
-            self.crop_pts = np.vstack((circ_ptsx, circ_ptsy)).T  # reorganize polygon points as [x,y] pairs
-            crop_path = Path(self.crop_pts, closed=True)  # transform cropping points to a functional path
+                for i, pnt in enumerate(cell_poly):
 
-            crop_ptsa = self.crop_pts.tolist()   # a python list version to use with the clipping algorithm
+                    point_val = bitmasker.clipping_function(pnt[0],pnt[1])
 
-            # Now clip the voronoi diagram to the cropping polygon
-            self.ecm_verts = []
+                    if point_val != 0.0:
 
-            for poly_ind in vor.regions:  # step through each cell's polygonal regions...
+                        point_check[i] = 1.0
 
-                if len(poly_ind) >= p.cell_sides: # check to make sure we're defining a polygon
-                    cell_poly = vor.vertices[poly_ind]  # get the coordinates of the polygon vertices
-                    inpath = crop_path.contains_points(cell_poly)    # get a boolean matrix
+                if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
 
-                    if inpath.all() == False:  # if all of the polygon's points are outside of the crop path, ignore it
-                        pass
+                    cell_polya = cell_poly.tolist()
+                    self.ecm_verts.append(cell_polya)
 
-                    else:
-                        cell_polya = cell_poly.tolist()  # convert data structures to python lists for cropping algorithm...
-                        aa=tb.clip(cell_polya,crop_ptsa)        # then send it to the clipping algorithm
-                        if len(aa) >= p.cell_sides:                        # check to make sure result is still a polygon
-                            self.ecm_verts.append(aa)     # append points to new region point list
+        self.cluster_mask = bitmasker.clippingMatrix
+        self.msize = bitmasker.msize
 
         # next redefine the set of unique vertex points from ecm_verts arrangement
         ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
@@ -495,8 +415,8 @@ class World(object):
 
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
-        #--------------------remove small edges---------------------------------------------------
-
+        # #--------------------remove small edges---------------------------------------------------
+        #
         perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
 
         ecm_verts_2 = []
@@ -529,7 +449,7 @@ class World(object):
 
         self.ecm_verts = ecm_verts_2
 
-         # next redefine the set of unique vertex points from ecm_verts arrangement
+        # next redefine the set of unique vertex points from ecm_verts arrangement
         ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
 
         ecm_verts_set = set()
@@ -580,7 +500,7 @@ class World(object):
 
         # now find the unique vertices used in the cell structure
 
-        #self.ecm_polyinds = np.asarray(self.ecm_polyinds)
+        self.ecm_polyinds = np.asarray(self.ecm_polyinds)
 
     def vor_area(self,p):
 
@@ -1082,8 +1002,8 @@ class World(object):
 
             for i in range(0,len(poly)):   # for every vertex defining the polygon...
 
-                edge_pt1 = poly[i-1].tolist()    # first point of line segment
-                edge_pt2 = poly[i].tolist()      # second point of line segment
+                edge_pt1 = poly[i-1].tolist()   # first point of line segment
+                edge_pt2 = poly[i].tolist()     # second point of line segment
                 edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
                 edge_ind2 = ecmverts_list.index(edge_pt2)
                 ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
@@ -1200,11 +1120,7 @@ class World(object):
 
         """
 
-        self.x_v = None
-        self.y_v = None
-        self.x_2d = None
-        self.y_2d = None
-        # self.clust_xy = None
+
 
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
         self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
@@ -1310,10 +1226,21 @@ class World(object):
 
             self.indmap_mem = None
             self.rindmap_mem = None
-            # self.ecm_verts = None
+            self.ecm_verts = None
+            self.cell_area = None
+            self.cell2ecm_map = None
+            self.ecm_polyinds = None
+            self.ecm_verts_unique = None
+            self.cell2GJ_map = None
+
 
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
+
+
+
+        self.clust_xy = None
+        self.cell_nn = None
 
         # save the cell cluster
 

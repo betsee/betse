@@ -63,7 +63,7 @@ class SimRunner(object):
 
         if p.sim_ECM == False:
 
-            cells = World(p,vorclose='circle',worldtype='basic')  # create an instance of world
+            cells = World(p,worldtype='basic')  # create an instance of world
             cells.containsECM = False
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
@@ -86,7 +86,7 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            cells = World(p,vorclose='circle',worldtype='full')  # create an instance of world
+            cells = World(p,worldtype='full')  # create an instance of world
             cells.containsECM = True
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
@@ -298,7 +298,7 @@ class SimRunner(object):
         p.I_overlay = False # force the current overlay to be false as there's no data for it
         sim = Simulator(p)
 
-        cells = World(p,vorclose ='circle',worldtype='basic')
+        cells = World(p,worldtype='basic')
 
         if files.is_file(cells.savedWorld):
             cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache

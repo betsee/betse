@@ -415,20 +415,24 @@ class Parameters(object):
 
         gdb = self.config['geometry defining bitmaps']
 
-        self.bitmap_path = paths.join(
-            config_dirname, gdb['directory'])  # world, inits, and sims are saved and read to/from this directory.
+        self.use_bitmaps = gdb['use bitmap geometry control']
 
-        self.bitmap_number = int(gdb['number of bitmaps'])
+        if self.use_bitmaps == True:
 
-        self.bitmap_profiles = {}
+            self.bitmap_path = paths.join(
+                config_dirname, gdb['directory'])  # world, inits, and sims are saved and read to/from this directory.
 
-        for bm in range(1,self.bitmap_number + 1):
+            self.bitmap_number = int(gdb['number of bitmaps'])
 
-            bitmap_string = 'bitmap ' + str(bm)
-            bitmap_designation = gdb[bitmap_string]['designation']
-            bitmap_filename = gdb[bitmap_string]['file']
+            self.bitmap_profiles = {}
 
-            self.bitmap_profiles[bitmap_designation] = bitmap_filename
+            for bm in range(1,self.bitmap_number + 1):
+
+                bitmap_string = 'bitmap ' + str(bm)
+                bitmap_designation = gdb[bitmap_string]['designation']
+                bitmap_filename = gdb[bitmap_string]['file']
+
+                self.bitmap_profiles[bitmap_designation] = bitmap_filename
 
         # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(

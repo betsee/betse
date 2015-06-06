@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 import matplotlib.cm as cm
+from scipy import interpolate
 from betse.science import toolbox as tb
-# from betse.science.compute import cell_ave
 from matplotlib import animation
 import os, os.path
 
@@ -934,8 +934,18 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         plot_data = np.hstack((z,verts_data))
         plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
 
+        xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+        ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+        Xgrid, Ygrid = np.meshgrid(xgrid,ygrid)
 
-        triplt = ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],plot_data,shading='gouraud', cmap=clrmap)
+        dat_grid = interpolate.griddata((plot_xy[:,0],plot_xy[:,1]),plot_data,(Xgrid,Ygrid))
+        dat_grid = np.nan_to_num(dat_grid)
+        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+        meshplt = plt.pcolormesh(p.um*Xgrid, p.um*Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
+
+
+        # triplt = ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],plot_data,shading='gouraud', cmap=clrmap)
 
         if pointOverlay == True:
             scat = ax.scatter(p.um*cells.mem_mids_flat[:,0],p.um*cells.mem_mids_flat[:,1], c='k')
@@ -947,7 +957,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
             coll.set_alpha(0.5)
             ax.add_collection(coll)
 
-        ax.axis('equal')
+
 
         if zdata is not None:
 
@@ -962,13 +972,13 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
                 maxval = maxval + 0.1
 
         if zdata is not None and clrAutoscale == True:
-            triplt.set_clim(minval,maxval)
-            ax_cb = fig.colorbar(triplt,ax=ax)
+            meshplt.set_clim(minval,maxval)
+            ax_cb = fig.colorbar(meshplt,ax=ax)
 
         elif clrAutoscale == False:
 
-            triplt.set_clim(clrMin,clrMax)
-            ax_cb = fig.colorbar(triplt,ax=ax)
+            meshplt.set_clim(clrMin,clrMax)
+            ax_cb = fig.colorbar(meshplt,ax=ax)
 
         else:
             ax_cb = None
@@ -992,13 +1002,19 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
             I_overlay(sim,cells,p,ax,clrmap,plotIecm)
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = p.um*(cells.xmin)
+        xmax = p.um*(cells.xmax)
+        ymin = p.um*(cells.ymin)
+        ymax = p.um*(cells.ymax)
 
-        ax.axis([xmin,xmax,ymin,ymax])
+        # ax.axis('equal')
 
+        # ax.axis([xmin,xmax,ymin,ymax])
+
+        # ax.axis('equal')
+
+        ax.set_aspect('equal')
+        ax.autoscale(tight=True)
 
         return fig, ax, ax_cb
 
