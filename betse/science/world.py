@@ -201,10 +201,10 @@ class World(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
+            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
-            self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
-            self.bflags_cells,_ = self.boundTag(self.cell_centres,p)  # flag cell centres on the env bound
+            self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p,alpha=1.4)   # flag ecm domains on the env bound
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.make_env_points(p)  # get the environmental interaction points for each boundary ecm
             self.cleanUp(p)       # Free up memory...
@@ -619,18 +619,18 @@ class World(object):
 
         self.gj_vects = np.array([gv_x,gv_y,gv_tx,gv_ty]).T
 
-        self.cell2GJ_map = []
-
-        for i, neighs in enumerate(self.cell_nn):
-            holdgj = []
-            for j, ns in enumerate(neighs):
-                if i < ns:
-                    gj_ind = self.gap_jun_i.index([i,ns])
-                    holdgj.append(gj_ind)
-                if i > ns:
-                    gj_ind = self.gap_jun_i.index([ns,i])
-                    holdgj.append(gj_ind)
-            self.cell2GJ_map.append(holdgj)
+        # self.cell2GJ_map = []
+        #
+        # for i, neighs in enumerate(self.cell_nn):
+        #     holdgj = []
+        #     for j, ns in enumerate(neighs):
+        #         if i < ns:
+        #             gj_ind = self.gap_jun_i.index([i,ns])
+        #             holdgj.append(gj_ind)
+        #         if i > ns:
+        #             gj_ind = self.gap_jun_i.index([ns,i])
+        #             holdgj.append(gj_ind)
+        #     self.cell2GJ_map.append(holdgj)
 
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
@@ -788,7 +788,7 @@ class World(object):
 
         self.ecm_verts_unique = self.ecm_verts_unique[polyinds_unique]
 
-    def boundTag(self,points,p):
+    def boundTag(self,points,p,alpha=1.0):
 
         """
 
@@ -815,7 +815,7 @@ class World(object):
 
         loggers.log_info('Tagging environmental boundary points... ')
 
-        con_hull = tb.alpha_shape(points, p.scale_alpha/p.d_cell)  # get the concave hull for the membrane midpoints
+        con_hull = tb.alpha_shape(points, alpha/p.d_cell)  # get the concave hull for the membrane midpoints
         con_hull = np.asarray(con_hull)
 
         bflags = np.unique(con_hull)    # get the value of unique indices from segments
@@ -1274,6 +1274,58 @@ class World(object):
         self.clust_xy = None
         self.cell_nn = None
 
+        # # save the cell cluster
+        # loggers.log_info('Saving the cell cluster... ')
+        #
+        # # celf = copy.deepcopy(self)
+        # datadump = [self,p]
+        # fh.saveSim(self.savedWorld,datadump)
+        # message = 'Cell cluster saved to' + ' ' + self.savedWorld
+        # loggers.log_info(message)
+
+    def redo_gj(self,dyna,p):
+
+        profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
+        new_gj_nn_i = []
+        new_gj_vects = []
+        removal_flags = np.zeros(len(self.gj_i))
+
+        for name in profile_names:
+
+            cell_targets = dyna.cell_target_inds[name]   # get the cell target inds for this tissue
+
+            # step through gj's and find cases where connection is split between cells in different tissues:
+            for i, ind_pair in enumerate(self.gap_jun_i):
+
+                ind_a = ind_pair[0]
+                ind_b = ind_pair[1]
+                check_a = len(list(*(cell_targets == ind_a).nonzero()))
+                check_b = len(list(*(cell_targets == ind_b).nonzero()))
+
+                if check_a != check_b:
+                    removal_flags[i] = 1.0
+
+        for i, (flag, ind_pair) in enumerate(zip(removal_flags,self.gap_jun_i)):
+
+            gj_vects = self.gj_vects[i,:]
+
+            if flag == 0:
+                new_gj_nn_i.append(ind_pair)
+                new_gj_vects.append(gj_vects)
+
+        self.gap_jun_i = np.asarray(new_gj_nn_i)
+        self.gj_vects = np.asarray(new_gj_vects)
+
+        # remake gap junction properties based on new configuration:
+        self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
+
+        self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
+        for igj, pair in enumerate(self.gap_jun_i):
+            ci = pair[0]
+            cj = pair[1]
+            self.gjMatrix[igj,ci] = -1
+            self.gjMatrix[igj,cj] = 1
+
         # save the cell cluster
         loggers.log_info('Saving the cell cluster... ')
 
@@ -1282,6 +1334,8 @@ class World(object):
         fh.saveSim(self.savedWorld,datadump)
         message = 'Cell cluster saved to' + ' ' + self.savedWorld
         loggers.log_info(message)
+
+
 
 
 

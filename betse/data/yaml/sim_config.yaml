@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 5.0e-3               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
-    total time: 10.0                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
+    total time: 0.5                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
     gap junction radius: .5e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
 
@@ -159,7 +159,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -284,7 +284,7 @@ world variables:
 
   temperature: 310            # World temperature [K]
 
-  search distance: 1.5        # distance to search for nearest neighbours
+  search distance: 2.0        # distance to search for nearest neighbours
                               # relative to cell diameter
                               # min 1.1 max 3.5
                               # warning high search distances can produce
@@ -392,54 +392,54 @@ geometry defining bitmaps:
 
         file: ClippingMask.png        # name of the first bitmap defining geometry
 
-        designation: clipping   # designation of the file ('clipping" or 'tissue profile 1')
+        designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 2:
 
         file: NervesMask.png        # name of the first bitmap defining geometry
 
-        designation: nerves   # designation of the file ('clipping" or 'tissue')
+        designation: nerves   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 3:
 
-        file: NervesCircuitMask.png        # name of the first bitmap defining geometry
+        file: BoundaryMask.png        # name of the first bitmap defining geometry
 
-        designation: nerve2  # designation of the file ('clipping" or 'tissue profile 1')
+        designation: skin  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 4:
 
         file: GutMask.png        # name of the first bitmap defining geometry
 
-        designation: gut   # designation of the file ('clipping" or 'tissue profile 1')
+        designation: gut   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 5:
 
         file: CutLines.png        # name of the first bitmap defining geometry
 
-        designation: cut lines   # designation of the file ('clipping" or 'tissue profile 1')
+        designation: cut lines   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 6:
 
         file: AppliedVBoundaryMask_p.png        # name of the first bitmap defining geometry
 
-        designation: applied pos voltage   # designation of the file ('clipping" or 'tissue profile 1')
+        designation: applied pos voltage  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 7:
 
         file: AppliedVBoundaryMask_n.png        # name of the first bitmap defining geometry
 
-        designation: applied neg voltage   # designation of the file ('clipping" or 'tissue profile 1')
+        designation: applied neg voltage   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
 
-default tissue name: 'parenchyma'
+default tissue name: 'parenchyma'   # name of cells to which no profile is applied
 
-number of tissue profiles: 4     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 3     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: 'skin'       # give your profile a name that will be used to apply the profile
-    cell targets: 'boundary'      # The string 'random##' will target specified percentage of cell pop.
-    designation: None           # 'boundary' selects all cells on the environmental boundary
-                                  # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
+    cell targets: 'boundary'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: None           # special instructions for making the profile...'cavity' makes a hollow region of cells
+
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -452,9 +452,9 @@ tissue profile 1:
 
 tissue profile 2:
     name: 'nerves'       # give your profile a name that will be used to apply the profile
-    cell targets: 'bitmap'      # The string 'random##' will target specified percentage of cell pop.
-    designation: None
-                                  # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
+    cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: None      # special instructions for making the profile...'cavity' makes a hollow region of cells
+
     Dm_Na: 0.5e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 25.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -467,9 +467,9 @@ tissue profile 2:
 
 tissue profile 3:
     name: 'gut'       # give your profile a name that will be used to apply the profile
-    cell targets: 'bitmap'      # The string 'random##' will target specified percentage of cell pop.
-    designation: 'cavity'
-                                  # 'all' selects everything. Alternatively, supply a list of cell inds: [9,10,3]
+    cell targets: 'bitmap'    #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: 'cavity'    # special instructions for making the profile...'cavity' makes a hollow region of cells
+
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -482,8 +482,8 @@ tissue profile 3:
 
 tissue profile 4:
     name: 'cut lines'
-    cell targets: 'bitmap'
-    designation: 'cut lines'
+    cell targets: 'bitmap'   #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: None      # special instructions for making the profile...'cavity' makes a hollow region of cells
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -496,7 +496,7 @@ tissue profile 4:
 
 number of boundary profiles: 2      # boundary profiles only apply if simulating extracellular spaces
 
-boundary profile 1:   # options include 'all' to select everything, or specify a list of inds [9,8,10]
+boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
     name: 'applied pos voltage'
     boundary targets: 'bitmap'
 

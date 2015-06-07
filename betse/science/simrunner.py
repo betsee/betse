@@ -75,23 +75,14 @@ class SimRunner(object):
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
-            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-
-            plt.show(block=False)
+            cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
 
             if plotWorld == True:
 
-                if p.showCells == True:
+                fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
 
-                    fig, ax, cb = viz.plotPolyData(sim,cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
-
-                else:
-                    fig, ax, cb = viz.plotCellData(sim,cells,p,number_cells = p.enumerate_cells,clrmap=p.default_cm)
-
-                ax.set_title('Cell collection')
-                ax.set_xlabel('Spatial distance [um]')
-                ax.set_ylabel('Spatial distance [um]')
+                plt.show(block=False)
 
                 print(cells.cell_number)
 
@@ -109,17 +100,16 @@ class SimRunner(object):
             dyna.tissueProfiles(sim,cells,p)
             dyna.ecmBoundProfiles(sim,cells,p)
 
+            cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
             if plotWorld == True:
 
-                fig, ax, cb = viz.plotHetMem(sim,cells,p,number_cells=p.enumerate_cells,
-                    number_ecm=p.enumerate_cells,clrmap=p.default_cm)
+                fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+
+                plt.show(block=False)
 
                 print(cells.cell_number)
 
-                ax.set_title('Cell collection')
-                ax.set_xlabel('Spatial distance [um]')
-                ax.set_ylabel('Spatial distance [um]')
 
         plt.show()
 
@@ -325,7 +315,11 @@ class SimRunner(object):
         else:
             raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
 
-        sim.baseInit(cells,p)
+        if p.sim_ECM == False:
+            sim.baseInit(cells,p)
+        else:
+            sim.baseInit_ECM(cells,p)
+
         dyna = Dynamics(sim,cells,p)
         dyna.tissueProfiles(sim,cells,p)
 

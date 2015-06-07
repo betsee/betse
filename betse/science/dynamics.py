@@ -683,7 +683,7 @@ class Dynamics(object):
 
             target_method = p.boundary_profiles[name]
 
-            self.env_target_inds[name] = getEcmTargets(target_method,cells,p)
+            self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
 
     def makeAllChanges(self,sim):
         # Add together all effects to make change on the cell membrane permeabilities:
@@ -722,14 +722,20 @@ def getCellTargets(profile_key,targets_description,designation,cells,p,ignoreECM
 
             if chaff == 'bitmap':
 
-                bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
-                bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
-                target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
+                if p.use_bitmaps == True:
 
-                if p.sim_ECM == True and ignoreECM == False:
+                    bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+                    bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+                    target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
 
-                    target_inds = cells.cell_to_mems[target_inds]
-                    target_inds,_,_ = tb.flatten(target_inds)
+                    if p.sim_ECM == True and ignoreECM == False:
+
+                        target_inds = cells.cell_to_mems[target_inds]
+                        target_inds,_,_ = tb.flatten(target_inds)
+
+                else:
+
+                    target_inds = []
 
             elif chaff == 'bounda':
 
@@ -791,7 +797,7 @@ def getCellTargets(profile_key,targets_description,designation,cells,p,ignoreECM
 
     return target_inds
 
-def getEcmTargets(targets_description,cells,p,boundaryOnly = True):
+def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
     """
     Using an input description flag, which is a string in the format of
@@ -818,7 +824,17 @@ def getEcmTargets(targets_description,cells,p,boundaryOnly = True):
         inds_ecm = np.asarray(cells.ecm_i)
         inds_env = np.asarray(cells.env_i)
 
-        if targets_description == 'all':
+        if targets_description == 'bitmap':
+
+            if p.use_bitmaps == True:
+                bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+                bitmask.clipPoints(cells.env_points[:,0],cells.env_points[:,1])
+                target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
+
+            else:
+                target_inds = []
+
+        elif targets_description == 'all':
 
             if boundaryOnly == True:
                 target_inds = inds_env

@@ -614,10 +614,11 @@ class Parameters(object):
             profile_name = self.config[profile_string]['name']
             profile_features['target method'] = self.config[profile_string]['cell targets']
             profile_features['designation'] = self.config[profile_string]['designation']
+            profile_features['z order'] = pn
 
             for label in self.mem_labels:
 
-                diffusion_constants[label] = self.config[profile_string][label]       # Na+ membrane diffusion constant [m2/s]
+                diffusion_constants[label] = float(self.config[profile_string][label])       # Na+ membrane diffusion constant [m2/s]
             # DmK = self.config[profile_string]['Dm_K']     # K+ membrane diffusion constant [m2/s]
             # DmCl = self.config[profile_string]['Dm_Cl']        # Cl- membrane diffusion constant [m2/s]
             # DmCa = self.config[profile_string]['Dm_Ca']        # Ca2+ membrane diffusion constant [m2/s]
@@ -628,7 +629,7 @@ class Parameters(object):
             # mem_perms = [DmNa, DmK, DmCl, DmCa, DmH, DmM, DmP]
             #
             profile_features['diffusion constants'] = diffusion_constants
-            profile_features['ecm multiplier'] = self.config[profile_string]['ecm diffusion factor']
+            profile_features['ecm multiplier'] = float(self.config[profile_string]['ecm diffusion factor'])
 
             self.tissue_profiles[profile_name] = profile_features
 
@@ -1005,7 +1006,7 @@ class Parameters(object):
         self.cm = 0.022            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
-        self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
+        self.scale_alpha = 1.4   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
         self.merge_cut_off = (1/50)  # the fraction of nominal cell perimeter at which nearby ecm points are merged
 
         self.d_cell = self.rc * 2  # diameter of single cell
@@ -1019,6 +1020,9 @@ class Parameters(object):
         self.um = 1e6    # multiplication factor to convert m to um
 
         self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
+
+        self.isamples = 30 # samples to take for current overlays  # FIXME add these to config file
+        self.stream_density = 6.0 # density of streampline plot
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':
