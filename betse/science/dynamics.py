@@ -9,6 +9,7 @@ import numpy as np
 from random import shuffle
 from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
+from betse.science.bitmapper import Bitmapper
 from betse.util.io import loggers
 
 class Dynamics(object):
@@ -300,7 +301,7 @@ class Dynamics(object):
 
             self.targets_Ca = np.asarray(self.targets_Ca)
 
-    def globalDyn(self,sim,cells,p,t):
+    def globalDyn(self,sim,cells,p,t):    # FIXME should now set cc_env for the p.sim_ECM == True
 
         if p.global_options['K_env'] != 0:
 
@@ -601,40 +602,70 @@ class Dynamics(object):
         for name in profile_names:
 
             data_stream = p.tissue_profiles[name]
-            target_method = data_stream[0]
-            dmem_list = data_stream[1]
+            target_method = data_stream['target method']
+            dmem_list = data_stream['diffusion constants']
+            ecm_val = data_stream['ecm multiplier']
+            designation = data_stream['designation']
 
-            self.tissue_target_inds[name] = getCellTargets(target_method, cells, p)
-            self.cell_target_inds[name] = getCellTargets(target_method, cells, p, ignoreECM=True)
+            self.tissue_target_inds[name] = getCellTargets(name,target_method,designation, cells, p)
+            self.cell_target_inds[name] = getCellTargets(name,target_method,designation, cells, p, ignoreECM=True)
 
-            # set the values of Dmems based on the identified target indices
+            if p.sim_ECM == True:
+                #get ecm targets
+                ecm_targs_a = cells.cell_to_ecm[self.cell_target_inds[name]]
+                ecm_targs,_,_ = tb.flatten(ecm_targs_a)
+
+            # set the values of Dmems and ecm diffusion based on the identified target indices
+
             if p.ions_dict['Na'] == 1:
-                dNa = dmem_list[0]
+                dNa = dmem_list['Dm_Na']
                 sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iNa][ecm_targs] = p.Do_Na*ecm_val
+
             if p.ions_dict['K'] == 1:
-                dK = dmem_list[1]
+                dK = dmem_list['Dm_K']
                 sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
 
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iK][ecm_targs] = p.Do_K*ecm_val
+
             if p.ions_dict['Cl'] == 1:
-                dCl = dmem_list[2]
+                dCl = dmem_list['Dm_Cl']
                 sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iCl][ecm_targs] = p.Do_Cl*ecm_val
+
             if p.ions_dict['Ca'] == 1:
-                dCa = dmem_list[3]
+                dCa = dmem_list['Dm_Ca']
                 sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iCa][ecm_targs] = p.Do_Ca*ecm_val
+
             if p.ions_dict['H'] == 1:
-                dH = dmem_list[4]
+                dH = dmem_list['Dm_H']
                 sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iH][ecm_targs] = p.Do_H*ecm_val
+
             if p.ions_dict['M'] == 1:
-                dM = dmem_list[5]
+                dM = dmem_list['Dm_M']
                 sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
 
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iM][ecm_targs] = p.Do_M*ecm_val
+
             if p.ions_dict['P'] == 1:
-                dP = dmem_list[6]
+                dP = dmem_list['Dm_P']
                 sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+
+                if p.sim_ECM == True:
+                    sim.D_ecm_juncs[sim.iP][ecm_targs] = p.Do_P*ecm_val
+
 
     def ecmBoundProfiles(self,sim,cells,p):
 
@@ -658,7 +689,7 @@ class Dynamics(object):
         # Add together all effects to make change on the cell membrane permeabilities:
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_base
 
-def getCellTargets(targets_description,cells,p,ignoreECM = False):
+def getCellTargets(profile_key,targets_description,designation,cells,p,ignoreECM = False):
 
     """
     Using an input description flag, which is a string in the format of
@@ -682,33 +713,56 @@ def getCellTargets(targets_description,cells,p,ignoreECM = False):
 
     if isinstance(targets_description,str):
 
-        chaff = targets_description[0:6]
-        numo = targets_description[6:len(targets_description)]
+        meter = len(targets_description)
 
-        if chaff == 'random':
+        if meter >= 6:
 
-            numo = int(numo)
+            chaff = targets_description[0:6]
+            numo = targets_description[6:len(targets_description)]
 
-            if numo > 100:
-                numo = 100
-            elif numo < 1:
-                numo = 1
+            if chaff == 'bitmap':
 
-            target_inds_cell = []
+                bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+                bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+                target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
 
-            data_length = len(cells.cell_i)
-            data_fraction = int((numo/100)*data_length)
+                if p.sim_ECM == True and ignoreECM == False:
 
-            shuffle(cells.cell_i)
+                    target_inds = cells.cell_to_mems[target_inds]
+                    target_inds,_,_ = tb.flatten(target_inds)
 
-            target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
+            elif chaff == 'bounda':
 
-            if p.sim_ECM == False or ignoreECM == True:
-                target_inds = target_inds_cell
+                if p.sim_ECM == False or ignoreECM == True:
+                    target_inds = cells.bflags_cells
 
-            elif p.sim_ECM == True and ignoreECM == False:
-                target_inds = cells.cell_to_mems[target_inds_cell]
-                target_inds,_,_ = tb.flatten(target_inds)
+                elif p.sim_ECM == True and ignoreECM == False:
+                    target_inds = cells.cell_to_mems[cells.bflags_cells]
+                    target_inds,_,_ = tb.flatten(target_inds)
+
+
+            elif chaff == 'random':
+
+                numo = int(numo)
+
+                if numo > 100:
+                    numo = 100
+                elif numo < 1:
+                    numo = 1
+
+                data_length = len(cells.cell_i)
+                data_fraction = int((numo/100)*data_length)
+
+                shuffle(cells.cell_i)
+
+                target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
+
+                if p.sim_ECM == False or ignoreECM == True:
+                    target_inds = target_inds_cell
+
+                elif p.sim_ECM == True and ignoreECM == False:
+                    target_inds = cells.cell_to_mems[target_inds_cell]
+                    target_inds,_,_ = tb.flatten(target_inds)
 
         elif targets_description == 'all':
 
@@ -721,7 +775,7 @@ def getCellTargets(targets_description,cells,p,ignoreECM = False):
 
         else:
             raise BetseExceptionSimulation("Error in specifying cell targets for tissue profile."
-            "String must be in the format: 'random10'")
+            "String must be in an appropriate format: 'random10', 'all', 'boundary', 'bitmap'")
 
 
     elif isinstance(targets_description, list):

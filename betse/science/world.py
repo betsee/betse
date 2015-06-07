@@ -3,11 +3,9 @@
 # See "LICENSE" for further details.
 
 
-# FIXME allow user to specify their own set of points for clipping in points and voronoi clips (make circle function)
+
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
-# FIXME get all parameters into the parameters file (i.e. vorclose, etc)!
-# FIXME bitmaps to specify clipping of points in voronoi
-# FIXME bitmaps to select cells for tissue profiles
+
 
 """
 This module contains the class World, which holds
@@ -28,7 +26,6 @@ that can be integrated into the QT (i.e. PySide) Gui.
 
 import numpy as np
 import scipy.spatial as sps
-from matplotlib.path import Path
 import copy
 import math
 from betse.science import toolbox as tb
@@ -207,6 +204,7 @@ class World(object):
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p)   # flag ecm domains on the env bound
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p)  # flag cell centres on the env bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.make_env_points(p)  # get the environmental interaction points for each boundary ecm
             self.cleanUp(p)       # Free up memory...
@@ -217,6 +215,7 @@ class World(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p)
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
 
@@ -275,7 +274,6 @@ class World(object):
 
         self.clust_xy = self.xypts
 
-
     def makeVoronoi(self, p):
 
         """
@@ -304,6 +302,7 @@ class World(object):
 
         """
 
+        loggers.log_info('Creating voronoi diagram... ')
         vor = sps.Voronoi(self.clust_xy)
 
         cluster_center = vor.points.mean(axis=0)
@@ -363,6 +362,7 @@ class World(object):
         # finally, clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
 
         # load the bitmap used to clip the cell cluster and create a clipping function
+        loggers.log_info('Clipping Voronoi diagram... ')
         bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
@@ -417,6 +417,7 @@ class World(object):
 
         # #--------------------remove small edges---------------------------------------------------
         #
+        loggers.log_info('Cleaning voronoi geometry... ')
         perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
 
         ecm_verts_2 = []
@@ -516,6 +517,8 @@ class World(object):
         Uses area(p) function.
 
         """
+
+        loggers.log_info('Calculating area of each cell... ')
         self.cell_vol = []
         for poly in self.cell_verts:
             self.cell_vol.append(p.cell_height*tb.area(poly))
@@ -567,6 +570,8 @@ class World(object):
         Uses scipy spatial KDTree search algorithm
 
         """
+
+        loggers.log_info('Creating gap junctions... ')
 
         cell_tree = sps.KDTree(self.cell_centres)
         self.cell_nn=cell_tree.query_ball_point(self.cell_centres,p.search_d*p.d_cell)
@@ -631,6 +636,7 @@ class World(object):
 
         if self.worldtype == 'full':
             # repeat process for ecms
+            loggers.log_info('Creating ecm junctions... ')
             ecm_tree = sps.KDTree(self.ecm_mids)
             nn_ecm = list(ecm_tree.query(self.ecm_mids,k=5))[1]
 
@@ -694,6 +700,8 @@ class World(object):
         extracellular space boundary points.
 
         """
+
+        loggers.log_info('Creating environmental points... ')
 
         delta = p.cell_space
 
@@ -805,6 +813,8 @@ class World(object):
 
         """
 
+        loggers.log_info('Tagging environmental boundary points... ')
+
         con_hull = tb.alpha_shape(points, p.scale_alpha/p.d_cell)  # get the concave hull for the membrane midpoints
         con_hull = np.asarray(con_hull)
 
@@ -834,6 +844,8 @@ class World(object):
 
         """
         self.cell_verts = []
+
+        loggers.log_info('Creating cell vertices and membrane transit vectors... ')
 
         for centre,poly in zip(self.cell_centres,self.ecm_verts):
             pt_scale = []
@@ -946,6 +958,8 @@ class World(object):
         cv_tx=[]
         cv_ty=[]
 
+        loggers.log_info('Creating membrane transit vectors... ')
+
         perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
 
         for polyc in self.cell_verts:
@@ -993,6 +1007,8 @@ class World(object):
         self.cell_sa = np.asarray(self.cell_sa)
 
         # Extracellular matrix specific data
+
+        loggers.log_info('Creating extracellular space vectors... ')
 
         ecm_edge_ind = set()     # this will hold the unique index pairs to the self.ecm_verts_unique [x,y] points
 
@@ -1044,6 +1060,8 @@ class World(object):
         ev_ty=[0]*len_unique_edges
         ev_nx=[0]*len_unique_edges
         ev_ny=[0]*len_unique_edges
+
+
 
 
         for i, poly in enumerate(self.ecm_verts):
@@ -1120,8 +1138,6 @@ class World(object):
 
         """
 
-
-
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
         self.gj_i = [x for x in range(0,len(self.gap_jun_i))]
 
@@ -1138,6 +1154,8 @@ class World(object):
         self.mem_length = np.asarray(self.mem_length)
 
         self.mem_sa = self.mem_length*p.cell_height
+
+        loggers.log_info('Creating computational matrices... ')
 
         # calculating centre, min, max of cluster after all modifications
 
@@ -1224,6 +1242,22 @@ class World(object):
                 self.matrixMap2Verts[i,indices[0]]=1/2
                 self.matrixMap2Verts[i,indices[1]]=1/2
 
+            # Create a map from cell to ecm space
+            self.cell_to_ecm = []
+
+            for i in self.cell_i:
+
+                inds_mtc = (self.mem_to_cells ==i).nonzero()
+                ecm_inds = self.mem_to_ecm[inds_mtc]
+                self.cell_to_ecm.append(ecm_inds)
+
+            self.cell_to_ecm = np.asarray(self.cell_to_ecm)
+            self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
+            self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
+
+
+            loggers.log_info('Cleaning up unnecessary data structures... ')
+
             self.indmap_mem = None
             self.rindmap_mem = None
             self.ecm_verts = None
@@ -1237,15 +1271,14 @@ class World(object):
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
 
-
-
         self.clust_xy = None
         self.cell_nn = None
 
         # save the cell cluster
+        loggers.log_info('Saving the cell cluster... ')
 
-        celf = copy.deepcopy(self)
-        datadump = [celf,p]
+        # celf = copy.deepcopy(self)
+        datadump = [self,p]
         fh.saveSim(self.savedWorld,datadump)
         message = 'Cell cluster saved to' + ' ' + self.savedWorld
         loggers.log_info(message)

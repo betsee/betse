@@ -134,7 +134,7 @@ class AnimateCellData(object):
             J_y = np.nan_to_num(J_y)
             Jmag_M = np.nan_to_num(Jmag_M)
 
-            lw = 3.0*Jmag_M/Jmag_M.max()
+            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.streams = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',
                 cmap=clrmap,arrowsize=1.5)
@@ -234,7 +234,7 @@ class AnimateCellData(object):
             J_y = np.nan_to_num(J_y)
             Jmag_M = np.nan_to_num(Jmag_M)
 
-            lw = 3.0*Jmag_M/Jmag_M.max()
+            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.streams.lines.remove()
             self.ax.patches = []
@@ -346,7 +346,7 @@ class AnimateCellData_smoothed(object):
             J_y = np.nan_to_num(J_y)
             Jmag_M = np.nan_to_num(Jmag_M)
 
-            lw = 3.0*Jmag_M/Jmag_M.max()
+            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.streams = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',
                 cmap=clrmap,arrowsize=1.5)
@@ -401,7 +401,7 @@ class AnimateCellData_smoothed(object):
             J_y = np.nan_to_num(J_y)
             Jmag_M = np.nan_to_num(Jmag_M)
 
-            lw = 3.0*Jmag_M/Jmag_M.max()
+            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.streams.lines.remove()
             self.ax.patches = []
@@ -724,10 +724,21 @@ class PlotWhileSolving(object):
 
             verts_data = np.dot(vdata,cells.matrixMap2Verts)
             plot_data = np.hstack((vdata,verts_data))
-            plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+            self.plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
 
-            self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
-            plot_data,shading='gouraud', cmap=self.colormap)
+            # self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            # plot_data,shading='gouraud', cmap=self.colormap)
+
+            xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+            ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+            self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+            dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
+            dat_grid = np.nan_to_num(dat_grid)
+            dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+            self.coll2 = self.ax.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+            self.cluster_mask = cells.cluster_mask
 
             if p.showCells == True:
 
@@ -778,7 +789,14 @@ class PlotWhileSolving(object):
 
             verts_data = np.dot(zv,self.cells.matrixMap2Verts)
             plot_data = np.hstack((zv,verts_data))
-            self.coll2.set_array(plot_data)
+
+            dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
+            dat_grid = np.nan_to_num(dat_grid)
+            dat_grid = np.multiply(dat_grid,self.cluster_mask)
+
+            self.coll2.set_array(dat_grid.ravel())
+
+            # self.coll2.set_array(plot_data)
 
         else:
             self.coll2.set_array(zv)
@@ -1631,7 +1649,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
     J_y = np.nan_to_num(J_y)
     Jmag_M = np.nan_to_num(Jmag_M)
 
-    lw = 3.0*Jmag_M/Jmag_M.max()
+    lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
     streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color=Jmag_M*1e15,
         cmap=clrmap,arrowsize=1.5)
@@ -1667,6 +1685,63 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
     ax.axis([xmin,xmax,ymin,ymax])
 
     return fig,ax,ax_cb
+
+def clusterPlot(p,dyna,cells,clrmap=cm.jet):
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    profile_names = list(p.tissue_profiles.keys())
+
+    col_dic = {}
+
+    cb_ticks = []
+    cb_tick_labels = []
+
+    base_points = np.multiply(cells.cell_verts, p.um)
+
+    z = np.zeros(len(base_points))
+    z[:] = 0
+
+    cb_ticks.append(0)
+    cb_tick_labels.append(p.default_tissue_name)
+
+    col_dic['base'] = PolyCollection(base_points, array=z, cmap=clrmap, edgecolors='none')
+    ax.add_collection(col_dic['base'])
+
+    for i, name in enumerate(profile_names):
+
+        cell_inds = dyna.cell_target_inds[name]
+
+        points = np.multiply(cells.cell_verts[cell_inds], p.um)
+
+        z = np.zeros(len(points))
+        z[:] = i + 1
+
+        col_dic[name] = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
+
+        col_dic[name].set_clim(0,len(profile_names))
+        # col_dic[name].set_alpha(0.8)
+        ax.add_collection(col_dic[name])
+        cb_ticks.append(i+1)
+        cb_tick_labels.append(name)
+
+    if p.sim_ECM == True:
+        ax.scatter(cells.env_points[:,0],cells.env_points[:,1],c='k')
+
+    ax_cb = fig.colorbar(col_dic[profile_names[0]],ax=ax, ticks=cb_ticks)
+    ax_cb.ax.set_yticklabels(cb_tick_labels)
+
+    ax.set_xlabel('Spatial Distance [um]')
+    ax.set_ylabel('Spatial Distance [um]')
+    ax.set_title('Cell Cluster')
+
+    ax.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+    ax.axis('equal')
+
+    return fig, ax, ax_cb
+
+
 
 def exportData(cells,sim,p):
 
@@ -1801,7 +1876,7 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
     J_y = np.nan_to_num(J_y)
     Jmag_M = np.nan_to_num(Jmag_M)
 
-    lw = 3.0*Jmag_M/Jmag_M.max()
+    lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
     ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=2.0,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 

@@ -596,27 +596,39 @@ class Parameters(object):
 
         self.tissue_profile_number = int(self.config['number of tissue profiles'])
         self.boundary_profile_number = int(self.config['number of boundary profiles'])
+        self.default_tissue_name = self.config['default tissue name']
 
         self.tissue_profiles = {}
         self.boundary_profiles = {}
 
+        self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
+
+
         for pn in range(1,self.tissue_profile_number+1):
 
+            profile_features = {}  # initialize a dictionary that will hold embeded data
+            diffusion_constants = {}
+
             profile_string = 'tissue profile ' + str(pn)
+
             profile_name = self.config[profile_string]['name']
-            profile_target_method = self.config[profile_string]['cell indices']
+            profile_features['target method'] = self.config[profile_string]['cell targets']
+            profile_features['designation'] = self.config[profile_string]['designation']
 
-            DmNa = self.config[profile_string]['Dm_Na']       # Na+ membrane diffusion constant [m2/s]
-            DmK = self.config[profile_string]['Dm_K']     # K+ membrane diffusion constant [m2/s]
-            DmCl = self.config[profile_string]['Dm_Cl']        # Cl- membrane diffusion constant [m2/s]
-            DmCa = self.config[profile_string]['Dm_Ca']        # Ca2+ membrane diffusion constant [m2/s]
-            DmH = self.config[profile_string]['Dm_H']         # H+ membrane diffusion constant [m2/s]
-            DmM = self.config[profile_string]['Dm_M']         # M- membrane diffusion constant [m2/s]
-            DmP = self.config[profile_string]['Dm_P']             # proteins membrane diffusion constant [m2/s]
+            for label in self.mem_labels:
 
-            mem_perms = [DmNa, DmK, DmCl, DmCa, DmH, DmM, DmP]
+                diffusion_constants[label] = self.config[profile_string][label]       # Na+ membrane diffusion constant [m2/s]
+            # DmK = self.config[profile_string]['Dm_K']     # K+ membrane diffusion constant [m2/s]
+            # DmCl = self.config[profile_string]['Dm_Cl']        # Cl- membrane diffusion constant [m2/s]
+            # DmCa = self.config[profile_string]['Dm_Ca']        # Ca2+ membrane diffusion constant [m2/s]
+            # DmH = self.config[profile_string]['Dm_H']         # H+ membrane diffusion constant [m2/s]
+            # DmM = self.config[profile_string]['Dm_M']         # M- membrane diffusion constant [m2/s]
+            # DmP = self.config[profile_string]['Dm_P']             # proteins membrane diffusion constant [m2/s]
 
-            profile_features = [profile_target_method, mem_perms]
+            # mem_perms = [DmNa, DmK, DmCl, DmCa, DmH, DmM, DmP]
+            #
+            profile_features['diffusion constants'] = diffusion_constants
+            profile_features['ecm multiplier'] = self.config[profile_string]['ecm diffusion factor']
 
             self.tissue_profiles[profile_name] = profile_features
 
@@ -624,7 +636,7 @@ class Parameters(object):
 
             profile_string_b = 'boundary profile ' + str(bn)
             profile_name_b = self.config[profile_string_b]['name']
-            profile_target_method_b = self.config[profile_string_b]['boundary indices']
+            profile_target_method_b = self.config[profile_string_b]['boundary targets']
 
             self.boundary_profiles[profile_name_b] = profile_target_method_b
 
@@ -993,7 +1005,7 @@ class Parameters(object):
         self.cm = 0.022            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
-        self.scale_alpha = 1.4   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
+        self.scale_alpha = 1.0   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
         self.merge_cut_off = (1/50)  # the fraction of nominal cell perimeter at which nearby ecm points are merged
 
         self.d_cell = self.rc * 2  # diameter of single cell

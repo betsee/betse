@@ -9,6 +9,7 @@ from betse.science import filehandling as fh
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science.world import World
+from betse.science.dynamics import Dynamics
 from betse.util.io import loggers
 from betse.util.path import files, paths
 import matplotlib.pyplot as plt
@@ -69,6 +70,16 @@ class SimRunner(object):
             cells.makeWorld(p)     # call function to create the world
             loggers.log_info('Cell cluster creation complete!')
 
+            # define the tissue and boundary profiles for plotting:
+            sim.baseInit(cells,p)
+            dyna = Dynamics(sim,cells,p)
+            dyna.tissueProfiles(sim,cells,p)
+
+            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+
+            plt.show(block=False)
+
+
             if plotWorld == True:
 
                 if p.showCells == True:
@@ -91,6 +102,13 @@ class SimRunner(object):
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
             loggers.log_info('Cell cluster creation complete!')
+
+            # define the tissue and boundary profiles for plotting:
+            sim.baseInit_ECM(cells,p)
+            dyna = Dynamics(sim,cells,p)
+            dyna.tissueProfiles(sim,cells,p)
+            dyna.ecmBoundProfiles(sim,cells,p)
+
 
             if plotWorld == True:
 
@@ -307,35 +325,13 @@ class SimRunner(object):
         else:
             raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
 
-        if p.sim_ECM == False:
+        sim.baseInit(cells,p)
+        dyna = Dynamics(sim,cells,p)
+        dyna.tissueProfiles(sim,cells,p)
 
-            if p.showCells == True:
+        fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
 
-                fig, ax, cb = viz.plotPolyData(sim, cells,p,number_cells=p.enumerate_cells,clrmap=p.default_cm)
-
-            else:
-                fig, ax, cb = viz.plotCellData(sim,cells,p,number_cells = p.enumerate_cells,clrmap=p.default_cm)
-
-            ax.set_title('Cell collection')
-            ax.set_xlabel('Spatial distance [um]')
-            ax.set_ylabel('Spatial distance [um]')
-
-            print(cells.cell_number)
-
-            plt.show()
-
-        elif p.sim_ECM == True:
-
-            fig, ax, cb = viz.plotHetMem(sim,cells,p,number_cells=p.enumerate_cells,
-                number_ecm=p.enumerate_cells,clrmap=p.default_cm)
-
-            ax.set_title('Cell collection')
-            ax.set_xlabel('Spatial distance [um]')
-            ax.set_ylabel('Spatial distance [um]')
-
-            print(cells.cell_number)
-
-            plt.show()
+        plt.show()
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 

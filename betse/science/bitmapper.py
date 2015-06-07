@@ -168,14 +168,17 @@ class Bitmapper(object):
         """
 
         self.good_points = []
+        self.good_inds = []
 
-        for x, y in zip(point_list_x,point_list_y):
+        for i, (x, y) in enumerate(zip(point_list_x,point_list_y)):
             z = self.clipping_function(x,y)
             if z != 0.0:
                 pt = [x,y]
                 self.good_points.append(pt)
+                self.good_inds.append(i)
 
         self.good_points = np.asarray(self.good_points)
+        self.good_inds = np.asarray(self.good_inds)
 
 
 
