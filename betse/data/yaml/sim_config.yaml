@@ -71,7 +71,7 @@ init time settings:
                                # edited below.
 
   total time: 100               # set the time for the initialization run [s]
-                                # recommend 120 to 600 s (2 to 10 minutes) of initialization.
+                                # recommend 10 to 60 s of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
     
@@ -79,10 +79,10 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range 1e-3 to 1e-2 for init runs)
-    total time: 0.5                 # time to end the initialization run [s] (recommended range 2 to 10 minutes)
-    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range 0.5 to 1 s)
-    gap junction radius: .5e-9   # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-9 m)
+    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
+    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    gap junction radius: .5e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -159,7 +159,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -257,7 +257,7 @@ general options:
 
 world variables:
 
-  world x: 700e-6         # the x-dimension of the world space [m]
+  world x: 500e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -386,7 +386,7 @@ geometry defining bitmaps:
 
     directory: geo/planaria              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 7          # total number of bitmaps to load
+    number of bitmaps: 8          # total number of bitmaps to load
 
     bitmap 1:
 
@@ -414,17 +414,23 @@ geometry defining bitmaps:
 
     bitmap 5:
 
+      file: GutCavity.png        # name of the first bitmap defining geometry
+
+      designation: gut cavity   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+
+    bitmap 6:
+
         file: CutLines.png        # name of the first bitmap defining geometry
 
         designation: cut lines   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
-    bitmap 6:
+    bitmap 7:
 
         file: AppliedVBoundaryMask_p.png        # name of the first bitmap defining geometry
 
         designation: applied pos voltage  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
-    bitmap 7:
+    bitmap 8:
 
         file: AppliedVBoundaryMask_n.png        # name of the first bitmap defining geometry
 
@@ -433,12 +439,13 @@ geometry defining bitmaps:
 
 default tissue name: 'parenchyma'   # name of cells to which no profile is applied
 
-number of tissue profiles: 3     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 5     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: 'skin'       # give your profile a name that will be used to apply the profile
-    cell targets: 'boundary'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None           # special instructions for making the profile...'cavity' makes a hollow region of cells
+    cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: 'None'           # special instructions for making the profile:'cavity' or 'cuts'
+    insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -451,24 +458,10 @@ tissue profile 1:
     ecm diffusion factor: 1e-8    # multiplier for ecm diffusion
 
 tissue profile 2:
-    name: 'nerves'       # give your profile a name that will be used to apply the profile
-    cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None      # special instructions for making the profile...'cavity' makes a hollow region of cells
-
-    Dm_Na: 0.5e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 25.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
-
-tissue profile 3:
     name: 'gut'       # give your profile a name that will be used to apply the profile
     cell targets: 'bitmap'    #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: 'cavity'    # special instructions for making the profile...'cavity' makes a hollow region of cells
+    designation: 'None'    # special instructions for making the profile:'cavity' or 'cuts'
+    insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -480,10 +473,42 @@ tissue profile 3:
 
     ecm diffusion factor: 1e-8    # multiplier for ecm diffusion
 
+tissue profile 3:
+    name: 'nerves'       # give your profile a name that will be used to apply the profile
+    cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: 'None'      # special instructions for making the profile:'cavity' or 'cuts'
+    insular: True            # make tissue have gap junctions connecting within tissue and not between tissues
+
+    Dm_Na: 0.5e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 25.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+
 tissue profile 4:
     name: 'cut lines'
     cell targets: 'bitmap'   #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None      # special instructions for making the profile...'cavity' makes a hollow region of cells
+    designation: 'cuts'      # special instructions for making the profile:'cavity' or 'cuts'
+    insular: False         # make tissue have gap junctions connecting within tissue and not between tissues
+    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+
+tissue profile 5:
+    name: 'gut cavity'
+    cell targets: 'bitmap'   #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: 'cavity'      # special instructions for making the profile:'cavity' or 'cuts'
+    insular: False         # make tissue have gap junctions connecting within tissue and not between tissues
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -664,8 +689,12 @@ results options:
 
   overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
 
+  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
+
   plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
+
+  plot cutlines: False            # plot any scheduled cut-lines on the cell cluster plot
 
   Vmem 2D:
 

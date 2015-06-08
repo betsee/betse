@@ -68,14 +68,16 @@ class SimRunner(object):
             cells.containsECM = False
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
-            loggers.log_info('Cell cluster creation complete!')
 
             # define the tissue and boundary profiles for plotting:
+            loggers.log_info('Defining tissue and boundary profiles...')
             sim.baseInit(cells,p)
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
+
+            loggers.log_info('Cell cluster creation complete!')
 
 
             if plotWorld == True:
@@ -92,15 +94,17 @@ class SimRunner(object):
             cells.containsECM = True
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
-            loggers.log_info('Cell cluster creation complete!')
 
             # define the tissue and boundary profiles for plotting:
+            loggers.log_info('Defining tissue and boundary profiles...')
             sim.baseInit_ECM(cells,p)
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
             dyna.ecmBoundProfiles(sim,cells,p)
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
+
+            loggers.log_info('Cell cluster creation complete!')
 
             if plotWorld == True:
 
@@ -166,13 +170,13 @@ class SimRunner(object):
         if p.sim_ECM == False:
 
             sim.baseInit(cells, p)   # initialize simulation data structures
-            sim.tissueInit(cells,p)
+            # sim.tissueInit(cells,p)
             sim.runSim(cells,p)     # run and save the initialization
 
         elif p.sim_ECM == True:
 
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
-            sim.tissueInit(cells,p)
+            # sim.tissueInit(cells,p)
             sim.runSim_ECM(cells,p)     # run and save the initialization
 
         loggers.log_info('Initialization run complete!')

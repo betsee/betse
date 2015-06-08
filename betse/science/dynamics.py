@@ -598,7 +598,26 @@ class Dynamics(object):
         profile_names = list(p.tissue_profiles.keys())
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
+        self.cuts_target_inds = {}
+        self.tissue_profile_names = []
 
+        # Do a first search to find requests for any cavities as they modify the world structure:
+
+        if cells.do_once == True:  # if we haven't done this already...
+            for name in profile_names:
+
+                data_stream = p.tissue_profiles[name]
+                target_method = data_stream['target method']
+                dmem_list = data_stream['diffusion constants']
+                ecm_val = data_stream['ecm multiplier']
+                designation = data_stream['designation']
+
+                if designation == 'cavity': # FIXME need special method to tag new env bound points
+
+                    removeCells(name,cells,p)
+                    cells.do_once = False  # set the cells' do_once field to prevent attempted repeats
+
+        # Go through again and do traditional tissue profiles:
         for name in profile_names:
 
             data_stream = p.tissue_profiles[name]
@@ -607,64 +626,75 @@ class Dynamics(object):
             ecm_val = data_stream['ecm multiplier']
             designation = data_stream['designation']
 
-            self.tissue_target_inds[name] = getCellTargets(name,target_method,designation, cells, p)
-            self.cell_target_inds[name] = getCellTargets(name,target_method,designation, cells, p, ignoreECM=True)
+            if designation == 'None':
 
-            if p.sim_ECM == True:
-                #get ecm targets
-                ecm_targs_a = cells.cell_to_ecm[self.cell_target_inds[name]]
-                ecm_targs,_,_ = tb.flatten(ecm_targs_a)
+                self.tissue_profile_names.append(name)
 
-            # set the values of Dmems and ecm diffusion based on the identified target indices
+                self.tissue_target_inds[name] = getCellTargets(name,target_method, cells, p)
+                self.cell_target_inds[name] = getCellTargets(name,target_method, cells, p, ignoreECM=True)
 
-            if p.ions_dict['Na'] == 1:
-                dNa = dmem_list['Dm_Na']
-                sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
                 if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iNa][ecm_targs] = p.Do_Na*ecm_val
+                    #get ecm targets
+                    ecm_targs_a = cells.cell_to_ecm[self.cell_target_inds[name]]
+                    ecm_targs,_,_ = tb.flatten(ecm_targs_a)
 
-            if p.ions_dict['K'] == 1:
-                dK = dmem_list['Dm_K']
-                sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
+                # set the values of Dmems and ecm diffusion based on the identified target indices
 
-                if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iK][ecm_targs] = p.Do_K*ecm_val
+                if p.ions_dict['Na'] == 1:
+                    dNa = dmem_list['Dm_Na']
+                    sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
-            if p.ions_dict['Cl'] == 1:
-                dCl = dmem_list['Dm_Cl']
-                sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iNa][ecm_targs] = p.Do_Na*ecm_val
 
-                if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iCl][ecm_targs] = p.Do_Cl*ecm_val
+                if p.ions_dict['K'] == 1:
+                    dK = dmem_list['Dm_K']
+                    sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
 
-            if p.ions_dict['Ca'] == 1:
-                dCa = dmem_list['Dm_Ca']
-                sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iK][ecm_targs] = p.Do_K*ecm_val
 
-                if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iCa][ecm_targs] = p.Do_Ca*ecm_val
+                if p.ions_dict['Cl'] == 1:
+                    dCl = dmem_list['Dm_Cl']
+                    sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
-            if p.ions_dict['H'] == 1:
-                dH = dmem_list['Dm_H']
-                sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iCl][ecm_targs] = p.Do_Cl*ecm_val
 
-                if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iH][ecm_targs] = p.Do_H*ecm_val
+                if p.ions_dict['Ca'] == 1:
+                    dCa = dmem_list['Dm_Ca']
+                    sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
-            if p.ions_dict['M'] == 1:
-                dM = dmem_list['Dm_M']
-                sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iCa][ecm_targs] = p.Do_Ca*ecm_val
 
-                if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iM][ecm_targs] = p.Do_M*ecm_val
+                if p.ions_dict['H'] == 1:
+                    dH = dmem_list['Dm_H']
+                    sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
-            if p.ions_dict['P'] == 1:
-                dP = dmem_list['Dm_P']
-                sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iH][ecm_targs] = p.Do_H*ecm_val
 
-                if p.sim_ECM == True:
-                    sim.D_ecm_juncs[sim.iP][ecm_targs] = p.Do_P*ecm_val
+                if p.ions_dict['M'] == 1:
+                    dM = dmem_list['Dm_M']
+                    sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
+
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iM][ecm_targs] = p.Do_M*ecm_val
+
+                if p.ions_dict['P'] == 1:
+                    dP = dmem_list['Dm_P']
+                    sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+
+                    if p.sim_ECM == True:
+                        sim.D_ecm_juncs[sim.iP][ecm_targs] = p.Do_P*ecm_val
+
+            elif designation == 'cuts':
+                # if the user wants to use this as a region to be cut, define cuts target inds:
+                self.cuts_target_inds[name] = getCellTargets(name,target_method, cells, p,ignoreECM=True)
+
+
 
 
     def ecmBoundProfiles(self,sim,cells,p):
@@ -689,7 +719,7 @@ class Dynamics(object):
         # Add together all effects to make change on the cell membrane permeabilities:
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_base
 
-def getCellTargets(profile_key,targets_description,designation,cells,p,ignoreECM = False):
+def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
     """
     Using an input description flag, which is a string in the format of
@@ -848,5 +878,86 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
         target_inds = targets_description
 
     return target_inds
+
+def removeCells(profile_name,cells,p):
+
+    if p.use_bitmaps == True:
+
+        bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+        bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+        target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+
+        cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix  # update the cluster mask by subtracting hole
+
+    #update the cells structure to remove the cells, associated gj connections, and ecm spaces:
+    new_cell_centres = []
+    new_ecm_verts = []
+    removal_flags = np.zeros(len(cells.cell_i))
+    removal_flags[target_inds] = 1
+
+    for i,flag in enumerate(removal_flags):
+
+        if flag == 0:
+
+            new_cell_centres.append(cells.cell_centres[i])
+            new_ecm_verts.append(cells.ecm_verts[i])
+
+    cells.cell_centres = np.asarray(new_cell_centres)
+    cells.ecm_verts = np.asarray(new_ecm_verts)
+
+    # cells.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
+    #
+    # for poly in cells.ecm_verts:
+    #     verthold = []
+    #     for vert in poly:
+    #         vert = list(vert)
+    #         ind = cells.ecm_verts_unique.index(vert)
+    #         verthold.append(ind)
+    #
+    #     cells.ecm_polyinds.append(verthold)
+    #
+    # cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
+    #
+    # # ensure every point in the regions are in order:
+    #
+    # for j, region in enumerate(cells.ecm_polyinds):    # step through each polygon region
+    #
+    #     verts = cells.ecm_verts_unique[region]   # get the vertices for this region
+    #     region = np.asarray(region)      # convert region to a numpy array so it can be sorted
+    #     cent = verts.mean(axis=0)     # calculate the centre point
+    #     angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
+    #     #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+    #     sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
+    #     sorted_region_b = sorted_region.tolist()
+    #     cells.ecm_polyinds[j] = sorted_region_b   # add sorted list to the regions structure
+    #
+    # # Go back yet again and redo the ecm verts with the organized polyinds
+    # cells.ecm_verts = []
+    # for i, inds in enumerate(cells.ecm_polyinds):
+    #     verts = cells.ecm_verts_unique[inds]
+    #     cells.ecm_verts.append(verts)
+
+    # cells.ecm_polyinds = np.asarray(cells.ecm_polyinds)
+
+    if p.sim_ECM == True:
+
+        cells.cellVerts(p)   # create individual cell polygon vertices
+        cells.bflags_ecm,cells.bmask_ecm = cells.boundTag(cells.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
+        cells.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+        cells.bflags_ecm,_ = cells.boundTag(cells.ecm_mids,p,alpha=1.4)   # flag ecm domains on the env bound
+        cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
+        cells.near_neigh(p)    # Calculate the nn array for each cell
+        cells.make_env_points(p)  # get the environmental interaction points for each boundary ecm
+        cells.cleanUp(p)       # Free up memory...
+
+    else:
+
+        cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
+        cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)
+        cells.near_neigh(p)    # Calculate the nn array for each cell
+        cells.cleanUp(p)      # Free up memory...
+
+
+
 
 

@@ -408,12 +408,6 @@ class Simulator(object):
             if p.ions_dict['P']==1:
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
-        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-        loggers.log_info('Each cell has an average of ' + str(round(cells.average_nn,2)) + ' nearest-neighbours.')
-        loggers.log_info('You are running the ion profile: ' + p.ion_profile)
-        loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-        loggers.log_info('If you have selected features that use omitted ions they will be ignored.')
-
     def baseInit_ECM(self,cells,p):
 
         # Identity matrix to easily make matrices out of scalars
@@ -898,11 +892,6 @@ class Simulator(object):
         self.z_array_ecm = np.asarray(self.z_array_ecm)
         self.z_array_env = np.asarray(self.z_array_env)
 
-        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-        loggers.log_info('Each cell has an average of ' + str(round(cells.average_nn,2)) + ' nearest-neighbours.')
-        loggers.log_info('You are running the ion profile: ' + p.ion_profile)
-        loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-        loggers.log_info('If you have selected features that use omitted ions they will be ignored.')
 
     def tissueInit(self,cells,p):
 

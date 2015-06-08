@@ -615,19 +615,12 @@ class Parameters(object):
             profile_features['target method'] = self.config[profile_string]['cell targets']
             profile_features['designation'] = self.config[profile_string]['designation']
             profile_features['z order'] = pn
+            profile_features['insular gj'] = self.config[profile_string]['insular']
 
             for label in self.mem_labels:
 
-                diffusion_constants[label] = float(self.config[profile_string][label])       # Na+ membrane diffusion constant [m2/s]
-            # DmK = self.config[profile_string]['Dm_K']     # K+ membrane diffusion constant [m2/s]
-            # DmCl = self.config[profile_string]['Dm_Cl']        # Cl- membrane diffusion constant [m2/s]
-            # DmCa = self.config[profile_string]['Dm_Ca']        # Ca2+ membrane diffusion constant [m2/s]
-            # DmH = self.config[profile_string]['Dm_H']         # H+ membrane diffusion constant [m2/s]
-            # DmM = self.config[profile_string]['Dm_M']         # M- membrane diffusion constant [m2/s]
-            # DmP = self.config[profile_string]['Dm_P']             # proteins membrane diffusion constant [m2/s]
+                diffusion_constants[label] = float(self.config[profile_string][label])
 
-            # mem_perms = [DmNa, DmK, DmCl, DmCa, DmH, DmM, DmP]
-            #
             profile_features['diffusion constants'] = diffusion_constants
             profile_features['ecm multiplier'] = float(self.config[profile_string]['ecm diffusion factor'])
 
@@ -838,6 +831,8 @@ class Parameters(object):
 
         self.turn_all_plots_off = ro['turn all plots off']    # turn off all plots and animations for init and sim runs
 
+        self.plot_cutlines = ro['plot cutlines']
+
 
          # Default colormap
         self.default_cm = get_colormap(ro['default colormap'])
@@ -859,6 +854,8 @@ class Parameters(object):
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
 
         self.I_overlay = ro['overlay currents']
+
+        self.stream_density = ro['streamline density']
 
         self.IecmPlot = ro['plot extracellular I']    # True = plot extracellular currents, false plot gj
 
@@ -1021,8 +1018,7 @@ class Parameters(object):
 
         self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
 
-        self.isamples = 30 # samples to take for current overlays  # FIXME add these to config file
-        self.stream_density = 6.0 # density of streampline plot
+        self.isamples = 40.0  # sampling of vector data for currents
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':

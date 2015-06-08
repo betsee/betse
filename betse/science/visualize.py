@@ -46,7 +46,6 @@ class AnimateCellData(object):
 
         self.sim_ECM = p.sim_ECM
         self.IecmPlot = p.IecmPlot
-        self.isamples = p.isamples
         self.density = p.stream_density
 
         if self.save == True:
@@ -126,7 +125,7 @@ class AnimateCellData(object):
 
                 tit_extra = '(extracellular current overlay)'
 
-            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,p.isamples)
+            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,cells,p)
             Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
 
             J_x = J_x/Jmag_M
@@ -139,7 +138,7 @@ class AnimateCellData(object):
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.streams = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
-                cmap=clrmap,arrowsize=1.5)
+                cmap=clrmap,arrowsize=1.5)  # FIXME currents should be multiplied by 1e15
 
         # set range of the colormap
 
@@ -226,7 +225,7 @@ class AnimateCellData(object):
             jx = Jmag*self.nx
             jy = Jmag*self.ny
 
-            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,self.isamples)
+            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,self.cells,self.p)
             Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
 
             J_x = J_x/Jmag_M
@@ -271,8 +270,9 @@ class AnimateCellData_smoothed(object):
         self.sim_ECM = p.sim_ECM
         self.IecmPlot = p.IecmPlot
 
-        self.isamples = p.isamples
         self.density = p.stream_density
+        self.cells = cells
+        self.p = p
 
         if self.save == True:
             # Make the BETSE-specific cache directory if not found.
@@ -341,7 +341,7 @@ class AnimateCellData_smoothed(object):
             jx = Jmag*self.nx
             jy = Jmag*self.ny
 
-            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,p.isamples)
+            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,cells,p)
             Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
 
             J_x = J_x/Jmag_M
@@ -396,7 +396,7 @@ class AnimateCellData_smoothed(object):
             jx = Jmag*self.nx
             jy = Jmag*self.ny
 
-            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,self.isamples)
+            X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,self.cells,self.p)
             Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
 
             J_x = J_x/Jmag_M
@@ -1644,7 +1644,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
 
 
-    X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,p.isamples)
+    X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,cells,p)
     Jmag_M = np.sqrt(J_x**2 + J_y**2) +1e-30
 
     J_x = J_x/Jmag_M
@@ -1696,7 +1696,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    profile_names = list(p.tissue_profiles.keys())
+    # profile_names = list(p.tissue_profiles.keys())
 
     col_dic = {}
 
@@ -1714,9 +1714,9 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     col_dic['base'] = PolyCollection(base_points, array=z, cmap=clrmap, edgecolors='none')
     ax.add_collection(col_dic['base'])
 
-    if len(profile_names):
+    if len(dyna.tissue_profile_names):
 
-        for i, name in enumerate(profile_names):
+        for i, name in enumerate(dyna.tissue_profile_names):
 
             cell_inds = dyna.cell_target_inds[name]
 
@@ -1727,7 +1727,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
             col_dic[name] = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
 
-            col_dic[name].set_clim(0,len(profile_names))
+            col_dic[name].set_clim(0,len(dyna.tissue_profile_names))
             # col_dic[name].set_alpha(0.8)
             z_arrange = p.tissue_profiles[name]['z order']
             col_dic[name].set_zorder(z_arrange)
@@ -1735,12 +1735,38 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
             cb_ticks.append(i+1)
             cb_tick_labels.append(name)
 
+    if p.plot_cutlines == True:
+
+        if len(dyna.cuts_target_inds):
+
+            names = dyna.cuts_target_inds.keys()
+
+            for name in names:
+
+                cell_inds = dyna.cuts_target_inds[name]
+
+                points = np.multiply(cells.cell_verts[cell_inds], p.um)
+
+                # z = np.zeros(len(points))
+                # z[:] = i + 1
+
+                col_dic[name] = PolyCollection(points, color='k', cmap=clrmap, edgecolors='none')
+
+                # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
+                # col_dic[name].set_alpha(0.8)
+                z_arrange = p.tissue_profiles[name]['z order']
+                col_dic[name].set_zorder(z_arrange)
+                ax.add_collection(col_dic[name])
+                # cb_ticks.append(i+1)
+                # cb_tick_labels.append(name)
+
+
     if p.sim_ECM == True:
         ax.scatter(cells.env_points[:,0]*p.um,cells.env_points[:,1]*p.um,c='k',s=1.0)
 
-    if len(profile_names):
+    if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
 
-        ax_cb = fig.colorbar(col_dic[profile_names[0]],ax=ax, ticks=cb_ticks)
+        ax_cb = fig.colorbar(col_dic[dyna.tissue_profile_names[0]],ax=ax, ticks=cb_ticks)
         ax_cb.ax.set_yticklabels(cb_tick_labels)
 
     else:
@@ -1878,7 +1904,7 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
         jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
 
 
-    X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,p.isamples)
+    X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,cells,p)
     Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
 
     J_x = J_x/Jmag_M

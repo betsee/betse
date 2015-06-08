@@ -171,6 +171,7 @@ class World(object):
         self.fileInit(p)
 
         self.um = 1e6    # multiplication factor to convert m to um
+        self.do_once = True  # boolean to keep an action happening only once...
 
     def fileInit(self,p):
 
@@ -247,19 +248,19 @@ class World(object):
         """
 
         # first begin with linear vectors which are the "ticks" of the x and y dimensions
-        x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
-        y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
+        self.x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
+        self.y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
 
         # next define a 2d array of lattice points using the x- and y- vectors
-        x_2d, y_2d = np.meshgrid(x_v, y_v)  # create 2D array of lattice points
+        self.x_2d, self.y_2d = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
 
         # now create a matrix of points that will add a +/- deviation to each point centre
         x_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
         y_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
 
         # add the noise effect to the world point matrices and redefine the results
-        x_2d = x_2d + x_rnd
-        y_2d = y_2d + y_rnd
+        x_2d = self.x_2d + x_rnd
+        y_2d = self.y_2d + y_rnd
 
         # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
         self.xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
@@ -302,7 +303,7 @@ class World(object):
 
         """
 
-        loggers.log_info('Creating voronoi diagram... ')
+        loggers.log_info('Creating Voronoi geometry... ')
         vor = sps.Voronoi(self.clust_xy)
 
         cluster_center = vor.points.mean(axis=0)
@@ -362,7 +363,7 @@ class World(object):
         # finally, clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
 
         # load the bitmap used to clip the cell cluster and create a clipping function
-        loggers.log_info('Clipping Voronoi diagram... ')
+        loggers.log_info('Clipping Voronoi geometry to cluster shape... ')
         bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
@@ -417,7 +418,7 @@ class World(object):
 
         # #--------------------remove small edges---------------------------------------------------
         #
-        loggers.log_info('Cleaning voronoi geometry... ')
+        loggers.log_info('Cleaning Voronoi geometry... ')
         perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
 
         ecm_verts_2 = []
@@ -1062,8 +1063,6 @@ class World(object):
         ev_ny=[0]*len_unique_edges
 
 
-
-
         for i, poly in enumerate(self.ecm_verts):
             holdinds = []
             for j in range(0, len(poly)):
@@ -1260,11 +1259,11 @@ class World(object):
 
             self.indmap_mem = None
             self.rindmap_mem = None
-            self.ecm_verts = None
+            # self.ecm_verts = None
             self.cell_area = None
             self.cell2ecm_map = None
-            self.ecm_polyinds = None
-            self.ecm_verts_unique = None
+            # self.ecm_polyinds = None
+            # self.ecm_verts_unique = None
             self.cell2GJ_map = None
 
 
@@ -1285,7 +1284,8 @@ class World(object):
 
     def redo_gj(self,dyna,p):
 
-        profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
+        # profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
+        profile_names = dyna.tissue_profile_names
         new_gj_nn_i = []
         new_gj_vects = []
         removal_flags = np.zeros(len(self.gj_i))
@@ -1293,17 +1293,20 @@ class World(object):
         for name in profile_names:
 
             cell_targets = dyna.cell_target_inds[name]   # get the cell target inds for this tissue
+            insular_flag = p.tissue_profiles[name]['insular gj']
 
             # step through gj's and find cases where connection is split between cells in different tissues:
-            for i, ind_pair in enumerate(self.gap_jun_i):
+            if insular_flag == True:
 
-                ind_a = ind_pair[0]
-                ind_b = ind_pair[1]
-                check_a = len(list(*(cell_targets == ind_a).nonzero()))
-                check_b = len(list(*(cell_targets == ind_b).nonzero()))
+                for i, ind_pair in enumerate(self.gap_jun_i):
 
-                if check_a != check_b:
-                    removal_flags[i] = 1.0
+                    ind_a = ind_pair[0]
+                    ind_b = ind_pair[1]
+                    check_a = len(list(*(cell_targets == ind_a).nonzero()))
+                    check_b = len(list(*(cell_targets == ind_b).nonzero()))
+
+                    if check_a != check_b:
+                        removal_flags[i] = 1.0
 
         for i, (flag, ind_pair) in enumerate(zip(removal_flags,self.gap_jun_i)):
 
