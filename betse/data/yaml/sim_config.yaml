@@ -79,10 +79,10 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: .5e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
+    time step: 5.0e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.01            # time period to sample data from init run [s] (recommended range see table)
+    gap junction radius: .1e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -126,13 +126,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 2.5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 5.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 20                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 0.5e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 0.1e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -326,9 +326,9 @@ world variables:
 change K env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 2           # sim time to start change [s]
-  change finish: 15         # sim time to end change and return to original [s]
-  change rate: 5            # rate of change [s]
+  change start: 0.2           # sim time to start change [s]
+  change finish: 1.8         # sim time to end change and return to original [s]
+  change rate: 0.1            # rate of change [s]
   multiplier: 2            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
@@ -585,9 +585,9 @@ produce IP3:        # Schedule cell production of IP3
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
     event happens: True            # turn the even on (True) or off (False)
-    change start: 2                 # time event starts [s]
-    change finish: 12               # time event finishes [s]
-    change rate: 2                  # time to reach peak value [s]
+    change start: 0.1                 # time event starts [s]
+    change finish: 0.8               # time event finishes [s]
+    change rate: 0.1                  # time to reach peak value [s]
     peak value: 2.5                   # peak value [V]
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
@@ -679,7 +679,7 @@ results options:
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: True                # if True, plots and animations show individual cells,
+  show cells: False                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.

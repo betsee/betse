@@ -171,7 +171,13 @@ class World(object):
         self.fileInit(p)
 
         self.um = 1e6    # multiplication factor to convert m to um
-        self.do_once = True  # boolean to keep an action happening only once...
+        self.do_once_cavity = True  # boolean to ensure any cavity preparation happens only once...
+        self.do_once_cuts = True      #boolean to ensure cut lines are only prepared once...
+
+        # initialize some parameters that may or may not be used...
+        self.cavity_inds = []
+        self.true_env_inds = []
+        self.cavity_volume = []
 
     def fileInit(self,p):
 
@@ -204,7 +210,7 @@ class World(object):
             self.cellVerts(p)   # create individual cell polygon vertices
             self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
-            self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p,alpha=1.4)   # flag ecm domains on the env bound
+            self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p,alpha=1.2)   # flag ecm domains on the env bound
             self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.make_env_points(p)  # get the environmental interaction points for each boundary ecm

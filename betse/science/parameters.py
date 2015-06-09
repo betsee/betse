@@ -1018,7 +1018,7 @@ class Parameters(object):
 
         self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
 
-        self.isamples = 40.0  # sampling of vector data for currents
+        self.isamples = 60.0  # sampling of vector data for currents
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':

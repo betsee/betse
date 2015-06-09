@@ -460,6 +460,11 @@ class Simulator(object):
         self.env_vol = np.zeros(len(cells.env_i))  # volume of the environmental spaces
         self.env_vol[:] = p.vol_env
 
+        # take care of any internal cavity spaces, if they exist:
+        if cells.cavity_inds:
+            # set the cavity at the environmental markers to the appropriate cavity volume:
+            self.env_vol[cells.cavity_inds] = cells.cavity_volume
+
         # Initialize cellular concentrations of ions:
         if p.ions_dict['Na'] == 1:
 

@@ -6,6 +6,7 @@
 
 import warnings
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 import matplotlib.cm as cm
@@ -741,8 +742,9 @@ class PlotWhileSolving(object):
             dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
             dat_grid = np.nan_to_num(dat_grid)
             dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+            dat_grid2 = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
 
-            self.coll2 = self.ax.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+            self.coll2 = self.ax.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid2,shading='gouraud', cmap=self.colormap)
             self.cluster_mask = cells.cluster_mask
 
             if p.showCells == True:
@@ -798,8 +800,9 @@ class PlotWhileSolving(object):
             dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
             dat_grid = np.nan_to_num(dat_grid)
             dat_grid = np.multiply(dat_grid,self.cluster_mask)
+            dat_grid2 = ma.masked_array(dat_grid, np.logical_not(self.cluster_mask))
 
-            self.coll2.set_array(dat_grid.ravel())
+            self.coll2.set_array(dat_grid2.ravel())
 
             # self.coll2.set_array(plot_data)
 
@@ -964,8 +967,9 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         dat_grid = interpolate.griddata((plot_xy[:,0],plot_xy[:,1]),plot_data,(Xgrid,Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+        dat_grid2 = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
 
-        meshplt = plt.pcolormesh(p.um*Xgrid, p.um*Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
+        meshplt = plt.pcolormesh(p.um*Xgrid, p.um*Ygrid,dat_grid2,shading='gouraud', cmap=clrmap)
 
 
         # triplt = ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],plot_data,shading='gouraud', cmap=clrmap)
@@ -979,8 +983,6 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
-
-
 
         if zdata is not None:
 

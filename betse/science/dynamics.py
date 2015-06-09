@@ -6,6 +6,7 @@
 # FIXME create a gradient vmem method
 
 import numpy as np
+from scipy import spatial as sps
 from random import shuffle
 from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
@@ -313,7 +314,13 @@ class Dynamics(object):
 
             elif p.sim_ECM == True:
 
-                sim.cc_ecm[sim.iK][cells.bflags_ecm] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
+                if cells.cavity_inds:
+
+                    sim.cc_env[sim.iK][cells.true_env_inds] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
+
+                else:
+
+                    sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
 
@@ -325,7 +332,14 @@ class Dynamics(object):
 
             elif p.sim_ECM == True:
 
-                sim.cc_ecm[sim.iCl][cells.bflags_ecm] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+                if cells.cavity_inds:
+
+                    sim.cc_env[sim.iCl][cells.true_env_inds] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+
+                else:
+
+                    sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+
 
         if p.global_options['Na_env'] != 0:
 
@@ -337,7 +351,13 @@ class Dynamics(object):
 
             elif p.sim_ECM == True:
 
-                sim.cc_ecm[sim.iNa][cells.bflags_ecm] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+                if cells.cavity_inds:
+
+                    sim.cc_env[sim.iNa][cells.true_env_inds] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+
+                else:
+
+                    sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
         if p.global_options['T_change'] != 0:
 
@@ -603,7 +623,7 @@ class Dynamics(object):
 
         # Do a first search to find requests for any cavities as they modify the world structure:
 
-        if cells.do_once == True:  # if we haven't done this already...
+        if cells.do_once_cavity == True:  # if we haven't done this already...
             for name in profile_names:
 
                 data_stream = p.tissue_profiles[name]
@@ -614,8 +634,8 @@ class Dynamics(object):
 
                 if designation == 'cavity': # FIXME need special method to tag new env bound points
 
-                    removeCells(name,cells,p)
-                    cells.do_once = False  # set the cells' do_once field to prevent attempted repeats
+                    removeCells(name,target_method,cells,p,cavity_volume=True)
+                    cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
         for name in profile_names:
@@ -693,8 +713,6 @@ class Dynamics(object):
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
                 self.cuts_target_inds[name] = getCellTargets(name,target_method, cells, p,ignoreECM=True)
-
-
 
 
     def ecmBoundProfiles(self,sim,cells,p):
@@ -879,21 +897,37 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
     return target_inds
 
-def removeCells(profile_name,cells,p):
+def removeCells(profile_name,targets_description,cells,p,cavity_volume = False):
 
-    if p.use_bitmaps == True:
+    loggers.log_info('Cutting hole in cell cluster! Removing cells...')
 
-        bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
-        bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
-        target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+    if isinstance(targets_description,str):
 
-        cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix  # update the cluster mask by subtracting hole
+        if p.use_bitmaps == True and targets_description == 'bitmap':
+
+            bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+            bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+            target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+
+            cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix  # update the cluster mask by subtracting hole
+
+    if isinstance(targets_description,list):   # otherwise, if it's a list, then take the targets literally...
+
+        target_inds = targets_description
 
     #update the cells structure to remove the cells, associated gj connections, and ecm spaces:
     new_cell_centres = []
     new_ecm_verts = []
     removal_flags = np.zeros(len(cells.cell_i))
     removal_flags[target_inds] = 1
+
+    if cavity_volume == True: # if this boolean is true, then we want the new cavity volume to be assigned to the model
+
+        # keep track of the original environmental points:
+        original_env_points = cells.env_points
+         # calculate the volume of the cavity based on cells removed
+        cells.cavity_volume = np.sum(cells.cell_vol[target_inds])
+
 
     for i,flag in enumerate(removal_flags):
 
@@ -905,39 +939,7 @@ def removeCells(profile_name,cells,p):
     cells.cell_centres = np.asarray(new_cell_centres)
     cells.ecm_verts = np.asarray(new_ecm_verts)
 
-    # cells.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
-    #
-    # for poly in cells.ecm_verts:
-    #     verthold = []
-    #     for vert in poly:
-    #         vert = list(vert)
-    #         ind = cells.ecm_verts_unique.index(vert)
-    #         verthold.append(ind)
-    #
-    #     cells.ecm_polyinds.append(verthold)
-    #
-    # cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
-    #
-    # # ensure every point in the regions are in order:
-    #
-    # for j, region in enumerate(cells.ecm_polyinds):    # step through each polygon region
-    #
-    #     verts = cells.ecm_verts_unique[region]   # get the vertices for this region
-    #     region = np.asarray(region)      # convert region to a numpy array so it can be sorted
-    #     cent = verts.mean(axis=0)     # calculate the centre point
-    #     angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
-    #     #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-    #     sorted_region = region[np.argsort(angles)]   # sort indices counter-clockwise
-    #     sorted_region_b = sorted_region.tolist()
-    #     cells.ecm_polyinds[j] = sorted_region_b   # add sorted list to the regions structure
-    #
-    # # Go back yet again and redo the ecm verts with the organized polyinds
-    # cells.ecm_verts = []
-    # for i, inds in enumerate(cells.ecm_polyinds):
-    #     verts = cells.ecm_verts_unique[inds]
-    #     cells.ecm_verts.append(verts)
-
-    # cells.ecm_polyinds = np.asarray(cells.ecm_polyinds)
+    loggers.log_info('Recalculating cluster variables for new configuration...')
 
     if p.sim_ECM == True:
 
@@ -949,6 +951,16 @@ def removeCells(profile_name,cells,p):
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.make_env_points(p)  # get the environmental interaction points for each boundary ecm
         cells.cleanUp(p)       # Free up memory...
+
+        if cavity_volume == True:
+
+            envTree = sps.KDTree(cells.env_points)  # make a points search tree out of the new environmental points...
+            _, cells.true_env_inds = envTree.query(original_env_points) # find inds in new vector matching original env points...
+
+            # prepare a vector that flags cavity env spaces with 1 and original env spaces with zero...
+            env_flags = np.ones(len(cells.env_points))
+            env_flags[cells.true_env_inds] = 0
+            cells.cavity_inds = (env_flags == 1).nonzero()
 
     else:
 
