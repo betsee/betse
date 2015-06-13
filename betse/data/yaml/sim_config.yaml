@@ -54,7 +54,7 @@ sim file saving:
 
 results file saving:
 
-    directory: init_run_1/sim_run_1/results_ecm    # Name of directory to save plots and animations.
+    directory: init_run_1/sim_run_1/results_1    # Name of directory to save plots and animations.
 
 
 # -----------------------------------------------------------------------------
@@ -79,10 +79,10 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.01            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: .1e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 20.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    gap junction radius: .5e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -126,13 +126,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 20                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 0.1e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 0.5e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -197,7 +197,7 @@ general options:
   voltage dye properties:  # specify the properties of the voltage sensitive dye if included
 
     Dm_Dye: 1.0e-15        # voltage sensitive dye membrane diffusion coefficient [m2/s]
-    Do_Dye: 1.0e-10         # free diffusion constant of voltage-sensitive dye [m2/s]
+    Do_Dye: 1.0e-12         # free diffusion constant of voltage-sensitive dye [m2/s]
     z_Dye: 1               # charge of dye (oxidation state)
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
     cDye_to_cell: 1.0e-3    # initial concentration of dye in the cell [mmol/L]
@@ -257,7 +257,7 @@ general options:
 
 world variables:
 
-  world x: 500e-6         # the x-dimension of the world space [m]
+  world x: 100e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -308,7 +308,7 @@ world variables:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-  ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+  ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
   ecm boundary open: True       # boundary to the organism open to environment (aqueous) or closed (no external flux)
 
@@ -382,7 +382,7 @@ block HKATP pump:
 #-----------------------------------------------------------------------------------------------------------------------
 geometry defining bitmaps:
 
-    use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
+    use bitmap geometry control: False     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
     directory: geo/planaria              # directory where geometry-defining bitmaps can be found
 
@@ -439,11 +439,11 @@ geometry defining bitmaps:
 
 default tissue name: 'parenchyma'   # name of cells to which no profile is applied
 
-number of tissue profiles: 5     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: 'skin'       # give your profile a name that will be used to apply the profile
-    cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    cell targets: 'boundary'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: 'None'           # special instructions for making the profile:'cavity' or 'cuts'
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -455,7 +455,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-8    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-6    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: 'gut'       # give your profile a name that will be used to apply the profile
@@ -523,11 +523,11 @@ number of boundary profiles: 2      # boundary profiles only apply if simulating
 
 boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
     name: 'applied pos voltage'
-    boundary targets: 'bitmap'
+    boundary targets: [26,9,20,25,15,11,18]
 
 boundary profile 2:
     name: 'applied neg voltage'
-    boundary targets: 'bitmap'
+    boundary targets: [39,23,35,34,30,31,22,4,36,32,21,19]
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -585,10 +585,10 @@ produce IP3:        # Schedule cell production of IP3
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
     event happens: True            # turn the even on (True) or off (False)
-    change start: 0.1                 # time event starts [s]
-    change finish: 0.8               # time event finishes [s]
-    change rate: 0.1                  # time to reach peak value [s]
-    peak value: 2.5                   # peak value [V]
+    change start: 2.0                 # time event starts [s]
+    change finish: 12.0               # time event finishes [s]
+    change rate: 2.0                  # time to reach peak value [s]
+    peak value: 1.5                   # peak value [V]
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -679,7 +679,7 @@ results options:
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: False                # if True, plots and animations show individual cells,
+  show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.
@@ -694,13 +694,17 @@ results options:
   plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
+  plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
+
   plot cutlines: False            # plot any scheduled cut-lines on the cell cluster plot
+
+  plot masked geometry: False      # plot the geometry using the overal shape as a mask
 
   Vmem 2D:
 
     plot Vmem: True              # 2d plot of final vmem ?
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 80.0                # maximum colorbar value in mV
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # minimum colorbar value in mV
 
   Ca 2D:
@@ -750,9 +754,9 @@ results options:
   Vmem Ani:
 
     animate Vmem: True           # 2d animation of vmem with time?
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: -16.0                # maximum colorbar value in mV
-    min val: -48.0               # maximum colorbar value in mV
+    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    max val: 10.0                # maximum colorbar value in mV
+    min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
@@ -877,13 +881,13 @@ internal parameters:
 
   # default free diffusion constants (cytoplasmic)
 
-  Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
-  Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
-  Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
-  Do_Ca:  1.0e-9        # free diffusion constant calcium [m2/s]
-  Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
-  Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
-  Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
+  Do_Na:  1.33e-10       # free diffusion constant sodium [m2/s]
+  Do_K:  1.96e-10        # free diffusion constant potassium [m2/s]
+  Do_Cl:  2.03e-10       # free diffusion constant chloride [m2/s]
+  Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
+  Do_H:  2.5e-10         # free diffusion constant hydrogen [m2/s]
+  Do_M:  1.0e-10         # free diffusion constant mystery anchor ion [m2/s]
+  Do_P:  5.0e-11        # free diffusion constant protein [m2/s]
 
   # pump parameters
 

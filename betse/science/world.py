@@ -208,7 +208,7 @@ class World(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
+            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p,alpha=1.5)   # flag ecm domains on the env bound
             self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
             self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p,alpha=1.2)   # flag ecm domains on the env bound
             self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
@@ -921,7 +921,7 @@ class World(object):
 
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
 
-        self.mem_mids_flat, _, _ = tb.flatten(self.mem_mids)
+        self.mem_mids_flat, self.indmap_mem, _ = tb.flatten(self.mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
         self.cell_sa = np.asarray(self.cell_sa)
@@ -1163,7 +1163,6 @@ class World(object):
         loggers.log_info('Creating computational matrices... ')
 
         # calculating centre, min, max of cluster after all modifications
-
         self.clust_centre = np.mean(self.cell_centres)
         self.clust_x_max = np.max(self.cell_centres[:,0])
         self.clust_x_min = np.min(self.cell_centres[:,0])
@@ -1178,17 +1177,17 @@ class World(object):
             self.gjMatrix[igj,ci] = -1
             self.gjMatrix[igj,cj] = 1
 
-        # define matrix for updating cells with fluxes from membranes:
+        # define map allowing a dispatch from cell index to each respective membrane
+        self.indmap_mem = np.asarray(self.indmap_mem)
 
+        self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
+
+        # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
 
             self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
 
             self.env_i = [x for x in range(0,len(self.env_points))]
-
-            self.indmap_mem = np.asarray(self.indmap_mem)
-
-            self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
             self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
 

@@ -321,11 +321,15 @@ class SimRunner(object):
 
         if p.sim_ECM == False:
             sim.baseInit(cells,p)
+            dyna = Dynamics(sim,cells,p)
+            dyna.tissueProfiles(sim,cells,p)
         else:
             sim.baseInit_ECM(cells,p)
+            dyna = Dynamics(sim,cells,p)
+            dyna.tissueProfiles(sim,cells,p)
+            dyna.ecmBoundProfiles(sim,cells,p)
 
-        dyna = Dynamics(sim,cells,p)
-        dyna.tissueProfiles(sim,cells,p)
+
 
         fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
 
@@ -556,32 +560,32 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_Vmem_and_current == True and p.sim_ECM == True:
 
-        fig_IandV = plt.figure(figsize=(6,10))
-        ax_1 = plt.subplot(2,1,1)
-        ax_2 = plt.subplot(2,1,2)
+        # fig_IandV = plt.figure(figsize=(6,10))
+        # ax_1 = plt.subplot(2,1,1)
+        # ax_2 = plt.subplot(2,1,2)
+        #
+        # fig_IandV, ax_1, cb_1 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_1,zdata=1000*sim.vm_time[-1],
+        #     number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+        #     clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
+        #     number_ecm = False,current_overlay = True,plotIecm = True)
+        #
+        # fig_IandV, ax_2, cb_2 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_2,zdata=1000*sim.vm_time[-1],
+        #     number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+        #     clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
+        #     number_ecm = False,current_overlay = True,plotIecm = False)
+        #
+        # fig_IandV.suptitle('Final Vmem and Currents in Cell Cluster',fontsize=14, fontweight='bold')
+        # ax_1.set_ylabel('Spatial distance [um]')
+        # cb_1.set_label('Voltage mV')
+        # ax_2.set_xlabel('Spatial distance [um]')
+        # ax_2.set_ylabel('Spatial distance [um]')
+        # cb_2.set_label('Voltage mV')
+        #
+        # plt.show()
 
-        fig_IandV, ax_1, cb_1 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_1,zdata=1000*sim.vm_time[-1],
-            number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
-            clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
-            number_ecm = False,current_overlay = True,plotIecm = True)
-
-        fig_IandV, ax_2, cb_2 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_2,zdata=1000*sim.vm_time[-1],
-            number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
-            clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
-            number_ecm = False,current_overlay = True,plotIecm = False)
-
-        fig_IandV.suptitle('Final Vmem and Currents in Cell Cluster',fontsize=14, fontweight='bold')
-        ax_1.set_ylabel('Spatial distance [um]')
-        cb_1.set_label('Voltage mV')
-        ax_2.set_xlabel('Spatial distance [um]')
-        ax_2.set_ylabel('Spatial distance [um]')
-        cb_2.set_label('Voltage mV')
-
-        plt.show(block=False)
-
-        if saveImages == True:
-            savename11 = savedImg + 'Final_Vmem_and_Currents' + '.png'
-            plt.savefig(savename11,dpi=150,format='png')
+        # if saveImages == True:
+        #     savename11 = savedImg + 'Final_Vmem_and_Currents' + '.png'
+        #     plt.savefig(savename11,dpi=150,format='png')
 
         fig_IandI = plt.figure(figsize=(6,10))
         ax_1b = plt.subplot(2,1,1)
@@ -681,18 +685,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if p.ani_vmgj2d == True and animate == 1:
 
         if p.sim_ECM == True:
-            viz.AnimateGJData(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
+            viz.AnimateGJData(cells, sim, p, tit='Vcell ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
                     clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
                     saveFile = 'vmem_gj_', number_cells=False)
 
         elif p.sim_ECM == False:
 
             if p.showCells == True:
-                viz.AnimateGJData(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
+                viz.AnimateGJData(cells, sim, p, tit='Vmem ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
                     clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
                     saveFile = 'vmem_gj_', number_cells=False)
             else:
-                viz.AnimateGJData_smoothed(cells, sim, p, tit='Cell Vmem', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
+                viz.AnimateGJData_smoothed(cells, sim, p, tit='Vmem ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
                     clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
                     saveFile = 'vmem_gj', number_cells=False)
 

@@ -62,10 +62,23 @@ class AnimateCellData(object):
 
             verts_data = np.dot(self.zdata_t[0],cells.matrixMap2Verts)
             plot_data = np.hstack((self.zdata_t[0],verts_data))
-            plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+            self.plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
 
-            self.collection = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
-            plot_data,shading='gouraud', cmap=self.colormap)
+            xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+            ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+            self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+            dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
+            dat_grid = np.nan_to_num(dat_grid)
+            dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+            if p.plotMask == True:
+                dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+
+            self.collection = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
+
+            # self.collection = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            # plot_data,shading='gouraud', cmap=self.colormap)
 
             if p.showCells == True:
 
@@ -94,10 +107,17 @@ class AnimateCellData(object):
 
                 Jmag = sim.I_gj_time[0]
 
+                self.xpts = np.hstack((cells.gj_vects[:,0],cells.mem_vects_flat[:,0]))
+                self.ypts = np.hstack((cells.gj_vects[:,1],cells.mem_vects_flat[:,1]))
+                self.nx = np.hstack((cells.gj_vects[:,2],cells.mem_vects_flat[:,2]))
+                self.ny = np.hstack((cells.gj_vects[:,3],cells.mem_vects_flat[:,3]))
+
+                Jmag = np.hstack((sim.I_gj_time[0],sim.I_mem_time[0]))
+
                 jx = Jmag*self.nx
                 jy = Jmag*self.ny
 
-                tit_extra = '(gap junction current overlay)'
+                self.tit_extra = 'Gap junction and trans-membrane current overlay'
 
             elif p.IecmPlot == True:
 
@@ -124,7 +144,7 @@ class AnimateCellData(object):
                 jx[cells.bflags_ecm] = jx[cells.bflags_ecm] + jx_env
                 jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
 
-                tit_extra = '(extracellular current overlay)'
+                self.tit_extra = 'Extracellular current overlay'
 
             X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,cells,p)
             Jmag_M = np.sqrt(J_x**2 + J_y**2) + 1e-30
@@ -139,7 +159,11 @@ class AnimateCellData(object):
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.streams = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
-                cmap=clrmap,arrowsize=1.5)  # FIXME currents should be multiplied by 1e15
+                cmap=clrmap,arrowsize=1.5)
+
+        else:
+
+            self.tit_extra = ' '
 
         # set range of the colormap
 
@@ -172,7 +196,8 @@ class AnimateCellData(object):
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
-        self.ax.set_title(self.tit)
+        self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
+        self.ax.set_title(self.tit_extra)
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)
@@ -208,7 +233,15 @@ class AnimateCellData(object):
 
             verts_data = np.dot(zz,self.cells.matrixMap2Verts)
             plot_data = np.hstack((zz,verts_data))
-            self.collection.set_array(plot_data)
+
+            dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
+            dat_grid = np.nan_to_num(dat_grid)
+            dat_grid = np.multiply(dat_grid,self.cells.cluster_mask)
+
+            if self.p.plotMask == True:
+                dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+
+            self.collection.set_array(dat_grid.ravel())
 
         else:
             self.collection.set_array(zz)
@@ -217,7 +250,10 @@ class AnimateCellData(object):
 
             if self.sim_ECM == False or self.IecmPlot == False:
 
-                Jmag = self.sim.I_gj_time[i]
+                  Jmag = np.hstack((self.sim.I_gj_time[i],self.sim.I_mem_time[i]))
+
+                # Jmag = self.sim.I_mem_time[i]
+
 
             elif self.IecmPlot == True:
 
@@ -244,7 +280,7 @@ class AnimateCellData(object):
             self.streams = self.ax.streamplot(X*1e6,Y*1e6,J_x,J_y,density=self.density,linewidth=lw,color='k',
                 cmap=self.colormap,arrowsize=1.5)
 
-        titani = self.tit + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
+        titani = self.tit_extra + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
         if self.save == True:
@@ -300,9 +336,18 @@ class AnimateCellData_smoothed(object):
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
-         # Next add a triplot with interpolated and animated voltage data
-        self.triplt = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
-            self.zdata_t[0],shading='gouraud', cmap=self.colormap)
+        xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+        ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+        dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.zdata_t[0],(self.Xgrid,self.Ygrid))
+        dat_grid = np.nan_to_num(dat_grid)
+        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+        if p.plotMask == True:
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+
+        self.triplt = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
 
         self.triplt.set_clim(self.cmin,self.cmax)
 
@@ -319,14 +364,14 @@ class AnimateCellData_smoothed(object):
 
             if p.sim_ECM == False or p.IecmPlot == False:
 
-                self.xpts = cells.gj_vects[:,0]
-                self.ypts = cells.gj_vects[:,1]
-                self.nx = cells.gj_vects[:,2]
-                self.ny = cells.gj_vects[:,3]
+                self.xpts = np.hstack((cells.gj_vects[:,0],cells.mem_vects_flat[:,0]))
+                self.ypts = np.hstack((cells.gj_vects[:,1],cells.mem_vects_flat[:,1]))
+                self.nx = np.hstack((cells.gj_vects[:,2],cells.mem_vects_flat[:,2]))
+                self.ny = np.hstack((cells.gj_vects[:,3],cells.mem_vects_flat[:,3]))
 
-                Jmag = sim.I_gj_time[0]
+                Jmag = np.hstack((sim.I_gj_time[0],sim.I_mem_time[0]))
 
-                tit_extra = '(gap junction current overlay)'
+                self.tit_extra = 'Gap junction and trans-membrane current overlay'
 
             elif p.IecmPlot == True:
 
@@ -337,7 +382,24 @@ class AnimateCellData_smoothed(object):
 
                 Jmag = sim.I_ecm_time[0]
 
-                title_extra = '(extracellular current overlay)'
+                # current components in extracellular spaces
+                jx = Jmag*self.nx
+                jy = Jmag*self.ny
+
+                # data on environmental currents
+                nx_env = cells.ecm_seg_vects[:,4][cells.bflags_ecm]
+                ny_env = cells.ecm_seg_vects[:,5][cells.bflags_ecm]
+                Jmag_env = sim.I_env_time[0]
+
+                # environmental <---> boundary ecm current components:
+                jx_env = nx_env*Jmag_env
+                jy_env = ny_env*Jmag_env
+
+                # update ecm currents to include environmental current:
+                jx[cells.ecm_i][cells.bflags_ecm] = jx[cells.ecm_i][cells.bflags_ecm] + jx_env
+                jy[cells.ecm_i][cells.bflags_ecm] = jy[cells.ecm_i][cells.bflags_ecm] + jy_env
+
+                self.tit_extra = 'Extracellular current overlay'
 
             jx = Jmag*self.nx
             jy = Jmag*self.ny
@@ -361,7 +423,8 @@ class AnimateCellData_smoothed(object):
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
-        self.ax.set_title(self.tit)
+        self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
+        self.ax.set_title(self.tit_extra)
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)
@@ -380,15 +443,20 @@ class AnimateCellData_smoothed(object):
 
     def aniFunc(self,i):
 
-        zz = self.zdata_t[i]
+        dat_grid = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),self.zdata_t[i],(self.Xgrid,self.Ygrid))
+        dat_grid = np.nan_to_num(dat_grid)
+        dat_grid = np.multiply(dat_grid,self.cells.cluster_mask)
 
-        self.triplt.set_array(zz)
+        if self.p.plotMask == True:
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+
+        self.triplt.set_array(dat_grid.ravel())
 
         if self.current_overlay == True:
 
             if self.sim_ECM == False or self.IecmPlot == False:
 
-                Jmag = self.sim.I_gj_time[i]
+                Jmag = np.hstack((self.sim.I_gj_time[i],self.sim.I_mem_time[i]))
 
             elif self.IecmPlot == True:
 
@@ -415,7 +483,7 @@ class AnimateCellData_smoothed(object):
             self.streams = self.ax.streamplot(X*1e6,Y*1e6,J_x,J_y,density=self.density,
                 linewidth=lw,color='k',arrowsize=1.5)
 
-        titani = self.tit + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
+        titani = self.tit_extra + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
         if self.save == True:
@@ -443,6 +511,7 @@ class AnimateGJData(object):
 
         self.cells = cells
         self.p = p
+        self.sim = sim
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
@@ -475,13 +544,19 @@ class AnimateGJData(object):
 
         elif p.sim_ECM == True:
 
-            verts_data = np.dot(self.vdata_t[0],cells.matrixMap2Verts)
-            plot_data = np.hstack((self.vdata_t[0],verts_data))
-            plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+            # verts_data = np.dot(self.vdata_t[0],cells.matrixMap2Verts)
+            # plot_data = np.hstack((self.vdata_t[0],verts_data))
+            # plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+            #
+            # self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            # plot_data,shading='gouraud', cmap=self.colormap)
+            # self.coll2.set_alpha(1.0)
 
-            self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
-            plot_data,shading='gouraud', cmap=self.colormap)
-            self.coll2.set_alpha(1.0)
+            points = np.multiply(cells.cell_verts, p.um)
+            self.coll2 =  PolyCollection(points, cmap=self.colormap, edgecolors='none')
+            self.coll2.set_array(sim.vcell_time[0]*1000)
+            self.ax.add_collection(self.coll2)
+
 
             if p.showCells == True:
 
@@ -492,7 +567,6 @@ class AnimateGJData(object):
                 self.ax.add_collection(coll_mems)
 
         # set range of the colormap
-
         if clrAutoscale == True:
             self.cmean = np.mean(self.vdata_t)
             self.cmin = round(np.min(self.vdata_t),1)
@@ -502,7 +576,6 @@ class AnimateGJData(object):
             if clrCheck == 0:
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
-
 
         elif clrAutoscale == False:
             self.cmin = clrMin
@@ -554,9 +627,7 @@ class AnimateGJData(object):
 
         if self.p.sim_ECM == True:
 
-            verts_data = np.dot(zv,self.cells.matrixMap2Verts)
-            plot_data = np.hstack((zv,verts_data))
-            self.coll2.set_array(plot_data)
+            self.coll2.set_array(self.sim.vcell_time[i]*1000)
 
         else:
 
@@ -590,6 +661,10 @@ class AnimateGJData_smoothed(object):
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
+        self.cells = cells
+        self.sim = sim
+        self.p = p
+
         self.tit = tit
 
         self.save = save
@@ -608,15 +683,28 @@ class AnimateGJData_smoothed(object):
         self.collection.set_clim(0.0,1.0)
         self.ax.add_collection(self.collection)
 
+        xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+        ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+        dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.vdata_t[0],(self.Xgrid,self.Ygrid))
+        dat_grid = np.nan_to_num(dat_grid)
+        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+        if p.plotMask == True:
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+
+        self.triplt = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
+
         # Next add a triplot with interpolated and animated voltage data
-        self.triplt = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
-            self.vdata_t[0],shading='gouraud', cmap=self.colormap)
+        # self.triplt = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
+        #     self.vdata_t[0],shading='gouraud', cmap=self.colormap)
 
          # set range of the colormap
         if clrAutoscale == True:
-            self.cmean = np.mean(self.zdata_t)
-            self.cmin = round(np.min(self.zdata_t),1)
-            self.cmax = round(np.max(self.zdata_t),1)
+            self.cmean = np.mean(self.vdata_t)
+            self.cmin = round(np.min(self.vdata_t),1)
+            self.cmax = round(np.max(self.vdata_t),1)
             clrCheck = self.cmax - self.cmin
 
             if clrCheck == 0:
@@ -669,7 +757,17 @@ class AnimateGJData_smoothed(object):
         vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
 
         self.collection.set_array(zz)
-        self.triplt.set_array(zv)
+
+        dat_grid = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),zv,(self.Xgrid,self.Ygrid))
+        dat_grid = np.nan_to_num(dat_grid)
+        dat_grid = np.multiply(dat_grid,self.cells.cluster_mask)
+
+        if self.p.plotMask == True:
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+
+        self.triplt.set_array(dat_grid.ravel())
+
+        # self.triplt.set_array(zv)
         self.Qplot.set_UVC(vx,vy,zz)
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
@@ -684,13 +782,18 @@ class PlotWhileSolving(object):
 
     def __init__(self,cells,sim,p,number_cells=False,clrAutoscale = True, clrMin = None, clrMax = None):
 
-        vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
+        if p.sim_ECM == False:
+            vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
+
+        else:
+            vdata = np.multiply(sim.v_cell,1000)
+
         self.colormap = p.default_cm
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
-        self.tit = 'Vmem check while solving'
+        self.tit = 'Vcell check while solving'
 
         self.clrAutoscale = clrAutoscale
 
@@ -713,49 +816,96 @@ class PlotWhileSolving(object):
             self.cmin = clrMin
             self.cmax = clrMax
 
-        if p.sim_ECM == False:
+        # if p.sim_ECM == False:
 
-            if p.showCells == True:
-                # Add a collection of cell polygons, with animated voltage data
-                points = np.multiply(cells.cell_verts, p.um)
-                self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
-                self.coll2.set_alpha(1.0)
+        if p.showCells == True:
+            # Add a collection of cell polygons, with animated voltage data
+            points = np.multiply(cells.cell_verts, p.um)
+            self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
+            self.coll2.set_alpha(1.0)
 
-            else:
-                 # Next add a triplot with interpolated and animated voltage data
-                self.coll2 = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
-                    vdata,shading='gouraud', cmap=self.colormap)
-
-        elif p.sim_ECM == True:
-
-            verts_data = np.dot(vdata,cells.matrixMap2Verts)
-            plot_data = np.hstack((vdata,verts_data))
-            self.plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
-
-            # self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
-            # plot_data,shading='gouraud', cmap=self.colormap)
-
+        else:
             xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
             ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
             self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
-            dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
+            dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,(self.Xgrid,self.Ygrid))
             dat_grid = np.nan_to_num(dat_grid)
             dat_grid = np.multiply(dat_grid,cells.cluster_mask)
-            dat_grid2 = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
 
-            self.coll2 = self.ax.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid2,shading='gouraud', cmap=self.colormap)
-            self.cluster_mask = cells.cluster_mask
+            if p.plotMask == True:
+                dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
 
-            if p.showCells == True:
+            self.coll2 = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
 
-                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
-                coll = LineCollection(cell_edges_flat,colors='k')
-                coll.set_alpha(0.5)
-                self.ax.add_collection(coll)
+                #
+                #  # Next add a triplot with interpolated and animated voltage data
+                # self.coll2 = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
+                #     vdata,shading='gouraud', cmap=self.colormap)
+
+        # elif p.sim_ECM == True:
+        #
+        #     if p.showCells == True:
+        #         # Add a collection of cell polygons, with animated voltage data
+        #         points = np.multiply(cells.cell_verts, p.um)
+        #         self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
+        #         self.coll2.set_alpha(1.0)
+        #
+        #     else:
+        #         xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+        #         ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+        #         self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+        #
+        #         dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,(self.Xgrid,self.Ygrid))
+        #         dat_grid = np.nan_to_num(dat_grid)
+        #         dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+        #
+        #     if p.plotMask == True:
+        #         dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+        #
+        #     self.coll2 = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+
+            # verts_data = np.dot(vdata,cells.matrixMap2Verts)
+            # plot_data = np.hstack((vdata,verts_data))
+            # self.plot_xy = np.vstack((cells.mem_mids_flat,cells.mem_verts))
+            #
+            # # self.coll2 = self.ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],
+            # # plot_data,shading='gouraud', cmap=self.colormap)
+            #
+            # xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+            # ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+            # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+            #
+            # dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
+            # dat_grid = np.nan_to_num(dat_grid)
+            # dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+            #
+            # if p.plotMask == True:
+            #     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+            #
+            # self.coll2 = self.ax.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+
+        if p.sim_ECM == True:
+
+            if p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
+
+                boundv = sim.v_env*1e3
+
+                self.vext_plot = self.ax.scatter(p.um*cells.env_points[:,0],p.um*cells.env_points[:,1],
+                    cmap=self.colormap,c=boundv,zorder=10)
+
+                self.vext_plot.set_clim(self.cmin,self.cmax)
+
+            # if p.showCells == True:
+            #
+            #     cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+            #     cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+            #     coll = LineCollection(cell_edges_flat,colors='k')
+            #     coll.set_alpha(0.5)
+            #     self.ax.add_collection(coll)
 
          # set range of the colormap
+
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
         self.ax.add_collection(self.coll2)
@@ -789,31 +939,41 @@ class PlotWhileSolving(object):
 
     def updatePlot(self,sim,p):
 
-        zv = sim.vm_time[-1]*1000
-        time = sim.time[-1]
-
-        if p.sim_ECM == True:
-
-            verts_data = np.dot(zv,self.cells.matrixMap2Verts)
-            plot_data = np.hstack((zv,verts_data))
-
-            dat_grid = interpolate.griddata((self.plot_xy[:,0],self.plot_xy[:,1]),plot_data,(self.Xgrid,self.Ygrid))
-            dat_grid = np.nan_to_num(dat_grid)
-            dat_grid = np.multiply(dat_grid,self.cluster_mask)
-            dat_grid2 = ma.masked_array(dat_grid, np.logical_not(self.cluster_mask))
-
-            self.coll2.set_array(dat_grid2.ravel())
-
-            # self.coll2.set_array(plot_data)
+        if p.sim_ECM == False:
+            zv = sim.vm_time[-1]*1000
 
         else:
+            zv = sim.vcell_time[-1]*1000
+
+        time = sim.time[-1]
+
+        if p.showCells == True:
             self.coll2.set_array(zv)
+
+        else:
+
+            dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),zv,(self.Xgrid,self.Ygrid))
+            dat_grid = np.nan_to_num(dat_grid)
+            dat_grid = np.multiply(dat_grid,self.cells.cluster_mask)
+
+            if p.plotMask == True:
+                dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+
+            self.coll2.set_array(dat_grid.ravel())
 
         if self.clrAutoscale == True:
 
             cmin = np.min(zv)
             cmax = np.max(zv)
             self.coll2.set_clim(cmin,cmax)
+
+        if p.sim_ECM == True and p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
+
+            boundv = sim.v_env*1e3
+            self.vext_plot.set_array(boundv)
+
+            if self.clrAutoscale == True:
+                self.vext_plot.set_clim(cmin,cmax)
 
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'
@@ -967,10 +1127,11 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         dat_grid = interpolate.griddata((plot_xy[:,0],plot_xy[:,1]),plot_data,(Xgrid,Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.cluster_mask)
-        dat_grid2 = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
 
-        meshplt = plt.pcolormesh(p.um*Xgrid, p.um*Ygrid,dat_grid2,shading='gouraud', cmap=clrmap)
+        if p.plotMask == True:
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
 
+        meshplt = plt.pcolormesh(p.um*Xgrid, p.um*Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
 
         # triplt = ax.tripcolor(p.um*plot_xy[:, 0], p.um*plot_xy[:, 1],plot_data,shading='gouraud', cmap=clrmap)
 
@@ -1208,9 +1369,22 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
         if clrmap is None:
             clrmap = p.default_cm
 
+        xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+        ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+        Xgrid, Ygrid = np.meshgrid(xgrid,ygrid)
 
-        triplt = ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
-            z,shading='gouraud', cmap=clrmap)
+        dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),z,(Xgrid,Ygrid))
+        dat_grid = np.nan_to_num(dat_grid)
+        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+        if p.plotMask == True:
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+
+        triplt = plt.pcolormesh(p.um*Xgrid, p.um*Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
+
+
+        # triplt = ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
+        #     z,shading='gouraud', cmap=clrmap)
 
         ax.axis('equal')
 
@@ -1605,19 +1779,21 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     if p.sim_ECM == False or plot_Iecm == False:
 
-        xpts = cells.gj_vects[:,0]
-        ypts = cells.gj_vects[:,1]
-        nx = cells.gj_vects[:,2]
-        ny = cells.gj_vects[:,3]
+        xpts = np.hstack((cells.gj_vects[:,0],cells.mem_vects_flat[:,0]))
+        ypts = np.hstack((cells.gj_vects[:,1],cells.mem_vects_flat[:,1]))
+        nx = np.hstack((cells.gj_vects[:,2],cells.mem_vects_flat[:,2]))
+        ny = np.hstack((cells.gj_vects[:,3],cells.mem_vects_flat[:,3]))
 
-        Jmag = sim.I_gj_time[-1]
+        Jmag = np.hstack((sim.I_gj_time[-1],sim.I_mem_time[-1]))
 
         jx = Jmag*nx
         jy = Jmag*ny
 
-        ax.set_title('Final gap junction currents')
+        ax.set_title('Final gap junction and trans-membrane currents')
 
     elif plot_Iecm == True:
+
+        ax.set_title('Final extracellular currents')
 
         xpts = cells.ecm_vects[:,0]
         ypts = cells.ecm_vects[:,1]
@@ -1626,10 +1802,11 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         Jmag = sim.I_ecm_time[-1]
 
+        # current components in extracellular spaces
         jx = Jmag*nx
         jy = Jmag*ny
 
-         # data on environmental currents
+        # data on environmental currents
         nx_env = cells.ecm_seg_vects[:,4][cells.bflags_ecm]
         ny_env = cells.ecm_seg_vects[:,5][cells.bflags_ecm]
         Jmag_env = sim.I_env_time[-1]
@@ -1639,11 +1816,8 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         jy_env = ny_env*Jmag_env
 
         # update ecm currents to include environmental current:
-        jx[cells.bflags_ecm] = jx[cells.bflags_ecm] + jx_env
-        jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
-
-        ax.set_title('Final extracellular currents')
-
+        jx[cells.ecm_i][cells.bflags_ecm] = jx[cells.ecm_i][cells.bflags_ecm] + jx_env
+        jy[cells.ecm_i][cells.bflags_ecm] = jy[cells.ecm_i][cells.bflags_ecm] + jy_env
 
 
     X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,cells,p)
@@ -1765,6 +1939,12 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
     if p.sim_ECM == True:
         ax.scatter(cells.env_points[:,0]*p.um,cells.env_points[:,1]*p.um,c='k',s=1.0)
+        if len(dyna.env_target_inds):
+
+            for name in p.boundary_profiles.keys():
+                special_inds = dyna.env_target_inds[name]
+                ax.scatter(p.um*cells.env_points[:,0][special_inds],p.um*cells.env_points[:,1][special_inds],c='r')
+
 
     if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
 
@@ -1774,12 +1954,28 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     else:
         ax_cb = None
 
+    if p.enumerate_cells == True:
+
+        for i,cll in enumerate(cells.cell_centres):
+            ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
+
+        if p.sim_ECM == True:
+
+            for i,point in enumerate(cells.env_points):
+                ax.text(p.um*point[0],p.um*point[1],i,ha='center',va='center',color='k',weight ='bold')
+
     ax.set_xlabel('Spatial Distance [um]')
     ax.set_ylabel('Spatial Distance [um]')
     ax.set_title('Cell Cluster')
 
-    ax.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
     ax.axis('equal')
+
+    xmin = p.um*(cells.clust_x_min - p.clip)
+    xmax = p.um*(cells.clust_x_max + p.clip)
+    ymin = p.um*(cells.clust_y_min - p.clip)
+    ymax = p.um*(cells.clust_y_max + p.clip)
+
+    ax.axis([xmin,xmax,ymin,ymax])
 
     return fig, ax, ax_cb
 
@@ -1865,17 +2061,17 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
     if p.sim_ECM == False or plotIecm == False:
 
-        xpts = cells.gj_vects[:,0]
-        ypts = cells.gj_vects[:,1]
-        nx = cells.gj_vects[:,2]
-        ny = cells.gj_vects[:,3]
+        xpts = np.hstack((cells.gj_vects[:,0],cells.mem_vects_flat[:,0]))
+        ypts = np.hstack((cells.gj_vects[:,1],cells.mem_vects_flat[:,1]))
+        nx = np.hstack((cells.gj_vects[:,2],cells.mem_vects_flat[:,2]))
+        ny = np.hstack((cells.gj_vects[:,3],cells.mem_vects_flat[:,3]))
 
-        Jmag = sim.I_gj_time[time]
+        Jmag = np.hstack((sim.I_gj_time[time],sim.I_mem_time[time]))
 
         jx = Jmag*nx
         jy = Jmag*ny
 
-        ax.set_title('(gap junction current overlay)')
+        ax.set_title('(gap junction and trans-membrane current overlay)')
 
     elif plotIecm == True:
 
@@ -1902,8 +2098,8 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
         jy_env = ny_env*Jmag_env
 
         # update ecm currents to include environmental current:
-        jx[cells.bflags_ecm] = jx[cells.bflags_ecm] + jx_env
-        jy[cells.bflags_ecm] = jy[cells.bflags_ecm] + jy_env
+        jx[cells.ecm_i][cells.bflags_ecm] = jx[cells.ecm_i][cells.bflags_ecm] + jx_env
+        jy[cells.ecm_i][cells.bflags_ecm] = jy[cells.ecm_i][cells.bflags_ecm] + jy_env
 
 
     X,Y,J_x,J_y = tb.grid_vector_data(xpts,ypts,jx,jy,cells,p)

@@ -173,6 +173,7 @@ class Dynamics(object):
             self.targets_extV_positive = self.env_target_inds[name_positive]
             self.targets_extV_negative = self.env_target_inds[name_negative]
 
+
     def dynamicInit(self,sim,cells,p):
 
         if p.vg_options['Na_vg'] != 0:
@@ -714,7 +715,6 @@ class Dynamics(object):
                 # if the user wants to use this as a region to be cut, define cuts target inds:
                 self.cuts_target_inds[name] = getCellTargets(name,target_method, cells, p,ignoreECM=True)
 
-
     def ecmBoundProfiles(self,sim,cells,p):
 
         """
@@ -889,7 +889,6 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
             else:
                 target_inds = inds_ecm
-
 
     if isinstance(targets_description, list):
 
