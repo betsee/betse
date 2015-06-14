@@ -544,8 +544,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_I2d == True:
 
-        figI, axI, cbI = viz.streamingCurrent(sim, cells,p,plot_Iecm = p.IecmPlot, clrAutoscale = p.autoscale_I2d,
-            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.I_colormap,
+        figI, axI, cbI = viz.streamingCurrent(sim, cells,p,plot_Iecm = False, clrAutoscale = p.autoscale_I2d,
+            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.default_cm,
             edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
 
         axI.set_xlabel('Spatial distance [um]')
@@ -553,65 +553,26 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cbI.set_label('Current [pA]')
 
         if saveImages == True:
-            savename10 = savedImg + 'Final_Current' + '.png'
+            savename10 = savedImg + 'Final_Current_gj' + '.png'
             plt.savefig(savename10,format='png')
 
         plt.show(block=False)
 
-    if p.plot_Vmem_and_current == True and p.sim_ECM == True:
+        if p.sim_ECM == True:
 
-        # fig_IandV = plt.figure(figsize=(6,10))
-        # ax_1 = plt.subplot(2,1,1)
-        # ax_2 = plt.subplot(2,1,2)
-        #
-        # fig_IandV, ax_1, cb_1 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_1,zdata=1000*sim.vm_time[-1],
-        #     number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
-        #     clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
-        #     number_ecm = False,current_overlay = True,plotIecm = True)
-        #
-        # fig_IandV, ax_2, cb_2 = viz.plotHetMem(sim,cells,p,fig=fig_IandV,ax=ax_2,zdata=1000*sim.vm_time[-1],
-        #     number_cells=False, clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
-        #     clrMax = p.Vmem_max_clr, clrmap = p.default_cm, edgeOverlay = p.showCells,
-        #     number_ecm = False,current_overlay = True,plotIecm = False)
-        #
-        # fig_IandV.suptitle('Final Vmem and Currents in Cell Cluster',fontsize=14, fontweight='bold')
-        # ax_1.set_ylabel('Spatial distance [um]')
-        # cb_1.set_label('Voltage mV')
-        # ax_2.set_xlabel('Spatial distance [um]')
-        # ax_2.set_ylabel('Spatial distance [um]')
-        # cb_2.set_label('Voltage mV')
-        #
-        # plt.show()
+            figI2, axI2, cbI2 = viz.streamingCurrent(sim, cells,p,plot_Iecm = True, clrAutoscale = p.autoscale_I2d,
+            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.default_cm,
+            edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
 
-        # if saveImages == True:
-        #     savename11 = savedImg + 'Final_Vmem_and_Currents' + '.png'
-        #     plt.savefig(savename11,dpi=150,format='png')
+            axI2.set_xlabel('Spatial distance [um]')
+            axI2.set_ylabel('Spatial distance [um]')
+            cbI2.set_label('Current [pA]')
 
-        fig_IandI = plt.figure(figsize=(6,10))
-        ax_1b = plt.subplot(2,1,1)
-        ax_2b = plt.subplot(2,1,2)
+            if saveImages == True:
+                savename11 = savedImg + 'Final_Current_extracellular' + '.png'
+                plt.savefig(savename11,format='png')
 
-
-        figIandI, ax_1b, cb_1b = viz.streamingCurrent(sim, cells,p,fig=fig_IandI, ax=ax_1b, plot_Iecm = True, zdata = None,
-            clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.I_colormap,
-            edgeOverlay = p.showCells,number_cells = False)
-
-        figIandI, ax_2b, cb_2b = viz.streamingCurrent(sim, cells,p,fig=fig_IandI, ax=ax_2b, plot_Iecm = False, zdata = None,
-            clrAutoscale = p.autoscale_I2d, clrMin = p.I_min_clr, clrMax = p.I_max_clr,
-            clrmap=p.I_colormap,edgeOverlay = p.showCells,number_cells = False)
-
-        fig_IandI.suptitle('Final Currents in Cell Cluster',fontsize=14, fontweight='bold')
-        ax_1b.set_ylabel('Spatial distance [um]')
-        cb_1b.set_label('Current [pA]')
-        ax_2b.set_xlabel('Spatial distance [um]')
-        ax_2b.set_ylabel('Spatial distance [um]')
-        cb_2b.set_label('Current [pA]')
-
-        plt.show(block=False)
-
-        if saveImages == True:
-            savename12 = savedImg + 'Final_gj_and_ec_currents' + '.png'
-            plt.savefig(savename12,dpi=150,format='png')
+            plt.show(block=False)
 
 
     if p.ani_ip32d ==True and p.scheduled_options['IP3'] != 0 and animate == 1:
@@ -633,7 +594,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         Dyeplotting = np.asarray(sim.cDye_time)
         Dyeplotting = np.multiply(Dyeplotting,1e3)
-
 
         if p.showCells == True:
             viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
@@ -715,6 +675,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_',
                 current_overlay=p.I_overlay)
+
+    if p.ani_I == True and animate == 1:
+
+        viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =True,
+            clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
+            clrmap = p.default_cm, number_cells=False,saveFolder = '/animation/current_gj',saveFile = 'I_')
+
+        if p.sim_ECM == True:
+
+            viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =False,
+            clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
+            clrmap = p.default_cm, number_cells=False,saveFolder = '/animation/current_ecm',saveFile = 'I_')
 
 
     if p.exportData == True:

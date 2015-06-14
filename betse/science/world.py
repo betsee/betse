@@ -641,6 +641,12 @@ class World(object):
 
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
+        # calculate lengths of gap junctions
+        seg1=self.cell_centres[self.gap_jun_i[:,0]]
+        seg2=self.cell_centres[self.gap_jun_i[:,1]]
+        nn_diff_gj = (seg2 - seg1)**2
+        self.gj_len = np.sqrt(nn_diff_gj[:,0] + nn_diff_gj[:,1])
+
         if self.worldtype == 'full':
             # repeat process for ecms
             loggers.log_info('Creating ecm junctions... ')
@@ -907,7 +913,8 @@ class World(object):
 
                 tang_a = pt2 - pt1       # tangent
                 tang = tang_a/np.linalg.norm(tang_a)
-                normal = np.array([-tang[1],tang[0]])
+                # normal = np.array([-tang[1],tang[0]])
+                normal = np.array([tang[1],-tang[0]])
                 cv_x.append(mid[0])
                 cv_y.append(mid[1])
                 cv_nx.append(normal[0])
@@ -995,7 +1002,8 @@ class World(object):
 
                 tang_a = pt2 - pt1       # tangent
                 tang = tang_a/np.linalg.norm(tang_a)
-                normal = np.array([-tang[1],tang[0]])
+                # normal = np.array([-tang[1],tang[0]])
+                normal = np.array([tang[1],-tang[0]])
                 cv_x.append(mid[0])
                 cv_y.append(mid[1])
                 cv_nx.append(normal[0])

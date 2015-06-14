@@ -80,19 +80,19 @@ init time settings:
                                 # setting above.
 
     time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 20.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 5.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: .5e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
+    gap junction radius: 0.5e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
 #
 # GJ sa          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
-# 0.1e-9             1e-2             5e-4          0.1         closed gap junctions
-# 0.5e-9             5e-3             2.5e-4        0.1         moderate flux gap junctions
-# 1.0e-9             1e-3             1.0e-4        0.1         high flux gap junctions
-# 5.0e-9             1e-4             5.0e-6        0.01        very high flux gap junctions
+# 0.1e-9             1e-1             5e-4          0.1         closed gap junctions
+# 1.0e-9             5e-2             5e-4          0.1         moderate gap junctions
+# 5.0e-9             5e-2             2.5e-4        0.1         high flux gap junctions
+# 5.0e-8             5e-3             1.0e-4        0.1         very high flux gap junctions
 
 # -----------------------------------------------------------------------------
 
@@ -144,10 +144,10 @@ sim time settings:
 #
 # GJ sa          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
-# 0.1e-9             1e-2             5e-4          0.1         closed gap junctions
-# 0.5e-9             5e-3             2.5e-4        0.1         moderate flux gap junctions
-# 1.0e-9             1e-3             1.0e-4        0.1         high flux gap junctions
-# 5.0e-9             1e-4             5.0e-6        0.01        very high flux gap junctions
+# 0.1e-9             1e-1             5e-4          0.1         closed gap junctions
+# 1.0e-9             5e-2             5e-4          0.1         moderate gap junctions
+# 5.0e-9             5e-2             2.5e-4        0.1         high flux gap junctions
+# 5.0e-8             5e-3             1.0e-4        0.1         very high flux gap junctions
 
 # -----------------------------------------------------------------------------
 
@@ -523,11 +523,11 @@ number of boundary profiles: 2      # boundary profiles only apply if simulating
 
 boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
     name: 'applied pos voltage'
-    boundary targets: [26,9,20,25,15,11,18]
+    boundary targets: [27,14,22,15,20,30]
 
 boundary profile 2:
     name: 'applied neg voltage'
-    boundary targets: [39,23,35,34,30,31,22,4,36,32,21,19]
+    boundary targets: [43,38,18,37,21]
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -667,16 +667,16 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
                                  # warning should not be used for world sizes over 200 um.
 
-  plot cell index: 5              # State the cell index to use for single-cell time plots
+  plot cell index: 42              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
   show cells: True                # if True, plots and animations show individual cells,
@@ -691,7 +691,7 @@ results options:
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
@@ -703,7 +703,7 @@ results options:
   Vmem 2D:
 
     plot Vmem: True              # 2d plot of final vmem ?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # minimum colorbar value in mV
 
@@ -741,47 +741,39 @@ results options:
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
-    colormap: bone                    # colorbar for the currents
-
-  Current and Vmem 2D:
-
-    plot Current and Vmem: True       # 2d plots of extracellular and gap junction current flow in the collective?
-    autoscale colorbar: True          # autoscale colorbar to min max of data set?
-    max val: 80.0                     # maximum colorbar value [mV]
-    min val: -80.0                    # minimum colorbar value [mV]
-
+    colormap: coolwarm                    # colorbar for the currents
 
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    animate Vmem: False           # 2d animation of vmem with time?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
-    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    animate Ca2+: False           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: True            # 2d animation of cIP3 with time?
+    animate IP3: False            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Dye Ani:
 
-    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
@@ -789,13 +781,13 @@ results options:
   Vcell Ani:
 
     animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
-    autoscale colorbar: True     # autoscale colorbar to min max of data set?
-    max val: -24                  # maximum colorbar value in mV
-    min val: -40                 # minimum colorbar value in mV
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 10                  # maximum colorbar value in mV
+    min val: -70                 # minimum colorbar value in mV
 
   Current Ani:
 
-    animate current: True       # 2d animation of current in individual cells of the collective?
+    animate current: False       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]

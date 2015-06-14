@@ -1026,8 +1026,6 @@ class Simulator(object):
             self.Dye_flux_gj = np.zeros(len(cells.gj_i))
             self.Dye_flux_mem = np.zeros(len(cells.mem_i))
 
-            self.Dye_flux_gj_time = []
-            self.Dye_flux_mem_time = []
 
             if p.sim_ECM == True:
                 self.cDye_ecm = np.zeros(len(cells.ecm_i))
@@ -1037,12 +1035,11 @@ class Simulator(object):
 
                 self.Dye_flux_ecm = np.zeros(len(cells.ecm_i))
                 self.Dye_flux_env = np.zeros(len(cells.env_i))
-                self.Dye_flux_ecm_time = []
-                self.Dye_flux_env_time = []
+
 
             else:
                 self.Dye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
-                self.Dye_env[:] = p.cIP3_to_env
+                self.Dye_env[:] = p.cDye_to
 
 
         self.dyna.globalInit(self,cells,p)     # initialize any global interventions
@@ -1072,14 +1069,21 @@ class Simulator(object):
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
-        self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
+
         self.I_gj_time = []
+        self.I_mem_time = []    # initialize membrane current time vector
+
+        if p.voltage_dye == True:
+
+            self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
+            self.Dye_flux_gj_time = []
+            self.Dye_flux_mem_time = []
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.gj_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
-        self.gjl[:] = p.gjl
+        self.gjl[:] = cells.gj_len
         self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
 
         self.gjsa[:] = p.gjsa
@@ -1534,16 +1538,25 @@ class Simulator(object):
         self.I_gj_time = []    # initialize gap junction current data storage
         self.I_ecm_time = []   # initialize extracellular matrix data storage
         self.I_env_time = []   # initialize environmental matrix data storage
+        self.I_mem_time = []   # initialize membrane matrix data storage
 
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
-        self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
+
+
+        if p.voltage_dye == True:
+
+            self.Dye_flux_ecm_time = []
+            self.Dye_flux_env_time = []
+            self.Dye_flux_gj_time = []
+            self.Dye_flux_mem_time = []
+            self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.gj_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
-        self.gjl[:] = p.gjl
+        self.gjl[:] = cells.gj_len
         self.gjsa = np.zeros(len(cells.gj_i))        # gj x-sec surface area for each gj
         self.gjsa[:] = p.gjsa
 
@@ -2147,7 +2160,7 @@ class Simulator(object):
         for flux_array, zi in zip(self.fluxes_mem,self.zs):
 
             # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
-            I_i = -flux_array*zi*p.F
+            I_i = flux_array*zi*p.F
 
             self.I_mem = self.I_mem + I_i
 

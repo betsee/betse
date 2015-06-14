@@ -100,13 +100,6 @@ class AnimateCellData(object):
 
             if p.sim_ECM == False or p.IecmPlot == False:
 
-                self.xpts = cells.gj_vects[:,0]
-                self.ypts = cells.gj_vects[:,1]
-                self.nx = cells.gj_vects[:,2]
-                self.ny = cells.gj_vects[:,3]
-
-                Jmag = sim.I_gj_time[0]
-
                 self.xpts = np.hstack((cells.gj_vects[:,0],cells.mem_vects_flat[:,0]))
                 self.ypts = np.hstack((cells.gj_vects[:,1],cells.mem_vects_flat[:,1]))
                 self.nx = np.hstack((cells.gj_vects[:,2],cells.mem_vects_flat[:,2]))
@@ -251,9 +244,6 @@ class AnimateCellData(object):
             if self.sim_ECM == False or self.IecmPlot == False:
 
                   Jmag = np.hstack((self.sim.I_gj_time[i],self.sim.I_mem_time[i]))
-
-                # Jmag = self.sim.I_mem_time[i]
-
 
             elif self.IecmPlot == True:
 
@@ -986,6 +976,203 @@ class PlotWhileSolving(object):
             savename = self.savedAni + str(self.i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
+class AnimateCurrent(object):  # FIXME do it so that current overlay possible
+
+    def __init__(self,sim,cells,time,p,save=False,ani_repeat=False,current_overlay=False,clrAutoscale=True, gj_current = True,
+    clrMin = None,clrMax = None,clrmap = cm.rainbow, number_cells=False,saveFolder = '/animation',saveFile = 'sim_'):
+
+        self.colormap = clrmap
+        self.time = time
+        self.save = save
+
+        self.sim = sim
+        self.current_overlay = current_overlay
+
+        self.sim_ECM = p.sim_ECM
+        self.IecmPlot = p.IecmPlot
+
+        self.density = p.stream_density
+        self.cells = cells
+        self.p = p
+
+        self.gj_current = gj_current
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+
+        # set range of the colormap
+        if clrAutoscale == True:
+            pass
+            # self.cmean = np.mean(sim.I_ecm_time)
+            # self.cmin = round(np.min(self.zdata_t),1)
+            # self.cmax = round(np.max(self.zdata_t),1)
+            # clrCheck = self.cmax - self.cmin
+            #
+            # if clrCheck == 0:
+            #     self.cmin = self.cmin - 1
+            #     self.cmax = self.cmax + 1
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
+        if gj_current == True:
+
+            self.xpts = np.hstack((cells.gj_vects[:,0],cells.mem_vects_flat[:,0]))
+            self.ypts = np.hstack((cells.gj_vects[:,1],cells.mem_vects_flat[:,1]))
+            self.nx = np.hstack((cells.gj_vects[:,2],cells.mem_vects_flat[:,2]))
+            self.ny = np.hstack((cells.gj_vects[:,3],cells.mem_vects_flat[:,3]))
+
+            Jmag = np.hstack((sim.I_gj_time[0],sim.I_mem_time[0]))
+
+            jx = Jmag*self.nx
+            jy = Jmag*self.ny
+
+            self.tit = 'Gap junction and trans-membrane current'
+
+        else:
+
+            self.tit = 'Extracellular current'
+
+            self.xpts = cells.ecm_vects[:,0]
+            self.ypts = cells.ecm_vects[:,1]
+            self.nx = cells.ecm_vects[:,2]
+            self.ny = cells.ecm_vects[:,3]
+
+            Jmag = sim.I_ecm_time[-1]
+
+            # current components in extracellular spaces
+            jx = Jmag*self.nx
+            jy = Jmag*self.ny
+
+            # data on environmental currents
+            self.nx_env = cells.ecm_seg_vects[:,4][cells.bflags_ecm]
+            self.ny_env = cells.ecm_seg_vects[:,5][cells.bflags_ecm]
+
+            Jmag_env = sim.I_env_time[0]
+
+            # environmental <---> boundary ecm current components:
+            jx_env = self.nx_env*Jmag_env
+            jy_env = self.ny_env*Jmag_env
+
+            # update ecm currents to include environmental current:
+            jx[cells.ecm_i][cells.bflags_ecm] = jx[cells.ecm_i][cells.bflags_ecm] + jx_env
+            jy[cells.ecm_i][cells.bflags_ecm] = jy[cells.ecm_i][cells.bflags_ecm] + jy_env
+
+
+        X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,cells,p)
+        Jmag_M = np.sqrt(J_x**2 + J_y**2) +1e-30
+
+        J_x = J_x/Jmag_M
+        J_y = J_y/Jmag_M
+
+        J_x = np.nan_to_num(J_x)
+        J_y = np.nan_to_num(J_y)
+        Jmag_M = np.nan_to_num(Jmag_M)
+
+        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
+
+        # Jmag_M = np.multiply(Jmag_M,cells.cluster_mask)
+        #
+        # if p.plotMask == True:
+        #     Jmag_M = ma.masked_array(Jmag_M, np.logical_not(cells.cluster_mask))
+
+        self.meshplot = self.ax.pcolormesh(X*p.um,Y*p.um,Jmag_M*1e15,shading='gouraud', cmap=clrmap)
+
+        self.streamplot = self.ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
+            cmap=clrmap,arrowsize=1.5)
+
+        if clrAutoscale == False:
+
+            self.meshplot.set_clim(self.cmin,self.cmax)
+
+        self.cb = self.fig.colorbar(self.meshplot)   # define colorbar for figure
+        self.cb.set_label('Current Magnitude [pA]')
+
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_title(self.tit)
+
+        self.ax.set_aspect('equal')
+        self.ax.autoscale(tight=True)
+
+        self.frames = len(sim.time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        plt.show()
+
+
+    def aniFunc(self,i):
+
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        if self.gj_current == True:
+
+            Jmag = np.hstack((self.sim.I_gj_time[i],self.sim.I_mem_time[i]))
+            jx = Jmag*self.nx
+            jy = Jmag*self.ny
+
+        else:
+
+            Jmag = self.sim.I_ecm_time[i]
+            Jmag_env = self.sim.I_env_time[i]
+
+            # current components in extracellular spaces
+            jx = Jmag*self.nx
+            jy = Jmag*self.ny
+
+            # environmental <---> boundary ecm current components:
+            jx_env = self.nx_env*Jmag_env
+            jy_env = self.ny_env*Jmag_env
+
+            # update ecm currents to include environmental current:
+            jx[self.cells.ecm_i][self.cells.bflags_ecm] = jx[self.cells.ecm_i][self.cells.bflags_ecm] + jx_env
+            jy[self.cells.ecm_i][self.cells.bflags_ecm] = jy[self.cells.ecm_i][self.cells.bflags_ecm] + jy_env
+
+        X,Y,J_x,J_y = tb.grid_vector_data(self.xpts,self.ypts,jx,jy,self.cells,self.p)
+        Jmag_M = np.sqrt(J_x**2 + J_y**2) +1e-30
+
+        J_x = J_x/Jmag_M
+        J_y = J_y/Jmag_M
+
+        J_x = np.nan_to_num(J_x)
+        J_y = np.nan_to_num(J_y)
+        Jmag_M = np.nan_to_num(Jmag_M)
+
+        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
+
+        # Jmag_M = np.multiply(Jmag_M,self.cells.cluster_mask)
+        #
+        # if p.plotMask == True:
+        #     Jmag_M = ma.masked_array(Jmag_M, np.logical_not(self.cells.cluster_mask))
+
+        self.streamplot.lines.remove()
+        self.ax.patches = []
+
+        self.streamplot = self.ax.streamplot(X*1e6,Y*1e6,J_x,J_y,density=self.density,
+                linewidth=lw,color='k',arrowsize=1.5)
+
+        self.meshplot.set_array(Jmag_M.ravel()*1e15)
+
+        cmax = np.max(Jmag_M)*1e15
+
+        self.meshplot.set_clim(0,cmax)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
     tvect_data=[x[celli]*1000 for x in simdata_time]
@@ -1043,8 +1230,8 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
     ax.set_xlabel('Time [s]')
     ax.set_ylabel(lab)
 
-
     return fig, ax
+
 
 def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap=None,edgeOverlay = True,pointOverlay=None, number_cells = False, number_mems = False,
@@ -1832,17 +2019,18 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-    streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color=Jmag_M*1e15,
+    meshplot = ax.pcolormesh(X*p.um,Y*p.um,Jmag_M*1e15,shading='gouraud', cmap=clrmap)
+
+    streamplot = ax.streamplot(X*p.um,Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
     if clrAutoscale == True:
-        ax_cb = fig.colorbar(streamplot.lines,ax=ax)
+        ax_cb = fig.colorbar(meshplot,ax=ax)
 
     elif clrAutoscale == False:
 
-        streamplot.lines.set_clim(clrMin,clrMax)
-        streamplot.arrows.set_clim(clrMin,clrMax)
-        ax_cb = fig.colorbar(streamplot.lines,ax=ax)
+        meshplot.set_clim(clrMin,clrMax)
+        ax_cb = fig.colorbar(meshplot,ax=ax)
 
     if edgeOverlay == True:
         cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
@@ -1851,19 +2039,22 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         coll.set_alpha(0.2)
         ax.add_collection(coll)
 
-    ax.axis('equal')
+    # ax.axis('equal')
 
     if number_cells == True:
 
         for i,cll in enumerate(cells.cell_centres):
             ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
-    xmin = p.um*(cells.clust_x_min - p.clip)
-    xmax = p.um*(cells.clust_x_max + p.clip)
-    ymin = p.um*(cells.clust_y_min - p.clip)
-    ymax = p.um*(cells.clust_y_max + p.clip)
+    # xmin = p.um*(cells.clust_x_min - p.clip)
+    # xmax = p.um*(cells.clust_x_max + p.clip)
+    # ymin = p.um*(cells.clust_y_min - p.clip)
+    # ymax = p.um*(cells.clust_y_max + p.clip)
+    #
+    # ax.axis([xmin,xmax,ymin,ymax])
 
-    ax.axis([xmin,xmax,ymin,ymax])
+    ax.set_aspect('equal')
+    ax.autoscale(tight=True)
 
     return fig,ax,ax_cb
 
