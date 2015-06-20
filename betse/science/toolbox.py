@@ -426,3 +426,42 @@ def griddata(xpts,ypts,zdata,gridsize):
     zi_m = np.ma.masked_where(np.isnan(zi),zi)
 
     return X, Y, zi_m
+
+def periodic(cells,sim,p):
+
+    if p.run_sim == True:
+            tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
+    else:
+        tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
+
+    yy = np.sin(tt*2*np.pi*p.periodic_properties['frequency'] + p.periodic_properties['phase'])
+
+    y = interp.interp1d(tt,yy)
+
+    return y
+
+def gradient_x(cells,sim,p):
+
+
+    x = np.linspace(cells.clust_x_min,cells.clust_x_max,100)
+
+    yy = x*p.gradient_x_properties['slope'] + p.gradient_x_properties['offset']
+
+    yy = yy/np.max(yy)
+
+    y = interp.interp1d(x,yy)
+
+    return y
+
+def gradient_y(cells,sim,p):
+
+    z = np.linspace(cells.clust_y_min,cells.clust_y_max,100)
+
+    yy = z*p.gradient_y_properties['slope'] + p.gradient_y_properties['offset']
+
+    yy = yy/np.max(yy)
+
+    y = interp.interp1d(z,yy)
+
+    return y
+

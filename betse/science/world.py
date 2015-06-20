@@ -1190,6 +1190,17 @@ class World(object):
 
         self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
+        # data structures for plotting current streamlines
+        self.xpts_Igj = np.hstack((self.gj_vects[:,0],self.mem_vects_flat[:,0]))
+        self.ypts_Igj = np.hstack((self.gj_vects[:,1],self.mem_vects_flat[:,1]))
+        self.nx_Igj = np.hstack((self.gj_vects[:,2],self.mem_vects_flat[:,2]))
+        self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
+
+        # structures for plotting interpolated data on cell centres:
+        xgrid = np.linspace(self.xmin,self.xmax,self.msize)
+        ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
 
@@ -1267,6 +1278,16 @@ class World(object):
             self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
             self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
 
+            # structures for plotting interpolated data and streamlines:
+            self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+
+            self.xpts_Iecm = self.ecm_vects[:,0]
+            self.ypts_Iecm = self.ecm_vects[:,1]
+            self.nx_Iecm = self.ecm_vects[:,2]
+            self.ny_Iecm = self.ecm_vects[:,3]
+
+            self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
+            self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
 
             loggers.log_info('Cleaning up unnecessary data structures... ')
 
@@ -1285,15 +1306,6 @@ class World(object):
 
         self.clust_xy = None
         self.cell_nn = None
-
-        # # save the cell cluster
-        # loggers.log_info('Saving the cell cluster... ')
-        #
-        # # celf = copy.deepcopy(self)
-        # datadump = [self,p]
-        # fh.saveSim(self.savedWorld,datadump)
-        # message = 'Cell cluster saved to' + ' ' + self.savedWorld
-        # loggers.log_info(message)
 
     def redo_gj(self,dyna,p):
 

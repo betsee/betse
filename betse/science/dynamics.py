@@ -84,6 +84,14 @@ class Dynamics(object):
 
     def scheduledInit(self,sim,cells,p):
 
+        # set up any functions that may be used in event calls:
+        self.frequency = p.periodic_properties['frequency']
+        self.phase = p.periodic_properties['phase']
+        self.x_slope = p.gradient_x_properties['slope']
+        self.y_slope = p.gradient_y_properties['slope']
+        self.x_offset = p.gradient_x_properties['offset']
+        self.y_offset = p.gradient_y_properties['offset']
+
         if p.scheduled_options['Na_mem'] != 0:
 
             self.t_on_Namem = p.scheduled_options['Na_mem'][0]
@@ -91,6 +99,7 @@ class Dynamics(object):
             self.t_change_Namem = p.scheduled_options['Na_mem'][2]
             self.mem_mult_Namem = p.scheduled_options['Na_mem'][3]
             self.apply_Namem = p.scheduled_options['Na_mem'][4]
+            self.function_Namem = p.scheduled_options['Na_mem'][5]
 
             self.targets_Namem = []
             for profile in self.apply_Namem:
@@ -99,6 +108,14 @@ class Dynamics(object):
 
             self.targets_Namem = [item for sublist in self.targets_Namem for item in sublist]
 
+
+            self.scalar_Namem = 1
+
+            if self.function_Namem != 'None':
+
+                self.scalar_Namem = getattr(tb,self.function_Namem)(cells,sim,p)
+
+
         if p.scheduled_options['K_mem'] != 0:
 
             self.t_on_Kmem = p.scheduled_options['K_mem'][0]
@@ -106,6 +123,7 @@ class Dynamics(object):
             self.t_change_Kmem = p.scheduled_options['K_mem'][2]
             self.mem_mult_Kmem = p.scheduled_options['K_mem'][3]
             self.apply_Kmem = p.scheduled_options['K_mem'][4]
+            self.function_Kmem = p.scheduled_options['K_mem'][5]
 
             self.targets_Kmem = []
             for profile in self.apply_Kmem:
@@ -121,6 +139,7 @@ class Dynamics(object):
             self.t_change_Clmem = p.scheduled_options['Cl_mem'][2]
             self.mem_mult_Clmem = p.scheduled_options['Cl_mem'][3]
             self.apply_Clmem = p.scheduled_options['Cl_mem'][4]
+            self.function_Clmem = p.scheduled_options['Cl_mem'][5]
 
             self.targets_Clmem = []
             for profile in self.apply_Clmem:
@@ -136,6 +155,7 @@ class Dynamics(object):
             self.t_change_Camem = p.scheduled_options['Ca_mem'][2]
             self.mem_mult_Camem = p.scheduled_options['Ca_mem'][3]
             self.apply_Camem = p.scheduled_options['Ca_mem'][4]
+            self.function_Camem = p.scheduled_options['Ca_mem'][5]
 
             self.targets_Camem = []
             for profile in self.apply_Camem:
@@ -151,6 +171,7 @@ class Dynamics(object):
             self.t_changeIP3 = p.scheduled_options['IP3'][2]
             self.rate_IP3 = p.scheduled_options['IP3'][3]
             self.apply_IP3 = p.scheduled_options['IP3'][4]
+            self.function_IP3 = p.scheduled_options['IP3'][5]
 
             self.targets_IP3 = []
             for profile in self.apply_IP3:
@@ -166,13 +187,13 @@ class Dynamics(object):
             self.t_change_extV = p.scheduled_options['extV'][2]
             self.peak_val_extV = p.scheduled_options['extV'][3]
             self.apply_extV = p.scheduled_options['extV'][4]
+            self.function_extV = p.scheduled_options['extV'][5]
 
             name_positive = self.apply_extV[0]
             name_negative = self.apply_extV[1]
 
             self.targets_extV_positive = self.env_target_inds[name_positive]
             self.targets_extV_negative = self.env_target_inds[name_negative]
-
 
     def dynamicInit(self,sim,cells,p):
 
@@ -378,9 +399,36 @@ class Dynamics(object):
 
     def scheduledDyn(self,sim,cells,p,t):
 
+
         if p.scheduled_options['Na_mem'] != 0:
 
-            effector_Na = tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
+            modifier = 1
+
+            if self.function_Namem == 'periodic':
+
+                modifier = self.scalar_Namem(sim.t)
+
+            elif self.function_Namem == 'gradient_x':
+
+                if p.sim_ECM == False:
+
+                   modifier = self.scalar_Namem(cells.cell_centres[:,0][self.targets_Namem])
+
+                else:
+
+                   modifier = self.scalar_Namem(cells.cell_centres[:,0][cells.mem_to_cells][self.targets_Namem])
+
+            elif self.function_Namem == 'gradient_y':
+
+                if p.sim_ECM == False:
+
+                    modifier =self.scalar_Namem(cells.cell_centres[:,1][self.targets_Namem])
+
+                else:
+
+                    modifier =self.scalar_Namem(cells.cell_centres[:,1][cells.mem_to_cells][self.targets_Namem])
+
+            effector_Na = modifier*tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
 
             sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 

@@ -7,6 +7,8 @@
 
 
 import numpy as np
+import numpy.ma as ma
+from scipy import interpolate
 import os, os.path
 import copy
 from random import shuffle
@@ -869,8 +871,8 @@ class Simulator(object):
         self.ec2ec_sa = p.cell_space*p.cell_height*self.id_ecm
 
         # if open boundary, save initial ecm values for environmental re-establishment
-        if p.ecm_bound_open == True:
-            self.cc_env_bulk = self.cc_env[:]
+        # if p.ecm_bound_open == True:
+        #     self.cc_env_bulk = self.cc_env[:]
 
         if p.Ca_dyn == True:
             self.v_er = np.zeros(len(cells.cell_i))
@@ -1073,6 +1075,11 @@ class Simulator(object):
         self.I_gj_time = []
         self.I_mem_time = []    # initialize membrane current time vector
 
+        self.vm_Matrix = []    # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
+        self.I_gjmem_Matrix_x = []
+        self.I_gjmem_Matrix_y = []
+
+
         if p.voltage_dye == True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
@@ -1112,6 +1119,8 @@ class Simulator(object):
         # report
 
         if p.run_sim == True:
+
+            print('your gj are ', p.v_sensitive_gj)
 
             loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
@@ -1159,8 +1168,8 @@ class Simulator(object):
             self.fluxes_mem[self.iK] = fK_NaK[cells.mem_to_cells]
 
             # recalculate the net, unbalanced charge and voltage in each cell:
-            # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-            # self.vm = get_volt(q_cells,cells.cell_sa,p)
+            q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+            self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             if p.ions_dict['Ca'] == 1:
 
@@ -1171,8 +1180,8 @@ class Simulator(object):
                 self.fluxes_mem[self.iCa] = fCaATP[cells.mem_to_cells]
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 if p.Ca_dyn ==1:
 
@@ -1181,8 +1190,8 @@ class Simulator(object):
                             cells.cell_vol,self.v_er,self.T,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1208,8 +1217,8 @@ class Simulator(object):
                     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
 
                 if p.HKATPase_dyn == 1:
@@ -1233,8 +1242,8 @@ class Simulator(object):
                         self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 if p.VATPase_dyn == 1:
 
@@ -1257,8 +1266,8 @@ class Simulator(object):
                         self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                    self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
             shuffle(cells.gj_i)
@@ -1274,15 +1283,18 @@ class Simulator(object):
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED[cells.mem_to_cells]
 
                 # # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 # calculate volatge difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
                 vgj = vmB - vmA
 
-                # determine the open state of gap junctions:
-                self.gjopen = self.gj_block*((1.0 - tb.step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2)
+
+                if p.v_sensitive_gj == True:
+
+                    # determine the open state of gap junctions:
+                    self.gjopen = self.gj_block*((1.0 - tb.step(abs(vgj),p.gj_vthresh,p.gj_vgrad)) +0.2)
 
                 # determine flux through gap junctions for this ion:
                 _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
@@ -1293,14 +1305,14 @@ class Simulator(object):
                 self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                self.vm = get_volt(q_cells,cells.cell_sa,p)
 
                 self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
             #recalculate the net, unbalanced charge and voltage in each cell:
-            q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-            self.vm = get_volt(q_cells,cells.cell_sa,p)
+            # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+            # self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                 # determine flux through gap junctions for IP3:
@@ -1386,9 +1398,9 @@ class Simulator(object):
                 self.I_gj_time.append(Igj)
                 Igj = None
 
-                Imem = self.I_mem[:]
-                self.I_mem_time.append(Imem)
-                Imem = None
+                # Imem = self.I_mem[:]
+                # self.I_mem_time.append(Imem)
+                # Imem = None
 
                 vmm = self.vm[:]
                 self.vm_time.append(vmm)
@@ -1543,6 +1555,15 @@ class Simulator(object):
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
 
+        self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
+        vm_dato = np.zeros(len(cells.mem_i))
+        dat_grid_vm = vertData(vm_dato,cells,p)
+        self.vm_Matrix.append(dat_grid_vm[:])
+
+        self.I_gjmem_Matrix_x = []
+        self.I_gjmem_Matrix_y = []
+        self.I_ecm_Matrix_x = []
+        self.I_ecm_Matrix_y = []
 
         if p.voltage_dye == True:
 
@@ -1631,7 +1652,7 @@ class Simulator(object):
             self.update_C_ecm(self.iK,fK_NaK,cells,p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
-            # self.update_V_ecm(cells,p,t)
+            self.update_V_ecm(cells,p,t)
 
             if p.ions_dict['Ca'] == 1:
 
@@ -1646,7 +1667,7 @@ class Simulator(object):
                 self.fluxes_mem[self.iCa] = f_CaATP
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # self.update_V_ecm(cells,p,t)
+                self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
 
@@ -1655,7 +1676,7 @@ class Simulator(object):
                             cells.cell_vol,self.v_er,self.T,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # self.update_V_ecm(cells,p,t)
+                    self.update_V_ecm(cells,p,t)
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1690,7 +1711,7 @@ class Simulator(object):
                 self.update_C_ecm(i,f_ED,cells,p)
 
                 # # recalculate the net, unbalanced charge and voltage in each cell:
-                # self.update_V_ecm(cells,p,t)
+                self.update_V_ecm(cells,p,t)
 
                 # update concentrations in the extracellular spaces:
                 self.update_ecm(cells,p,t,i)
@@ -1702,7 +1723,7 @@ class Simulator(object):
                 self.update_gj(cells,p,t,i)
 
              # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V_ecm(cells,p,t)
+            # self.update_V_ecm(cells,p,t)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
@@ -1763,17 +1784,10 @@ class Simulator(object):
                 self.I_gj_time.append(Igj)
                 Igj = None
 
-                Iecm = self.I_ecm[:]
-                self.I_ecm_time.append(Iecm)
-                Iecm = None
+                # calculate interpolated verts and midpoint data for Vmem:
+                dat_grid_vm = vertData(self.vm[:],cells,p)
 
-                Ienv = self.I_env[:]
-                self.I_env_time.append(Ienv)
-                Ienv = None
-
-                Imem = self.I_mem[:]
-                self.I_mem_time.append(Imem)
-                Imem = None
+                self.vm_Matrix.append(dat_grid_vm[:])
 
                 self.time.append(t)
 
@@ -1807,9 +1821,12 @@ class Simulator(object):
                 do_once = False
 
 
+        self.dyna.scalar_Namem = None
+
         if p.run_sim == False:
 
             # celf = copy.deepcopy(self)
+
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
@@ -1923,7 +1940,7 @@ class Simulator(object):
             self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        # self.update_V_ecm(cells,p)
+        self.update_V_ecm(cells,p)
 
     def Hplus_HKATP_ecm(self,cells,p):
 
@@ -1955,7 +1972,7 @@ class Simulator(object):
             self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        # self.update_V_ecm(cells,p)
+        self.update_V_ecm(cells,p)
 
     def Hplus_VATP_ecm(self,cells,p):
 
@@ -1991,8 +2008,11 @@ class Simulator(object):
         vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
         self.vgj = vmB - vmA
 
-        # determine the open state of gap junctions:
-        self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+
+        if p.v_sensitive_gj == True:
+
+            # determine the open state of gap junctions:
+            self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
         # determine flux through gap junctions for this ion:
         _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
@@ -2164,6 +2184,20 @@ class Simulator(object):
 
             self.I_mem = self.I_mem + I_i
 
+        # calculate and store currents components:
+        Jmag = np.hstack((self.I_gj,self.I_mem))
+
+        jx = Jmag*cells.nx_Igj
+        jy = Jmag*cells.ny_Igj
+
+        self.X_Igj,self.Y_Igj,J_x,J_y = tb.grid_vector_data(cells.xpts_Igj,cells.ypts_Igj,jx,jy,cells,p)
+
+        J_x = np.nan_to_num(J_x)
+        J_y = np.nan_to_num(J_y)
+
+        self.I_gjmem_Matrix_x.append(J_x)
+        self.I_gjmem_Matrix_y.append(J_y)
+
         if p.sim_ECM == True:
 
             self.I_ecm = np.zeros(len(cells.ecm_nn_i))
@@ -2181,6 +2215,33 @@ class Simulator(object):
                 I_i = flux_array*zi*p.F
 
                 self.I_env = self.I_env + I_i
+
+            # calculate interpolated verts and midpoint data for currents:
+
+            Jmag_ecm = self.I_ecm
+
+            jx_ecm = Jmag_ecm*cells.nx_Iecm
+            jy_ecm = Jmag_ecm*cells.ny_Iecm
+
+            # data on environmental currents
+            Jmag_env = self.I_env
+
+            # environmental <---> boundary ecm current components:
+            jx_env = cells.nx_Ienv*Jmag_env
+            jy_env = cells.ny_Ienv*Jmag_env
+
+            # update ecm currents vector components to include environmental current:
+            jx_ecm[cells.bflags_ecm] = jx_ecm[cells.bflags_ecm] + jx_env
+            jy_ecm[cells.bflags_ecm] = jy_ecm[cells.bflags_ecm] + jy_env
+
+            self.X_Iecm,self.Y_Iecm,J_x,J_y = tb.grid_vector_data(cells.xpts_Iecm,cells.ypts_Iecm,jx_ecm,jy_ecm,cells,p)
+
+            J_x = np.nan_to_num(J_x)
+            J_y = np.nan_to_num(J_y)
+
+            self.I_ecm_Matrix_x.append(J_x)
+            self.I_ecm_Matrix_y.append(J_y)
+
 
 def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,ignoreECM = False):
     """
@@ -3022,6 +3083,38 @@ def check_v(vm):
     #
     #     loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
     #     loggers.log_info('If you have selected features using other ions, they will be ignored.')
+
+def vertData(data, cells, p):
+    """
+    Interpolate data from midpoints to verts
+    and sample it over a uniform grid.
+    Produces data suitable for 2D mesh and
+    streamline plots.
+
+    Parameters
+    -----------
+    data          A numpy vector of data points on cell mids
+    cells         An instance of the World object
+    p             An instance of the Parameters object
+
+    Returns
+    ----------
+    dat_grid      THe data sampled on a uniform grid
+
+    """
+
+    verts_data = np.dot(data,cells.matrixMap2Verts)
+    plot_data = np.hstack((data,verts_data))
+
+    dat_grid = interpolate.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid))
+    dat_grid = np.nan_to_num(dat_grid)
+    dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+
+
+
+    return dat_grid
+
+
 
 
 

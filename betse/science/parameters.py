@@ -468,17 +468,18 @@ class Parameters(object):
         self.gj_vthresh = float(self.config['world variables']['gj voltage threshold'])
         self.gj_vgrad  = float(self.config['world variables']['gj voltage window'])
 
-        # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = float(self.config['world variables']['membrane diffusion']['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K = float(self.config['world variables']['membrane diffusion']['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(self.config['world variables']['membrane diffusion']['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(self.config['world variables']['membrane diffusion']['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H = float(self.config['world variables']['membrane diffusion']['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M = float(self.config['world variables']['membrane diffusion']['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P = float(self.config['world variables']['membrane diffusion']['Dm_P'])     #  proteins [m2/s]
+        self.v_sensitive_gj = self.config['world variables']['voltage sensitive gj']
 
-        self.D_ecm_mult = float(self.config['world variables']['ecm diffusion factor'])  # re-scale diffusion in ecms
-        self.ecm_bound_open = self.config['world variables']['ecm boundary open'] # organism open to the environment?
+        # default membrane diffusion constants: easy control of cell's base resting potential
+        self.Dm_Na = float(self.config['base tissue properties']['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K = float(self.config['base tissue properties']['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(self.config['base tissue properties']['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(self.config['base tissue properties']['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H = float(self.config['base tissue properties']['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M = float(self.config['base tissue properties']['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P = float(self.config['base tissue properties']['Dm_P'])     #  proteins [m2/s]
+
+        self.D_ecm_mult = float(self.config['base tissue properties']['ecm diffusion factor'])  # re-scale diffusion in ecms
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = self.config['general options']['ion profile']
@@ -655,7 +656,8 @@ class Parameters(object):
             rate_Namem = float(self.config['change Na mem']['change rate'])
             multi_Namem = float(self.config['change Na mem']['multiplier'])
             apply_Namem = self.config['change Na mem']['apply to']
-            Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem]
+            function = self.config['change Na mem']['function']
+            Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem,function]
             self.scheduled_options['Na_mem'] = Namem
 
         if bool_Kmem == False:
@@ -666,7 +668,8 @@ class Parameters(object):
             rate_Kmem = float(self.config['change K mem']['change rate'])
             multi_Kmem = float(self.config['change K mem']['multiplier'])
             apply_Kmem = self.config['change K mem']['apply to']
-            Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem]
+            function = self.config['change K mem']['function']
+            Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem,function]
             self.scheduled_options['K_mem'] = Kmem
 
         if bool_Clmem == False:
@@ -677,7 +680,8 @@ class Parameters(object):
             rate_Clmem = float(self.config['change Cl mem']['change rate'])
             multi_Clmem = float(self.config['change Cl mem']['multiplier'])
             apply_Clmem = self.config['change Cl mem']['apply to']
-            Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem]
+            function = self.config['change Cl mem']['function']
+            Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem, function]
             self.scheduled_options['Cl_mem'] = Clmem
 
         if bool_Camem == False:
@@ -688,7 +692,8 @@ class Parameters(object):
             rate_Camem = float(self.config['change Ca mem']['change rate'])
             multi_Camem = float(self.config['change Ca mem']['multiplier'])
             apply_Camem = self.config['change Ca mem']['apply to']
-            Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem]
+            function = self.config['change Ca mem']['function']
+            Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
 
         if bool_ip3 == False:
@@ -699,7 +704,9 @@ class Parameters(object):
             rate_ip3 = float(self.config['produce IP3']['change rate'])
             multi_ip3 = float(self.config['produce IP3']['multiplier'])
             apply_ip3 = self.config['produce IP3']['apply to']
-            ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3, apply_ip3]
+            function = self.config['produce IP3']['function']
+            ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3, apply_ip3,function]
+
             self.scheduled_options['IP3'] = ip3
 
         if bool_extV == False:
@@ -710,8 +717,24 @@ class Parameters(object):
             rate_extV = float(self.config['apply external voltage']['change rate'])
             peak_extV = float(self.config['apply external voltage']['peak value'])
             apply_extV = self.config['apply external voltage']['apply to']
+            function = self.config['apply external voltage']['function']
             extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV]
             self.scheduled_options['extV'] = extV
+
+        self.periodic_properties = {}
+        self.gradient_x_properties = {}
+        self.gradient_y_properties = {}
+
+        self.periodic_properties['frequency'] = self.config['function properties']['periodic']['frequency']
+        self.periodic_properties['phase'] =self.config['function properties']['periodic']['phase']
+
+        self.gradient_x_properties['slope'] =self.config['function properties']['gradient_x']['slope']
+        self.gradient_x_properties['offset'] =self.config['function properties']['gradient_x']['offset']
+
+        self.gradient_y_properties['slope'] =self.config['function properties']['gradient_y']['slope']
+        self.gradient_y_properties['offset'] =self.config['function properties']['gradient_y']['offset']
+
+
 
         #.........................DYNAMIC CHANNELS.....................................................................
 
