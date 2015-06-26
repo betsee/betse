@@ -195,6 +195,17 @@ class Dynamics(object):
             self.targets_extV_positive = self.env_target_inds[name_positive]
             self.targets_extV_negative = self.env_target_inds[name_negative]
 
+        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True:
+
+            self.t_cuts = p.scheduled_options['cuts'][0]
+            self.apply_cuts = p.scheduled_options['cuts'][1]
+            self.cut_hole = p.scheduled_options['cuts'][2]
+            self.targets_cuts = []
+            targets = self.cuts_target_inds[self.apply_cuts]
+            self.targets_cuts.append(targets)
+
+            self.targets_cuts = [item for sublist in self.targets_cuts for item in sublist]
+
     def dynamicInit(self,sim,cells,p):
 
         if p.vg_options['Na_vg'] != 0:
@@ -399,7 +410,6 @@ class Dynamics(object):
 
     def scheduledDyn(self,sim,cells,p,t):
 
-
         if p.scheduled_options['Na_mem'] != 0:
 
             modifier = 1
@@ -454,6 +464,29 @@ class Dynamics(object):
 
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
+
+        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:  # FIXME still problem with dynamics portion (vgNa..mismatched!)
+
+            target_method = p.tissue_profiles[self.apply_cuts]['target method']
+
+            removeCells(self.apply_cuts,target_method,sim,cells,p,cavity_volume=self.cut_hole,simMod = True)
+
+            # redo main data length variable for this dynamics module with updated world:
+
+            if p.sim_ECM == True:
+                self.data_length = len(cells.mem_i)
+
+            elif p.sim_ECM == False:
+                self.data_length = len(cells.cell_i)
+
+            sim.tissueInit(cells,p)
+
+            if p.plot_while_solving == True:     # FIXME plot update funciton in checkPlot ...not calling separate figure...
+                pass
+
+                # sim.checkPlot.__init__(cells,sim,p)
+
+            cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
     def externalVoltage(self,sim,cells,p,t,v_env_o):
 
@@ -681,9 +714,9 @@ class Dynamics(object):
                 ecm_val = data_stream['ecm multiplier']
                 designation = data_stream['designation']
 
-                if designation == 'cavity': # FIXME need special method to tag new env bound points
+                if designation == 'cavity':
 
-                    removeCells(name,target_method,cells,p,cavity_volume=True)
+                    removeCells(name,target_method,sim,cells,p,cavity_volume=True)
                     cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
@@ -944,7 +977,7 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
     return target_inds
 
-def removeCells(profile_name,targets_description,cells,p,cavity_volume = False):
+def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = False, simMod = False):
 
     loggers.log_info('Cutting hole in cell cluster! Removing cells...')
 
@@ -954,26 +987,133 @@ def removeCells(profile_name,targets_description,cells,p,cavity_volume = False):
 
             bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
             bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
-            target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+            target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
-            cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix  # update the cluster mask by subtracting hole
+            cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix  # update the cluster mask by subtracting deleted region
 
     if isinstance(targets_description,list):   # otherwise, if it's a list, then take the targets literally...
 
-        target_inds = targets_description
+        target_inds_cell = targets_description
+
+    # get the corresponding flags to membrane entities
+    target_inds_mem = cells.cell_to_mems[target_inds_cell]
+    target_inds_mem,_,_ = tb.flatten(target_inds_mem)
+    target_inds_gj,_,_ = tb.flatten(cells.cell_to_gj[target_inds_cell])
+
+    if p.sim_ECM == True: # get the flags to ecm structures:
+
+        target_inds_ecm = cells.cell_to_ecm[target_inds_cell]
+        target_inds_ecm, _,_ = tb.flatten(target_inds_ecm)
+
+    # If doing online, real-time modifications the simulator object must be updated first:
+    # get names of all attributes of sim object and convert to list
+    if simMod == True:
+        sim_names = list(sim.__dict__.keys())
+        special_names = set(['cc_cells','cc_env','z_array','Dm_cells','fluxes_gj','fluxes_mem'])
+
+        for name in sim_names:
+
+            if name in special_names: # if this is a nested data structure...
+
+                super_data = getattr(sim,name)
+
+                super_data2 = []
+
+                for i, data in enumerate(super_data):
+
+                    if isinstance(data,np.ndarray):
+                        if len(data) == len(cells.cell_i):
+                            print('detected array match to cell data..deleting indices from ',name)
+                            data2 = np.delete(data,target_inds_cell)
+
+                        elif len(data) == len(cells.mem_i):
+                            print('detected array match to membrane data..deleting indices from ',name)
+                            data2 = np.delete(data,target_inds_mem)
+
+                        elif len(data) == len(cells.gj_i):
+                            print('detected array match to gj data..deleting indices from ',name)
+                            data2 = np.delete(data,target_inds_gj)
+
+                    if isinstance(data,list):
+                        if len(data) == len(cells.cell_i):
+                            for index in sorted(target_inds_cell, reverse=True):
+                                del data[index]
+                            print('detected list match to membrane data..deleting indices from ',name)
+                            data2.append(data[index])
+
+                        elif len(data) == len(cells.mem_i):
+                            for index in sorted(target_inds_mem, reverse=True):
+                                del data[index]
+                            print('detected list match to membrane data..deleting indices from ',name)
+                            data2.append(data[index])
+
+                        elif len(data) == len(cells.gj_i):
+                            for index in sorted(target_inds_gj, reverse=True):
+                                del data[index]
+                            print('detected list match to gj data..deleting indices from ',name)
+                            data2.append(data[index])
+
+                    super_data2.append(data2)
+
+                if type(super_data) == np.ndarray:
+                    super_data2 = np.asarray(super_data2)
+
+                setattr(sim,name,super_data2)
+
+            else:
+
+                data = getattr(sim,name)
+
+                if isinstance(data,np.ndarray):
+                    if len(data) == len(cells.cell_i):
+                        print('detected array match to cell data..deleting indices from ',name)
+                        data2 = np.delete(data,target_inds_cell)
+                        setattr(sim,name,data2)
+
+                    elif len(data) == len(cells.mem_i):
+                        print('detected array match to membrane data..deleting indices from ',name)
+                        data2 = np.delete(data,target_inds_mem)
+                        setattr(sim,name,data2)
+
+                    elif len(data) == len(cells.gj_i):
+                        print('detected array match to gj data..deleting indices from ',name)
+                        data2 = np.delete(data,target_inds_gj)
+                        setattr(sim,name,data2)
+
+                if isinstance(data,list):
+                    if len(data) == len(cells.cell_i):
+                        for index in sorted(target_inds_cell, reverse=True):
+                            del data[index]
+                        print('detected list match to membrane data..deleting indices from ',name)
+                        data2.append(data[index])
+                        setattr(sim,name,data2)
+
+                    elif len(data) == len(cells.mem_i):
+                        for index in sorted(target_inds_mem, reverse=True):
+                            del data[index]
+                        print('detected list match to membrane data..deleting indices from ',name)
+                        data2.append(data[index])
+                        setattr(sim,name,data2)
+
+                    elif len(data) == len(cells.gj_i):
+                        for index in sorted(target_inds_gj, reverse=True):
+                            del data[index]
+                        print('detected list match to gj data..deleting indices from ',name)
+                        data2.append(data[index])
+                        setattr(sim,name,data2)
 
     #update the cells structure to remove the cells, associated gj connections, and ecm spaces:
     new_cell_centres = []
     new_ecm_verts = []
     removal_flags = np.zeros(len(cells.cell_i))
-    removal_flags[target_inds] = 1
+    removal_flags[target_inds_cell] = 1
 
-    if cavity_volume == True: # if this boolean is true, then we want the new cavity volume to be assigned to the model
+    if cavity_volume == True and p.sim_ECM == True: # if true, want the new cavity volume to be assigned to the model
 
         # keep track of the original environmental points:
         original_env_points = cells.env_points
          # calculate the volume of the cavity based on cells removed
-        cells.cavity_volume = np.sum(cells.cell_vol[target_inds])
+        cells.cavity_volume = np.sum(cells.cell_vol[target_inds_cell])
 
 
     for i,flag in enumerate(removal_flags):
@@ -1015,6 +1155,10 @@ def removeCells(profile_name,targets_description,cells,p,cavity_volume = False):
         cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)      # Free up memory...
+
+    # re-initialize all dynamics objects
+
+
 
 
 

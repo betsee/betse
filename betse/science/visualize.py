@@ -688,7 +688,7 @@ class AnimateGJData_smoothed(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
-class PlotWhileSolving(object):
+class PlotWhileSolving(object):  # FIXME new function for large update with new cell structures...not calling new plot window...
 
     def __init__(self,cells,sim,p,number_cells=False,clrAutoscale = True, clrMin = None, clrMax = None):
 

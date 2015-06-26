@@ -647,6 +647,7 @@ class Parameters(object):
         bool_Camem = bool(self.config['change Ca mem']['event happens'])
         bool_ip3 = bool(self.config['produce IP3']['event happens'])
         bool_extV = bool(self.config['apply external voltage']['event happens'])
+        bool_cut = bool(self.config['cutting event']['event happens'])
 
         if bool_Namem == False:
             self.scheduled_options['Na_mem'] = 0
@@ -718,8 +719,18 @@ class Parameters(object):
             peak_extV = float(self.config['apply external voltage']['peak value'])
             apply_extV = self.config['apply external voltage']['apply to']
             function = self.config['apply external voltage']['function']
-            extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV]
+            extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV, function]
             self.scheduled_options['extV'] = extV
+
+        if bool_cut == False:
+            self.scheduled_options['cuts'] = 0
+
+        else:
+            cut_time = float(self.config['cutting event']['cut time']) # time event happens
+            apply_to = self.config['cutting event']['apply to']    # tissue profile to apply this to
+            hole = self.config['cutting event']['internal hole']  # does the cut produce an internal hole rather than free boundary?
+            cuts_params = [cut_time, apply_to, hole]
+            self.scheduled_options['cuts'] = cuts_params
 
         self.periodic_properties = {}
         self.gradient_x_properties = {}
@@ -1069,6 +1080,12 @@ class Parameters(object):
             assert self.z_M_cell == -1
 
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
 
 
         if self.ion_profile == 'basic_Ca':

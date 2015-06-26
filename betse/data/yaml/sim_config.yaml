@@ -79,8 +79,8 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
+    total time: 3.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
@@ -126,13 +126,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 0.5                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 3.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 5.0e-4            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 5.0e-7        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 1.0e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -160,7 +160,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -258,7 +258,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # the x-dimension of the world space [m]
+  world x: 300e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -386,7 +386,7 @@ geometry defining bitmaps:
 
         file: box_top_cells.png        # name of the first bitmap defining geometry
 
-        designation: depolarized   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+        designation: holes   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 3:
 
@@ -440,9 +440,9 @@ tissue profile 1:
     ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 tissue profile 2:
-    name: depolarized       # give your profile a name that will be used to apply the profile
-    cell targets: [12]    #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None    # special instructions for making the profile:'cavity' or 'cuts'
+    name: holes       # give your profile a name that will be used to apply the profile
+    cell targets: [248,253,225,249,173]     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: 'cuts'      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -492,7 +492,7 @@ boundary profile 2:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True              # turn the even on (True) or off (False)
+  event happens: False              # turn the even on (True) or off (False)
   change start: 0.01                # sim time to start change [s]
   change finish: 10.0               # sim time to end change and return to original [s]
   change rate: 0.005                 # rate of change [s]
@@ -550,6 +550,12 @@ apply external voltage:             # apply external voltage to ecm spaces on th
     function: None                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
+cutting event:
+    event happens: True
+    cut time: 1.0
+    apply to: 'holes'    # tissue profile to apply this to -- can only be one profile, no lists
+    internal hole: True
+
 function properties:        # set properties of functions defined in above
 
   periodic:
@@ -577,11 +583,11 @@ function properties:        # set properties of functions defined in above
 # will be updated with introduction of tissue types in future versions.
 
 voltage gated Na+:
-    turn on: True                      # voltage gated sodium channel ?
+    turn on: False                      # voltage gated sodium channel ?
     apply to: ['excitables']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated K+:                       # voltage gated potassium channel ?
-    turn on: True
+    turn on: False
     apply to: ['excitables']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated Ca2+:                     # voltage gated calcium channel ?
@@ -644,7 +650,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -656,7 +662,7 @@ results options:
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: False                # if True, plots and animations show individual cells,
+  show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.
@@ -664,7 +670,7 @@ results options:
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
 
-  overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
+  overlay currents: False          # overlay electric current or concentration flux streamlines on 2d plotted data
 
   streamline density: 1.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
@@ -673,7 +679,7 @@ results options:
 
   plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
 
-  plot cutlines: False            # plot any scheduled cut-lines on the cell cluster plot
+  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot
 
   plot masked geometry: False      # plot the geometry using the overal shape as a mask
 

@@ -1201,21 +1201,32 @@ class World(object):
         ygrid = np.linspace(self.ymin,self.ymax,self.msize)
         self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
+        # compute mapping between cell and gj:
+        self.cell_to_gj =[[] for x in range(0,len(self.cell_i))]
+
+        for i, inds in enumerate(self.gap_jun_i):
+            ind1 = inds[0]
+            ind2 = inds[1]
+            self.cell_to_gj[ind1].append(i)
+            self.cell_to_gj[ind2].append(i)
+
+        self.cell_to_gj = np.asarray(self.cell_to_gj)
+
+        self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
+
+        for cell_index in self.cell_i:
+
+            index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
+            self.cell_to_mems.append(index2mems)
+
+        self.cell_to_mems = np.asarray(self.cell_to_mems)
+
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
 
             self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
 
             self.env_i = [x for x in range(0,len(self.env_points))]
-
-            self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
-
-            for cell_index in self.cell_i:
-
-                index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
-                self.cell_to_mems.append(index2mems)
-
-            self.cell_to_mems = np.asarray(self.cell_to_mems)
 
             # calculate the mapping between ecm indices and membrane indices:
             cell_tree = sps.KDTree(self.ecm_mids)
@@ -1298,7 +1309,7 @@ class World(object):
             self.cell2ecm_map = None
             # self.ecm_polyinds = None
             # self.ecm_verts_unique = None
-            self.cell2GJ_map = None
+            # self.cell2GJ_map = None
 
 
         self.cell_number = self.cell_centres.shape[0]
@@ -1306,6 +1317,8 @@ class World(object):
 
         self.clust_xy = None
         self.cell_nn = None
+
+        loggers.log_info('Cell cluster creation complete!')
 
     def redo_gj(self,dyna,p):
 
@@ -1353,6 +1366,17 @@ class World(object):
             cj = pair[1]
             self.gjMatrix[igj,ci] = -1
             self.gjMatrix[igj,cj] = 1
+
+        # recompute mapping between cell and gj:
+        self.cell_to_gj =[[] for x in range(0,len(self.cell_i))]
+
+        for i, inds in enumerate(self.gap_jun_i):
+            ind1 = inds[0]
+            ind2 = inds[1]
+            self.cell_to_gj[ind1].append(i)
+            self.cell_to_gj[ind2].append(i)
+
+        self.cell_to_gj = np.asarray(self.cell_to_gj)
 
         # save the cell cluster
         loggers.log_info('Saving the cell cluster... ')

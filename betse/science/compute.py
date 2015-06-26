@@ -113,7 +113,7 @@ class Simulator(object):
 
         i = -1                           # an index to track place in ion list
 
-        flx_gj_i = np.zeros(len(cells.gj_i))
+        self.flx_gj_i = np.zeros(len(cells.gj_i))
         self.fluxes_gj = []
 
         self.I_gj =np.zeros(len(cells.gj_i))     # total current in the network
@@ -122,261 +122,124 @@ class Simulator(object):
         self.gjopen_time = []   # stores gj open fraction at each time
 
         # Membrane current data structure initialization
-        flx_mem_i = np.zeros(len(cells.mem_i))
+        self.flx_mem_i = np.zeros(len(cells.mem_i))
         self.fluxes_mem = []
 
         self.I_mem =np.zeros(len(cells.mem_i))     # total current across membranes
         self.I_mem_time = []                            # membrane current unit time
 
-        # Initialize cellular concentrations of ions:
-        if p.ions_dict['Na'] == 1:
+        ion_names = list(p.ions_dict.keys())
 
-            i = i+1
+        #-------------------------------------------------------------------------------------------------------------
 
-            self.iNa = i
-            self.movingIons.append(self.iNa)
-            self.ionlabel[self.iNa] = 'sodium'
+        for name in ion_names:
 
-            cNa_cells = np.zeros(len(cells.cell_i))
-            cNa_cells[:]=p.cNa_cell
+            if p.ions_dict[name] == 1:
 
-            cNa_env = np.zeros(len(cells.cell_i))
-            cNa_env[:]=p.cNa_env
+                i = i+1
 
-            DmNa = np.zeros(len(cells.cell_i))
-            DmNa[:] = p.Dm_Na
+                str1 = 'i' + name  # create the ion index
 
-            zNa = np.zeros(len(cells.cell_i))
-            zNa[:] = p.z_Na
+                setattr(self,str1,i)  # dynamically add this field to the object
 
-            self.cc_cells.append(cNa_cells)
-            self.cc_env.append(cNa_env)
-            self.zs.append(p.z_Na)
-            self.z_array.append(zNa)
-            self.Dm_cells.append(DmNa)
-            self.D_free.append(p.Do_Na)
+                if name != 'P':
+                    self.movingIons.append(vars(self)[str1])
 
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
+                self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
 
+                if name != 'H':
 
-        if p.ions_dict['K'] == 1:
+                    # cell concentration for the ion
+                    str_cells = 'c' + name + '_cells'
+                    setattr(self,str_cells,np.zeros(len(cells.cell_i)))
+                    vars(self)[str_cells][:]=p.cell_concs[name]
 
-            i= i+ 1
+                    # environmental concentration for the ion
+                    str_env = 'c' + name + '_env'
+                    setattr(self,str_env,np.zeros(len(cells.cell_i)))
+                    vars(self)[str_env][:] = p.env_concs[name]
 
-            self.iK = i
-            self.movingIons.append(self.iK)
-            self.ionlabel[self.iK] = 'potassium'
+                    # base membrane permeability for each ion
+                    str_Dm = 'Dm' + name
 
-            cK_cells = np.zeros(len(cells.cell_i))
-            cK_cells[:]=p.cK_cell
+                    setattr(self, str_Dm, np.zeros(len(cells.cell_i)))
+                    vars(self)[str_Dm][:] = p.mem_perms[name]
 
-            cK_env = np.zeros(len(cells.cell_i))
-            cK_env[:]=p.cK_env
+                    str_z = 'z' + name
 
-            DmK = np.zeros(len(cells.cell_i))
-            DmK[:] = p.Dm_K
+                    setattr(self, str_z, np.zeros(len(cells.cell_i)))
+                    vars(self)[str_z][:] = p.ion_charge[name]
 
-            zK = np.zeros(len(cells.cell_i))
-            zK[:] = p.z_K
+                    self.cc_cells.append(vars(self)[str_cells])
+                    self.cc_env.append(vars(self)[str_env])
+                    self.zs.append(p.ion_charge[name])
+                    self.z_array.append(vars(self)[str_z])
+                    self.Dm_cells.append(vars(self)[str_Dm])
+                    self.D_free.append(p.free_diff[name])
 
-            self.cc_cells.append(cK_cells)
-            self.cc_env.append(cK_env)
-            self.zs.append(p.z_K)
-            self.z_array.append(zK)
-            self.Dm_cells.append(DmK)
-            self.D_free.append(p.Do_K)
+                    self.fluxes_gj.append(self.flx_gj_i)
+                    self.fluxes_mem.append(self.flx_mem_i)
 
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
+                    if name == 'Ca':
+                        self.cCa_er = np.zeros(len(cells.cell_i))
+                        self.cCa_er[:]=p.cCa_er
 
+                        self.zCa_er = np.zeros(len(cells.cell_i))
+                        self.zCa_er[:]=p.z_Ca
 
-        if p.ions_dict['Cl'] == 1:
+                        self.cc_er.append(self.cCa_er)
+                        self.z_er.append(p.z_Ca)
+                        self.z_array_er.append(self.zCa_er)
+                        self.Dm_er.append(p.Dm_Ca)
 
-            i =i+1
+                    if name == 'M' and p.ions_dict['Ca'] == 1:
 
-            self.iCl = i
-            self.movingIons.append(self.iCl)
-            self.ionlabel[self.iCl] = 'chloride'
+                        self.cM_er = np.zeros(len(cells.cell_i))
+                        self.cM_er[:]=p.cM_er
 
-            cCl_cells = np.zeros(len(cells.cell_i))
-            cCl_cells[:]=p.cCl_cell
+                        self.zM_er = np.zeros(len(cells.cell_i))
+                        self.zM_er[:]=p.z_M
 
-            cCl_env = np.zeros(len(cells.cell_i))
-            cCl_env[:]=p.cCl_env
+                        self.cc_er.append(self.cM_er)
+                        self.z_er.append(p.z_M)
+                        self.z_array_er(self.zM_er)
+                        self.Dm_er.append(p.Dm_M)
 
-            DmCl = np.zeros(len(cells.cell_i))
-            DmCl[:] = p.Dm_Cl
+                else:
+                    # Do H+ separately as it's complicated by the buffer
+                    # initialize the carbonic acid for the carbonate buffer
+                        self.cHM_cells = np.zeros(len(cells.cell_i))
+                        self.cHM_cells[:] = 0.03*p.CO2
 
-            zCl = np.zeros(len(cells.cell_i))
-            zCl[:] = p.z_Cl
+                        self.cHM_env = np.zeros(len(cells.cell_i))
+                        self.cHM_env[:] = 0.03*p.CO2
 
-            self.cc_cells.append(cCl_cells)
-            self.cc_env.append(cCl_env)
-            self.zs.append(p.z_Cl)
-            self.z_array.append(zCl)
-            self.Dm_cells.append(DmCl)
-            self.D_free.append(p.Do_Cl)
+                        self.cH_cells = np.zeros(len(cells.cell_i))
+                        # cH_cells[:]=p.cH_cell
+                        self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
+                        self.cH_cells = (10**(-self.pH_cell))*1000  # units mmol/L
 
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
+                        self.cH_env = np.zeros(len(cells.cell_i))
+                        # cH_env[:]=p.cH_env
+                        self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
+                        self.cH_env = (10**(-self.pH_env))*1000 # units mmol/L
 
+                        DmH = np.zeros(len(cells.cell_i))
+                        DmH[:] = p.Dm_H
 
-        if p.ions_dict['Ca'] == 1:
-
-            i =i+1
-
-            self.iCa = i
-            self.movingIons.append(self.iCa)
-            self.ionlabel[self.iCa] = 'calcium'
-
-            cCa_cells = np.zeros(len(cells.cell_i))
-            cCa_cells[:]=p.cCa_cell
-
-            cCa_env = np.zeros(len(cells.cell_i))
-            cCa_env[:]=p.cCa_env
-
-            DmCa = np.zeros(len(cells.cell_i))
-            DmCa[:] = p.Dm_Ca
-
-            zCa = np.zeros(len(cells.cell_i))
-            zCa[:] = p.z_Ca
-
-            self.cc_cells.append(cCa_cells)
-            self.cc_env.append(cCa_env)
-            self.zs.append(p.z_Ca)
-            self.z_array.append(zCa)
-            self.Dm_cells.append(DmCa)
-            self.D_free.append(p.Do_Ca)
-
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
-
-            if p.ions_dict['Ca'] ==1:
-                cCa_er = np.zeros(len(cells.cell_i))
-                cCa_er[:]=p.cCa_er
-
-                zCa_er = np.zeros(len(cells.cell_i))
-                zCa_er[:]=p.z_Ca
-
-                self.cc_er.append(cCa_er)
-                self.z_er.append(p.z_Ca)
-                self.z_array_er.append(zCa_er)
-                self.Dm_er.append(p.Dm_Ca)
-
-        if p.ions_dict['P'] == 1:
-
-            i =i+1
-
-            self.iP = i
-            self.ionlabel[self.iP] = 'proteins'
-
-            cP_cells = np.zeros(len(cells.cell_i))
-            cP_cells[:]=p.cP_cell
-
-            cP_env = np.zeros(len(cells.cell_i))
-            cP_env[:]=p.cP_env
-
-            DmP = np.zeros(len(cells.cell_i))
-            DmP[:] = p.Dm_P
-
-            zP = np.zeros(len(cells.cell_i))
-            zP[:] = p.z_P
-
-            self.cc_cells.append(cP_cells)
-            self.cc_env.append(cP_env)
-            self.zs.append(p.z_P)
-            self.z_array.append(zP)
-            self.Dm_cells.append(DmP)
-            self.D_free.append(p.Do_P)
-
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
-
-        if p.ions_dict['M'] == 1:
-
-            i =i+1
-
-            self.iM = i
-            self.movingIons.append(self.iM)
-            self.ionlabel[self.iM] = 'charge balance anion'
-
-            cM_cells = np.zeros(len(cells.cell_i))
-            cM_cells[:]=p.cM_cell
-
-            cM_env = np.zeros(len(cells.cell_i))
-            cM_env[:]=p.cM_env
-
-            DmM = np.zeros(len(cells.cell_i))
-            DmM[:] = p.Dm_M
-
-            zM = np.zeros(len(cells.cell_i))
-            zM[:] = p.z_M
-
-            self.cc_cells.append(cM_cells)
-            self.cc_env.append(cM_env)
-            self.zs.append(p.z_M)
-            self.z_array.append(zM)
-            self.Dm_cells.append(DmM)
-            self.D_free.append(p.Do_M)
-
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
-
-            if p.ions_dict['Ca'] ==1:
-                cM_er = np.zeros(len(cells.cell_i))
-                cM_er[:]=p.cM_er
-
-                zM_er = np.zeros(len(cells.cell_i))
-                zM_er[:]=p.z_M
-
-                self.cc_er.append(cM_er)
-                self.z_er.append(p.z_M)
-                self.z_array_er(zM_er)
-                self.Dm_er.append(p.Dm_M)
-
-
-        if p.ions_dict['H'] == 1:
-
-            i =i+1
-
-            self.iH = i
-
-            #self.movingIons.append(self.iH)
-            self.ionlabel[self.iH] = 'protons'
-
-            # initialize the carbonic acid for the carbonate buffer
-            self.cHM_cells = np.zeros(len(cells.cell_i))
-            self.cHM_cells[:] = 0.03*p.CO2
-
-            self.cHM_env = np.zeros(len(cells.cell_i))
-            self.cHM_env[:] = 0.03*p.CO2
-
-            cH_cells = np.zeros(len(cells.cell_i))
-            # cH_cells[:]=p.cH_cell
-            pH_cell = 6.1 + np.log10(cM_cells/self.cHM_cells)
-            cH_cells = (10**(-pH_cell))*1000  # units mmol/L
-
-            cH_env = np.zeros(len(cells.cell_i))
-            # cH_env[:]=p.cH_env
-            pH_env = 6.1 + np.log10(cM_env/self.cHM_env)
-            cH_env = (10**(-pH_env))*1000 # units mmol/L
-
-            DmH = np.zeros(len(cells.cell_i))
-            DmH[:] = p.Dm_H
-
-            zH = np.zeros(len(cells.cell_i))
-            zH[:] = p.z_H
-
-            self.cc_cells.append(cH_cells)
-            self.cc_env.append(cH_env)
-            self.zs.append(p.z_H)
-            self.z_array(zH)
-            self.Dm_cells.append(DmH)
-            self.D_free.append(p.Do_H)
-
-            self.fluxes_gj.append(flx_gj_i)
-            self.fluxes_mem.append(flx_mem_i)
+                        self.zH = np.zeros(len(cells.cell_i))
+                        self.zH[:] = p.z_H
+
+                        self.cc_cells.append(self.cH_cells)
+                        self.cc_env.append(self.cH_env)
+                        self.zs.append(p.z_H)
+                        self.z_array(self.zH)
+                        self.Dm_cells.append(self.DmH)
+                        self.D_free.append(p.Do_H)
+
+                        self.fluxes_gj.append(self.flx_gj_i)
+                        self.fluxes_mem.append(self.flx_mem_i)
+        #-------------------------------------------------------------------------------------------------------
 
         # Initialize membrane thickness:
         self.tm = np.zeros(len(cells.cell_i))
@@ -1132,7 +995,7 @@ class Simulator(object):
 
         if p.plot_while_solving == True:
 
-            checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+            self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
                 clrMax = p.Vmem_max_clr)
 
         do_once = True  # a variable to time the loop only once
@@ -1448,7 +1311,7 @@ class Simulator(object):
                     ccer = None
 
                 if p.plot_while_solving == True:
-                    checkPlot.updatePlot(self,p)
+                    self.checkPlot.updatePlot(self,p)
 
                         # get time for loop and estimate total time for simulation
             if do_once == True:
@@ -1463,6 +1326,7 @@ class Simulator(object):
         if p.run_sim == False:
 
             # celf = copy.deepcopy(self)
+            self.checkPlot = None
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
@@ -1471,6 +1335,7 @@ class Simulator(object):
 
         elif p.run_sim == True:
             # celf = copy.deepcopy(self)
+            self.checkPlot = None
             datadump = [self,cells,p]
             fh.saveSim(self.savedSim,datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
@@ -1613,7 +1478,7 @@ class Simulator(object):
 
         if p.plot_while_solving == True:
 
-            checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
+            self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
                 clrMax = p.Vmem_max_clr)
 
         do_once = True  # a variable to time the loop only once
@@ -1807,7 +1672,7 @@ class Simulator(object):
                     ccer = None
 
                 if p.plot_while_solving == True:
-                    checkPlot.updatePlot(self,p)
+                    self.checkPlot.updatePlot(self,p)
 
                         # get time for loop and estimate total time for simulation
             if do_once == True:
@@ -2241,7 +2106,6 @@ class Simulator(object):
 
             self.I_ecm_Matrix_x.append(J_x)
             self.I_ecm_Matrix_y.append(J_y)
-
 
 def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,ignoreECM = False):
     """
