@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 3.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
@@ -126,9 +126,9 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 5.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 3.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 2.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
     sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
@@ -492,13 +492,13 @@ boundary profile 2:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False              # turn the even on (True) or off (False)
-  change start: 0.01                # sim time to start change [s]
+  event happens: True              # turn the even on (True) or off (False)
+  change start: 0.5                # sim time to start change [s]
   change finish: 10.0               # sim time to end change and return to original [s]
-  change rate: 0.005                 # rate of change [s]
-  multiplier: 50.0                  # factor to multiply base level
-  function: None                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['depolarized']        # name(s) of the tissue profile(s) to apply it to
+  change rate: 0.2                 # rate of change [s]
+  multiplier: 2.0                  # factor to multiply base level
+  function: gradient_x                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
+  apply to: ['excitables']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
@@ -650,7 +650,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: True         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)

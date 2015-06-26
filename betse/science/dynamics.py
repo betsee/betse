@@ -2,8 +2,8 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME create an applied voltage method
-# FIXME create a gradient vmem method
+# FIXME do cut cells routine for p.sim_ECM true !!!
+
 
 import numpy as np
 from scipy import spatial as sps
@@ -114,7 +114,6 @@ class Dynamics(object):
             if self.function_Namem != 'None':
 
                 self.scalar_Namem = getattr(tb,self.function_Namem)(cells,sim,p)
-
 
         if p.scheduled_options['K_mem'] != 0:
 
@@ -465,26 +464,25 @@ class Dynamics(object):
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
 
-        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:  # FIXME still problem with dynamics portion (vgNa..mismatched!)
+        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:
 
             target_method = p.tissue_profiles[self.apply_cuts]['target method']
 
             removeCells(self.apply_cuts,target_method,sim,cells,p,cavity_volume=self.cut_hole,simMod = True)
 
             # redo main data length variable for this dynamics module with updated world:
-
             if p.sim_ECM == True:
                 self.data_length = len(cells.mem_i)
 
             elif p.sim_ECM == False:
                 self.data_length = len(cells.cell_i)
 
-            sim.tissueInit(cells,p)
+            self.tissueProfiles(sim,cells,p)
+            self.runAllInit(sim,cells,p)
 
-            if p.plot_while_solving == True:     # FIXME plot update funciton in checkPlot ...not calling separate figure...
-                pass
+            if p.plot_while_solving == True:
 
-                # sim.checkPlot.__init__(cells,sim,p)
+                sim.checkPlot.resetData(cells,sim,p)
 
             cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
@@ -530,6 +528,14 @@ class Dynamics(object):
         #truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
         truth_not_inactivated_Na = self.inactivated_Na == 0  # return bools of vm that can activate
         truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
+
+        # print('------cell length------------')
+        # print(len(cells.cell_i))
+        # print('--------vgNa lengths---------')
+        # print(len(truth_vmGTvon_Na))
+        # print(len(truth_not_inactivated_Na))
+        # print(len(truth_vgNa_Off))
+        # print(len(self.targets_vgNa))
 
         # find the cell indicies that correspond to all statements of logic phase 1:
         inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*
@@ -1009,7 +1015,9 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     # get names of all attributes of sim object and convert to list
     if simMod == True:
         sim_names = list(sim.__dict__.keys())
-        special_names = set(['cc_cells','cc_env','z_array','Dm_cells','fluxes_gj','fluxes_mem'])
+        specials_list = ['cc_cells','cc_env','z_array','Dm_cells','fluxes_gj','fluxes_mem','Dm_base',\
+            'Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR']
+        special_names = set(specials_list)
 
         for name in sim_names:
 
@@ -1023,34 +1031,28 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
                     if isinstance(data,np.ndarray):
                         if len(data) == len(cells.cell_i):
-                            print('detected array match to cell data..deleting indices from ',name)
                             data2 = np.delete(data,target_inds_cell)
 
                         elif len(data) == len(cells.mem_i):
-                            print('detected array match to membrane data..deleting indices from ',name)
                             data2 = np.delete(data,target_inds_mem)
 
                         elif len(data) == len(cells.gj_i):
-                            print('detected array match to gj data..deleting indices from ',name)
                             data2 = np.delete(data,target_inds_gj)
 
                     if isinstance(data,list):
                         if len(data) == len(cells.cell_i):
                             for index in sorted(target_inds_cell, reverse=True):
                                 del data[index]
-                            print('detected list match to membrane data..deleting indices from ',name)
                             data2.append(data[index])
 
                         elif len(data) == len(cells.mem_i):
                             for index in sorted(target_inds_mem, reverse=True):
                                 del data[index]
-                            print('detected list match to membrane data..deleting indices from ',name)
                             data2.append(data[index])
 
                         elif len(data) == len(cells.gj_i):
                             for index in sorted(target_inds_gj, reverse=True):
                                 del data[index]
-                            print('detected list match to gj data..deleting indices from ',name)
                             data2.append(data[index])
 
                     super_data2.append(data2)
@@ -1066,17 +1068,14 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
                 if isinstance(data,np.ndarray):
                     if len(data) == len(cells.cell_i):
-                        print('detected array match to cell data..deleting indices from ',name)
                         data2 = np.delete(data,target_inds_cell)
                         setattr(sim,name,data2)
 
                     elif len(data) == len(cells.mem_i):
-                        print('detected array match to membrane data..deleting indices from ',name)
                         data2 = np.delete(data,target_inds_mem)
                         setattr(sim,name,data2)
 
                     elif len(data) == len(cells.gj_i):
-                        print('detected array match to gj data..deleting indices from ',name)
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
@@ -1084,21 +1083,18 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                     if len(data) == len(cells.cell_i):
                         for index in sorted(target_inds_cell, reverse=True):
                             del data[index]
-                        print('detected list match to membrane data..deleting indices from ',name)
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
                     elif len(data) == len(cells.mem_i):
                         for index in sorted(target_inds_mem, reverse=True):
                             del data[index]
-                        print('detected list match to membrane data..deleting indices from ',name)
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
                     elif len(data) == len(cells.gj_i):
                         for index in sorted(target_inds_gj, reverse=True):
                             del data[index]
-                        print('detected list match to gj data..deleting indices from ',name)
                         data2.append(data[index])
                         setattr(sim,name,data2)
 

@@ -3,6 +3,9 @@
 # See "LICENSE" for further details.
 
 # FIXME saving animations doesn't work
+# FIXME Need a time check in animations to deal with changing cell structure
+# FIXME need to have cells.old and cells.new saved in the simulation for dealing with changing cell structure
+# FIXME need to put the flattened data stuff into all animations to deal with chanigng cell structure
 
 import warnings
 import numpy as np
@@ -127,15 +130,20 @@ class AnimateCellData(object):
         # set range of the colormap
 
         if clrAutoscale == True:
-            self.cmean = np.mean(self.zdata_t)
-            self.cmin = round(np.min(self.zdata_t),1)
-            self.cmax = round(np.max(self.zdata_t),1)
+            # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in zdata_t:
+                for val in zarray:
+                    all_z.append(val)
+
+            self.cmean = np.mean(all_z)
+            self.cmin = round(np.min(all_z))
+            self.cmax = round(np.max(all_z))
             clrCheck = self.cmax - self.cmin
 
             if clrCheck == 0:
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
-
 
         elif clrAutoscale == False:
             self.cmin = clrMin
@@ -688,7 +696,7 @@ class AnimateGJData_smoothed(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
 
-class PlotWhileSolving(object):  # FIXME new function for large update with new cell structures...not calling new plot window...
+class PlotWhileSolving(object):
 
     def __init__(self,cells,sim,p,number_cells=False,clrAutoscale = True, clrMin = None, clrMax = None):
 
@@ -706,6 +714,10 @@ class PlotWhileSolving(object):  # FIXME new function for large update with new 
 
         self.cells = cells
         self.p = p
+
+        self.number_cells = number_cells
+        self.clrMin = clrMin
+        self.clrMax = clrMax
 
         xmin = p.um*(cells.clust_x_min - p.clip)
         xmax = p.um*(cells.clust_x_max + p.clip)
@@ -842,6 +854,102 @@ class PlotWhileSolving(object):  # FIXME new function for large update with new 
             self.i = self.i + 1
             savename = self.savedAni + str(self.i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
+
+    def resetData(self,cells,sim,p):
+
+        vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
+
+        self.cells = cells
+        self.p = p
+
+        self.ax.cla()
+
+        xmin = p.um*(cells.clust_x_min - p.clip)
+        xmax = p.um*(cells.clust_x_max + p.clip)
+        ymin = p.um*(cells.clust_y_min - p.clip)
+        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if self.clrAutoscale == True:
+
+            self.cmean = np.mean(vdata)
+            self.cmin = round(np.min(vdata),1)
+            self.cmax = round(np.max(vdata),1)
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 0.1
+                self.cmax = self.cmax + 0.1
+
+        elif self.clrAutoscale == False:
+
+            self.cmin = self.clrMin
+            self.cmax = self.clrMax
+
+        if p.sim_ECM == False:
+
+            if p.showCells == True:
+                # Add a collection of cell polygons, with animated voltage data
+                points = np.multiply(cells.cell_verts, p.um)
+                self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
+                self.coll2.set_alpha(1.0)
+                self.ax.add_collection(self.coll2)
+
+            else:  # FIXME do this for smoothed data with no ecm
+                pass
+                # xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
+                # ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
+                # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+                #
+                # dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,(self.Xgrid,self.Ygrid))
+                # dat_grid = np.nan_to_num(dat_grid)
+                # dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+                #
+                # if p.plotMask == True:
+                #     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+                #
+                # self.coll2 = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+
+        elif p.sim_ECM == True:
+
+            dat_grid = sim.vm_Matrix[0]
+
+            if p.plotMask == True:
+                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.cluster_mask))
+
+            self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
+
+            if p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
+
+                boundv = sim.v_env*1e3
+
+                self.vext_plot = self.ax.scatter(p.um*cells.env_points[:,0],p.um*cells.env_points[:,1],
+                    cmap=self.colormap,c=boundv,zorder=10)
+
+                self.vext_plot.set_clim(self.cmin,self.cmax)
+
+            if p.showCells == True:
+
+                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                coll = LineCollection(cell_edges_flat,colors='k')
+                coll.set_alpha(0.5)
+                self.ax.add_collection(coll)
+
+         # set range of the colormap
+
+        self.coll2.set_clim(self.cmin,self.cmax)
+        # self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
+
+        if self.number_cells == True and p.showCells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
+
+        # self.cb.set_label('Voltage [mV]')
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_title(self.tit)
 
 class AnimateCurrent(object):
 

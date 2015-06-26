@@ -3,12 +3,11 @@
 # See "LICENSE" for further details.
 
 # FIXME pumps should use Hill functions, not linear to concentrations
-# FIXME need to have set of extended ecm points at boundary, separate boundary electrodiffusion and setting V and concs at these extended points!
-
+# FIXME de-spagghetti the baseInit_ECM code and do runSim_ECM for cut cell dynamics and proper pickling...
 
 import numpy as np
 import numpy.ma as ma
-from scipy import interpolate
+from scipy import interpolate as interp
 import os, os.path
 import copy
 from random import shuffle
@@ -983,7 +982,6 @@ class Simulator(object):
 
         if p.run_sim == True:
 
-            print('your gj are ', p.v_sensitive_gj)
 
             loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
@@ -1323,10 +1321,16 @@ class Simulator(object):
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
+        # Find embeded functions that can't be pickled...
+        for key, valu in vars(self.dyna).items():
+            if type(valu) == interp.interp1d:
+                setattr(self.dyna,key,None)
+
+        self.checkPlot = None
+
         if p.run_sim == False:
 
             # celf = copy.deepcopy(self)
-            self.checkPlot = None
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
@@ -1334,8 +1338,8 @@ class Simulator(object):
             loggers.log_info(message_1)
 
         elif p.run_sim == True:
-            # celf = copy.deepcopy(self)
-            self.checkPlot = None
+
+
             datadump = [self,cells,p]
             fh.saveSim(self.savedSim,datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
@@ -2970,7 +2974,7 @@ def vertData(data, cells, p):
     verts_data = np.dot(data,cells.matrixMap2Verts)
     plot_data = np.hstack((data,verts_data))
 
-    dat_grid = interpolate.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid))
+    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid))
     dat_grid = np.nan_to_num(dat_grid)
     dat_grid = np.multiply(dat_grid,cells.cluster_mask)
 

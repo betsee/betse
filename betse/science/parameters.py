@@ -7,7 +7,6 @@
 # Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
 # FIXME create a planaria-specific (aquatic invertebrate) ion profile
-# FIXME parameter to control use of bitmaps in cluster and tissue definition
 
 
 from betse.exceptions import BetseExceptionParameters
