@@ -1197,8 +1197,10 @@ class World(object):
         self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
 
         # structures for plotting interpolated data on cell centres:
-        xgrid = np.linspace(self.xmin,self.xmax,self.msize)
-        ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+        # xgrid = np.linspace(self.xmin,self.xmax,self.msize)
+        # ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+        xgrid = np.linspace(self.clust_x_min - p.clip,self.clust_x_max + p.clip,self.msize)
+        ygrid = np.linspace(self.clust_y_min - p.clip,self.clust_y_max + p.clip,self.msize)
         self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
         # compute mapping between cell and gj:
@@ -1302,11 +1304,11 @@ class World(object):
 
             loggers.log_info('Cleaning up unnecessary data structures... ')
 
-            self.indmap_mem = None
-            self.rindmap_mem = None
-            # self.ecm_verts = None
-            self.cell_area = None
-            self.cell2ecm_map = None
+            # self.indmap_mem = None
+            # self.rindmap_mem = None
+            # # self.ecm_verts = None
+            # self.cell_area = None
+            # self.cell2ecm_map = None
             # self.ecm_polyinds = None
             # self.ecm_verts_unique = None
             # self.cell2GJ_map = None
@@ -1318,9 +1320,11 @@ class World(object):
         self.clust_xy = None
         self.cell_nn = None
 
+        self.mem_mids = np.asarray(self.mem_mids)
+
         loggers.log_info('Cell cluster creation complete!')
 
-    def redo_gj(self,dyna,p):
+    def redo_gj(self,dyna,p,savecells =True):
 
         # profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
         profile_names = dyna.tissue_profile_names
@@ -1378,14 +1382,150 @@ class World(object):
 
         self.cell_to_gj = np.asarray(self.cell_to_gj)
 
-        # save the cell cluster
-        loggers.log_info('Saving the cell cluster... ')
+        if savecells == True:
 
-        # celf = copy.deepcopy(self)
-        datadump = [self,p]
-        fh.saveSim(self.savedWorld,datadump)
-        message = 'Cell cluster saved to' + ' ' + self.savedWorld
-        loggers.log_info(message)
+            # save the cell cluster
+            loggers.log_info('Saving the cell cluster... ')
+
+            # celf = copy.deepcopy(self)
+            datadump = [self,p]
+            fh.saveSim(self.savedWorld,datadump)
+            message = 'Cell cluster saved to' + ' ' + self.savedWorld
+            loggers.log_info(message)
+
+    def redoCells(self,p):
+
+
+        loggers.log_info('Re-creating computational matrices... ')
+
+        # calculating matrix for gap junction flux calculation between cells
+        self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
+        for igj, pair in enumerate(self.gap_jun_i):
+            ci = pair[0]
+            cj = pair[1]
+            self.gjMatrix[igj,ci] = -1
+            self.gjMatrix[igj,cj] = 1
+
+        # define map allowing a dispatch from cell index to each respective membrane
+        self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
+        self.indmap_mem = np.asarray(self.indmap_mem)
+
+        self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
+
+        # data structures for plotting current streamlines
+        self.xpts_Igj = np.hstack((self.gj_vects[:,0],self.mem_vects_flat[:,0]))
+        self.ypts_Igj = np.hstack((self.gj_vects[:,1],self.mem_vects_flat[:,1]))
+        self.nx_Igj = np.hstack((self.gj_vects[:,2],self.mem_vects_flat[:,2]))
+        self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
+
+        # structures for plotting interpolated data on cell centres:
+        xgrid = np.linspace(self.xmin,self.xmax,self.msize)
+        ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+        # compute mapping between cell and gj:
+        self.cell_to_gj =[[] for x in range(0,len(self.cell_i))]
+
+        for i, inds in enumerate(self.gap_jun_i):
+            ind1 = inds[0]
+            ind2 = inds[1]
+            self.cell_to_gj[ind1].append(i)
+            self.cell_to_gj[ind2].append(i)
+
+        self.cell_to_gj = np.asarray(self.cell_to_gj)
+
+        self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
+
+        for cell_index in self.cell_i:
+
+            index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
+            self.cell_to_mems.append(index2mems)
+
+        self.cell_to_mems = np.asarray(self.cell_to_mems)
+
+        # define matrix for updating cells with fluxes from membranes:
+        if self.worldtype == 'full':
+
+            # self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
+            #
+            # self.env_i = [x for x in range(0,len(self.env_points))]
+
+            # calculate the mapping between ecm indices and membrane indices:
+            cell_tree = sps.KDTree(self.ecm_mids)
+            matches = cell_tree.query(self.mem_mids_flat)
+            self.mem_to_ecm = list(matches)[1]
+
+            ecm_n = len(self.ecm_i)
+            cell_n = len(self.cell_i)
+            mem_n = len(self.mem_i)
+
+            self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
+            self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
+
+            for i, cell_index in enumerate(self.mem_to_cells):
+                self.cell_UpdateMatrix[i,cell_index] =1
+
+            for i, ecm_index in enumerate(self.mem_to_ecm):
+                self.ecm_UpdateMatrix[i, ecm_index] = 1
+
+            self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
+            for iecm, pair in enumerate(self.ecm_nn_i):
+                ci = pair[0]
+                cj = pair[1]
+                self.ecmMatrix[iecm,ci] = -1
+                self.ecmMatrix[iecm,cj] = 1
+
+            # create a flattened version of cell_verts that will serve as membrane verts:
+            self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+            self.mem_verts = np.asarray(self.mem_verts)
+
+            cellVertTree = sps.KDTree(self.mem_verts)
+
+            # create a map from flattened mem midpoints to corresponding edge points of mem segment:
+            self.index_to_mem_verts = []
+            for cell_nest in self.mem_edges:
+                for mem_points in cell_nest:
+                    pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
+                    pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
+                    self.index_to_mem_verts.append([pt_ind1,pt_ind2])
+            self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
+
+            # create a matrix that will map and interpolate data on mem mids to the mem verts
+            # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
+
+            self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
+            for i, indices in enumerate(self.index_to_mem_verts):
+                self.matrixMap2Verts[i,indices[0]]=1/2
+                self.matrixMap2Verts[i,indices[1]]=1/2
+
+            # Create a map from cell to ecm space
+            self.cell_to_ecm = []
+
+            for i in self.cell_i:
+
+                inds_mtc = (self.mem_to_cells ==i).nonzero()
+                ecm_inds = self.mem_to_ecm[inds_mtc]
+                self.cell_to_ecm.append(ecm_inds)
+
+            self.cell_to_ecm = np.asarray(self.cell_to_ecm)
+            self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
+            self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
+
+            # structures for plotting interpolated data and streamlines:
+            self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+
+            self.xpts_Iecm = self.ecm_vects[:,0]
+            self.ypts_Iecm = self.ecm_vects[:,1]
+            self.nx_Iecm = self.ecm_vects[:,2]
+            self.ny_Iecm = self.ecm_vects[:,3]
+
+            self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
+            self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
+
+        self.cell_number = self.cell_centres.shape[0]
+        self.sim_ECM = p.sim_ECM
+
+        loggers.log_info('Cell cluster re-creation complete!')
 
 
 

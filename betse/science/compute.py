@@ -1423,8 +1423,8 @@ class Simulator(object):
             check_v(self.vm)
 
             if t in tsamples:
-
-                self.get_current(cells,p)   # get the current in the gj network connection of cells
+                # #
+                # self.get_current(cells,p)   # get the current in the gj network connection of cells
                 # add the new concentration and voltage data to the time-storage matrices:
                 concs = self.cc_cells[:]
                 self.cc_time.append(concs)

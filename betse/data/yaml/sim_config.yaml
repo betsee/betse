@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 0.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 0.3                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.05            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
@@ -160,7 +160,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -384,7 +384,7 @@ geometry defining bitmaps:
 
     bitmap 2:
 
-        file: box_top_cells.png        # name of the first bitmap defining geometry
+        file: cut_hole.png        # name of the first bitmap defining geometry
 
         designation: holes   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
@@ -441,7 +441,7 @@ tissue profile 1:
 
 tissue profile 2:
     name: holes       # give your profile a name that will be used to apply the profile
-    cell targets: [0,1,2,3,4,5]     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    cell targets: bitmap     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: 'cuts'      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -493,7 +493,7 @@ boundary profile 2:
 change Na mem:       # Change the membrane permeability to Na+
 
   event happens: True              # turn the even on (True) or off (False)
-  change start: 0.5                # sim time to start change [s]
+  change start: 0.2                # sim time to start change [s]
   change finish: 10.0               # sim time to end change and return to original [s]
   change rate: 0.2                 # rate of change [s]
   multiplier: 2.0                  # factor to multiply base level
@@ -552,7 +552,7 @@ apply external voltage:             # apply external voltage to ecm spaces on th
 
 cutting event:
     event happens: True
-    cut time: 0.3
+    cut time: 0.2
     apply to: 'holes'    # tissue profile to apply this to -- can only be one profile, no lists
     internal hole: True
 
