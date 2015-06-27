@@ -37,6 +37,7 @@ class AnimateCellData(object):
         self.cbtit = cbtit
 
         self.cells = cells
+
         self.p = p
 
         self.fig = plt.figure()       # define figure

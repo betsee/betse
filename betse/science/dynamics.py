@@ -108,7 +108,6 @@ class Dynamics(object):
 
             self.targets_Namem = [item for sublist in self.targets_Namem for item in sublist]
 
-
             self.scalar_Namem = 1
 
             if self.function_Namem != 'None':
@@ -528,14 +527,6 @@ class Dynamics(object):
         #truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
         truth_not_inactivated_Na = self.inactivated_Na == 0  # return bools of vm that can activate
         truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
-
-        # print('------cell length------------')
-        # print(len(cells.cell_i))
-        # print('--------vgNa lengths---------')
-        # print(len(truth_vmGTvon_Na))
-        # print(len(truth_not_inactivated_Na))
-        # print(len(truth_vgNa_Off))
-        # print(len(self.targets_vgNa))
 
         # find the cell indicies that correspond to all statements of logic phase 1:
         inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*
@@ -1017,6 +1008,12 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
         sim_names = list(sim.__dict__.keys())
         specials_list = ['cc_cells','cc_env','z_array','Dm_cells','fluxes_gj','fluxes_mem','Dm_base',\
             'Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR']
+
+        if p.sim_ECM == True:
+            extra = ['cc_ecm','fluxes_ecm','fluxes_env','z_array_cells','z_array_ecm','z_array_env']
+            for ent in extra:
+                specials_list.append(ent)
+
         special_names = set(specials_list)
 
         for name in sim_names:
@@ -1039,6 +1036,11 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         elif len(data) == len(cells.gj_i):
                             data2 = np.delete(data,target_inds_gj)
 
+                        if p.sim_ECM == True:
+
+                            if len(data) == len(cells.ecm_i):
+                                data2 = np.delete(data,target_inds_ecm)
+
                     if isinstance(data,list):
                         if len(data) == len(cells.cell_i):
                             for index in sorted(target_inds_cell, reverse=True):
@@ -1054,6 +1056,18 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                             for index in sorted(target_inds_gj, reverse=True):
                                 del data[index]
                             data2.append(data[index])
+
+                        if p.sim_ECM == True:
+
+                            if len(data) == len(cells.ecm_i):
+                                for index in sorted(target_inds_ecm, reverse=True):
+                                    del data[index]
+                                data2.append(data[index])
+
+                            # elif len(data) == len(cells.env_i):
+                            #     for index in sorted(target_inds_env, reverse=True):
+                            #         del data[index]
+                            #     data2.append(data[index])
 
                     super_data2.append(data2)
 
@@ -1079,7 +1093,19 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
+                    if p.sim_ECM == True:
+
+                        if len(data) == len(cells.ecm_i):
+                            data2 = np.delete(data,target_inds_ecm)
+                            setattr(sim,name,data2)
+
+                        # elif len(data) == len(cells.env_i):
+                        #     data2 = np.delete(data,target_inds_env)
+                        #     setattr(sim,name,data2)
+
+
                 if isinstance(data,list):
+
                     if len(data) == len(cells.cell_i):
                         for index in sorted(target_inds_cell, reverse=True):
                             del data[index]
@@ -1097,6 +1123,20 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                             del data[index]
                         data2.append(data[index])
                         setattr(sim,name,data2)
+
+                    if p.sim_ECM == True:
+
+                        if len(data) == len(cells.ecm_i):
+                            for index in sorted(target_inds_ecm, reverse=True):
+                                del data[index]
+                            data2.append(data[index])
+                            setattr(sim,name,data2)
+
+                        # if len(data) == len(cells.env_i):
+                        #     for index in sorted(target_inds_env, reverse=True):
+                        #         del data[index]
+                        #     data2.append(data[index])
+                        #     setattr(sim,name,data2)
 
     #update the cells structure to remove the cells, associated gj connections, and ecm spaces:
     new_cell_centres = []

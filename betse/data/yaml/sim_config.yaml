@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 0.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.05            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
@@ -126,11 +126,11 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 2.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 0.5                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
     gap junction radius: 1.0e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
@@ -160,7 +160,7 @@ sim time settings:
 
 general options:
 
-  simulate ECM: False            # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True            # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'          # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -258,7 +258,7 @@ general options:
 
 world variables:
 
-  world x: 300e-6         # the x-dimension of the world space [m]
+  world x: 200e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -441,7 +441,7 @@ tissue profile 1:
 
 tissue profile 2:
     name: holes       # give your profile a name that will be used to apply the profile
-    cell targets: [248,253,225,249,173]     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    cell targets: [0,1,2,3,4,5]     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: 'cuts'      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -552,7 +552,7 @@ apply external voltage:             # apply external voltage to ecm spaces on th
 
 cutting event:
     event happens: True
-    cut time: 1.0
+    cut time: 0.3
     apply to: 'holes'    # tissue profile to apply this to -- can only be one profile, no lists
     internal hole: True
 
