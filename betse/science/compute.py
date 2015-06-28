@@ -135,18 +135,18 @@ class Simulator(object):
 
             if p.ions_dict[name] == 1:
 
-                i = i+1
-
-                str1 = 'i' + name  # create the ion index
-
-                setattr(self,str1,i)  # dynamically add this field to the object
-
-                if name != 'P':
-                    self.movingIons.append(vars(self)[str1])
-
-                self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
-
                 if name != 'H':
+
+                    i = i+1
+
+                    str1 = 'i' + name  # create the ion index
+
+                    setattr(self,str1,i)  # dynamically add this field to the object
+
+                    self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
+
+                    if name != 'P':
+                        self.movingIons.append(vars(self)[str1])
 
                     # cell concentration for the ion
                     str_cells = 'c' + name + '_cells'
@@ -201,43 +201,64 @@ class Simulator(object):
 
                         self.cc_er.append(self.cM_er)
                         self.z_er.append(p.z_M)
-                        self.z_array_er(self.zM_er)
+                        self.z_array_er.append(self.zM_er)
                         self.Dm_er.append(p.Dm_M)
 
-                else:
-                    # Do H+ separately as it's complicated by the buffer
-                    # initialize the carbonic acid for the carbonate buffer
-                        self.cHM_cells = np.zeros(len(cells.cell_i))
-                        self.cHM_cells[:] = 0.03*p.CO2
+        # Do H+ separately as it's complicated by the buffer
+        # initialize the carbonic acid for the carbonate buffer
 
-                        self.cHM_env = np.zeros(len(cells.cell_i))
-                        self.cHM_env[:] = 0.03*p.CO2
+        if p.ions_dict['H'] == 1:
 
-                        self.cH_cells = np.zeros(len(cells.cell_i))
-                        # cH_cells[:]=p.cH_cell
-                        self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
-                        self.cH_cells = (10**(-self.pH_cell))*1000  # units mmol/L
+            i = i+ 1
 
-                        self.cH_env = np.zeros(len(cells.cell_i))
-                        # cH_env[:]=p.cH_env
-                        self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
-                        self.cH_env = (10**(-self.pH_env))*1000 # units mmol/L
+            self.iH = i
 
-                        DmH = np.zeros(len(cells.cell_i))
-                        DmH[:] = p.Dm_H
+            self.ionlabel[self.iH] = 'protons'
 
-                        self.zH = np.zeros(len(cells.cell_i))
-                        self.zH[:] = p.z_H
+            self.movingIons.append(self.iH)
 
-                        self.cc_cells.append(self.cH_cells)
-                        self.cc_env.append(self.cH_env)
-                        self.zs.append(p.z_H)
-                        self.z_array(self.zH)
-                        self.Dm_cells.append(self.DmH)
-                        self.D_free.append(p.Do_H)
+            self.cHM_cells = np.zeros(len(cells.cell_i))
+            self.cHM_cells[:] = 0.03*p.CO2
 
-                        self.fluxes_gj.append(self.flx_gj_i)
-                        self.fluxes_mem.append(self.flx_mem_i)
+            self.cHM_env = np.zeros(len(cells.cell_i))
+            self.cHM_env[:] = 0.03*p.CO2
+
+            self.cH_cells = np.zeros(len(cells.cell_i))
+            # cH_cells[:]=p.cH_cell
+            self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
+            self.cH_cells = (10**(-self.pH_cell))*1000  # units mmol/L
+
+            self.cH_env = np.zeros(len(cells.cell_i))
+            # cH_env[:]=p.cH_env
+            self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
+            self.cH_env = (10**(-self.pH_env))*1000 # units mmol/L
+
+            DmH = np.zeros(len(cells.cell_i))
+            DmH[:] = p.Dm_H
+
+            self.zH = np.zeros(len(cells.cell_i))
+            self.zH[:] = p.z_H
+
+            self.cc_cells.append(self.cH_cells)
+            self.cc_env.append(self.cH_env)
+            self.zs.append(p.z_H)
+            self.z_array.append(self.zH)
+            self.Dm_cells.append(DmH)
+            self.D_free.append(p.Do_H)
+
+            self.fluxes_gj.append(self.flx_gj_i)
+            self.fluxes_mem.append(self.flx_mem_i)
+
+        # make sure the output is correct:
+
+        for name in ion_names:
+            string_1 = 'i' + name
+            mean_c_cells = np.mean(self.cc_cells[vars(self)[string_1]])
+            mean_c_env = np.mean(self.cc_env[vars(self)[string_1]])
+            mean_z = np.mean(self.z_array[vars(self)[string_1]])
+            print(name,' ',p.ion_long_name[name],' ','ion index ', vars(self)[string_1],' mean c cells',mean_c_cells,' mean c env',mean_c_env,'z',mean_z)
+
+
         #-------------------------------------------------------------------------------------------------------
 
         # Initialize membrane thickness:
@@ -361,18 +382,18 @@ class Simulator(object):
 
             if p.ions_dict[name] == 1:
 
-                i = i+1
-
-                str1 = 'i' + name  # create the ion index
-
-                setattr(self,str1,i)  # dynamically add this field to the object
-
-                if name != 'P':
-                    self.movingIons.append(vars(self)[str1])
-
-                self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
-
                 if name != 'H':
+
+                    i = i+1
+
+                    str1 = 'i' + name  # create the ion index
+
+                    setattr(self,str1,i)  # dynamically add this field to the object
+
+                    if name != 'P':
+                        self.movingIons.append(vars(self)[str1])
+
+                    self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
 
                     # cell concentration for the ion
                     str_cells = 'c' + name + '_cells'
@@ -448,71 +469,75 @@ class Simulator(object):
 
                         self.cc_er.append(self.cM_er)
                         self.z_er.append(p.z_M)
-                        self.z_array_er(self.zM_er)
+                        self.z_array_er.append(self.zM_er)
                         self.Dm_er.append(p.Dm_M)
 
-                else:
-                    # Do H+ separately as it's complicated by the buffer
-                    # initialize the carbonic acid for the carbonate buffer
-                        i =i+1
 
-                        self.iH = i
+        # Do H+ separately as it's complicated by the buffer
+        # initialize the carbonic acid for the carbonate buffer
+        if p.ions_dict['H']== 1:
 
-                        #self.movingIons.append(self.iH)
-                        self.ionlabel[self.iH] = 'protons'
+            i =i+1
 
-                        # initialize the carbonic acid for the carbonate buffer
-                        self.cHM_cells = np.zeros(len(cells.cell_i))
-                        self.cHM_cells[:] = 0.03*p.CO2
+            self.iH = i
 
-                        self.cHM_ecm = np.zeros(len(cells.ecm_i))
-                        self.cHM_ecm[:] = 0.03*p.CO2
+            #self.movingIons.append(self.iH)
+            self.ionlabel[self.iH] = 'protons'
 
-                        self.cHM_env = np.zeros(len(cells.env_i))
-                        self.cHM_env[:]= 0.03*p.CO2
+            self.ionlabel[self.iH] = p.ion_long_name['H']
 
-                        cH_cells = np.zeros(len(cells.cell_i))
-                        # cH_cells[:]=p.cH_cell
-                        pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
-                        cH_cells = (10**(-pH_cell))*1000  # units mmol/L
+            # initialize the carbonic acid for the carbonate buffer
+            self.cHM_cells = np.zeros(len(cells.cell_i))
+            self.cHM_cells[:] = 0.03*p.CO2
 
-                        cH_ecm = np.zeros(len(cells.ecm_i))
+            self.cHM_ecm = np.zeros(len(cells.ecm_i))
+            self.cHM_ecm[:] = 0.03*p.CO2
 
-                        pH_ecm = 6.1 + np.log10(self.cM_ecm/self.cHM_ecm)
-                        cH_ecm = (10**(-pH_ecm))*1000 # units mmol/L
+            self.cHM_env = np.zeros(len(cells.env_i))
+            self.cHM_env[:]= 0.03*p.CO2
 
-                        pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
-                        cH_env = (10**(-pH_env))*1000 # units mmol/L
+            cH_cells = np.zeros(len(cells.cell_i))
+            # cH_cells[:]=p.cH_cell
+            pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
+            cH_cells = (10**(-pH_cell))*1000  # units mmol/L
 
-                        DmH = np.zeros(len(cells.mem_i))
-                        DmH[:] = p.Dm_H
+            cH_ecm = np.zeros(len(cells.ecm_i))
 
-                        zH1 = np.zeros(len(cells.cell_i))
-                        zH1[:] = p.z_H
+            pH_ecm = 6.1 + np.log10(self.cM_ecm/self.cHM_ecm)
+            cH_ecm = (10**(-pH_ecm))*1000 # units mmol/L
 
-                        zH2 = np.zeros(len(cells.ecm_i))
-                        zH2[:] = p.z_H
+            pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
+            cH_env = (10**(-pH_env))*1000 # units mmol/L
 
-                        zH3 = np.zeros(len(cells.env_i))
-                        zH3[:] = p.z_H
+            DmH = np.zeros(len(cells.mem_i))
+            DmH[:] = p.Dm_H
 
-                        self.cc_cells.append(cH_cells)
-                        self.cc_ecm.append(cH_ecm)
-                        self.cc_env.append(cH_env)
+            zH1 = np.zeros(len(cells.cell_i))
+            zH1[:] = p.z_H
 
-                        self.zs.append(p.z_H)
+            zH2 = np.zeros(len(cells.ecm_i))
+            zH2[:] = p.z_H
 
-                        self.z_array_cells.append(zH1)
-                        self.z_array_ecm.append(zH2)
-                        self.z_array_env.append(zH3)
+            zH3 = np.zeros(len(cells.env_i))
+            zH3[:] = p.z_H
 
-                        self.Dm_cells.append(DmH)
-                        self.D_free.append(p.Do_H)
+            self.cc_cells.append(cH_cells)
+            self.cc_ecm.append(cH_ecm)
+            self.cc_env.append(cH_env)
 
-                        self.fluxes_gj.append(self.flx_gj_i)
-                        self.fluxes_mem.append(self.flx_mem_i)
-                        self.fluxes_ecm.append(self.flx_ecm_i)
-                        self.fluxes_env.append(self.flx_env_i)
+            self.zs.append(p.z_H)
+
+            self.z_array_cells.append(zH1)
+            self.z_array_ecm.append(zH2)
+            self.z_array_env.append(zH3)
+
+            self.Dm_cells.append(DmH)
+            self.D_free.append(p.Do_H)
+
+            self.fluxes_gj.append(self.flx_gj_i)
+            self.fluxes_mem.append(self.flx_mem_i)
+            self.fluxes_ecm.append(self.flx_ecm_i)
+            self.fluxes_env.append(self.flx_env_i)
         #------------------------------------------------------------------------------------------------------
 
         # Initialize membrane thickness:
@@ -870,7 +895,7 @@ class Simulator(object):
                     electrofuse(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,cells.cell_sa,
                         self.envV,cells.cell_vol,self.zs[self.iH],self.vm,self.T,p)
 
-                self.fluxes_mem[self.H] = f_H1[cells.mem_to_cells]
+                self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
 
                 # buffer what's happening with H+ flux to or from the cell and environment:
                 delH_cell = (f_H1*p.dt/cells.cell_vol)    # relative change in H wrt the cell
@@ -1064,9 +1089,9 @@ class Simulator(object):
                 self.I_gj_time.append(Igj)
                 Igj = None
 
-                # Imem = self.I_mem[:]
-                # self.I_mem_time.append(Imem)
-                # Imem = None
+                Imem = self.I_mem[:]
+                self.I_mem_time.append(Imem)
+                Imem = None
 
                 vmm = self.vm[:]
                 self.vm_time.append(vmm)
@@ -1457,6 +1482,10 @@ class Simulator(object):
                 Igj = self.I_gj[:]
                 self.I_gj_time.append(Igj)
                 Igj = None
+
+                Imem = self.I_mem[:]
+                self.I_mem_time.append(Imem)
+                Imem = None
 
                 # calculate interpolated verts and midpoint data for Vmem:
                 dat_grid_vm = vertData(self.vm[:],cells,p)

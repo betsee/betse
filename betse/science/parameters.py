@@ -1116,6 +1116,12 @@ class Parameters(object):
             self.cM_er = self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca, 'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca, 'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca, 'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','P':'proteins','M':'anion'}
 
         # default environmental and cytoplasmic initial values mammalian cells
         if self.ion_profile == 'animal':
@@ -1150,13 +1156,26 @@ class Parameters(object):
             self.cM_er = - self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
          # default environmental and cytoplasm values invertebrate cells
         if self.ion_profile == 'invertebrate':
-            self.cNa_env = 440.0
-            self.cK_env = 20.0
-            self.cCl_env = 460.0
-            self.cCa_env = 10.0
+            # self.cNa_env = 440.0
+            # self.cK_env = 20.0
+            # self.cCl_env = 460.0
+            # self.cCa_env = 10.0
+            # self.cH_env = 3.98e-5
+            # self.cP_env = 7.0
+
+            self.cNa_env = 8.7
+            self.cK_env = 0.31
+            self.cCl_env = 5.64
+            self.cCa_env = 3.75
             self.cH_env = 3.98e-5
             self.cP_env = 7.0
 
@@ -1167,7 +1186,14 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.66
+            # self.cNa_cell = 8.66
+            # self.cK_cell = 406.09
+            # self.cCl_cell = 45.56
+            # self.cCa_cell = 3.0e-4
+            # self.cH_cell = 6.31e-5
+            # self.cP_cell = 350.0
+
+            self.cNa_cell = 5.00
             self.cK_cell = 406.09
             self.cCl_cell = 45.56
             self.cCa_cell = 3.0e-4
@@ -1175,6 +1201,7 @@ class Parameters(object):
             self.cP_cell = 350.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
+
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
@@ -1183,9 +1210,15 @@ class Parameters(object):
             self.cM_er = -self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
-        if self.ion_profile == 'customized':
+        if self.ion_profile == 'customized':  # FIXME need to create dics on the fly
 
             cip = self.config['general options']['customized ion profile']
 

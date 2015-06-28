@@ -1917,9 +1917,9 @@ def plotVects(cells, p, fig=None, ax=None):
 
         s = p.um
 
-        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,4],s*cells.mem_vects_flat[:,5],color='b')
-        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,2],s*cells.mem_vects_flat[:,3],color='g')
-        ax.quiver(s*cells.ecm_vects[:,0],s*cells.ecm_vects[:,1],s*cells.ecm_vects[:,2],s*cells.ecm_vects[:,3],color='r')
+        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,4],s*cells.mem_vects_flat[:,5],color='b',label='mem tang')
+        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,2],s*cells.mem_vects_flat[:,3],color='g',label ='mem norm')
+        # ax.quiver(s*cells.ecm_vects[:,0],s*cells.ecm_vects[:,1],s*cells.ecm_vects[:,2],s*cells.ecm_vects[:,3],color='r')
 
         cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
         cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
@@ -1939,6 +1939,7 @@ def plotVects(cells, p, fig=None, ax=None):
         # ymax = p.um*(cells.clust_y_max + p.clip)
 
         ax.axis([xmin,xmax,ymin,ymax])
+        plt.legend()
 
         return fig, ax
 
