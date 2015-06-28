@@ -79,8 +79,8 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 0.3                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    time step: 5e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.05            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
@@ -203,7 +203,7 @@ general options:
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
     cDye_to_cell: 1.0e-3    # initial concentration of dye in the cell [mmol/L]
 
-  static noise level: 0.0    # level of variance in K+ leaks on cell membranes
+  static noise level: 1.0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
 
   dynamic noise: False      # is dynamic noise desired? Options True or False
@@ -258,7 +258,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # the x-dimension of the world space [m]
+  world x: 300e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -285,7 +285,7 @@ world variables:
 
   temperature: 310            # World temperature [K]
 
-  search distance: 1.5        # distance to search for nearest neighbours
+  search distance: 1.8        # distance to search for nearest neighbours
                               # relative to cell diameter
                               # min 1.1 max 3.5
                               # warning high search distances can produce
@@ -293,7 +293,7 @@ world variables:
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
-  gj voltage threshold: 30e-3    # cell-cell voltage at which gj close [V]
+  gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 20 to 80e-3 V
 
   gj voltage window: 20e-3        # the range over which gj goes from open to shut
@@ -346,7 +346,7 @@ change temperature:
 block gap junctions:     # block the gap junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 10        # sim time to start change [s]
+  change start: 0.3        # sim time to start change [s]
   change finish: 40       # sim time to end change and return to original [s]
   change rate: 0.05         # rate of change [s]
 
@@ -372,13 +372,13 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
-    directory: geo/box              # directory where geometry-defining bitmaps can be found
+    directory: geo/paper              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 5          # total number of bitmaps to load
+    number of bitmaps: 1          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: box_base.png        # name of the first bitmap defining geometry
+        file: worm_c.png        # name of the first bitmap defining geometry
 
         designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
@@ -424,8 +424,8 @@ base tissue properties:    # specify the base membrane diffusion constants below
 number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: excitables       # give your profile a name that will be used to apply the profile
-    cell targets: all      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    name: skin       # give your profile a name that will be used to apply the profile
+    cell targets: boundary      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None           # special instructions for making the profile:'cavity' or 'cuts'
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -437,12 +437,12 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-8    # multiplier for ecm diffusion
 
 tissue profile 2:
-    name: holes       # give your profile a name that will be used to apply the profile
-    cell targets: bitmap     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: 'cuts'      # special instructions for making the profile:'cavity' or 'cuts'
+    name: gradient       # give your profile a name that will be used to apply the profile
+    cell targets: all     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: None      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -472,7 +472,7 @@ tissue profile 3:
     ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 
-number of boundary profiles: 2      # boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 0      # boundary profiles only apply if simulating extracellular spaces
 
 boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
     name: applied pos voltage
@@ -498,7 +498,7 @@ change Na mem:       # Change the membrane permeability to Na+
   change rate: 0.2                 # rate of change [s]
   multiplier: 2.0                  # factor to multiply base level
   function: gradient_x                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['excitables']        # name(s) of the tissue profile(s) to apply it to
+  apply to: ['gradient']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
@@ -551,7 +551,7 @@ apply external voltage:             # apply external voltage to ecm spaces on th
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 cutting event:
-    event happens: True
+    event happens: False
     cut time: 0.2
     apply to: 'holes'    # tissue profile to apply this to -- can only be one profile, no lists
     internal hole: True

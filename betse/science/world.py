@@ -1197,10 +1197,10 @@ class World(object):
         self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
 
         # structures for plotting interpolated data on cell centres:
-        # xgrid = np.linspace(self.xmin,self.xmax,self.msize)
-        # ygrid = np.linspace(self.ymin,self.ymax,self.msize)
-        xgrid = np.linspace(self.clust_x_min - p.clip,self.clust_x_max + p.clip,self.msize)
-        ygrid = np.linspace(self.clust_y_min - p.clip,self.clust_y_max + p.clip,self.msize)
+        xgrid = np.linspace(self.xmin,self.xmax,self.msize)
+        ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+        # xgrid = np.linspace(self.clust_x_min - p.clip,self.clust_x_max + p.clip,self.msize)
+        # ygrid = np.linspace(self.clust_y_min - p.clip,self.clust_y_max + p.clip,self.msize)
         self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
         # compute mapping between cell and gj:

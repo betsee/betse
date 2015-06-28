@@ -53,10 +53,16 @@ class AnimateCellData(object):
         self.IecmPlot = p.IecmPlot
         self.density = p.stream_density
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        self.ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -270,10 +276,16 @@ class AnimateCellData_smoothed(object):
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        self.ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -457,7 +469,7 @@ class AnimateGJData(object):
 
         con_segs = cells.cell_centres[cells.gap_jun_i]
         connects = p.um*np.asarray(con_segs)
-        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=2.0, zorder=5)
+        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=5)
         self.collection.set_clim(0.0,1.0)
         self.ax.add_collection(self.collection)
 
@@ -504,11 +516,11 @@ class AnimateGJData(object):
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
 
         # Next add in gap junction current direction
-        vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
-        vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
+        # vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
+        # vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
 
-        self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-            vx,vy,self.zdata_t[0],zorder=10, cmap=p.gj_cm,clim=[0,1])
+        # self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
+        #     vx,vy,self.zdata_t[0],zorder=0, cmap=p.gj_cm,clim=[0,1])
 
         if number_cells == True:
             for i,cll in enumerate(cells.cell_centres):
@@ -519,10 +531,17 @@ class AnimateGJData(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        self.ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -552,7 +571,7 @@ class AnimateGJData(object):
 
              self.coll2.set_array(zv)
 
-        self.Qplot.set_UVC(vx,vy,zz)
+        # self.Qplot.set_UVC(vx,vy,zz)
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
         self.ax.set_title(titani)
@@ -653,10 +672,16 @@ class AnimateGJData_smoothed(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        self.ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -720,10 +745,16 @@ class PlotWhileSolving(object):
         self.clrMin = clrMin
         self.clrMax = clrMax
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        self.ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -976,10 +1007,17 @@ class AnimateCurrent(object):
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        self.ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1237,10 +1275,17 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         if zdata == None:
             zdata = np.ones((cells.msize,cells.mside))
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1396,10 +1441,15 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
 
             I_overlay(sim,cells,p,ax,clrmap,plotIecm)
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1469,10 +1519,17 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
         if clrmap is None:
             clrmap = p.default_cm
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        ax.axis('equal')
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1588,10 +1645,15 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
 
         ax.axis('equal')
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1665,10 +1727,14 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         else:
             ax_cb = None
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1716,10 +1782,15 @@ def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
 
         ax.axis('equal')
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1809,10 +1880,16 @@ def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = Tr
             scat.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(scat,ax=ax)
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1851,10 +1928,15 @@ def plotVects(cells, p, fig=None, ax=None):
 
         ax.axis('equal')
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        # xmin = p.um*(cells.clust_x_min - p.clip)
+        # xmax = p.um*(cells.clust_x_max + p.clip)
+        # ymin = p.um*(cells.clust_y_min - p.clip)
+        # ymax = p.um*(cells.clust_y_max + p.clip)
 
         ax.axis([xmin,xmax,ymin,ymax])
 
@@ -1868,10 +1950,16 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
     if ax is None:
         ax = plt.subplot(111)
 
-    xmin = p.um*(cells.clust_x_min - p.clip)
-    xmax = p.um*(cells.clust_x_max + p.clip)
-    ymin = p.um*(cells.clust_y_min - p.clip)
-    ymax = p.um*(cells.clust_y_max + p.clip)
+    ax.axis('equal')
+
+    # xmin = p.um*(cells.clust_x_min - p.clip)
+    # xmax = p.um*(cells.clust_x_max + p.clip)
+    # ymin = p.um*(cells.clust_y_min - p.clip)
+    # ymax = p.um*(cells.clust_y_max + p.clip)
+    xmin = cells.xmin*p.um
+    xmax = cells.xmax*p.um
+    ymin = cells.ymin*p.um
+    ymax = cells.ymax*p.um
 
     ax.axis([xmin,xmax,ymin,ymax])
 
@@ -2032,10 +2120,15 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
     ax.axis('equal')
 
-    xmin = p.um*(cells.clust_x_min - p.clip)
-    xmax = p.um*(cells.clust_x_max + p.clip)
-    ymin = p.um*(cells.clust_y_min - p.clip)
-    ymax = p.um*(cells.clust_y_max + p.clip)
+    xmin = cells.xmin*p.um
+    xmax = cells.xmax*p.um
+    ymin = cells.ymin*p.um
+    ymax = cells.ymax*p.um
+
+    # xmin = p.um*(cells.clust_x_min - p.clip)
+    # xmax = p.um*(cells.clust_x_max + p.clip)
+    # ymin = p.um*(cells.clust_y_min - p.clip)
+    # ymax = p.um*(cells.clust_y_max + p.clip)
 
     ax.axis([xmin,xmax,ymin,ymax])
 
