@@ -3,7 +3,6 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
 from betse.science.compute import Simulator
@@ -16,10 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os, os.path
 import time
-from betse.util.path import files
 from betse.exceptions import BetseExceptionSimulation
-
-
 
 class SimRunner(object):
     '''
@@ -45,13 +41,21 @@ class SimRunner(object):
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 
-    def makeWorld(self,plotWorld = True):
-
+    # TODO: This high-level function accepting an optional boolean will probably
+    # complicate the CLI interface a bit. Would it be feasible to push this into
+    # a YAML setting, as with similar booleans? If not, that's... cool.
+    def makeWorld(self, plotWorld: bool = True):
         """
-        In order to set up tissue profiles and other geometry-specific features, it is necessary
-        to first create and plot the cells data structure. This will be loaded into the init
-        and sim runs.
+        In order to set up tissue profiles and other geometry-specific features,
+        it is necessary to first create and plot the cells data structure. This
+        will be loaded into the initialization and simulation runs.
 
+        Parameters
+        ----------
+        plotWorld : bool, optional
+            True if a non-blocking plot of the created cellular world is to be
+            displayed immediately after creating such world. Defaults to False,
+            in which case no plot will be displayed.
         """
 
         loggers.log_info(
@@ -79,16 +83,15 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-
             if plotWorld == True:
-
                 fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-
                 plt.show(block=False)
 
+                # TODO: Is this the total number of cells? Do we still want
+                # this? If so, contemplate logging that sucker up. Huah!
                 print(cells.cell_number)
 
-        elif p.sim_ECM == True:
+        else:
 
             cells = World(p,worldtype='full')  # create an instance of world
             cells.containsECM = True
@@ -107,11 +110,10 @@ class SimRunner(object):
             loggers.log_info('Cell cluster creation complete!')
 
             if plotWorld == True:
-
                 fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-
                 plt.show(block=False)
 
+                # TODO: Ditto. Huar-hur!
                 print(cells.cell_number)
 
 
@@ -221,7 +223,6 @@ class SimRunner(object):
         else:
 
             loggers.log_info("No initialization file found to run this simulation!")
-            answer = p.autoInit
 
             if p.autoInit == True:
                 loggers.log_info("Automatically running initialization...")

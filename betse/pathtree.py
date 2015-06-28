@@ -13,6 +13,10 @@ installation environments -- including PyInstaller-frozen executables and
 `setuptools`-installed script wrappers.
 '''
 
+#FIXME: The absolute path of BETSE's dotfile should conditionally depend on
+#whether or not the current system supports the XDG base standard -- which, to
+#be fair, most modern Linux distros do.
+
 # ....................{ IMPORTS                            }....................
 from betse import metadata
 from betse.util.path import dirs, files, paths

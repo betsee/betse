@@ -7,6 +7,8 @@
 `betse`'s command line interface (CLI).
 '''
 
+#FIXME: Document the "world" subsubcommand.
+
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
 from betse.cli import help
@@ -253,6 +255,7 @@ class CLICLI(CLI):
             self._run_sim_cfg()
 
         # Initialize and run such simulation.
+        self._run_sim_world()
         self._run_sim_init()
         self._run_sim_run()
 
@@ -265,6 +268,13 @@ class CLICLI(CLI):
         subcommand_method = getattr(self, subcommand_method_name)
         subcommand_method()
 
+    #FIXME: It's no longer enough to simply copy the configuration file; we
+    #also need to copy all data on which such file depends. We'll need to
+    #manually inspect such file to see which data that is. We should *NOT*,
+    #however, simply copy the entirety of the "geo" subdirectory. Or should we?
+    #It *IS* quite small and hence innocuous. For simplicity, perhaps copying
+    #such subdirectory would be the wisest approach. Contemplate.
+
     def _run_sim_cfg(self) -> None:
         '''
         Run the `sim` subcommand's `cfg` subcommand.
@@ -273,6 +283,12 @@ class CLICLI(CLI):
         # importation imports heavy-weight dependencies and hence is slow.
         from betse.science import simconfig
         simconfig.write_default(self._args.sim_config_filename)
+
+    def _run_sim_world(self) -> None:
+        '''
+        Run the `sim` subcommand's `world` subcommand.
+        '''
+        self._get_sim_runner().makeWorld()
 
     def _run_sim_init(self) -> None:
         '''

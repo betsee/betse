@@ -7,8 +7,6 @@
 Help strings to be printed by `betse`'s command line interface (CLI).
 '''
 
-# ....................{ IMPORTS                            }....................
-
 # ....................{ TEMPLATES ~ subcommands            }....................
 TEMPLATE_SUBCOMMANDS_PREFIX = '''
 Exactly one of the following subcommands must be passed:
@@ -20,13 +18,11 @@ Help string template for the set of subcommands.
 TEMPLATE_SUBCOMMANDS_SUFFIX = '''
 subcommand help:
 
-For further help with specific subcommands, pass the "-h" or "--help" arguments
-to such subcommands. For example, for further help with the "sim" subcommand:
+For help with specific subcommands, pass the "-h" or "--help" arguments to each.
+For example, for help with both the "sim" subcommand and that subcommand's "cfg"
+subsubcommand:
 
 ;    betse sim --help
-
-Likewise, for further help with the "sim" subcommand's "cfg" subcommand:
-
 ;    betse sim cfg --help
 '''
 '''

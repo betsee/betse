@@ -32,6 +32,38 @@ HAIKU = [
         'Error messages',
         'cannot completely convey.',
         'We now know shared loss.',
+    ), (
+        'The code was willing.'
+        'It considered your request,'
+        'but the chips were weak.',
+    ), (
+        'There is a chasm',
+        'of carbon and silicon',
+        'this software can''t bridge.',
+    ), (
+        'To have no errors',
+        'would be life without meaning.',
+        'No struggle, no joy.',
+    ), (
+        'many fingers clicking',
+        'screens are full of letters',
+        'what is their meaning?',
+    ), (
+        'Water spills downwards.',
+        'Electric stream cascades sparks.',
+        'Data flow ceases.',
+    ), (
+        'Technical support',
+        'would be a flowing source of',
+        'sweet commiseration.',
+    ), (
+        'Fatal exception.',
+        'Code has looped upon itself',
+        'like the coiled serpent.',
+    ), (
+        'An old CPU.',
+        'A new program is loaded.',
+        'The sound of crashing.',
     ),
 ]
 '''
@@ -41,6 +73,7 @@ This is serious business, folks.
 
 See Also
 ----------
+http://baetzler.de/humor/haiku_error.var
 https://www.gnu.org/fun/jokes/error-haiku.html
     To quote: "IMAGINE IF INSTEAD OF CRYPTIC TEXT STRINGS, YOUR COMPUTER
     PRODUCED ERROR MESSAGES IN HAIKU..." We need no longer imagine.

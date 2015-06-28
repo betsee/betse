@@ -21,8 +21,8 @@ import sys, traceback
 # ....................{ CLASS                              }....................
 class CLI(metaclass = ABCMeta):
     '''
-    Abstract command line interface (CLI) suitable for use by both the front-
-    facing CLI and GUI applications for `betse`.
+    Abstract command line interface (CLI) suitable for use by both CLI and GUI
+    front-ends for `betse`.
 
     Attributes
     ----------
@@ -70,14 +70,13 @@ class CLI(metaclass = ABCMeta):
             values failure.
         '''
         try:
-            # Initialize the current application *BEFORE* subsequent logic.
+            # Initialize the current application *BEFORE* subsequent logic. This
+            # initializes logging and validates paths -- among other chores.
             ignition.init()
 
-            # Parse CLI arguments *AFTER* logging, ensuring that exceptions
-            # raised by such parsing will be logged.
+            # Parse CLI arguments *AFTER* initializing logging, ensuring that
+            # exceptions raised by such parsing will be logged.
             self._parse_args()
-            # from six.moves import _dummy_thread
-            # from six.moves import tkinter
 
             # Perform subclass-specific logic.
             self._run()
@@ -244,30 +243,35 @@ class CLI(metaclass = ABCMeta):
                 # truncating such message for human-readability.)
                 log_buffer.write(strs.join(exception_message_lines))
 
-                #FIXME: If such exception type is "KeyError", the remaining
-                #exception message consists only of the offending key and hence
-                #is non-human-readable. Correct this by capturing the exception
-                #type to group 1, testing such type, and responding accordingly.
-
-                # Strip the non-human-readable exception class from the last
-                # line of such message. If such exception is not None *AND* is
-                # convertable without raising exceptions to a string, both
+                # Split the the last line of such message into a non-human-
+                # readable exception class and an ideally human-readable
+                # exception message. If such exception is not None *AND* is
+                # convertable without raising exceptions into a string, both
                 # format_exception_only() and _format_final_exc_line() guarantee
                 # such line to be formatted as follows:
                 #     "${exception_class}: ${exception_message}"
                 assert len(exception_message_lines),\
                     'Exception message lines empty.'
-                exception_message_lines[-1] = regexes.remove_substrings(
-                    exception_message_lines[-1],
-                    '^{}:\s+'.format(
-                        regexes.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
+                exception_class, exception_message =\
+                    regexes.get_match_groups_numeric(
+                        exception_message_lines[-1],
+                        r'^({}):\s+(.*)$'.format(
+                            regexes.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
+
+                # If such class is "KeyError", such message is the single-quoted
+                # name of a non-existent key in a dictionary whose access raised
+                # such exception. Since this is non-human-readable, wrap such
+                # key in human-readable description.
+                if exception_class == 'KeyError':
+                    exception_message = 'Dictionary key {} not found.'.format(
+                        exception_message)
 
                 # Append such message to the standard error buffer. For
                 # readability, wrap such message to the default terminal width
                 # and prefix each wrapped line with indentation.
                 stderr_buffer.write(
-                    strs.wrap_lines(
-                        lines = exception_message_lines,
+                    strs.wrap(
+                        text = exception_message,
                         line_prefix = '    ',))
 
                 # If such exception has a traceback, append such traceback to
@@ -349,6 +353,24 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+                #FUXME: If such exception type is "KeyError", the remaining
+                #exception message consists only of the offending key and hence
+                #is non-human-readable. Correct this by capturing the exception
+                #type to group 1, testing such type, and responding accordingly.
+
+            # yum = {}
+            # yum["a"]
+
+                # Strip the non-human-readable exception class from the last
+                # line of such message. If such exception is not None *AND* is
+                # exception_message_lines[-1] = regexes.remove_substrings(
+                # stderr_buffer.write(
+                #     strs.wrap_lines(
+                #         lines = exception_message_lines,
+                #         line_prefix = '    ',))
+
+            # from six.moves import _dummy_thread
+            # from six.moves import tkinter
 # from betse.cli import help
             # is_verbose = getattr(self._args, 'is_verbose', False)
             # If either the user requested verbosity *OR* no loggers have been

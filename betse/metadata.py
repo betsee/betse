@@ -14,7 +14,7 @@ interpreter. An exception is raised if such version is insufficient.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from packages guaranteed to exist at installation
-# time (e.g., stock Python packages).
+# time -- namely, stock Python packages and bundled BETSE packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ METADATA                           }....................
@@ -49,7 +49,7 @@ installation.
 '''
 
 # ....................{ METADATA ~ versions                }....................
-__version__ = '0.1'
+__version__ = '0.2.0'
 '''
 Version specifier.
 
@@ -92,13 +92,11 @@ DEPENDENCIES_RUNTIME = [
     # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
     # and hence end-user use of such version of matplotlib.
     'matplotlib >= 1.3.0',
-    # 'matplotlib < 1.4.0',
 
     # Dependencies directly required by BETSE.
     # 'PySide >= 1.2.0',
     'numpy >= 1.8.0',
     'scipy >= 0.12.0',
-    # 'voluptuous >= 0.8.7',
     'yaml >= 3.10',
 
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
@@ -151,13 +149,14 @@ import sys
 if sys.hexversion < 0x03030000:
     raise RuntimeError(''.join((
         NAME, ' ',
-        'requires at least Python 3.3. However, the active Python ',
-        'interpreter is of version:\n\n',
-        sys.version, '\n\n',
-        'We feel sadness for you.',
+        'requires at least Python 3.3, ',
+        'but the active Python interpreter is only\n\n',
+        'Python ', sys.version, '. We feel sadness for you.',
     )))
 
 # --------------------( WASTELANDS                         )--------------------
+    # 'voluptuous >= 0.8.7',
+    # 'matplotlib < 1.4.0',
 #FUXME: There appears to be no way to provide build-time dependencies to
 #setuptools. Nonetheless, there should be, so we preserve this for posterity.
 
