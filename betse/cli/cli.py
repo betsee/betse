@@ -79,7 +79,7 @@ class CLI(metaclass = ABCMeta):
             self._parse_args()
 
             # Perform subclass-specific logic.
-            self._run()
+            self._do()
 
             # Exit with successful exit status from the current process.
             return 0
@@ -126,16 +126,6 @@ class CLI(metaclass = ABCMeta):
 
         # Make a command-line argument parser.
         self._arg_parser = ArgumentParser(**arg_parser_kwargs)
-
-        #FIXME: Enable the "--config" option. More work than we care to invest,
-        #at the moment.
-
-        # Add globally applicable arguments.
-        # self._arg_parser.add_argument(
-        #     '-c', '--config-file',
-        #     default = files.DEFAULT_CONFIG_FILE,
-        #     dest = 'config_filename',
-        #     help = 'config file to read program settings from')
         self._arg_parser.add_argument(
             '-v', '--verbose',
             dest = 'is_verbose',
@@ -330,7 +320,7 @@ class CLI(metaclass = ABCMeta):
     # The following methods *MUST* be implemented by subclasses.
 
     @abstractmethod
-    def _run(self):
+    def _do(self):
         '''
         Perform subclass-specific logic.
         '''
@@ -353,6 +343,15 @@ class CLI(metaclass = ABCMeta):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+        #FUXME: Enable the "--config" option. More work than we care to invest,
+        #at the moment.
+
+        # Add globally applicable arguments.
+        # self._arg_parser.add_argument(
+        #     '-c', '--config-file',
+        #     default = files.DEFAULT_CONFIG_FILE,
+        #     dest = 'config_filename',
+        #     help = 'config file to read program settings from')
                 #FUXME: If such exception type is "KeyError", the remaining
                 #exception message consists only of the offending key and hence
                 #is non-human-readable. Correct this by capturing the exception

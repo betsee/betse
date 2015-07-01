@@ -7,10 +7,11 @@
 `betse`'s command line interface (CLI).
 '''
 
-#FIXME: Document the "world" subsubcommand.
+#FIXME: Refactor according to the example given by TEMPLATE_SUBCOMMAND_TRY.
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
+from betse import metadata
 from betse.cli import help
 from betse.cli.cli import CLI
 from betse.util.io import loggers
@@ -38,19 +39,19 @@ class CLICLI(CLI):
     Attributes
     ----------
     _arg_subparsers_top : ArgumentParser
-        Subparsers parsing top-level subcommands (e.g., `sim`).
-    _arg_subparsers_sim : ArgumentParser
-        Subparsers parsing `sim` subcommands (e.g., `cfg`).
-    _arg_parser_sim : ArgumentParser
-        Subparser of arguments passed to the `sim` subcommand.
+        Subparsers parsing top-level subcommands (e.g., `plot`).
+    _arg_subparsers_plot : ArgumentParser
+        Subparsers parsing `plot` subcommands (e.g., `plot world`).
+    _arg_parser_plot : ArgumentParser
+        Subparser parsing arguments passed to the `plot` subcommand.
     '''
     def __init__(self):
         super().__init__()
 
         # For safety, initialize such attributes.
         self._arg_subparsers_top = None
-        self._arg_subparsers_sim = None
-        self._arg_parser_sim = None
+        self._arg_subparsers_plot = None
+        self._arg_parser_plot = None
 
     # ..................{ SUPERCLASS                         }..................
     def _get_arg_parser_top_kwargs(self):
@@ -62,7 +63,7 @@ class CLICLI(CLI):
         # Top-level subcommands.
         self._arg_subparsers_top = self._arg_parser.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
-            dest = 'top_command_name',
+            dest = 'subcommand_name_top',
 
             # Title of the subcommand section in help output.
             title = 'subcommands',
@@ -73,33 +74,58 @@ class CLICLI(CLI):
         )
 
         self._add_arg_subparser_top(
-            name = 'try',
-            help = 'run a sample tissue simulation',
+            name = 'config',
+            help = 'create a new tissue simulation configuration',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_TRY),
+                help.TEMPLATE_SUBCOMMAND_CONFIG),
         )
-        self._configure_arg_parsing_sim()
-
+        self._add_arg_subparser_top(
+            name = 'world',
+            help = 'create the cellular world defined by a configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_WORLD),
+        )
+        self._add_arg_subparser_top(
+            name = 'prep',
+            help = 'prep the created world defined by a configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_PREP),
+        )
+        self._add_arg_subparser_top(
+            name = 'run',
+            help = 'run the prepped simulation defined by a configuration file',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_RUN),
+        )
+        self._configure_arg_parsing_plot()
         self._add_arg_subparser_top(
             name = 'info',
-            help = 'print informational metadata about the program',
+            help = 'show detailed metadata about {} and the current system'.format(
+                metadata.NAME),
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_INFO),
         )
+        self._add_arg_subparser_top(
+            name = 'try',
+            help = 'create, prep, run, and plot a sample tissue simulation',
+            description = self._format_help_template(
+                help.TEMPLATE_SUBCOMMAND_TRY),
+        )
 
-    def _run(self) -> None:
+    def _do(self) -> None:
         '''
         Run `betse`'s command line interface (CLI).
         '''
-        # If no subcommand was passed, print help output and return.
-        if not self._args.top_command_name:
+        # If no subcommand was passed, print help output and return. Note that
+        # this does *NOT* constitute a fatal error.
+        if not self._args.subcommand_name_top:
             self._arg_parser.print_help()
             return
 
         # Else, a subcommand was passed.
         #
         # Name of the method running such subcommand.
-        subcommand_method_name = '_run_' + self._args.top_command_name
+        subcommand_method_name = '_do_' + self._args.subcommand_name_top
 
         # Method running such subcommand. If such method does *NOT* exist,
         # getattr() will raise a non-layman-readable exception. Typically, this
@@ -111,61 +137,47 @@ class CLICLI(CLI):
         subcommand_method()
 
     # ..................{ SUBCOMMAND ~ sim                   }..................
-    def _configure_arg_parsing_sim(self):
+    def _configure_arg_parsing_plot(self):
         '''
-        Configure argument parsing for the `sim` subcommand.
+        Configure argument parsing for the `plot` subcommand.
         '''
         # Such subcommand.
-        self._arg_parser_sim = self._add_arg_subparser_top(
-            name = 'sim',
-            help = 'run tissue simulation subcommand',
+        self._arg_parser_plot = self._add_arg_subparser_top(
+            name = 'plot',
+            help = 'plot previously created, prepped, or run tissue simulations',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM),
+                help.TEMPLATE_SUBCOMMAND_PLOT),
         )
 
         # Collection of all subcommands of such subcommand.
-        self._arg_subparsers_sim = self._arg_parser_sim.add_subparsers(
+        self._arg_subparsers_plot = self._arg_parser_plot.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
-            dest = 'sim_command_name',
+            dest = 'subcommand_name_plot',
 
             # Title of the subcommand section in help output.
-            title = 'simulation subcommands',
+            title = 'plot subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
-
-        # Such subcommands.
-        self._add_arg_subparser_sim(
-            name = 'cfg',
-            help = 'write new simulation configuration file',
+        self._add_arg_subparser_plot(
+            name = 'world',
+            help = 'plot the created world defined by a configuration file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM_CFG),
+                help.TEMPLATE_SUBCOMMAND_PLOT_WORLD),
         )
-        self._add_arg_subparser_sim(
-            name = 'init',
-            help = 'initialize simulation specified by configuration file',
+        self._add_arg_subparser_plot(
+            name = 'prep',
+            help = 'plot the prepped simulation defined by a configuration file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM_INIT),
+                help.TEMPLATE_SUBCOMMAND_PLOT_PREP),
         )
-        self._add_arg_subparser_sim(
+        self._add_arg_subparser_plot(
             name = 'run',
-            help = 'run initialized simulation specified by configuration file',
+            help = 'plot the run simulation defined by a configuration file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM_RUN),
-        )
-        self._add_arg_subparser_sim(
-            name = 'plot_init',
-            help = 'plot initialized simulation specified by configuration file',
-            description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM_PLOT_INIT),
-        )
-        self._add_arg_subparser_sim(
-            name = 'plot_run',
-            help = 'plot simulation run specified by configuration file',
-            description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM_PLOT_INIT),
+                help.TEMPLATE_SUBCOMMAND_PLOT_RUN),
         )
 
     # ..................{ SUBPARSER                          }..................
@@ -177,25 +189,41 @@ class CLICLI(CLI):
         return self._add_arg_subparser(
             self._arg_subparsers_top, *args, **kwargs)
 
-    def _add_arg_subparser_sim(self, *args, **kwargs) -> ArgumentParser:
+    def _add_arg_subparser_plot(self, *args, **kwargs) -> ArgumentParser:
         '''
-        Create a new argument subparser, add such subparser to the collection of
-        argument subparsers specific to the top-level `sim` subcommand, and
-        return such subparser.
+        Create a new argument subparser requiring a worlduration filename, add
+        such subparser corresponding to the `plot` subcommand, and return such
+        subparser.
+        '''
+        return self._add_arg_subparser_subcommand(
+            self._arg_subparsers_plot, *args, **kwargs)
+
+    def _add_arg_subparser_subcommand(
+        self, arg_subparsers: ArgumentParser, *args, **kwargs) -> ArgumentParser:
+        '''
+        Create a new argument subparser requiring a configuration filename, add
+        such subparser to the passed set of argument subparsers, and return such
+        subparser.
+
+        Parameters
+        ----------
+        arg_subparsers : ArgumentParser
+            Set of argument subparsers, typically corresponding to a top- level
+            subcommand (e.g., `plot`).
         '''
         # Create such subparser.
-        arg_subparser_sim = self._add_arg_subparser(
-            self._arg_subparsers_sim, *args, **kwargs)
+        arg_subparser = self._add_arg_subparser(
+            arg_subparsers, *args, **kwargs)
 
         # Configure such subparser to require a passed configuration file.
-        arg_subparser_sim.add_argument(
-            'sim_config_filename',
+        arg_subparser.add_argument(
+            'config_filename',
             metavar = 'CONFIG_FILE',
             help = 'simulation configuration file',
         )
 
         # Get such subparser.
-        return arg_subparser_sim
+        return arg_subparser
 
     def _add_arg_subparser(
         self, arg_subparsers, *args, **kwargs) -> ArgumentParser:
@@ -217,24 +245,17 @@ class CLICLI(CLI):
         return arg_subparsers.add_parser(*args, **kwargs)
 
     # ..................{ SUBCOMMANDS ~ info                 }..................
-    #FIXME: Also print the versions of installed mandatory dependencies.
-    #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
-
-    def _run_info(self) -> None:
+    def _do_info(self) -> None:
         '''
         Run the `info` subcommand.
         '''
-        # Such module imports heavy-weight dependencies and hence is imported in
-        # a just-in-time (JIT) manner.
+        # The following module imports heavy-weight dependencies and hence is
+        # imported in a just-in-time (JIT) manner.
         from betse.cli import info
         info.output_info()
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
-    #FIXME: This could probably use a bit of help. Specifically, the sample
-    #configuration file should be munged so as to *NOT* display plots after
-    #initialization. We think. Hopefully not terribly arduous. *shrug*
-
-    def _run_try(self) -> None:
+    def _do_try(self) -> None:
         '''
         Run the `try` subcommand.
         '''
@@ -242,31 +263,26 @@ class CLICLI(CLI):
         config_basename = 'sample_sim.yaml'
 
         # Relative path of such file, relative to the current directory.
-        self._args.sim_config_filename = paths.join(
+        self._args.config_filename = paths.join(
             'sample_sim', config_basename)
 
         # If such file already exists, reuse such file.
-        if files.is_file(self._args.sim_config_filename):
+        if files.is_file(self._args.config_filename):
             loggers.log_info(
                 'Reusing simulation configuration "{}".'.format(
                     config_basename))
         # Else, create such file.
         else:
-            self._run_sim_cfg()
+            self._do_config()
+
+        #FIXME: Do we need to explicitly call _do_plot_run() here? If not, why
+        #not? Does the default configuration file already ensure this when
+        #_do_run() is called?
 
         # Initialize and run such simulation.
-        self._run_sim_world()
-        self._run_sim_init()
-        self._run_sim_run()
-
-    def _run_sim(self) -> None:
-        '''
-        Run the `sim` subcommand.
-        '''
-        # Run such subcommand's passed subcommand. See _run() for details.
-        subcommand_method_name = '_run_sim_' + self._args.sim_command_name
-        subcommand_method = getattr(self, subcommand_method_name)
-        subcommand_method()
+        self._do_world()
+        self._do_prep()
+        self._do_run()
 
     #FIXME: It's no longer enough to simply copy the configuration file; we
     #also need to copy all data on which such file depends. We'll need to
@@ -275,42 +291,57 @@ class CLICLI(CLI):
     #It *IS* quite small and hence innocuous. For simplicity, perhaps copying
     #such subdirectory would be the wisest approach. Contemplate.
 
-    def _run_sim_cfg(self) -> None:
+    def _do_config(self) -> None:
         '''
-        Run the `sim` subcommand's `cfg` subcommand.
+        Run the `config` subcommand.
         '''
-        # Import from "betse.science" in a just-in-time manner, as such
-        # importation imports heavy-weight dependencies and hence is slow.
+        # The following module imports heavy-weight dependencies and hence is
+        # imported in a just-in-time (JIT) manner.
         from betse.science import simconfig
-        simconfig.write_default(self._args.sim_config_filename)
+        simconfig.write_default(self._args.config_filename)
 
-    def _run_sim_world(self) -> None:
+    def _do_world(self) -> None:
         '''
-        Run the `sim` subcommand's `world` subcommand.
+        Run the `world` subcommand.
         '''
         self._get_sim_runner().makeWorld()
 
-    def _run_sim_init(self) -> None:
+    def _do_prep(self) -> None:
         '''
-        Run the `sim` subcommand's `init` subcommand.
+        Run the `prep` subcommand.
         '''
         self._get_sim_runner().initialize()
 
-    def _run_sim_run(self) -> None:
+    def _do_run(self) -> None:
         '''
-        Run the `sim` subcommand's `run` subcommand.
+        Run the `run` subcommand.
         '''
         self._get_sim_runner().simulate()
 
-    def _run_sim_plot_init(self) -> None:
+    def _do_plot(self) -> None:
         '''
-        Run the `sim` subcommand's `plot_init` subcommand.
+        Run the `plot` subcommand.
+        '''
+        # Run such subcommand's passed subcommand. See _run() for details.
+        subcommand_method_name = '_do_plot_' + self._args.subcommand_name_plot
+        subcommand_method = getattr(self, subcommand_method_name)
+        subcommand_method()
+
+    def _do_plot_world(self) -> None:
+        '''
+        Run the `plot` subcommand's `world` subcommand.
+        '''
+        self._get_sim_runner().plotWorld()
+
+    def _do_plot_prep(self) -> None:
+        '''
+        Run the `plot` subcommand's `prep` subcommand.
         '''
         self._get_sim_runner().plotInit()
 
-    def _run_sim_plot_run(self) -> None:
+    def _do_plot_run(self) -> None:
         '''
-        Run the `sim` subcommand's `plot_run` subcommand.
+        Run the `plot` subcommand's `run` subcommand.
         '''
         self._get_sim_runner().plotSim()
 
@@ -324,9 +355,16 @@ class CLICLI(CLI):
         from betse.science.simrunner import SimRunner
 
         # Get such runner.
-        return SimRunner(config_filename = self._args.sim_config_filename)
+        return SimRunner(config_filename = self._args.config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+        # Import from "betse.science" in a just-in-time manner, as such
+        # importation imports heavy-weight dependencies and hence is slow.
+    #FUXME: This could probably use a bit of help. Specifically, the sample
+    #configuration file should be munged so as to *NOT* display plots after
+    #initialization. We think. Hopefully not terribly arduous. *shrug*
+
+#FUXME: Document the "world" subsubcommand.
 # from betse import metadata, pathtree
 # from betse.util.python import pythons
 # from betse.util.system import processes, systems
@@ -402,12 +440,12 @@ class CLICLI(CLI):
         # loggers.log_debug(
         #     'sim subcommand names: %s', str(self._args.sim_subcommand_names))
         # loggers.log_debug(
-        #     'sim_config_filename: %s', self._args.sim_config_filename)
+        #     'config_filename: %s', self._args.config_filename)
 
         # # Run each simulation-specific subcommand.
         # for sim_subcommand_name in self._args.sim_subcommand_names:
         #     # Name of the method running such subcommand.
-        #     sim_subcommand_method_name = '_run_sim_' + sim_subcommand_name
+        #     sim_subcommand_method_name = '_do_sim_' + sim_subcommand_name
         #
         #     # Method running such subcommand, passing "None" to prevent
         #     # getattr() from raising a non-layman-readable exception on
@@ -442,7 +480,7 @@ class CLICLI(CLI):
         #
         #         # Create such simulation.
         #         self._sim_runner = SimRunner(
-        #             config_filename = self._args.sim_config_filename)
+        #             config_filename = self._args.config_filename)
         #
         #     # Run such subcommand.
         #     sim_subcommand_method()
@@ -492,7 +530,7 @@ class CLICLI(CLI):
         #     help = 'simulation subcommand(s) to be run',
         # )
         # self._arg_parser_sim.add_argument(
-        #     'sim_config_filename',
+        #     'config_filename',
         #     metavar = 'CONFIG_FILE',
         #     help = 'simulation configuration file',
         # )
@@ -722,7 +760,7 @@ class CLICLI(CLI):
     #     '''
     #     subparser_sim = self._add_subparser(**kwargs)
     #     subparser_sim.add_argument(
-    #         'sim_config_filename',
+    #         'config_filename',
     #         metavar = 'CONFIG_FILE',
     #         help = 'simulation configuration file'
     #     )
@@ -769,7 +807,7 @@ class CLICLI(CLI):
     #     subparser_sim = self._add_subparser_simulation(**kwargs)
     #     subparser_sim.add_argument(
     #         '-c', '--config-file',
-    #         dest = 'sim_config_filename',
+    #         dest = 'config_filename',
     #         help = 'simulation configuration file'
     #     )
     #     return subparser_sim
@@ -794,7 +832,7 @@ class CLICLI(CLI):
         # )
         # subparser_sim.add_argument(
         #     '-c', '--config-file',
-        #     dest = 'sim_config_filename',
+        #     dest = 'config_filename',
         #     help = 'simulation configuration file'
         # )
         #
@@ -818,7 +856,7 @@ class CLICLI(CLI):
         # )
         # subparser_sim.add_argument(
         #     '-c', '--config-file',
-        #     dest = 'sim_config_filename',
+        #     dest = 'config_filename',
         #     help = 'simulation configuration file'
         # )
         #
@@ -844,13 +882,13 @@ class CLICLI(CLI):
         #FUXME: Contemplate localizing.
 
 # import inspect
-        # Dictionary from subcommand name to _run_*() method running such
+        # Dictionary from subcommand name to _do_*() method running such
         # subcommand.
         # subcommand_name_to_method = dict(
-        #     (method_name[len('_run_'):], method)
+        #     (method_name[len('_do_'):], method)
         #     for (method_name, method) in
         #         inspect.getmembers(self, inspect.ismethod)
-        #     if method_name.startswith('_run_')
+        #     if method_name.startswith('_do_')
         # )
         # assert self._args.command_name in subcommand_name_to_method,\
         #     '"{}" not a recognized subcommand'.format(self._args.command_name)

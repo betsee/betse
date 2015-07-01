@@ -19,11 +19,11 @@ TEMPLATE_SUBCOMMANDS_SUFFIX = '''
 subcommand help:
 
 For help with specific subcommands, pass the "-h" or "--help" arguments to each.
-For example, for help with both the "sim" subcommand and that subcommand's "cfg"
-subsubcommand:
+For example, for help with both the "plot" subcommand and that subcommand's
+"world" subsubcommand:
 
-;    betse sim --help
-;    betse sim cfg --help
+;    betse plot --help
+;    betse plot world --help
 '''
 '''
 Help string template for the **program epilog** (i.e., string printed after
@@ -54,86 +54,131 @@ Help string template for the `info` subcommand.
 '''
 
 TEMPLATE_SUBCOMMAND_TRY = '''
-Run a sample tissue simulation by automatically creating a default configuration
-file and initializing, running, and plotting the simulation specified by such
-file. This subcommand is shorthand for the following:
+Run a sample tissue simulation. This subcommand (A) creates a default YAML
+configuration file, (B) creates the cellular world defined by that file, and
+(C) initializes, (D) runs, and (E) plots the tissue simulation defined by that
+file within that world. For safety, this subcommand preserves (i.e., does not
+delete on completion) files and directories created by these operations.
 
-;    betse sim cfg  sample_sim/sample_sim.yaml
-;    betse sim init sample_sim/sample_sim.yaml
-;    betse sim run  sample_sim/sample_sim.yaml
+Equivalently, this is shorthand for the following:
+
+;    betse config   sample_sim/sample_sim.yaml
+;    betse world    sample_sim/sample_sim.yaml
+;    betse prep     sample_sim/sample_sim.yaml
+;    betse run      sample_sim/sample_sim.yaml
+;    betse plot run sample_sim/sample_sim.yaml
 '''
 '''
 Help string template for the `try` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SIM = '''
-Run the passed tissue simulation subcommand. For example, to initialize the
-simulation specified by an existing configuration file "my_sim.yaml" in the
-current directory:
+TEMPLATE_SUBCOMMAND_CONFIG = '''
+Write a default tissue simulation configuration to the passed output file. While
+not strictly necessary, such file should have filetype ".yaml" . If such file
+already exists, an error will be printed.
 
-;    betse sim init my_sim.yaml
+You may freely edit this file at any time. Note that the default configuration
+instructs {program_name} to save simulation output (e.g., plots) into the
+directory in which this file resides.
 '''
 '''
-Help string template for the `sim` subcommand.
-'''
-
-# ....................{ TEMPLATES ~ subcommand : sim       }....................
-TEMPLATE_SUBCOMMAND_SIM_CFG = '''
-Write a default tissue simulation configuration to the passed output file, which
-should (ideally) be suffixed by ".yaml". If such file already exists, an error
-will be printed.
-
-You may freely edit this file at any time. The default configuration instructs
-{program_name} to save simulation output (e.g., plots) into the directory
-containing this file.
-'''
-'''
-Help string template for the `sim` subcommand's `cfg` subcommand.
+Help string template for the `config` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SIM_INIT = '''
-Initialize the tissue simulation specified by the passed configuration file.
-Initialization results will be saved to the output file specified in such
-configuration.
+TEMPLATE_SUBCOMMAND_WORLD = '''
+Create the cellular world defined by the passed configuration file. The results
+will be saved to output files defined by such configuration.
+
+If this configuration file does not exist, an error will be printed.
 '''
 '''
-Help string template for the `sim` subcommand's `init` subcommand.
+Help string template for the `world` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SIM_RUN = '''
-Run the previously initialized tissue simulation specified by the passed
-configuration file. Simulation results will be saved to the output file
-specified in such configuration. Likewise, the previously run initialization
-will be loaded from the input file specified in such configuration. (If such
-file does not exist, an error will be printed.)
+TEMPLATE_SUBCOMMAND_PREP = '''
+Prep (i.e., calculate steady-state concentrations for) the previously created
+cellular world defined by the passed configuration file. Prep results will be
+saved to output files defined by such configuration. Likewise, the previously
+created world will be loaded from input files defined by this configuration.
+
+If this configuration file does not exist, an error will be printed.
 '''
 '''
-Help string template for the `sim` subcommand's `run` subcommand.
+Help string template for the `prep` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SIM_PLOT_INIT = '''
-Plot the previously initialized tissue simulation specified by the passed
-configuration file. Plot results will be saved to the output file(s) specified
-in such configuration. Likewise, the previously run initialization will be
-loaded from the input file specified in such configuration. (If such file does
-not exist, an error will be printed.)
+TEMPLATE_SUBCOMMAND_RUN = '''
+Run the previously prepped tissue simulation defined by the passed configuration
+file. Simulation results will be saved to output files defined by this
+configuration. Likewise, the previously prepped simulation will be loaded from
+input files defined by this configuration.
+
+If this configuration file does not exist, an error will be printed.
 '''
 '''
-Help string template for the `sim` subcommand's `plot_init` subcommand.
+Help string template for the `run` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SIM_PLOT_RUN = '''
-Plot the previously run tissue simulation specified by the passed configuration
-file. Plot results will be saved to the output file(s) specified in such
-configuration. Likewise, the previously run simulation will be loaded from the
-input file specified in such configuration. (If such file does not exist, an
-error will be printed.)
+# ....................{ TEMPLATES ~ subcommand : plot      }....................
+TEMPLATE_SUBCOMMAND_PLOT = '''
+Run the passed plotting subcommand. For example, to plot the previously run
+simulation defined by a configuration file "my_sim.yaml" in the current
+directory:
+
+;    betse plot run my_sim.yaml
 '''
 '''
-Help string template for the `sim` subcommand's `plot_run` subcommand.
+Help string template for the `plot` subcommand.
+'''
+
+TEMPLATE_SUBCOMMAND_PLOT_WORLD = '''
+Plot the previously created cellular world defined by the passed configuration
+file. Plot results will be saved to output files defined by this configuration.
+Likewise, the previously created world will be loaded from input files defined
+by this configuration.
+
+If this configuration file does not exist, an error will be printed.
+'''
+'''
+Help string template for the `plot` subcommand's `world` subcommand.
+'''
+
+TEMPLATE_SUBCOMMAND_PLOT_PREP = '''
+Plot the previously prepped tissue simulation defined by the passed
+configuration file. Plot results will be saved to output files defined by this
+configuration. Likewise, the previously prepped simulation will be loaded from
+input files defined by this configuration.
+
+If this configuration file does not exist, an error will be printed.
+'''
+'''
+Help string template for the `plot` subcommand's `prep` subcommand.
+'''
+
+TEMPLATE_SUBCOMMAND_PLOT_RUN = '''
+Plot the previously run tissue simulation defined by the passed configuration
+file. Plot results will be saved to output files defined by this configuration.
+Likewise, the previously run simulation will be loaded from input files defined
+by this configuration.
+
+If this configuration file does not exist, an error will be printed.
+'''
+'''
+Help string template for the `plot` subcommand's `run` subcommand.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+# TEMPLATE_SUBCOMMAND_SIM = '''
+# Run the passed tissue simulation subcommand. For example, to initialize the
+# simulation defined by an existing configuration file "my_sim.yaml" in the
+# current directory:
+#
+# ;    betse setup run my_sim.yaml
+# '''
+# '''
+# Help string template for the `sim` subcommand.
+# '''
+
 # For further help with subcommand behavior and expected arguments, pass the "-h"
 # Template with which to create **epilog templates** (i.e., strings printed after
 # *all* other text at some level of help output).
@@ -190,32 +235,32 @@ Help string template for the `sim` subcommand's `plot_run` subcommand.
 #
 # ;init
 # ;----------
-# Initialize the tissue simulation specified by the passed configuration file.
-# Initialization results will be saved to the output file specified in such
+# Initialize the tissue simulation defined by the passed configuration file.
+# Initialization results will be saved to the output file defined by such
 # configuration.
 #
 # ;run
 # ;----------
-# Run the previously initialized tissue simulation specified by the passed
+# Run the previously initialized tissue simulation defined by the passed
 # configuration file. Simulation results will be saved to the output file
-# specified in such configuration. Likewise, the previously run initialization
-# will be loaded from the input file specified in such configuration. (If such
+# defined by this configuration. Likewise, the previously run initialization
+# will be loaded from the input file defined by this configuration. (If such
 # file does not exist, an error will be printed.)
 #
 # ;plot_init
 # ;----------
-# Plot the previously initialized tissue simulation specified by the passed
-# configuration file. Plot results will be saved to the output file(s) specified
-# in such configuration. Likewise, the previously run initialization will be
-# loaded from the input file specified in such configuration. (If such file does
+# Plot the previously initialized tissue simulation defined by the passed
+# configuration file. Plot results will be saved to the output file(s) defined
+# in this configuration. Likewise, the previously run initialization will be
+# loaded from the input file defined by this configuration. (If such file does
 # not exist, an error will be printed.)
 #
 # ;plot_run
 # ;----------
-# Plot the previously run tissue simulation specified by the passed configuration
-# file. Plot results will be saved to the output file(s) specified in such
+# Plot the previously run tissue simulation defined by the passed configuration
+# file. Plot results will be saved to the output file(s) defined by such
 # configuration. Likewise, the previously run simulation will be loaded from the
-# input file specified in such configuration. (If such file does not exist, an
+# input file defined by this configuration. (If such file does not exist, an
 # error will be printed.)
 # '''
 # '''

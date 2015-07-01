@@ -83,3 +83,4 @@ def output_info() -> None:
     loggers.log_info(info_buffer.getvalue())
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Also print the versions of installed mandatory dependencies.
