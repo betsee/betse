@@ -328,6 +328,7 @@ class Simulator(object):
         self.z_array_env = []  # array of ion valence matched to env space number
 
         self.z_er = []  # ion valence states of er ions
+        self.z_array_er = []
 
         self.Dm_cells = []              # membrane diffusion constants initialized
 
@@ -337,6 +338,14 @@ class Simulator(object):
         self.ionlabel = {}              # dictionary to hold ion label names
 
         self.T = p.T                # set the base temperature for the simulation
+
+        if p.sim_eosmosis == True:
+            self.rho_channel = np.ones(len(cells.mem_i))
+            # normalize the value of rho_channel so it equals 1 for each cell
+            for inds in cells.cell_to_mems:
+                vals = self.rho_channel[inds]
+                sum_vals = sum(vals)
+                self.rho_channel[inds] = vals/sum_vals
 
         i = -1                           # an index to track place in ion list
 
@@ -1382,15 +1391,15 @@ class Simulator(object):
 
             if p.ions_dict['H'] == 1:
 
-                self.Hplus_electrofuse_ecm(cells,p)
+                self.Hplus_electrofuse_ecm(cells,p,t)
 
                 if p.HKATPase_dyn == 1:
 
-                    self.Hplus_HKATP_ecm(cells,p)
+                    self.Hplus_HKATP_ecm(cells,p,t)
 
                 if p.VATPase_dyn == 1:
 
-                    self.Hplus_VATP_ecm(cells,p)
+                    self.Hplus_VATP_ecm(cells,p,t)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
             shuffle(cells.gj_i)
@@ -1537,7 +1546,6 @@ class Simulator(object):
 
             # celf = copy.deepcopy(self)
 
-
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
@@ -1622,7 +1630,7 @@ class Simulator(object):
         self.cc_ecm[ion_i] = self.cc_ecm[ion_i] - \
                                 np.dot((flux/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
 
-    def Hplus_electrofuse_ecm(self,cells,p):
+    def Hplus_electrofuse_ecm(self,cells,p,t):
 
         # electrofuse the H+ ion between the cytoplasm and the ecms
         _,_,f_H1 = \
@@ -1650,9 +1658,9 @@ class Simulator(object):
             self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V_ecm(cells,p)
+        self.update_V_ecm(cells,p,t)
 
-    def Hplus_HKATP_ecm(self,cells,p):
+    def Hplus_HKATP_ecm(self,cells,p,t):
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
         _,_,_,_, f_H2, f_K2 =\
@@ -1682,9 +1690,9 @@ class Simulator(object):
             self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V_ecm(cells,p)
+        self.update_V_ecm(cells,p,t)
 
-    def Hplus_VATP_ecm(self,cells,p):
+    def Hplus_VATP_ecm(self,cells,p,t):
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
         _, _, f_H3 =\
@@ -1711,7 +1719,7 @@ class Simulator(object):
             self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        # self.update_V_ecm(cells,p)
+        self.update_V_ecm(cells,p,t)
 
     def update_gj(self,cells,p,t,i):
          # calculate voltage difference between cells:

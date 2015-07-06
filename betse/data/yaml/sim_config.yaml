@@ -79,10 +79,10 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 100.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.5            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: 0   # radius of gap junctions connecting cells [m] (recommended range see table)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    gap junction radius: 1.0e-7   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -126,13 +126,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 2.5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 250                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
     sampling rate: 0.5            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1.0e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 1.0e-7        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -160,9 +160,9 @@ sim time settings:
 
 general options:
 
-  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'invertebrate'   # set the ion profile to be used in the simulation
+  ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -178,10 +178,13 @@ general options:
                                 # General Options section.
                                 # Note you cannot change this option between an init and sim run.
 
+  channel electroosmosis: True   # turn on electroosmosis of pumps and channels under ecm currents
+                                 # (only works for simulate ECM: True)
+
   backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
 
 
-  HKATPase pump: True     # include the HK-ATPase pump in the simulation?
+  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
                            # only works for an ion profile with H+ ions (animal or invertebrate)
                            # options True or False (case sensitive)
 
@@ -874,20 +877,20 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-12   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-14   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  0.5e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1.0e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  alpha_CaER:  1.0e-8  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  10.0    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  0.1    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
   halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
   slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  1.0     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  alpha_V:  0.01     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
   halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
   slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
 

@@ -401,6 +401,8 @@ class Parameters(object):
 
         self.sim_ECM = self.config['general options']['simulate ECM']    # boolean letting us know if extracellular spaces are included
 
+        self.sim_eosmosis = self.config['general options']['channel electroosmosis']
+
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
         self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run

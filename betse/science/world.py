@@ -891,8 +891,8 @@ class World(object):
             # First calculate individual cell volumes from cell vertices:
             poly = [x for x in reversed(polyc)]
             self.cell_vol.append(p.cell_height*tb.area(poly))
-            self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
-            self.cell_area.append(tb.area(poly))
+            # self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
+            # self.cell_area.append(tb.area(poly))
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []
@@ -931,7 +931,7 @@ class World(object):
         self.mem_mids_flat, self.indmap_mem, _ = tb.flatten(self.mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
-        self.cell_sa = np.asarray(self.cell_sa)
+        # self.cell_sa = np.asarray(self.cell_sa)
 
     def cellGeo(self,p,close_ecm=None):
         """
@@ -980,8 +980,8 @@ class World(object):
             # First calculate individual cell volumes from cell vertices:
             poly = [x for x in reversed(polyc)]
             self.cell_vol.append(p.cell_height*tb.area(poly))
-            self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
-            self.cell_area.append(tb.area(poly))
+            # self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
+            # self.cell_area.append(tb.area(poly))
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []
@@ -1019,7 +1019,7 @@ class World(object):
         self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
-        self.cell_sa = np.asarray(self.cell_sa)
+        # self.cell_sa = np.asarray(self.cell_sa)
 
         # Extracellular matrix specific data
 
@@ -1160,13 +1160,14 @@ class World(object):
 
         self.R = np.sqrt(self.cell_vol/(math.pi*p.cell_height))    # effective radius of each cell
 
-        self.cell_sa = 2*math.pi*self.R*p.cell_height
+        # self.cell_sa = 2*math.pi*self.R*p.cell_height
 
         self.mem_length,_,_ = tb.flatten(self.mem_length)
 
         self.mem_length = np.asarray(self.mem_length)
 
         self.mem_sa = self.mem_length*p.cell_height
+
 
         loggers.log_info('Creating computational matrices... ')
 
@@ -1222,6 +1223,14 @@ class World(object):
             self.cell_to_mems.append(index2mems)
 
         self.cell_to_mems = np.asarray(self.cell_to_mems)
+
+        # cell surface area:
+        self.cell_sa = []
+        for grp in self.cell_to_mems:
+            cell_sa = sum(self.mem_sa[grp])
+            self.cell_sa.append(cell_sa)
+
+        self.cell_sa = np.asarray(self.cell_sa)
 
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
