@@ -39,7 +39,7 @@ def output_info() -> None:
             ('data directory', pathtree.DATA_DIRNAME),
             ('log file', pathtree.LOG_DEFAULT_FILENAME),
             ('default simulation config file',
-            pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
+            pathtree.CONFIG_DEFAULT_FILENAME),
         ))),
 
         # Dependencies metadata.

@@ -37,7 +37,7 @@ class SimRunner(object):
         super().__init__()
 
         # Validate and localize such filename.
-        files.die_unless_found(config_filename)
+        files.die_unless_file(config_filename)
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 

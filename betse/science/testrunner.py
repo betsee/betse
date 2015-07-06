@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     # Simulation specified by the default configuration file.
     sim_runner = SimRunner(
-        config_filename = pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME)
+        config_filename = pathtree.CONFIG_DEFAULT_FILENAME)
 
     # Run such simulation.
     sim_runner.initialize()

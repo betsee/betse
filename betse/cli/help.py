@@ -207,7 +207,7 @@ Help string template for the `plot` subcommand's `run` subcommand.
 # from betse.util.path import paths
 #.format(
     # simulation_config_basename = paths.get_basename(
-    #     pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME))
+    #     pathtree.CONFIG_DEFAULT_FILENAME))
 # from betse import pathtree
 #Subcommand to be run.
 

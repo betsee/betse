@@ -71,7 +71,7 @@ class Simulator(object):
 
         #FIXME: Uncomment to make required directories. Yay!
         # from betse.util.path import dirs
-        # dirs.make_parent_unless_found(p.saved_init_file, p.saved_run_file)
+        # dirs.make_parent_unless_dir(p.saved_init_file, p.saved_run_file)
 
         # Make the BETSE-specific cache directory if not found.
         betse_cache_dir = os.path.expanduser(p.init_path)

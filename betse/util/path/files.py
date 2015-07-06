@@ -17,7 +17,7 @@ from os import path
 import os, shutil
 
 # ....................{ EXCEPTIONS                         }....................
-def die_if_found(pathname: str) -> None:
+def die_if_file(pathname: str) -> None:
     '''
     Raise an exception if the passed non-directory file exists *after* following
     symbolic links.
@@ -26,7 +26,7 @@ def die_if_found(pathname: str) -> None:
     if is_file(pathname):
         raise BetseExceptionFile('File "{}" already exists.'.format(pathname))
 
-def die_unless_found(pathname: str) -> None:
+def die_unless_file(pathname: str) -> None:
     '''
     Raise an exception unless the passed non-directory file exists *after*
     following symbolic links.
@@ -75,7 +75,7 @@ def copy(filename_source: str, filename_target: str) -> None:
         '"{}" not a string.'.format(filename_target)
 
     # Fail unless such source file exists.
-    die_unless_found(filename_source)
+    die_unless_file(filename_source)
 
     # Log such copy.
     loggers.log_info(
@@ -92,7 +92,7 @@ def remove(filename: str) -> None:
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
 
     # Fail unless such file exists.
-    die_unless_found(filename)
+    die_unless_file(filename)
 
     # Log such removal.
     loggers.log_info('Removing file "%s".', filename)
@@ -112,7 +112,7 @@ def open_for_reading_text(filename: str):
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
 
     # If such file does *NOT* exist, fail.
-    die_unless_found(filename)
+    die_unless_file(filename)
 
     # Open such file.
     return open(filename, 'r')
@@ -134,7 +134,7 @@ def open_for_writing_text(filename: str):
     paths.die_if_special(filename)
 
     # Create the parent directory of such file if needed.
-    dirs.make_parent_unless_found(filename)
+    dirs.make_parent_unless_dir(filename)
 
     # Open such file.
     return open(filename, 'w')

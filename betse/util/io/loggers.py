@@ -303,7 +303,7 @@ class LoggerConfig(object):
         self._logger_root_handler_stderr.setLevel(WARNING)
 
         # Create the directory containing such logfile if needed. Since
-        # dirs.make_parent_unless_found() logs such creation, calling such
+        # dirs.make_parent_unless_dir() logs such creation, calling such
         # function here induces exceptions in the worst case (due to the root
         # logger having been insufficiently configured) or subtle errors in the
         # best case. Instead, create such directory with standard low-level

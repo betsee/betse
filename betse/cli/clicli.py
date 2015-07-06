@@ -290,6 +290,11 @@ class CLICLI(CLI):
     #however, simply copy the entirety of the "geo" subdirectory. Or should we?
     #It *IS* quite small and hence innocuous. For simplicity, perhaps copying
     #such subdirectory would be the wisest approach. Contemplate.
+    #FIXME: O.K.; we'll want to improve the simconfig.write_default() method
+    #called below to *ALSO* copy all ancillary files required by the copied
+    #YAML file -- which, at the moment, means "geo/". This shouldn't be
+    #terribly arduous given our new dirs.copy() method. And, yes:
+    #simconfig.write_default() is indeed the appropriate place to do this.
 
     def _do_config(self) -> None:
         '''
@@ -385,7 +390,7 @@ class CLICLI(CLI):
         #         ('data directory', pathtree.DATA_DIRNAME),
         #         ('log file', pathtree.LOG_DEFAULT_FILENAME),
         #         ('default simulation config file',
-        #         pathtree.SIMULATION_CONFIG_DEFAULT_FILENAME),
+        #         pathtree.CONFIG_DEFAULT_FILENAME),
         #     ))),
         #
         #     # Dependencies metadata.
