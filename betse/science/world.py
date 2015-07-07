@@ -898,9 +898,9 @@ class World(object):
             mps = []
             surfa = []
 
-            for i in range(0,len(poly)):
-                pt1 = poly[i-1]
-                pt2 = poly[i]
+            for i in range(0,len(polyc)):
+                pt1 = polyc[i-1]
+                pt2 = polyc[i]
                 pt1 = np.asarray(pt1)
                 pt2 = np.asarray(pt2)
                 edge.append([pt1,pt2])
@@ -987,9 +987,9 @@ class World(object):
             mps = []
             surfa = []
 
-            for i in range(0,len(poly)):
-                pt1 = poly[i-1]
-                pt2 = poly[i]
+            for i in range(0,len(polyc)):
+                pt1 = polyc[i-1]
+                pt2 = polyc[i]
                 pt1 = np.asarray(pt1)
                 pt2 = np.asarray(pt2)
                 edge.append([pt1,pt2])
@@ -1286,6 +1286,36 @@ class World(object):
             for i, indices in enumerate(self.index_to_mem_verts):
                 self.matrixMap2Verts[i,indices[0]]=1/2
                 self.matrixMap2Verts[i,indices[1]]=1/2
+
+
+            # create a mapping from each vert to each membrane segment, mem_seg_i:
+
+            self.mem_seg_i = []
+
+            self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+            self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
+            vertTree = sps.KDTree(self.mem_verts)
+
+            for seg in self.mem_edges_flat:
+                pt1 = seg[0]
+                pt2 = seg[1]
+                seg_ind1 = vertTree.query(pt1)[1]
+                seg_ind2 = vertTree.query(pt2)[1]
+                self.mem_seg_i.append([seg_ind1,seg_ind2])
+
+            self.mem_seg_i = np.asarray(self.mem_seg_i)  # pairs two indices to mem_verts defining line segment
+
+            # now to go from membrane vert data to mid data by calculating the pseudo-inverse:
+            self.matrixMap2Mids = np.linalg.pinv(self.matrixMap2Verts)
+
+             # calculating matrix for membrane flux calculation between connected vertices:
+            self.memMatrix = np.zeros((len(self.mem_seg_i),len(self.mem_i)))
+            for igj, pair in enumerate(self.mem_seg_i):
+                ci = pair[0]
+                cj = pair[1]
+                self.memMatrix[igj,ci] = -1
+                self.memMatrix[igj,cj] = 1
 
             # Create a map from cell to ecm space
             self.cell_to_ecm = []

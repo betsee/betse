@@ -86,8 +86,8 @@ class AnimateCellData(object):
 
             if p.showCells == True:
 
-                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*cells.mem_edges_flat
                 coll = LineCollection(cell_edges_flat,colors='k')
                 coll.set_alpha(0.5)
                 self.ax.add_collection(coll)
@@ -491,8 +491,8 @@ class AnimateGJData(object):
 
             if p.showCells == True:
 
-                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*cells.mem_edges_flat
                 coll_mems = LineCollection(cell_edges_flat,colors='k')
                 coll_mems.set_alpha(0.5)
                 self.ax.add_collection(coll_mems)
@@ -818,8 +818,8 @@ class PlotWhileSolving(object):
 
             if p.showCells == True:
 
-                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*cells.mem_edges_flat
                 coll = LineCollection(cell_edges_flat,colors='k')
                 coll.set_alpha(0.5)
                 self.ax.add_collection(coll)
@@ -963,8 +963,8 @@ class PlotWhileSolving(object):
 
             if p.showCells == True:
 
-                cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+                # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*cells.mem_edges_flat
                 coll = LineCollection(cell_edges_flat,colors='k')
                 coll.set_alpha(0.5)
                 self.ax.add_collection(coll)
@@ -1298,8 +1298,8 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
             scat = ax.scatter(p.um*cells.mem_mids_flat[:,0],p.um*cells.mem_mids_flat[:,1], c='k')
 
         if edgeOverlay == True:
-            cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-            cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+            # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+            cell_edges_flat = cells.um*cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
@@ -1570,8 +1570,8 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
             ax.scatter(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1], c=z,cmap=clrmap)
 
         if edgeOverlay == True:
-            cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-            cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+            # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+            cell_edges_flat = cells.um*cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
@@ -1620,9 +1620,9 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
             ax = plt.subplot(111)
             #ax = plt.axes()
 
-        cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+        # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
 
-        cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+        cell_edges_flat = cells.um*cells.mem_edges_flat
 
         if zdata is None:
             z = np.ones(len(cell_edges_flat))
@@ -1634,7 +1634,7 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         if clrmap is None:
             clrmap = cm.rainbow
 
-        coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap)
+        coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap,linewidths=4.0)
         ax.add_collection(coll)
 
         ax.axis('equal')
@@ -1774,8 +1774,8 @@ def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
 
         ax.plot(p.um*bpoints[:,0],p.um*bpoints[:,1],'r.')
 
-        cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-        cell_edges_flat = p.um*np.asarray(cell_edges_flat)
+        # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+        cell_edges_flat = p.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.5)
         ax.add_collection(coll)
@@ -1921,8 +1921,8 @@ def plotVects(cells, p, fig=None, ax=None):
         ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,2],s*cells.mem_vects_flat[:,3],color='g',label ='mem norm')
         # ax.quiver(s*cells.ecm_vects[:,0],s*cells.ecm_vects[:,1],s*cells.ecm_vects[:,2],s*cells.ecm_vects[:,3],color='r')
 
-        cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-        cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+        # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+        cell_edges_flat = cells.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         ax.add_collection(coll)
 
@@ -2005,8 +2005,8 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         ax_cb = fig.colorbar(meshplot,ax=ax)
 
     if edgeOverlay == True:
-        cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-        cell_edges_flat = cells.um*np.asarray(cell_edges_flat)
+        # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+        cell_edges_flat = cells.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.2)
         ax.add_collection(coll)

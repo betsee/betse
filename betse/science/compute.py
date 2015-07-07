@@ -4,6 +4,7 @@
 
 # FIXME pumps should use Hill functions, not linear to concentrations
 # FIXME de-spagghetti the baseInit_ECM code and do runSim_ECM for cut cell dynamics and proper pickling...
+# FIXME test and implement eosmosis method in runsim_ECM!
 
 import numpy as np
 import numpy.ma as ma
@@ -346,6 +347,10 @@ class Simulator(object):
                 vals = self.rho_channel[inds]
                 sum_vals = sum(vals)
                 self.rho_channel[inds] = vals/sum_vals
+
+        else:
+
+            self.rho_channel = 1  # else just define it as identity.
 
         i = -1                           # an index to track place in ion list
 
@@ -1959,6 +1964,43 @@ class Simulator(object):
 
             self.I_ecm_Matrix_x.append(J_x)
             self.I_ecm_Matrix_y.append(J_y)
+
+    def eosmosis(self,cells,p):  # FIXME check direction of concentration and E_field gradients!
+
+        # calculate electric field between ecm spaces:
+        E_field_ecm = (self.v_ecm[cells.ecm_nn_i[:,0]] -self.v_ecm[cells.ecm_nn_i[:,1]])/cells.len_ecm_junc
+        # get x and y vector components of this field:
+        E_field_ecm_x = E_field_ecm*cells.ecm_vects[:,2]
+        E_field_ecm_y = E_field_ecm*cells.ecm_vects[:,3]
+
+        # Take the dot product of the membrane tangent vector and the ecm E-field vector (E_tang_mem):
+        self.E_tang_x = cells.mem_vects_flat[:,4]*E_field_ecm_x[cells.mem_to_ecm]
+        self.E_tang_y = cells.mem_vects_flat[:,5]*E_field_ecm_y[cells.mem_to_ecm]
+
+        self.E_tang_mem = self.E_tang_x + self.E_tang_y
+
+        # Calculate the flux due to electroosmosis
+        J_eosmo = p.D_eosmosis*self.E_tang_mem[cells.mem_to_ecm]*self.rho_channel
+
+        # map the current value of rho channel to the vertices
+        self.rho_channel_verts = np.dot(self.rho_channel,cells.matrixMap2Verts)
+
+        # calculate the flux due to standard diffusion in the membrane:
+        grad_c_mem = (self.rho_channel_verts[cells.mem_seg_i[:,0]] -
+                      self.rho_channel_verts[cells.mem_seg_i[:,1]])/cells.mem_length
+        J_ficks = p.D_membrane*grad_c_mem
+
+        # calculate the total flux:
+        f_net = ((J_eosmo + J_ficks)*cells.mem_length)/cells.mem_sa
+
+        # calculate the change in verts data due to electroosmosis and diffusion:
+        self.rho_channel_verts = self.rho_channel_verts + (np.dot(f_net*p.dt, cells.memMatrix))
+        # map data back to midpoints
+        self.rho_channel = np.dot(self.rho_channel_verts,cells.matrixMap2Mids)
+
+        # make sure nothing is non-zero:
+        fix_inds = (self.rho_channel < 0).nonzero()
+        self.rho_channel[fix_inds] = 0
 
 def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,ignoreECM = False):
     """

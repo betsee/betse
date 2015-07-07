@@ -261,7 +261,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # the x-dimension of the world space [m]
+  world x: 100e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -383,13 +383,13 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
-    directory: geo/paper              # directory where geometry-defining bitmaps can be found
+    directory: geo/box              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 1          # total number of bitmaps to load
+    number of bitmaps: 5          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: worm_c.png        # name of the first bitmap defining geometry
+        file: box_base.png        # name of the first bitmap defining geometry
 
         designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
@@ -483,7 +483,7 @@ tissue profile 3:
     ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 
-number of boundary profiles: 0      # boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 1      # boundary profiles only apply if simulating extracellular spaces
 
 boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
     name: applied pos voltage
