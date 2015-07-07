@@ -16,16 +16,17 @@ from betse.exceptions import BetseExceptionPath
 from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
-def die_unless_basename(pathname: str, exception_message: str = None) -> None:
+def die_unless_dirname_empty(
+    pathname: str, exception_message: str = None) -> None:
     '''
-    Raise an exception unless the passed pathname is a basename.
+    Raise an exception unless the passed pathname is a pure basename.
 
     See Also
     ----------
-    `is_basename()`
+    `is_dirname_empty()`
         For further details.
     '''
-    if not is_basename(pathname):
+    if not is_dirname_empty(pathname):
         # If no message was passed, default such message.
         if not exception_message:
             exception_message =\
@@ -98,11 +99,10 @@ def is_special(pathname: str) -> bool:
     )
 
 # ....................{ TESTERS ~ pathname                 }....................
-#FIXME: Rename to is_dirname_empty().
-def is_basename(pathname: str) -> bool:
+def is_dirname_empty(pathname: str) -> bool:
     '''
-    True if the passed pathname is a *basename* (i.e., contains no directory
-    separators and hence has no directory components).
+    True if the passed pathname is a *pure basename* (i.e., contains no
+    directory separators and hence no directory components).
     '''
     return path.sep in pathname
 
@@ -155,9 +155,17 @@ def get_filetype(pathname: str) -> str:
 def get_dirname(pathname: str) -> str:
     '''
     Get the *dirname* (i.e., parent directory) of the passed path if such path
-    has a dirname or None otherwise.
+    has a dirname or raise an exception otherwise.
     '''
-    return get_dirname_or_empty(pathname) or None
+    # Ensure such path has a dirname.
+    die_unless_dirname_empty(pathname)
+
+    # Get such dirname. Technically, the above call *SHOULD* have ensured such
+    # dirname to exist. This is a sufficiently critical function, however, to
+    # warrant asserting this constraint for safety.
+    dirname = get_dirname_or_empty(pathname)
+    assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
+    return dirname
 
 def get_dirname_or_empty(pathname: str) -> str:
     '''
@@ -185,8 +193,8 @@ def join(*pathnames) -> str:
     operating system.
 
     This is a convenience function wrapping the standard `os.path.join()`
-    function, provided to reduce the number of import statements required by
-    other modules.
+    function _without_ adding functionality to such function -- principally to
+    unify and hence simplify `import` statements in other modules.
     '''
     return path.join(*pathnames)
 
@@ -209,6 +217,13 @@ def canonicalize(pathname: str) -> str:
     return path.abspath(path.expanduser(pathname))
 
 # --------------------( WASTELANDS                         )--------------------
+# def get_dirname_or_none(pathname: str) -> str:
+#     '''
+#     Get the *dirname* (i.e., parent directory) of the passed path if such path
+#     has a dirname or None otherwise.
+#     '''
+#     return get_dirname_or_empty(pathname) or None
+
     # Strip the prefixing "." from such filetype if any.
     # filetype = strs.remove_prefix_if_any(filetype, '.')
     #

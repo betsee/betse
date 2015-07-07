@@ -2,6 +2,38 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# TODO SESS: Just a friendly reminder from your hooded neighbourhood pedanto:
+# test for None-ness via "is None" rather than "== None". The latter results in
+# BETSE barfing up the following concerning warning on every such test:
+#
+#     /home/leycec/py/betse/betse/science/visualize.py:1275: FutureWarning: comparison to `None` will result in an elementwise object comparison in the future.
+#       if zdata == None:
+#
+# That's bad. The fix is trivial, so I've gone ahead and patched everything up.
+# That's good. For similar reasons, True-ness and False-ness should also be
+# tested for via "is True" and "is False" rather than "== True" and "== False".
+# That's a much larger fix, however, so I haven't touched any existing tests
+# for True-ness or False-ness. No sense in kurmuffling us up, right?
+#
+# This is one reason why True and False are almost always tested for implicitly
+# rather than explicitly: e.g.,
+#
+#     # Rather than this...
+#     if p.sim_ECM == True and ignore_simECM == False:
+#
+#     # ...consider doing either this...
+#     if p.sim_ECM is True and ignore_simECM is False:
+#
+#     # ...or preferably this, which circumvents this loathsome issue entirely.
+#     if p.sim_ECM and not ignore_simECM:
+#
+# The reason why is that Python objects are free to override the "==" operator
+# in unexpected and therefore buggy ways -- which is exactly what numpy arrays,
+# among other nice objects, do. But anyways! This is nothing too
+# mission-critical. Just a happy heads up for my golden girl.
+#
+# Loves you: Sessum!
+
 # FIXME saving animations doesn't work
 # FIXME Need a time check in animations to deal with changing cell structure
 # FIXME need to have cells.old and cells.new saved in the simulation for dealing with changing cell structure
@@ -1257,11 +1289,9 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         Notes
         -------
-        Uses matplotlib.pyplot and numpy arrays
-        With edgeOverlay and pointOverlay == None, this is computationally fast and *is* recommended for plotting data
-        on large collectives.
-
-
+        Uses `matplotlib.pyplot` and `numpy` arrays. With `edgeOverlay` and
+        `pointOverlay` equal to `None`, this is computationally fast and *is*
+        recommended for plotting data on large collectives.
         """
 
         if fig is None:
@@ -1272,7 +1302,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         if clrmap is None:
             clrmap = p.default_cm
 
-        if zdata == None:
+        if zdata is None:
             zdata = np.ones((cells.msize,cells.mside))
 
         ax.axis('equal')
@@ -1491,14 +1521,12 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
 
         Notes
         -------
-        Uses matplotlib.pyplot and numpy arrays
-        With edgeOverlay and pointOverlay == None, this is computationally fast and *is* recommended for plotting data
-        on large collectives.
-
-
+        Uses `matplotlib.pyplot` and `numpy` arrays. With `edgeOverlay` and
+        `pointOverlay` equal to `None`, this is computationally fast and *is*
+        recommended for plotting data on large collectives.
         """
 
-        if current_overlay == None:
+        if current_overlay is None:
             current_overlay = p.I_overlay
 
         if fig is None:
@@ -1557,13 +1585,10 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
         if zdata is not None and clrAutoscale == True:
             triplt.set_clim(minval,maxval)
             ax_cb = fig.colorbar(triplt,ax=ax)
-
         elif clrAutoscale == False:
-
             triplt.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(triplt,ax=ax)
-
-        elif zdata == None:
+        elif zdata is None:
             ax_cb = None
 
         if pointOverlay == True:

@@ -41,7 +41,7 @@ class CLICLI(CLI):
     _arg_subparsers_top : ArgumentParser
         Subparsers parsing top-level subcommands (e.g., `plot`).
     _arg_subparsers_plot : ArgumentParser
-        Subparsers parsing `plot` subcommands (e.g., `plot world`).
+        Subparsers parsing `plot` subcommands (e.g., `plot seed`).
     _arg_parser_plot : ArgumentParser
         Subparser parsing arguments passed to the `plot` subcommand.
     '''
@@ -80,27 +80,27 @@ class CLICLI(CLI):
                 help.TEMPLATE_SUBCOMMAND_CONFIG),
         )
         self._add_arg_subparser_top(
-            name = 'world',
-            help = 'create the cellular world defined by a configuration file',
+            name = 'seed',
+            help = 'make the cell cluster given by a configuration file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_WORLD),
+                help.TEMPLATE_SUBCOMMAND_SEED),
         )
         self._add_arg_subparser_top(
             name = 'prep',
-            help = 'prep the created world defined by a configuration file',
+            help = 'prep the created cluster given by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PREP),
         )
         self._add_arg_subparser_top(
             name = 'run',
-            help = 'run the prepped simulation defined by a configuration file',
+            help = 'run the prepped cluster given by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_RUN),
         )
         self._configure_arg_parsing_plot()
         self._add_arg_subparser_top(
             name = 'info',
-            help = 'show detailed metadata about {} and the current system'.format(
+            help = 'show metadata about {} and the current system'.format(
                 metadata.NAME),
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_INFO),
@@ -144,7 +144,7 @@ class CLICLI(CLI):
         # Such subcommand.
         self._arg_parser_plot = self._add_arg_subparser_top(
             name = 'plot',
-            help = 'plot previously created, prepped, or run tissue simulations',
+            help = 'plot previously created, prepped, or run simulations',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT),
         )
@@ -162,10 +162,10 @@ class CLICLI(CLI):
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
         self._add_arg_subparser_plot(
-            name = 'world',
-            help = 'plot the created world defined by a configuration file',
+            name = 'seed',
+            help = 'plot the created cluster defined by a configuration file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT_WORLD),
+                help.TEMPLATE_SUBCOMMAND_PLOT_SEED),
         )
         self._add_arg_subparser_plot(
             name = 'prep',
@@ -191,9 +191,9 @@ class CLICLI(CLI):
 
     def _add_arg_subparser_plot(self, *args, **kwargs) -> ArgumentParser:
         '''
-        Create a new argument subparser requiring a worlduration filename, add
-        such subparser corresponding to the `plot` subcommand, and return such
-        subparser.
+        Create a new argument subparser requiring a configuration filename, add
+        such subparser to the subparser corresponding to the `plot` subcommand,
+        and return such subparser.
         '''
         return self._add_arg_subparser_subcommand(
             self._arg_subparsers_plot, *args, **kwargs)
@@ -280,7 +280,7 @@ class CLICLI(CLI):
         #_do_run() is called?
 
         # Initialize and run such simulation.
-        self._do_world()
+        self._do_seed()
         self._do_prep()
         self._do_run()
 
@@ -305,9 +305,9 @@ class CLICLI(CLI):
         from betse.science import simconfig
         simconfig.write_default(self._args.config_filename)
 
-    def _do_world(self) -> None:
+    def _do_seed(self) -> None:
         '''
-        Run the `world` subcommand.
+        Run the `seed` subcommand.
         '''
         self._get_sim_runner().makeWorld()
 
@@ -332,9 +332,9 @@ class CLICLI(CLI):
         subcommand_method = getattr(self, subcommand_method_name)
         subcommand_method()
 
-    def _do_plot_world(self) -> None:
+    def _do_plot_seed(self) -> None:
         '''
-        Run the `plot` subcommand's `world` subcommand.
+        Run the `plot` subcommand's `seed` subcommand.
         '''
         self._get_sim_runner().plotWorld()
 
@@ -369,7 +369,7 @@ class CLICLI(CLI):
     #configuration file should be munged so as to *NOT* display plots after
     #initialization. We think. Hopefully not terribly arduous. *shrug*
 
-#FUXME: Document the "world" subsubcommand.
+#FUXME: Document the "seed" subsubcommand.
 # from betse import metadata, pathtree
 # from betse.util.python import pythons
 # from betse.util.system import processes, systems

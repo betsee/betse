@@ -41,9 +41,15 @@ def load(filename: str) -> dict:
 # ....................{ WRITERS                            }....................
 def write_default(filename: str) -> None:
     '''
-    Write a default simulation configuration in YAML format to the passed file.
+    Write a default simulation configuration file in YAML format to the passed
+    path _and_ copy all external resources (e.g., images) referenced by such
+    configuration to the parent directory of such path.
+
+    The resulting configuration will be usable as is with all high-level `betse`
+    functionality requiring a valid configuration file (e.g., `betse world`).
     '''
-    # Basename and filetype of such file.
+    # Dirname, basename, and filetype of such file.
+    dirname = paths.get_dirname(filename)
     basename = paths.get_basename(filename)
     filetype = paths.get_filetype(basename)
 
@@ -61,11 +67,14 @@ def write_default(filename: str) -> None:
             'File "{}" filetype "{}" not "yaml".'.format(
                 basename, filetype))
 
-    # Create the directory to which such file will be written if needed.
-    dirs.make_parent_unless_dir(filename)
+    # Create such file's parent directory, if needed.
+    dirs.make_unless_dir(dirname)
 
-    # Copy the default configuration file to such file.
+    # Write the default configuration to such file.
     files.copy(pathtree.CONFIG_DEFAULT_FILENAME, filename)
+
+    # Copy all external files referenced by such file to its parent directory.
+    dirs.copy_into_target_dir(pathtree.DATA_GEOMETRY_DIRNAME, dirname)
 
 # --------------------( WASTELANDS                         )--------------------
 # ....................{ GETTERS                            }....................

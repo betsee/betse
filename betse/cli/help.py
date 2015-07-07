@@ -18,12 +18,12 @@ Help string template for the set of subcommands.
 TEMPLATE_SUBCOMMANDS_SUFFIX = '''
 subcommand help:
 
-For help with specific subcommands, pass the "-h" or "--help" arguments to each.
-For example, for help with both the "plot" subcommand and that subcommand's
-"world" subsubcommand:
+For help with specific subcommands, either pass the "-h" or "--help" argument to
+the desired subcommand. For example, for help with both the "plot" subcommand
+and that subcommand's "seed" subsubcommand:
 
 ;    betse plot --help
-;    betse plot world --help
+;    betse plot seed --help
 '''
 '''
 Help string template for the **program epilog** (i.e., string printed after
@@ -55,15 +55,15 @@ Help string template for the `info` subcommand.
 
 TEMPLATE_SUBCOMMAND_TRY = '''
 Run a sample tissue simulation. This subcommand (A) creates a default YAML
-configuration file, (B) creates the cellular world defined by that file, and
+configuration file, (B) creates the cell cluster defined by that file, and
 (C) initializes, (D) runs, and (E) plots the tissue simulation defined by that
-file within that world. For safety, this subcommand preserves (i.e., does not
+file within that cluster. For safety, this subcommand preserves (i.e., does not
 delete on completion) files and directories created by these operations.
 
 Equivalently, this is shorthand for the following:
 
 ;    betse config   sample_sim/sample_sim.yaml
-;    betse world    sample_sim/sample_sim.yaml
+;    betse seed     sample_sim/sample_sim.yaml
 ;    betse prep     sample_sim/sample_sim.yaml
 ;    betse run      sample_sim/sample_sim.yaml
 ;    betse plot run sample_sim/sample_sim.yaml
@@ -85,21 +85,21 @@ directory in which this file resides.
 Help string template for the `config` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_WORLD = '''
-Create the cellular world defined by the passed configuration file. The results
+TEMPLATE_SUBCOMMAND_SEED = '''
+Create the cell cluster defined by the passed configuration file. The results
 will be saved to output files defined by such configuration.
 
 If this configuration file does not exist, an error will be printed.
 '''
 '''
-Help string template for the `world` subcommand.
+Help string template for the `seed` subcommand.
 '''
 
 TEMPLATE_SUBCOMMAND_PREP = '''
 Prep (i.e., calculate steady-state concentrations for) the previously created
-cellular world defined by the passed configuration file. Prep results will be
+cell cluster defined by the passed configuration file. Prep results will be
 saved to output files defined by such configuration. Likewise, the previously
-created world will be loaded from input files defined by this configuration.
+created cluster will be loaded from input files defined by this configuration.
 
 If this configuration file does not exist, an error will be printed.
 '''
@@ -131,16 +131,16 @@ directory:
 Help string template for the `plot` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PLOT_WORLD = '''
-Plot the previously created cellular world defined by the passed configuration
+TEMPLATE_SUBCOMMAND_PLOT_SEED = '''
+Plot the previously created cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration.
-Likewise, the previously created world will be loaded from input files defined
+Likewise, the previously created cluster will be loaded from input files defined
 by this configuration.
 
 If this configuration file does not exist, an error will be printed.
 '''
 '''
-Help string template for the `plot` subcommand's `world` subcommand.
+Help string template for the `plot` subcommand's `seed` subcommand.
 '''
 
 TEMPLATE_SUBCOMMAND_PLOT_PREP = '''

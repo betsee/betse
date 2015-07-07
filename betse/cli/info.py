@@ -37,9 +37,9 @@ def output_info() -> None:
             ('home directory', pathtree.HOME_DIRNAME),
             ('dot directory',  pathtree.DOT_DIRNAME),
             ('data directory', pathtree.DATA_DIRNAME),
+            ('default config file', pathtree.CONFIG_DEFAULT_FILENAME),
+            ('default config geometry directory', pathtree.DATA_GEOMETRY_DIRNAME),
             ('log file', pathtree.LOG_DEFAULT_FILENAME),
-            ('default simulation config file',
-            pathtree.CONFIG_DEFAULT_FILENAME),
         ))),
 
         # Dependencies metadata.
