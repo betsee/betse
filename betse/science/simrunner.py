@@ -421,7 +421,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         axIt.plot(sim.time, I_tot_t)
         axIt.set_xlabel('Time [s]')
-        axIt.set_ylabel('Current [pA]')
+        axIt.set_ylabel('Current [fA]')
 
         titI = 'Current in cell ' + str(plot_cell) + ' (net inward flow is +)'
         axIt.set_title(titI)
@@ -595,7 +595,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         axI.set_xlabel('Spatial distance [um]')
         axI.set_ylabel('Spatial distance [um]')
-        cbI.set_label('Current [pA]')
+        cbI.set_label('Current [fA]')
 
         if saveImages == True:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
@@ -611,13 +611,70 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             axI2.set_xlabel('Spatial distance [um]')
             axI2.set_ylabel('Spatial distance [um]')
-            cbI2.set_label('Current [pA]')
+            cbI2.set_label('Current [fA]')
 
             if saveImages == True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
                 plt.savefig(savename11,format='png')
 
             plt.show(block=False)
+
+    if p.plot_Efield == True:
+
+        viz.plotEfield(sim,cells,p)
+
+
+        # figE2 = plt.figure()
+        # axE2 = plt.subplot(111)
+        #
+        # if p.sim_ECM == True and p.plot_Efield_type == 'ECM':
+        #
+        #     efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
+        #     msh = axE2.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm)
+        #
+        #     if p.plot_Efield_vector == True:
+        #         # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+        #         lw = (3.0*efield/efield.max()) + 0.5
+        #         axE2.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+        #         linewidth = lw, color = 'k', density = p.stream_density)
+        #
+        #     tit_extra = 'Extracellular'
+        #
+        # elif p.plot_Efield_type == 'GJ':
+        #
+        #     efield = np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2)
+        #     msh = axE2.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm)
+        #
+        #     if p.plot_Efield_vector == True:
+        #         # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+        #         lw = (3.0*efield/efield.max()) + 0.5
+        #         axE2.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+        #         linewidth = lw, color ='k',density = p.stream_density)
+        #
+        #     tit_extra = 'Intracellular'
+        #
+        # axE2.axis('equal')
+        #
+        # xmin = cells.xmin*p.um
+        # xmax = cells.xmax*p.um
+        # ymin = cells.ymin*p.um
+        # ymax = cells.ymax*p.um
+        #
+        # axE2.axis([xmin,xmax,ymin,ymax])
+        # cbE2 = figE2.colorbar(msh)
+        # plt.show(block=False)
+        #
+        # tit = "Final Electric Field in " + tit_extra + ' Spaces'
+        # axE2.set_title(tit)
+        # axE2.set_xlabel('Spatial distance [um]')
+        # axE2.set_ylabel('Spatial distance [um]')
+        # cbE2.set_label('Electric Field [V/m]')
+
+        if saveImages == True:
+            savename12 = savedImg + 'Final_Electric_Field' + '.png'
+            plt.savefig(savename12,format='png')
+
+        plt.show(block=False)
 
 
     if p.ani_ip32d ==True and p.scheduled_options['IP3'] != 0 and animate == 1:
@@ -733,12 +790,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
             clrmap = p.default_cm, number_cells=False,saveFolder = '/animation/current_ecm',saveFile = 'I_')
 
+    if p.ani_Efield == True and animate == 1:
+
+        viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)
+
 
     if p.exportData == True:
         viz.exportData(cells, sim, p)
 
-
-
+    viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
+    plt.quiver(p.um*cells.Y_ecm,p.um*cells.X_ecm,sim.E_ECM_x,sim.E_ECM_y)
+    plt.show()
 
 
 # def plots4Init(plot_cell,cells,sim,p,saveImages=False):

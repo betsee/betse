@@ -1204,6 +1204,13 @@ class World(object):
         # ygrid = np.linspace(self.clust_y_min - p.clip,self.clust_y_max + p.clip,self.msize)
         self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
+        # structures for interpolating data to calculate clean gradients and laplacians:
+
+        self.X_cells, self.Y_cells,self.dx_cells, self.dy_cells = tb.makegrid(self.cell_centres[:,0],
+            self.cell_centres[:,1],p.grid_size)
+
+        self.X_gj, self.Y_gj, self.dx_gj, self.dy_gj = tb.makegrid(self.gj_vects[:,0],self.gj_vects[:,1],p.grid_size)
+
         # compute mapping between cell and gj:
         self.cell_to_gj =[[] for x in range(0,len(self.cell_i))]
 
@@ -1340,6 +1347,14 @@ class World(object):
 
             self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
             self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
+
+             # structures for interpolating data to calculate clean gradients and laplacians:
+
+            self.X_ecm, self.Y_ecm, self.dx_ecm, self.dy_ecm = tb.makegrid(self.ecm_mids[:,0],self.ecm_mids[:,1],
+                p.grid_size)
+
+            self.X_ej, self.Y_ej, self.dx_ej, self.dy_ej = tb.makegrid(self.ecm_vects[:,0],self.ecm_vects[:,1],
+                p.grid_size)
 
             loggers.log_info('Cleaning up unnecessary data structures... ')
 

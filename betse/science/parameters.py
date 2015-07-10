@@ -399,9 +399,14 @@ class Parameters(object):
         # if such file has no dirname (e.g., "sim_config.yaml").
         config_dirname = paths.get_dirname_or_empty(config_filename)
 
+        self.grid_size = int(self.config['general options']['grid size'])
+
         self.sim_ECM = self.config['general options']['simulate ECM']    # boolean letting us know if extracellular spaces are included
 
         self.sim_eosmosis = self.config['general options']['channel electroosmosis']
+
+        self.D_membrane = float(self.config['general options']['in-membrane mobility'])  # in membrane diffusion coefficient
+        self.z_membrane = float(self.config['general options']['in-membrane charge']) # charge of membrane pumps and channels
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -929,6 +934,13 @@ class Parameters(object):
         self.I_min_clr = float(ro['Currents 2D']['min val'])
         self.I_max_clr = float(ro['Currents 2D']['max val'])
 
+        self.plot_Efield = ro['Efield 2D']['plot Efield']   # 2d plot of electric field
+        self.plot_Efield_type =ro['Efield 2D']['data type']   # data type can be 'ECM' or 'GJ'
+        self.plot_Efield_vector =ro['Efield 2D']['overlay vector'] # overlay a streamline plot of field direction?
+        self.autoscale_Efield =ro['Efield 2D']['autoscale colorbar'] # autoscale colorbar to min max of data set?
+        self.Efield_min_clr =float(ro['Efield 2D']['max val'])         # maximum colorbar value in V/m
+        self.Efield_max_clr =float(ro['Efield 2D']['min val'])       # maximum colorbar value in V/m
+
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 
         # specify desired animations:
@@ -966,6 +978,13 @@ class Parameters(object):
         self.autoscale_I_ani = ro['Current Ani']['autoscale colorbar']
         self.I_ani_min_clr = float(ro['Current Ani']['min val'])
         self.I_ani_max_clr = float(ro['Current Ani']['max val'])
+
+        self.ani_Efield = ro['Efield Ani']['animate Efield']   # 2d animation of electric field
+        self.ani_Efield_type =ro['Efield Ani']['data type']   # data type can be 'ECM' or 'GJ'
+        self.ani_Efield_vector =ro['Efield Ani']['overlay vector'] # overlay a streamline plot of field direction?
+        self.autoscale_Efield_ani =ro['Efield Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
+        self.Efield_ani_min_clr =float(ro['Efield Ani']['max val'])         # maximum colorbar value in V/m
+        self.Efield_ani_max_clr =float(ro['Efield Ani']['min val'])       # maximum colorbar value in V/m
 
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
         self.saveAnimations = ro['save animations']    # save all animations as png sequences

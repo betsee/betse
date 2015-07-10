@@ -160,6 +160,8 @@ sim time settings:
 
 general options:
 
+  grid size: 50                # size of the square grid used in computation of spatial gradients and laplacians
+
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
@@ -180,6 +182,10 @@ general options:
 
   channel electroosmosis: True   # turn on electroosmosis of pumps and channels under ecm currents
                                  # (only works for simulate ECM: True)
+
+  in-membrane mobility: 5e-8   # membrane diffusion constant (for pumps and channels) [m2/s]
+
+  in-membrane charge: 1          # charge state of membrane pumps and channels (+1 for electoosmosis, -1 for electrophoresis)
 
   backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
 
@@ -683,7 +689,7 @@ results options:
 
   overlay currents: False          # overlay electric current or concentration flux streamlines on 2d plotted data
 
-  streamline density: 1.0         # for current plots, the density of streamlines. 0.5 to 5.0
+  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
   plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
@@ -724,14 +730,24 @@ results options:
 
   Vcell 2D:
 
-    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 100                    # maximum colorbar value in mV
     min val: -100                   # minimum colorbar value in mV
 
+  Efield 2D:
+
+    plot Efield: True               # 2d plot of electric field
+    data type: ECM                   # data type can be 'ECM' or 'GJ'
+    overlay vector: False            # overlay a streamline plot of field direction?
+    autoscale colorbar: True        # autoscale colorbar to min max of data set?
+    max val: 900                   # maximum colorbar value in V/m
+    min val: 0                      # maximum colorbar value in V/m
+
+
   Currents 2D:
 
-    plot Currents: True               # 2d plot of net current flow in the collective?
+    plot Currents: False               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -767,29 +783,37 @@ results options:
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
 
-    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Current Ani:
 
-    animate current: True       # 2d animation of current in individual cells of the collective?
+    animate current: False       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
+  Efield Ani:
+    animate Efield: True        # 2d animation of electric field in extracellullar matrix
+    data type: ECM                  # data type can be 'ECM' or 'GJ'
+    overlay vector: True            # overlay a streamline plot of field direction?
+    autoscale colorbar: True    # autoscale colorbar to min max of datat set?
+    max val: 1500               # max colorbar value [V/m]
+    min val: 0                  # min colorbar value [V/m]
+
 
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
                                # options include
-                               # rainbow, jet, Blues, Greens, bone
+                               # coolwarm, hot, rainbow, jet, Blues, Greens, bone
                                # to reverse a colormap add _r to the name (e.g. cm.jet_r)
                                # for all options please see
                                # http://matplotlib.org/examples/color/colormaps_reference.html

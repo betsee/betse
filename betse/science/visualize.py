@@ -1120,7 +1120,7 @@ class AnimateCurrent(object):
             self.meshplot.set_clim(self.cmin,self.cmax)
 
         self.cb = self.fig.colorbar(self.meshplot)   # define colorbar for figure
-        self.cb.set_label('Current Magnitude [pA]')
+        self.cb.set_label('Current Magnitude [fA]')
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
@@ -1185,6 +1185,124 @@ class AnimateCurrent(object):
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
+
+class AnimateEfield(object):
+
+    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = '/animation/Efield',saveFile = 'Efield_'):
+
+        self.fig = plt.figure()
+        self.ax = plt.subplot(111)
+        self.p = p
+        self.sim = sim
+        self.cells = cells
+        self.save = save
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+        if p.sim_ECM == True and p.ani_Efield_type == 'ECM':
+
+            efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
+            self.msh = self.ax.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm, shading = 'gouraud')
+
+            if p.ani_Efield_vector == True:
+                # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+                lw = (3.0*efield/efield.max()) + 0.5
+                self.streamE = self.ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+                linewidth = lw, color = 'k', density = p.stream_density)
+
+            tit_extra = 'Extracellular'
+
+        elif p.ani_Efield_type == 'GJ':
+
+            efield = np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2)
+            self.msh = self.ax.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm,shading = 'gouraud')
+
+            if p.ani_Efield_vector == True:
+                # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+                lw = (3.0*efield/efield.max()) + 0.5
+                self.streamE = self.ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+                linewidth = lw, color ='k',density = p.stream_density)
+
+            tit_extra = 'Intracellular'
+
+        self.ax.axis('equal')
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if p.autoscale_Efield_ani == False:
+            self.msh.set_clim(p.Efield_ani_min_clr,p.Efield_ani_max_clr)
+
+        cb = self.fig.colorbar(self.msh)
+
+        self.tit = "Final Electric Field in " + tit_extra + ' Spaces'
+        self.ax.set_title(self.tit)
+        self.ax.set_xlabel('Spatial distance [um]')
+        self.ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Electric Field [V/m]')
+
+        self.frames = len(sim.time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        plt.show()
+
+    def aniFunc(self,i):
+
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        if self.p.sim_ECM == True and self.p.ani_Efield_type == 'ECM':
+
+            efield = np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2)
+            self.msh.set_array(efield.ravel())
+
+            if self.p.ani_Efield_vector == True:
+                # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+                lw = (3.0*efield/efield.max()) + 0.5
+                self.streamE.lines.remove()
+                self.ax.patches = []
+
+                self.streamE = self.ax.streamplot(self.p.um*self.cells.X_ecm, self.p.um*self.cells.Y_ecm,
+                    self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
+                linewidth = lw, color = 'k', density = self.p.stream_density)
+
+        elif self.p.ani_Efield_type == 'GJ':
+
+            efield = np.sqrt(self.sim.efield_x_time[i]**2 + self.sim.efield_y_time[i]**2)
+            self.msh.set_array(efield.ravel())
+
+            if self.p.ani_Efield_vector == True:
+                # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+                self.streamE.lines.remove()
+                self.ax.patches = []
+                lw = (3.0*efield/efield.max()) + 0.5
+                self.streamE = self.ax.streamplot(self.p.um*self.cells.X_cells, self.p.um*self.cells.Y_cells,
+                    self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
+                linewidth = lw, color ='k',density = self.p.stream_density)
+
+        cmax = np.max(efield)
+
+        if self.p.autoscale_Efield_ani == True:
+            self.msh.set_clim(0,cmax)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
+
 
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
@@ -1610,6 +1728,59 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
         return fig, ax, ax_cb
+
+def plotEfield(sim,cells,p):
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    if p.sim_ECM == True and p.plot_Efield_type == 'ECM':
+
+        efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
+        msh = ax.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm, shading = 'gouraud')
+
+        if p.plot_Efield_vector == True:
+            # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+            lw = (3.0*efield/efield.max()) + 0.5
+            ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+            linewidth = lw, color = 'k', density = p.stream_density)
+
+        tit_extra = 'Extracellular'
+
+    elif p.plot_Efield_type == 'GJ':
+
+        efield = np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2)
+        msh = ax.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm,shading = 'gouraud')
+
+        if p.plot_Efield_vector == True:
+            # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+            lw = (3.0*efield/efield.max()) + 0.5
+            ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+            linewidth = lw, color ='k',density = p.stream_density)
+
+        tit_extra = 'Intracellular'
+
+    ax.axis('equal')
+
+    xmin = cells.xmin*p.um
+    xmax = cells.xmax*p.um
+    ymin = cells.ymin*p.um
+    ymax = cells.ymax*p.um
+
+    ax.axis([xmin,xmax,ymin,ymax])
+
+    if p.autoscale_Efield == False:
+        msh.set_clim(p.Efield_min_clr,p.Efield_max_clr)
+
+    cb = fig.colorbar(msh)
+
+    tit = "Final Electric Field in " + tit_extra + ' Spaces'
+    ax.set_title(tit)
+    ax.set_xlabel('Spatial distance [um]')
+    ax.set_ylabel('Spatial distance [um]')
+    cb.set_label('Electric Field [V/m]')
+
+    return fig, ax, cb
 
 def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         """

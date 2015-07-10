@@ -785,6 +785,9 @@ class Simulator(object):
         self.I_gjmem_Matrix_x = []
         self.I_gjmem_Matrix_y = []
 
+        self.efield_x_time = []   # matrices storing smooth electric field in gj connected cells
+        self.efield_y_time = []
+
 
         if p.voltage_dye == True:
 
@@ -1085,12 +1088,29 @@ class Simulator(object):
 
             check_v(self.vm)
 
+            # interpolate v_cell on a grid to calculate the electric field in gj networked cells
+            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                self.v_cell,(cells.X_cells,cells.Y_cells))
+
+            V_CELL = np.nan_to_num(V_CELL)
+            self.E_CELL_x, self.E_CELL_y = np.gradient(V_CELL, cells.dx_cells, cells.dy_cells)
+            self.E_CELL_x = - self.E_CELL_x
+            self.E_CELL_y = - self.E_CELL_y
+            # self.E_CELL = np.sqrt(self.E_CELL_x**2 + self.E_CELL_y**2)
+
             if t in tsamples:
 
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
 
                 # add the new concentration and voltage data to the time-storage matrices:
-                # these were originally copy.deepcopy
+                efieldx = self.E_CELL_x[:]
+                self.efield_x_time.append(efieldx)
+                efieldx = None
+
+                efieldy = self.E_CELL_y[:]
+                self.efield_y_time.append(efieldy)
+                efieldy = None
+
                 concs = self.cc_cells[:]
                 self.cc_time.append(concs)
                 concs = None
@@ -1267,6 +1287,12 @@ class Simulator(object):
 
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
+
+        self.efield_x_time = []   # matrices storing smooth electric field in gj connected cells
+        self.efield_y_time = []
+
+        self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
+        self.efield_ecm_y_time = []
 
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
@@ -1461,10 +1487,55 @@ class Simulator(object):
 
             check_v(self.vm)
 
+            # interpolate v_cell on a grid to calculate the electric field in gj networked cells
+            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                self.v_cell,(cells.X_cells,cells.Y_cells))
+
+            V_CELL = np.nan_to_num(V_CELL)
+            self.E_CELL_x, self.E_CELL_y = np.gradient(V_CELL, cells.dx_cells, cells.dy_cells)
+            self.E_CELL_x = - self.E_CELL_x
+            self.E_CELL_y = - self.E_CELL_y
+            # self.E_CELL = np.sqrt(self.E_CELL_x**2 + self.E_CELL_y**2)
+
+            # interpolate v_ecm on a grid to calculate the electric field in ecm network:
+
+            V_ECM = interp.griddata((cells.ecm_mids[:,0],cells.ecm_mids[:,1]),
+                self.v_ecm,(cells.X_ecm,cells.Y_ecm))
+
+            V_ECM = np.nan_to_num(V_ECM)
+            self.E_ECM_x, self.E_ECM_y = np.gradient(V_ECM, cells.dx_ecm, cells.dy_ecm)
+            self.E_ECM_x = - self.E_ECM_x
+            self.E_ECM_y = - self.E_ECM_y
+            # self.E_ECM = np.sqrt(self.E_ECM_x**2 + self.E_ECM_y**2)
+
+
+            # if desired, electroosmosis of membrane channels
+            if p.sim_eosmosis == True:
+
+                self.eosmosis(cells,p)
+
             if t in tsamples:
                 # #
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
+
                 # add the new concentration and voltage data to the time-storage matrices:
+
+                efieldx = self.E_CELL_x[:]
+                self.efield_x_time.append(efieldx)
+                efieldx = None
+
+                efieldy = self.E_CELL_y[:]
+                self.efield_y_time.append(efieldy)
+                efieldy = None
+
+                efield_ecm_x = self.E_ECM_x[:]
+                self.efield_ecm_x_time.append(efield_ecm_x)
+                efield_ecm_x = None
+
+                efield_ecm_y = self.E_ECM_y[:]
+                self.efield_ecm_y_time.append(efield_ecm_y)
+                efield_ecm_y = None
+
                 concs = self.cc_cells[:]
                 self.cc_time.append(concs)
                 concs = None
@@ -1967,34 +2038,41 @@ class Simulator(object):
 
     def eosmosis(self,cells,p):  # FIXME check direction of concentration and E_field gradients!
 
-        # calculate electric field between ecm spaces:
-        E_field_ecm = (self.v_ecm[cells.ecm_nn_i[:,0]] -self.v_ecm[cells.ecm_nn_i[:,1]])/cells.len_ecm_junc
-        # get x and y vector components of this field:
-        E_field_ecm_x = E_field_ecm*cells.ecm_vects[:,2]
-        E_field_ecm_y = E_field_ecm*cells.ecm_vects[:,3]
+        # create interpolation functions for the components of the extracellular electric field:
+        E_ECM_x_interp = interp.RectBivariateSpline(cells.X_ecm[0,:], cells.Y_ecm[:,0], self.E_ECM_x)
+        E_ECM_y_interp = interp.RectBivariateSpline(cells.X_ecm[0,:], cells.Y_ecm[:,0], self.E_ECM_y)
+
+        # interpret the value of extracellular electric field components at the centre of each membrane:
+        Efield_x = E_ECM_x_interp.ev(cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1])
+        Efield_y = E_ECM_y_interp.ev(cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1])
 
         # Take the dot product of the membrane tangent vector and the ecm E-field vector (E_tang_mem):
-        self.E_tang_x = cells.mem_vects_flat[:,4]*E_field_ecm_x[cells.mem_to_ecm]
-        self.E_tang_y = cells.mem_vects_flat[:,5]*E_field_ecm_y[cells.mem_to_ecm]
+        E_tang_x = cells.mem_vects_flat[:,4]*Efield_x
+        E_tang_y = cells.mem_vects_flat[:,5]*Efield_y
 
-        self.E_tang_mem = self.E_tang_x + self.E_tang_y
+        self.E_tang_mem = E_tang_x + E_tang_y
 
-        # Calculate the flux due to electroosmosis
-        J_eosmo = p.D_eosmosis*self.E_tang_mem[cells.mem_to_ecm]*self.rho_channel
+        mem_const = -(80.0*p.eo/p.D_membrane)*70e-3    # electroosmosis constant
 
-        # map the current value of rho channel to the vertices
+        # map the value of rho channel to the vertices
         self.rho_channel_verts = np.dot(self.rho_channel,cells.matrixMap2Verts)
 
-        # calculate the flux due to standard diffusion in the membrane:
-        grad_c_mem = (self.rho_channel_verts[cells.mem_seg_i[:,0]] -
-                      self.rho_channel_verts[cells.mem_seg_i[:,1]])/cells.mem_length
-        J_ficks = p.D_membrane*grad_c_mem
+        # Calculate the flux due to electroosmosis
+        self.f_eosmo = mem_const*self.E_tang_mem*self.rho_channel
 
-        # calculate the total flux:
-        f_net = ((J_eosmo + J_ficks)*cells.mem_length)/cells.mem_sa
+        # calculate the flux due to standard diffusion in the membrane:
+        self.grad_c_mem = (self.rho_channel_verts[cells.mem_seg_i[:,0]] -
+                self.rho_channel_verts[cells.mem_seg_i[:,1]])/cells.mem_length
+
+        J_ficks = 1e-12*self.grad_c_mem
+
+        self.f_ficks = J_ficks*(cells.mem_length/cells.mem_sa)
+
+        # calculate the total flux
+        f_net = self.f_eosmo + self.f_ficks
 
         # calculate the change in verts data due to electroosmosis and diffusion:
-        self.rho_channel_verts = self.rho_channel_verts + (np.dot(f_net*p.dt, cells.memMatrix))
+        self.rho_channel_verts = self.rho_channel_verts - (np.dot(f_net*p.dt, cells.memMatrix))
         # map data back to midpoints
         self.rho_channel = np.dot(self.rho_channel_verts,cells.matrixMap2Mids)
 

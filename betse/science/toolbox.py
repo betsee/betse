@@ -605,9 +605,42 @@ def griddata(xpts,ypts,zdata,gridsize):
     X,Y = np.meshgrid(xlin,ylin)
 
     zi = interp.griddata((xpts,ypts),zdata,(X,Y))
-    zi_m = np.ma.masked_where(np.isnan(zi),zi)
 
-    return X, Y, zi_m
+    return X, Y, zi
+
+def makegrid(xpts,ypts,gridsize):
+
+    """
+    Takes irregularly spaced data in the form of linear arrays of x,y and
+    returns grids of X, Y.
+
+    Parameters
+    ------------
+    xpts                        Linear array of x-coordinates
+    ypts                        Linear array of y-coordinates
+    gridsize                    Resolution of the interpolation grid (recommended 100x100)
+
+    Returns
+    ---------
+    X, Y                   Arrays corresponding to xpts, ypts.
+    dx, dY                 Array spacing vectors
+
+    """
+
+    xmin = np.min(xpts)
+    xmax = np.max(xpts)
+    ymin = np.min(ypts)
+    ymax = np.max(ypts)
+
+    xlin = np.linspace(xmin,xmax,gridsize)
+    ylin = np.linspace(ymin,ymax,gridsize)
+
+    X,Y = np.meshgrid(xlin,ylin)
+
+    dx = np.gradient(xlin)
+    dy = np.gradient(ylin)
+
+    return X, Y, dx, dy
 
 def periodic(cells,sim,p):
 
