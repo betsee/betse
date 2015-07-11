@@ -405,8 +405,12 @@ class Parameters(object):
 
         self.sim_eosmosis = self.config['general options']['channel electroosmosis']
 
-        self.D_membrane = float(self.config['general options']['in-membrane mobility'])  # in membrane diffusion coefficient
-        self.z_membrane = float(self.config['general options']['in-membrane charge']) # charge of membrane pumps and channels
+        self.mu_membrane = float(self.config['general options']['membrane viscocity'])  # in membrane diffusion coefficient
+        self.D_membrane = float(self.config['general options']['membrane mobility']) # charge of membrane pumps and channels
+
+        self.mu_water = float(self.config['general options']['water viscocity'])
+
+        self.zeta = float(self.config['general options']['zeta potential'])
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -1074,6 +1078,10 @@ class Parameters(object):
         self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
 
         self.isamples = 40.0  # sampling of vector data for currents
+
+        self.mem_const = (80.0*self.eo/self.mu_membrane)*self.zeta    # electroosmosis constant
+
+        self.water_const = (80.0*self.eo/self.mu_water)*self.zeta    # electroosmosis constant
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':

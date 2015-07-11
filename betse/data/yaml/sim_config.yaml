@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 5.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-7   # radius of gap junctions connecting cells [m] (recommended range see table)
 
@@ -183,9 +183,13 @@ general options:
   channel electroosmosis: True   # turn on electroosmosis of pumps and channels under ecm currents
                                  # (only works for simulate ECM: True)
 
-  in-membrane mobility: 5e-8   # membrane diffusion constant (for pumps and channels) [m2/s]
+  membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
 
-  in-membrane charge: 1          # charge state of membrane pumps and channels (+1 for electoosmosis, -1 for electrophoresis)
+  water viscocity: 1.0e-3   # viscovity of water (for bulk electroosmosis) [Ns/m2]
+
+  membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+
+  zeta potential: -70e-3      # zeta potential of membrane for electroosmosis, of proteins for electrophoresis (V)
 
   backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
 
@@ -429,7 +433,7 @@ default tissue name: base   # name of cells to which no profile is applied
 base tissue properties:    # specify the base membrane diffusion constants below
                          # this is an easy way to control resting Vmem of cells
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]

@@ -4,7 +4,8 @@
 
 # FIXME pumps should use Hill functions, not linear to concentrations
 # FIXME de-spagghetti the baseInit_ECM code and do runSim_ECM for cut cell dynamics and proper pickling...
-# FIXME test and implement eosmosis method in runsim_ECM!
+# FIXME implement eosmosis in pumps and channels
+# FIXME add c*u electroosmosis component to electrofuse in ecm?
 
 import numpy as np
 import numpy.ma as ma
@@ -343,10 +344,10 @@ class Simulator(object):
         if p.sim_eosmosis == True:
             self.rho_channel = np.ones(len(cells.mem_i))
             # normalize the value of rho_channel so it equals 1 for each cell
-            for inds in cells.cell_to_mems:
-                vals = self.rho_channel[inds]
-                sum_vals = sum(vals)
-                self.rho_channel[inds] = vals/sum_vals
+            # for inds in cells.cell_to_mems:
+            #     vals = self.rho_channel[inds]
+            #     sum_vals = sum(vals)
+            #     self.rho_channel[inds] = vals/sum_vals
 
         else:
 
@@ -1383,6 +1384,11 @@ class Simulator(object):
                     cells.mem_sa,cells.cell_vol[cells.mem_to_cells],cells.ecm_vol[cells.mem_to_ecm],
                     self.vm,self.T,p,self.NaKATP_block)
 
+
+            # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
+            fNa_NaK = self.rho_channel*fNa_NaK
+            fK_NaK = self.rho_channel*fK_NaK
+
             self.fluxes_mem[self.iNa] = fNa_NaK
             self.fluxes_mem[self.iK] = fK_NaK
 
@@ -1442,7 +1448,8 @@ class Simulator(object):
                 _,_,f_ED = \
                     electrofuse(self.cc_ecm[i][cells.mem_to_ecm],self.cc_cells[i][cells.mem_to_cells],
                         self.Dm_cells[i],self.tm[cells.mem_to_cells],cells.mem_sa,
-                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],self.zs[i],self.vm,self.T,p)
+                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],self.zs[i],self.vm,self.T,
+                        p, rho=self.rho_channel)
 
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
@@ -2052,24 +2059,22 @@ class Simulator(object):
 
         self.E_tang_mem = E_tang_x + E_tang_y
 
-        mem_const = -(80.0*p.eo/p.D_membrane)*70e-3    # electroosmosis constant
-
         # map the value of rho channel to the vertices
         self.rho_channel_verts = np.dot(self.rho_channel,cells.matrixMap2Verts)
 
+        # calculate the concentration gradient of the rho factor in the membrane:
+        self.grad_c_mem = (self.rho_channel_verts[cells.mem_seg_i[:,1]] -
+                self.rho_channel_verts[cells.mem_seg_i[:,0]])/cells.mem_length
+
         # Calculate the flux due to electroosmosis
-        self.f_eosmo = mem_const*self.E_tang_mem*self.rho_channel
+        self.f_eosmo = p.mem_const*self.E_tang_mem*self.rho_channel*(cells.mem_length/cells.mem_sa)
 
-        # calculate the flux due to standard diffusion in the membrane:
-        self.grad_c_mem = (self.rho_channel_verts[cells.mem_seg_i[:,0]] -
-                self.rho_channel_verts[cells.mem_seg_i[:,1]])/cells.mem_length
-
-        J_ficks = 1e-12*self.grad_c_mem
-
-        self.f_ficks = J_ficks*(cells.mem_length/cells.mem_sa)
+        # calculate the flux due to standard diffusion:
+        self.f_ficks = p.D_membrane*self.grad_c_mem*(cells.mem_length/cells.mem_sa)
 
         # calculate the total flux
         f_net = self.f_eosmo + self.f_ficks
+        # f_net = self.f_eosmo
 
         # calculate the change in verts data due to electroosmosis and diffusion:
         self.rho_channel_verts = self.rho_channel_verts - (np.dot(f_net*p.dt, cells.memMatrix))
@@ -2080,7 +2085,7 @@ class Simulator(object):
         fix_inds = (self.rho_channel < 0).nonzero()
         self.rho_channel[fix_inds] = 0
 
-def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,ignoreECM = False):
+def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,rho=1,ignoreECM = False):
     """
     Returns updated concentrations for electro-diffusion between two
     connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
@@ -2113,6 +2118,9 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,ignoreECM = False):
     flux        Chemical flux magnitude between region A and B [mol/s]
 
     """
+
+    # modify the diffusion constant by the membrane density
+    Dc = rho*Dc
 
     alpha = (zc*Vba*p.F)/(p.R*T)
 
