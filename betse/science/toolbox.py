@@ -548,8 +548,8 @@ def grid_vector_data(xpts,ypts,zdata_x,zdata_y,cells,p):
     ---------
     X, Y, zi_x, zi_y            Arrays corresponding to xpts, ypts and the vector data points
     """
-    x_full = np.linspace(cells.xmin,cells.xmax,cells.msize)
-    y_full = np.linspace(cells.ymin,cells.ymax,cells.msize)
+    # x_full = np.linspace(cells.xmin,cells.xmax,cells.msize)
+    # y_full = np.linspace(cells.ymin,cells.ymax,cells.msize)
 
     xgrid = np.linspace(cells.xmin,cells.xmax,p.isamples)
     ygrid = np.linspace(cells.ymin,cells.ymax,p.isamples)
@@ -561,20 +561,22 @@ def grid_vector_data(xpts,ypts,zdata_x,zdata_y,cells,p):
     # Y = cells.y_2d
 
     # create an interpolation function to resample the cluster mask matrix:
-    mask_funk = interp.interp2d(x_full,y_full,cells.cluster_mask)
-    new_mask = mask_funk(xgrid,ygrid)
+    # mask_funk = interp.interp2d(x_full,y_full,cells.cluster_mask)
+    # mask_funk = interp.RectBivariateSpline(x_full,y_full,cells.cluster_mask)
+    #
+    # new_mask = mask_funk.ev(xgrid,ygrid)
 
     zi_x = interp.griddata((xpts,ypts),zdata_x,(X,Y))
     zi_x = np.nan_to_num(zi_x)
-    zi_x = np.multiply(zi_x,new_mask)
+    # zi_x = np.multiply(zi_x,new_mask)
 
     zi_y = interp.griddata((xpts,ypts),zdata_y,(X,Y))
     zi_y = np.nan_to_num(zi_y)
-    zi_y = np.multiply(zi_y,new_mask)
+    # zi_y = np.multiply(zi_y,new_mask)
 
     return X,Y,zi_x,zi_y
 
-def griddata(xpts,ypts,zdata,gridsize):
+def griddata(xpts,ypts,zdata,gridsize,cells):
 
     """
     Takes irregularly spaced data in the form of linear arrays of x,y,z and
@@ -594,21 +596,33 @@ def griddata(xpts,ypts,zdata,gridsize):
 
     """
 
-    xmin = np.min(xpts)
-    xmax = np.max(xpts)
-    ymin = np.min(ypts)
-    ymax = np.max(ypts)
+    # x_full = np.linspace(cells.xmin,cells.xmax,cells.msize)
+    # y_full = np.linspace(cells.ymin,cells.ymax,cells.msize)
 
-    xlin = np.linspace(xmin,xmax,gridsize)
-    ylin = np.linspace(ymin,ymax,gridsize)
+    xlin = np.linspace(cells.xmin,cells.xmax,gridsize)
+    ylin = np.linspace(cells.ymin,cells.ymax,gridsize)
 
+    # create an interpolation function to resample the cluster mask matrix:
+    # mask_funk =  interp.RectBivariateSpline(x_full,y_full,cells.cluster_mask)
+    # new_mask = mask_funk.ev(xlin,ylin)
+
+    # xmin = np.min(xpts)
+    # xmax = np.max(xpts)
+    # ymin = np.min(ypts)
+    # ymax = np.max(ypts)
+    #
+    # xlin = np.linspace(xmin,xmax,gridsize)
+    # ylin = np.linspace(ymin,ymax,gridsize)
+    #
     X,Y = np.meshgrid(xlin,ylin)
-
+#
     zi = interp.griddata((xpts,ypts),zdata,(X,Y))
+    zi = np.nan_to_num(zi)
+    # zi = np.multiply(new_mask,zi)
 
     return X, Y, zi
 
-def makegrid(xpts,ypts,gridsize):
+def makegrid(xpts,ypts,gridsize,cells):
 
     """
     Takes irregularly spaced data in the form of linear arrays of x,y and
@@ -627,13 +641,16 @@ def makegrid(xpts,ypts,gridsize):
 
     """
 
-    xmin = np.min(xpts)
-    xmax = np.max(xpts)
-    ymin = np.min(ypts)
-    ymax = np.max(ypts)
+    # xmin = np.min(xpts)
+    # xmax = np.max(xpts)
+    # ymin = np.min(ypts)
+    # ymax = np.max(ypts)
 
-    xlin = np.linspace(xmin,xmax,gridsize)
-    ylin = np.linspace(ymin,ymax,gridsize)
+    # xlin = np.linspace(xmin,xmax,gridsize)
+    # ylin = np.linspace(ymin,ymax,gridsize)
+
+    xlin = np.linspace(cells.xmin,cells.xmax,gridsize)
+    ylin = np.linspace(cells.ymin,cells.ymax,gridsize)
 
     X,Y = np.meshgrid(xlin,ylin)
 

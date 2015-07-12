@@ -1211,10 +1211,13 @@ class AnimateEfield(object):
             self.msh = self.ax.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm, shading = 'gouraud')
 
             if p.ani_Efield_vector == True:
-                # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-                lw = (3.0*efield/efield.max()) + 0.5
-                self.streamE = self.ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-                linewidth = lw, color = 'k', density = p.stream_density)
+
+                enorm = np.max(np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2))
+                self.streamE = self.ax.quiver(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1]/enorm,
+                    sim.efield_ecm_y_time[-1]/enorm)
+                # lw = (3.0*efield/efield.max()) + 0.5
+                # self.streamE = self.ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+                # linewidth = lw, color = 'k', density = p.stream_density)
 
             tit_extra = 'Extracellular'
 
@@ -1224,10 +1227,14 @@ class AnimateEfield(object):
             self.msh = self.ax.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm,shading = 'gouraud')
 
             if p.ani_Efield_vector == True:
-                # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-                lw = (3.0*efield/efield.max()) + 0.5
-                self.streamE = self.ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-                linewidth = lw, color ='k',density = p.stream_density)
+
+                enorm = np.max(np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2))
+
+                self.streamE = self.ax.quiver(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_x_time[-1]/enorm,
+                    sim.efield_y_time[-1]/enorm)
+                # lw = (3.0*efield/efield.max()) + 0.5
+                # self.streamE = self.ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+                # linewidth = lw, color ='k',density = p.stream_density)
 
             tit_extra = 'Intracellular'
 
@@ -1269,14 +1276,18 @@ class AnimateEfield(object):
             self.msh.set_array(efield.ravel())
 
             if self.p.ani_Efield_vector == True:
-                # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-                lw = (3.0*efield/efield.max()) + 0.5
-                self.streamE.lines.remove()
-                self.ax.patches = []
 
-                self.streamE = self.ax.streamplot(self.p.um*self.cells.X_ecm, self.p.um*self.cells.Y_ecm,
-                    self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
-                linewidth = lw, color = 'k', density = self.p.stream_density)
+                enorm = np.max(np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2))
+
+                self.streamE.set_UVC(self.sim.efield_ecm_x_time[i]/enorm,self.sim.efield_ecm_y_time[i]/enorm)
+                # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+                # lw = (3.0*efield/efield.max()) + 0.5
+                # self.streamE.lines.remove()
+                # self.ax.patches = []
+                #
+                # self.streamE = self.ax.streamplot(self.p.um*self.cells.X_ecm, self.p.um*self.cells.Y_ecm,
+                #     self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
+                # linewidth = lw, color = 'k', density = self.p.stream_density)
 
         elif self.p.ani_Efield_type == 'GJ':
 
@@ -1284,13 +1295,16 @@ class AnimateEfield(object):
             self.msh.set_array(efield.ravel())
 
             if self.p.ani_Efield_vector == True:
+
+                enorm = np.max(np.sqrt(self.sim.efield_x_time[i]**2 + self.sim.efield_y_time[i]**2))
                 # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-                self.streamE.lines.remove()
-                self.ax.patches = []
-                lw = (3.0*efield/efield.max()) + 0.5
-                self.streamE = self.ax.streamplot(self.p.um*self.cells.X_cells, self.p.um*self.cells.Y_cells,
-                    self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
-                linewidth = lw, color ='k',density = self.p.stream_density)
+                self.streamE.set_UVC(self.sim.efield_x_time[i]/enorm,self.sim.efield_y_time[i]/enorm)
+                # self.streamE.lines.remove()
+                # self.ax.patches = []
+                # lw = (3.0*efield/efield.max()) + 0.5
+                # self.streamE = self.ax.streamplot(self.p.um*self.cells.X_cells, self.p.um*self.cells.Y_cells,
+                #     self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
+                # linewidth = lw, color ='k',density = self.p.stream_density)
 
         cmax = np.max(efield)
 
@@ -1301,8 +1315,6 @@ class AnimateEfield(object):
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
-
-
 
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
@@ -1741,9 +1753,11 @@ def plotEfield(sim,cells,p):
 
         if p.plot_Efield_vector == True:
             # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-            lw = (3.0*efield/efield.max()) + 0.5
-            ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-            linewidth = lw, color = 'k', density = p.stream_density)
+            # lw = (3.0*efield/efield.max()) + 0.5
+            # ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+            # linewidth = lw, color = 'k', density = p.stream_density)
+            ax.quiver(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+
 
         tit_extra = 'Extracellular'
 
@@ -1754,11 +1768,19 @@ def plotEfield(sim,cells,p):
 
         if p.plot_Efield_vector == True:
             # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-            lw = (3.0*efield/efield.max()) + 0.5
-            ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-            linewidth = lw, color ='k',density = p.stream_density)
+            # lw = (3.0*efield/efield.max()) + 0.5
+            # ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
+            # linewidth = lw, color ='k',density = p.stream_density)
+            ax.quiver(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
 
         tit_extra = 'Intracellular'
+
+    if p.showCells == True:
+        # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+        cell_edges_flat = cells.um*cells.mem_edges_flat
+        coll = LineCollection(cell_edges_flat,colors='k')
+        coll.set_alpha(0.5)
+        ax.add_collection(coll)
 
     ax.axis('equal')
 

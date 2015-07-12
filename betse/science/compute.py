@@ -4,8 +4,19 @@
 
 # FIXME pumps should use Hill functions, not linear to concentrations
 # FIXME de-spagghetti the baseInit_ECM code and do runSim_ECM for cut cell dynamics and proper pickling...
-# FIXME implement eosmosis in pumps and channels
-# FIXME add c*u electroosmosis component to electrofuse in ecm?
+
+
+# FIXME so the full Nernst-Planck equation gives nearly identical values to the GHK-flux equation, BUT the NP
+# behaves better with zero voltage and with higher voltage gradients. The other advantage of the full NP
+# is that it uses the direct gradients. So what we can do is calculate clean concentration and voltage gradients
+# over a more robust spacial grid, and then interpolate them using the speedy RectBivariateSpline funciton where
+# they're needed.
+# FIXME add c*u electroosmosis component to electrofuse in ecm and gj-cell networks
+# The other issue is that electroosmotic flux, u*c, may be up to 3000 times larger than the combined diffusion and
+# electrophoretic flux! We need to incorporate this as a primary mover in the intra and extra cellular space networks.
+# Ideally, having a Poisson solver (for both the voltage from the charge distribution and the velocity from the
+# voltage gradient) would be ideal, but very difficult to implement.
+
 
 import numpy as np
 import numpy.ma as ma
@@ -1497,8 +1508,10 @@ class Simulator(object):
             # interpolate v_cell on a grid to calculate the electric field in gj networked cells
             V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
                 self.v_cell,(cells.X_cells,cells.Y_cells))
+            # V_CELL = tb.griddata(cells.cell_centres[:,0],cells.cell_centres[:,1]), self.v_cell)
 
             V_CELL = np.nan_to_num(V_CELL)
+
             self.E_CELL_x, self.E_CELL_y = np.gradient(V_CELL, cells.dx_cells, cells.dy_cells)
             self.E_CELL_x = - self.E_CELL_x
             self.E_CELL_y = - self.E_CELL_y
@@ -1510,6 +1523,7 @@ class Simulator(object):
                 self.v_ecm,(cells.X_ecm,cells.Y_ecm))
 
             V_ECM = np.nan_to_num(V_ECM)
+
             self.E_ECM_x, self.E_ECM_y = np.gradient(V_ECM, cells.dx_ecm, cells.dy_ecm)
             self.E_ECM_x = - self.E_ECM_x
             self.E_ECM_y = - self.E_ECM_y
@@ -2043,7 +2057,7 @@ class Simulator(object):
             self.I_ecm_Matrix_x.append(J_x)
             self.I_ecm_Matrix_y.append(J_y)
 
-    def eosmosis(self,cells,p):  # FIXME check direction of concentration and E_field gradients!
+    def eosmosis(self,cells,p):
 
         # create interpolation functions for the components of the extracellular electric field:
         E_ECM_x_interp = interp.RectBivariateSpline(cells.X_ecm[0,:], cells.Y_ecm[:,0], self.E_ECM_x)
