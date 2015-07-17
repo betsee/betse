@@ -1456,11 +1456,14 @@ class Simulator(object):
             for i in self.movingIons:
 
                 # electrodiffusion of ion between cell and extracellular matrix
-                _,_,f_ED = \
-                    electrofuse(self.cc_ecm[i][cells.mem_to_ecm],self.cc_cells[i][cells.mem_to_cells],
-                        self.Dm_cells[i],self.tm[cells.mem_to_cells],cells.mem_sa,
-                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],self.zs[i],self.vm,self.T,
-                        p, rho=self.rho_channel)
+                # _,_,f_ED = \
+                #     electrofuse(self.cc_ecm[i][cells.mem_to_ecm],self.cc_cells[i][cells.mem_to_cells],
+                #         self.Dm_cells[i],self.tm[cells.mem_to_cells],cells.mem_sa,
+                #         cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],self.zs[i],self.vm,self.T,
+                #         p, rho=self.rho_channel)
+                f_ED = electroflux(self.cc_ecm[i][cells.mem_to_ecm],self.cc_cells[i][cells.mem_to_cells],
+                         self.Dm_cells[i], self.tm[cells.mem_to_cells], cells.mem_sa, self.zs[i], self.vm, self.T, p,
+                         rho=self.rho_channel)
 
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
@@ -1830,9 +1833,11 @@ class Simulator(object):
             self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
         # determine flux through gap junctions for this ion:
-        _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-            self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-            cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],self.vgj,self.T,p)
+        # _,_,fgj = electrofuse(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
+        #     self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+        #     cells.cell_vol[cells.gap_jun_i][:,1],self.zs[i],self.vgj,self.T,p)
+        fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
+            self.id_gj*self.D_free[i],self.gjl,self.gjopen*self.gjsa,self.zs[i],self.vgj,self.T,p)
 
         # update cell concentration due to gap junction flux:
         self.cc_cells[i] = (self.cc_cells[i]*cells.cell_vol + np.dot((fgj*p.dt), cells.gjMatrix))/cells.cell_vol
@@ -1848,10 +1853,13 @@ class Simulator(object):
 
         # electrodiffuse through ecm <---> ecm junctions
 
-        _,_,f_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
-                self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
-                cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                self.zs[i],self.v_ec2ec,self.T,p)
+        # _,_,f_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
+        #         self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
+        #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+        #         self.zs[i],self.v_ec2ec,self.T,p)
+
+        f_ecm = electroflux(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
+                self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,self.zs[i],self.v_ec2ec,self.T,p)
 
         self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(f_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
@@ -1907,10 +1915,14 @@ class Simulator(object):
 
     def update_dye(self,cells,p,t):
 
-        _,_,flux_dye = \
-                        electrofuse(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
-                            p.Dm_Dye*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
-                            cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_Dye,self.vm,self.T,p)
+        # _,_,flux_dye = \
+        #                 electrofuse(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
+        #                     p.Dm_Dye*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
+        #                     cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_Dye,self.vm,self.T,p)
+
+        flux_dye = electroflux(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
+                            p.Dm_Dye,self.tm[cells.mem_to_cells],cells.mem_sa,
+                            p.z_Dye,self.vm,self.T,p)
 
          # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
         self.cDye_cell = self.cDye_cell + \
@@ -1920,18 +1932,22 @@ class Simulator(object):
                             np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
 
         # determine flux through gap junctions for voltage dye:
-        _,_,fDye_gj = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
-            self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-            cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,self.vgj,self.T,p)
+        # _,_,fDye_gj = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
+        #     self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+        #     cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,self.vgj,self.T,p)
+        fDye_gj = electroflux(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
+            p.Do_Dye,self.gjl,self.gjopen*self.gjsa,p.z_Dye,self.vgj,self.T,p)
 
         # update cell voltage-sensitive dye concentration due to gap junction flux:
         self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye_gj*p.dt), cells.gjMatrix))/cells.cell_vol
 
         # electrodiffuse dye through ecm <---> ecm junctions
-        _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
-                self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
-                cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                p.z_Dye,self.v_ec2ec,self.T,p)
+        # _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
+        #         self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
+        #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+        #         p.z_Dye,self.v_ec2ec,self.T,p)
+        flux_ecm_dye = electroflux(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
+                p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,p.z_Dye,self.v_ec2ec,self.T,p)
                     #
         self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
@@ -1944,18 +1960,23 @@ class Simulator(object):
 
     def update_IP3(self,cells,p,t):
          # determine flux through gap junctions for IP3:
-        _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
-            self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-            cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,self.vgj,self.T,p)
+        # _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
+        #     self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
+        #     cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,self.vgj,self.T,p)
+        fIP3 = electroflux(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1], p.Do_IP3,self.gjl,
+            self.gjopen*self.gjsa,p.z_IP3,self.vgj,self.T,p)
 
         # update cell IP3 concentration due to gap junction flux:
         self.cIP3 = (self.cIP3*cells.cell_vol + np.dot((fIP3*p.dt), cells.gjMatrix))/cells.cell_vol
 
         # electrodiffuse IP3 between cell and environment:
-        _,_,flux_IP3 = \
-                    electrofuse(self.cIP3_ecm[cells.mem_to_ecm],self.cIP3[cells.mem_to_cells],
-                        p.Dm_IP3*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
-                        cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_IP3,self.vm,self.T,p)
+        # _,_,flux_IP3 = \
+        #             electrofuse(self.cIP3_ecm[cells.mem_to_ecm],self.cIP3[cells.mem_to_cells],
+        #                 p.Dm_IP3*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
+        #                 cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_IP3,self.vm,self.T,p)
+
+        flux_IP3 = electroflux(self.cIP3_ecm[cells.mem_to_ecm],self.cIP3[cells.mem_to_cells], p.Dm_IP3,
+                        self.tm[cells.mem_to_cells],cells.mem_sa, p.z_IP3,self.vm,self.T,p)
 
         # update the IP3 concentrations in the cell and ecm due to ED fluxes at membrane
         self.cIP3 = self.cIP3 + \
@@ -1965,10 +1986,12 @@ class Simulator(object):
                             np.dot((flux_IP3/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
 
          # electrodiffuse IP3 through ecm <---> ecm junctions
-        _,_,flux_ecm_IP3 = electrofuse(self.cIP3_ecm[cells.ecm_nn_i[:,0]],self.cIP3_ecm[cells.ecm_nn_i[:,1]],
-                self.id_ecm*p.Do_IP3,cells.len_ecm_junc,self.ec2ec_sa,
-                cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-                p.z_IP3,self.v_ec2ec,self.T,p)
+        # _,_,flux_ecm_IP3 = electrofuse(self.cIP3_ecm[cells.ecm_nn_i[:,0]],self.cIP3_ecm[cells.ecm_nn_i[:,1]],
+        #         self.id_ecm*p.Do_IP3,cells.len_ecm_junc,self.ec2ec_sa,
+        #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
+        #         p.z_IP3,self.v_ec2ec,self.T,p)
+        flux_ecm_IP3 = electroflux(self.cIP3_ecm[cells.ecm_nn_i[:,0]],self.cIP3_ecm[cells.ecm_nn_i[:,1]],
+                p.Do_IP3,cells.len_ecm_junc,self.ec2ec_sa,p.z_IP3,self.v_ec2ec,self.T,p)
 
         self.cIP3_ecm = (self.cIP3_ecm*cells.ecm_vol + np.dot(flux_ecm_IP3*p.dt,cells.ecmMatrix))/cells.ecm_vol
 
@@ -2235,6 +2258,49 @@ def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,rho=1,ignoreECM = False):
 
 
     return cA2, cB2, flux
+
+def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p,rho=1):
+    """
+    Electro-diffusion between two connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
+    a positive flux moving from a to b. The voltage is defined as
+    Vb - Va (Vba), which is equivalent to Vmem.
+
+    This function defaults to regular diffusion if Vba == 0.0
+
+    This function takes numpy matrix values as input. All inputs must be matrices of
+    the same shape.
+
+    Parameters
+    ----------
+    cA          concentration in region A [mol/m3] (out)
+    cB          concentration in region B [mol/m3] (in)
+    Dc          Diffusion constant of c  [m2/s]
+    d           Distance between region A and region B [m]
+    sa          Surface area separating region A and B [m2]
+    zc          valence of ionic species c
+    vBA         voltage difference between region B (in) and A (out) = Vmem
+    p           an instance of the Parameters class
+
+
+    Returns
+    --------
+    flux        Chemical flux magnitude between region A and B [mol/s]
+
+    """
+
+    # modify the diffusion constant by the membrane channel density
+    Dc = rho*Dc
+
+    grad_c = (cB - cA)/d
+
+    c_mid = (cA + cB)/2
+
+    grad_V = vBA/d
+
+    flux = -Dc*grad_c - ((Dc*p.q*zc)/(p.kb*T))*c_mid*grad_V
+    flux = sa*flux
+
+    return flux
 
 def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block):
 

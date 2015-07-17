@@ -1054,6 +1054,8 @@ class Parameters(object):
         self.F = 96485 # Faraday constant [J/V*mol]
         self.R = 8.314  # Gas constant [J/K*mol]
         self.eo = 8.854e-12 # permeability of free space [F/m]
+        self.kb = 1.3806e-23  # Boltzmann constant [m2 kg/ s2 K1]
+        self.q = 1.602e-19    # electron charge [C]
 
         self.deltaGATP = 20*self.R*self.T    # free energy released in ATP hydrolysis [J/mol]
 

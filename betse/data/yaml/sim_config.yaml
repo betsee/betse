@@ -180,12 +180,12 @@ general options:
                                 # General Options section.
                                 # Note you cannot change this option between an init and sim run.
 
-  channel electroosmosis: True   # turn on electroosmosis of pumps and channels under ecm currents
+  channel electroosmosis: False   # turn on electroosmosis of pumps and channels under ecm currents
                                  # (only works for simulate ECM: True)
 
   membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
 
-  water viscocity: 1.0e-3   # viscovity of water (for bulk electroosmosis) [Ns/m2]
+  water viscocity: 1.0   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
 
   membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
@@ -440,7 +440,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 

@@ -1206,6 +1206,9 @@ class World(object):
 
         # structures for interpolating data to calculate clean gradients and laplacians:
 
+        self.x_lin = np.linspace(self.xmin,self.xmax,p.grid_size)
+        self.y_lin = np.linspace(self.ymin,self.ymax,p.grid_size)
+
         self.X_cells, self.Y_cells,self.dx_cells, self.dy_cells = tb.makegrid(self.cell_centres[:,0],
             self.cell_centres[:,1],p.grid_size,self)
 

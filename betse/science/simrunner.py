@@ -50,7 +50,7 @@ class SimRunner(object):
     # this boolean's. Perhaps we could eliminate this boolean entirely? Let us
     # contemplate the manifest richness of this world.
 
-    def makeWorld(self, plotWorld: bool = True):
+    def makeWorld(self):
         """
         In order to set up tissue profiles and other geometry-specific features,
         it is necessary to first create and plot the cells data structure. This
@@ -89,13 +89,8 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-            if plotWorld == True:
-                fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-                plt.show(block=False)
-
-                # TODO: Is this the total number of cells? Do we still want
-                # this? If so, contemplate logging that sucker up. Huah!
-                print(cells.cell_number)
+            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+            plt.show(block=False)
 
         else:
 
@@ -115,12 +110,8 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-            if plotWorld == True:
-                fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-                plt.show(block=False)
-
-                # TODO: Ditto. Huar-hur!
-                print(cells.cell_number)
+            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+            plt.show(block=False)
 
 
         plt.show()
@@ -798,9 +789,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if p.exportData == True:
         viz.exportData(cells, sim, p)
 
-    viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
-    plt.quiver(p.um*cells.Y_ecm,p.um*cells.X_ecm,sim.E_ECM_x,sim.E_ECM_y)
-    plt.show()
+
+    if p.sim_eosmosis == True:
+        #
+        viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
+        plt.quiver(p.um*cells.Y_ecm,p.um*cells.X_ecm,sim.E_ECM_x,sim.E_ECM_y)
+        plt.show()
 
 
 # def plots4Init(plot_cell,cells,sim,p,saveImages=False):
