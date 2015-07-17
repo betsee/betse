@@ -421,7 +421,7 @@ all written executables.
 
 ##### Windows
 
-UPX does *not* appear to be readily available under Microsoft Windows.
+UPX does *not* appear to be readily available under Microsoft Windows. Next!
 
 ##### Linux
 
@@ -434,9 +434,9 @@ installable in a system-wide manner as follows:
 
 `betse` is freezable in either:
 
-* One-file mode, in which case PyInstaller will generate one executable file for
+* One-file mode, in which case PyInstaller generates one executable file for
   each of `betse`'s wrapper scripts (e.g., `betse`, `betse-qt`).
-* One-directory mode, in which case PyInstaller will generate one directory
+* One-directory mode, in which case PyInstaller generates one directory
   containing one executable file (along with various ancillary libraries and
   archives) for each of `betse`'s wrapper scripts.
 
@@ -483,10 +483,13 @@ when already frozen in one-directory mode) currently results in an error.
 This is correctable by either manually removing the previously frozen file or
 directory *or* passing option `--clean` to the desired `freeze_file` or
 `freeze_dir` command, which automatically removes such path on your behalf. For
-example, `betse` is switchable from one-directory to one-file mode as follows:
+example, `betse` is switchable from one-directory to one-file mode and then back
+again as follows:
 
     >>> cd "${BETSE_DIR}"
+    >>> ./setup.py freeze_dir
     >>> ./setup.py freeze_file --clean
+    >>> ./setup.py freeze_dir --clean
 
 #### Forwards Incompatibilities
 
@@ -539,4 +542,22 @@ We recommend the open-source product VMware for this purpose.
 
 ## License
 
-To be decided.
+`betse` is open-source software licensed under the BSD-compatible [NetBSD
+license](https://www.netbsd.org/about/redistribution.html). equivalent to the
+[2-clause BSD license](http://opensource.org/licenses/BSD-2-Clause) excluding
+the following proviso:
+
+    The views and conclusions contained in the software and documentation are
+    those of the authors and should not be interpreted as representing official
+    policies, either expressed or implied, of the FreeBSD Project.
+
+We regard this proviso as evasive legerdemain. If "the views and conclusions
+contained in the software and documentation" become sufficiently desynchronized
+from official project policies as to constitute a legal risk (e.g., due to
+permissive defamation law such as exists in the United Kingdom), the remedy is
+to bridge the gap -- not to decry its existence. That is, to amend the software,
+its policies, or both until no desynchronization between the two remains.
+
+The software _is_ the project. Strident claims to the contrary notwithstanding,
+the software _is_ fundamentally representative of project policies. This is
+always and irrevocably the case, and claims otherwise merit little standing.
