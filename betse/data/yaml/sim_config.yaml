@@ -70,7 +70,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 100               # set the time for the initialization run [s]
+  total time: 10               # set the time for the initialization run [s]
                                 # recommend 10 to 60 s of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -79,8 +79,8 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 2.5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 0.8                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    time step: 0.1               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
     gap junction radius: 1.0e-7   # radius of gap junctions connecting cells [m] (recommended range see table)
 
@@ -271,7 +271,7 @@ general options:
 
 world variables:
 
-  world x: 100e-6         # the x-dimension of the world space [m]
+  world x: 500e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -393,13 +393,13 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
-    directory: geo/box              # directory where geometry-defining bitmaps can be found
+    directory: geo/circle              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 5          # total number of bitmaps to load
+    number of bitmaps: 1          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: box_base.png        # name of the first bitmap defining geometry
+        file: circle_base.png        # name of the first bitmap defining geometry
 
         designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
@@ -493,7 +493,7 @@ tissue profile 3:
     ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 
-number of boundary profiles: 1      # boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 0      # boundary profiles only apply if simulating extracellular spaces
 
 boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
     name: applied pos voltage

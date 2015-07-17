@@ -149,6 +149,8 @@ class Bitmapper(object):
 
         self.clipping_function = interp.interp2d(xpts,ypts,self.clippingMatrix)
 
+        self.clipping_function_fast = interp.RectBivariateSpline(xpts,ypts,self.clippingMatrix)
+
     def clipPoints(self,point_list_x,point_list_y):
 
         """

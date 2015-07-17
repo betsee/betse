@@ -18,9 +18,8 @@ and crops the cell cluster to an optional user-defined geometry input
 (a set of points arranged in counter-clockwise order and
 defining a closed polygon). Other methods define the cell centres of each
 cell polygon, their volume, and create cell-cell gap junctions (GJs) and membrane domains
-for each cell. Finally, a suite of methods facilitate adding data (as colour)
-to the various geometrical aspects of the cell cluster and return plot objects
-that can be integrated into the QT (i.e. PySide) Gui.
+for each cell.
+
 """
 
 
