@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 
-
+# FIXME takes too long to create matrixes for full world -- other options?
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 

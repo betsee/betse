@@ -52,6 +52,8 @@ class GridWorld(object):
         self.near_neigh(p)
         self.environment(p)
 
+        self.makeLaplacian()
+
         # loggers.log_info('Cell cluster creation complete!')
 
         # # save the cell cluster
@@ -346,11 +348,127 @@ class GridWorld(object):
 
         # for purposes of Laplacian solver, need to remove boundary elements and define a "core"
         # of interior points:
-        Core_x = self.X[1:-1,1:-1]
-        Core_y = self.Y[1:-1,1:-1]
-        Core_pts = np.column_stack((Core_x.ravel(), Core_y.ravel()))
+        core_x = self.X[1:-1,1:-1]
+        core_y = self.Y[1:-1,1:-1]
+        core_pts = np.column_stack((core_x.ravel(), core_y.ravel()))
 
-        self.Core_k = list(points_tree.query(Core_pts))[1]
+        self.core_k = list(points_tree.query(core_pts))[1]
+
+        self.core_len = len(self.core_k)
+
+        self.core_n = self.grid_n - 2
+
+        # create a mapping from the ip, jp indexing to the kp index of the unraveled core matrix:
+        M = []
+        for i in range(self.core_n):
+            row = []
+            for j in range(self.core_n):
+                row.append([i,j])
+
+            M.append(row)
+
+        self.map_ij2k_core = []
+        for row in M:
+            for inds in row:
+                self.map_ij2k_core.append(inds)
+
+    def makeLaplacian(self):
+        """
+        Generate the discrete finite central difference 2D Laplacian operator based on:
+
+        d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
+
+        To solve the Poisson equation:
+
+        A*U = fxy
+
+        by:
+
+        U = Ainv*fxy
+
+        Creates
+        --------
+        self.Ainv
+
+        Notes
+        -------
+        ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
+
+
+        """
+        # initialize the laplacian operator matrix:
+        A = np.zeros((self.core_len,self.core_len))
+
+        # # create a temporary Python list version of the full index map
+        # map_ij2k = self.map_ij2k.tolist()
+
+        # lists to store the indices of
+        self.bBot_kp = []
+        self.bTop_kp = []
+        self.bL_kp = []
+        self.bR_kp = []
+
+
+        for kp, (ip, jp) in enumerate(self.map_ij2k_core):
+
+            if ip + 1 < self.core_n:
+
+                k_ip1_j = self.map_ij2k_core.index([ip+1,jp])
+                A[kp, k_ip1_j] = 1
+
+            else:
+                # store the kp index of the bottom boundary for off the cuff modification of sol vector:
+                self.bBot_kp.append(kp)
+
+                # deal with the bounary value by moving to the RHS of the equation:
+                # bval = self.bBot[jp+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if ip - 1 >= 0:
+
+                k_in1_j = self.map_ij2k_core.index([ip-1,jp])
+                A[kp, k_in1_j] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bTop_kp.append(kp)
+                # bval = self.bTop[jp+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if jp + 1 < self.core_n:
+
+                k_i_jp1 = self.map_ij2k_core.index([ip,jp+1])
+                A[kp, k_i_jp1] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bR_kp.append(kp)
+
+                # bval = self.bR[ip + 1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if jp -1 >= 0:
+                k_i_jn1 = self.map_ij2k_core.index([ip,jp-1])
+                A[kp, k_i_jn1] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bL_kp.append(kp)
+
+                # bval = self.bL[ip+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            A[kp,kp] = -4
+
+        # complete the laplacian operator by diving through by grid spacing squared:
+
+        A = A/self.delta**2
+
+        loggers.log_info('Creating Poisson solver... ')
+        loggers.log_info('(...may take a few minutes but is worth its time in gold!...) ')
+
+        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+        self.Ainv = np.linalg.inv(A)
 
     def redo_gj(self,dyna,p,savecells =True):
 

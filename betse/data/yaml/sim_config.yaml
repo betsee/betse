@@ -79,20 +79,20 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 5.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    time step: 1e-2               # Simulation step-size [s] (recommended range see table)
+    total time: 0.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
+    gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
 #
 # GJ r          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
-# 1e-8               1e-2             5e-4          0.1         closed gap junctions
-# 1.0e-7             1e-2             5e-4          0.1         low gap junctions
-# 5.0e-7             1e-3             1e-5          1e-3        moderate gap junction
-# 1.0e-6             1e-4             1e-6          1e-4        high flux gap junctions
+# 1e-9               1e-2             5e-4          0.1         closed gap junctions
+# 1.0e-8             1e-2             5e-4          0.1         low gap junctions
+# 5.0e-8             1e-3             1e-5          1e-3        moderate gap junction
+# 1.0e-7             1e-4             1e-6          1e-4        high flux gap junctions
 
 # -----------------------------------------------------------------------------
 
@@ -126,13 +126,13 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 2.5e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 5.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
     total time: 1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.5            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -162,7 +162,7 @@ general options:
 
   grid size: 50                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -216,7 +216,7 @@ general options:
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
     cDye_to_cell: 1.0e-3    # initial concentration of dye in the cell [mmol/L]
 
-  static noise level: 0.0    # level of variance in K+ leaks on cell membranes
+  static noise level: 1.0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
 
   dynamic noise: False      # is dynamic noise desired? Options True or False
@@ -233,17 +233,6 @@ general options:
                                # this is because an anion (M-) is used to create
                                # charge neutrality in each compartment.
 
-    # if any of the following are set to False, they won't be included
-    # in the initialization or the simulations.
-    # note Na+ and K+ are included by default.
-    # including H+ automatically generates a bicarbonate buffer.
-    # for realistic Vmem it is recommended to always include negatively charged proteins, P-.
-
-    include Cl-: False        # include chloride (True or False) ?
-    include Ca2+: False        # include calcium (True or False) ?
-    include H+: False         # include protons (True or False) ?
-    include P-: False         # include negatively charged proteins (True or False)?
-
     extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
     extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
     extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
@@ -251,9 +240,9 @@ general options:
     extracellular H+ concentration: 3.98e-5         # extracellular protons [mmol/L]
     extracellular protein- concentration: 9.0       # extracellular protein [mmol/L]
 
-    cytosolic Na+ concentration: 5.4                # intracellular sodium [mmol/L]
-    cytosolic K+ concentration: 140.44              # intracellular potassium [mmol/L]
-    cytosolic Cl- concentration: 6.0                # intracellular chloride [mmol/L]
+    cytosolic Na+ concentration: 13.0                # intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 145.00              # intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 10.0                # intracellular chloride [mmol/L]
     cytosolic Ca2+ concentration: 1.0e-3            # intracellular calcium [mmol/L]
     cytosolic H+ concentration: 6.31e-5             # intracellular protons [mmol/L]
     cytosolic protein- concentration: 138.0         # intracellular protein [mmol/L]
@@ -271,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 500e-6         # the x-dimension of the world space [m]
+  world x: 800e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -393,13 +382,13 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
-    directory: geo/circle              # directory where geometry-defining bitmaps can be found
+    directory: geo/paper              # directory where geometry-defining bitmaps can be found
 
     number of bitmaps: 1          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: circle_base.png        # name of the first bitmap defining geometry
+        file: worm_d.png        # name of the first bitmap defining geometry
 
         designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
@@ -442,11 +431,11 @@ base tissue properties:    # specify the base membrane diffusion constants below
 
     ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: nerves       # give your profile a name that will be used to apply the profile
-    cell targets: bitmap      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    name: gradient       # give your profile a name that will be used to apply the profile
+    cell targets: all      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None           # special instructions for making the profile:'cavity' or 'cuts'
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -513,12 +502,12 @@ boundary profile 2:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False              # turn the even on (True) or off (False)
+  event happens: True              # turn the even on (True) or off (False)
   change start: 0.2                # sim time to start change [s]
   change finish: 10.0               # sim time to end change and return to original [s]
   change rate: 0.2                 # rate of change [s]
   multiplier: 2.0                  # factor to multiply base level
-  function: gradient_x                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
+  function: gradient_y                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
   apply to: ['gradient']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
@@ -640,7 +629,7 @@ Ca dynamics:                      # include full calcium dynamics in the situati
 results options:
 
 
-  turn all plots off: True      # This option allows you to turn all plots on/off
+  turn all plots off: False      # This option allows you to turn all plots on/off
                                  # note this doesn't turn plot while solving off.
                                  # options True or False (case sensitive)
 
@@ -658,7 +647,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: False     # use this setting to quickly toggle creation of all
+  create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -741,7 +730,7 @@ results options:
 
   Efield 2D:
 
-    plot Efield: True               # 2d plot of electric field
+    plot Efield: False               # 2d plot of electric field
     data type: ECM                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
@@ -751,7 +740,7 @@ results options:
 
   Currents 2D:
 
-    plot Currents: True               # 2d plot of net current flow in the collective?
+    plot Currents: False               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -759,35 +748,35 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
+    animate Vmem: False           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
-    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    animate Ca2+: False           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: True            # 2d animation of cIP3 with time?
+    animate IP3: False            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Dye Ani:
 
-    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
@@ -801,13 +790,13 @@ results options:
 
   Current Ani:
 
-    animate current: True       # 2d animation of current in individual cells of the collective?
+    animate current: False       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
   Efield Ani:
-    animate Efield: True        # 2d animation of electric field in extracellullar matrix
+    animate Efield: False        # 2d animation of electric field in extracellullar matrix
     data type: ECM                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
@@ -905,22 +894,22 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-14   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
+  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  0.5e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1.0e-8  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
-  halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  1.0e-4  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  halfmax_Ca:  3       # the free energy level at which pump activity is halved [kJ]
+  slope_Ca:  3         # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_HK:  0.1    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_HK:  3       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  3         # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_V:  0.01     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_V:  3       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  3         # the energy window width of the NaK-ATPase pump [kJ]
 
 
 # Configuration file version that this file conforms to. For reliable

@@ -2,9 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME pumps should use Hill functions, not linear to concentrations
 # FIXME de-spagghetti the baseInit_ECM code and do runSim_ECM for cut cell dynamics and proper pickling...
-
 
 # FIXME so the full Nernst-Planck equation gives nearly identical values to the GHK-flux equation, BUT the NP
 # behaves better with zero voltage and with higher voltage gradients. The other advantage of the full NP
@@ -786,7 +784,6 @@ class Simulator(object):
         self.efield_x_time = []   # matrices storing smooth electric field in gj connected cells
         self.efield_y_time = []
 
-
         if p.voltage_dye == True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
@@ -926,7 +923,6 @@ class Simulator(object):
                 q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
                 self.vm = get_volt(q_cells,cells.cell_sa,p)
 
-
                 if p.HKATPase_dyn == 1:
 
                     # if HKATPase pump is desired, run the H-K-ATPase pump:
@@ -995,7 +991,6 @@ class Simulator(object):
                 # calculate volatge difference between cells:
                 vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
                 vgj = vmB - vmA
-
 
                 if p.v_sensitive_gj == True:
 
@@ -1088,7 +1083,7 @@ class Simulator(object):
 
             # interpolate v_cell on a grid to calculate the electric field in gj networked cells
             V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                self.v_cell,(cells.X_cells,cells.Y_cells))
+                self.vm,(cells.X_cells,cells.Y_cells))
 
             V_CELL = np.nan_to_num(V_CELL)
             self.E_CELL_x, self.E_CELL_y = np.gradient(V_CELL, cells.dx_cells, cells.dy_cells)

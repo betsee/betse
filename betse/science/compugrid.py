@@ -2,10 +2,12 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME may need a use Poisson equation to calculate voltage from rho in extracellular
-# FIXME pumps are too weak -- speed them up -- electrofusion much higher than NaK
-# FIXME create a proper plot while solving
-# FIXME add this as feature to params and config
+
+# FIXME test sped up pumps
+# FIXME allow time dependent voltage to be added to global boundaries
+# FIXME allow user to specify open or closed concentration boundaries
+# FIXME create a proper plot while solving -- create an alternative viz module
+# FIXME add this grid computation method as feature to params and config and sim runner...
 # FIXME add in currents and electric fields
 # FIXME complete Ca2+, dye, IP3, etc
 # FIXME add in electroosmosis to ecm and gj
@@ -98,6 +100,9 @@ class SimGrid(object):
         self.cc_cells = []  # cell concentrations initialized
         self.cc_er = []   # endoplasmic reticulum ion concentrations in each cell
         self.cc_env = []   # environmental concentrations initialized
+
+        self.v_env = np.zeros(len(cells.xypts))
+        self.v_cell = np.zeros(len(cells.cell_i))
 
         self.zs = []   # ion valence state initialized
         self.z_er = []  # ion valence states of er ions
@@ -333,6 +338,16 @@ class SimGrid(object):
         self.fluxes_env_x = np.asarray(self.fluxes_env_x)
         self.fluxes_env_y = np.asarray(self.fluxes_env_y)
 
+        # boundary conditions -----------------------------------------------------------------------
+
+        # definition of boundary values -- starting vals of these go into the config file and params --
+        # scheduled dynamics might varry the values
+        self.bound_V = {}
+        self.bound_V['T'] = 0
+        self.bound_V['B'] = 0
+        self.bound_V['L'] = 0
+        self.bound_V['R'] = 0
+
     def tissueInit(self,cells,p):
 
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
@@ -489,11 +504,11 @@ class SimGrid(object):
         if p.run_sim == True:
 
             loggers.log_info('Your simulation (quasi-continuous) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
-                         + ' seconds of in-world time.')
+                         + ' s of in-world time.')
 
         else:
             loggers.log_info('Your initialization (quasi-continuous) is running from '+ str(0) + ' to '+ str(round(p.init_tsteps*p.dt,3))
-                         + ' seconds of in-world time.')
+                         + ' s of in-world time.')
 
 
         # if p.plot_while_solving == True:
@@ -597,9 +612,8 @@ class SimGrid(object):
                 # update flux between cells due to gap junctions
                 self.update_GJ(cells,p,i)
 
-                # # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V(cells,p)
-
+            # # recalculate the net, unbalanced charge and voltage in each cell:
+            self.update_V(cells,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
@@ -795,7 +809,7 @@ class SimGrid(object):
         self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
         self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
         self.v_cell = get_Vcell(self.rho_cells,cells,p)
-        self.v_env = get_Venv(self.rho_env,p)
+        self.v_env = get_Venv(self,cells,p)
 
         self.vm = self.v_cell - self.v_env[cells.map_cell2ecm]  # calculate v_mem
 
@@ -832,10 +846,10 @@ class SimGrid(object):
     def update_ENV(self,cells,p,i):
 
         # enforce boundary conditions on environmental voltage: FIXME allow this to be variable -- closed bound, open, applied V
-        self.v_env[cells.bL_k] = 0
-        self.v_env[cells.bR_k] = 0
-        self.v_env[cells.bTop_k] = 0
-        self.v_env[cells.bBot_k] = 0
+        # self.v_env[cells.bL_k] = 0
+        # self.v_env[cells.bR_k] = 0
+        # self.v_env[cells.bTop_k] = 0
+        # self.v_env[cells.bBot_k] = 0
 
         # open boundary
         # self.cc_env[i][cells.bL_k] = self.c_env_bound[i]
@@ -886,8 +900,8 @@ class SimGrid(object):
         self.cc_env[i] = cenv.ravel()
 
          # recalculate the net, unbalanced charge and voltage in each ecm space:
-        self.rho_env = get_charge_density(self.cc_env,self.z_array_env,p)
-        self.v_env = get_Venv(self.rho_env,p)
+        # self.rho_env = get_charge_density(self.cc_env,self.z_array_env,p)
+        # self.v_env = get_Venv(self,cells,p)
 
         self.fluxes_env_x[i] = f_env_x.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = f_env_y.ravel()  # store ecm junction flux for this ion
@@ -1197,28 +1211,51 @@ def get_Vcell(rho_cell,cells,p):
 
     return v_cell
 
-def get_Venv(rho_ecm,p):   # FIXME may need to make this a Poisson solver!
+def get_Venv(self,cells,p):   # FIXME may need to make this a Poisson solver!
 
-    """
-    Calculates the voltage in each extracellular space from Poisson equation charge density
+        """
+        Calculates the voltage in each extracellular space from Poisson equation charge density
 
-    Parameters
-    ---------------
-    rho_ecm:        an array listing charge density in each ecm space [C/m3]
-    p:              an instance of the Parameters object
+        Parameters
+        ---------------
+        rho_ecm:        an array listing charge density in each ecm space [C/m3]
+        p:              an instance of the Parameters object
 
-    Returns
-    ---------
-    v_ecm           the voltage in each ecm space   [V]
+        Returns
+        ---------
+        v_ecm           the voltage in each ecm space   [V]
 
-    """
+        """
 
-    # rec = p.rc + p.cell_space
-    # v_ecm = (rho_ecm*(rec**3 - p.rc**3))/(3*p.eo*80.0*rec)
+        # rec = p.rc + p.cell_space
+        # v_ecm = (rho_ecm*(rec**3 - p.rc**3))/(3*p.eo*80.0*rec)
 
-    v_ecm = (rho_ecm*(p.cell_space**2))/(8*p.eo*80.0)
+        # self.v_env = (self.rho_env*(p.cell_space**2))/(8*p.eo*80.0)
 
-    return v_ecm
+        # Poisson solver----------------------------------------------------------------
+
+        rho_env = self.rho_env[cells.core_k][:]
+
+        # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
+
+        rho_env[cells.bBot_kp] = rho_env[cells.bBot_kp] - (self.bound_V['B']/cells.delta**2)
+        rho_env[cells.bTop_kp] = rho_env[cells.bTop_kp] - (self.bound_V['T']/cells.delta**2)
+        rho_env[cells.bL_kp] = rho_env[cells.bL_kp] - (self.bound_V['L']/cells.delta**2)
+        rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
+
+        # Solve Poisson's electrostatic equation:
+        V = np.dot(cells.Ainv,-rho_env)
+
+        # Re-pack the solution to the original vector:
+        self.v_env[cells.core_k] = V
+
+        # set boundary values on the original vector
+        self.v_env[cells.bTop_k] = self.bound_V['T']
+        self.v_env[cells.bBot_k] = self.bound_V['B']
+        self.v_env[cells.bL_k] = self.bound_V['L']
+        self.v_env[cells.bR_k] = self.bound_V['R']
+
+        return self.v_env
 
 def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p):
     """

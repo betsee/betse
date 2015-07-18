@@ -41,15 +41,6 @@ class SimRunner(object):
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 
-    # TODO: This high-level function accepting an optional boolean will probably
-    # complicate the CLI interface a bit. Would it be feasible to push this into
-    # a YAML setting, as with similar booleans? If not, that's... cool.
-    #
-    # Also, how does this differ from the method of the same name: plotWorld()?
-    # That method's implementation appears to be a bit more "full-bodied" than
-    # this boolean's. Perhaps we could eliminate this boolean entirely? Let us
-    # contemplate the manifest richness of this world.
-
     def makeWorld(self):
         """
         In order to set up tissue profiles and other geometry-specific features,

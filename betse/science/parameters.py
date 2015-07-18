@@ -1100,8 +1100,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 5.4
-            self.cK_cell = 140.44
+            self.cNa_cell = 7.6
+            self.cK_cell = 139.0
             self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
@@ -1133,8 +1133,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 5.4
-            self.cK_cell = 140.44
+            self.cNa_cell = 7.6
+            self.cK_cell = 139.0
             self.cCa_cell = 1.0e-3
             self.cP_cell = 138.0
 
@@ -1172,9 +1172,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 5.4
-            self.cK_cell = 140.44
-            self.cCl_cell = 6.0
+            self.cNa_cell = 7.8
+            self.cK_cell = 148.0
+            self.cCl_cell = 10.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 6.31e-5
             self.cP_cell = 138.0
@@ -1249,15 +1249,41 @@ class Parameters(object):
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
+        if self.ion_profile == 'scratch':
+
+            self.cNa_env = 145.0
+            self.cK_env = 5.0
+            self.cP_env = 9.0
+
+            zs = [self.z_Na, self.z_K, self.z_P]
+
+            conc_env = [self.cNa_env,self.cK_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
+
+            assert self.z_M_env == -1
+
+            self.cNa_cell = 145.4
+            self.cK_cell = 5.0
+            self.cP_cell = 138.0
+
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
+
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
+
+            assert self.z_M_cell == -1
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
+
         # user-specified environmental and cytoplasm values (customized)
         if self.ion_profile == 'customized':  # FIXME need to create dics on the fly
 
             cip = self.config['general options']['customized ion profile']
-
-            bool_cl = cip['include Cl-']
-            bool_ca = cip['include Ca2+']
-            bool_h = cip['include H+']
-            bool_p = cip['include P-']
 
             self.cNa_env = float(cip['extracellular Na+ concentration'])
             self.cK_env = float(cip['extracellular K+ concentration'])
@@ -1273,44 +1299,17 @@ class Parameters(object):
             self.cH_cell = float(cip['cytosolic H+ concentration'])
             self.cP_cell = float(cip['cytosolic protein- concentration'])
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':0,'M':1} # initialize ions dictionary
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
 
-            zs = [self.z_Na, self.z_K] # initialize the oxidation state vector
-
-            conc_env = [self.cNa_env,self.cK_env]
-            conc_cell = [self.cNa_cell,self.cK_cell]
-
-            if bool_cl == True:
-                zs.append(self.z_Cl)
-                conc_env.append(self.cCl_env)
-                conc_cell.append(self.cCl_cell)
-                self.ions_dict['Cl'] = 1
-
-            if bool_ca == True:
-                zs.append(self.z_Ca)
-                conc_env.append(self.cCa_env)
-                conc_cell.append(self.cCa_cell)
-                self.ions_dict['Ca'] = 1
-
-            if bool_h == True:
-                zs.append(self.z_H)
-                conc_env.append(self.cH_env)
-                conc_cell.append(self.cH_cell)
-                self.ions_dict['H'] = 1
-
-            if bool_p == True:
-                zs.append(self.z_P)
-                conc_env.append(self.cP_env)
-                conc_cell.append(self.cP_cell)
-                self.ions_dict['P'] = 1
-
-            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)  # find the concentration of the charge-balance anion
+            conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
 
             if self.z_M_env == 1:
                 raise BetseExceptionParameters("You have defined a net negative charge profile in the environment: "
                                                "it cannot be charge balanced by an anion. Please try again.")
 
 
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             if self.z_M_cell == 1:
@@ -1319,6 +1318,20 @@ class Parameters(object):
 
             self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
             self.cM_er = -self.cCa_er
+
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
+                'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,
+                'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,
+                'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,
+                'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_Cl,
+                'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
+                'P':'proteins','M':'anion'}
 
     def set_time_profile(self,time_profile):
 
