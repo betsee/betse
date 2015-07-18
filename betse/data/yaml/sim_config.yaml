@@ -79,10 +79,10 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 0.1               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    time step: 5e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 5.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: 1.0e-7   # radius of gap junctions connecting cells [m] (recommended range see table)
+    gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -132,7 +132,7 @@ sim time settings:
 
     sampling rate: 0.5            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1.0e-7        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+    gap junction radius: 1e-9        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
                                   # warning!!! the stability of your simulation is dramatically affected by the
                                   # gap junction radius. If the radius is too large for the time-step you are using,
                                   # the simulation will become unstable and an error message will appear.
@@ -405,9 +405,9 @@ geometry defining bitmaps:
 
     bitmap 2:
 
-        file: cut_hole.png        # name of the first bitmap defining geometry
+        file: NervesMask.png        # name of the first bitmap defining geometry
 
-        designation: holes   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+        designation: nerves   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 3:
 
@@ -445,8 +445,8 @@ base tissue properties:    # specify the base membrane diffusion constants below
 number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: skin       # give your profile a name that will be used to apply the profile
-    cell targets: boundary      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    name: nerves       # give your profile a name that will be used to apply the profile
+    cell targets: bitmap      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None           # special instructions for making the profile:'cavity' or 'cuts'
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -458,7 +458,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-8    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile
@@ -640,7 +640,7 @@ Ca dynamics:                      # include full calcium dynamics in the situati
 results options:
 
 
-  turn all plots off: False      # This option allows you to turn all plots on/off
+  turn all plots off: True      # This option allows you to turn all plots on/off
                                  # note this doesn't turn plot while solving off.
                                  # options True or False (case sensitive)
 
@@ -648,7 +648,7 @@ results options:
                                  # while the sim run is computing
                                  # options True or False (case sensitive)
 
-  save solving plot: True      # save the plot while solving figure
+  save solving plot: False      # save the plot while solving figure
                                 # as the sim progresses (as 300 dpi png
                                 # in folder in the results directory)
                                 # warning this can slow down simulations
@@ -658,7 +658,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: True     # use this setting to quickly toggle creation of all
+  create all animations: False     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -895,12 +895,12 @@ internal parameters:
 
   # default free diffusion constants (cytoplasmic)
 
-  Do_Na:  1.33e-11       # free diffusion constant sodium [m2/s]
-  Do_K:  1.96e-11        # free diffusion constant potassium [m2/s]
-  Do_Cl:  2.03e-11       # free diffusion constant chloride [m2/s]
+  Do_Na:  1.33e-10       # free diffusion constant sodium [m2/s]
+  Do_K:  1.96e-10        # free diffusion constant potassium [m2/s]
+  Do_Cl:  2.03e-10       # free diffusion constant chloride [m2/s]
   Do_Ca:  1.0e-11        # free diffusion constant calcium [m2/s]
-  Do_H:  2.5e-11         # free diffusion constant hydrogen [m2/s]
-  Do_M:  1.0e-11         # free diffusion constant mystery anchor ion [m2/s]
+  Do_H:  2.5e-10         # free diffusion constant hydrogen [m2/s]
+  Do_M:  1.0e-10         # free diffusion constant mystery anchor ion [m2/s]
   Do_P:  5.0e-12        # free diffusion constant protein [m2/s]
 
   # pump parameters

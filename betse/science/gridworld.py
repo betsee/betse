@@ -22,6 +22,9 @@ defining a closed polygon). Other methods define the cell centres and create cel
 
 """
 
+# FIXME when running gridworld, make sure to set p.sim_ECM to false so that everything works OK in downstream
+# modules...!
+#FIXME do an ecm volume
 
 import numpy as np
 import scipy.spatial as sps
@@ -48,6 +51,17 @@ class GridWorld(object):
         self.makeCluster(p)
         self.near_neigh(p)
         self.environment(p)
+
+        # loggers.log_info('Cell cluster creation complete!')
+
+        # # save the cell cluster
+        # loggers.log_info('Saving the cell cluster... ')
+        #
+        # # celf = copy.deepcopy(self)
+        # datadump = [self,p]
+        # fh.saveSim(self.savedWorld,datadump)
+        # message = 'Cell cluster saved to' + ' ' + self.savedWorld
+        # loggers.log_info(message)
 
     def fileInit(self,p):
 
@@ -148,14 +162,23 @@ class GridWorld(object):
         self.msize = bitmasker.msize
         self.cell_bools_k = np.asarray(self.cell_bools_k)
 
+        for k, ind in enumerate(self.cell_bools_k):
+            if ind > 0.0:
+                self.cell_bools_k[k] = 1
+
         cell_inds = (self.cell_bools_k > 0.0).nonzero()
         self.cell_centres = self.xypts[cell_inds]
 
         # create an index for only the cell centres
         self.cell_i = [x for x in range(0,len(self.cell_centres))]
 
+        # properties of individual cells
         self.cell_vol = (4/3)*math.pi*p.rc**3   # cell volume (unifrom)
         self.cell_sa = 4*math.pi*p.rc**2    # whole cell surface area (uniform)
+
+        # calculate volume of local ecm space for each cell
+        rext = p.rc + p.cell_space
+        self.ecm_vol = ((4/3)*math.pi*(rext**3 - p.rc**3))/2
 
         # calculating centre, min, max of cell cluster
         self.clust_centre = np.mean(self.cell_centres)
@@ -163,6 +186,8 @@ class GridWorld(object):
         self.clust_x_min = np.min(self.cell_centres[:,0])
         self.clust_y_max = np.max(self.cell_centres[:,1])
         self.clust_y_min = np.min(self.cell_centres[:,1])
+
+        self.cell_number = int(np.sum(self.cell_bools_k))
 
     def near_neigh(self,p):
 
@@ -260,12 +285,16 @@ class GridWorld(object):
         self.cell_to_gj = np.asarray(self.cell_to_gj)
 
         # calculating matrix for gap junction flux calculation between cells
+        # divide by the number of nearest neighbours to properly distribute each flux
+        # over a fraction of the total cell surface area
         self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
         for igj, pair in enumerate(self.gap_jun_i):
             ci = pair[0]
             cj = pair[1]
-            self.gjMatrix[igj,ci] = -1
-            self.gjMatrix[igj,cj] = 1
+            nn_i = self.num_nn[0]
+            nn_j = self.num_nn[1]
+            self.gjMatrix[igj,ci] = -1/nn_i
+            self.gjMatrix[igj,cj] = 1/nn_j
 
     def environment(self,p):
 

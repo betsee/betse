@@ -2353,6 +2353,75 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
     return fig, ax, ax_cb
 
+def clusterPlotMesh(p,dyna,cells,clrmap=cm.jet):
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    cb_ticks = []
+    cb_tick_labels = []
+
+    Z = np.zeros(cells.X.shape)
+
+    cb_ticks.append(0)
+    cb_tick_labels.append('environment')
+
+    Z[cells.map_ij2k[cells.map_cell2ecm][:,0],cells.map_ij2k[cells.map_cell2ecm][:,1]] = 1
+
+    cb_ticks.append(1)
+    cb_tick_labels.append(p.default_tissue_name)
+
+
+    if len(dyna.tissue_profile_names):
+
+        for i, name in enumerate(dyna.tissue_profile_names):
+
+            cell_inds = dyna.cell_target_inds[name]
+
+            Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
+              cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = i+2
+
+            cb_ticks.append(i+2)
+            cb_tick_labels.append(name)
+
+    if p.plot_cutlines == True:
+
+        if len(dyna.cuts_target_inds):
+
+            names = dyna.cuts_target_inds.keys()
+
+            for name in names:
+
+                cell_inds = dyna.cuts_target_inds[name]
+
+                Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
+                  cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = -1
+
+    xmin = cells.xmin*p.um
+    xmax = cells.xmax*p.um
+    ymin = cells.ymin*p.um
+    ymax = cells.ymax*p.um
+
+    clust_plot = ax.imshow(Z,origin = 'lower', extent=[xmin, xmax, ymin,ymax])
+
+    if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
+
+        ax_cb = fig.colorbar(clust_plot,ax=ax, ticks=cb_ticks)
+        ax_cb.ax.set_yticklabels(cb_tick_labels)
+
+    else:
+        ax_cb = None
+
+    ax.set_xlabel('Spatial Distance [um]')
+    ax.set_ylabel('Spatial Distance [um]')
+    ax.set_title('Cell Cluster')
+
+    ax.axis('equal')
+
+    ax.axis([xmin,xmax,ymin,ymax])
+
+    return fig, ax, ax_cb
+
 def exportData(cells,sim,p):
 
     results_path = p.sim_results

@@ -82,10 +82,6 @@ class Simulator(object):
 
         """
 
-        #FIXME: Uncomment to make required directories. Yay!
-        # from betse.util.path import dirs
-        # dirs.make_parent_unless_dir(p.saved_init_file, p.saved_run_file)
-
         # Make the BETSE-specific cache directory if not found.
         betse_cache_dir = os.path.expanduser(p.init_path)
         os.makedirs(betse_cache_dir, exist_ok=True)
@@ -261,16 +257,6 @@ class Simulator(object):
 
             self.fluxes_gj.append(self.flx_gj_i)
             self.fluxes_mem.append(self.flx_mem_i)
-
-        # make sure the output is correct:
-
-        for name in ion_names:
-            string_1 = 'i' + name
-            mean_c_cells = np.mean(self.cc_cells[vars(self)[string_1]])
-            mean_c_env = np.mean(self.cc_env[vars(self)[string_1]])
-            mean_z = np.mean(self.z_array[vars(self)[string_1]])
-            print(name,' ',p.ion_long_name[name],' ','ion index ', vars(self)[string_1],' mean c cells',mean_c_cells,' mean c env',mean_c_env,'z',mean_z)
-
 
         #-------------------------------------------------------------------------------------------------------
 
