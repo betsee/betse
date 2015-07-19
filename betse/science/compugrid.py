@@ -3,7 +3,6 @@
 # See "LICENSE" for further details.
 
 
-# FIXME test sped up pumps
 # FIXME allow time dependent voltage to be added to global boundaries
 # FIXME allow user to specify open or closed concentration boundaries
 # FIXME create a proper plot while solving -- create an alternative viz module
@@ -1211,7 +1210,7 @@ def get_Vcell(rho_cell,cells,p):
 
     return v_cell
 
-def get_Venv(self,cells,p):   # FIXME may need to make this a Poisson solver!
+def get_Venv(self,cells,p):
 
         """
         Calculates the voltage in each extracellular space from Poisson equation charge density
@@ -1230,32 +1229,35 @@ def get_Venv(self,cells,p):   # FIXME may need to make this a Poisson solver!
         # rec = p.rc + p.cell_space
         # v_ecm = (rho_ecm*(rec**3 - p.rc**3))/(3*p.eo*80.0*rec)
 
-        # self.v_env = (self.rho_env*(p.cell_space**2))/(8*p.eo*80.0)
-
-        # Poisson solver----------------------------------------------------------------
-
         rho_env = self.rho_env[cells.core_k][:]
+        v_env = self.v_env[:]
 
-        # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
+        v_env = (rho_env*(p.cell_space**2))/(8*p.eo*80.0)
 
-        rho_env[cells.bBot_kp] = rho_env[cells.bBot_kp] - (self.bound_V['B']/cells.delta**2)
-        rho_env[cells.bTop_kp] = rho_env[cells.bTop_kp] - (self.bound_V['T']/cells.delta**2)
-        rho_env[cells.bL_kp] = rho_env[cells.bL_kp] - (self.bound_V['L']/cells.delta**2)
-        rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
+        # # Poisson solver----------------------------------------------------------------
+        #
 
-        # Solve Poisson's electrostatic equation:
-        V = np.dot(cells.Ainv,-rho_env)
+        #
+        # # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
+        #
+        # rho_env[cells.bBot_kp] = rho_env[cells.bBot_kp] - (self.bound_V['B']/cells.delta**2)
+        # rho_env[cells.bTop_kp] = rho_env[cells.bTop_kp] - (self.bound_V['T']/cells.delta**2)
+        # rho_env[cells.bL_kp] = rho_env[cells.bL_kp] - (self.bound_V['L']/cells.delta**2)
+        # rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
+        #
+        # # Solve Poisson's electrostatic equation:
+        # V = np.dot(cells.Ainv,-rho_env)
+        #
+        # # Re-pack the solution to the original vector:
+        # v_env[cells.core_k] = V
+        #
+        # # set boundary values on the original vector
+        # v_env[cells.bTop_k] = self.bound_V['T']
+        # v_env[cells.bBot_k] = self.bound_V['B']
+        # v_env[cells.bL_k] = self.bound_V['L']
+        # v_env[cells.bR_k] = self.bound_V['R']
 
-        # Re-pack the solution to the original vector:
-        self.v_env[cells.core_k] = V
-
-        # set boundary values on the original vector
-        self.v_env[cells.bTop_k] = self.bound_V['T']
-        self.v_env[cells.bBot_k] = self.bound_V['B']
-        self.v_env[cells.bL_k] = self.bound_V['L']
-        self.v_env[cells.bR_k] = self.bound_V['R']
-
-        return self.v_env
+        return v_env
 
 def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p):
     """

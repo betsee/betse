@@ -2306,13 +2306,13 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
                 # cb_tick_labels.append(name)
 
 
-    if p.sim_ECM == True:
-        ax.scatter(cells.env_points[:,0]*p.um,cells.env_points[:,1]*p.um,c='k',s=1.0)
-        if len(dyna.env_target_inds):
-
-            for name in p.boundary_profiles.keys():
-                special_inds = dyna.env_target_inds[name]
-                ax.scatter(p.um*cells.env_points[:,0][special_inds],p.um*cells.env_points[:,1][special_inds],c='r')
+    # if p.sim_ECM == True:
+    #     ax.scatter(cells.env_points[:,0]*p.um,cells.env_points[:,1]*p.um,c='k',s=1.0)
+    #     if len(dyna.env_target_inds):
+    #
+    #         for name in p.boundary_profiles.keys():
+    #             special_inds = dyna.env_target_inds[name]
+    #             ax.scatter(p.um*cells.env_points[:,0][special_inds],p.um*cells.env_points[:,1][special_inds],c='r')
 
 
     if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):

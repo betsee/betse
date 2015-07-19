@@ -737,9 +737,10 @@ class Dynamics(object):
 
 
                 if p.sim_ECM == True:
+                    pass
                     #get ecm targets
-                    ecm_targs_a = cells.cell_to_ecm[self.cell_target_inds[name]]
-                    ecm_targs,_,_ = tb.flatten(ecm_targs_a)
+                    # ecm_targs_a = cells.cell_to_ecm[self.cell_target_inds[name]]
+                    # ecm_targs,_,_ = tb.flatten(ecm_targs_a)
 
                 # set the values of Dmems and ecm diffusion based on the identified target indices
 
@@ -748,49 +749,56 @@ class Dynamics(object):
                     sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iNa][ecm_targs] = p.Do_Na*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iNa][ecm_targs] = p.Do_Na*ecm_val
 
                 if p.ions_dict['K'] == 1:
                     dK = dmem_list['Dm_K']
                     sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iK][ecm_targs] = p.Do_K*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iK][ecm_targs] = p.Do_K*ecm_val
 
                 if p.ions_dict['Cl'] == 1:
                     dCl = dmem_list['Dm_Cl']
                     sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iCl][ecm_targs] = p.Do_Cl*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iCl][ecm_targs] = p.Do_Cl*ecm_val
 
                 if p.ions_dict['Ca'] == 1:
                     dCa = dmem_list['Dm_Ca']
                     sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iCa][ecm_targs] = p.Do_Ca*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iCa][ecm_targs] = p.Do_Ca*ecm_val
 
                 if p.ions_dict['H'] == 1:
                     dH = dmem_list['Dm_H']
                     sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iH][ecm_targs] = p.Do_H*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iH][ecm_targs] = p.Do_H*ecm_val
 
                 if p.ions_dict['M'] == 1:
                     dM = dmem_list['Dm_M']
                     sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iM][ecm_targs] = p.Do_M*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iM][ecm_targs] = p.Do_M*ecm_val
 
                 if p.ions_dict['P'] == 1:
                     dP = dmem_list['Dm_P']
                     sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
 
                     if p.sim_ECM == True:
-                        sim.D_ecm_juncs[sim.iP][ecm_targs] = p.Do_P*ecm_val
+                        pass
+                        # sim.D_ecm_juncs[sim.iP][ecm_targs] = p.Do_P*ecm_val
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:

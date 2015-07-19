@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 
-# FIXME takes too long to create matrixes for full world -- other options?
+# FIXME need an ECM update matrix
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 
@@ -203,25 +203,27 @@ class World(object):
 
         if self.worldtype is None or self.worldtype == 'full':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
-            # self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p,alpha=1.5)   # flag ecm domains on the env bound
-            self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
-            self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p,alpha=1.2)   # flag ecm domains on the env bound
-            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
+            # self.bflags_ecm,self.bmask_ecm = self.boundTag(self.ecm_verts_unique,p,alpha=1.5)   # flag ecm domains on the env bound
+            # self.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+            # self.bflags_ecm,_ = self.boundTag(self.ecm_mids,p,alpha=1.2)   # flag ecm domains on the env bound
+            self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
-            self.make_env_points(p)  # get the environmental interaction points for each boundary ecm
+
+            # self.make_env_points(p)  # get the environmental interaction points for each boundary ecm
             self.cleanUp(p)       # Free up memory...
+            self.makeECM(p)       # create the ecm grid
+            self.environment(p)   # define features of the ecm grid
+            self.makeLaplacian()  # create the Laplacian solver
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
-            # self.cropSeeds(self.crop_mask,p)      # Crop the grid to a geometric shape to define the cell cluster
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
-            self.bflags_cells,_ = self.boundTag(self.cell_centres,p)
+            # self.bflags_cells,_ = self.boundTag(self.cell_centres,p)
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
 
@@ -236,16 +238,6 @@ class World(object):
         grid is specified by nl, defined from
         0 (perfect square grid) to 1 (full noise).
 
-
-        Creates
-        -------
-        self.xypts      numpy array listing [x,y] of world seed points
-
-        self.xmin, self.xmax      dimensions of world grid (after noise)
-        self.ymin, self.ymax
-
-        self.centre     [x,y] coordinate of world centre (after noise)
-
         Notes
         -------
         Uses Numpy arrays
@@ -253,32 +245,32 @@ class World(object):
         """
 
         # first begin with linear vectors which are the "ticks" of the x and y dimensions
-        self.x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
-        self.y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
+        x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
+        y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
 
         # next define a 2d array of lattice points using the x- and y- vectors
-        self.x_2d, self.y_2d = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
+        x_2d, y_2d = np.meshgrid(x_v, y_v)  # create 2D array of lattice points
 
         # now create a matrix of points that will add a +/- deviation to each point centre
         x_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
         y_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
 
         # add the noise effect to the world point matrices and redefine the results
-        x_2d = self.x_2d + x_rnd
-        y_2d = self.y_2d + y_rnd
+        x_2d = x_2d + x_rnd
+        y_2d = y_2d + y_rnd
 
         # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
-        self.xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
+        xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
 
         # define geometric limits and centre for the cluster of points
-        self.xmin = np.min(self.xypts[:,0])
-        self.xmax = np.max(self.xypts[:,0])
-        self.ymin = np.min(self.xypts[:,1])
-        self.ymax = np.max(self.xypts[:,1])
+        self.xmin = np.min(xypts[:,0])
+        self.xmax = np.max(xypts[:,0])
+        self.ymin = np.min(xypts[:,1])
+        self.ymax = np.max(xypts[:,1])
 
-        self.centre = self.xypts.mean(axis=0)
+        self.centre = xypts.mean(axis=0)
 
-        self.clust_xy = self.xypts
+        self.clust_xy = xypts
 
     def makeVoronoi(self, p):
 
@@ -509,26 +501,6 @@ class World(object):
 
         self.ecm_polyinds = np.asarray(self.ecm_polyinds)
 
-    def vor_area(self,p):
-
-        """
-        Calculates the area of each cell in a closed 2D Voronoi diagram, and multiplying by height, returns cell volume
-
-        Returns
-        -------
-        self.cell_vol            stores volume of each cell polygon of the Voronoi diagram in cubic meters
-
-        Notes
-        -------
-        Uses area(p) function.
-
-        """
-
-        loggers.log_info('Calculating area of each cell... ')
-        self.cell_vol = []
-        for poly in self.cell_verts:
-            self.cell_vol.append(p.cell_height*tb.area(poly))
-
     def cell_index(self,p):
 
         """
@@ -582,12 +554,23 @@ class World(object):
         cell_tree = sps.KDTree(self.cell_centres)
         self.cell_nn=cell_tree.query_ball_point(self.cell_centres,p.search_d*p.d_cell)
 
-        len_ind = []  # initialize a list that will hold number of nns to a cell
+        self.num_nn = []  # initialize a list that will hold number of nns to a cell
 
         for indices in self.cell_nn:
-            len_ind.append(len(indices) -1)  # minus one because query cell is included in each nn list
+            self.num_nn.append(len(indices) -1)  # minus one because query cell is included in each nn list
 
-        self.average_nn = (sum(len_ind)/len(len_ind))
+        self.average_nn = (sum(self.num_nn)/len(self.num_nn))
+
+        #----------------------
+
+        # len_ind = []  # initialize a list that will hold number of nns to a cell
+        #
+        # for indices in self.cell_nn:
+        #     len_ind.append(len(indices) -1)  # minus one because query cell is included in each nn list
+        #
+        # self.average_nn = (sum(len_ind)/len(len_ind))
+
+        #-----------------
 
         GJs = set()
         for cell1_ind, nn_inds in enumerate(self.cell_nn):
@@ -625,19 +608,6 @@ class World(object):
 
         self.gj_vects = np.array([gv_x,gv_y,gv_tx,gv_ty]).T
 
-        # self.cell2GJ_map = []
-        #
-        # for i, neighs in enumerate(self.cell_nn):
-        #     holdgj = []
-        #     for j, ns in enumerate(neighs):
-        #         if i < ns:
-        #             gj_ind = self.gap_jun_i.index([i,ns])
-        #             holdgj.append(gj_ind)
-        #         if i > ns:
-        #             gj_ind = self.gap_jun_i.index([ns,i])
-        #             holdgj.append(gj_ind)
-        #     self.cell2GJ_map.append(holdgj)
-
         self.gap_jun_i = np.asarray(self.gap_jun_i)
 
         # calculate lengths of gap junctions
@@ -647,158 +617,65 @@ class World(object):
         self.gj_len = np.sqrt(nn_diff_gj[:,0] + nn_diff_gj[:,1])
 
         if self.worldtype == 'full':
-            # repeat process for ecms
-            loggers.log_info('Creating ecm junctions... ')
-            ecm_tree = sps.KDTree(self.ecm_mids)
-            nn_ecm = list(ecm_tree.query(self.ecm_mids,k=5))[1]
 
-            nn_ecm_refined = []
-            for i,ind_matches in enumerate(nn_ecm):
-                aa = np.delete(ind_matches,0)   # get rid of the self indice
-                nn_ecm_refined.append(aa)
-            nn_ecm_refined = np.asarray(nn_ecm_refined)
-
-            ecm_nn_set = set()
-
-            for ecm_ind1, ecm_inds in enumerate(nn_ecm_refined):
-
-                for ecm_ind2 in ecm_inds:
-                    if ecm_ind1 == ecm_ind2:
-                        pass
-                    elif ecm_ind1 < ecm_ind2:
-                        indpair = ecm_ind1,ecm_ind2
-                        ecm_nn_set.add(indpair)
-                    elif ecm_ind1 > ecm_ind2:
-                        indpair = ecm_ind2,ecm_ind1
-                        ecm_nn_set.add(indpair)
-
-            self.ecm_nn_i = []
-            for val in ecm_nn_set:
-                vallist=list(val)
-                self.ecm_nn_i.append(vallist)
-            self.ecm_nn_i = np.asarray(self.ecm_nn_i)
-
-            # calculate lengths of ecm-ecm junctions
-            seg1=self.ecm_mids[self.ecm_nn_i[:,0]]
-            seg2=self.ecm_mids[self.ecm_nn_i[:,1]]
-            nn_diff_ecm = (seg2 - seg1)**2
-            self.len_ecm_junc = np.sqrt(nn_diff_ecm[:,0] + nn_diff_ecm[:,1])
-
-            ec_x = []
-            ec_y = []
-            ec_tx = []
-            ec_ty = []
-
-            # next calculate tangent unit vectors between ecm and its neighbour:
-            for ind_pair in self.ecm_nn_i:
-                ind1 = ind_pair[0]
-                ind2 = ind_pair[1]
-                pt1 = self.ecm_mids[ind1]
-                pt2 = self.ecm_mids[ind2]
-                mid = (pt1 + pt2)/2
-                tang_a = (pt2 - pt1)
-                tang = tang_a/np.linalg.norm(tang_a)
-                ec_x.append(mid[0])
-                ec_y.append(mid[1])
-                ec_tx.append(tang[0])
-                ec_ty.append(tang[1])
-
-            self.ecm_vects = np.array([ec_x,ec_y,ec_tx,ec_ty]).T
-
-    def make_env_points(self,p):
-
-        """
-        Defines points in contact with the environment, which are extrapolated from
-        extracellular space boundary points.
-
-        """
-
-        loggers.log_info('Creating environmental points... ')
-
-        delta = p.cell_space
-
-        ecm_bound_points = self.ecm_mids[self.bflags_ecm]
-        ecm_bound_norm = self.ecm_seg_vects[self.bflags_ecm,4:6]
-        self.env_points = ecm_bound_points + delta*ecm_bound_norm
-
-    def clean_ecm(self,p,clean=None):
-
-        """
-        Calculates ecm points on the environmental boundary using the alpha-shape concave hull method,
-        deletes these points, and updates data structures referring to the ecm vertices.
-
-        Note: if clean = 'no' this function returns data structures without deleting ecm verticies.
-
-        """
-
-        # get the concave hull for ecm vertices on the outer boundary of the cluster
-
-        if clean is None or clean == 'yes':
-
-            con_hull = tb.alpha_shape(self.ecm_verts_unique, p.scale_alpha/p.d_cell)
-            con_hull = np.asarray(con_hull)
-
-            boundverts = np.unique(con_hull)    # get the value of unique indices from segments
-
-             # Re-do indicies for ecm polygons in terms of revised unique vertices list
-
-            ecm_polyinds2 =[]
-
-            b=set(boundverts)
-
-            for i, polyinds in enumerate(self.ecm_polyinds):
-                a = set(polyinds)
-                ans = list(a & b)
-                if len(ans)>0:
-                    for val in ans:
-                        eind = polyinds.index(val)
-                        self.ecm_polyinds[i][eind] = False   # flag value to be removed
-
-            for i, poly in enumerate(self.ecm_polyinds):
-                holdval = []
-                for j, val in enumerate(poly):
-                    if val != False:
-                        holdval.append(val)
-                ecm_polyinds2.append(holdval)
-
-            self.ecm_polyinds =[]
-            self.ecm_polyinds = copy.deepcopy(ecm_polyinds2)
-
-        elif clean == 'no':
             pass
-
-        # Now re-do the ecm_verts
-
-        self.ecm_verts = []
-
-        for poly in self.ecm_polyinds:
-            verts = self.ecm_verts_unique[poly]  # [x,y] coordinates of polygon
-            self.ecm_verts.append(verts)
-
-        if clean is None or clean == 'yes':
-            self.ecm_verts_unique = np.delete(self.ecm_verts_unique,boundverts,0)   # delete indices from ecm verts list
-
-        self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function
-
-        self.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
-
-        for poly in self.ecm_verts:
-            verthold = []
-            for vert in poly:
-                vert =vert.tolist()
-                ind = self.ecm_verts_unique.index(vert)
-                verthold.append(ind)
-
-            self.ecm_polyinds.append(verthold)
-
-        self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert back to numpy array
-        # now find the unique vertices used in the cell structure
-
-        polyinds_flat,_,_ = tb.flatten(self.ecm_polyinds)
-        polyinds_flat = np.asarray(polyinds_flat)
-        polyinds_unique = np.unique(polyinds_flat)
-
-        self.ecm_verts_unique = self.ecm_verts_unique[polyinds_unique]
+            # repeat process for ecms
+            # loggers.log_info('Creating ecm junctions... ')
+            # ecm_tree = sps.KDTree(self.ecm_mids)
+            # nn_ecm = list(ecm_tree.query(self.ecm_mids,k=5))[1]
+            #
+            # nn_ecm_refined = []
+            # for i,ind_matches in enumerate(nn_ecm):
+            #     aa = np.delete(ind_matches,0)   # get rid of the self indice
+            #     nn_ecm_refined.append(aa)
+            # nn_ecm_refined = np.asarray(nn_ecm_refined)
+            #
+            # ecm_nn_set = set()
+            #
+            # for ecm_ind1, ecm_inds in enumerate(nn_ecm_refined):
+            #
+            #     for ecm_ind2 in ecm_inds:
+            #         if ecm_ind1 == ecm_ind2:
+            #             pass
+            #         elif ecm_ind1 < ecm_ind2:
+            #             indpair = ecm_ind1,ecm_ind2
+            #             ecm_nn_set.add(indpair)
+            #         elif ecm_ind1 > ecm_ind2:
+            #             indpair = ecm_ind2,ecm_ind1
+            #             ecm_nn_set.add(indpair)
+            #
+            # self.ecm_nn_i = []
+            # for val in ecm_nn_set:
+            #     vallist=list(val)
+            #     self.ecm_nn_i.append(vallist)
+            # self.ecm_nn_i = np.asarray(self.ecm_nn_i)
+            #
+            # # calculate lengths of ecm-ecm junctions
+            # seg1=self.ecm_mids[self.ecm_nn_i[:,0]]
+            # seg2=self.ecm_mids[self.ecm_nn_i[:,1]]
+            # nn_diff_ecm = (seg2 - seg1)**2
+            # self.len_ecm_junc = np.sqrt(nn_diff_ecm[:,0] + nn_diff_ecm[:,1])
+            #
+            # ec_x = []
+            # ec_y = []
+            # ec_tx = []
+            # ec_ty = []
+            #
+            # # next calculate tangent unit vectors between ecm and its neighbour:
+            # for ind_pair in self.ecm_nn_i:
+            #     ind1 = ind_pair[0]
+            #     ind2 = ind_pair[1]
+            #     pt1 = self.ecm_mids[ind1]
+            #     pt2 = self.ecm_mids[ind2]
+            #     mid = (pt1 + pt2)/2
+            #     tang_a = (pt2 - pt1)
+            #     tang = tang_a/np.linalg.norm(tang_a)
+            #     ec_x.append(mid[0])
+            #     ec_y.append(mid[1])
+            #     ec_tx.append(tang[0])
+            #     ec_ty.append(tang[1])
+            #
+            # self.ecm_vects = np.array([ec_x,ec_y,ec_tx,ec_ty]).T
 
     def boundTag(self,points,p,alpha=1.0):
 
@@ -932,214 +809,256 @@ class World(object):
 
         # self.cell_sa = np.asarray(self.cell_sa)
 
-    def cellGeo(self,p,close_ecm=None):
-        """
-        Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
+    def makeECM(self,p):
 
-        Parameters
-        ----------
-        close_ecm           Default = None. If close_ecm = 'yes' then ecm segments around boundary cells remain
-                            unbroken.
+        """
+        makeECM returns an regular scatter
+        of points defined on the world space
+        with dimensions wsx, wsy in [m].
+
+
+        Creates
+        -------
+        self.xypts      numpy array listing [x,y] of world seed points
+
+        self.xmin, self.xmax      dimensions of world grid
+        self.ymin, self.ymax
+
+        self.centre     [x,y] coordinate of world centre
+
+        Notes
+        -------
+        Uses Numpy arrays
+
+        """
+
+        # base parameter definitions
+        self.delta = p.d_cell*(2/3)  # spacing between grid points -- approximately half of one cell
+
+        self.grid_n = int(p.wsx/self.delta) # number of grid points
+
+        # linear vectors for spatial dimensions
+        self.x_v = np.linspace(self.xmin, self.xmax, self.grid_n)  # create lattice vector x
+        self.y_v = np.linspace(self.ymin, self.ymax, self.grid_n)  # create lattice vector y
+
+        # next define a 2d array of lattice points using the x- and y- vectors
+        self.X, self.Y = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
+
+        # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
+        self.xypts = []
+        self.map_ij2k = []
+
+        for i, row in enumerate(self.X):
+            for j, val in enumerate(row):
+                xpt = self.X[i,j]
+                ypt = self.Y[i,j]
+                self.xypts.append([xpt,ypt])
+                self.map_ij2k.append([i,j])
+
+        # linear k index:
+        self.index_k = [x for x in range(0,len(self.xypts))]
+
+        # map for converting between k linear index and 2d i,j matrix
+        self.map_ij2k = np.asarray(self.map_ij2k)
+        self.xypts = np.asarray(self.xypts)
+
+        # properties of ecm spaces local to each cell:
+        self.ecm_sa = self.mem_length*p.cell_height
+        self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
+
+        # re-define geometric limits and centre for the cluster of points
+        # self.xmin = np.min(self.X)
+        # self.xmax = np.max(self.X)
+        # self.ymin = np.min(self.Y)
+        # self.ymax = np.max(self.Y)
+        #
+        # self.centre = self.xypts.mean(axis=0)
+
+    def environment(self,p):
+
+        """
+        Defines conditions for points in contact with the global environment at the outer boundary
+        of the square world.
+
+        Note: this is how to access all elements in a main-grid format from the k-vector:
+        Z[cells.map_ij2k[:,0],cells.map_ij2k[:,1]]
+
+        or access elements in a main-grid format to a subset of the k-vector:
+
+        accessing bottom boundary:
+        Z[cells.map_ij2k[bBot_k][:,0],cells.map_ij2k[bBot_k][:,1]]
+
+        accessing all cells:
+        Z[cells.map_ij2k[map_cell2ecm][:,0],cells.map_ij2k[map_cell2ecm][:,1]] = 10.0
+
+        """
+
+        loggers.log_info('Setting global environmental conditions... ')
+
+        # first obtain a structure to map to total xypts vector index:
+        points_tree = sps.KDTree(self.xypts)
+
+        # define a mapping between a cell and its ecm space in the full list of xy points for the world:
+        self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat))[1]
+
+        self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
+
+        # define ecm flux vectors allowing for anisotropic diffusion in cell cluster and isotropic outside of cluster:
+        self.env_flux_mult_x = np.ones(len(self.xypts))
+        self.env_flux_mult_y = np.ones(len(self.xypts))
+
+        # set env flux vectors to be equal to membrane tangents inside the cluster (but not at the boundary)
+        self.env_flux_mult_x[self.map_mem2ecm] = self.mem_vects_flat[:,4]
+        self.env_flux_mult_x[self.ecm_bound_k] = 1
+
+        self.env_flux_mult_y[self.map_mem2ecm] = self.mem_vects_flat[:,5]
+        self.env_flux_mult_y[self.ecm_bound_k] = 1
+
+        # get a list of k indices to the four exterior (global) boundaries of the rectangular world:
+        bBot_x = self.X[0,:]
+        bTop_x = self.X[-1,:]
+        bL_x = self.X[:,0]
+        bR_x = self.X[:,-1]
+
+        bBot_y = self.Y[0,:]
+        bTop_y = self.Y[-1,:]
+        bL_y = self.Y[:,0]
+        bR_y = self.Y[:,-1]
+
+        bBot_pts = np.column_stack((bBot_x, bBot_y))
+        bTop_pts = np.column_stack((bTop_x, bTop_y))
+        bL_pts = np.column_stack((bL_x, bL_y))
+        bR_pts = np.column_stack((bR_x, bR_y))
+
+        self.bBot_k = list(points_tree.query(bBot_pts))[1]
+        self.bTop_k = list(points_tree.query(bTop_pts))[1]
+        self.bL_k = list(points_tree.query(bL_pts))[1]
+        self.bR_k = list(points_tree.query(bR_pts))[1]
+
+        # for purposes of Laplacian solver, need to remove boundary elements and define a "core"
+        # of interior points:
+        core_x = self.X[1:-1,1:-1]
+        core_y = self.Y[1:-1,1:-1]
+        core_pts = np.column_stack((core_x.ravel(), core_y.ravel()))
+
+        self.core_k = list(points_tree.query(core_pts))[1]
+
+        self.core_len = len(self.core_k)
+
+        self.core_n = self.grid_n - 2
+
+        # create a mapping from the ip, jp indexing to the kp index of the unraveled core matrix:
+        M = []
+        for i in range(self.core_n):
+            row = []
+            for j in range(self.core_n):
+                row.append([i,j])
+
+            M.append(row)
+
+        self.map_ij2k_core = []
+        for row in M:
+            for inds in row:
+                self.map_ij2k_core.append(inds)
+
+    def makeLaplacian(self):
+        """
+        Generate the discrete finite central difference 2D Laplacian operator based on:
+
+        d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
+
+        To solve the Poisson equation:
+
+        A*U = fxy
+
+        by:
+
+        U = Ainv*fxy
 
         Creates
         --------
-        self.cell_vol
-        self.mem_edges
-        self.mem_length
-        self.mem_mids
-        self.mem_vects_flat
-        self.ecm_vol
-        self.ecm_edges_i
-        self.ecm_mids
-        self.ecm_vects
-        self.cell2ecm_map
+        self.Ainv
+
+        Notes
+        -------
+        ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
+
+
         """
+        # initialize the laplacian operator matrix:
+        A = np.zeros((self.core_len,self.core_len))
 
-        self.cell_vol = []   # storage for cell volumes
-        self.cell_sa = []    # whole cell surface areas
-        self.cell_area = []
+        # # create a temporary Python list version of the full index map
+        # map_ij2k = self.map_ij2k.tolist()
 
-        self.mem_edges = []  # storage for membrane edge points
-        self.mem_length = []   # storage for membrane surface area values
-        self.mem_mids = []   # storage for membrane midpoints
-
-        # storage for various vector properties of membrane
-        cv_x=[]
-        cv_y=[]
-        cv_nx=[]
-        cv_ny=[]
-        cv_tx=[]
-        cv_ty=[]
-
-        loggers.log_info('Creating membrane transit vectors... ')
-
-        perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
-
-        for polyc in self.cell_verts:
-            # First calculate individual cell volumes from cell vertices:
-            poly = [x for x in reversed(polyc)]
-            self.cell_vol.append(p.cell_height*tb.area(poly))
-            # self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
-            # self.cell_area.append(tb.area(poly))
-            # Next calculate individual membrane domains, midpoints, and vectors:
-            edge = []
-            mps = []
-            surfa = []
-
-            for i in range(0,len(polyc)):
-                pt1 = polyc[i-1]
-                pt2 = polyc[i]
-                pt1 = np.asarray(pt1)
-                pt2 = np.asarray(pt2)
-                edge.append([pt1,pt2])
-                mid = (pt1 + pt2)/2       # midpoint calculation
-                mps.append(mid)
-
-                lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
-                sa = lgth*p.cell_height    # surface area of membrane
-                surfa.append(lgth)
-
-                tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)
-                # normal = np.array([-tang[1],tang[0]])
-                normal = np.array([tang[1],-tang[0]])
-                cv_x.append(mid[0])
-                cv_y.append(mid[1])
-                cv_nx.append(normal[0])
-                cv_ny.append(normal[1])
-                cv_tx.append(tang[0])
-                cv_ty.append(tang[1])
-
-            self.mem_edges.append(edge)
-            self.mem_mids.append(mps)
-            self.mem_length.append(surfa)
-
-        self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
-        self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
-        self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
-
-        # self.cell_sa = np.asarray(self.cell_sa)
-
-        # Extracellular matrix specific data
-
-        loggers.log_info('Creating extracellular space vectors... ')
-
-        ecm_edge_ind = set()     # this will hold the unique index pairs to the self.ecm_verts_unique [x,y] points
-
-        ecmverts_list = self.ecm_verts_unique.tolist()
-
-        for poly in self.ecm_verts:  # for every polygon defined in the self.ecm_verts data structure
-
-            for i in range(0,len(poly)):   # for every vertex defining the polygon...
-
-                edge_pt1 = poly[i-1].tolist()   # first point of line segment
-                edge_pt2 = poly[i].tolist()     # second point of line segment
-                edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
-                edge_ind2 = ecmverts_list.index(edge_pt2)
-                ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
-                ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
-
-                if close_ecm == 'yes':  # if we want a closed ecm then artificially mark both cells as off bounds
-                    ind1_flag = 0
-                    ind2_flag = 0
-
-                # in the case that both ecm points are not on the non-boundary (but one may be):
-                if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1) or (ind1_flag ==1 and ind2_flag == 0):
-
-                    if edge_ind1 == edge_ind2: # if the indices are equal for some reason, it's not an edge so pass
-                        pass
-
-                    if edge_ind1 < edge_ind2:
-                        edgepair = (edge_ind1,edge_ind2)
-                        ecm_edge_ind.add(edgepair)      # append the indices to the list
-
-                    if edge_ind1 > edge_ind2:
-                        edgepair = (edge_ind2, edge_ind1)
-                        ecm_edge_ind.add(edgepair)        # append the indices to the list
-
-        self.ecm_edges_i = []   # reconvert everything into a usable python list defining edges
-        for edge_tuple in ecm_edge_ind:
-            self.ecm_edges_i.append(list(edge_tuple))
-
-        self.cell2ecm_map = []
-
-        len_unique_edges = len(self.ecm_edges_i)
-
-        self.ecm_mids = [0]*len_unique_edges
-        self.ecm_vol = [0]*len_unique_edges
-
-        ev_x=[0]*len_unique_edges
-        ev_y=[0]*len_unique_edges
-        ev_tx=[0]*len_unique_edges
-        ev_ty=[0]*len_unique_edges
-        ev_nx=[0]*len_unique_edges
-        ev_ny=[0]*len_unique_edges
+        # lists to store the indices of
+        self.bBot_kp = []
+        self.bTop_kp = []
+        self.bL_kp = []
+        self.bR_kp = []
 
 
-        for i, poly in enumerate(self.ecm_verts):
-            holdinds = []
-            for j in range(0, len(poly)):
-                edge_pt1 = poly[j-1].tolist()    # first point of line segment
-                edge_pt2 = poly[j].tolist()      # second point of line segment
-                edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
-                edge_ind2 = ecmverts_list.index(edge_pt2)
-                ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
-                ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
+        for kp, (ip, jp) in enumerate(self.map_ij2k_core):
 
-                if close_ecm == 'yes':  # if we want a closed ecm then artificially mark both cells as off bounds
-                    ind1_flag = 0
-                    ind2_flag = 0
+            if ip + 1 < self.core_n:
 
-                # if both of the points are not on the boundary it's a connector
-                if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag == 1 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1):
+                k_ip1_j = self.map_ij2k_core.index([ip+1,jp])
+                A[kp, k_ip1_j] = 1
 
-                    if edge_ind1 == edge_ind2: # if the indices are equal, it's not an edge so pass
-                        pass
+            else:
+                # store the kp index of the bottom boundary for off the cuff modification of sol vector:
+                self.bBot_kp.append(kp)
 
-                    if edge_ind1 < edge_ind2:
-                        mapval = self.ecm_edges_i.index([edge_ind1,edge_ind2])   # get the index to the unique ecm edge
-                        holdinds.append(mapval)
-                        pnt1 = self.ecm_verts_unique[edge_ind1]
-                        pnt2 = self.ecm_verts_unique[edge_ind2]
-                        midpoint = (pnt1 + pnt2)/2   # find the midpoint...
-                        lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
-                        vol = lgth*p.cell_height*p.cell_space
-                        self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
-                        self.ecm_vol[mapval] = vol
-                        tang_a = pnt2 - pnt1
-                        tang = tang_a/np.linalg.norm(tang_a)
-                        ev_x[mapval] = midpoint[0]
-                        ev_y[mapval] = midpoint[1]
-                        ev_tx[mapval] = tang[0]
-                        ev_ty[mapval] = tang[1]
-                        ev_nx[mapval] = tang[1]
-                        ev_ny[mapval] = -tang[0]
+                # deal with the bounary value by moving to the RHS of the equation:
+                # bval = self.bBot[jp+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
 
-                    if edge_ind2 < edge_ind1:
-                        mapval = self.ecm_edges_i.index([edge_ind2,edge_ind1])
-                        holdinds.append(mapval)
-                        pnt1 = self.ecm_verts_unique[edge_ind2]
-                        pnt2 = self.ecm_verts_unique[edge_ind1]
-                        midpoint = (pnt1 + pnt2)/2   # find the midpoint...
-                        lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
-                        vol = lgth*p.cell_height*p.cell_space
-                        self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
-                        self.ecm_vol[mapval] = vol
-                        tang_a = pnt2 - pnt1
-                        tang = tang_a/np.linalg.norm(tang_a)
-                        ev_x[mapval] = midpoint[0]
-                        ev_y[mapval] = midpoint[1]
-                        ev_tx[mapval] = tang[0]
-                        ev_ty[mapval] = tang[1]
-                        ev_nx[mapval] = -tang[1]
-                        ev_ny[mapval] = tang[0]
+            if ip - 1 >= 0:
 
-            self.cell2ecm_map.append(holdinds)
+                k_in1_j = self.map_ij2k_core.index([ip-1,jp])
+                A[kp, k_in1_j] = 1
 
-        self.ecm_seg_vects = np.array([ev_x,ev_y,ev_tx,ev_ty,ev_nx,ev_ny]).T
-        self.ecm_mids = np.array(self.ecm_mids)
-        self.ecm_edges_i = np.asarray(self.ecm_edges_i)
-        self.ecm_vol = np.asarray(self.ecm_vol)
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bTop_kp.append(kp)
+                # bval = self.bTop[jp+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if jp + 1 < self.core_n:
+
+                k_i_jp1 = self.map_ij2k_core.index([ip,jp+1])
+                A[kp, k_i_jp1] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bR_kp.append(kp)
+
+                # bval = self.bR[ip + 1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if jp -1 >= 0:
+                k_i_jn1 = self.map_ij2k_core.index([ip,jp-1])
+                A[kp, k_i_jn1] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bL_kp.append(kp)
+
+                # bval = self.bL[ip+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            A[kp,kp] = -4
+
+        # complete the laplacian operator by diving through by grid spacing squared:
+
+        A = A/self.delta**2
+
+        loggers.log_info('Creating Poisson solver... ')
+        loggers.log_info('(...may take a few minutes but is worth its time in gold!...) ')
+
+        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+        self.Ainv = np.linalg.inv(A)
 
     def cleanUp(self,p):
 
@@ -1168,7 +1087,7 @@ class World(object):
         self.mem_sa = self.mem_length*p.cell_height
 
 
-        loggers.log_info('Creating computational matrices... ')
+        loggers.log_info('Creating computational matrices for discrete transfers... ')
 
         # calculating centre, min, max of cluster after all modifications
         self.clust_centre = np.mean(self.cell_centres)
@@ -1179,11 +1098,14 @@ class World(object):
 
         # calculating matrix for gap junction flux calculation between cells
         self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
+
         for igj, pair in enumerate(self.gap_jun_i):
             ci = pair[0]
             cj = pair[1]
-            self.gjMatrix[igj,ci] = -1
-            self.gjMatrix[igj,cj] = 1
+            nn_i = self.num_nn[0]
+            nn_j = self.num_nn[1]
+            self.gjMatrix[igj,ci] = -1/nn_i
+            self.gjMatrix[igj,cj] = 1/nn_j
 
         # define map allowing a dispatch from cell index to each respective membrane
         self.indmap_mem = np.asarray(self.indmap_mem)
@@ -1199,8 +1121,6 @@ class World(object):
         # structures for plotting interpolated data on cell centres:
         xgrid = np.linspace(self.xmin,self.xmax,self.msize)
         ygrid = np.linspace(self.ymin,self.ymax,self.msize)
-        # xgrid = np.linspace(self.clust_x_min - p.clip,self.clust_x_max + p.clip,self.msize)
-        # ygrid = np.linspace(self.clust_y_min - p.clip,self.clust_y_max + p.clip,self.msize)
         self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
         # structures for interpolating data to calculate clean gradients and laplacians:
@@ -1243,35 +1163,6 @@ class World(object):
 
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
-
-            self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
-
-            self.env_i = [x for x in range(0,len(self.env_points))]
-
-            # calculate the mapping between ecm indices and membrane indices:
-            cell_tree = sps.KDTree(self.ecm_mids)
-            matches = cell_tree.query(self.mem_mids_flat)
-            self.mem_to_ecm = list(matches)[1]
-
-            ecm_n = len(self.ecm_i)
-            cell_n = len(self.cell_i)
-            mem_n = len(self.mem_i)
-
-            self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
-            self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
-
-            for i, cell_index in enumerate(self.mem_to_cells):
-                self.cell_UpdateMatrix[i,cell_index] =1
-
-            for i, ecm_index in enumerate(self.mem_to_ecm):
-                self.ecm_UpdateMatrix[i, ecm_index] = 1
-
-            self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
-            for iecm, pair in enumerate(self.ecm_nn_i):
-                ci = pair[0]
-                cj = pair[1]
-                self.ecmMatrix[iecm,ci] = -1
-                self.ecmMatrix[iecm,cj] = 1
 
             # create a flattened version of cell_verts that will serve as membrane verts:
             self.mem_verts,_,_ = tb.flatten(self.cell_verts)
@@ -1318,7 +1209,7 @@ class World(object):
             # now to go from membrane vert data to mid data by calculating the pseudo-inverse:
             self.matrixMap2Mids = np.linalg.pinv(self.matrixMap2Verts)
 
-             # calculating matrix for membrane flux calculation between connected vertices:
+            # calculating matrix for membrane flux calculation between connected vertices:
             self.memMatrix = np.zeros((len(self.mem_seg_i),len(self.mem_i)))
             for igj, pair in enumerate(self.mem_seg_i):
                 ci = pair[0]
@@ -1326,48 +1217,86 @@ class World(object):
                 self.memMatrix[igj,ci] = -1
                 self.memMatrix[igj,cj] = 1
 
-            # Create a map from cell to ecm space
-            self.cell_to_ecm = []
-
-            for i in self.cell_i:
-
-                inds_mtc = (self.mem_to_cells ==i).nonzero()
-                ecm_inds = self.mem_to_ecm[inds_mtc]
-                self.cell_to_ecm.append(ecm_inds)
-
-            self.cell_to_ecm = np.asarray(self.cell_to_ecm)
-            self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
-            self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
-
             # structures for plotting interpolated data and streamlines:
             self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
-            self.xpts_Iecm = self.ecm_vects[:,0]
-            self.ypts_Iecm = self.ecm_vects[:,1]
-            self.nx_Iecm = self.ecm_vects[:,2]
-            self.ny_Iecm = self.ecm_vects[:,3]
+            self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
 
-            self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
-            self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
+            for i, cell_index in enumerate(self.mem_to_cells):
+                self.cell_UpdateMatrix[i,cell_index] =1
 
-             # structures for interpolating data to calculate clean gradients and laplacians:
+            # self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
+            #
+            # self.env_i = [x for x in range(0,len(self.env_points))]
+            #
+            # # calculate the mapping between ecm indices and membrane indices:
+            # cell_tree = sps.KDTree(self.ecm_mids)
+            # matches = cell_tree.query(self.mem_mids_flat)
+            # self.mem_to_ecm = list(matches)[1]
+            #
+            # ecm_n = len(self.ecm_i)
+            # cell_n = len(self.cell_i)
+            # mem_n = len(self.mem_i)
+            #
+            # self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
+            # self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
+            #
+            # for i, cell_index in enumerate(self.mem_to_cells):
+            #     self.cell_UpdateMatrix[i,cell_index] =1
+            #
+            # for i, ecm_index in enumerate(self.mem_to_ecm):
+            #     self.ecm_UpdateMatrix[i, ecm_index] = 1
+            #
+            # self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
+            # for iecm, pair in enumerate(self.ecm_nn_i):
+            #     ci = pair[0]
+            #     cj = pair[1]
+            #     self.ecmMatrix[iecm,ci] = -1
+            #     self.ecmMatrix[iecm,cj] = 1
+            #
 
-            self.X_ecm, self.Y_ecm, self.dx_ecm, self.dy_ecm = tb.makegrid(self.ecm_mids[:,0],self.ecm_mids[:,1],
-                p.grid_size, self)
+            #
+            # # Create a map from cell to ecm space
+            # self.cell_to_ecm = []
+            #
+            # for i in self.cell_i:
+            #
+            #     inds_mtc = (self.mem_to_cells ==i).nonzero()
+            #     ecm_inds = self.mem_to_ecm[inds_mtc]
+            #     self.cell_to_ecm.append(ecm_inds)
+            #
+            # self.cell_to_ecm = np.asarray(self.cell_to_ecm)
+            # self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
+            # self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
+            #
 
-            self.X_ej, self.Y_ej, self.dx_ej, self.dy_ej = tb.makegrid(self.ecm_vects[:,0],self.ecm_vects[:,1],
-                p.grid_size, self)
-
-            loggers.log_info('Cleaning up unnecessary data structures... ')
-
-            # self.indmap_mem = None
-            # self.rindmap_mem = None
-            # # self.ecm_verts = None
-            # self.cell_area = None
-            # self.cell2ecm_map = None
-            # self.ecm_polyinds = None
-            # self.ecm_verts_unique = None
-            # self.cell2GJ_map = None
+            #
+            # self.xpts_Iecm = self.ecm_vects[:,0]
+            # self.ypts_Iecm = self.ecm_vects[:,1]
+            # self.nx_Iecm = self.ecm_vects[:,2]
+            # self.ny_Iecm = self.ecm_vects[:,3]
+            #
+            # self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
+            # self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
+            #
+            #  # structures for interpolating data to calculate clean gradients and laplacians:
+            #
+            # self.X_ecm, self.Y_ecm, self.dx_ecm, self.dy_ecm = tb.makegrid(self.ecm_mids[:,0],self.ecm_mids[:,1],
+            #     p.grid_size, self)
+            #
+            # self.X_ej, self.Y_ej, self.dx_ej, self.dy_ej = tb.makegrid(self.ecm_vects[:,0],self.ecm_vects[:,1],
+            #     p.grid_size, self)
+            #
+            # loggers.log_info('Cleaning up unnecessary data structures... ')
+            #
+            # # self.indmap_mem = None
+            # # self.rindmap_mem = None
+            # # # self.ecm_verts = None
+            # # self.cell_area = None
+            # # self.cell2ecm_map = None
+            # # self.ecm_polyinds = None
+            # # self.ecm_verts_unique = None
+            # # self.cell2GJ_map = None
 
 
         self.cell_number = self.cell_centres.shape[0]
@@ -1378,7 +1307,7 @@ class World(object):
 
         self.mem_mids = np.asarray(self.mem_mids)
 
-        loggers.log_info('Cell cluster creation complete!')
+        # loggers.log_info('Cell cluster creation complete!')
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1451,7 +1380,6 @@ class World(object):
 
     def redoCells(self,p):
 
-
         loggers.log_info('Re-creating computational matrices... ')
 
         # calculating matrix for gap junction flux calculation between cells
@@ -1502,86 +1430,433 @@ class World(object):
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
 
+            loggers.log_info('Setting global environmental conditions... ')
+
+            # first obtain a structure to map to total xypts vector index:
+            points_tree = sps.KDTree(self.xypts)
+
+            # define a mapping between a cell and its ecm space in the full list of xy points for the world:
+            self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
+            self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat))[1]
+
+            self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
+
+            for i, cell_index in enumerate(self.mem_to_cells):
+                self.cell_UpdateMatrix[i,cell_index] =1
+
             # self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
             #
             # self.env_i = [x for x in range(0,len(self.env_points))]
 
             # calculate the mapping between ecm indices and membrane indices:
-            cell_tree = sps.KDTree(self.ecm_mids)
-            matches = cell_tree.query(self.mem_mids_flat)
-            self.mem_to_ecm = list(matches)[1]
+            # cell_tree = sps.KDTree(self.ecm_mids)
+            # matches = cell_tree.query(self.mem_mids_flat)
+            # self.mem_to_ecm = list(matches)[1]
+            #
+            # ecm_n = len(self.ecm_i)
+            # cell_n = len(self.cell_i)
+            # mem_n = len(self.mem_i)
+            #
 
-            ecm_n = len(self.ecm_i)
-            cell_n = len(self.cell_i)
-            mem_n = len(self.mem_i)
+            # self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
 
-            self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
-            self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
-
-            for i, cell_index in enumerate(self.mem_to_cells):
-                self.cell_UpdateMatrix[i,cell_index] =1
-
-            for i, ecm_index in enumerate(self.mem_to_ecm):
-                self.ecm_UpdateMatrix[i, ecm_index] = 1
-
-            self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
-            for iecm, pair in enumerate(self.ecm_nn_i):
-                ci = pair[0]
-                cj = pair[1]
-                self.ecmMatrix[iecm,ci] = -1
-                self.ecmMatrix[iecm,cj] = 1
-
-            # create a flattened version of cell_verts that will serve as membrane verts:
-            self.mem_verts,_,_ = tb.flatten(self.cell_verts)
-            self.mem_verts = np.asarray(self.mem_verts)
-
-            cellVertTree = sps.KDTree(self.mem_verts)
-
-            # create a map from flattened mem midpoints to corresponding edge points of mem segment:
-            self.index_to_mem_verts = []
-            for cell_nest in self.mem_edges:
-                for mem_points in cell_nest:
-                    pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
-                    pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
-                    self.index_to_mem_verts.append([pt_ind1,pt_ind2])
-            self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
-
-            # create a matrix that will map and interpolate data on mem mids to the mem verts
-            # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
-
-            self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
-            for i, indices in enumerate(self.index_to_mem_verts):
-                self.matrixMap2Verts[i,indices[0]]=1/2
-                self.matrixMap2Verts[i,indices[1]]=1/2
-
-            # Create a map from cell to ecm space
-            self.cell_to_ecm = []
-
-            for i in self.cell_i:
-
-                inds_mtc = (self.mem_to_cells ==i).nonzero()
-                ecm_inds = self.mem_to_ecm[inds_mtc]
-                self.cell_to_ecm.append(ecm_inds)
-
-            self.cell_to_ecm = np.asarray(self.cell_to_ecm)
-            self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
-            self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
-
-            # structures for plotting interpolated data and streamlines:
-            self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
-
-            self.xpts_Iecm = self.ecm_vects[:,0]
-            self.ypts_Iecm = self.ecm_vects[:,1]
-            self.nx_Iecm = self.ecm_vects[:,2]
-            self.ny_Iecm = self.ecm_vects[:,3]
-
-            self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
-            self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
+            #
+            # for i, ecm_index in enumerate(self.mem_to_ecm):
+            #     self.ecm_UpdateMatrix[i, ecm_index] = 1
+            #
+            # self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
+            # for iecm, pair in enumerate(self.ecm_nn_i):
+            #     ci = pair[0]
+            #     cj = pair[1]
+            #     self.ecmMatrix[iecm,ci] = -1
+            #     self.ecmMatrix[iecm,cj] = 1
+            #
+            # # create a flattened version of cell_verts that will serve as membrane verts:
+            # self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+            # self.mem_verts = np.asarray(self.mem_verts)
+            #
+            # cellVertTree = sps.KDTree(self.mem_verts)
+            #
+            # # create a map from flattened mem midpoints to corresponding edge points of mem segment:
+            # self.index_to_mem_verts = []
+            # for cell_nest in self.mem_edges:
+            #     for mem_points in cell_nest:
+            #         pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
+            #         pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
+            #         self.index_to_mem_verts.append([pt_ind1,pt_ind2])
+            # self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
+            #
+            # # create a matrix that will map and interpolate data on mem mids to the mem verts
+            # # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
+            #
+            # self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
+            # for i, indices in enumerate(self.index_to_mem_verts):
+            #     self.matrixMap2Verts[i,indices[0]]=1/2
+            #     self.matrixMap2Verts[i,indices[1]]=1/2
+            #
+            # # Create a map from cell to ecm space
+            # self.cell_to_ecm = []
+            #
+            # for i in self.cell_i:
+            #
+            #     inds_mtc = (self.mem_to_cells ==i).nonzero()
+            #     ecm_inds = self.mem_to_ecm[inds_mtc]
+            #     self.cell_to_ecm.append(ecm_inds)
+            #
+            # self.cell_to_ecm = np.asarray(self.cell_to_ecm)
+            # self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
+            # self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
+            #
+            # # structures for plotting interpolated data and streamlines:
+            # self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+            #
+            # self.xpts_Iecm = self.ecm_vects[:,0]
+            # self.ypts_Iecm = self.ecm_vects[:,1]
+            # self.nx_Iecm = self.ecm_vects[:,2]
+            # self.ny_Iecm = self.ecm_vects[:,3]
+            #
+            # self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
+            # self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
 
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
 
-        loggers.log_info('Cell cluster re-creation complete!')
+        # loggers.log_info('Cell cluster re-creation complete!')
+
+
+#-----------WASTELANDS-------------------------------------------------------------------------------------------------
+
+    # def cellGeo(self,p,close_ecm=None):
+    #     """
+    #     Calculates a number of geometric properties relating to cells, membrane domains, and ecm segments.
+    #
+    #     Parameters
+    #     ----------
+    #     close_ecm           Default = None. If close_ecm = 'yes' then ecm segments around boundary cells remain
+    #                         unbroken.
+    #
+    #     Creates
+    #     --------
+    #     self.cell_vol
+    #     self.mem_edges
+    #     self.mem_length
+    #     self.mem_mids
+    #     self.mem_vects_flat
+    #     self.ecm_vol
+    #     self.ecm_edges_i
+    #     self.ecm_mids
+    #     self.ecm_vects
+    #     self.cell2ecm_map
+    #     """
+    #
+    #     self.cell_vol = []   # storage for cell volumes
+    #     self.cell_sa = []    # whole cell surface areas
+    #     self.cell_area = []
+    #
+    #     self.mem_edges = []  # storage for membrane edge points
+    #     self.mem_length = []   # storage for membrane surface area values
+    #     self.mem_mids = []   # storage for membrane midpoints
+    #
+    #     # storage for various vector properties of membrane
+    #     cv_x=[]
+    #     cv_y=[]
+    #     cv_nx=[]
+    #     cv_ny=[]
+    #     cv_tx=[]
+    #     cv_ty=[]
+    #
+    #     loggers.log_info('Creating membrane transit vectors... ')
+    #
+    #     perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
+    #
+    #     for polyc in self.cell_verts:
+    #         # First calculate individual cell volumes from cell vertices:
+    #         poly = [x for x in reversed(polyc)]
+    #         self.cell_vol.append(p.cell_height*tb.area(poly))
+    #         # self.cell_sa.append(2*tb.area(poly))   # surface area of whole cell [m2]
+    #         # self.cell_area.append(tb.area(poly))
+    #         # Next calculate individual membrane domains, midpoints, and vectors:
+    #         edge = []
+    #         mps = []
+    #         surfa = []
+    #
+    #         for i in range(0,len(polyc)):
+    #             pt1 = polyc[i-1]
+    #             pt2 = polyc[i]
+    #             pt1 = np.asarray(pt1)
+    #             pt2 = np.asarray(pt2)
+    #             edge.append([pt1,pt2])
+    #             mid = (pt1 + pt2)/2       # midpoint calculation
+    #             mps.append(mid)
+    #
+    #             lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
+    #             sa = lgth*p.cell_height    # surface area of membrane
+    #             surfa.append(lgth)
+    #
+    #             tang_a = pt2 - pt1       # tangent
+    #             tang = tang_a/np.linalg.norm(tang_a)
+    #             # normal = np.array([-tang[1],tang[0]])
+    #             normal = np.array([tang[1],-tang[0]])
+    #             cv_x.append(mid[0])
+    #             cv_y.append(mid[1])
+    #             cv_nx.append(normal[0])
+    #             cv_ny.append(normal[1])
+    #             cv_tx.append(tang[0])
+    #             cv_ty.append(tang[1])
+    #
+    #         self.mem_edges.append(edge)
+    #         self.mem_mids.append(mps)
+    #         self.mem_length.append(surfa)
+    #
+    #     self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+    #     self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
+    #     self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+    #
+    #     # self.cell_sa = np.asarray(self.cell_sa)
+    #
+    #     # Extracellular matrix specific data
+    #
+    #     loggers.log_info('Creating extracellular space vectors... ')
+    #
+    #     ecm_edge_ind = set()     # this will hold the unique index pairs to the self.ecm_verts_unique [x,y] points
+    #
+    #     ecmverts_list = self.ecm_verts_unique.tolist()
+    #
+    #     for poly in self.ecm_verts:  # for every polygon defined in the self.ecm_verts data structure
+    #
+    #         for i in range(0,len(poly)):   # for every vertex defining the polygon...
+    #
+    #             edge_pt1 = poly[i-1].tolist()   # first point of line segment
+    #             edge_pt2 = poly[i].tolist()     # second point of line segment
+    #             edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
+    #             edge_ind2 = ecmverts_list.index(edge_pt2)
+    #             ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
+    #             ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
+    #
+    #             if close_ecm == 'yes':  # if we want a closed ecm then artificially mark both cells as off bounds
+    #                 ind1_flag = 0
+    #                 ind2_flag = 0
+    #
+    #             # in the case that both ecm points are not on the non-boundary (but one may be):
+    #             if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1) or (ind1_flag ==1 and ind2_flag == 0):
+    #
+    #                 if edge_ind1 == edge_ind2: # if the indices are equal for some reason, it's not an edge so pass
+    #                     pass
+    #
+    #                 if edge_ind1 < edge_ind2:
+    #                     edgepair = (edge_ind1,edge_ind2)
+    #                     ecm_edge_ind.add(edgepair)      # append the indices to the list
+    #
+    #                 if edge_ind1 > edge_ind2:
+    #                     edgepair = (edge_ind2, edge_ind1)
+    #                     ecm_edge_ind.add(edgepair)        # append the indices to the list
+    #
+    #     self.ecm_edges_i = []   # reconvert everything into a usable python list defining edges
+    #     for edge_tuple in ecm_edge_ind:
+    #         self.ecm_edges_i.append(list(edge_tuple))
+    #
+    #     self.cell2ecm_map = []
+    #
+    #     len_unique_edges = len(self.ecm_edges_i)
+    #
+    #     self.ecm_mids = [0]*len_unique_edges
+    #     self.ecm_vol = [0]*len_unique_edges
+    #
+    #     ev_x=[0]*len_unique_edges
+    #     ev_y=[0]*len_unique_edges
+    #     ev_tx=[0]*len_unique_edges
+    #     ev_ty=[0]*len_unique_edges
+    #     ev_nx=[0]*len_unique_edges
+    #     ev_ny=[0]*len_unique_edges
+    #
+    #
+    #     for i, poly in enumerate(self.ecm_verts):
+    #         holdinds = []
+    #         for j in range(0, len(poly)):
+    #             edge_pt1 = poly[j-1].tolist()    # first point of line segment
+    #             edge_pt2 = poly[j].tolist()      # second point of line segment
+    #             edge_ind1 = ecmverts_list.index(edge_pt1)   # get the indices of the [x,y] points in the flat array
+    #             edge_ind2 = ecmverts_list.index(edge_pt2)
+    #             ind1_flag = self.bmask_ecm[edge_ind1]   # get the boolean boundary flag value of point 1
+    #             ind2_flag = self.bmask_ecm[edge_ind2]   # get the boolean boundary flag of point 2
+    #
+    #             if close_ecm == 'yes':  # if we want a closed ecm then artificially mark both cells as off bounds
+    #                 ind1_flag = 0
+    #                 ind2_flag = 0
+    #
+    #             # if both of the points are not on the boundary it's a connector
+    #             if (ind1_flag ==0 and ind2_flag == 0) or (ind1_flag == 1 and ind2_flag == 0) or (ind1_flag ==0 and ind2_flag == 1):
+    #
+    #                 if edge_ind1 == edge_ind2: # if the indices are equal, it's not an edge so pass
+    #                     pass
+    #
+    #                 if edge_ind1 < edge_ind2:
+    #                     mapval = self.ecm_edges_i.index([edge_ind1,edge_ind2])   # get the index to the unique ecm edge
+    #                     holdinds.append(mapval)
+    #                     pnt1 = self.ecm_verts_unique[edge_ind1]
+    #                     pnt2 = self.ecm_verts_unique[edge_ind2]
+    #                     midpoint = (pnt1 + pnt2)/2   # find the midpoint...
+    #                     lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
+    #                     vol = lgth*p.cell_height*p.cell_space
+    #                     self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
+    #                     self.ecm_vol[mapval] = vol
+    #                     tang_a = pnt2 - pnt1
+    #                     tang = tang_a/np.linalg.norm(tang_a)
+    #                     ev_x[mapval] = midpoint[0]
+    #                     ev_y[mapval] = midpoint[1]
+    #                     ev_tx[mapval] = tang[0]
+    #                     ev_ty[mapval] = tang[1]
+    #                     ev_nx[mapval] = tang[1]
+    #                     ev_ny[mapval] = -tang[0]
+    #
+    #                 if edge_ind2 < edge_ind1:
+    #                     mapval = self.ecm_edges_i.index([edge_ind2,edge_ind1])
+    #                     holdinds.append(mapval)
+    #                     pnt1 = self.ecm_verts_unique[edge_ind2]
+    #                     pnt2 = self.ecm_verts_unique[edge_ind1]
+    #                     midpoint = (pnt1 + pnt2)/2   # find the midpoint...
+    #                     lgth = np.sqrt((pnt2[0] - pnt1[0])**2 + (pnt2[1]-pnt1[1])**2)  # length of membrane domain
+    #                     vol = lgth*p.cell_height*p.cell_space
+    #                     self.ecm_mids[mapval] = midpoint  # add the midpoint to its list, keeping the same ordering
+    #                     self.ecm_vol[mapval] = vol
+    #                     tang_a = pnt2 - pnt1
+    #                     tang = tang_a/np.linalg.norm(tang_a)
+    #                     ev_x[mapval] = midpoint[0]
+    #                     ev_y[mapval] = midpoint[1]
+    #                     ev_tx[mapval] = tang[0]
+    #                     ev_ty[mapval] = tang[1]
+    #                     ev_nx[mapval] = -tang[1]
+    #                     ev_ny[mapval] = tang[0]
+    #
+    #         self.cell2ecm_map.append(holdinds)
+    #
+    #     self.ecm_seg_vects = np.array([ev_x,ev_y,ev_tx,ev_ty,ev_nx,ev_ny]).T
+    #     self.ecm_mids = np.array(self.ecm_mids)
+    #     self.ecm_edges_i = np.asarray(self.ecm_edges_i)
+    #     self.ecm_vol = np.asarray(self.ecm_vol)
+    #-----------------------------------
+
+        #
+        # def clean_ecm(self,p,clean=None):
+        #
+        # """
+        # Calculates ecm points on the environmental boundary using the alpha-shape concave hull method,
+        # deletes these points, and updates data structures referring to the ecm vertices.
+        #
+        # Note: if clean = 'no' this function returns data structures without deleting ecm verticies.
+        #
+        # """
+        #
+        # # get the concave hull for ecm vertices on the outer boundary of the cluster
+        #
+        # if clean is None or clean == 'yes':
+        #
+        #     con_hull = tb.alpha_shape(self.ecm_verts_unique, p.scale_alpha/p.d_cell)
+        #     con_hull = np.asarray(con_hull)
+        #
+        #     boundverts = np.unique(con_hull)    # get the value of unique indices from segments
+        #
+        #      # Re-do indicies for ecm polygons in terms of revised unique vertices list
+        #
+        #     ecm_polyinds2 =[]
+        #
+        #     b=set(boundverts)
+        #
+        #     for i, polyinds in enumerate(self.ecm_polyinds):
+        #         a = set(polyinds)
+        #         ans = list(a & b)
+        #         if len(ans)>0:
+        #             for val in ans:
+        #                 eind = polyinds.index(val)
+        #                 self.ecm_polyinds[i][eind] = False   # flag value to be removed
+        #
+        #     for i, poly in enumerate(self.ecm_polyinds):
+        #         holdval = []
+        #         for j, val in enumerate(poly):
+        #             if val != False:
+        #                 holdval.append(val)
+        #         ecm_polyinds2.append(holdval)
+        #
+        #     self.ecm_polyinds =[]
+        #     self.ecm_polyinds = copy.deepcopy(ecm_polyinds2)
+        #
+        # elif clean == 'no':
+        #     pass
+        #
+        # # Now re-do the ecm_verts
+        #
+        # self.ecm_verts = []
+        #
+        # for poly in self.ecm_polyinds:
+        #     verts = self.ecm_verts_unique[poly]  # [x,y] coordinates of polygon
+        #     self.ecm_verts.append(verts)
+        #
+        # if clean is None or clean == 'yes':
+        #     self.ecm_verts_unique = np.delete(self.ecm_verts_unique,boundverts,0)   # delete indices from ecm verts list
+        #
+        # self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function
+        #
+        # self.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
+        #
+        # for poly in self.ecm_verts:
+        #     verthold = []
+        #     for vert in poly:
+        #         vert =vert.tolist()
+        #         ind = self.ecm_verts_unique.index(vert)
+        #         verthold.append(ind)
+        #
+        #     self.ecm_polyinds.append(verthold)
+        #
+        # self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert back to numpy array
+        # # now find the unique vertices used in the cell structure
+        #
+        # polyinds_flat,_,_ = tb.flatten(self.ecm_polyinds)
+        # polyinds_flat = np.asarray(polyinds_flat)
+        # polyinds_unique = np.unique(polyinds_flat)
+        #
+        # self.ecm_verts_unique = self.ecm_verts_unique[polyinds_unique]
+
+    #-----------------------------
+
+        # def make_env_points(self,p):
+    #
+    #     """
+    #     Defines points in contact with the environment, which are extrapolated from
+    #     extracellular space boundary points.
+    #
+    #     """
+    #
+    #     loggers.log_info('Creating environmental points... ')
+    #
+    #     delta = p.cell_space
+    #
+    #     ecm_bound_points = self.ecm_mids[self.bflags_ecm]
+    #     ecm_bound_norm = self.ecm_seg_vects[self.bflags_ecm,4:6]
+    #     self.env_points = ecm_bound_points + delta*ecm_bound_norm
+
+    #-------------------------------
+
+        # def vor_area(self,p):
+    #
+    #     """
+    #     Calculates the area of each cell in a closed 2D Voronoi diagram, and multiplying by height, returns cell volume
+    #
+    #     Returns
+    #     -------
+    #     self.cell_vol            stores volume of each cell polygon of the Voronoi diagram in cubic meters
+    #
+    #     Notes
+    #     -------
+    #     Uses area(p) function.
+    #
+    #     """
+    #
+    #     loggers.log_info('Calculating area of each cell... ')
+    #     self.cell_vol = []
+    #     for poly in self.cell_verts:
+    #         self.cell_vol.append(p.cell_height*tb.area(poly))
+
+
 
 
 

@@ -79,10 +79,10 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1e-2               # Simulation step-size [s] (recommended range see table)
-    total time: 0.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: 1.0e-9   # radius of gap junctions connecting cells [m] (recommended range see table)
+    gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -160,9 +160,9 @@ sim time settings:
 
 general options:
 
-  grid size: 50                # size of the square grid used in computation of spatial gradients and laplacians
+  grid size: 20                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 800e-6         # the x-dimension of the world space [m]
+  world x: 100e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -382,13 +382,13 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
-    directory: geo/paper              # directory where geometry-defining bitmaps can be found
+    directory: geo/circle              # directory where geometry-defining bitmaps can be found
 
     number of bitmaps: 1          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: worm_d.png        # name of the first bitmap defining geometry
+        file: circle_base.png        # name of the first bitmap defining geometry
 
         designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
@@ -502,7 +502,7 @@ boundary profile 2:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True              # turn the even on (True) or off (False)
+  event happens: False              # turn the even on (True) or off (False)
   change start: 0.2                # sim time to start change [s]
   change finish: 10.0               # sim time to end change and return to original [s]
   change rate: 0.2                 # rate of change [s]
