@@ -17,7 +17,7 @@ from betse.util.path import paths
 from os import path
 import os, shutil
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_dir(*dirnames) -> None:
     '''
     Raise an exception unless all passed directories exist.
@@ -25,14 +25,12 @@ def die_unless_dir(*dirnames) -> None:
     for dirname in dirnames:
         if not is_dir(dirname):
             raise BetseExceptionDir(
-                'Directory "{}" not found or not a readable directory.'.format(
-                    dirname))
+                'Directory "{}" not found or unreadable.'.format(dirname))
 
 def die_unless_parent_dir(pathname: str) -> None:
     '''
     Raise an exception unless the parent directory of the passed path exists.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     die_unless_dir(paths.get_dirname(pathname))
 
 # ....................{ EXCEPTIONS ~ if                    }....................
@@ -48,9 +46,10 @@ def die_if_dir(*dirnames) -> None:
 # ....................{ TESTERS                            }....................
 def is_dir(dirname: str) -> bool:
     '''
-    True if the passed directory exists.
+    `True` if the passed directory exists.
     '''
     assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
+    assert len(dirname), 'Dirname empty.'
     return path.isdir(dirname)
 
 # ....................{ LISTERS                            }....................
@@ -113,10 +112,10 @@ def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
 
     Examples
     ----------
-    >>> from betse.util.path import dirs
-    >>> dirs.copy_into_target_dir('/usr/src/linux/', '/tmp/')
-    >>> dirs.is_dir('/tmp/linux/')
-    True
+        >>> from betse.util.path import dirs
+        >>> dirs.copy_into_target_dir('/usr/src/linux/', '/tmp/')
+        >>> dirs.is_dir('/tmp/linux/')
+        True
     '''
     assert isinstance(dirname_target, str),\
         '"{}" not a string.'.format(dirname_target)
@@ -133,10 +132,10 @@ def copy(dirname_source: str, dirname_target: str) -> None:
     All nonexistent parents of the target directory will be recursively created,
     mimicking the action of the `mkdir -p` shell command. All symbolic links in
     the source directory will be preserved (i.e., copied as is rather than their
-    transitive targets copied in their stead).
+    transitive targets copied instead).
 
-    If the source directory does not exist *or* the target directory already
-    exists, an exception will be raised.
+    If either the source directory does not exist *or* the target directory
+    already exists, an exception will be raised.
     '''
     assert isinstance(dirname_source, str),\
         '"{}" not a string.'.format(dirname_source)
@@ -148,6 +147,9 @@ def copy(dirname_source: str, dirname_target: str) -> None:
     # Log such copy.
     loggers.log_info(
         'Copying directory "%s" to "%s".', dirname_source, dirname_target)
+
+    # Raise an exception unless the source directory exists.
+    die_unless_dir(dirname_source)
 
     # Raise an exception if the target directory already exists. While we could
     # defer to the exception raised by the shutil.copytree() function for such

@@ -489,23 +489,24 @@ class MatplotlibConfig(object):
 
             # If such directory exists, find all backends in such directory.
             if dirs.is_dir(backends_dir):
-                # String prefixing the basenames of backend-specific Python modules.
+                # String prefixing the basenames of backend-specific modules.
                 BACKEND_BASENAME_PREFIX = 'backend_'
 
                 # Such names, discovered by:
                 #
-                # * Filtering all basenames in such directory for Python modules.
+                # * Filtering all basenames in such directory for modules.
                 # * Converting the remaining basenames to backend names.
-                # * Sorting such names in ascending lexicographic order. While *NOT*
-                #   strictly necessary, of course, such sorting improves output
-                #   (e.g., from the "info" subcommand).
+                # * Sorting such names in ascending lexicographic order. While
+                #   *NOT* strictly necessary, of course, such sorting improves
+                #   output (e.g., from the "info" subcommand).
                 self._backend_names = containers.sort_as_lexicographic_ascending([
-                    paths.remove_filetype_if_found(
+                    paths.get_pathname_sans_filetype(
                         strs.remove_prefix_if_found(
                             backend_basename, BACKEND_BASENAME_PREFIX))
                     for backend_basename in dirs.list_basenames(backends_dir)
-                    if strs.is_prefix(backend_basename, BACKEND_BASENAME_PREFIX) and
-                       paths.is_filetype(backend_basename, 'py')
+                    if strs.is_prefix(
+                        backend_basename, BACKEND_BASENAME_PREFIX) and
+                        paths.is_filetype(backend_basename, 'py')
                 ])
             # Else, such directory does *NOT* exist. Log a non-fatal warning and
             # clear such list.

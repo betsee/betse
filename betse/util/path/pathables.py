@@ -9,7 +9,7 @@ facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-# from betse.exceptions import BetseExceptionFile
+from betse.exceptions import BetseExceptionPath
 from betse.util.path import paths
 import shutil
 
@@ -27,9 +27,10 @@ def is_pathable(command_basename: str) -> bool:
     assert len(command_basename), 'Command name empty.'
 
     # If such string is *NOT* a pure basename, fail.
-    paths.die_unless_dirname_empty(
-        command_basename,
-        'Command "{}" contains directory separators.'.format(command_basename))
+    if paths.is_dirname_empty(command_basename):
+        raise BetseExceptionPath(
+            'Command "{}" contains directory separators.'.format(
+                command_basename))
 
     # Return whether such command is found.
     return shutil.which(command_basename) is not None

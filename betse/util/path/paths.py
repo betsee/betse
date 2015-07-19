@@ -13,11 +13,20 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionPath
-from os import path
+from betse.util.io import loggers
+from os import path, shutil
 
 # ....................{ EXCEPTIONS ~ unless                }....................
-def die_unless_dirname_empty(
-    pathname: str, exception_message: str = None) -> None:
+def die_unless_path(*pathnames) -> None:
+    '''
+    Raise an exception unless all passed paths exist.
+    '''
+    for pathname in pathnames:
+        if not is_path(pathname):
+            raise BetseExceptionPath(
+                'Path "{}" not found or unreadable.'.format(pathname))
+
+def die_unless_dirname_empty(pathname: str) -> None:
     '''
     Raise an exception unless the passed pathname is a pure basename.
 
@@ -27,49 +36,23 @@ def die_unless_dirname_empty(
         For further details.
     '''
     if not is_dirname_empty(pathname):
-        # If no message was passed, default such message.
-        if not exception_message:
-            exception_message =\
-                'Path "{}" contains directory separators.'.format(pathname)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
-
-        # Raise such exception.
-        raise BetseExceptionPath(exception_message)
+        raise BetseExceptionPath(
+            'Path "{}" contains directory separators.'.format(pathname))
 
 # ....................{ EXCEPTIONS ~ if                    }....................
-def die_if_special(pathname: str, exception_message: str = None) -> None:
+def die_if_path(*pathnames) -> None:
     '''
-    Raise an exception if the passed path is an existing special path.
-
-    See Also
-    ----------
-    `is_special()`
-        For further details.
+    Raise an exception if any passed path exists.
     '''
-    if is_special(pathname):
-        # If no message was passed, default such message.
-        if not exception_message:
-            if path.isdir(pathname):
-                exception_message =\
-                    'Path "{}" already an existing directory.'.format(pathname)
-            elif path.islink(pathname):
-                exception_message =\
-                    'Path "{}" already an existing symbolic link.'.format(
-                        pathname)
-            else:
-                exception_message = 'Path "{}" already a special file.'.format(
-                    pathname)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
-
-        # Raise such exception.
-        raise BetseExceptionPath(exception_message)
+    for pathname in pathnames:
+        if is_path(pathname):
+            raise BetseExceptionPath(
+                'Path "{}" already exists.'.format(pathname))
 
 # ....................{ TESTERS                            }....................
 def is_path(pathname: str) -> bool:
     '''
-    True if the passed path exists.
+    `True` if the passed path exists.
 
     If such path is an existing **broken symbolic link** (i.e., a symbolic link
     whose target no longer exists), this function still returns True.
@@ -77,51 +60,36 @@ def is_path(pathname: str) -> bool:
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
 
-    # Since path.exists() returns False for broken symbolic links, defer to
-    # path.lexists() instead.
+    # Call path.lexists() rather than path.exists(), as the latter returns False
+    # for dangling symbolic links -- which is entirely irrelevant to most
+    # contexts. Under POSIX semantics, dangling symbolic links are essential to
+    # common usage patterns and should *NOT* be discriminated against here.
     return path.lexists(pathname)
-
-def is_special(pathname: str) -> bool:
-    '''
-    True if the passed path is an existing special file.
-
-    Special files include directories, device nodes, sockets, and symbolic
-    links.
-    '''
-    # True if such path exists and...
-    return is_path(pathname) and (
-        # ...is either a symbolic link *OR* neither a regular file nor symbolic
-        # link to such a file. In the latter case, predicate logic guarantees
-        # such file to *NOT* be a symbolic link, thus reducing this test to:
-        # "...is either a symbolic link *OR* not a regular file."
-        path.islink(pathname) or\
-        not path.isfile(pathname)
-    )
 
 # ....................{ TESTERS ~ pathname                 }....................
 def is_dirname_empty(pathname: str) -> bool:
     '''
-    True if the passed pathname is a *pure basename* (i.e., contains no
+    `True` if the passed pathname is a *pure basename* (i.e., contains no
     directory separators and hence no directory components).
     '''
     return path.sep in pathname
 
 def is_filetype(pathname: str, filetype: str) -> bool:
     '''
-    True if the passed pathname has the passed filetype.
+    `True` if the passed pathname has the passed filetype.
 
     Such filetype may contain arbitrarily many `.` characters, including an
     optional prefixing `.`. Regardless, this function behaves as expected.
     '''
     assert isinstance(filetype, str), '"{}" not a string.'.format(filetype)
+    assert len(filetype), 'Filetype empty.'
 
     # Avoid circular import dependencies.
     from betse.util.type import strs
 
     # Test such filetype, prefixed by "." unless already prefixed.
     return strs.is_suffix(
-        pathname,
-        strs.add_prefix_unless_found(filetype, '.'))
+        pathname, strs.add_prefix_unless_found(filetype, '.'))
 
 # ....................{ GETTERS                            }....................
 def get_basename(pathname: str) -> str:
@@ -132,24 +100,36 @@ def get_basename(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.basename(pathname)
 
-def get_filetype(pathname: str) -> str:
+def get_type_label(pathname: str) -> str:
     '''
-    Get the last **filetype** (i.e., last `.`-prefixed substring of the
-    basename *not* including such `.`) of the passed path if such path has a
-    filetype or None otherwise.
+    Get a lowercase human-readable label describing the type of the passed path.
 
-    If such path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
-    last such filetype is returned.
+    For brevity, such label comprises one lowercase noun optionally preceded by
+    a lowercase adjective unambiguously identifying such path's type.
+
+    If such path does *not* exist, an exception will be raised.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    # Avoid circular import dependencies.
+    from betse.util.paths import dirs, files
 
-    # Such filetype. (Yes, splitext() is exceedingly poorly named.)
-    filetype = path.splitext(pathname)[1]
+    # Raise an exception unless such path exists.
+    die_unless_path(pathname)
 
-    # Get such filetype, stripping the prefixing "." from the string returned by
-    # the prior call if such path has a filetype or otherwise returning None.
-    return filetype[1:] if filetype else None
+    # Get such type.
+    if files.is_file(pathname):
+        if files.is_symlink(pathname):
+            return 'symbolic link'
+        elif files.is_special(pathname):
+            return 'special file'
+        else:
+            return 'file'
+    elif dirs.is_dir(pathname):
+        return 'directory'
+    else:
+        return 'path'
+
+    # This should never happen. That means it will in several seconds.
+    return None
 
 # ....................{ GETTERS ~ dirname                  }....................
 def get_dirname(pathname: str) -> str:
@@ -157,12 +137,12 @@ def get_dirname(pathname: str) -> str:
     Get the *dirname* (i.e., parent directory) of the passed path if such path
     has a dirname or raise an exception otherwise.
     '''
-    # Ensure such path has a dirname.
+    # Raise an exception unless such path has a dirname.
     die_unless_dirname_empty(pathname)
 
     # Get such dirname. Technically, the above call *SHOULD* have ensured such
     # dirname to exist. This is a sufficiently critical function, however, to
-    # warrant asserting this constraint for safety.
+    # warrant asserting this constraint.
     dirname = get_dirname_or_empty(pathname)
     assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
     return dirname
@@ -176,11 +156,30 @@ def get_dirname_or_empty(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.dirname(pathname)
 
-# ....................{ REMOVERS                           }....................
-def remove_filetype_if_found(pathname: str) -> str:
+# ....................{ GETTERS ~ filetype                 }....................
+def get_filetype(pathname: str) -> str:
     '''
-    Remove the last filetype (including prefixing `.`) from the passed path if
-    such path has a filetype *or* return such path as is otherwise.
+    Get the **last filetype** (i.e., last `.`-prefixed substring of the
+    basename *not* including such `.`) of the passed path if such path has a
+    filetype or `None` otherwise.
+
+    If such path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
+    last such filetype will be returned.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+
+    # Such filetype. (Yes, splitext() is exceedingly poorly named.)
+    filetype = path.splitext(pathname)[1]
+
+    # Get such filetype, stripping the prefixing "." from the string returned by
+    # the prior call if such path has a filetype or returning None otherwise.
+    return filetype[1:] if filetype else None
+
+def get_pathname_sans_filetype(pathname: str) -> str:
+    '''
+    Get the passed path without last filetype (including prefixing `.`) if such
+    path has a filetype *or* as is otherwise.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
@@ -215,6 +214,43 @@ def canonicalize(pathname: str) -> str:
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
     return path.abspath(path.expanduser(pathname))
+
+# ....................{ MOVERS                             }....................
+def move(pathname_source: str, pathname_target: str) -> None:
+    '''
+    Move the passed source to target path.
+
+    Such path will be moved in a manner maximally preserving metadata (e.g.,
+    owner, group, permissions, times, extended file system attributes).
+    Likewise, if such source path is a symbolic link, such link (rather than its
+    transitive target) will be moved and hence preserved.
+
+    If either the source path does not exist *or* the target path already
+    exists, an exception will be raised.
+    '''
+    assert isinstance(pathname_source, str),\
+        '"{}" not a string.'.format(pathname_source)
+    assert isinstance(pathname_target, str),\
+        '"{}" not a string.'.format(pathname_target)
+    assert len(pathname_source), 'Source pathname empty.'
+    assert len(pathname_target), 'Target pathname empty.'
+
+    # Log such move in a contextual manner.
+    loggers.log_info(
+        'Moving %s "%s" to "%s".',
+        get_type_label(pathname_source), pathname_source, pathname_target)
+
+    # Raise an exception unless the source path exists.
+    die_unless_path(pathname_source)
+
+    # Raise an exception if the target path already exists. This is essential to
+    # sane cross-platform semantics. shutil.move() is implemented in terms of
+    # os.rename(), which overwrites such path if such path is a non-directory
+    # file depending on platform. In most cases, that's bad.
+    die_if_path(pathname_target)
+
+    # Perform such move.
+    shutil.move(pathname_source, pathname_target)
 
 # --------------------( WASTELANDS                         )--------------------
 # def get_dirname_or_none(pathname: str) -> str:

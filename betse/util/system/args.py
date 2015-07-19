@@ -48,45 +48,45 @@ class HelpFormatterParagraph(HelpFormatter):
 
     Examples
     ----------
-    >>> from argparse import ArgumentParser
-    >>> from betse.util.system.args import HelpFormatterParagraph
-    >>> arg_parser = ArgumentParser(
-    ...     formatter_class = HelpFormatterParagraph)
-    >>> arg_subparsers = arg_parser.add_subparsers()
-    >>> arg_subparsers.add_parser(
-    ...     name = 'road',
-    ...     description = """
-    ...         The Road goes ever on and on
-    ...         Down from the door where it began.
-    ...         Now far ahead the Road has gone,
-    ...         ;And I must follow, if I can,
-    ...         ;Pursuing it with eager feet,
-    ...         ;Until it joins some larger way,
-    ...         ;Where many paths and errands meet.
-    ...
-    ...            The Road goes ever on and on
-    ...            Down from the door where it began.
-    ...            Now far ahead the Road has gone,
-    ...            And I must follow, if I can,
-    ...         ;  Pursuing it with weary feet,
-    ...         ;  Until it joins some larger way,
-    ...         ;  Where many paths and errands meet.
-    ...         ;  And whither then? I cannot say.
-    ...     """)
-    >>> arg_parser.parse_args('road --help')
-    The Road goes ever on and on Down from the door where it began. Now far
-    ahead the Road has gone,
-    And I must follow, if I can,
-    Pursuing it with eager feet,
-    Until it joins some larger way,
-    Where many paths and errands meet.
+        >>> from argparse import ArgumentParser
+        >>> from betse.util.system.args import HelpFormatterParagraph
+        >>> arg_parser = ArgumentParser(
+        ...     formatter_class = HelpFormatterParagraph)
+        >>> arg_subparsers = arg_parser.add_subparsers()
+        >>> arg_subparsers.add_parser(
+        ...     name = 'road',
+        ...     description = """
+        ...         The Road goes ever on and on
+        ...         Down from the door where it began.
+        ...         Now far ahead the Road has gone,
+        ...         ;And I must follow, if I can,
+        ...         ;Pursuing it with eager feet,
+        ...         ;Until it joins some larger way,
+        ...         ;Where many paths and errands meet.
+        ...
+        ...            The Road goes ever on and on
+        ...            Down from the door where it began.
+        ...            Now far ahead the Road has gone,
+        ...            And I must follow, if I can,
+        ...         ;  Pursuing it with weary feet,
+        ...         ;  Until it joins some larger way,
+        ...         ;  Where many paths and errands meet.
+        ...         ;  And whither then? I cannot say.
+        ...     """)
+        >>> arg_parser.parse_args('road --help')
+        The Road goes ever on and on Down from the door where it began. Now far
+        ahead the Road has gone,
+        And I must follow, if I can,
+        Pursuing it with eager feet,
+        Until it joins some larger way,
+        Where many paths and errands meet.
 
-      The Road goes ever on and on Down from the door where it began. Now far
-      ahead the Road has gone, And I must follow, if I can,
-      Pursuing it with weary feet,
-      Until it joins some larger way,
-      Where many paths and errands meet.
-      And whither then? I cannot say.
+        The Road goes ever on and on Down from the door where it began. Now far
+        ahead the Road has gone, And I must follow, if I can,
+        Pursuing it with weary feet,
+        Until it joins some larger way,
+        Where many paths and errands meet.
+        And whither then? I cannot say.
     '''
 
     # ..................{ SUPERCLASS                         }..................

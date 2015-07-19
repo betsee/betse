@@ -29,7 +29,7 @@ def load(filename: str) -> dict:
     config = None
 
     # Open the passed file for reading and read such file into a dictionary.
-    with files.open_for_reading_text(filename) as yaml_file:
+    with files.open_for_text_reading(filename) as yaml_file:
         config = yaml.load(yaml_file)
 
     #FIXME: Implement me.
