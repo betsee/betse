@@ -18,12 +18,13 @@ from betse.util.system import processes, systems
 from collections import OrderedDict
 from io import StringIO
 
-# ..................{ SUBCOMMANDS ~ info                 }..................
+# ..................{ SUBCOMMANDS ~ info                     }..................
 def output_info() -> None:
     '''
     Print all output for the `info` subcommand.
     '''
-    loggers.log_info('Harvesting information. (This may take a moment.)')
+    loggers.log_info(
+        'Harvesting system information. (This may take a moment.)')
 
     # Dictionary of human-readable labels to dictionaries of all
     # human-readable keys and values categorized by such labels. All such
@@ -57,7 +58,6 @@ def output_info() -> None:
 
     # String buffer formatting such information.
     info_buffer = StringIO()
-    info_buffer.write('\n')
 
     # True if this is the first label to be output.
     is_info_type_first = True
@@ -83,4 +83,5 @@ def output_info() -> None:
     loggers.log_info(info_buffer.getvalue())
 
 # --------------------( WASTELANDS                         )--------------------
+    # info_buffer.write('\n')
 #FUXME: Also print the versions of installed mandatory dependencies.

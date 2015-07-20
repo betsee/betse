@@ -124,7 +124,7 @@ def copy(filename_source: str, filename_target: str) -> None:
     assert len(filename_target), 'Target filename empty.'
 
     # Log such copy.
-    loggers.log_info(
+    loggers.log_debug(
         'Copying file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
@@ -145,7 +145,7 @@ def remove(filename: str) -> None:
     assert len(filename), 'Filename empty.'
 
     # Log such removal.
-    loggers.log_info('Removing file "%s".', filename)
+    loggers.log_debug('Removing file "%s".', filename)
 
     # Raise an exception unless such file exists.
     die_unless_file(filename)
@@ -236,6 +236,19 @@ def open_for_byte_writing_temporary():
     return tempfile.NamedTemporaryFile(delete=False)
 
 # ....................{ OPENERS ~ temporary                }....................
+def substitute_strings_inplace(
+    filename: str, regex, substitution, **kwargs) -> None:
+    '''
+    Replace all substrings in the passed non-directory file that match the
+    passed regular expression with the passed substitution.
+
+    See Also
+    ----------
+    `substitute_strings()`
+        For further details.
+    '''
+    substitute_strings(filename, filename, regex, substitution, **kwargs)
+
 def substitute_strings(
     filename_source: str,
     filename_target: str,
@@ -244,8 +257,8 @@ def substitute_strings(
     **kwargs
 ) -> None:
     '''
-    Write the passed target non-directory file with the result of substituting
-    all substrings in the passed source non-directory file matching the passed
+    Write the passed target non-directory file with the result of replacing all
+    substrings in the passed source non-directory file that match the passed
     regular expression with the passed substitution.
 
     This function implements the equivalent of the `sed` line processor in a
@@ -270,15 +283,22 @@ def substitute_strings(
     assert len(filename_source), 'Source filename empty.'
     assert len(filename_target), 'Target filename empty.'
 
-    # Log such copy.
-    loggers.log_info(
-        'Munging file "%s" to "%s".', filename_source, filename_target)
+    # Log such substitution.
+    if filename_source == filename_target:
+        loggers.log_debug(
+            'Munging file "%s" in-place.', filename_source)
+    else:
+        loggers.log_debug(
+            'Munging file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
     die_unless_file(filename_source)
 
     # Raise an exception if the target file already exists.
     die_if_file(filename_target)
+
+    # For efficiency, precompile the passed regular expression.
+    regex_compiled = re.compile(regex)
 
     # For atomicity, incrementally write to a temporary file rather than the
     # desired target file *BEFORE* moving the former to the latter. This
@@ -287,7 +307,7 @@ def substitute_strings(
     with open_for_text_writing_temporary() as file_target_temp:
         with open_for_text_reading(filename_source) as file_source:
             for line in file_source:
-                file_target_temp.write(re.sub(regex, substitution, line))
+                file_target_temp.write(regex_compiled.sub(substitution, line))
 
         # Copy all metadata (e.g., permissions) from such source to target file
         # *BEFORE* moving the latter, avoiding potential race conditions and

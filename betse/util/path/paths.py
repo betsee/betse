@@ -14,7 +14,8 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionPath
 from betse.util.io import loggers
-from os import path, shutil
+from os import path
+import shutil
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_path(*pathnames) -> None:
@@ -236,7 +237,7 @@ def move(pathname_source: str, pathname_target: str) -> None:
     assert len(pathname_target), 'Target pathname empty.'
 
     # Log such move in a contextual manner.
-    loggers.log_info(
+    loggers.log_debug(
         'Moving %s "%s" to "%s".',
         get_type_label(pathname_source), pathname_source, pathname_target)
 

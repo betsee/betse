@@ -132,7 +132,7 @@ def remove_substrings(text: str, regex, **kwargs) -> str:
 # ....................{ SUBSTITUTERS                       }....................
 def substitute_substrings(text: str, regex, substitution, **kwargs) -> str:
     '''
-    Substitute all substrings in the passed string matching the passed regular
+    Replace all substrings in the passed string that match the passed regular
     expression with the passed substitution.
 
     Such regular expression may be either a string *or* `Pattern` (i.e.,
