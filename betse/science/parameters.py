@@ -412,6 +412,8 @@ class Parameters(object):
 
         self.zeta = float(self.config['general options']['zeta potential'])
 
+        self.gj_surface = float(self.config['world variables']['gap junction surface area'])
+
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
         self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
@@ -1347,8 +1349,8 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM == True:
 
@@ -1360,8 +1362,8 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':
 
@@ -1375,8 +1377,8 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                # self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM == True:
 
@@ -1388,8 +1390,8 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                # self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
 
         elif time_profile == 'initialize':
@@ -1404,8 +1406,8 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM == True:
 
@@ -1417,8 +1419,8 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
+                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'custom init':
 
@@ -1428,8 +1430,8 @@ class Parameters(object):
             self.resample = float(self.config['init time settings']['custom init time profile']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
-            self.gj_radius = float(self.config['init time settings']['custom init time profile']['gap junction radius'])
-            self.gjsa = math.pi*((self.gj_radius)**2)
+            # self.gj_radius = float(self.config['init time settings']['custom init time profile']['gap junction radius'])
+            # self.gjsa = math.pi*((self.gj_radius)**2)
 
         elif time_profile == 'custom sim':
 
@@ -1439,8 +1441,8 @@ class Parameters(object):
             self.resample = float(self.config['sim time settings']['custom sim time profile']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
-            self.gj_radius = float(self.config['sim time settings']['custom sim time profile']['gap junction radius'])
-            self.gjsa = math.pi*((self.gj_radius)**2)
+            # self.gj_radius = float(self.config['sim time settings']['custom sim time profile']['gap junction radius'])
+            # self.gjsa = math.pi*((self.gj_radius)**2)
 
 def get_colormap(colormap_name: str) -> Colormap:
     '''

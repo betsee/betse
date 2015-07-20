@@ -80,9 +80,9 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
-    gap junction radius: 1.0e-8   # radius of gap junctions connecting cells [m] (recommended range see table)
+
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -126,18 +126,18 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
     total time: 1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
     sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
-                                  # warning!!! the stability of your simulation is dramatically affected by the
-                                  # gap junction radius. If the radius is too large for the time-step you are using,
-                                  # the simulation will become unstable and an error message will appear.
-                                  # rule of thumb, gap junction radii up to 1.0e-10 for time step of 5e-4 s
-                                  # gap junction radii up to 1.5e-9 for time step of 5e-5 s.
+#    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
+#                                  # warning!!! the stability of your simulation is dramatically affected by the
+#                                  # gap junction radius. If the radius is too large for the time-step you are using,
+#                                  # the simulation will become unstable and an error message will appear.
+#                                  # rule of thumb, gap junction radii up to 1.0e-10 for time step of 5e-4 s
+#                                  # gap junction radii up to 1.5e-9 for time step of 5e-5 s.
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
@@ -162,7 +162,7 @@ general options:
 
   grid size: 20                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 100e-6         # the x-dimension of the world space [m]
+  world x: 150e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -292,6 +292,8 @@ world variables:
                               # min 1.1 max 3.5
                               # warning high search distances can produce
                               # extremely long simulation time
+
+  gap junction surface area: 1.0e-5   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -429,7 +431,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-4     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
@@ -447,7 +449,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile
@@ -463,7 +465,7 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
 
 tissue profile 3:
     name: depolarized_b       # give your profile a name that will be used to apply the profile
@@ -479,7 +481,7 @@ tissue profile 3:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
 
 
 number of boundary profiles: 0      # boundary profiles only apply if simulating extracellular spaces

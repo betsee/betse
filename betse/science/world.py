@@ -962,6 +962,13 @@ class World(object):
             for inds in row:
                 self.map_ij2k_core.append(inds)
 
+        # Create a matrix to update ecm from mem fluxes
+
+        self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
+
+        for i, ecm_index in enumerate(self.map_mem2ecm):
+            self.ecm_UpdateMatrix[i,ecm_index] = 1
+
     def makeLaplacian(self):
         """
         Generate the discrete finite central difference 2D Laplacian operator based on:
@@ -1224,6 +1231,11 @@ class World(object):
 
             for i, cell_index in enumerate(self.mem_to_cells):
                 self.cell_UpdateMatrix[i,cell_index] =1
+
+
+
+
+
 
             # self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
             #
