@@ -1276,7 +1276,7 @@ def get_Venv(self,cells,p):
         rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
 
         # Solve Poisson's electrostatic equation:
-        V = np.dot(cells.Ainv,-rho_env)
+        V = np.dot(cells.Ainv,-rho_env/(p.eo*80.0))
 
         # Re-pack the solution to the original vector:
         v_env[cells.core_k] = V

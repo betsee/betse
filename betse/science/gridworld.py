@@ -30,6 +30,7 @@ import numpy as np
 import scipy.spatial as sps
 import math
 from betse.science.bitmapper import Bitmapper
+from betse.science import toolbox as tb
 import os, os.path
 from betse.science import filehandling as fh
 from betse.util.io import loggers
@@ -132,6 +133,7 @@ class GridWorld(object):
         # map for converting between k linear index and 2d i,j matrix
         self.map_ij2k = np.asarray(self.map_ij2k)
         self.xypts = np.asarray(self.xypts)
+        self.grid_len = len(self.xypts)
 
         # define geometric limits and centre for the cluster of points
         self.xmin = np.min(self.X)
@@ -298,6 +300,44 @@ class GridWorld(object):
             self.gjMatrix[igj,ci] = -1/nn_i
             self.gjMatrix[igj,cj] = 1/nn_j
 
+    def boundTag(self,points,p,alpha=1.0):
+
+        """
+
+        Flag elements that are on the boundary to the environment by calculating the convex hull
+        for a points cluster.
+
+        Parameters
+        ----------
+        points          A numpy array of [x,y] points. This may be ecm_verts_unique, cell_centres, or mem_mids_flat.
+
+
+        Returns
+        -------
+        bflags       A python list of indices of points that are on the boundary
+        bmask        A numpy array of boolean flags of points that are on the boundary (order indexed to points_Flat)
+
+        Notes
+        -------
+        Uses numpy arrays
+        Uses alpha_shape function to calculate the concave hull
+        Requires a nested input such as self.mem_mids or self.ecm_verts
+
+        """
+
+        loggers.log_info('Tagging environmental boundary points... ')
+
+        con_hull = tb.alpha_shape(points, alpha/p.d_cell)  # get the concave hull for the membrane midpoints
+        con_hull = np.asarray(con_hull)
+
+        bflags = np.unique(con_hull)    # get the value of unique indices from segments
+
+        bmask = np.array((points[:,0]))
+        bmask[:] = 0
+        bmask[bflags] = 1
+
+        return bflags, bmask
+
     def environment(self,p):
 
         """
@@ -372,6 +412,26 @@ class GridWorld(object):
             for inds in row:
                 self.map_ij2k_core.append(inds)
 
+        # create a list of indices to the environmental space
+
+        self.map_envSpace = []
+
+        for ind in self.index_k:
+
+            try:
+                self.map_cell2ecm.tolist().index(ind)
+
+            except:
+                self.map_envSpace.append(ind)
+
+        # finally, get a list of indices to points on the cell cluster boundary:
+
+        bpoints, _ = self.boundTag(self.xypts[self.map_cell2ecm],p)
+
+        self.bound_pts_xy = self.xypts[self.map_cell2ecm[bpoints]]
+
+        self.bound_pts_k = list(points_tree.query(self.bound_pts_xy))[1]
+
     def makeLaplacian(self):
         """
         Generate the discrete finite central difference 2D Laplacian operator based on:
@@ -385,6 +445,106 @@ class GridWorld(object):
         by:
 
         U = Ainv*fxy
+
+        Creates
+        --------
+        self.Ainv
+
+        Notes
+        -------
+        ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
+
+
+        """
+        # initialize the laplacian operator matrix:
+        A = np.zeros((self.core_len,self.core_len))
+
+        # # create a temporary Python list version of the full index map
+        # map_ij2k = self.map_ij2k.tolist()
+
+        # lists to store the indices of
+        self.bBot_kp = []
+        self.bTop_kp = []
+        self.bL_kp = []
+        self.bR_kp = []
+
+
+        for kp, (ip, jp) in enumerate(self.map_ij2k_core):
+
+            if ip + 1 < self.core_n:
+
+                k_ip1_j = self.map_ij2k_core.index([ip+1,jp])
+                A[kp, k_ip1_j] = 1
+
+            else:
+                # store the kp index of the bottom boundary for off the cuff modification of sol vector:
+                self.bTop_kp.append(kp)
+
+                # deal with the bounary value by moving to the RHS of the equation:
+                # bval = self.bBot[jp+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if ip - 1 >= 0:
+
+                k_in1_j = self.map_ij2k_core.index([ip-1,jp])
+                A[kp, k_in1_j] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bBot_kp.append(kp)
+                # bval = self.bTop[jp+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if jp + 1 < self.core_n:
+
+                k_i_jp1 = self.map_ij2k_core.index([ip,jp+1])
+                A[kp, k_i_jp1] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bL_kp.append(kp)
+
+                # bval = self.bR[ip + 1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            if jp -1 >= 0:
+                k_i_jn1 = self.map_ij2k_core.index([ip,jp-1])
+                A[kp, k_i_jn1] = 1
+
+            else:
+                # deal with the bounary value by moving to the RHS of the equation:
+                self.bR_kp.append(kp)
+
+                # bval = self.bL[ip+1]
+                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+
+            A[kp,kp] = -4
+
+        # complete the laplacian operator by diving through by grid spacing squared:
+
+        A = A/self.delta**2
+
+        loggers.log_info('Creating Poisson solver... ')
+        loggers.log_info('(...may take a few minutes but is worth its time in gold!...) ')
+
+        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+        self.Ainv = np.linalg.inv(A)
+
+    def makeEmbeddedLaplacian(self):
+        """
+        Generate the discrete finite central difference 2D Laplacian operator based on:
+
+        d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
+
+        To solve the Poisson equation:
+
+        A*U = fxy
+
+        by:
+
+        U = Ainv*fxy
+
+        For a domain with an irregular boundary which is embedded within a 2D Cartesian grid.
 
         Creates
         --------
