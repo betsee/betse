@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    time step: 1.0e-8               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0e-5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 1.0e-7            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
@@ -185,7 +185,7 @@ general options:
 
   membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
 
-  water viscocity: 1.0   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
+  water viscocity: 1.0e-3   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
 
   membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
@@ -216,7 +216,7 @@ general options:
     cDye_to: 1.0e-3        # initial concentration of voltage sensitive dye in the environment [mmol/L]
     cDye_to_cell: 1.0e-3    # initial concentration of dye in the cell [mmol/L]
 
-  static noise level: 1.0    # level of variance in K+ leaks on cell membranes
+  static noise level: 0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
 
   dynamic noise: False      # is dynamic noise desired? Options True or False
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 150e-6         # the x-dimension of the world space [m]
+  world x: 300e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -431,7 +431,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-4     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
@@ -449,7 +449,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
+    ecm diffusion factor: 1    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile
@@ -899,6 +899,10 @@ internal parameters:
   alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
+
+#  alpha_NaK:  1.0e-10   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+#  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
+#  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-4  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]

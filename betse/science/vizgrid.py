@@ -426,10 +426,12 @@ class PlotWhileSolving(object):
 
     def __init__(self,cells,sim,p,number_cells=False,clrAutoscale = True, clrMin = None, clrMax = None):
 
-        vdata_env = np.multiply(sim.v_env,1000)
-        vdata_cell = np.multiply(sim.v_cell,1000)
+        # vdata_env = np.multiply(sim.v_env,1000)
+        vdata_cell = np.multiply(sim.vm,1000)
 
-        Z = vdata_env.reshape(cells.X.shape)
+        Z = np.zeros(cells.X.shape)
+
+        # Z = vdata_env.reshape(cells.X.shape)
 
         Z[cells.map_ij2k[cells.map_cell2ecm][:,0],
         cells.map_ij2k[cells.map_cell2ecm][:,1]] = vdata_cell
@@ -499,18 +501,19 @@ class PlotWhileSolving(object):
 
     def updatePlot(self,cells,sim,p):
 
-        vdata_env = np.multiply(sim.venv_time[-1],1000)
-        vdata_cell = np.multiply(sim.vcell_time[-1],1000)
+        # vdata_env = np.multiply(sim.venv_time[-1],1000)
+        vdata_cell = np.multiply(sim.vm_time[-1],1000)
 
-        Z = vdata_env.reshape(cells.X.shape)
+        # Z = vdata_env.reshape(cells.X.shape)
+        Z = np.zeros(cells.X.shape)
 
         Z[cells.map_ij2k[cells.map_cell2ecm][:,0],
         cells.map_ij2k[cells.map_cell2ecm][:,1]] = vdata_cell
 
         if self.clrAutoscale == True:
 
-            cmin = np.min(vdata_cell)
-            cmax = np.max(vdata_cell)
+            cmin = np.min(Z)
+            cmax = np.max(Z)
             self.meshplt.set_clim(cmin,cmax)
 
         time = sim.time[-1]
