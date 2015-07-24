@@ -7,7 +7,9 @@
 `betse`'s command line interface (CLI).
 '''
 
-#FIXME: Refactor according to the example given by TEMPLATE_SUBCOMMAND_TRY.
+#FIXME: The "~/.betse/cache" directory grows fairly large fairly quickly. It'd
+#be great to emit non-fatal warnings if its size exceeds some reasonable
+#threshold (e.g., 1GB).
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
@@ -363,6 +365,8 @@ class CLICLI(CLI):
         return SimRunner(config_filename = self._args.config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Refactor according to the example given by TEMPLATE_SUBCOMMAND_TRY.
+
         # Import from "betse.science" in a just-in-time manner, as such
         # importation imports heavy-weight dependencies and hence is slow.
     #FUXME: This could probably use a bit of help. Specifically, the sample

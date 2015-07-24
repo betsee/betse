@@ -13,6 +13,7 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionFile
 from betse.util.io import loggers
+from betse.util.type import types
 from os import path
 import os, re, shutil, tempfile
 
@@ -47,7 +48,6 @@ def die_if_special(pathname: str) -> None:
     if is_special(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import paths
-
         raise BetseExceptionFile(
             'File "{}" already an existing {}.'.format(
                 pathname, paths.get_type_label(pathname)))
@@ -99,8 +99,8 @@ def is_symlink(pathname: str) -> bool:
     '''
     `True` if the passed path is an existing symbolic link.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_string_nonempty(pathname),\
+        types.assert_is_not_string_nonempty(pathname, 'pathname')
     return path.islink(pathname)
 
 # ....................{ COPIERS                            }....................
@@ -116,15 +116,13 @@ def copy(filename_source: str, filename_target: str) -> None:
     If either the source file does not exist *or* the target file already
     exists, an exception will be raised.
     '''
-    assert isinstance(filename_source, str),\
-        '"{}" not a string.'.format(filename_source)
-    assert isinstance(filename_target, str),\
-        '"{}" not a string.'.format(filename_target)
-    assert len(filename_source), 'Source filename empty.'
-    assert len(filename_target), 'Target filename empty.'
+    assert types.is_string_nonempty(filename_source),\
+        types.assert_is_not_string_nonempty(filename_source, 'source filename')
+    assert types.is_string_nonempty(filename_target),\
+        types.assert_is_not_string_nonempty(filename_target, 'target filename')
 
     # Log such copy.
-    loggers.log_debug(
+    loggers.log_info(
         'Copying file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
@@ -141,11 +139,11 @@ def remove(filename: str) -> None:
     '''
     Remove the passed non-directory file.
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    assert len(filename), 'Filename empty.'
+    assert types.is_string_nonempty(filename),\
+        types.assert_is_not_string_nonempty(filename, 'filename')
 
     # Log such removal.
-    loggers.log_debug('Removing file "%s".', filename)
+    loggers.log_info('Removing file "%s".', filename)
 
     # Raise an exception unless such file exists.
     die_unless_file(filename)
@@ -162,8 +160,8 @@ def open_for_text_reading(filename: str):
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    assert len(filename), 'Filename empty.'
+    assert types.is_string_nonempty(filename),\
+        types.assert_is_not_string_nonempty(filename, 'filename')
 
     # Raise an exception unless such file exists.
     die_unless_file(filename)
@@ -178,8 +176,8 @@ def open_for_text_writing(filename: str):
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    assert len(filename), 'Filename empty.'
+    assert types.is_string_nonempty(filename),\
+        types.assert_is_not_string_nonempty(filename, 'filename')
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs
@@ -236,30 +234,33 @@ def open_for_byte_writing_temporary():
     return tempfile.NamedTemporaryFile(delete=False)
 
 # ....................{ OPENERS ~ temporary                }....................
-def substitute_strings_inplace(
-    filename: str, regex, substitution, **kwargs) -> None:
+#FIXME: Correct documentation here and below to reflect the passing of multiple
+#regexes and substitutions.
+
+def substitute_substrings_inplace(
+    filename: str, regex_substitution_pairs, **kwargs) -> None:
     '''
-    Replace all substrings in the passed non-directory file that match the
-    passed regular expression with the passed substitution.
+    Replace all substrings in the passed non-directory file matching the passed
+    regular expressions with the corresponding passed substitutions.
 
     See Also
     ----------
-    `substitute_strings()`
+    `substitute_substrings()`
         For further details.
     '''
-    substitute_strings(filename, filename, regex, substitution, **kwargs)
+    substitute_substrings(
+        filename, filename, regex_substitution_pairs, **kwargs)
 
-def substitute_strings(
+def substitute_substrings(
     filename_source: str,
     filename_target: str,
-    regex,
-    substitution,
+    regex_substitution_pairs,
     **kwargs
 ) -> None:
     '''
     Write the passed target non-directory file with the result of replacing all
-    substrings in the passed source non-directory file that match the passed
-    regular expression with the passed substitution.
+    substrings in the passed source non-directory file matching the passed
+    regular expressions with the corresponding passed substitutions.
 
     This function implements the equivalent of the `sed` line processor in a
     pure-Python manner requiring no external commands or additional
@@ -268,27 +269,42 @@ def substitute_strings(
     Such source file will _not_ be changed. Such target file will be written in
     an atomic manner maximally preserving source metadata (e.g., owner, group,
     permissions, times, extended file system attributes). If either the source
-    file does not exist *or* the target file already exists, an exception will
+    file does not exist _or_ the target file already exists, an exception will
     be raised.
 
-    Such regular expression may be either a string *or* `Pattern` (i.e.,
-    compiled regular expression object), while such substitution may be either a
-    string *or* function. This function accepts the same optional keyword
-    arguments as `re.sub()`.
+    Such regular expressions may be either strings *or* instances of the
+    `Pattern` class (i.e., compiled regular expression object), while such
+    substitutions may be either strings _or_ functions. See the "Arguments"
+    section below for how this function expects such objects to be passed.
+
+    This function accepts the same optional keyword arguments as `re.sub()`.
+
+    Arguments
+    ----------
+    filename_source : str
+        Absolute path of the source filename to be read.
+    filename_target : str
+        Absolute path of the target filename to be written.
+    regex_substitution_pairs : sequence_nonstring
+        Non-string sequence (e.g., list, tuple) of non-string sequences of
+        length 2 (i.e., pairs), whose first element is a regular expression and
+        whose second element is the substitution to be performed for all
+        substrings in the source file matching that regular expression.
     '''
-    assert isinstance(filename_source, str),\
-        '"{}" not a string.'.format(filename_source)
-    assert isinstance(filename_target, str),\
-        '"{}" not a string.'.format(filename_target)
-    assert len(filename_source), 'Source filename empty.'
-    assert len(filename_target), 'Target filename empty.'
+    assert types.is_string_nonempty(filename_source),\
+        types.assert_is_not_string_nonempty(filename_source, 'source filename')
+    assert types.is_string_nonempty(filename_target),\
+        types.assert_is_not_string_nonempty(filename_target, 'target filename')
+    assert types.is_sequence_nonstring_nonempty(regex_substitution_pairs),\
+        types.assert_is_not_sequence_nonstring_nonempty(
+            regex_substitution_pairs, 'regular expression substitution pairs')
 
     # Log such substitution.
     if filename_source == filename_target:
-        loggers.log_debug(
+        loggers.log_info(
             'Munging file "%s" in-place.', filename_source)
     else:
-        loggers.log_debug(
+        loggers.log_info(
             'Munging file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
@@ -297,8 +313,17 @@ def substitute_strings(
     # Raise an exception if the target file already exists.
     die_if_file(filename_target)
 
-    # For efficiency, precompile the passed regular expression.
-    regex_compiled = re.compile(regex)
+    # For efficiency, replace all passed uncompiled with compiled regular
+    # expressions via a tuple comprehension.
+    regex_substitution_pairs = tuple(
+        (re.compile(regex), substitution)
+        for (regex, substitution) in regex_substitution_pairs
+    )
+
+    #FIXME: Such functionality is probably quite useful, where at least one
+    #matching line is absolutely expected. Consider formalizing into a passed
+    #argument, as lackluster time permits.
+    # is_line_matches = False
 
     # For atomicity, incrementally write to a temporary file rather than the
     # desired target file *BEFORE* moving the former to the latter. This
@@ -306,35 +331,75 @@ def substitute_strings(
     # potential race conditions elsewhere.
     with open_for_text_writing_temporary() as file_target_temp:
         with open_for_text_reading(filename_source) as file_source:
+            # For each line of the source file...
             for line in file_source:
-                file_target_temp.write(regex_compiled.sub(substitution, line))
+                # For each passed regular expression and corresponding
+                # substitution, replace all substrings in this line matching
+                # that regular expression with that substitution.
+                for (regex, substitution) in regex_substitution_pairs:
+                    # if regex.search(line, **kwargs) is not None:
+                    #     is_line_matches = True
+                    #     loggers.log_info('Line "%s" matches!', line)
+                    line = regex.sub(substitution, line, **kwargs)
 
-        # Copy all metadata (e.g., permissions) from such source to target file
-        # *BEFORE* moving the latter, avoiding potential race conditions and
-        # security vulnerabilities elsewhere.
+                # Append such line to the temporary file.
+                file_target_temp.write(line)
+
+            # if not is_line_matches:
+            #     raise BetseExceptionFile('No line matches!')
+
+        # Copy all metadata (e.g., permissions) from the source to temporary
+        # file *BEFORE* moving the latter, avoiding potential race conditions
+        # and security vulnerabilities elsewhere.
         shutil.copystat(filename_source, file_target_temp.name)
 
-        # Move such temporary file to such target file.
+        # Move the temporary to the target file.
         shutil.move(file_target_temp.name, filename_target)
 
 # --------------------( WASTELANDS                         )--------------------
-    # return path.isfile(filename)
-    # Versus path.isfile()
-    # ----------
-    # This function fundamentally differs from the stock `path.isfile()` function.
-    # Whereas the latter returns True only for non-special files and hence False
-    # for all non-directory special files (e.g., device nodes, symbolic links),
-    # this function returns True for for *all* non-directory files regardless of
-    # whether such files are special or not.
-    #
-    # Why? Because this function complies with POSIX semantics, whereas
-    # `path.isfile()` does *not*. Under POSIX, it is largely irrelevant whether a non-directory
-    # file is special or not; it simply matters whether such file is a directory
-    # or not. For example, the external command `rm` removes only non-directory
-    # files and the external command `rmdir` removes only empty directories.
-    # '''
-    # assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    # return path.exists(filename) and not path.isdir(filename)
+                    # print('Yay!')
+                    # print('Line: {}'.format(line))
+                    # if re.search(regex, line, **kwargs) is not None:
+                    #     is_line_matches = True
+                    #     loggers.log_info('Line "%s" matches!', line)
+                    # if re.search(
+                    #     # r'^(\s*turn all plots off)',
+                    #     r'turn all plots off', line) is not None:
+                    #     is_line_matches = True
+                    #     loggers.log_info('Line "%s" really matches!', line)
+                    # line = re.sub(regex, substitution, line, **kwargs)
+
+        # (regex, substitution)
+        # for regex_substitution_pair in regex_substitution_pairs
+        # for regex, substitution in regex_substitution_pair
+
+#     assert types.is_sequence_nonstring_nonempty(regexes),\
+#         types.assert_is_not_sequence_nonstring_nonempty(
+#             regexes, 'regular expressions')
+#     assert types.is_sequence_nonstring_nonempty(substitutions),\
+#         types.assert_is_not_sequence_nonstring_nonempty(
+#             substitutions, 'substitutions')
+#     assert len(regexes) == len(substitutions),\
+#         '{} regular expressions unequal to {} substitutions.'.format(
+#             len(regexes), len(substitutions))
+# #The number of passed regular expressions _must_ equal the number of passed substitutions.
+#     # return path.isfile(filename)
+#     # Versus path.isfile()
+#     # ----------
+#     # This function fundamentally differs from the stock `path.isfile()` function.
+#     # Whereas the latter returns True only for non-special files and hence False
+#     # for all non-directory special files (e.g., device nodes, symbolic links),
+#     # this function returns True for for *all* non-directory files regardless of
+#     # whether such files are special or not.
+#     #
+#     # Why? Because this function complies with POSIX semantics, whereas
+#     # `path.isfile()` does *not*. Under POSIX, it is largely irrelevant whether a non-directory
+#     # file is special or not; it simply matters whether such file is a directory
+#     # or not. For example, the external command `rm` removes only non-directory
+#     # files and the external command `rmdir` removes only empty directories.
+#     # '''
+#     # assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+#     # return path.exists(filename) and not path.isdir(filename)
 
     # Such file will be copied in a manner preserving some but *not* all metadata,
     # in accordance with standard POSIX behaviour. Specifically, the permissions

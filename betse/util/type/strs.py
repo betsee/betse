@@ -69,18 +69,18 @@ def join_on(*texts, delimiter: str) -> str:
     Join the passed strings with the passed separating delimiter.
 
     This is a convenience function wrapping the standard
-    `"...".join((...))` method, whose syntax is arguably overly verbose.
+    `"...".join((...))` method, whose syntax is arguably overly obfuscated.
     '''
     assert isinstance(delimiter, str), '"{}" not a string.'.format(delimiter)
 
     # If only one object was passed and...
     if len(texts) == 1:
         # Avoid circular import dependencies.
-        from betse.util.type import containers
+        from betse.util.type import types
 
         # ...such object is a non-string iterable (e.g, list, tuple), set the
         # list of passed strings to such object.
-        if containers.is_iterable_nonstring(texts[0]):
+        if types.is_iterable_nonstring(texts[0]):
             texts = texts[0]
 
     # Join such texts.

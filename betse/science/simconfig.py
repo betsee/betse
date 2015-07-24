@@ -32,10 +32,10 @@ def load(filename: str) -> dict:
     with files.open_for_text_reading(filename) as yaml_file:
         config = yaml.load(yaml_file)
 
-    #FIXME: Implement me.
+    #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
     # Validate the contents of such file.
 
-    # Get such dictionary.
+    # Return such dictionary.
     return config
 
 # ....................{ WRITERS                            }....................
@@ -47,6 +47,16 @@ def write_default(filename: str) -> None:
 
     The resulting configuration will be usable as is with all high-level `betse`
     functionality requiring a valid configuration file (e.g., `betse world`).
+
+    == Changes ==
+
+    For usability, the contents of the written (but _not_ original)
+    configuration file will be modified as follows:
+
+    * The `turn all plots off` option in the `results options` section will be
+      forcefully set to `True`. Ideally, this prevents the hapless end user from
+      drowning under an intimidating deluge of static plot windows irrelevant to
+      general-purpose usage.
     '''
     # Dirname, basename, and filetype of such file.
     dirname = paths.get_dirname(filename)
@@ -54,8 +64,7 @@ def write_default(filename: str) -> None:
     filetype = paths.get_filetype(basename)
 
     # Log such creation.
-    loggers.log_info(
-        'Writing default simulation configuration to "{}".'.format(basename))
+    loggers.log_info('Writing default simulation configuration.')
 
     # If such file already exists, fail. (For safety, we avoid silently
     # overwriting existing files.)
@@ -70,13 +79,35 @@ def write_default(filename: str) -> None:
     # Create such file's parent directory, if needed.
     dirs.make_unless_dir(dirname)
 
-    # Write the default configuration to such file.
-    files.copy(pathtree.CONFIG_DEFAULT_FILENAME, filename)
+    #FIXME: Ideally, we should be using ruamel.yaml to munge YAML data in a
+    #well-structured and hence sane manner rather than the admittedly crude
+    #"sed"-like approach leveraged below. Unfortunately, given the complex
+    #nature of such data, it's unclear whether or not ruamel.yaml would
+    #adequately preserve the entirety of such data in a roundtrip manner. For
+    #now, the "sed"-like approach prevails.
+
+    # Write the default configuration to such file, modifying the latter with
+    # "sed"-like global string substitution as detailed above.
+    files.substitute_substrings(
+        filename_source = pathtree.CONFIG_DEFAULT_FILENAME,
+        filename_target = filename,
+        regex_substitution_pairs = (
+            # Prevent static plots from being displayed by default.
+            (r'^(\s*turn all plots off:\s+)False\b(.*)$', r'\1True\2'),
+        ),
+    )
 
     # Copy all external files referenced by such file to its parent directory.
     dirs.copy_into_target_dir(pathtree.DATA_GEOMETRY_DIRNAME, dirname)
 
 # --------------------( WASTELANDS                         )--------------------
+    # loggers.log_info(
+    #     'Copying file "%s" to "%s".',
+    #     pathtree.CONFIG_DEFAULT_FILENAME, filename)
+            # (r'(\s*turn all plots off)', r'\1'),
+    # loggers.log_info(
+    #     'Writing default simulation configuration to "{}".'.format(basename))
+
 # ....................{ GETTERS                            }....................
 # def get() -> str:
 #     '''

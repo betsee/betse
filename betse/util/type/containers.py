@@ -7,24 +7,6 @@
 Low-level container facilities.
 '''
 
-# ....................{ IMPORTS                            }....................
-from collections import Iterable
-
-# ....................{ TESTERS                            }....................
-def is_iterable(obj) -> bool:
-    '''
-    True if the passed object is an *interable* (i.e., implements the abstract
-    interface defined by `collections.Iterable`).
-    '''
-    return isinstance(obj, Iterable)
-
-def is_iterable_nonstring(obj) -> bool:
-    '''
-    True if the passed object is a *non-string interable* (i.e., implements the
-    abstract interface defined by `collections.Iterable` *and* is not a string).
-    '''
-    return not isinstance(obj, str) and is_iterable(obj)
-
 # ....................{ SORTERS                            }....................
 def sort_as_lexicographic_ascending(container):
     '''
