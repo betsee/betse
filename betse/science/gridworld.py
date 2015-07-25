@@ -50,7 +50,7 @@ class GridWorld(object):
         self.fileInit(p)
         self.makeSeeds(p)
         self.makeCluster(p)
-        self.near_neigh(p)
+        # self.near_neigh(p)
         self.environment(p)
 
         self.generalMask = self.makeMask(mask_type='exterior bound')

@@ -125,7 +125,7 @@ class SimGrid(object):
 
         self.T = p.T                # set the base temperature for the simulation
 
-        self.flx_gj_i = np.zeros(len(cells.gap_jun_i))  # flux matrix across gj for individual ions
+        self.flx_gj_i = np.zeros(len(cells.xypts))  # flux matrix across gj for individual ions
         self.fluxes_gj_x = []
         self.fluxes_gj_y = []
         self.I_gj =np.zeros(len(cells.xypts))     # total current in the gj network
@@ -188,7 +188,7 @@ class SimGrid(object):
                     # environmental diffusion for each ion
                     str_Dgj = 'Dgj' + name
 
-                    setattr(self, str_Dgj, np.zeros(len(cells.gap_jun_i)))
+                    setattr(self, str_Dgj, np.zeros(len(cells.xypts)))
                     vars(self)[str_Dgj][cells.map_cell2ecm] = p.gj_surface*p.free_diff[name]
 
                     str_z = 'z' + name
@@ -273,7 +273,7 @@ class SimGrid(object):
             DmH = np.zeros(len(cells.cell_i))
             DmH[:] = p.Dm_H
 
-            DgjH = np.zeros(len(cells.gap_jun_i))
+            DgjH = np.zeros(len(cells.xypts))
             DgjH[cells.map_cell2ecm] = p.gj_surface*p.free_diff['H']
 
             self.zH = np.zeros(len(cells.cell_i))
@@ -404,7 +404,7 @@ class SimGrid(object):
 
         if p.global_options['gj_block'] != 0:
 
-            self.gj_block = np.ones(len(cells.gap_jun_i))   # initialize the gap junction blocking vector to ones
+            self.gj_block = np.ones(len(cells.xypts))   # initialize the gap junction blocking vector to ones
 
         else:
 
@@ -593,6 +593,9 @@ class SimGrid(object):
                 # update calcium concentrations in cell and ecm:
                 self.update_C(self.iCa,f_CaATP,cells,p)
 
+                # transport in the extracellular environment:
+                self.update_ENV(cells,p,self.iCa)
+
                 self.fluxes_mem[self.iCa] = f_CaATP
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
@@ -744,6 +747,11 @@ class SimGrid(object):
                 self.I_mem_time.append(Imem)
                 Imem = None
 
+                self.u_cells_x_time.append(self.u_cells_x[:])
+                self.u_cells_y_time.append(self.u_cells_y[:])
+                self.u_env_x_time.append(self.u_env_x[:])
+                self.u_env_y_time.append(self.u_env_y[:])
+
                 self.time.append(t)
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
@@ -865,94 +873,102 @@ class SimGrid(object):
         cell_conc = copy.copy(self.cc_cells[ion_i])
         env_conc = copy.copy(self.cc_env[ion_i][cells.map_cell2ecm])
 
-        self.cc_cells[ion_i] = cell_conc + flux*(cells.cell_sa/cells.cell_vol)*p.dt
+        # self.cc_cells[ion_i] = cell_conc + flux*(cells.cell_sa/cells.cell_vol)*p.dt
+        #
+        # self.cc_env[ion_i][cells.map_cell2ecm] = env_conc - flux*(cells.cell_sa/cells.ecm_vol)*p.dt
 
-        self.cc_env[ion_i][cells.map_cell2ecm] = env_conc - flux*(cells.cell_sa/cells.ecm_vol)*p.dt
+        self.cc_cells[ion_i] = rk4(cell_conc,flux*(cells.cell_sa/cells.cell_vol),p)
+        self.cc_env[ion_i][cells.map_cell2ecm] = rk4(env_conc, -flux*(cells.cell_sa/cells.ecm_vol),p)
 
     def update_GJ(self,cells,p,i):
 
 
-         # calculate voltage difference between cells:
-
-        vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
-
-        self.vgj = vmB - vmA
-
-        if p.v_sensitive_gj == True:
-            # determine the open state of gap junctions:
-            self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
-
-        # determine flux through gap junctions for this ion:
-
-        fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-            self.D_gj[i],p.gjl, p.gj_surface,self.zs[i],self.vgj,self.T,p)
-
-        deltac_gj = self.gjopen*(fgj)*p.dt
-
-        # update cell concentration due to gap junction flux:
-        self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
-
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        # self.update_V_ecm(cells,p,t)
-
-        self.fluxes_gj_x[i] = fgj*cells.gj_vects[:,2]  # store gap junction flux for this ion
-        self.fluxes_gj_y[i] = fgj*cells.gj_vects[:,3]  # store gap junction flux for this ion
+        #  # calculate voltage difference between cells:
+        #
+        # vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
+        #
+        # self.vgj = vmB - vmA
+        #
+        # if p.v_sensitive_gj == True:
+        #     # determine the open state of gap junctions:
+        #     self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+        #
+        # # determine flux through gap junctions for this ion:
+        #
+        # fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
+        #     self.D_gj[i],p.gjl, p.gj_surface,self.zs[i],self.vgj,self.T,p)
+        #
+        # deltac_gj = self.gjopen*(fgj)*p.dt
+        #
+        # # update cell concentration due to gap junction flux:
+        # self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
+        #
+        # # recalculate the net, unbalanced charge and voltage in each cell:
+        # # self.update_V_ecm(cells,p,t)
+        #
+        # self.fluxes_gj_x[i] = fgj*cells.gj_vects[:,2]  # store gap junction flux for this ion
+        # self.fluxes_gj_y[i] = fgj*cells.gj_vects[:,3]  # store gap junction flux for this ion
 
         # calculate voltage gradient between cells:
 
-        # concs = copy.copy(self.cc_cells[i])
-        #
-        # # map the cell concentrations to the main 2d grid:
-        # C = np.zeros(cells.X.shape)
-        # C[cells.map_ij2k[cells.map_cell2ecm][:,0],
-        # cells.map_ij2k[cells.map_cell2ecm][:,1]] = concs
-        #
-        # # map the cell voltage to the main 2d grid:
-        # V = np.zeros(cells.X.shape)
-        # V[cells.map_ij2k[cells.map_cell2ecm][:,0],
-        # cells.map_ij2k[cells.map_cell2ecm][:,1]] = self.v_cell[:]
-        #
-        # # calculate gradients of concentration and voltages between intracellular spaces:
-        # gcx, gcy = gradient(C, cells.delta)
-        # gvx, gvy = gradient(V,cells.delta)
-        #
-        # gv = np.sqrt(gvx**2 + gvy**2)  # calculate the magnitude of the voltage gradient
-        # gv_long = gv.ravel()  # unravel gj to work as a vector
-        #
-        # cell_v_grad = gv_long
-        #
-        # if p.v_sensitive_gj == True:
-        #
-        #     # determine the open state of gap junctions:
-        #     self.gjopen = self.gj_block*((1.0 - tb.step(abs(cell_v_grad),p.gj_vthresh,p.gj_vgrad) + 0.1))
-        #
-        # else:
-        #     self.gjopen = 1
-        #
-        # # modify the gap junction diffusion constant:
-        # D_gj_long = self.D_gj[i]*self.gjopen
-        #
-        # # map the modified gj diffusion matrix to the main 2d grid:
-        # D = np.zeros(cells.X.shape)
-        # D[cells.map_ij2k[:,0],
-        # cells.map_ij2k[:,1]] = D_gj_long
-        #
-        # # determine flux through gap junctions for this ion:
-        # fgjx, fgjy = nernst_planck_flux(C,gcx,gcy,gvx,gvy,D,self.zs[i],self.T,p)
-        #
-        # # update cell concentration due to gap junction flux:
-        # fxx, _ = gradient(-fgjx, cells.delta)
-        # _, fyy = gradient(-fgjy, cells.delta)
-        #
-        # # calculate the change in concentration and update the concentration matrix:
-        # deltac_long = fxx + fyy
-        #
-        # deltac = deltac_long.ravel()[cells.map_cell2ecm]
-        #
+        concs = copy.copy(self.cc_cells[i])
+
+        # map the cell concentrations to the main 2d grid:
+        C = np.zeros(cells.X.shape)
+        C[cells.map_ij2k[cells.map_cell2ecm][:,0],
+        cells.map_ij2k[cells.map_cell2ecm][:,1]] = concs
+
+        # map the cell voltage to the main 2d grid:
+        V = np.zeros(cells.X.shape)
+        V[cells.map_ij2k[cells.map_cell2ecm][:,0],
+        cells.map_ij2k[cells.map_cell2ecm][:,1]] = self.v_cell[:]
+
+        # calculate gradients of concentration and voltages between intracellular spaces:
+        gcx, gcy = gradient(C, cells.delta)
+        gvx, gvy = gradient(V,cells.delta)
+
+        gv = np.sqrt(gvx**2 + gvy**2)  # calculate the magnitude of the voltage gradient
+        gv_long = gv.ravel()  # unravel gj to work as a vector
+
+        cell_v_grad = gv_long
+
+        if p.v_sensitive_gj == True:
+
+            # determine the open state of gap junctions:
+            self.gjopen = self.gj_block*((1.0 - tb.step(abs(cell_v_grad),p.gj_vthresh,p.gj_vgrad) + 0.1))
+
+        else:
+            self.gjopen = 1
+
+        # modify the gap junction diffusion constant:
+        D_gj_long = self.D_gj[i]*self.gjopen
+
+        # map the modified gj diffusion matrix to the main 2d grid:
+        D = np.zeros(cells.X.shape)
+        D[cells.map_ij2k[:,0],
+        cells.map_ij2k[:,1]] = D_gj_long
+
+        # determine flux through gap junctions for this ion:
+
+        ux = self.u_cells_x.reshape(cells.X.shape)
+        uy = self.u_cells_y.reshape(cells.X.shape)
+
+        fgjx, fgjy = nernst_planck_flux(C,gcx,gcy,gvx,gvy,D,self.zs[i],self.T,p)
+
+        # update cell concentration due to gap junction flux:
+        fxx, _ = gradient(-fgjx, cells.delta)
+        _, fyy = gradient(-fgjy, cells.delta)
+
+        # calculate the change in concentration and update the concentration matrix:
+        deltac_long = fxx + fyy
+
+        deltac = deltac_long.ravel()[cells.map_cell2ecm]
+
         # self.cc_cells[i] = concs + deltac*p.dt   # FIXME can try this as RK4
-        #
-        # self.fluxes_gj_x[i] = fgjx.ravel()  # store gap junction flux for this ion
-        # self.fluxes_gj_y[i] = fgjy.ravel()  # store gap junction flux for this ion
+        self.cc_cells[i] = rk4(concs,deltac,p)
+
+        self.fluxes_gj_x[i] = -fgjx.ravel()  # store gap junction flux for this ion
+        self.fluxes_gj_y[i] = -fgjy.ravel()  # store gap junction flux for this ion
 
     def get_Efield(self,cells,p):
 
@@ -960,14 +976,20 @@ class SimGrid(object):
 
         # in the environment:
         venv = self.v_env.reshape(cells.X.shape)
-        self.E_env_x, self.E_env_y = gradient(venv, cells.delta)
+        genv_x, genv_y = gradient(venv, cells.delta)
+
+        self.E_env_x = genv_x
+        self.E_env_y = genv_y
 
         # in the intracellular network
         Z = np.zeros(cells.X.shape)
         Z[cells.map_ij2k[cells.map_cell2ecm][:,0],
           cells.map_ij2k[cells.map_cell2ecm][:,1]] = self.v_cell
 
-        self.E_gj_x, self.E_gj_y = gradient(Z,cells.delta)
+        ggj_x, ggj_y = gradient(Z,cells.delta)
+
+        self.E_gj_x = ggj_x
+        self.E_gj_y = ggj_y
 
     def get_Ufield(self,cells,p):
 
@@ -979,10 +1001,10 @@ class SimGrid(object):
 
         # in the environmental spaces:
 
-        fx_env = (self.rho_env/p.mu_water)*self.E_env_x.ravel()
-        fy_env = (self.rho_env/p.mu_water)*self.E_env_y.ravel()
+        fx_env = - (self.rho_env/p.mu_water)*self.E_env_x.ravel()
+        fy_env = - (self.rho_env/p.mu_water)*self.E_env_y.ravel()
 
-        # uncheck these to close the global boundary:
+        # check/uncheck these to close the global boundary:
         fx_env[cells.bL_kp] = 0
         fx_env[cells.bR_kp] = 0
 
@@ -1002,8 +1024,8 @@ class SimGrid(object):
         rho = np.zeros(len(cells.xypts))
         rho[cells.map_cell2ecm] = self.rho_cells
 
-        fx_cells = (rho/p.mu_water)*self.E_gj_x.ravel()
-        fy_cells = (rho/p.mu_water)*self.E_gj_y.ravel()
+        fx_cells = - (rho/p.mu_water)*self.E_gj_x.ravel()
+        fy_cells = - (rho/p.mu_water)*self.E_gj_y.ravel()
 
         fx_cells[cells.bound_pts_k] = 0 # velocity at the cell boundary must be zero # FIXME this should be tangentail to boundary only
         fy_cells[cells.bound_pts_k] = 0 # velocity at the cell boundary must be zero
@@ -1022,7 +1044,7 @@ class SimGrid(object):
         self.v_env[cells.bTop_k] = 0
         self.v_env[cells.bBot_k] = 0
 
-        # open boundary
+        # # open boundary
         # self.cc_env[i][cells.bL_k] = self.c_env_bound[i]
         # self.cc_env[i][cells.bR_k] = self.c_env_bound[i]
         # self.cc_env[i][cells.bTop_k] = self.c_env_bound[i]
@@ -1031,8 +1053,9 @@ class SimGrid(object):
         # make v_env and cc_env into 2d matrices
         cenv = copy.copy(self.cc_env[i])
         denv = copy.copy(self.D_env[i])
+        venv = copy.copy(self.v_env)
 
-        self.v_env = self.v_env.reshape(cells.X.shape)
+        venv = venv.reshape(cells.X.shape)
 
         cenv = cenv.reshape(cells.X.shape)
 
@@ -1046,8 +1069,11 @@ class SimGrid(object):
         denv = denv.reshape(cells.X.shape)
 
         # calculate gradients in the environment
-        grad_V_env_x, grad_V_env_y = gradient(self.v_env, cells.delta)
+        grad_V_env_x, grad_V_env_y = gradient(venv, cells.delta)
         grad_cc_env_x, grad_cc_env_y = gradient(cenv, cells.delta)
+
+        ux = self.u_env_x.reshape(cells.X.shape)
+        uy = self.u_env_y.reshape(cells.X.shape)
 
         f_env_x, f_env_y = nernst_planck_flux(cenv,grad_cc_env_x,grad_cc_env_y,
             grad_V_env_x, grad_V_env_y, denv,self.zs[i],self.T,p)
@@ -1057,14 +1083,15 @@ class SimGrid(object):
 
         delta_c = fxx + fyy
 
-        cenv = cenv + delta_c*p.dt
+        # cenv = cenv + delta_c*p.dt
 
-        # reshape the matrices into vectors
-        self.v_env = self.v_env.ravel()
+        cenv = rk4(cenv,delta_c, p)
+
+        # reshape the matrices into vectors:
         self.cc_env[i] = cenv.ravel()
 
-        self.fluxes_env_x[i] = f_env_x.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = f_env_y.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_x[i] = -f_env_x.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = -f_env_y.ravel()  # store ecm junction flux for this ion
 
         self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
         self.v_env = get_Venv(self,cells,p)
@@ -1160,8 +1187,8 @@ class SimGrid(object):
 
     def get_current(self,cells,p):
 
-        self.I_gj_x = np.zeros(len(cells.gap_jun_i))
-        self.I_gj_y = np.zeros(len(cells.gap_jun_i))
+        self.I_gj_x = np.zeros(len(cells.xypts))
+        self.I_gj_y = np.zeros(len(cells.xypts))
         self.I_mem = np.zeros(len(cells.cell_i))
         self.I_env_x = np.zeros(len(cells.xypts))
         self.I_env_y = np.zeros(len(cells.xypts))
@@ -1464,7 +1491,7 @@ def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p):
 
     return flux
 
-def nernst_planck_flux(c, gcx, gcy, gvx, gvy,D,z,T,p):
+def nernst_planck_flux(c, gcx, gcy, gvx, gvy, D, z, T, p):
 
     alpha = (D*z*p.q)/(p.kb*T)
 
@@ -1698,4 +1725,24 @@ def check_v(vm):
     if isnans.any():  # if there's anything in the isubzeros matrix...
         raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
                                        "reduce gap junction radius, and/or reduce pump rate coefficients.")
+
+def rk4(c,deltac,p):
+
+    if p.method == 0:
+
+        c2 = c + deltac*p.dt
+
+    elif p.method == 1:
+
+        k1 = deltac*p.dt
+
+        k2 = (1/2)*k1*p.dt
+
+        k3 = (1/2)*k2*p.dt
+
+        k4 = k3*p.dt
+
+        c2 = c + (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+    return c2
 
