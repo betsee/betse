@@ -7,192 +7,11 @@ The toolbox module contains a number of functions that are used throughout the
 BETSE project.
 """
 
-# FIXME SESS: To my scruffy chagrin, line 315 of this module just threw up the
-# following overflow error during a recent "beste try" run:
-#
-#    /home/leycec/py/betse/betse/science/toolbox.py:315: RuntimeWarning: overflow encountered in exp
-#      y2 = 1/(1 + (np.exp(-g*(t-t_off))))
-#
-# Overflows are *REALLY* bad, so I'm a wee surprised that Python didn't just
-# carpet-bomb the whole thing with a fatal exception. "What is overflow?", you
-# are probably wondering to your beautiful self. Overflow is an arithmetic error
-# specific to computer science. Computers can only hold so much data, right? In
-# most older programming languages (e.g., C, C++, Java), integer and floating
-# point variables can only hold a finite number of bytes. This means that the
-# range of values representable by such variables is bounded. 32-bit integer
-# variables, for example, are only able to store values in the range
-# [-2147483647, 2147483647]. That probably seems like a really large number of
-# possible values. Who would need to represent anything larger than 2 billion!?
-# In the real-world, though, it's depressingly common for this range to be
-# exceeded. As you may have astutely surmised, this error condition is referred
-# to as "overflow."
-#
-# And it's *REALLY*, *REALLY* bad. The reason why is that overflow causes values
-# to wrap around to the other side of the range of supported values. For
-# example, consider the value 2147483648. As the range above implies,
-# 2147483648 is not representable as a 32-bit integer variable. What happens,
-# exactly, when you try to assign 2147483648 to a 32-bit integer variable in
-# older programming languages -- like, say, Python 2? Let's find out:
-#
-#     >>> uh_oh  = 2147483648
-#     >>> oh_god = 2147483649
-#     >>> print "Oh by God! It's crazy overflow: " + uh_oh + oh_god
-#     Oh by God! It's crazy overflow: -2147483648 -2147483647
-#
-# Yes, you read that correctly. Thanks to the horrifying magic of overflow,
-# the positive values 2147483648 and 2147483649 wrap around to the other side of
-# the range of supported values... and magically become *VERY*, *VERY* negative.
-# We're probably beginning to perceive why overflow may not be a good thing.
-#
-# In Python 2, integers were bounded just like they were in older programming
-# languages. Longs, however, were *NOT*. Longs are an old-school arithmetic
-# type. (Just roll with me here, O.K.?) In older languages, longs were typically
-# bounded 64-bit integers. In Python 2, longs were what-we-call "arbitrary
-# precision" or "unbounded" integers. As the crude jargon implies, longs in
-# Python 2 could represent any possible integer value! Sweet, right? Except
-# that integers were still bounded.
-#
-# Everyone thought this was pretty stupid. I mean, why support two different
-# integer types -- one of which is bounded? Why not just have a single unbounded
-# integer type? Exactly, bro! And that's exactly why we use Python 3 rather than
-# Python 2. I probably never mentioned this, but Python 3 made everyone's (and
-# especially every scientist and mathematician's) life much easier by just
-# getting rid of bounded integers entirely. In Python 3, there are only
-# unbounded integers -- which is why you probably haven't run into too many
-# oveflow issues.
-#
-# Unfortunately, what applies to integers does *NOT* apply to floats. In both
-# Python 2 and 3, all floats are bounded and hence susceptible to overflow. Yes,
-# this sucks. It turns out that it's much, much harder to implement unbounded
-# floats than it is unbounded integers. In fact, there's a whole body of
-# research devoted to the problem of implementing arbitrary precision floats.
-# This means that you have to be *REALLY*, *REALLY* careful when performing
-# arithmetic operations on floats -- especially operations that are likely to
-# substantially increase or decrease the values of floats. Exponentiation is the
-# usual offender here.
-#
-# Unsurprisingly, this is exactly the operation that's causing overflow above:
-# np.exp(). This appears to be a fairly common issue, as shown by googling the
-# following search terms:
-#
-#     numpy "overflow encountered in exp"
-#
-# Let's revisit the problematic subexpression:
-#
-#     np.exp(-g*(t-t_off))
-#
-# Note the negative sign. "Wait a second here, fat bub!" Shouldn't the
-# exponentation of a negative number produce a really small number? Why would
-# *THAT* overflow? To overflow, we need to produce a really big number, right?
-# O.K., so here's where we introduce a new term: "underflow." Underflow is
-# basically the inverse of overflow. With overflow, the issue is that the
-# resulting number is too large to be represented. With underflow, the issue is
-# that the resulting number is too *SMALL* to be represented. Yup! But doesn't
-# that mean that the above error message should say "RuntimeWarning: underflow
-# encountered in exp" rather than "RuntimeWarning: overflow encountered in exp".
-#
-# Yes. Yes it does. But even numpy isn't perfect. It said "overflow," but it
-# really meant "underflow." But it doesn't really matter, does it? The end
-# result is the same: a *REALLY* bjorked-up number possibly bjorking-up the
-# entire simulation run.
-#
-# Enough useless theory already! "Just tell me how to fix it, you."
-#
-# Hey, hey: don't shoot the ugly-faced messenger. And... well, I don't know how
-# to fix it. Not exactly, anyway. Overflow and underflow are both squirmy issues
-# that have long vexed software engineers since Time Itself Beshat Itself.
-#
-# Here are a few helpful suggestions that we should probably consider pursuing:
-#
-# * Force numpy to raise fatal exceptions rather than printing non-fatal
-#   warnings on both overflows and underflows. Happily, numpy already provides a
-#   function for doing just that: numpy.seterr(). Overflows and underflows are
-#   sufficiently terrible that we really want to halt the entire simulation if
-#   even a single one occurs. I'd be a giddy schoolboy to make this happen. Just
-#   let me know! For my own rumination, the numpy.seterr() docs live at:
-#   http://docs.scipy.org/doc/numpy/reference/generated/numpy.seterr.html
-# * Use the external "bigfloat" library. This is an external Python library
-#   supporting unbounded floats. Unfortunately, there are two problems with this
-#   approach:
-#   * Numpy and bigfloat don't know about each other. While bigfloat *DOES*
-#     provide an exp() function, that function only accepts single float values
-#     rather than the numpy arrays accepted by the numpy.exp() function. While
-#     the problematic line of code that's underflowing *COULD* be converted to
-#     call bigfloat.exp() rather than numpy.exp(), we'd need to manually loop
-#     over all array values to do so. In other words: super-bad slowdown.
-#   * Bigfloat has some pretty hefty requirements. Like scipy, bigfloat is
-#     simply a wrapper for an external library implemented in a completely
-#     different language. This means that installing bigfloat is non-trivial --
-#     especially under Windows and OS X, our primary target platforms.
-# * Rewrite the problematic expression so as to prevent underflow. This is
-#   usually the best approach, but it's also the hardest. In some cases, it's
-#   infeasible. This may be one of them. The usual way that this is done is by
-#   taking the log of your very small or very large input values (thus producing
-#   much more reasonable values that can be worked with without worrying about
-#   underflow or overflow) and then exponentiating the resulting output value
-#   (thus "undoing" the prior logging). I hab no ideaz!
-# * Ignore underflow. This isn't necessarily the worst option. Overflow is
-#   really terrible, as documented above, because it fundamentally alters the
-#   resulting value in unexpected (and usually catastrophic) ways. Underflow, by
-#   comparison, isn't quite as bad. In most cases, the resulting value just gets
-#   truncated to 0. This *CAN* be bad, particularly in expressions like
-#   "1/np.exp(-blah_blah)" which, given an underflow, would reduce to a killer
-#   "1/0". Uhps! This implies that underflow shouldn't be ignored for general-
-#   purpose calculations. In the above case, however, the addition by 1
-#   guarantees that we won't be dividing by 0 even if np.exp() causes underflow:
-#
-#      y2 = 1/(1 + (np.exp(-g*(t-t_off))))
-#
-#   This means that we can probably do something like this:
-#
-#      old_settings = np.seterror(under = 'ignore')
-#      y2 = 1/(1 + (np.exp(-g*(t-t_off))))
-#      np.seterr(**old_settings)
-#
-#   What this does is temporarily ignore underflow for that specific operation
-#   and that specific operation only. We'll still want to ensure that overflows
-#   and underflows raise exceptions everywhere else -- probably by adding logic
-#   to "betse.ignition" resembling:
-#
-#      np.seterror(all = 'raise')
-#
-# But wait! There's more. I see with my perscipacious eye that the problematic
-# line is actually calculating the logistic function. Now, wouldn't you know it,
-# but the "scipy.special" module already provides the logistic function in a
-# manner supporting both single floats and numpy arrays. For some inane reason,
-# it's called expit(). (Rolls off the tongue. "Just expit, baby!") See:
-#
-#     http://docs.scipy.org/doc/scipy-0.15.0/reference/generated/scipy.special.expit.html
-#
-# Given that, you almost definitely want to refactor each statement of the form
-# "y = 1/(1 + (np.exp(-...)))" in the BETSE codebase to a statement of the form
-# "y = spsp.expit(...)", assuming an earlier "import scipy.special as spsp"
-# statement. Using PyCharm, it shouldn't be *TOO* meddlesome to find all places
-# where the exp() function is being called. Not all of them will be used for
-# calculating the logistic function, of course -- but many of them probably
-# will. For example, the problematic line above can be refactored:
-#
-#     # From this...
-#     y2 = 1/(1 + (np.exp(-g*(t-t_off))))
-#
-#     # ...to this. Suck it, verbosity. Note the conspicuous lack of a negative
-#     # sign here. We'll want to be supremely careful when refactoring
-#     # statements in the form above to statements in the form below.
-#     import scipy.special as spsp
-#     y2 = spsp.expit(g*(t-t_off))
-#
-# The latter is almost guaranteed to avoid both overflow and underflow issues
-# *AND* to be substantially faster than the former. Why? Because scipy rocks my
-# skinny Casbah. Most scipy developers are aware of this sort of thing, so
-# they've (hopefully) gone to great lengths to avoid overflow and underflow with
-# awesome mathematical cleverness. We'll want to test that, but I'm intuitively
-# confident that it's true. It has to be, or I'll eat my Tilley Hat.
-#
-# Yay! Yaay!!
 
 import numpy as np
 import scipy.spatial as sps
 from scipy import interpolate as interp
+from scipy.special import expit
 import math
 import copy
 
@@ -389,26 +208,6 @@ def alpha_shape(points, alpha):
         else:
             i = j
 
-
-    # Sess' improved concave hull finding algorithm.
-    # self.exterior_edges = set()
-    # self.interior_edges = set()
-    #
-    # def tri_edges_append(self, edge_list):
-    #     edge_tuple = tuple(edge_list)
-    #     if edge_tuple in self.exterior_edges:
-    #         self.exterior_edges.remove(edge_tuple)
-    #         self.interior_edges.add(edge_tuple)
-    #     elif edge_tuple not in self.interior_edges:
-    #         self.exterior_edges.add(edge_tuple)
-    #
-    # concave_hull = []
-    # for edge_tuple in self.exterior_edges:
-    #     concave_hull.append(list(edge_tuple))
-    #
-    # self.exterior_edges = None
-    # self.interior_edges = None
-
     return concave_hull
 
 def sigmoid(x,g,y_sat):
@@ -471,7 +270,9 @@ def step(t,t_on,t_change):
 
     """
     g = (1/t_change)*10
-    y = 1/(1 + (np.exp(-g*(t-t_on))))
+    # y = 1/(1 + (np.exp(-g*(t-t_on))))
+    x = g*(t-t_on)
+    y = expit(x)
     return y
 
 def pulse(t,t_on,t_off,t_change):
@@ -493,8 +294,13 @@ def pulse(t,t_on,t_off,t_change):
 
     """
     g = (1/t_change)*10
-    y1 = 1/(1 + (np.exp(-g*(t-t_on))))
-    y2 = 1/(1 + (np.exp(-g*(t-t_off))))
+    x1 = g*(t-t_on)
+    x2 = g*(t-t_off)
+    # y1 = 1/(1 + (np.exp(-g*(t-t_on))))
+    # y2 = 1/(1 + (np.exp(-g*(t-t_off))))
+    y1 = expit(x1)
+    y2 = expit(x2)
+
     y = y1 - y2
     return y
 

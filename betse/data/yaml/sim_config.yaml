@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 0.1                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 1.0e-3            # time period to sample data from init run [s] (recommended range see table)
+    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 300e-6         # the x-dimension of the world space [m]
+  world x: 100e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -297,7 +297,7 @@ world variables:
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
-  gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
+  gj voltage threshold: 20e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 20 to 80e-3 V
 
   gj voltage window: 20e-3        # the range over which gj goes from open to shut
@@ -371,7 +371,7 @@ block NaKATP pump:
 
 block HKATP pump:
 
-  event happens: True      # turn the even on (True) or off (False)
+  event happens: False      # turn the even on (True) or off (False)
   change start: 10           # sim time to start change [s]
   change finish: 200         # sim time to end change and return to original [s]
   change rate: 2            # rate of change [s]
