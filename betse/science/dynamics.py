@@ -232,6 +232,9 @@ class Dynamics(object):
             self.targets_vgNa = [item for sublist in self.targets_vgNa for item in sublist]
             self.targets_vgNa = np.asarray(self.targets_vgNa)
 
+            self.target_mask_vgNa = np.zeros(self.data_length)
+            self.target_mask_vgNa[self.targets_vgNa] = 1
+
         if p.vg_options['K_vg'] !=0:
 
             # Initialization of logic values forr voltage gated potassium channel
@@ -259,6 +262,9 @@ class Dynamics(object):
 
             self.targets_vgK = np.asarray(self.targets_vgK)
 
+            self.target_mask_vgK = np.zeros(self.data_length)
+            self.target_mask_vgK[self.targets_vgK] = 1
+
 
         if p.vg_options['Ca_vg'] !=0:
 
@@ -284,6 +290,9 @@ class Dynamics(object):
 
             self.targets_vgCa = np.asarray(self.targets_vgCa)
 
+            self.target_mask_vgCa = np.zeros(self.data_length)
+            self.target_mask_vgCa[self.targets_vgCa] = 1
+
         if p.vg_options['K_cag'] != 0:
 
             self.maxDmKcag = p.vg_options['K_cag'][0]
@@ -302,6 +311,9 @@ class Dynamics(object):
             self.targets_cagK = [item for sublist in self.targets_cagK for item in sublist]
 
             self.targets_cagK = np.asarray(self.targets_cagK)
+
+            self.target_mask_cagK = np.zeros(self.data_length)
+            self.target_mask_cagK[self.targets_cagK] = 1
 
         # calcium dynamics
         if p.Ca_dyn_options['CICR'] != 0:
@@ -332,6 +344,9 @@ class Dynamics(object):
             self.targets_Ca = [item for sublist in self.targets_Ca for item in sublist]
 
             self.targets_Ca = np.asarray(self.targets_Ca)
+
+            self.target_mask_Ca = np.zeros(self.data_length)
+            self.target_mask_Ca[self.targets_Ca] = 1
 
     def globalDyn(self,sim,cells,p,t):    # FIXME should now set cc_env for the p.sim_ECM == True
 
@@ -534,8 +549,7 @@ class Dynamics(object):
         truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
 
         # find the cell indicies that correspond to all statements of logic phase 1:
-        inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*
-                            self.targets_vgNa).nonzero()
+        inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*self.target_mask_vgNa).nonzero()
 
         self.vgNa_state[inds_activate_Na] = 1 # open the channel
         self.vgNa_aliveTimer[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
@@ -545,7 +559,7 @@ class Dynamics(object):
         truth_vgNa_On = self.vgNa_state == 1  # channel must be on already
         truth_vmGTvoff_Na = sim.vm > self.v_inactivate_Na  # bools of cells that have vm greater than shut-off volts
 
-        inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.targets_vgNa).nonzero()
+        inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.target_mask_vgNa).nonzero()
 
         self.vgNa_state[inds_inactivate_Na] = 0    # close the vg sodium channels
         self.inactivated_Na[inds_inactivate_Na] = 1   # switch these so cells do not re-activate
@@ -556,7 +570,7 @@ class Dynamics(object):
 
         truth_vgNa_act_timeout = self.vgNa_aliveTimer < t   # find cells that have timed out their vgNa open state
         truth_vgNa_On = self.vgNa_state == 1 # ensure the vgNa is indeed open
-        inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.targets_vgNa).nonzero()
+        inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.target_mask_vgNa).nonzero()
 
         self.vgNa_state[inds_timeout_Na_act] = 0             # set the state to closed
         self.vgNa_aliveTimer[inds_timeout_Na_act] = 0            # reset the timers to zero
@@ -566,7 +580,7 @@ class Dynamics(object):
         # Logic phase 4: find out if inactivation timers have timed out:
         truth_vgNa_inact_timeout = self.vgNa_deadTimer <t  # find cells that have timed out their vgNa inact state
         truth_vgNa_Off = self.vgNa_state == 0 # check to make sure these channels are indeed closed
-        inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.targets_vgNa).nonzero()
+        inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.target_mask_vgNa).nonzero()
 
         self.vgNa_deadTimer[inds_timeout_Na_inact] = 0    # reset the inactivation timer
         self.inactivated_Na[inds_timeout_Na_inact] = 0    # remove inhibition to activation
@@ -574,7 +588,7 @@ class Dynamics(object):
         # Logic phase 5: find out if cells have passed below threshhold to become deactivated:
         truth_vmLTvreact_Na = sim.vm < self.v_deactivate_Na # voltage is lower than the deactivate voltage
 
-        inds_deactivate_Na = (truth_vmLTvreact_Na*self.targets_vgNa).nonzero()
+        inds_deactivate_Na = (truth_vmLTvreact_Na*self.target_mask_vgNa).nonzero()
 
         self.inactivated_Na[inds_deactivate_Na] = 0  # turn any inhibition to activation off
         self.vgNa_state[inds_deactivate_Na] = 0   # shut the Na channel off if it's on
@@ -592,14 +606,14 @@ class Dynamics(object):
         truth_vgK_OFF = self.vgK_state == 0   # bools matrix for cells that are in the off state
 
         # cells at these indices will become activated in this time step:
-        inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.targets_vgK).nonzero()
+        inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.target_mask_vgK).nonzero()
         self.vgK_state[inds_activate_K] = 1  # set the state of these channels to "open"
         self.vgK_OFFtime[inds_activate_K] = self.t_alive_K + t  # set the time at which these channels will close
 
         #  detecting channels to turn off:
         truth_vgK_ON = self.vgK_state == 1  # detect cells that are in their on state
         truth_vgK_timeout = self.vgK_OFFtime < t     # detect the cells that have expired off timers
-        inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.targets_vgK).nonzero()
+        inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.target_mask_vgK).nonzero()
         self.vgK_state[inds_deactivate_K] = 0 # turn off the channels to closed
         self.vgK_OFFtime[inds_deactivate_K] = 0
 
@@ -619,18 +633,18 @@ class Dynamics(object):
         truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
 
         # cells at these indices will become activated in this time step:
-        inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.targets_vgCa).nonzero()
+        inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_mask_vgCa).nonzero()
         self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
 
         # detect condition to turn off vg_Ca channel:
         truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
         truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
-        inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.targets_vgCa).nonzero()
+        inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_mask_vgCa).nonzero()
         self.vgCa_state[inds_inactivate_Ca] = 0
 
         # additional condition to turn off vg_Ca via depolarizing voltage:
         truth_vmGTvcaOff = sim.vm > self.v_off_Ca
-        inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.targets_vgCa*truth_vgCa_ON).nonzero()
+        inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_mask_vgCa*truth_vgCa_ON).nonzero()
         self.vgCa_state[inds_inactivate_Ca_2] = 0
 
         inds_open_Ca = (self.vgCa_state == 1).nonzero()
@@ -643,14 +657,17 @@ class Dynamics(object):
 
     def cagPotassium(self,sim,cells,p,t):
 
-        inds_cagK_targets = (self.targets_cagK).nonzero()
+        # inds_cagK_targets = (self.targets_cagK).nonzero()
+        #
+        # self.active_cagK[inds_cagK_targets] = tb.hill(sim.cc_cells[sim.iCa][inds_cagK_targets],
+        #     self.Kcag_halfmax,self.Kcag_n)
 
-        self.active_cagK[inds_cagK_targets] = tb.hill(sim.cc_cells[sim.iCa][inds_cagK_targets],
+        self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][self.targets_cagK],
             self.Kcag_halfmax,self.Kcag_n)
 
         sim.Dm_cag[sim.iK] = self.maxDmKcag*self.active_cagK
 
-    def calciumDynamics(self,sim,cells,p):    # FIXME should calcium dynamics be targeted or global?
+    def calciumDynamics(self,sim,cells,p):
 
         if p.Ca_dyn_options['CICR'] != 0:
 
@@ -1020,28 +1037,28 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
         cell_targets = list(cell_targets_set)
         cell_keepers = list(cell_keepers_set)
 
-        # next get the ecm indicies for both the keeper and removal cells (some of these ecm will be shared)
-        removal_queery = cells.cell_to_ecm[cell_targets]
-        removal_queery_flat,_,_ = tb.flatten(removal_queery)
-        ecm_keepers = cells.cell_to_ecm[cell_keepers]
-        ecm_keepers_flat,_,_ = tb.flatten(ecm_keepers)
-
-        removal_queery_set = set(removal_queery_flat)
-        ecm_keepers_set = set(ecm_keepers_flat)
-
-        # use set intersection to determine new env ecm indices:
-        new_env_set = removal_queery_set & ecm_keepers_set
-        # the ecm to be totally removed are the ones that aren't shared between keeper and removal cells:
-        ecm_targets = removal_queery_set.difference(new_env_set)
-
-        ecm_keepers = list(ecm_keepers_set)
-        target_inds_env = list(new_env_set)
-        target_inds_ecm = list(ecm_targets)
-
-        new_ecm_env_mids = cells.ecm_mids[target_inds_env]  # [x,y] coords of ecm on boundary, for work later...
-        old_ecm_env_mids = cells.ecm_mids[cells.bflags_ecm]  # original coords of ecm on boundary, for work later..
-
-        cells.ecm_nn_i_old = cells.ecm_nn_i
+        # # next get the ecm indicies for both the keeper and removal cells (some of these ecm will be shared)
+        # removal_queery = cells.cell_to_ecm[cell_targets]
+        # removal_queery_flat,_,_ = tb.flatten(removal_queery)
+        # ecm_keepers = cells.cell_to_ecm[cell_keepers]
+        # ecm_keepers_flat,_,_ = tb.flatten(ecm_keepers)
+        #
+        # removal_queery_set = set(removal_queery_flat)
+        # ecm_keepers_set = set(ecm_keepers_flat)
+        #
+        # # use set intersection to determine new env ecm indices:
+        # new_env_set = removal_queery_set & ecm_keepers_set
+        # # the ecm to be totally removed are the ones that aren't shared between keeper and removal cells:
+        # ecm_targets = removal_queery_set.difference(new_env_set)
+        #
+        # ecm_keepers = list(ecm_keepers_set)
+        # target_inds_env = list(new_env_set)
+        # target_inds_ecm = list(ecm_targets)
+        #
+        # new_ecm_env_mids = cells.ecm_mids[target_inds_env]  # [x,y] coords of ecm on boundary, for work later...
+        # old_ecm_env_mids = cells.ecm_mids[cells.bflags_ecm]  # original coords of ecm on boundary, for work later..
+        #
+        # cells.ecm_nn_i_old = cells.ecm_nn_i
 
     # If doing online, real-time modifications the simulator object must be updated first:
     # get names of all attributes of sim object and convert to list
@@ -1080,14 +1097,16 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
                         if p.sim_ECM == True:  # FIXME need some way to fix environment fully (appending ecm data @ target_env to env)
 
-                            if len(data) == len(cells.ecm_i):
-                                data2 = np.delete(data,target_inds_ecm)
+                            pass
 
-                            if len(data) == len(cells.env_i):
-                                data_val = np.mean(data)
-                                data_a = np.zeros(len(target_inds_env))
-                                data_a[:] = data_val
-                                data2 = np.append(data,data_a)
+                            # if len(data) == len(cells.ecm_i):
+                            #     data2 = np.delete(data,target_inds_ecm)
+                            #
+                            # if len(data) == len(cells.env_i):
+                            #     data_val = np.mean(data)
+                            #     data_a = np.zeros(len(target_inds_env))
+                            #     data_a[:] = data_val
+                            #     data2 = np.append(data,data_a)
 
 
                     if isinstance(data,list):
@@ -1109,10 +1128,12 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
                         if p.sim_ECM == True:
 
-                            if len(data) == len(cells.ecm_i):
-                                for index in sorted(target_inds_ecm, reverse=True):
-                                    del data[index]
-                                data2.append(data[index])
+                            pass
+
+                            # if len(data) == len(cells.ecm_i):
+                            #     for index in sorted(target_inds_ecm, reverse=True):
+                            #         del data[index]
+                            #     data2.append(data[index])
 
 
                     super_data2.append(data2)
@@ -1141,16 +1162,18 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
                     if p.sim_ECM == True:
 
-                        if len(data) == len(cells.ecm_i):
-                            data2 = np.delete(data,target_inds_ecm)
-                            setattr(sim,name,data2)
+                        pass
 
-                        if len(data) == len(cells.env_i):
-                            data_val = np.mean(data)
-                            data2 = np.zeros(len(target_inds_env))
-                            data2[:] = data_val
-                            data3 = np.append(data,data2)
-                            setattr(sim,name,data3)
+                        # if len(data) == len(cells.ecm_i):
+                        #     data2 = np.delete(data,target_inds_ecm)
+                        #     setattr(sim,name,data2)
+                        #
+                        # if len(data) == len(cells.env_i):
+                        #     data_val = np.mean(data)
+                        #     data2 = np.zeros(len(target_inds_env))
+                        #     data2[:] = data_val
+                        #     data3 = np.append(data,data2)
+                        #     setattr(sim,name,data3)
 
 
                 if isinstance(data,list):
@@ -1175,12 +1198,13 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         setattr(sim,name,data2)
 
                     if p.sim_ECM == True:
+                        pass
 
-                        if len(data) == len(cells.ecm_i):
-                            for index in sorted(target_inds_ecm, reverse=True):
-                                del data[index]
-                            data2.append(data[index])
-                            setattr(sim,name,data2)
+                        # if len(data) == len(cells.ecm_i):
+                        #     for index in sorted(target_inds_ecm, reverse=True):
+                        #         del data[index]
+                        #     data2.append(data[index])
+                        #     setattr(sim,name,data2)
 
 
 #-------------------------------Fix cell world up------------------------------------
@@ -1190,11 +1214,12 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     removal_flags[target_inds_cell] = 1
 
     if cavity_volume == True and p.sim_ECM == True: # if true, want the new cavity volume to be assigned to the model
+        pass
 
-        # keep track of the original environmental points:
-        original_env_points = cells.env_points
-         # calculate the volume of the cavity based on cells removed
-        cells.cavity_volume = np.sum(cells.cell_vol[target_inds_cell])
+        # # keep track of the original environmental points:
+        # original_env_points = cells.env_points
+        #  # calculate the volume of the cavity based on cells removed
+        # cells.cavity_volume = np.sum(cells.cell_vol[target_inds_cell])
 
 
     for i,flag in enumerate(removal_flags):
@@ -1215,32 +1240,40 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
         # cells.bmask_ecm = np.zeros(len(cells.ecm_i))
 
         cells.cellVerts(p)   # create individual cell polygon vertices
-        cells.bflags_ecm,cells.bmask_ecm = cells.boundTag(cells.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
-        cells.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+        # cells.bflags_ecm,cells.bmask_ecm = cells.boundTag(cells.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
+        # cells.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
+        cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
 
-        ecmTree = sps.KDTree(cells.ecm_mids)
-        _,new_bflags_ecm = ecmTree.query(new_ecm_env_mids)
-        _,old_bflags_ecm = ecmTree.query(old_ecm_env_mids)
-
-        cells.bflags_ecm = None
-
-        cells.bflags_ecm = np.append(old_bflags_ecm,new_bflags_ecm)
+        # ecmTree = sps.KDTree(cells.ecm_mids)
+        # _,new_bflags_ecm = ecmTree.query(new_ecm_env_mids)
+        # _,old_bflags_ecm = ecmTree.query(old_ecm_env_mids)
+        #
+        # cells.bflags_ecm = None
+        #
+        # cells.bflags_ecm = np.append(old_bflags_ecm,new_bflags_ecm)
         # cells.bflags_ecm,_ = cells.boundTag(cells.ecm_mids,p,alpha=1.4)   # flag ecm domains on the env bound
 
-        cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
+        # cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
         cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.make_env_points(p)  # get the environmental interaction points for each boundary ecm
+        # cells.make_env_points(p)  # get the environmental interaction points for each boundary ecm
         cells.cleanUp(p)       # Free up memory...
+        # cells.makeECM(p)       # create the ecm grid
+        cells.environment(p)   # define features of the ecm grid
+        cells.grid_len =len(cells.xypts)
+        cells.generalMask = cells.makeMask(mask_type='exterior bound')
+        loggers.log_info('Creating environmental Poisson solver...')
+        cells.Ainv = cells.makeLaplacian(cells.generalMask)
 
         if cavity_volume == True:
+            pass
 
-            envTree = sps.KDTree(cells.env_points)  # make a points search tree out of the new environmental points...
-            _, cells.true_env_inds = envTree.query(original_env_points) # find inds in new vector matching original env points...
-
-            # prepare a vector that flags cavity env spaces with 1 and original env spaces with zero...
-            env_flags = np.ones(len(cells.env_points))
-            env_flags[cells.true_env_inds] = 0
-            cells.cavity_inds = (env_flags == 1).nonzero()
+            # envTree = sps.KDTree(cells.env_points)  # make a points search tree out of the new environmental points...
+            # _, cells.true_env_inds = envTree.query(original_env_points) # find inds in new vector matching original env points...
+            #
+            # # prepare a vector that flags cavity env spaces with 1 and original env spaces with zero...
+            # env_flags = np.ones(len(cells.env_points))
+            # env_flags[cells.true_env_inds] = 0
+            # cells.cavity_inds = (env_flags == 1).nonzero()
 
     else:
 
@@ -1253,28 +1286,30 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     #---------------------------
     if simMod == True and p.sim_ECM == True:
 
-        for name, dat in vars(sim).items():
+        pass
 
-            if isinstance(dat,np.ndarray):
-
-                if len(dat.shape) == 1 and len(dat) == len(cells.ecm_nn_i_old):
-                    mean_val = np.mean(dat)
-                    data2 = np.zeros(len(cells.ecm_nn_i))
-                    data2[:] = mean_val
-                    setattr(sim,name,data2)
-
-                elif len(dat.shape) > 1 and dat.shape[1] == len(cells.ecm_nn_i):
-
-                    sub_dat_2 = []
-
-                    for sub_dat in dat:
-                        mean_val = np.mean(sub_dat)
-                        data2 = np.zeros(len(cells.ecm_nn_i))
-                        data2[:] = mean_val
-                        sub_dat_2.append(data2)
-
-                    data3 = np.asarray(sub_dat_2)
-                    setattr(sim,name,data3)
+        # for name, dat in vars(sim).items():
+        #
+        #     if isinstance(dat,np.ndarray):
+        #
+        #         if len(dat.shape) == 1 and len(dat) == len(cells.ecm_nn_i_old):
+        #             mean_val = np.mean(dat)
+        #             data2 = np.zeros(len(cells.ecm_nn_i))
+        #             data2[:] = mean_val
+        #             setattr(sim,name,data2)
+        #
+        #         elif len(dat.shape) > 1 and dat.shape[1] == len(cells.ecm_nn_i):
+        #
+        #             sub_dat_2 = []
+        #
+        #             for sub_dat in dat:
+        #                 mean_val = np.mean(sub_dat)
+        #                 data2 = np.zeros(len(cells.ecm_nn_i))
+        #                 data2[:] = mean_val
+        #                 sub_dat_2.append(data2)
+        #
+        #             data3 = np.asarray(sub_dat_2)
+        #             setattr(sim,name,data3)
 
 
 

@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-2               # Simulation step-size [s] (recommended range see table)
-    total time: 1000.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 10.0            # time period to sample data from init run [s] (recommended range see table)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 1.e-2            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
@@ -126,11 +126,11 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 5.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 20.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 1.0e-3            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.05            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
 #    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
 #                                  # warning!!! the stability of your simulation is dramatically affected by the
@@ -162,9 +162,9 @@ general options:
 
   grid size: 20                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'scratch'   # set the ion profile to be used in the simulation
+  ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 50e-6         # the x-dimension of the world space [m]
+  world x: 150e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -393,7 +393,7 @@ geometry defining bitmaps:
 
     directory: geo/circle              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 1          # total number of bitmaps to load
+    number of bitmaps: 2          # total number of bitmaps to load
 
     bitmap 1:
 
@@ -403,9 +403,9 @@ geometry defining bitmaps:
 
     bitmap 2:
 
-        file: NervesMask.png        # name of the first bitmap defining geometry
+        file: cut_hole.png        # name of the first bitmap defining geometry
 
-        designation: nerves   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+        designation: tissue   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 3:
 
@@ -438,13 +438,13 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: gradient       # give your profile a name that will be used to apply the profile
-    cell targets: [0]      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    name: tissue       # give your profile a name that will be used to apply the profile
+    cell targets: bitmap      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -456,7 +456,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile
@@ -517,7 +517,7 @@ change Na mem:       # Change the membrane permeability to Na+
   change rate: 0.5                 # rate of change [s]
   multiplier: 10.0                  # factor to multiply base level
   function: None                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['gradient']        # name(s) of the tissue profile(s) to apply it to
+  apply to: ['tissue']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
@@ -527,7 +527,7 @@ change K mem:       # Change the membrane permeability to K+
   change rate: 1.0                    # rate of change [s]
   multiplier: 10.0                    # factor to multiply base level
   function: None                     # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['gradient']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['tissue']     # name(s) of the tissue profile(s) to apply it to
 
 change Cl mem:      # Change the membrane permeability to Cl-
 
@@ -603,23 +603,23 @@ function properties:        # set properties of functions defined in above
 
 voltage gated Na+:
     turn on: False                      # voltage gated sodium channel ?
-    apply to: ['gradient']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['tissue']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated K+:                       # voltage gated potassium channel ?
     turn on: False
-    apply to: ['excitables']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['tissue']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated Ca2+:                     # voltage gated calcium channel ?
     turn on: False
-    apply to: ['depolarized']         # name(s) of the tissue profile(s) to apply it to
+    apply to: ['tissue']         # name(s) of the tissue profile(s) to apply it to
 
 calcium gated K+:                       # calcium gated potassium channel ?
     turn on: False
-    apply to: ['depolarized']         # name(s) of the tissue profile(s) to apply it to
+    apply to: ['tissue']         # name(s) of the tissue profile(s) to apply it to
 
 Ca dynamics:                      # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
-    apply to: ['gradient']     # IP3 mediated calcium release from the ER
+    apply to: ['tissue']     # IP3 mediated calcium release from the ER
                                   # note this only works for an ion profile with Ca2+ ions
                                   # options True or False (case sensitive)
 
@@ -669,13 +669,13 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: True         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
                                  # warning should not be used for world sizes over 200 um.
 
-  plot cell index: 0              # State the cell index to use for single-cell time plots
+  plot cell index: 7              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
@@ -693,7 +693,7 @@ results options:
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
@@ -757,7 +757,7 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: False           # 2d animation of vmem with time?
+    animate Vmem: True           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
@@ -785,14 +785,14 @@ results options:
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
 
-    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
@@ -833,9 +833,9 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 1e-16        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
+        max Dmem Na: 1e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
         activation v: -50e-3      # voltage threshold above which vgNa is activated [V]
-        inactivation v: 30e-3     # voltage threshold above which vgNa is inactivated [V]
+        inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V]
         deactivation v: -52e-3    # voltage threshold below which vgNa is deactivated [V]
         live time: 5e-3           # time activated state can exist (trans to inactivated) [s]
         dead time: 10e-3          # refractory time vgNa remains inactivated [s]
@@ -911,8 +911,8 @@ internal parameters:
   halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  1.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1.0e-5  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  alpha_Ca:  5.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  1e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 

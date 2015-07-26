@@ -2,16 +2,13 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME redo all mass transports using new flux-based method
-# FIXME do gap junction diffusion as quasi-continuous
+
 # FIXME allow time dependent voltage to be added to global boundaries
 # FIXME allow user to specify open or closed concentration boundaries
-# FIXME create a proper plot while solving -- create an alternative viz module
 # FIXME add this grid computation method as feature to params and config and sim runner...
-# FIXME add in currents and electric fields
 # FIXME complete Ca2+, dye, IP3, etc
 # FIXME add in electroosmosis to ecm and gj
-# FIXME add in magnetic vector potential and magnetic field calculation -- does it affect E?
+# FIXME create new viz module
 # FIXME check cutting holes and other dynamics
 
 import numpy as np
@@ -124,6 +121,9 @@ class SimGrid(object):
         self.c_env_bound = []           # moving ion concentration at global boundary
 
         self.T = p.T                # set the base temperature for the simulation
+        # Initialize membrane thickness:
+        self.tm = np.zeros(len(cells.cell_i))
+        self.tm[:] = p.tm
 
         self.flx_gj_i = np.zeros(len(cells.xypts))  # flux matrix across gj for individual ions
         self.fluxes_gj_x = []
@@ -633,7 +633,7 @@ class SimGrid(object):
             for i in self.movingIons:
 
                 f_ED = electroflux(self.cc_env[i][cells.map_cell2ecm],self.cc_cells[i],
-                         self.Dm_cells[i], p.tm, cells.cell_sa, self.zs[i], self.vm, self.T, p)
+                         self.Dm_cells[i], self.tm, cells.cell_sa, self.zs[i], self.vm, self.T, p)
                 #
                 #
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
@@ -1451,7 +1451,7 @@ def get_Venv(self,cells,p):
 
         return V
 
-def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p):
+def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p,rho=1):
     """
     Electro-diffusion between two connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
     a positive flux moving from a to b. The voltage is defined as
@@ -1480,13 +1480,40 @@ def electroflux(cA,cB,Dc,d,sa,zc,vBA,T,p):
 
     """
 
-    grad_c = (cB - cA)/d
+ # modify the diffusion constant by the membrane density
+    Dc = rho*Dc
 
-    c_mid = (cA + cB)/2
+    alpha = (zc*vBA*p.F)/(p.R*T)
 
-    grad_V = vBA/d
+    #volab = (vola + volb)/2
+    #qualityfactor = abs((Dc/d)*(sa/volab)*p.dt*alpha)   # quality factor should be <1.0 for stable simulations
 
-    flux = -Dc*grad_c - ((Dc*p.q*zc)/(p.kb*T))*c_mid*grad_V
+    deno = 1 - np.exp(-alpha)   # calculate the denominator for the electrodiffusion equation,..
+
+    izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
+    inotzero = (deno!=0).nonzero()
+
+    # initialize data matrices to the same shape as input data
+    flux = np.zeros(deno.shape)
+
+    if len(deno[izero]):   # if there's anything in the izero array:
+         # calculate the flux for those elements as standard diffusion [mol/m2s]:
+        flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
+
+    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
+
+        # calculate the flux for those elements:
+        flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
+                        cA[inotzero]*np.exp(-alpha[inotzero]))/deno[inotzero])
+
+
+    # grad_c = (cB - cA)/d
+    #
+    # c_mid = (cA + cB)/2
+    #
+    # grad_V = vBA/d
+    #
+    # flux = -Dc*grad_c - ((Dc*p.q*zc)/(p.kb*T))*c_mid*grad_V
     # flux = sa*flux
 
     return flux

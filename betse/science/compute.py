@@ -367,6 +367,7 @@ class Simulator(object):
         self.z_array_env = []  # ion valence array matched to env points
         self.z_array_er = []
         self.Dm_cells = []              # membrane diffusion constants initialized
+        self.Dm_er = []                  # a list of endoplasmic reticulum membrane state
         self.D_free = []                 # a list of single-valued free diffusion constants for each ion
         self.D_env = []                 # an array of diffusion constants for each ion defined on env grid
         self.D_gj = []                  # an array of diffusion constants for gap junctions
@@ -375,6 +376,10 @@ class Simulator(object):
         self.c_env_bound = []           # moving ion concentration at global boundary
 
         self.T = p.T                # set the base temperature for the simulation
+
+        # Initialize membrane thickness:
+        self.tm = np.zeros(len(cells.mem_i))
+        self.tm[:] = p.tm
 
         self.flx_gj_i = np.zeros(len(cells.gj_i))  # flux matrix across gj for individual ions
         self.fluxes_gj = []
@@ -690,15 +695,13 @@ class Simulator(object):
             self.cIP3_flux_mem_time = []
 
             if p.sim_ECM == True:
-                self.cIP3_ecm = np.zeros(len(cells.ecm_i))     # initialize IP3 concentration of the environment
-                self.cIP3_ecm[:] = p.cIP3_to_env
-                self.cIP3_env = np.zeros(len(cells.env_i))
+                # self.cIP3_ecm = np.zeros(len(cells.ecm_i))     # initialize IP3 concentration of the environment
+                # self.cIP3_ecm[:] = p.cIP3_to_env
+                self.cIP3_env = np.zeros(len(cells.xypts))
                 self.cIP3_env[:] = p.cIP3_to_env
 
-                self.cIP3_flux_ecm = np.zeros(len(cells.ecm_i))
-                self.cIP3_flux_env = np.zeros(len(cells.env_i))
-                self.cIP3_flux_ecm_time = []
-                self.cIP3_flux_env_time = []
+                self.cIP3_flux_env_x = np.zeros(len(cells.xypts))
+                self.cIP3_flux_env_y = np.zeros(len(cells.xypts))
 
             elif p.sim_ECM == False:
                 self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
@@ -714,13 +717,13 @@ class Simulator(object):
 
 
             if p.sim_ECM == True:
-                self.cDye_ecm = np.zeros(len(cells.ecm_i))
-                self.cDye_ecm[:] = p.cDye_to
-                self.cDye_env = np.zeros(len(cells.env_i))
+                # self.cDye_ecm = np.zeros(len(cells.ecm_i))
+                # self.cDye_ecm[:] = p.cDye_to
+                self.cDye_env = np.zeros(len(cells.xypts))
                 self.cDye_env[:] = p.cDye_to
 
-                self.Dye_flux_ecm = np.zeros(len(cells.ecm_i))
-                self.Dye_flux_env = np.zeros(len(cells.env_i))
+                self.Dye_flux_env_x = np.zeros(len(cells.xypts))
+                self.Dye_flux_env_y = np.zeros(len(cells.xypts))
 
 
             else:
@@ -1038,14 +1041,14 @@ class Simulator(object):
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
 
-                fdye_ED = electroflux(self.cDye_env,self.cDye_cell,p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
+                fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
 
                 # update dye concentration
                 self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
 
                 # determine flux through gap junctions for voltage dye:
                 fDye = electroflux(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
-                    p.Do_Dye,self.gjl,p.z_Dye,self.vgj,self.T,p)
+                    self.id_gj*p.Do_Dye,self.gjl,p.z_Dye,self.vgj,self.T,p)
 
                 # update cell voltage-sensitive dye concentration due to gap junction flux:
                 deltac_dye = self.gjopen*(fDye)*p.dt
@@ -1353,7 +1356,7 @@ class Simulator(object):
 
             # run the Na-K-ATPase pump:
             fNa_NaK, fK_NaK =\
-                pumpNaKATP_ECM(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_env[self.iNa][cells.map_mem2ecm],
+                pumpNaKATP(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_env[self.iNa][cells.map_mem2ecm],
                     self.cc_cells[self.iK][cells.mem_to_cells],self.cc_env[self.iK][cells.map_mem2ecm],
                     self.vm,self.T,p,self.NaKATP_block)
 
@@ -1373,9 +1376,7 @@ class Simulator(object):
 
             if p.ions_dict['Ca'] == 1:
 
-                _,_, f_CaATP =\
-                    pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],self.cc_ecm[self.iCa][cells.mem_to_ecm],
-                        cells.mem_sa, cells.cell_vol[cells.mem_to_cells], cells.ecm_vol[cells.mem_to_ecm],
+                f_CaATP = pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],self.cc_env[self.iCa][cells.map_mem2ecm],
                         self.vm,self.T,p)
 
                 # update calcium concentrations in cell and ecm:
@@ -1416,8 +1417,8 @@ class Simulator(object):
 
             for i in self.movingIons:
 
-                f_ED = electroflux_ECM(self.cc_env[i][cells.map_mem2ecm],self.cc_cells[i][cells.mem_to_cells],
-                         self.Dm_cells[i], p.tm, self.zs[i], self.vm, self.T, p,
+                f_ED = electroflux(self.cc_env[i][cells.map_mem2ecm],self.cc_cells[i][cells.mem_to_cells],
+                         self.Dm_cells[i], self.tm, self.zs[i], self.vm, self.T, p,
                          rho=self.rho_channel)
 
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
@@ -1434,8 +1435,8 @@ class Simulator(object):
                 # update flux between cells due to gap junctions
                 self.update_gj(cells,p,t,i)
 
-            # # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V_ecm(cells,p,t)
+                # # recalculate the net, unbalanced charge and voltage in each cell:
+                self.update_V_ecm(cells,p,t)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
@@ -1665,22 +1666,33 @@ class Simulator(object):
 
         self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
         self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-        self.v_cell = get_Vcell(self.rho_cells,cells,p)
+        self.v_cell = get_Vcell(self,cells,p)
         self.v_env = get_Venv(self,cells,p)
 
         self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
-        c_cells = self.cc_cells[ion_i][:]
-        c_env = self.cc_env[ion_i][:]
+        c_cells = copy.copy(self.cc_cells[ion_i][:])
+        c_env = copy.copy(self.cc_env[ion_i][:])
 
-        delta_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])*p.dt
-        delta_c_env = flux*(cells.mem_sa/cells.ecm_vol)*p.dt
+        # delta_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])*p.dt
+        # delta_c_env = flux*(cells.mem_sa/cells.ecm_vol)*p.dt
+        #
+        # self.cc_cells[ion_i] = c_cells + np.dot(delta_c_cells, cells.cell_UpdateMatrix)
+        #
+        # self.cc_env[ion_i] = c_env - np.dot(delta_c_env, cells.ecm_UpdateMatrix)
 
-        self.cc_cells[ion_i] = c_cells + np.dot(delta_c_cells, cells.cell_UpdateMatrix)
+        d_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+        d_c_env = flux*(cells.mem_sa/cells.ecm_vol)
 
-        self.cc_env[ion_i] = c_env + np.dot(delta_c_env, cells.ecm_UpdateMatrix)
+        delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+        delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+
+        self.cc_cells[ion_i] = rk4(c_cells,delta_cells,p)
+
+        self.cc_env[ion_i] = rk4(c_env,-delta_env,p)
+
 
         # self.cc_env[ion_i][cells.map_mem2ecm] = c_env[cells.map_mem2ecm] - delta_c_env
 
@@ -1795,10 +1807,16 @@ class Simulator(object):
         fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
             self.D_gj[i],self.gjl,self.zs[i],self.vgj,self.T,p)
 
-        deltac_gj = self.gjopen*(fgj)*p.dt
+        # deltac_gj = self.gjopen*(fgj)*p.dt
 
         # update cell concentration due to gap junction flux:
-        self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
+        # self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
+
+        d_gj = self.gjopen*(fgj)
+
+        delta_gj = ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(d_gj, cells.gjMatrix)
+
+        self.cc_cells[i] = rk4(self.cc_cells[i],delta_gj,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         # self.update_V_ecm(cells,p,t)
@@ -1843,7 +1861,8 @@ class Simulator(object):
         # change in time is:
         delta_c = f_xx + f_yy
 
-        cenv = cenv + delta_c*p.dt
+        # cenv = cenv + delta_c*p.dt
+        cenv = rk4(cenv, delta_c,p)
 
         # Neumann boundary condition (flux at boundary)
         # zero flux boundaries for concentration
@@ -1861,8 +1880,8 @@ class Simulator(object):
         # self.rho_env = get_charge_density(self.cc_env,self.z_array_env,p)
         # self.v_env = get_Venv(self,cells,p)
 
-        self.fluxes_env_x[i] = f_env_x.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = f_env_y.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_x[i] = -f_env_x.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = -f_env_y.ravel()  # store ecm junction flux for this ion
 
         #-----------------------------
         #  # calculate voltage differences between ecm <---> ecm nearest neighbours:
@@ -1885,32 +1904,6 @@ class Simulator(object):
         # self.v_ecm = get_Vecm(self.rho_env,p)
         #
         # self.fluxes_ecm[i] = f_ecm  # store ecm junction flux for this ion
-
-    def update_environment(self,cells,p,t,i):
-
-        # calculate voltage differences between ecm <---> env nearest environmental neighbours:
-        self.v_ec2env =  self.v_env - self.v_ecm[cells.bflags_ecm]
-
-        # electrodiffuse between ecm <---> env and simultaneously update concentrations
-        self.cc_ecm[i][cells.bflags_ecm],self.cc_env[i],f_env = electrofuse(self.cc_ecm[i][cells.bflags_ecm],
-                self.cc_env[i], self.D_env_juncs[i],cells.len_ecm_junc[cells.bflags_ecm],
-                self.ec2ec_sa[cells.bflags_ecm], cells.ecm_vol[cells.bflags_ecm],self.env_vol,
-                self.zs[i], self.v_ec2env, self.T, p,ignoreECM=True)
-
-        self.rho_env = get_charge_density(self.cc_ecm, self.z_array_ecm, p)
-        self.v_ecm = get_Vecm(self.rho_env,p)
-
-        self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-        self.v_env = get_Vecm(self.rho_env,p)
-
-        self.fluxes_env[i] = f_env  # store ecm junction flux to the environment for this ion
-
-        # if p.ecm_bound_open == True: # if the geometry is open to the environment
-        #     self.cc_env[i] = self.cc_env_bulk[i]  # make outer ecm spaces equal to bulk environment
-        #     self.v_env[:] = 0
-
-        if p.scheduled_options['extV'] != 0 and p.run_sim == True:
-            self.dyna.externalVoltage(self,cells,p,t,self.v_env)      # apply a voltage to the environmental connectors
 
     def update_er(self,cells,p,t):
 
@@ -2491,7 +2484,7 @@ def get_charge_density(concentrations,zs,p):
 
     return netcharge
 
-def get_Vcell(rho_cell,cells,p):
+def get_Vcell(self,cells,p):
 
     """
     Calculates the voltage in each cell from Poisson equation charge density
@@ -2506,8 +2499,41 @@ def get_Vcell(rho_cell,cells,p):
     v_cell          an array of voltages in each cell space  [V]
 
     """
+    #
+    # v_cell = self.rho_cells[:]*(p.rc**2)/(4*p.eo*80.0)
 
-    v_cell = rho_cell*(p.rc**2)/(4*p.eo*80.0)
+
+    #-------------------
+
+    #   # # Poisson solver----------------------------------------------------------------
+
+    rho = np.zeros(len(cells.xypts))
+    # unravel the source vector
+    rho[cells.map_cell2ecm] = self.rho_cells
+    # rho = rho_env.ravel()
+
+    # create a solution vector in the same shape as the source vector
+    V = np.zeros(len(cells.xypts))
+
+    # modify the source charge distribution in line with electrostatic Poisson equation:
+    fxy = -rho/(80*p.eo)
+
+    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on the cell cluster:
+    # fxy[cells.bound_pts_k] = 0
+    # fxy[cells.bTop_kp] = (self.bound_V['T']/cells.delta**2)
+    # fxy[cells.bL_kp] = (self.bound_V['L']/cells.delta**2)
+    # fxy[cells.bR_kp] = (self.bound_V['R']/cells.delta**2)
+
+    # Solve Poisson's electrostatic equation:
+    V = np.dot(cells.Ainv,fxy)
+
+    # if the boundary conditions set the outside of the matrix:
+    V[cells.bBot_k] = self.bound_V['B']
+    V[cells.bTop_k] = self.bound_V['T']
+    V[cells.bL_k] = self.bound_V['L']
+    V[cells.bR_k] = self.bound_V['R']
+
+    v_cell = V[cells.map_cell2ecm]
 
     return v_cell
 
@@ -2532,29 +2558,55 @@ def get_Venv(self,cells,p):
 
     # Poisson solver----------------------------------------------------------------
 
-    rho_env = self.rho_env[cells.core_k][:]
-    v_env = self.v_env[:]
+    # rho_env = self.rho_env[cells.core_k][:]
+    # v_env = self.v_env[:]
+    #
+    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
+    #
+    # rho_env[cells.bBot_kp] = rho_env[cells.bBot_kp] - (self.bound_V['B']/cells.delta**2)
+    # rho_env[cells.bTop_kp] = rho_env[cells.bTop_kp] - (self.bound_V['T']/cells.delta**2)
+    # rho_env[cells.bL_kp] = rho_env[cells.bL_kp] - (self.bound_V['L']/cells.delta**2)
+    # rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
+    #
+    # # Solve Poisson's electrostatic equation:
+    # V = np.dot(cells.Ainv,-rho_env)
+    #
+    # # Re-pack the solution to the original vector:
+    # v_env[cells.core_k] = V
+    #
+    # # set boundary values on the original vector
+    # v_env[cells.bTop_k] = self.bound_V['T']
+    # v_env[cells.bBot_k] = self.bound_V['B']
+    # v_env[cells.bL_k] = self.bound_V['L']
+    # v_env[cells.bR_k] = self.bound_V['R']
 
-    # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
+    # unravel the source vector
+    rho = copy.copy(self.rho_env)
+    # rho = rho_env.ravel()
 
-    rho_env[cells.bBot_kp] = rho_env[cells.bBot_kp] - (self.bound_V['B']/cells.delta**2)
-    rho_env[cells.bTop_kp] = rho_env[cells.bTop_kp] - (self.bound_V['T']/cells.delta**2)
-    rho_env[cells.bL_kp] = rho_env[cells.bL_kp] - (self.bound_V['L']/cells.delta**2)
-    rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
+    # create a solution vector in the same shape as the source vector
+    V = np.zeros(rho.shape)
+
+    # modify the source charge distribution in line with electrostatic Poisson equation:
+    fxy = -rho/(80*p.eo)
+    # fxy = -rho
+
+    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
+    fxy[cells.bBot_kp] = (self.bound_V['B']/cells.delta**2)
+    fxy[cells.bTop_kp] = (self.bound_V['T']/cells.delta**2)
+    fxy[cells.bL_kp] = (self.bound_V['L']/cells.delta**2)
+    fxy[cells.bR_kp] = (self.bound_V['R']/cells.delta**2)
 
     # Solve Poisson's electrostatic equation:
-    V = np.dot(cells.Ainv,-rho_env/(p.eo*80))
+    V = np.dot(cells.Ainv,fxy)
 
-    # Re-pack the solution to the original vector:
-    v_env[cells.core_k] = V
+    # if the boundary conditions set the outside of the matrix:
+    V[cells.bBot_k] = self.bound_V['B']
+    V[cells.bTop_k] = self.bound_V['T']
+    V[cells.bL_k] = self.bound_V['L']
+    V[cells.bR_k] = self.bound_V['R']
 
-    # set boundary values on the original vector
-    v_env[cells.bTop_k] = self.bound_V['T']
-    v_env[cells.bBot_k] = self.bound_V['B']
-    v_env[cells.bL_k] = self.bound_V['L']
-    v_env[cells.bR_k] = self.bound_V['R']
-
-    return v_env
+    return V
 
 def get_molarity(concentrations,p):
 
@@ -2655,6 +2707,26 @@ def nernst_planck(c,gcx,gcy,ddc,gvx,gvy,ddv,gdx,gdy,D,z,T,p):
     delta_c = (gdx*gcx + gdy*gcy) + D*ddc + alpha*(gcx*gvx + gcy*gvy) + beta*(gdx*gvx + gdy*gvy) + c*alpha*ddv
 
     return delta_c
+
+def rk4(c,deltac,p):
+
+    if p.method == 0:
+
+        c2 = c + deltac*p.dt
+
+    elif p.method == 1:
+
+        k1 = deltac*p.dt
+
+        k2 = (1/2)*k1*p.dt
+
+        k3 = (1/2)*k2*p.dt
+
+        k4 = k3*p.dt
+
+        c2 = c + (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+
+    return c2
 
 
 
@@ -3039,6 +3111,32 @@ def nernst_planck(c,gcx,gcy,ddc,gvx,gvy,ddv,gdx,gdy,D,z,T,p):
     #     loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
     #     loggers.log_info('If you have selected features using other ions, they will be ignored.')
 
+
+    # def update_environment(self,cells,p,t,i):
+    #
+    #     # calculate voltage differences between ecm <---> env nearest environmental neighbours:
+    #     self.v_ec2env =  self.v_env - self.v_ecm[cells.bflags_ecm]
+    #
+    #     # electrodiffuse between ecm <---> env and simultaneously update concentrations
+    #     self.cc_ecm[i][cells.bflags_ecm],self.cc_env[i],f_env = electrofuse(self.cc_ecm[i][cells.bflags_ecm],
+    #             self.cc_env[i], self.D_env_juncs[i],cells.len_ecm_junc[cells.bflags_ecm],
+    #             self.ec2ec_sa[cells.bflags_ecm], cells.ecm_vol[cells.bflags_ecm],self.env_vol,
+    #             self.zs[i], self.v_ec2env, self.T, p,ignoreECM=True)
+    #
+    #     self.rho_env = get_charge_density(self.cc_ecm, self.z_array_ecm, p)
+    #     self.v_ecm = get_Vecm(self.rho_env,p)
+    #
+    #     self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
+    #     self.v_env = get_Vecm(self.rho_env,p)
+    #
+    #     self.fluxes_env[i] = f_env  # store ecm junction flux to the environment for this ion
+    #
+    #     # if p.ecm_bound_open == True: # if the geometry is open to the environment
+    #     #     self.cc_env[i] = self.cc_env_bulk[i]  # make outer ecm spaces equal to bulk environment
+    #     #     self.v_env[:] = 0
+    #
+    #     if p.scheduled_options['extV'] != 0 and p.run_sim == True:
+    #         self.dyna.externalVoltage(self,cells,p,t,self.v_env)      # apply a voltage to the environmental connectors
 
 
 

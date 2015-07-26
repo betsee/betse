@@ -216,7 +216,12 @@ class World(object):
             self.cleanUp(p)       # Free up memory...
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
-            self.makeLaplacian()  # create the Laplacian solver
+            self.grid_len =len(self.xypts)
+            self.generalMask = self.makeMask(mask_type='exterior bound')
+            loggers.log_info('Creating environmental Poisson solver...')
+            self.Ainv = self.makeLaplacian(self.generalMask)
+
+            # self.makeLaplacian()  # create the Laplacian solver
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
@@ -865,6 +870,8 @@ class World(object):
         # properties of ecm spaces local to each cell:
         self.ecm_sa = self.mem_length*p.cell_height
         self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
+        # self.ecm_vol = np.zeros(len(self.mem_length))
+        # self.ecm_vol[:] = np.mean(self.cell_vol)
 
         # re-define geometric limits and centre for the cluster of points
         # self.xmin = np.min(self.X)
@@ -900,7 +907,11 @@ class World(object):
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
         self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat))[1]
+        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
+
+        # flatten the list since multiple neighbours were sought:
+        # self.map_mem2ecm = [item for sublist in self.map_mem2ecm for item in sublist]
+        # self.map_mem2ecm = np.asarray(self.map_mem2ecm)
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
@@ -948,6 +959,28 @@ class World(object):
 
         self.core_n = self.grid_n - 2
 
+
+         # get a list of k indices to the four 1st interior (global) boundaries of the rectangular world:
+        bBot_xp = self.X[1,1:-1]
+        bTop_xp = self.X[-2,1:-1]
+        bL_xp = self.X[1:-1,1]
+        bR_xp = self.X[1:-1,-2]
+
+        bBot_yp = self.Y[1,1:-1]
+        bTop_yp = self.Y[-2,1:-1]
+        bL_yp = self.Y[1:-1,1]
+        bR_yp = self.Y[1:-1,-2]
+
+        bBot_pts_p = np.column_stack((bBot_xp, bBot_yp))
+        bTop_pts_p = np.column_stack((bTop_xp, bTop_yp))
+        bL_pts_p = np.column_stack((bL_xp, bL_yp))
+        bR_pts_p = np.column_stack((bR_xp, bR_yp))
+
+        self.bBot_kp = list(points_tree.query(bBot_pts_p))[1]
+        self.bTop_kp = list(points_tree.query(bTop_pts_p))[1]
+        self.bL_kp = list(points_tree.query(bL_pts_p))[1]
+        self.bR_kp = list(points_tree.query(bR_pts_p))[1]
+
         # create a mapping from the ip, jp indexing to the kp index of the unraveled core matrix:
         M = []
         for i in range(self.core_n):
@@ -969,7 +1002,30 @@ class World(object):
         for i, ecm_index in enumerate(self.map_mem2ecm):
             self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-    def makeLaplacian(self):
+    def makeMask(self, mask_type = 'exterior bound'):
+
+        if mask_type == 'cluster bound':
+
+            maskM = np.zeros(self.X.shape)
+
+            maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
+            maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
+
+        elif mask_type == 'exterior bound':
+            maskM = np.ones(self.X.shape)
+            maskM[1,1:-1]= -1
+            maskM[-2,1:-1] =-1
+            maskM[1:-1,1]=-1
+            maskM[1:-1,-2] =-1
+
+            maskM[0,:]= 0
+            maskM[-1,:] = 0
+            maskM[:,0]= 0
+            maskM[:,-1] =0
+
+        return maskM
+
+    def makeLaplacian(self,maskM):
         """
         Generate the discrete finite central difference 2D Laplacian operator based on:
 
@@ -983,89 +1039,59 @@ class World(object):
 
         U = Ainv*fxy
 
-        Creates
+        For a domain with an irregular boundary which is *embedded* within a 2D Cartesian grid.
+
+        Parameters
+        -----------
+        maskM               A numpy nd array of the world grid, where 0 stands for external point where U = 0,
+                            1 for an internal point where U is calculated, and -1 for a point on a boundary.
+
+        Returns
         --------
-        self.Ainv
+        Ainv                Creates a laplacian matrix solver for the specified geometry (including boundary conditions)
+        bound_pts_k         A list of k-indices for the boundary points (specific to the maskM) for modifying source
 
         Notes
         -------
         ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
 
-
         """
+
         # initialize the laplacian operator matrix:
-        A = np.zeros((self.core_len,self.core_len))
+        A = np.zeros((self.grid_len,self.grid_len))
+        bound_pts_k = []
 
-        # # create a temporary Python list version of the full index map
-        # map_ij2k = self.map_ij2k.tolist()
+        for k, (i, j) in enumerate(self.map_ij2k):
 
-        # lists to store the indices of
-        self.bBot_kp = []
-        self.bTop_kp = []
-        self.bL_kp = []
-        self.bR_kp = []
+            maskVal = maskM[i, j]
 
+            if maskVal == 1:  # interior point, do full algorithm...
 
-        for kp, (ip, jp) in enumerate(self.map_ij2k_core):
+                k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
+                k_in1_j = self.map_ij2k.tolist().index([i-1,j])
+                k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
+                k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
 
-            if ip + 1 < self.core_n:
+                A[k, k_ip1_j] = 1
+                A[k, k_in1_j] = 1
+                A[k, k_i_jp1] = 1
+                A[k, k_i_jn1] = 1
+                A[k,k] = -4
 
-                k_ip1_j = self.map_ij2k_core.index([ip+1,jp])
-                A[kp, k_ip1_j] = 1
+            elif maskVal == -1:  # boundary point, treat as such
+                A[k,k] = 1
+                bound_pts_k.append(k)
 
-            else:
-                # store the kp index of the bottom boundary for off the cuff modification of sol vector:
-                self.bBot_kp.append(kp)
-
-                # deal with the bounary value by moving to the RHS of the equation:
-                # bval = self.bBot[jp+1]
-                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
-
-            if ip - 1 >= 0:
-
-                k_in1_j = self.map_ij2k_core.index([ip-1,jp])
-                A[kp, k_in1_j] = 1
-
-            else:
-                # deal with the bounary value by moving to the RHS of the equation:
-                self.bTop_kp.append(kp)
-                # bval = self.bTop[jp+1]
-                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
-
-            if jp + 1 < self.core_n:
-
-                k_i_jp1 = self.map_ij2k_core.index([ip,jp+1])
-                A[kp, k_i_jp1] = 1
-
-            else:
-                # deal with the bounary value by moving to the RHS of the equation:
-                self.bR_kp.append(kp)
-
-                # bval = self.bR[ip + 1]
-                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
-
-            if jp -1 >= 0:
-                k_i_jn1 = self.map_ij2k_core.index([ip,jp-1])
-                A[kp, k_i_jn1] = 1
-
-            else:
-                # deal with the bounary value by moving to the RHS of the equation:
-                self.bL_kp.append(kp)
-
-                # bval = self.bL[ip+1]
-                # self.FF[k] = self.FF[k] - (bval/self.delta**2)
-
-            A[kp,kp] = -4
+            elif maskVal == 0:  # exterior point, treat as such
+                A[k,k] = 1
 
         # complete the laplacian operator by diving through by grid spacing squared:
-
-        A = A/self.delta**2
-
-        loggers.log_info('Creating Poisson solver... ')
-        loggers.log_info('(...may take a few minutes but is worth its time in gold!...) ')
+        Ai = A/self.delta**2
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-        self.Ainv = np.linalg.inv(A)
+        Ainv = np.linalg.inv(Ai)
+
+        return Ainv
 
     def cleanUp(self,p):
 
@@ -1869,7 +1895,102 @@ class World(object):
     #         self.cell_vol.append(p.cell_height*tb.area(poly))
 
 
-
+    # def makeLaplacian(self):
+    #     """
+    #     Generate the discrete finite central difference 2D Laplacian operator based on:
+    #
+    #     d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
+    #
+    #     To solve the Poisson equation:
+    #
+    #     A*U = fxy
+    #
+    #     by:
+    #
+    #     U = Ainv*fxy
+    #
+    #     Creates
+    #     --------
+    #     self.Ainv
+    #
+    #     Notes
+    #     -------
+    #     ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
+    #
+    #
+    #     """
+    #     # initialize the laplacian operator matrix:
+    #     A = np.zeros((self.core_len,self.core_len))
+    #
+    #     # # create a temporary Python list version of the full index map
+    #     # map_ij2k = self.map_ij2k.tolist()
+    #
+    #     # lists to store the indices of
+    #     self.bBot_kp = []
+    #     self.bTop_kp = []
+    #     self.bL_kp = []
+    #     self.bR_kp = []
+    #
+    #
+    #     for kp, (ip, jp) in enumerate(self.map_ij2k_core):
+    #
+    #         if ip + 1 < self.core_n:
+    #
+    #             k_ip1_j = self.map_ij2k_core.index([ip+1,jp])
+    #             A[kp, k_ip1_j] = 1
+    #
+    #         else:
+    #             # store the kp index of the bottom boundary for off the cuff modification of sol vector:
+    #             self.bBot_kp.append(kp)
+    #
+    #             # deal with the bounary value by moving to the RHS of the equation:
+    #             # bval = self.bBot[jp+1]
+    #             # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+    #
+    #         if ip - 1 >= 0:
+    #
+    #             k_in1_j = self.map_ij2k_core.index([ip-1,jp])
+    #             A[kp, k_in1_j] = 1
+    #
+    #         else:
+    #             # deal with the bounary value by moving to the RHS of the equation:
+    #             self.bTop_kp.append(kp)
+    #             # bval = self.bTop[jp+1]
+    #             # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+    #
+    #         if jp + 1 < self.core_n:
+    #
+    #             k_i_jp1 = self.map_ij2k_core.index([ip,jp+1])
+    #             A[kp, k_i_jp1] = 1
+    #
+    #         else:
+    #             # deal with the bounary value by moving to the RHS of the equation:
+    #             self.bR_kp.append(kp)
+    #
+    #             # bval = self.bR[ip + 1]
+    #             # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+    #
+    #         if jp -1 >= 0:
+    #             k_i_jn1 = self.map_ij2k_core.index([ip,jp-1])
+    #             A[kp, k_i_jn1] = 1
+    #
+    #         else:
+    #             # deal with the bounary value by moving to the RHS of the equation:
+    #             self.bL_kp.append(kp)
+    #
+    #             # bval = self.bL[ip+1]
+    #             # self.FF[k] = self.FF[k] - (bval/self.delta**2)
+    #
+    #         A[kp,kp] = -4
+    #
+    #     # complete the laplacian operator by diving through by grid spacing squared:
+    #
+    #     A = A/self.delta**2
+    #
+    #     loggers.log_info('Creating Poisson solver... ')
+    #
+    #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+    #     self.Ainv = np.linalg.inv(A)
 
 
 
