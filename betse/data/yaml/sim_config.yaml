@@ -79,20 +79,20 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range see table)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
     total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    sampling rate: 0.01            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
 #
-# GJ r          no ecm space      ecm spaces    sampling t      effect
+# GJ sa          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
-# 1e-9               1e-2             5e-4          0.1         closed gap junctions
-# 1.0e-8             1e-2             5e-4          0.1         low gap junctions
-# 5.0e-8             1e-3             1e-5          1e-3        moderate gap junction
-# 1.0e-7             1e-4             1e-6          1e-4        high flux gap junctions
+# 1e-5               5e-3             5e-4          0.1         closed gap junctions
+# 1.0e-4             5e-3             5e-4          0.1         low gap junctions
+# 5.0e-4             1e-3             1e-5          1e-3        moderate gap junction
+# 1.0e-3             5e-4             1e-6          1e-4        high flux gap junctions
 
 # -----------------------------------------------------------------------------
 
@@ -128,9 +128,9 @@ sim time settings:
 
     time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 1.0e-3            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
 #    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
 #                                  # warning!!! the stability of your simulation is dramatically affected by the
@@ -142,14 +142,14 @@ sim time settings:
 #------------------------------------------------------------------------------
 # Time-step Recommendations
 #
-# GJ r          no ecm space      ecm spaces    sampling t      effect
+# GJ sa          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
-# 1e-8               1e-2             5e-4          0.1         closed gap junctions
-# 1.0e-7             1e-2             5e-4          0.1         low gap junctions
-# 5.0e-7             1e-3             1e-5          1e-3        moderate gap junction
-# 1.0e-6             1e-4             1e-6          1e-4        high flux gap junctions
+# 1e-5               5e-3             5e-4          0.1         closed gap junctions
+# 1.0e-4             5e-3             5e-4          0.1         low gap junctions
+# 5.0e-4             1e-3             1e-5          1e-3        moderate gap junction
+# 1.0e-3             5e-4             1e-6          1e-4        high flux gap junctions
 
-# 2 to 5 e-7 will propegate action potentials well
+
 
 # -----------------------------------------------------------------------------
 
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 100e-6         # the x-dimension of the world space [m]
+  world x: 200e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -293,7 +293,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-5   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-6   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -318,43 +318,43 @@ world variables:
 change K env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 0.2           # sim time to start change [s]
-  change finish: 1.8         # sim time to end change and return to original [s]
-  change rate: 0.1            # rate of change [s]
+  change start: 1.0           # sim time to start change [s]
+  change finish: 20.0         # sim time to end change and return to original [s]
+  change rate: 0.5            # rate of change [s]
   multiplier: 2            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 10           # sim time to start change [s]
-  change finish: 40         # sim time to end change and return to original [s]
-  change rate: 5            # rate of change [s]
+  change start: 1           # sim time to start change [s]
+  change finish: 9         # sim time to end change and return to original [s]
+  change rate: 0.1            # rate of change [s]
   multiplier: 20             # factor to multiply base level
 
 change Na env:       # Change the environmental concentration of K+
 
   event happens: False     # turn the even on (True) or off (False)
-  change start: 5          # sim time to start change [s]
-  change finish: 15        # sim time to end change and return to original [s]
+  change start: 1          # sim time to start change [s]
+  change finish: 9        # sim time to end change and return to original [s]
   change rate: 1           # rate of change [s]
   multiplier: 5            # factor to multiply base level
 
 change temperature:
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 5           # sim time to start change [s]
-  change finish: 15         # sim time to end change and return to original [s]
-  change rate: 1            # rate of change [s]
+  change start: 1           # sim time to start change [s]
+  change finish: 9         # sim time to end change and return to original [s]
+  change rate: 0.5            # rate of change [s]
   multiplier: 0.5           # factor to multiply base level
 
 block gap junctions:     # block the gap junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 0.3        # sim time to start change [s]
-  change finish: 40       # sim time to end change and return to original [s]
-  change rate: 0.05         # rate of change [s]
+  change start: 1        # sim time to start change [s]
+  change finish: 9       # sim time to end change and return to original [s]
+  change rate: 0.5         # rate of change [s]
 
-change ecm junctions:     # block the gap junctions between cells
+change ecm junctions:     # block the ecm junctions between cells  # FIXME IMPLEMENT
 
   event happens: False      # turn the even on (True) or off (False)
   change start: 0.3        # sim time to start change [s]
@@ -365,16 +365,23 @@ change ecm junctions:     # block the gap junctions between cells
 block NaKATP pump:
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 10           # sim time to start change [s]
-  change finish: 40         # sim time to end change and return to original [s]
-  change rate: 1            # rate of change [s]
+  change start: 1           # sim time to start change [s]
+  change finish: 9         # sim time to end change and return to original [s]
+  change rate: 0.5            # rate of change [s]
 
 block HKATP pump:
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 10           # sim time to start change [s]
-  change finish: 200         # sim time to end change and return to original [s]
-  change rate: 2            # rate of change [s]
+  change start: 1           # sim time to start change [s]
+  change finish: 9         # sim time to end change and return to original [s]
+  change rate: 0.5            # rate of change [s]
+
+block VATP pump:   # FIXME implement
+
+  event happens: False      # turn the even on (True) or off (False)
+  change start: 1           # sim time to start change [s]
+  change finish: 9         # sim time to end change and return to original [s]
+  change rate: 0.5            # rate of change [s]
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -424,32 +431,32 @@ default tissue name: base   # name of cells to which no profile is applied
 base tissue properties:    # specify the base membrane diffusion constants below
                          # this is an easy way to control resting Vmem of cells
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: gradient       # give your profile a name that will be used to apply the profile
-    cell targets: all      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None           # special instructions for making the profile:'cavity' or 'cuts'
+    cell targets: [0]      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+    ecm diffusion factor: 1    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile
@@ -505,42 +512,42 @@ boundary profile 2:
 change Na mem:       # Change the membrane permeability to Na+
 
   event happens: False              # turn the even on (True) or off (False)
-  change start: 0.2                # sim time to start change [s]
-  change finish: 10.0               # sim time to end change and return to original [s]
-  change rate: 0.2                 # rate of change [s]
-  multiplier: 2.0                  # factor to multiply base level
-  function: gradient_y                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
+  change start: 2.0                # sim time to start change [s]
+  change finish: 8.0               # sim time to end change and return to original [s]
+  change rate: 0.5                 # rate of change [s]
+  multiplier: 10.0                  # factor to multiply base level
+  function: None                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
   apply to: ['gradient']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
   event happens: False              # turn the even on (True) or off (False)
   change start: 2.0                   # sim time to start change [s]
-  change finish: 10.0                 # sim time to end change and return to original [s]
+  change finish: 8.0                 # sim time to end change and return to original [s]
   change rate: 1.0                    # rate of change [s]
-  multiplier: 1.5                    # factor to multiply base level
+  multiplier: 10.0                    # factor to multiply base level
   function: None                     # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['gradient']     # name(s) of the tissue profile(s) to apply it to
 
 change Cl mem:      # Change the membrane permeability to Cl-
 
   event happens: False              # turn the even on (True) or off (False)
-  change start: 15                  # sim time to start change [s]
-  change finish: 17                 # sim time to end change and return to original [s]
+  change start: 2.0                  # sim time to start change [s]
+  change finish: 8.0                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
   function: None                    # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['gradient']     # name(s) of the tissue profile(s) to apply it to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
 
   event happens: False              # turn the even on (True) or off (False)
-  change start: 20                  # sim time to start change [s]
-  change finish: 22                 # sim time to end change and return to original [s]
+  change start: 2.0                  # sim time to start change [s]
+  change finish: 8.0                 # sim time to end change and return to original [s]
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
   function: None                    # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['gradient']     # name(s) of the tissue profile(s) to apply it to
 
 produce IP3:        # Schedule cell production of IP3
 
@@ -564,9 +571,9 @@ apply external voltage:             # apply external voltage to ecm spaces on th
 
 cutting event:
     event happens: False
-    cut time: 0.2
-    apply to: 'holes'    # tissue profile to apply this to -- can only be one profile, no lists
-    internal hole: True
+    cut time: 2.0
+    apply to: 'gradient'    # tissue profile to apply this to -- can only be one profile, no lists
+    internal hole: False
 
 function properties:        # set properties of functions defined in above
 
@@ -596,7 +603,7 @@ function properties:        # set properties of functions defined in above
 
 voltage gated Na+:
     turn on: False                      # voltage gated sodium channel ?
-    apply to: ['excitables']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['gradient']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated K+:                       # voltage gated potassium channel ?
     turn on: False
@@ -611,8 +618,8 @@ calcium gated K+:                       # calcium gated potassium channel ?
     apply to: ['depolarized']         # name(s) of the tissue profile(s) to apply it to
 
 Ca dynamics:                      # include full calcium dynamics in the situation?
-    turn on: False                # this creates an endoplasmic reticulum (ER) in each cell and
-    apply to: ['depolarized']     # IP3 mediated calcium release from the ER
+    turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
+    apply to: ['gradient']     # IP3 mediated calcium release from the ER
                                   # note this only works for an ion profile with Ca2+ ions
                                   # options True or False (case sensitive)
 
@@ -662,7 +669,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -896,28 +903,28 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
-
-#  alpha_NaK:  1.0e-10   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+#  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
 #  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
 #  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1.0e-4  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
-  halfmax_Ca:  3       # the free energy level at which pump activity is halved [kJ]
-  slope_Ca:  3         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
+  slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  0.1    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  3       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  3         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_Ca:  1.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  1.0e-5  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  0.01     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  3       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  3         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_HK:  1.0e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
+
+  alpha_V:  1e-3     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
 
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.0"
+version: "0.1"

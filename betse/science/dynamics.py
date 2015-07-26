@@ -142,7 +142,7 @@ class Dynamics(object):
             self.targets_Clmem = []
             for profile in self.apply_Clmem:
                 targets = self.tissue_target_inds[profile]
-                self.targets_Namem.append(targets)
+                self.targets_Clmem.append(targets)
 
             self.targets_Clmem = [item for sublist in self.targets_Clmem for item in sublist]
 
@@ -158,7 +158,7 @@ class Dynamics(object):
             self.targets_Camem = []
             for profile in self.apply_Camem:
                 targets = self.tissue_target_inds[profile]
-                self.targets_Namem.append(targets)
+                self.targets_Camem.append(targets)
 
             self.targets_Camem = [item for sublist in self.targets_Camem for item in sublist]
 
@@ -471,9 +471,11 @@ class Dynamics(object):
 
             # redo main data length variable for this dynamics module with updated world:
             if p.sim_ECM == True:
+
                 self.data_length = len(cells.mem_i)
 
             elif p.sim_ECM == False:
+
                 self.data_length = len(cells.cell_i)
 
             self.tissueProfiles(sim,cells,p)
@@ -1047,7 +1049,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
         sim_names = list(sim.__dict__.keys())
         specials_list = ['cc_cells','cc_env','z_array','Dm_cells','fluxes_gj','fluxes_mem','Dm_base',\
-            'Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR']
+            'Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR','D_gj','cc_er']
 
         if p.sim_ECM == True:
             extra = ['cc_ecm','cc_env','D_env_juncs','fluxes_ecm','fluxes_env','z_array_cells','z_array_ecm','z_array_env']
