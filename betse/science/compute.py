@@ -2139,7 +2139,7 @@ class Simulator(object):
         fix_inds = (self.rho_channel < 0).nonzero()
         self.rho_channel[fix_inds] = 0
 
-def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):    # I think there is a problem with electroflux -- using the cmid value!
+def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """
     Electro-diffusion between two connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
@@ -2150,6 +2150,8 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):    # I think there is a problem wi
 
     This function takes numpy matrix values as input. All inputs must be matrices of
     the same shape.
+
+    This is the Goldman Flux/Current Equation (not to be confused with the Goldman Equation).
 
     Parameters
     ----------
@@ -2167,17 +2169,32 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):    # I think there is a problem wi
     flux        Chemical flux magnitude between region A and B [mol/s]
 
     """
+
+    # modify the diffusion constant by the membrane density
     Dc = rho*Dc
 
-    grad_c = (cB - cA)/d
+    alpha = (zc*vBA*p.F)/(p.R*T)
 
-    c_mid = (cA + cB)/2
+    #volab = (vola + volb)/2
+    #qualityfactor = abs((Dc/d)*(sa/volab)*p.dt*alpha)   # quality factor should be <1.0 for stable simulations
 
-    grad_V = vBA/d
+    deno = 1 - np.exp(-alpha)   # calculate the denominator for the electrodiffusion equation,..
 
-    flux = -Dc*grad_c - ((Dc*p.q*zc)/(p.kb*T))*c_mid*grad_V
+    izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
+    inotzero = (deno!=0).nonzero()
 
-    flux = rho*flux
+    # initialize data matrices to the same shape as input data
+    flux = np.zeros(deno.shape)
+
+    if len(deno[izero]):   # if there's anything in the izero array:
+         # calculate the flux for those elements as standard diffusion [mol/m2s]:
+        flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
+
+    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
+
+        # calculate the flux for those elements:
+        flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
+                        cA[inotzero]*np.exp(-alpha[inotzero]))/deno[inotzero])
 
     return flux
 
@@ -2745,7 +2762,17 @@ def nernst_planck(c,gcx,gcy,ddc,gvx,gvy,ddv,gdx,gdy,D,z,T,p):
 
 
 #---------------------------
-
+    # Dc = rho*Dc
+    #
+    # grad_c = (cB - cA)/d
+    #
+    # c_mid = (cA + cB)/2
+    #
+    # grad_V = vBA/d
+    #
+    # flux = -Dc*grad_c - ((Dc*p.q*zc)/(p.kb*T))*c_mid*grad_V
+    #
+    # flux = rho*flux
 
 
 

@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.01            # time period to sample data from init run [s] (recommended range see table)
+    time step: 1.0e-2               # Simulation step-size [s] (recommended range see table)
+    total time: 1000.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 10.0            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ general options:
 
   simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'basic'   # set the ion profile to be used in the simulation
+  ion profile: 'scratch'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -260,7 +260,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # the x-dimension of the world space [m]
+  world x: 50e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -431,7 +431,7 @@ default tissue name: base   # name of cells to which no profile is applied
 base tissue properties:    # specify the base membrane diffusion constants below
                          # this is an easy way to control resting Vmem of cells
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
@@ -440,7 +440,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
 
     ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: gradient       # give your profile a name that will be used to apply the profile
