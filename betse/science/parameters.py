@@ -293,6 +293,10 @@ class Parameters(object):
 
             self.boundary_profiles[profile_name_b] = profile_target_method_b
 
+        # boundary properties:
+
+        self.closed_bound = self.config['boundaries closed']
+
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions
         #---------------------------------------------------------------------------------------------------------------

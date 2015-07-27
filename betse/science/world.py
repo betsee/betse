@@ -231,6 +231,7 @@ class World(object):
             # self.bflags_cells,_ = self.boundTag(self.cell_centres,p)
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
+            self.makeECM(p)       # create the ecm grid
 
     def makeSeeds(self,p):
 
@@ -1145,27 +1146,6 @@ class World(object):
 
         self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
-        # data structures for plotting current streamlines
-        self.xpts_Igj = np.hstack((self.gj_vects[:,0],self.mem_vects_flat[:,0]))
-        self.ypts_Igj = np.hstack((self.gj_vects[:,1],self.mem_vects_flat[:,1]))
-        self.nx_Igj = np.hstack((self.gj_vects[:,2],self.mem_vects_flat[:,2]))
-        self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
-
-        # structures for plotting interpolated data on cell centres:
-        xgrid = np.linspace(self.xmin,self.xmax,self.msize)
-        ygrid = np.linspace(self.ymin,self.ymax,self.msize)
-        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-
-        # structures for interpolating data to calculate clean gradients and laplacians:
-
-        self.x_lin = np.linspace(self.xmin,self.xmax,p.grid_size)
-        self.y_lin = np.linspace(self.ymin,self.ymax,p.grid_size)
-
-        self.X_cells, self.Y_cells,self.dx_cells, self.dy_cells = tb.makegrid(self.cell_centres[:,0],
-            self.cell_centres[:,1],p.grid_size,self)
-
-        self.X_gj, self.Y_gj, self.dx_gj, self.dy_gj = tb.makegrid(self.gj_vects[:,0],self.gj_vects[:,1],p.grid_size,self)
-
         # compute mapping between cell and gj:
         self.cell_to_gj =[[] for x in range(0,len(self.cell_i))]
 
@@ -1193,6 +1173,9 @@ class World(object):
             self.cell_sa.append(cell_sa)
 
         self.cell_sa = np.asarray(self.cell_sa)
+
+        self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
 
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
@@ -1222,7 +1205,6 @@ class World(object):
 
 
             # create a mapping from each vert to each membrane segment, mem_seg_i:
-
             self.mem_seg_i = []
 
             self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
@@ -1253,89 +1235,15 @@ class World(object):
             # structures for plotting interpolated data and streamlines:
             self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
+            # structures for plotting interpolated data on cell centres:
+            xgrid = np.linspace(self.xmin,self.xmax,self.msize)
+            ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+            self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
             self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
 
             for i, cell_index in enumerate(self.mem_to_cells):
-                self.cell_UpdateMatrix[i,cell_index] =1
-
-
-
-
-
-
-            # self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
-            #
-            # self.env_i = [x for x in range(0,len(self.env_points))]
-            #
-            # # calculate the mapping between ecm indices and membrane indices:
-            # cell_tree = sps.KDTree(self.ecm_mids)
-            # matches = cell_tree.query(self.mem_mids_flat)
-            # self.mem_to_ecm = list(matches)[1]
-            #
-            # ecm_n = len(self.ecm_i)
-            # cell_n = len(self.cell_i)
-            # mem_n = len(self.mem_i)
-            #
-            # self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
-            # self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
-            #
-            # for i, cell_index in enumerate(self.mem_to_cells):
-            #     self.cell_UpdateMatrix[i,cell_index] =1
-            #
-            # for i, ecm_index in enumerate(self.mem_to_ecm):
-            #     self.ecm_UpdateMatrix[i, ecm_index] = 1
-            #
-            # self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
-            # for iecm, pair in enumerate(self.ecm_nn_i):
-            #     ci = pair[0]
-            #     cj = pair[1]
-            #     self.ecmMatrix[iecm,ci] = -1
-            #     self.ecmMatrix[iecm,cj] = 1
-            #
-
-            #
-            # # Create a map from cell to ecm space
-            # self.cell_to_ecm = []
-            #
-            # for i in self.cell_i:
-            #
-            #     inds_mtc = (self.mem_to_cells ==i).nonzero()
-            #     ecm_inds = self.mem_to_ecm[inds_mtc]
-            #     self.cell_to_ecm.append(ecm_inds)
-            #
-            # self.cell_to_ecm = np.asarray(self.cell_to_ecm)
-            # self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
-            # self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
-            #
-
-            #
-            # self.xpts_Iecm = self.ecm_vects[:,0]
-            # self.ypts_Iecm = self.ecm_vects[:,1]
-            # self.nx_Iecm = self.ecm_vects[:,2]
-            # self.ny_Iecm = self.ecm_vects[:,3]
-            #
-            # self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
-            # self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
-            #
-            #  # structures for interpolating data to calculate clean gradients and laplacians:
-            #
-            # self.X_ecm, self.Y_ecm, self.dx_ecm, self.dy_ecm = tb.makegrid(self.ecm_mids[:,0],self.ecm_mids[:,1],
-            #     p.grid_size, self)
-            #
-            # self.X_ej, self.Y_ej, self.dx_ej, self.dy_ej = tb.makegrid(self.ecm_vects[:,0],self.ecm_vects[:,1],
-            #     p.grid_size, self)
-            #
-            # loggers.log_info('Cleaning up unnecessary data structures... ')
-            #
-            # # self.indmap_mem = None
-            # # self.rindmap_mem = None
-            # # # self.ecm_verts = None
-            # # self.cell_area = None
-            # # self.cell2ecm_map = None
-            # # self.ecm_polyinds = None
-            # # self.ecm_verts_unique = None
-            # # self.cell2GJ_map = None
-
+                self.cell_UpdateMatrix[i,cell_index] = 1
 
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
@@ -1991,6 +1899,104 @@ class World(object):
     #
     #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
     #     self.Ainv = np.linalg.inv(A)
+
+    #-----------
+      # # data structures for plotting current streamlines
+        # self.xpts_Igj = np.hstack((self.gj_vects[:,0],self.mem_vects_flat[:,0]))
+        # self.ypts_Igj = np.hstack((self.gj_vects[:,1],self.mem_vects_flat[:,1]))
+        # self.nx_Igj = np.hstack((self.gj_vects[:,2],self.mem_vects_flat[:,2]))
+        # self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
+        #
+        # # structures for plotting interpolated data on cell centres:
+        # xgrid = np.linspace(self.xmin,self.xmax,self.msize)
+        # ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+        # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+        #
+        # # structures for interpolating data to calculate clean gradients and laplacians:
+        #
+        # self.x_lin = np.linspace(self.xmin,self.xmax,p.grid_size)
+        # self.y_lin = np.linspace(self.ymin,self.ymax,p.grid_size)
+        #
+        # self.X_cells, self.Y_cells,self.dx_cells, self.dy_cells = tb.makegrid(self.cell_centres[:,0],
+        #     self.cell_centres[:,1],p.grid_size,self)
+        #
+        # self.X_gj, self.Y_gj, self.dx_gj, self.dy_gj = tb.makegrid(self.gj_vects[:,0],self.gj_vects[:,1],p.grid_size,self)
+
+
+    #-------------
+
+                # self.ecm_i = [x for x in range(0,len(self.ecm_edges_i))]
+            #
+            # self.env_i = [x for x in range(0,len(self.env_points))]
+            #
+            # # calculate the mapping between ecm indices and membrane indices:
+            # cell_tree = sps.KDTree(self.ecm_mids)
+            # matches = cell_tree.query(self.mem_mids_flat)
+            # self.mem_to_ecm = list(matches)[1]
+            #
+            # ecm_n = len(self.ecm_i)
+            # cell_n = len(self.cell_i)
+            # mem_n = len(self.mem_i)
+            #
+            # self.cell_UpdateMatrix = np.zeros((mem_n,cell_n))
+            # self.ecm_UpdateMatrix = np.zeros((mem_n,ecm_n))
+            #
+            # for i, cell_index in enumerate(self.mem_to_cells):
+            #     self.cell_UpdateMatrix[i,cell_index] =1
+            #
+            # for i, ecm_index in enumerate(self.mem_to_ecm):
+            #     self.ecm_UpdateMatrix[i, ecm_index] = 1
+            #
+            # self.ecmMatrix = np.zeros((len(self.ecm_nn_i),len(self.ecm_i)))
+            # for iecm, pair in enumerate(self.ecm_nn_i):
+            #     ci = pair[0]
+            #     cj = pair[1]
+            #     self.ecmMatrix[iecm,ci] = -1
+            #     self.ecmMatrix[iecm,cj] = 1
+            #
+
+            #
+            # # Create a map from cell to ecm space
+            # self.cell_to_ecm = []
+            #
+            # for i in self.cell_i:
+            #
+            #     inds_mtc = (self.mem_to_cells ==i).nonzero()
+            #     ecm_inds = self.mem_to_ecm[inds_mtc]
+            #     self.cell_to_ecm.append(ecm_inds)
+            #
+            # self.cell_to_ecm = np.asarray(self.cell_to_ecm)
+            # self.bcell_to_ecm = self.cell_to_ecm[self.bflags_cells]
+            # self.bcell_to_ecm,_,_ = tb.flatten(self.bcell_to_ecm)
+            #
+
+            #
+            # self.xpts_Iecm = self.ecm_vects[:,0]
+            # self.ypts_Iecm = self.ecm_vects[:,1]
+            # self.nx_Iecm = self.ecm_vects[:,2]
+            # self.ny_Iecm = self.ecm_vects[:,3]
+            #
+            # self.nx_Ienv = self.ecm_seg_vects[:,4][self.bflags_ecm]
+            # self.ny_Ienv = self.ecm_seg_vects[:,5][self.bflags_ecm]
+            #
+            #  # structures for interpolating data to calculate clean gradients and laplacians:
+            #
+            # self.X_ecm, self.Y_ecm, self.dx_ecm, self.dy_ecm = tb.makegrid(self.ecm_mids[:,0],self.ecm_mids[:,1],
+            #     p.grid_size, self)
+            #
+            # self.X_ej, self.Y_ej, self.dx_ej, self.dy_ej = tb.makegrid(self.ecm_vects[:,0],self.ecm_vects[:,1],
+            #     p.grid_size, self)
+            #
+            # loggers.log_info('Cleaning up unnecessary data structures... ')
+            #
+            # # self.indmap_mem = None
+            # # self.rindmap_mem = None
+            # # # self.ecm_verts = None
+            # # self.cell_area = None
+            # # self.cell2ecm_map = None
+            # # self.ecm_polyinds = None
+            # # self.ecm_verts_unique = None
+            # # self.cell2GJ_map = None
 
 
 

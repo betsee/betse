@@ -136,28 +136,28 @@ class AnimateCellData(object):
 
             if p.sim_ECM == False or p.IecmPlot == False:
 
-                Jmag_M = np.sqrt(sim.I_gjmem_Matrix_x[0]**2 + sim.I_gjmem_Matrix_y[0]**2) + 1e-30
+                Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
-                J_x = sim.I_gjmem_Matrix_x[0]/Jmag_M
-                J_y = sim.I_gjmem_Matrix_y[0]/Jmag_M
+                J_x = sim.I_gj_x_time[0]/Jmag_M
+                J_y = sim.I_gj_y_time[0]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-                self.streams = self.ax.streamplot(sim.X_Igj*p.um,sim.Y_Igj*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
                 self.tit_extra = 'Gap junction and trans-membrane current'
 
             elif p.IecmPlot == True:
 
-                Jmag_M = np.sqrt(sim.I_ecm_Matrix_x[0]**2 + sim.I_ecm_Matrix_y[0]**2) + 1e-30
+                Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
 
-                J_x = sim.I_ecm_Matrix_x[0]/Jmag_M
-                J_y = sim.I_ecm_Matrix_y[0]/Jmag_M
+                J_x = sim.I_env_x_time[0]/Jmag_M
+                J_y = sim.I_env_y_time[0]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-                self.streams = self.ax.streamplot(sim.X_Iecm*p.um,sim.Y_ecm*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
                 self.tit_extra = 'Extracellular current overlay'
@@ -246,32 +246,32 @@ class AnimateCellData(object):
 
             if self.sim_ECM == False or self.IecmPlot == False:
 
-                Jmag_M = np.sqrt(self.sim.I_gjmem_Matrix_x[i]**2 + self.sim.I_gjmem_Matrix_y[i]**2) + 1e-30
+                Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
-                J_x = self.sim.I_gjmem_Matrix_x[i]/Jmag_M
-                J_y = self.sim.I_gjmem_Matrix_y[i]/Jmag_M
+                J_x = self.sim.I_gj_x_time[i]/Jmag_M
+                J_y = self.sim.I_gj_y_time[i]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
                 self.streams.lines.remove()
                 self.ax.patches = []
 
-                self.streams = self.ax.streamplot(self.sim.X_Igj*1e6,self.sim.Y_Igj*1e6,J_x,J_y,
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
             elif self.IecmPlot == True:
 
-                Jmag_M = np.sqrt(self.sim.I_ecm_Matrix_x[i]**2 + self.sim.I_ecm_Matrix_y[i]**2) + 1e-30
+                Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
 
-                J_x = self.sim.I_ecm_Matrix_x[i]/Jmag_M
-                J_y = self.sim.I_ecm_Matrix_y[i]/Jmag_M
+                J_x = self.sim.I_env_x_time[i]/Jmag_M
+                J_y = self.sim.I_env_y_time[i]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
                 self.streams.lines.remove()
                 self.ax.patches = []
 
-                self.streams = self.ax.streamplot(self.sim.X_Iecm*1e6,self.sim.Y_ecm*1e6,
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,
                     J_x,J_y,density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
         titani = self.tit_extra + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
@@ -369,28 +369,28 @@ class AnimateCellData_smoothed(object):
 
             if p.sim_ECM == False or p.IecmPlot == False:
 
-                Jmag_M = np.sqrt(sim.I_gjmem_Matrix_x[0]**2 + sim.I_gjmem_Matrix_y[0]**2) + 1e-30
+                Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
-                J_x = sim.I_gjmem_Matrix_x[0]/Jmag_M
-                J_y = sim.I_gjmem_Matrix_y[0]/Jmag_M
+                J_x = sim.I_gj_x_time[0]/Jmag_M
+                J_y = sim.I_gj_y_time[0]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-                self.streams = self.ax.streamplot(sim.X_Igj*p.um,sim.Y_Igj*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
                 self.tit_extra = 'Gap junction and trans-membrane current'
 
             elif p.IecmPlot == True:
 
-                Jmag_M = np.sqrt(sim.I_ecm_Matrix_x[0]**2 + sim.I_ecm_Matrix_y[0]**2) + 1e-30
+                Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
 
-                J_x = sim.I_ecm_Matrix_x[0]/Jmag_M
-                J_y = sim.I_ecm_Matrix_y[0]/Jmag_M
+                J_x = sim.I_env_x_time[0]/Jmag_M
+                J_y = sim.I_env_y_time[0]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-                self.streams = self.ax.streamplot(sim.X_Iecm*p.um,sim.Y_ecm*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
                 self.tit_extra = 'Extracellular current overlay'
@@ -426,32 +426,32 @@ class AnimateCellData_smoothed(object):
 
             if self.sim_ECM == False or self.IecmPlot == False:
 
-                Jmag_M = np.sqrt(self.sim.I_gjmem_Matrix_x[i]**2 + self.sim.I_gjmem_Matrix_y[i]**2) + 1e-30
+                Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
-                J_x = self.sim.I_gjmem_Matrix_x[i]/Jmag_M
-                J_y = self.sim.I_gjmem_Matrix_y[i]/Jmag_M
+                J_x = self.sim.I_gj_x_time[i]/Jmag_M
+                J_y = self.sim.I_gj_y_time[i]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
                 self.streams.lines.remove()
                 self.ax.patches = []
 
-                self.streams = self.ax.streamplot(self.sim.X_Igj*1e6,self.sim.Y_Igj*1e6,J_x,J_y,
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
             elif self.IecmPlot == True:
 
-                Jmag_M = np.sqrt(self.sim.I_ecm_Matrix_x[i]**2 + self.sim.I_ecm_Matrix_y[i]**2) + 1e-30
+                Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
 
-                J_x = self.sim.I_ecm_Matrix_x[i]/Jmag_M
-                J_y = self.sim.I_ecm_Matrix_y[i]/Jmag_M
+                J_x = self.sim.I_env_x_time[i]/Jmag_M
+                J_y = self.sim.I_env_y_time[i]/Jmag_M
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
                 self.streams.lines.remove()
                 self.ax.patches = []
 
-                self.streams = self.ax.streamplot(self.sim.X_Iecm*1e6,self.sim.Y_ecm*1e6,
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,
                     J_x,J_y,density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
         titani = self.tit_extra + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
@@ -1041,11 +1041,6 @@ class AnimateCurrent(object):
 
         self.ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -1067,18 +1062,18 @@ class AnimateCurrent(object):
 
         if gj_current == True:
 
-            Jmag_M = np.sqrt(sim.I_gjmem_Matrix_x[0]**2 + sim.I_gjmem_Matrix_y[0]**2) + 1e-30
+            Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
-            J_x = sim.I_gjmem_Matrix_x[0]/Jmag_M
-            J_y = sim.I_gjmem_Matrix_y[0]/Jmag_M
+            J_x = sim.I_gj_x_time[0]/Jmag_M
+            J_y = sim.I_gj_y_time[0]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-            self.meshplot = plt.imshow(Jmag_M*1e15, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
+            self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
             if p.I_overlay == True:
 
-                self.streamplot = self.ax.streamplot(sim.X_Igj*p.um,sim.Y_Igj*p.um,J_x,J_y,density=p.stream_density,
+                self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
                     linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
             self.tit = 'Gap junction and trans-membrane current'
@@ -1089,21 +1084,20 @@ class AnimateCurrent(object):
                 self.cmin = np.min(Jmag_M)
                 self.cmax = np.max(Jmag_M)
 
-
         else:
 
-            Jmag_M = np.sqrt(sim.I_ecm_Matrix_x[0]**2 + sim.I_ecm_Matrix_y[0]**2) + 1e-30
+            Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
 
-            J_x = sim.I_ecm_Matrix_x[0]/Jmag_M
-            J_y = sim.I_ecm_Matrix_y[0]/Jmag_M
+            J_x = sim.I_env_x_time[0]/Jmag_M
+            J_y = sim.I_env_y_time[0]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-            self.meshplot = plt.imshow(Jmag_M*1e15, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
+            self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
             if p.I_overlay == True:
 
-                self.streamplot = self.ax.streamplot(sim.X_Iecm*p.um,sim.Y_Iecm*p.um,J_x,J_y,density=p.stream_density,
+                self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
                     linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
             self.tit = 'Extracellular current'
@@ -1120,7 +1114,7 @@ class AnimateCurrent(object):
             self.meshplot.set_clim(self.cmin,self.cmax)
 
         self.cb = self.fig.colorbar(self.meshplot)   # define colorbar for figure
-        self.cb.set_label('Current Magnitude [fA]')
+        self.cb.set_label('Current Density [A/m2]')
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
@@ -1141,43 +1135,43 @@ class AnimateCurrent(object):
 
         if self.gj_current == True:
 
-            Jmag_M = np.sqrt(self.sim.I_gjmem_Matrix_x[i]**2 + self.sim.I_gjmem_Matrix_y[i]**2) + 1e-30
+            Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
-            J_x = self.sim.I_gjmem_Matrix_x[i]/Jmag_M
-            J_y = self.sim.I_gjmem_Matrix_y[i]/Jmag_M
+            J_x = self.sim.I_gj_x_time[i]/Jmag_M
+            J_y = self.sim.I_gj_y_time[i]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-            self.meshplot.set_data(Jmag_M*1e15)
+            self.meshplot.set_data(Jmag_M)
 
             if self.p.I_overlay == True:
 
                 self.streamplot.lines.remove()
                 self.ax.patches = []
 
-                self.streamplot = self.ax.streamplot(self.sim.X_Igj*self.p.um,self.sim.Y_Igj*self.p.um,J_x,J_y,
+                self.streamplot = self.ax.streamplot(self.cells.X*self.p.um,self.cells.Y*self.p.um,J_x,J_y,
                     density=self.p.stream_density, linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
 
         else:
 
-            Jmag_M = np.sqrt(self.sim.I_ecm_Matrix_x[i]**2 + self.sim.I_ecm_Matrix_y[i]**2) + 1e-30
+            Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
 
-            J_x = self.sim.I_ecm_Matrix_x[i]/Jmag_M
-            J_y = self.sim.I_ecm_Matrix_y[i]/Jmag_M
+            J_x = self.sim.I_env_x_time[i]/Jmag_M
+            J_y = self.sim.I_env_y_time[i]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-            self.meshplot.set_data(Jmag_M*1e15)
+            self.meshplot.set_data(Jmag_M)
 
             if self.p.I_overlay == True:
 
                 self.streamplot.lines.remove()
                 self.ax.patches = []
 
-                self.streamplot = self.ax.streamplot(self.sim.X_Iecm*self.p.um,self.sim.Y_Iecm*self.p.um,J_x,J_y,
+                self.streamplot = self.ax.streamplot(self.cells.X*self.p.um,self.cells.Y*self.p.um,J_x,J_y,
                     density=self.p.stream_density,linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
 
-        cmax = np.max(Jmag_M)*1e15
+        cmax = np.max(Jmag_M)
 
         self.meshplot.set_clim(0,cmax)
 
@@ -1208,33 +1202,30 @@ class AnimateEfield(object):
         if p.sim_ECM == True and p.ani_Efield_type == 'ECM':
 
             efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
-            self.msh = self.ax.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm, shading = 'gouraud')
 
-            if p.ani_Efield_vector == True:
+            self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
+                cells.ymin*p.um, cells.ymax*p.um], cmap=p.default_cm)
 
+            if p.plot_Efield_vector == True:
                 enorm = np.max(np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2))
-                self.streamE = self.ax.quiver(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1]/enorm,
-                    sim.efield_ecm_y_time[-1]/enorm)
-                # lw = (3.0*efield/efield.max()) + 0.5
-                # self.streamE = self.ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-                # linewidth = lw, color = 'k', density = p.stream_density)
+
+                self.streamE = self.ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1],
+                    sim.efield_ecm_x_time[-1].ravel()/enorm,sim.efield_ecm_y_time[-1].ravel()/enorm)
 
             tit_extra = 'Extracellular'
 
         elif p.ani_Efield_type == 'GJ':
 
-            efield = np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2)
-            self.msh = self.ax.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm,shading = 'gouraud')
+            efield = np.sqrt(sim.efield_gj_x_time[-1]**2 + sim.efield_gj_y_time[-1]**2)
+            self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
+                cells.ymin*p.um, cells.ymax*p.um],cmap=p.default_cm)
 
             if p.ani_Efield_vector == True:
 
-                enorm = np.max(np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2))
+                enorm = np.max(np.sqrt(sim.efield_gj_x_time[-1]**2 + sim.efield_gj_y_time[-1]**2))
 
-                self.streamE = self.ax.quiver(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_x_time[-1]/enorm,
-                    sim.efield_y_time[-1]/enorm)
-                # lw = (3.0*efield/efield.max()) + 0.5
-                # self.streamE = self.ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-                # linewidth = lw, color ='k',density = p.stream_density)
+                self.streamE = self.ax.quiver(p.um*cells.X, p.um*cells.Y,
+                    sim.efield_gj_x_time[-1]/enorm,sim.efield_gj_y_time[-1]/enorm)
 
             tit_extra = 'Intracellular'
 
@@ -1273,38 +1264,22 @@ class AnimateEfield(object):
         if self.p.sim_ECM == True and self.p.ani_Efield_type == 'ECM':
 
             efield = np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2)
-            self.msh.set_array(efield.ravel())
+            self.msh.set_data(efield)
 
             if self.p.ani_Efield_vector == True:
 
                 enorm = np.max(np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2))
-
                 self.streamE.set_UVC(self.sim.efield_ecm_x_time[i]/enorm,self.sim.efield_ecm_y_time[i]/enorm)
-                # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-                # lw = (3.0*efield/efield.max()) + 0.5
-                # self.streamE.lines.remove()
-                # self.ax.patches = []
-                #
-                # self.streamE = self.ax.streamplot(self.p.um*self.cells.X_ecm, self.p.um*self.cells.Y_ecm,
-                #     self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
-                # linewidth = lw, color = 'k', density = self.p.stream_density)
 
         elif self.p.ani_Efield_type == 'GJ':
 
-            efield = np.sqrt(self.sim.efield_x_time[i]**2 + self.sim.efield_y_time[i]**2)
-            self.msh.set_array(efield.ravel())
+            efield = np.sqrt(self.sim.efield_gj_x_time[i]**2 + self.sim.efield_gj_y_time[i]**2)
+            self.msh.set_data(efield)
 
             if self.p.ani_Efield_vector == True:
 
-                enorm = np.max(np.sqrt(self.sim.efield_x_time[i]**2 + self.sim.efield_y_time[i]**2))
-                # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-                self.streamE.set_UVC(self.sim.efield_x_time[i]/enorm,self.sim.efield_y_time[i]/enorm)
-                # self.streamE.lines.remove()
-                # self.ax.patches = []
-                # lw = (3.0*efield/efield.max()) + 0.5
-                # self.streamE = self.ax.streamplot(self.p.um*self.cells.X_cells, self.p.um*self.cells.Y_cells,
-                #     self.sim.efield_ecm_x_time[i],self.sim.efield_ecm_y_time[i],
-                # linewidth = lw, color ='k',density = self.p.stream_density)
+                enorm = np.max(np.sqrt(self.sim.efield_gj_x_time[i]**2 + self.sim.efield_gj_y_time[i]**2))
+                self.streamE.set_UVC(self.sim.efield_gj_x_time[i]/enorm,self.sim.efield_gj_y_time[i]/enorm)
 
         cmax = np.max(efield)
 
@@ -1749,29 +1724,26 @@ def plotEfield(sim,cells,p):
     if p.sim_ECM == True and p.plot_Efield_type == 'ECM':
 
         efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
-        msh = ax.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm, shading = 'gouraud')
+        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
+            cells.ymax*p.um],cmap=p.default_cm)
 
         if p.plot_Efield_vector == True:
-            # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-            # lw = (3.0*efield/efield.max()) + 0.5
-            # ax.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-            # linewidth = lw, color = 'k', density = p.stream_density)
-            ax.quiver(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
 
+            ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], sim.efield_ecm_x_time[-1].ravel(),
+                sim.efield_ecm_y_time[-1].ravel())
 
         tit_extra = 'Extracellular'
 
     elif p.plot_Efield_type == 'GJ':
 
-        efield = np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2)
-        msh = ax.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm,shading = 'gouraud')
+        efield = np.sqrt(sim.efield_gj_x_time[-1]**2 + sim.efield_gj_y_time[-1]**2)
+
+        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
+            cells.ymax*p.um],cmap=p.default_cm)
 
         if p.plot_Efield_vector == True:
-            # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-            # lw = (3.0*efield/efield.max()) + 0.5
-            # ax.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-            # linewidth = lw, color ='k',density = p.stream_density)
-            ax.quiver(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
+
+            ax.quiver(p.um*cells.X, p.um*cells.Y, sim.efield_gj_x_time[-1],sim.efield_gj_y_time[-1])
 
         tit_extra = 'Intracellular'
 
@@ -2171,10 +2143,6 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     ax.axis('equal')
 
-    # xmin = p.um*(cells.clust_x_min - p.clip)
-    # xmax = p.um*(cells.clust_x_max + p.clip)
-    # ymin = p.um*(cells.clust_y_min - p.clip)
-    # ymax = p.um*(cells.clust_y_max + p.clip)
     xmin = cells.xmin*p.um
     xmax = cells.xmax*p.um
     ymin = cells.ymin*p.um
@@ -2184,32 +2152,32 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     if p.sim_ECM == False or plot_Iecm == False:
 
-        Jmag_M = np.sqrt(sim.I_gjmem_Matrix_x[-1]**2 + sim.I_gjmem_Matrix_y[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
 
-        J_x = sim.I_gjmem_Matrix_x[-1]/Jmag_M
-        J_y = sim.I_gjmem_Matrix_y[-1]/Jmag_M
+        J_x = sim.I_gj_x_time[-1]/Jmag_M
+        J_y = sim.I_gj_y_time[-1]/Jmag_M
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-        meshplot = plt.imshow(Jmag_M*1e15,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
+        meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-        streamplot = ax.streamplot(sim.X_Igj*p.um,sim.Y_Igj*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
+        streamplot = ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('Final gap junction and trans-membrane currents')
 
     elif plot_Iecm == True:
 
-        Jmag_M = np.sqrt(sim.I_ecm_Matrix_x[-1]**2 + sim.I_ecm_Matrix_y[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(sim.I_env_x_time[-1]**2 + sim.I_env_y_time[-1]**2) + 1e-30
 
-        J_x = sim.I_ecm_Matrix_x[-1]/Jmag_M
-        J_y = sim.I_ecm_Matrix_y[-1]/Jmag_M
+        J_x = sim.I_env_x_time[-1]/Jmag_M
+        J_y = sim.I_env_y_time[-1]/Jmag_M
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-        meshplot = plt.imshow(Jmag_M*1e15,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
+        meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-        streamplot = ax.streamplot(sim.X_Iecm*p.um,sim.Y_Iecm*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
+        streamplot = ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('Final extracellular currents')
@@ -2222,7 +2190,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         meshplot.set_clim(clrMin,clrMax)
         ax_cb = fig.colorbar(meshplot,ax=ax)
 
-    if edgeOverlay == True:
+    if p.showCells == True:
         # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
         cell_edges_flat = cells.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
@@ -2504,27 +2472,27 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
     if p.sim_ECM == False or plotIecm == False:
 
-        Jmag_M = np.sqrt(sim.I_gjmem_Matrix_x[-1]**2 + sim.I_gjmem_Matrix_y[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
 
-        J_x = sim.I_gjmem_Matrix_x[-1]/Jmag_M
-        J_y = sim.I_gjmem_Matrix_y[-1]/Jmag_M
+        J_x = sim.I_gj_x_time[-1]/Jmag_M
+        J_y = sim.I_gj_y_time[-1]/Jmag_M
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-        ax.streamplot(sim.X_Igj*p.um,sim.Y_Igj*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+        ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('(gap junction and trans-membrane current overlay)')
 
     elif plotIecm == True:
 
-        Jmag_M = np.sqrt(sim.I_ecm_Matrix_x[-1]**2 + sim.I_ecm_Matrix_y[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(sim.I_env_x_time[-1]**2 + sim.I_env_y_time[-1]**2) + 1e-30
 
-        J_x = sim.I_ecm_Matrix_x[-1]/Jmag_M
-        J_y = sim.I_ecm_Matrix_y[-1]/Jmag_M
+        J_x = sim.I_env_x_time[-1]/Jmag_M
+        J_y = sim.I_env_y_time[-1]/Jmag_M
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-        ax.streamplot(sim.X_Iecm*p.um,sim.Y_Iecm*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+        ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('(extracellular current overlay)')
 

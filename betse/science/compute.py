@@ -4,7 +4,7 @@
 
 # FIXME manage the H+ stuff...
 # FIXME straighten out the ER dynamics...
-# FIXME de-spagghetti the baseInit_ECM code and do runSim_ECM for cut cell dynamics and proper pickling...
+# FIXME do runSim_ECM for cut cell dynamics and proper pickling...
 
 
 import numpy as np
@@ -614,7 +614,7 @@ class Simulator(object):
         # boundary conditions -----------------------------------------------------------------------
 
         # definition of boundary values -- starting vals of these go into the config file and params --
-        # scheduled dynamics might varry the values
+        # scheduled dynamics might vary the values
         self.bound_V = {}
         self.bound_V['T'] = 0
         self.bound_V['B'] = 0
@@ -760,15 +760,14 @@ class Simulator(object):
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
 
-        self.I_gj_time = []
         self.I_mem_time = []    # initialize membrane current time vector
 
         self.vm_Matrix = []    # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
-        self.I_gjmem_Matrix_x = []
-        self.I_gjmem_Matrix_y = []
+        self.I_gj_x_time = []
+        self.I_gj_y_time = []
 
-        self.efield_x_time = []   # matrices storing smooth electric field in gj connected cells
-        self.efield_y_time = []
+        self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
+        self.efield_gj_y_time = []
 
         if p.voltage_dye == True:
 
@@ -993,6 +992,10 @@ class Simulator(object):
 
                 self.update_gj(cells,p,t,i)
 
+            # caculate electric fields:
+
+            self.get_Efield(cells, p)
+
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                 # determine flux through gap junctions for IP3:
 
@@ -1068,28 +1071,15 @@ class Simulator(object):
 
             check_v(self.vm)
 
-            # interpolate v_cell on a grid to calculate the electric field in gj networked cells
-            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                self.vm,(cells.X_cells,cells.Y_cells))
-
-            V_CELL = np.nan_to_num(V_CELL)
-            self.E_CELL_x, self.E_CELL_y = np.gradient(V_CELL, cells.dx_cells, cells.dy_cells)
-            self.E_CELL_x = - self.E_CELL_x
-            self.E_CELL_y = - self.E_CELL_y
-            # self.E_CELL = np.sqrt(self.E_CELL_x**2 + self.E_CELL_y**2)
 
             if t in tsamples:
 
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
 
                 # add the new concentration and voltage data to the time-storage matrices:
-                efieldx = self.E_CELL_x[:]
-                self.efield_x_time.append(efieldx)
-                efieldx = None
+                self.efield_gj_x_time.append(self.E_gj_x[:])
 
-                efieldy = self.E_CELL_y[:]
-                self.efield_y_time.append(efieldy)
-                efieldy = None
+                self.efield_gj_y_time.append(self.E_gj_y[:])
 
                 concs = self.cc_cells[:]
                 self.cc_time.append(concs)
@@ -1099,58 +1089,40 @@ class Simulator(object):
                 self.cc_env_time.append(envsc)
                 envsc = None
 
-                Igj = self.I_gj[:]
-                self.I_gj_time.append(Igj)
-                Igj = None
+                self.I_gj_x_time.append(self.I_gj_x[:])
+                self.I_gj_y_time.append(self.I_gj_y[:])
 
-                Imem = self.I_mem[:]
-                self.I_mem_time.append(Imem)
-                Imem = None
+                self.I_mem_time.append(self.I_mem[:])
 
-                vmm = self.vm[:]
-                self.vm_time.append(vmm)
-                vmm = None
+                self.vm_time.append(self.vm[:])
 
-                dvmm = self.dvm[:]
-                self.dvm_time.append(dvmm)
-                dvmm = None
+                self.dvm_time.append(self.dvm[:])
 
-                ggjopen = self.gjopen[:]
-                self.gjopen_time.append(ggjopen)
-                ggjopen = None
+                self.gjopen_time.append(self.gjopen[:])
 
                 self.time.append(t)
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
-                    ccIP3 = self.cIP3[:]
-                    self.cIP3_time.append(ccIP3)
-                    ccIP3 = None
 
-                    ffgjIP3 = self.cIP3_flux_gj[:]
-                    self.cIP3_flux_gj_time.append(ffgjIP3)
-                    ffgjDye = None
+                    self.cIP3_time.append(self.cIP3[:])
 
-                    ffmemIP3 = self.cIP3_flux_mem[:]
-                    self.cIP3_flux_mem_time.append(ffmemIP3)
-                    ffmemIP3 = None
+                    self.cIP3_flux_gj_time.append(self.cIP3_flux_gj[:])
+
+                    self.cIP3_flux_mem_time.append(self.cIP3_flux_mem[:])
 
                 if p.voltage_dye ==1:
-                    ccDye_cells = self.cDye_cell[:]
-                    self.cDye_time.append(ccDye_cells)
-                    ccDye_cells = None
 
-                    ffgjDye = self.Dye_flux_gj[:]
-                    self.Dye_flux_gj_time.append(ffgjDye)
-                    ffgjDye = None
+                    self.cDye_time.append(self.cDye_cell[:])
+
+                    self.Dye_flux_gj_time.append(self.Dye_flux_gj[:])
 
                     ffmemDye = self.Dye_flux_mem[:]
-                    self.Dye_flux_mem_time.append(ffmemDye)
-                    ffmemDye = None
+                    self.Dye_flux_mem_time.append(self.Dye_flux_mem[:])
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-                    ccer = self.cc_er[:]
-                    self.cc_er_time.append(ccer)
-                    ccer = None
+
+                    self.cc_er_time.append(self.cc_er[:])
+
 
                 if p.plot_while_solving == True:
                     self.checkPlot.updatePlot(self,p)
@@ -1260,29 +1232,25 @@ class Simulator(object):
         self.fgj_time = []      # stores the gj fluxes for each ion at each time
         self.Igj_time = []      # current for each gj at each time
 
-        self.I_gj_time = []    # initialize gap junction current data storage
-        self.I_ecm_time = []   # initialize extracellular matrix data storage
-        self.I_env_time = []   # initialize environmental matrix data storage
+        self.I_gj_x_time = []    # initialize gap junction current data storage
+        self.I_gj_y_time = []    # initialize gap junction current data storage
+        self.I_env_x_time = []   # initialize environmental matrix data storage
+        self.I_env_y_time = []   # initialize environmental matrix data storage
         self.I_mem_time = []   # initialize membrane matrix data storage
 
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
 
-        self.efield_x_time = []   # matrices storing smooth electric field in gj connected cells
-        self.efield_y_time = []
+        self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
+        self.efield_gj_y_time = []
 
         self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
         self.efield_ecm_y_time = []
 
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
-        vm_dato = np.zeros(len(cells.mem_i))
+        vm_dato = np.zeros(len(cells.mem_i))       # FIXME this will be HUGE do we need it?>>
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
-
-        self.I_gjmem_Matrix_x = []
-        self.I_gjmem_Matrix_y = []
-        self.I_ecm_Matrix_x = []
-        self.I_ecm_Matrix_y = []
 
         if p.voltage_dye == True:
 
@@ -1438,6 +1406,8 @@ class Simulator(object):
                 # # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
 
+            self.get_Efield(cells,p)
+
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
                 self.update_IP3(cells,p,t)
@@ -1461,30 +1431,6 @@ class Simulator(object):
 
             check_v(self.vm)
 
-            # # interpolate v_cell on a grid to calculate the electric field in gj networked cells
-            # V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-            #     self.v_cell,(cells.X_cells,cells.Y_cells))
-            # # V_CELL = tb.griddata(cells.cell_centres[:,0],cells.cell_centres[:,1]), self.v_cell)
-            #
-            # V_CELL = np.nan_to_num(V_CELL)
-            #
-            # self.E_CELL_x, self.E_CELL_y = np.gradient(V_CELL, cells.dx_cells, cells.dy_cells)
-            # self.E_CELL_x = - self.E_CELL_x
-            # self.E_CELL_y = - self.E_CELL_y
-            # # self.E_CELL = np.sqrt(self.E_CELL_x**2 + self.E_CELL_y**2)
-            #
-            # # interpolate v_ecm on a grid to calculate the electric field in ecm network:
-            #
-            # V_ECM = interp.griddata((cells.ecm_mids[:,0],cells.ecm_mids[:,1]),
-            #     self.v_ecm,(cells.X_ecm,cells.Y_ecm))
-            #
-            # V_ECM = np.nan_to_num(V_ECM)
-            #
-            # self.E_ECM_x, self.E_ECM_y = np.gradient(V_ECM, cells.dx_ecm, cells.dy_ecm)
-            # self.E_ECM_x = - self.E_ECM_x
-            # self.E_ECM_y = - self.E_ECM_y
-            # self.E_ECM = np.sqrt(self.E_ECM_x**2 + self.E_ECM_y**2)
-
             # if desired, electroosmosis of membrane channels
             if p.sim_eosmosis == True:
 
@@ -1493,25 +1439,17 @@ class Simulator(object):
             if t in tsamples:
 
                 # #
-                # self.get_current(cells,p)   # get the current in the gj network connection of cells
+                self.get_current(cells,p)   # get the current in the gj network connection of cells
 
                 # add the new concentration and voltage data to the time-storage matrices:
 
-                # efieldx = self.E_CELL_x[:]
-                # self.efield_x_time.append(efieldx)
-                # efieldx = None
-                #
-                # efieldy = self.E_CELL_y[:]
-                # self.efield_y_time.append(efieldy)
-                # efieldy = None
-                #
-                # efield_ecm_x = self.E_ECM_x[:]
-                # self.efield_ecm_x_time.append(efield_ecm_x)
-                # efield_ecm_x = None
-                #
-                # efield_ecm_y = self.E_ECM_y[:]
-                # self.efield_ecm_y_time.append(efield_ecm_y)
-                # efield_ecm_y = None
+                self.efield_gj_x_time.append(self.E_gj_x[:])
+
+                self.efield_gj_y_time.append(self.E_gj_y[:])
+
+                self.efield_ecm_x_time.append(self.E_env_x[:])
+
+                self.efield_ecm_y_time.append(self.E_env_y[:])
 
                 concs = self.cc_cells[:]
                 self.cc_time.append(concs)
@@ -1521,36 +1459,26 @@ class Simulator(object):
                 self.cc_env_time.append(ecmsc)
                 ecmsc = None
 
-                vmm = self.vm[:]
-                self.vm_time.append(vmm)
-                vmm = None
+                self.vm_time.append(self.vm[:])
 
-                dvmm = self.dvm[:]
-                self.dvm_time.append(dvmm)
-                dvmm = None
+                self.dvm_time.append(self.dvm[:])
 
-                ggjopen = self.gjopen[:]
-                self.gjopen_time.append(ggjopen)
-                ggjopen = None
+                self.gjopen_time.append(self.gjopen[:])
 
-                vvcell = self.v_cell[:]
-                self.vcell_time.append(vvcell)
-                vvcell = None
+                self.vcell_time.append(self.v_cell[:])
 
-                vvecm = self.v_env[:]
-                self.venv_time.append(vvecm)
-                vvecm = None
+                self.venv_time.append(self.v_env[:])
 
-                # Igj = self.I_gj[:]
-                # self.I_gj_time.append(Igj)
-                # Igj = None
-                #
-                # Imem = self.I_mem[:]
-                # self.I_mem_time.append(Imem)
-                # Imem = None
+                self.I_gj_x_time.append(self.I_gj_x[:])
+                self.I_gj_y_time.append(self.I_gj_y[:])
+
+                self.I_env_x_time.append(self.I_env_x[:])
+                self.I_env_y_time.append(self.I_env_y[:])
+
+                self.I_mem_time.append(self.I_mem[:])
 
                 # calculate interpolated verts and midpoint data for Vmem:
-                dat_grid_vm = vertData(self.vm[:],cells,p)
+                dat_grid_vm = vertData(self.vm[:],cells,p)    # FIXME this will be huge -- reduce it!
 
                 self.vm_Matrix.append(dat_grid_vm[:])
 
@@ -1858,18 +1786,32 @@ class Simulator(object):
         f_xx, _ = gradient(-f_env_x, cells.delta)
         _, f_yy = gradient(-f_env_y, cells.delta)
 
+        if p.closed_bound == True:
+
+            pass
+            # FIXME if working with a closed bound and this formula, why not just set the right fluxes at the boundaries to zero?
+
         # change in time is:
         delta_c = f_xx + f_yy
 
         # cenv = cenv + delta_c*p.dt
         cenv = rk4(cenv, delta_c,p)
 
-        # Neumann boundary condition (flux at boundary)
-        # zero flux boundaries for concentration
-        cenv[:,-1] = cenv[:,-2]
-        cenv[:,0] = cenv[:,1]
-        cenv[0,:] = cenv[1,:]
-        cenv[-1,:] = cenv[-2,:]
+        if p.closed_bound == True:
+            # Neumann boundary condition (flux at boundary)
+            # zero flux boundaries for concentration:
+            cenv[:,-1] = cenv[:,-2]
+            cenv[:,0] = cenv[:,1]
+            cenv[0,:] = cenv[1,:]
+            cenv[-1,:] = cenv[-2,:]
+
+        else:
+
+            # open boundary
+            self.cc_env[i][cells.bL_k] = self.c_env_bound[i]
+            self.cc_env[i][cells.bR_k] = self.c_env_bound[i]
+            self.cc_env[i][cells.bTop_k] = self.c_env_bound[i]
+            self.cc_env[i][cells.bBot_k] = self.c_env_bound[i]
 
         # reshape the matrices into vectors
         # self.rho_env = self.rho_env.ravel()
@@ -2011,18 +1953,61 @@ class Simulator(object):
             self.ec2ec_sa[cells.bflags_ecm], cells.ecm_vol[cells.bflags_ecm],self.env_vol,
             p.z_IP3, self.v_ec2env, self.T, p,ignoreECM=True)
 
+    def get_Efield(self,cells,p):
+
+        # calculate electric fields
+        if p.sim_ECM == False:
+
+            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                self.vm,(cells.X,cells.Y))
+
+            V_CELL = np.nan_to_num(V_CELL)
+
+            self.E_gj_x, self.E_gj_y = gradient(V_CELL, cells.delta)
+
+
+        else:
+             # in the environment:
+            venv = self.v_env.reshape(cells.X.shape)
+            genv_x, genv_y = gradient(venv, cells.delta)
+
+            self.E_env_x = genv_x
+            self.E_env_y = genv_y
+
+            # in gj connected cells:
+            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                self.v_cell,(cells.X,cells.Y))
+            V_CELL = np.nan_to_num(V_CELL)
+            self.E_gj_x, self.E_gj_y = gradient(V_CELL, cells.delta)
+
     def get_current(self,cells,p):
 
-        self.I_gj = np.zeros(len(cells.gj_i))
+        I_gj_x = np.zeros(len(cells.gj_i))
+        I_gj_y = np.zeros(len(cells.gj_i))
+
         self.I_mem = np.zeros(len(cells.mem_i))
 
         # calculate current across gap junctions:
         for flux_array, zi in zip(self.fluxes_gj,self.zs):
 
-            # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
-            I_i = flux_array*zi*p.F
+            tx = cells.gj_vects[:,2]
+            ty = cells.gj_vects[:,3]
 
-            self.I_gj = self.I_gj + I_i
+            fgjx = tx*flux_array
+            fgjy = ty*flux_array
+
+            I_i_x = fgjx*zi*p.F
+            I_i_y = fgjy*zi*p.F
+
+            I_gj_x = I_gj_x + I_i_x
+            I_gj_y = I_gj_y + I_i_y
+
+        # interpolate the gj current components to the grid:
+        self.I_gj_x = interp.griddata((cells.gj_vects[:,0],cells.gj_vects[:,1]),I_gj_x,(cells.X,cells.Y))
+        self.I_gj_x = np.nan_to_num(self.I_gj_x)
+
+        self.I_gj_y = interp.griddata((cells.gj_vects[:,0],cells.gj_vects[:,1]),I_gj_y,(cells.X,cells.Y))
+        self.I_gj_y = np.nan_to_num(self.I_gj_y)
 
         # calculate current across cell membranes:
         for flux_array, zi in zip(self.fluxes_mem,self.zs):
@@ -2032,63 +2017,25 @@ class Simulator(object):
 
             self.I_mem = self.I_mem + I_i
 
-        # calculate and store currents components:
-        Jmag = np.hstack((self.I_gj,self.I_mem))
-
-        jx = Jmag*cells.nx_Igj
-        jy = Jmag*cells.ny_Igj
-
-        self.X_Igj,self.Y_Igj,J_x,J_y = tb.grid_vector_data(cells.xpts_Igj,cells.ypts_Igj,jx,jy,cells,p)
-
-        J_x = np.nan_to_num(J_x)
-        J_y = np.nan_to_num(J_y)
-
-        self.I_gjmem_Matrix_x.append(J_x)
-        self.I_gjmem_Matrix_y.append(J_y)
-
         if p.sim_ECM == True:
 
-            self.I_ecm = np.zeros(len(cells.ecm_nn_i))
-            self.I_env = np.zeros(len(cells.env_i))
+            self.I_env_x = np.zeros(len(cells.xypts))
+            self.I_env_y = np.zeros(len(cells.xypts))
 
-            for flux_array, zi in zip(self.fluxes_ecm,self.zs):
-
-                # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
-                I_i = flux_array*zi*p.F
-
-                self.I_ecm = self.I_ecm + I_i
-
-            for flux_array, zi in zip(self.fluxes_env,self.zs):
+            for flux_array, zi in zip(self.fluxes_env_x,self.zs):
 
                 I_i = flux_array*zi*p.F
 
-                self.I_env = self.I_env + I_i
+                self.I_env_x = self.I_env_x + I_i
 
-            # calculate interpolated verts and midpoint data for currents:
+            for flux_array, zi in zip(self.fluxes_env_y,self.zs):
 
-            Jmag_ecm = self.I_ecm
+                I_i = flux_array*zi*p.F
 
-            jx_ecm = Jmag_ecm*cells.nx_Iecm
-            jy_ecm = Jmag_ecm*cells.ny_Iecm
+                self.I_env_y = self.I_env_y + I_i
 
-            # data on environmental currents
-            Jmag_env = self.I_env
-
-            # environmental <---> boundary ecm current components:
-            jx_env = cells.nx_Ienv*Jmag_env
-            jy_env = cells.ny_Ienv*Jmag_env
-
-            # update ecm currents vector components to include environmental current:
-            jx_ecm[cells.bflags_ecm] = jx_ecm[cells.bflags_ecm] + jx_env
-            jy_ecm[cells.bflags_ecm] = jy_ecm[cells.bflags_ecm] + jy_env
-
-            self.X_Iecm,self.Y_Iecm,J_x,J_y = tb.grid_vector_data(cells.xpts_Iecm,cells.ypts_Iecm,jx_ecm,jy_ecm,cells,p)
-
-            J_x = np.nan_to_num(J_x)
-            J_y = np.nan_to_num(J_y)
-
-            self.I_ecm_Matrix_x.append(J_x)
-            self.I_ecm_Matrix_y.append(J_y)
+            self.I_env_x = self.I_env_x.reshape(cells.X.shape)
+            self.I_env_y = self.I_env_y.reshape(cells.X.shape)
 
     def eosmosis(self,cells,p):
 
@@ -2507,13 +2454,22 @@ def get_Vcell(self,cells,p):
 
     #   # # Poisson solver----------------------------------------------------------------
 
-    rho = np.zeros(len(cells.xypts))
-    # unravel the source vector
-    rho[cells.map_cell2ecm] = self.rho_cells
-    # rho = rho_env.ravel()
+    # rho = np.zeros(len(cells.xypts))
+    #
+    # # map charge density in cells to cell and membrane points of the global lattice:
+    # rho[cells.map_cell2ecm] = self.rho_cells
+    # rho[cells.map_mem2ecm] = self.rho_cells[cells.mem_to_cells]
+    # # rho = rho_env.ravel()
+
+    rho = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                self.rho_cells,(cells.X,cells.Y))
+
+    rho = np.nan_to_num(rho)
+
+    rho = rho.ravel()
 
     # create a solution vector in the same shape as the source vector
-    V = np.zeros(len(cells.xypts))
+    # V = np.zeros(len(cells.xypts))
 
     # modify the source charge distribution in line with electrostatic Poisson equation:
     fxy = -rho/(80*p.eo)

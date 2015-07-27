@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 0.2                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 1.e-2            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -126,11 +126,11 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 5.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 20.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 0.2                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.05            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
 #    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
 #                                  # warning!!! the stability of your simulation is dramatically affected by the
@@ -160,7 +160,7 @@ sim time settings:
 
 general options:
 
-  grid size: 20                # size of the square grid used in computation of spatial gradients and laplacians
+  grid size: 40                # size of the square grid used in computation of spatial gradients and laplacians
 
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
@@ -448,7 +448,7 @@ tissue profile 1:
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_Na: 2.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
@@ -490,16 +490,20 @@ tissue profile 3:
 
     ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
 
+# specify a property to happen at a specific global (i.e. bounding box) boundary
 
-number of boundary profiles: 0      # boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 0      # Note: boundary profiles only apply if simulating extracellular spaces
 
-boundary profile 1:   # options include 'bitmap', 'all', or specify a list of inds [9,8,10]
+boundary profile 1:   # options include 'top', 'bottom', 'left', and 'right to specify the respective boundaries
     name: applied pos voltage
-    boundary targets: bitmap
+    boundary targets: top
 
 boundary profile 2:
     name: applied neg voltage
-    boundary targets: bitmap
+    boundary targets: bottom
+
+boundaries closed: True      # are outer boundaries closed to fluxes of ions (True) ?
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -689,11 +693,11 @@ results options:
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
 
-  overlay currents: False          # overlay electric current or concentration flux streamlines on 2d plotted data
+  overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
@@ -739,8 +743,8 @@ results options:
 
   Efield 2D:
 
-    plot Efield: False               # 2d plot of electric field
-    data type: ECM                   # data type can be 'ECM' or 'GJ'
+    plot Efield: True              # 2d plot of electric field
+    data type: GJ                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
     max val: 900                   # maximum colorbar value in V/m
@@ -749,7 +753,7 @@ results options:
 
   Currents 2D:
 
-    plot Currents: False               # 2d plot of net current flow in the collective?
+    plot Currents: True               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -799,14 +803,14 @@ results options:
 
   Current Ani:
 
-    animate current: False       # 2d animation of current in individual cells of the collective?
+    animate current: True       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
   Efield Ani:
-    animate Efield: False        # 2d animation of electric field in extracellullar matrix
-    data type: ECM                  # data type can be 'ECM' or 'GJ'
+    animate Efield: True        # 2d animation of electric field in extracellullar matrix
+    data type: GJ                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 1500               # max colorbar value [V/m]

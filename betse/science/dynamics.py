@@ -3,6 +3,8 @@
 # See "LICENSE" for further details.
 
 # FIXME do cut cells routine for p.sim_ECM true !!!
+# FIXME cut out all the grey areas -- don't need 'em anymore
+# FIXME re-do boundary stuff for new environmental grid approach
 
 
 import numpy as np

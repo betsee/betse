@@ -165,7 +165,7 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            p.method = 1 # set the simulation to run with mock RK4 updates
+            p.method = 1 # set the simulation to run with pseudo RK4 updates
 
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
             # sim.tissueInit(cells,p)
@@ -232,7 +232,7 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            p.method = 0  # set simulation to run with mock RK4 updates
+            p.method = 1  # set simulation to run with pseudo RK4 updates
 
             sim.runSim_ECM(cells,p,save=True)   # run and optionally save the simulation to the cache
 
@@ -581,7 +581,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         axI.set_xlabel('Spatial distance [um]')
         axI.set_ylabel('Spatial distance [um]')
-        cbI.set_label('Current [fA]')
+        cbI.set_label('Current Density [A/m2]')
 
         if saveImages == True:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
@@ -597,7 +597,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             axI2.set_xlabel('Spatial distance [um]')
             axI2.set_ylabel('Spatial distance [um]')
-            cbI2.set_label('Current [fA]')
+            cbI2.set_label('Current Density [A/m2]')
 
             if saveImages == True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
