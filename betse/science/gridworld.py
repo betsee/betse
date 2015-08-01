@@ -464,8 +464,6 @@ class GridWorld(object):
 
     def makeMask(self, mask_type = 'exterior bound'):
 
-
-
         if mask_type == 'cluster bound':
 
             maskM = np.zeros(self.X.shape)

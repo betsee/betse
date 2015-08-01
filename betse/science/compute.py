@@ -1782,14 +1782,18 @@ class Simulator(object):
         f_env_x = f_env_x*flux_mult_x
         f_env_y = f_env_y*flux_mult_y
 
+        if p.closed_bound == True:
+
+            # if boundaries are closed, set normal fluxes at boundary to zero:
+            f_env_x[:,0] = 0
+            f_env_x[:,-1] = 0
+
+            f_env_y[0,:] = 0
+            f_env_y[-1,:]=0
+
         # calculate the spatial derivatives of the negative of each flux component to simulate divergence operator:
         f_xx, _ = gradient(-f_env_x, cells.delta)
         _, f_yy = gradient(-f_env_y, cells.delta)
-
-        if p.closed_bound == True:
-
-            pass
-            # FIXME if working with a closed bound and this formula, why not just set the right fluxes at the boundaries to zero?
 
         # change in time is:
         delta_c = f_xx + f_yy
@@ -1797,16 +1801,16 @@ class Simulator(object):
         # cenv = cenv + delta_c*p.dt
         cenv = rk4(cenv, delta_c,p)
 
-        if p.closed_bound == True:
-            # Neumann boundary condition (flux at boundary)
-            # zero flux boundaries for concentration:
-            cenv[:,-1] = cenv[:,-2]
-            cenv[:,0] = cenv[:,1]
-            cenv[0,:] = cenv[1,:]
-            cenv[-1,:] = cenv[-2,:]
+        # if p.closed_bound == True:
+        #     # Neumann boundary condition (flux at boundary)
+        #     # zero flux boundaries for concentration:
+        #     cenv[:,-1] = cenv[:,-2]
+        #     cenv[:,0] = cenv[:,1]
+        #     cenv[0,:] = cenv[1,:]
+        #     cenv[-1,:] = cenv[-2,:]
 
-        else:
-
+        if p.closed_bound == False:
+            # if the boundary is open, set the concentration at the boundary
             # open boundary
             self.cc_env[i][cells.bL_k] = self.c_env_bound[i]
             self.cc_env[i][cells.bR_k] = self.c_env_bound[i]
