@@ -83,17 +83,17 @@ class FiniteDiffSolver(object):
 
         xv = np.linspace(xmin,xmax,grid_n+1)
         yv = np.linspace(ymin,ymax,grid_n+1)
-        X_verts, Y_verts = np.meshgrid(xv,yv)
+        self.verts_X, self.verts_Y = np.meshgrid(xv,yv)
 
         # grid and coordinate vectors defining the vertices of each cell:
-        x_verts = X_verts.ravel()
-        y_verts = Y_verts.ravel()
+        x_verts = self.verts_X.ravel()
+        y_verts = self.verts_Y.ravel()
         self.xy_verts = np.column_stack((x_verts,y_verts))
-        self.verts_shape = X_verts.shape
+        self.verts_shape = self.verts_X.shape
 
         # grid and coordinate vectors defining the centre points of each cell:
-        self.cents_X = (X_verts[0:-1,0:-1] + X_verts[0:-1,1:])/2
-        self.cents_Y = (Y_verts[0:-1,0:-1] + Y_verts[1:,0:-1])/2
+        self.cents_X = (self.verts_X[0:-1,0:-1] + self.verts_X[0:-1,1:])/2
+        self.cents_Y = (self.verts_Y[0:-1,0:-1] + self.verts_Y[1:,0:-1])/2
 
         x_cent = self.cents_X.ravel()
         y_cent = self.cents_Y.ravel()
@@ -112,7 +112,7 @@ class FiniteDiffSolver(object):
 
         # cell side midpoints in the x (u) and x (v) directions:
         mx = self.cents_X[0,:]
-        my = Y_verts[:,0]
+        my = self.verts_Y[:,0]
         self.v_X, self.v_Y = np.meshgrid(mx,my)
 
         x_m = self.v_X.ravel()
@@ -131,7 +131,7 @@ class FiniteDiffSolver(object):
 
         self.map_ij2k_v = np.asarray(self.map_ij2k_v)
 
-        nx = X_verts[0,:]
+        nx = self.verts_X[0,:]
         ny = self.cents_Y[:,0]
         self.u_X, self.u_Y = np.meshgrid(nx,ny)
 
@@ -160,8 +160,13 @@ class FiniteDiffSolver(object):
 
         mmx = np.unique(self.u_pts[:,0])
         mmy = np.unique(self.u_pts[:,1])
-        self.delta_mids_x = mmx[1] - mmx[0]
-        self.delta_mids_y = mmy[1] - mmy[0]
+        self.delta_u_x = mmx[1] - mmx[0]
+        self.delta_u_y = mmy[1] - mmy[0]
+
+        nnx = np.unique(self.v_pts[:,0])
+        nny = np.unique(self.v_pts[:,1])
+        self.delta_v_x = nnx[1] - nnx[0]
+        self.delta_v_y = nny[1] - nny[0]
 
 def makeLaplacian(grid_len,shape,map_ij2k,delx,dely,maskM=None):
     """
@@ -289,36 +294,36 @@ def laplacian(F,delx,dely=None):
 
     """
 
-    # if dely is None:
-    #     dely = delx
-    #
-    # ddFx_interior = (F[:,2:] - 2*F[:,1:-1] + F[:,0:-2])/(delx*dely)
-    # ddFy_interior = (F[2:,:] - 2*F[1:-1,:] + F[0:-2,:])/(delx*dely)
-    #
-    # ddF_T = (F[-3,:] - 2*F[-2,:] + F[-1,:])/(dely*dely)
-    # ddF_B = (F[0,:] - 2*F[-1,:] + F[-2,:])/(dely*dely)
-    # ddF_L = (F[:,2] - 2*F[:,1] + F[:,0])/(delx*delx)
-    # ddF_R = (F[:,-3] - 2*F[:,-2] + F[:,-1])/(delx*delx)
-    #
-    # lapF_interior = ddFx_interior[1:-1,:] + ddFy_interior[:,1:-1]
-    #
-    # # initialize the dFx and dFy arrays:
-    # ddF = np.zeros(F.shape)
-    #
-    # ddF[1:-1,1:-1] = lapF_interior
-    #
-    # ddF[:,0] = ddF_L
-    # ddF[:,-1] = ddF_R
-    #
-    # ddF[-1,:] = ddF_T
-    # ddF[0,:] = ddF_B
+    if dely is None:
+        dely = delx
+
+    ddFx_interior = (F[:,2:] - 2*F[:,1:-1] + F[:,0:-2])/(delx*dely)
+    ddFy_interior = (F[2:,:] - 2*F[1:-1,:] + F[0:-2,:])/(delx*dely)
+
+    ddF_B = (F[-3,:] - 2*F[-2,:] + F[-1,:])/(dely*dely)
+    ddF_T = (F[0,:] - 2*F[-1,:] + F[-2,:])/(dely*dely)
+    ddF_L = (F[:,2] - 2*F[:,1] + F[:,0])/(delx*delx)
+    ddF_R = (F[:,-3] - 2*F[:,-2] + F[:,-1])/(delx*delx)
+
+    lapF_interior = ddFx_interior[1:-1,:] + ddFy_interior[:,1:-1]
+
+    # initialize the dFx and dFy arrays:
+    ddF = np.zeros(F.shape)
+
+    ddF[1:-1,1:-1] = lapF_interior
+
+    ddF[:,0] = ddF_L
+    ddF[:,-1] = ddF_R
+
+    ddF[0,:] = ddF_T
+    ddF[-1,:] = ddF_B
 
     #------------------------------
 
-    gx, gy = gradient(F, delx,dely)
-    gxx = diff(gx, delx,axis=0)
-    gyy = diff(gy,dely,axis=1)
-    ddF = gxx + gyy
+    # gx, gy = gradient(F, delx,dely)
+    # gxx = diff(gx, delx,axis=0)
+    # gyy = diff(gy,dely,axis=1)
+    # ddF = gxx + gyy
 
     return ddF
 
@@ -335,8 +340,8 @@ def gradient(F,delx,dely=None):
     # calculate the discrete forward or backward first derivatives on the boundary points:
     dF_B = (F[1,:] - F[0,:])/dely
     dF_T = (F[-1,:] - F[-2,:])/dely
-    dF_L = (F[:,0] - F[:,1])/delx
-    dF_R = (F[:,-2] - F[:,-1])/delx
+    dF_L = (F[:,1] - F[:,0])/delx
+    dF_R = (F[:,-1] - F[:,-2])/delx
 
     # initialize the dFx and dFy arrays:
     dFx = np.zeros(F.shape)
