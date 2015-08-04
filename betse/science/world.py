@@ -1138,8 +1138,8 @@ class World(object):
             cj = pair[1]
             nn_i = self.num_nn[0]
             nn_j = self.num_nn[1]
-            self.gjMatrix[igj,ci] = -1/nn_i
-            self.gjMatrix[igj,cj] = 1/nn_j
+            self.gjMatrix[igj,ci] = -1
+            self.gjMatrix[igj,cj] = 1
 
         # define map allowing a dispatch from cell index to each respective membrane
         self.indmap_mem = np.asarray(self.indmap_mem)

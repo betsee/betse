@@ -2,6 +2,9 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME Stokes solver also needs to be able to work with general (masked) geometries -- to do this we'll calculate
+# FIXME a graph-based laplacian, similar to the discrete transfers I've done with GJs
+
 import numpy as np
 import math
 import scipy.ndimage
@@ -168,6 +171,193 @@ class FiniteDiffSolver(object):
         self.delta_v_x = nnx[1] - nnx[0]
         self.delta_v_y = nny[1] - nny[0]
 
+    def stokes_Laplacian(self):
+
+        # Second type of Poisson solver -- calculates pressure with zero gradient at boundaries.
+        size_rows = self.cents_shape[0]
+        size_cols = self.cents_shape[1]
+
+        A = np.zeros((size_rows**2,size_cols**2))
+
+        for k, (i,j) in enumerate(self.map_ij2k_cents):
+
+            # if we're not on a main boundary:
+            if i != 0 and j != 0 and i != size_rows-1 and j != size_cols-1:
+
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
+
+                A[k, k_ip1_j] = 1
+                A[k, k_in1_j] = 1
+                A[k, k_i_jp1] = 1
+                A[k, k_i_jn1] = 1
+                A[k,k] = -4
+
+            if i == 0:
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                A[k, k_ip1_j] = 1
+
+                A[k,k] = -1
+
+            if i == size_rows -1:
+                k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
+                A[k, k_in1_j] = 1
+
+                A[k,k] = -1
+
+            if j == 0:
+
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+                A[k, k_i_jp1] = 1
+
+                A[k,k] = -1
+
+            if j == size_cols -1:
+
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
+                A[k, k_i_jn1] = 1
+
+                A[k,k] = -1
+
+        A = A/(self.delta_cents_x*self.delta_cents_y)
+
+        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+        Ainv = np.linalg.inv(A)
+
+        return Ainv
+
+    def stokes_kernel(self):
+        """
+        Calculate the linearized Navier-Stokes equations using
+        the Finite Difference method on a Marker and Cell (MACs) grid.
+
+        """
+
+        # parameters of the liquid
+        rho = 1e3   # density
+        visc = 0.1  # visocity
+
+        # body force on the liquid, with components at the x and y coordinates of velocity:
+        Fy = np.zeros(self.v_shape)
+        Fy[5:-5,5:-5]=-9.81*rho
+
+        Fx = np.zeros(self.u_shape)
+
+        Ainv = self.stokes_Laplacian()
+
+        time_step = 1e-5
+        end_time = 1e-3
+        time_points = end_time/time_step
+        time = np.linspace(0,end_time,time_points)
+
+        # Unsteady Stokes Flow Solver on MACs grids
+
+        # Initial conditions:
+
+        # Velocity u= ui + vj
+        u = np.zeros(self.u_shape)
+        v = np.zeros(self.v_shape)
+
+        P_time = []
+        u_time = []
+        v_time = []
+
+        for t in time:
+
+            # reinforce boundary conditions
+            #left
+            u[:,0] = 0
+            # right
+            u[:,-1] = 0
+            # top
+            u[-1,:] = 0
+            # bottom
+            u[0,:] = 0
+
+            # left
+            v[:,0] = 0
+            # right
+            v[:,-1] = 0
+            # top
+            v[-1,:] = 0
+            # bottom
+            v[0,:] = 0
+
+            # calculate the flow, omitting the pressure term:
+            lap_u = laplacian(u,self.delta_u_x,self.delta_u_y)
+            lap_v = laplacian(v,self.delta_v_x,self.delta_v_y)
+
+            u = u + (time_step/rho)*(visc*lap_u + Fx)
+
+            v = v + (time_step/rho)*(visc*lap_v + Fy)
+
+            # take the divergence of the flow field using a forward difference
+            # that creates a matrix the same size as the pressure matrix:
+
+            u_dx = (u[:,1:] - u[:,0:-1])/self.delta_u_x
+            v_dy = (v[1:,:] - v[0:-1,:])/self.delta_v_y
+
+            div_u = u_dx + v_dy
+
+            #...solve for the pressure in terms of existing divergence:
+
+            source = (rho/time_step)*div_u.ravel()
+    #         source[bvals] = 0
+
+            P = np.dot(Ainv, source)
+            P = P.reshape(self.cents_shape)
+
+            # enforce zero gradient boundary conditions on P:
+            P[:,0] = P[:,1]
+            P[:,-1] = P[:,-2]
+            P[0,:] = P[1,:]
+            P[-1,:] = P[-2,:]
+
+            # Take the gradient of the pressue:
+            gPxo, gPyo = gradient(P,self.delta_cents_x,self.delta_cents_y)
+
+            gPx = np.zeros(self.u_shape)
+            gPx[:,0:-1] = gPxo
+            gPx[:,-1] = gPxo[:,-1]
+
+            gPy = np.zeros(self.v_shape)
+            gPy[0:-1,:] = gPyo
+            gPy[-1,:] = gPyo[-1,:]
+
+            # subtract the pressure from the solution to yeild a divergence-free flow field
+            u = u - gPx*(time_step/rho)
+            v = v - gPy*(time_step/rho)
+
+            # interpolate u and v values at the centre for easy plotting:
+            u_at_c = u[:,0:-1]
+
+            v_at_c = v[0:-1,:]
+
+            # reinforce boundary conditions
+            #left
+            u_at_c[:,0] = 0
+            # right
+            u_at_c[:,-1] = 0
+            # top
+            u_at_c[-1,:] = 0
+            # bottom
+            u_at_c[0,:] = 0
+
+            # left
+            v_at_c[:,0] = 0
+            # right
+            v_at_c[:,-1] = 0
+            # top
+            v_at_c[-1,:] = 0
+            # bottom
+            v_at_c[0,:] = 0
+
+            P_time.append(P)
+            u_time.append(u_at_c)
+            v_time.append(v_at_c)
+
 def makeLaplacian(grid_len,shape,map_ij2k,delx,dely,maskM=None):
     """
     Generate the discrete finite central difference 2D Laplacian operator based on:
@@ -254,6 +444,7 @@ def makeLaplacian(grid_len,shape,map_ij2k,delx,dely,maskM=None):
     Ainv = np.linalg.inv(Ai)
 
     return Ainv, bound_pts_k
+
 
 def jacobi(A,b,N=50,x=None):
     """
@@ -548,6 +739,35 @@ def boundTag(points,delta,alpha=1.0):
     bflags = np.unique(concave_hull)    # get the value of unique indices from segments
 
     return bflags
+
+def integrator(P):
+
+    F = np.zeros(P.shape)
+
+    eP = P[:,1::1] # east midpoints
+    wP = P[:,0:-1:1] # west midpoints
+    nP = P[1::1,:] # north midpoints
+    sP = P[0:-1:1,:] # south midpoints
+    neP = P[1::1,1::1] # North east midpoints
+    nwP = P[1::1,0:-1:1] # North west midpoints
+    swP = P[0:-1:1,0:-1:1] # South West midpoints
+    seP = P[0:-1:1,1::1] # South East midpoints
+
+    # do the numerical integration:
+    F[:,:] = 16*P
+    F[1:,:] = F[1:,:] + 4*nP
+    F[0:-1,:] = F[0:-1,:] + 4*sP
+    F[:,0:-1] = F[:,0:-1] + 4*eP
+    F[:,1:] = F[:,1:] + 4*wP
+
+    F[1:,0:-1] = F[1:,0:-1] + neP
+    F[1:,1:] = F[1:,1:] + nwP
+    F[0:-1,0:-1] = F[0:-1,0:-1] + seP
+    F[0:-1,1:] = F[0:-1,1:] + swP
+
+    F = (1/36)*F
+
+    return F
 
 
 #-----------------------------------------------------------------------------------------------------------------------

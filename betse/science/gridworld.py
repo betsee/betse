@@ -305,8 +305,8 @@ class GridWorld(object):
             cj = pair[1]
             nn_i = self.num_nn[0]
             nn_j = self.num_nn[1]
-            self.gjMatrix[igj,ci] = -1/nn_i
-            self.gjMatrix[igj,cj] = 1/nn_j
+            self.gjMatrix[igj,ci] = -1
+            self.gjMatrix[igj,cj] = 1
 
     def boundTag(self,points,p,alpha=1.0):
 
