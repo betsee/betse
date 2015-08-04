@@ -66,26 +66,33 @@ dependencies are installable in a system-wide manner as follows:
 Under Apple OS X, such dependencies are installable in a system-wide manner as
 follows:
 
-. Register as an [Apple Developer](https://developer.apple.com). While free,
-  such registration requires an existing Apple ID.
-. Download [XCode](https://developer.apple.com/xcode). While free, such
-  download requires an [Apple Developer] login.
-. Install XCode, ensuring the "UNIX Development Support" checkbox is checked.
-. Download and install [MacPorts](https://www.macports.org).
-. Open a terminal window (e.g., by running the pre-bundled
-  `Applications/Utilities/Terminal.app` application).
-. Install dependencies:
-    >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
-. Activate the version of Python required by `betse`:
-    >>> sudo port select --set python python34
-. Close the terminal, if you like:
-    >>> exit
-. Manually add the
-  `/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin` directory
-  to the current ${PATH}. To do so permanently, edit the `.profile` file in your
-  home directory and change the line beginning with `export PATH` to resemble
-  the following:
-    export PATH="/opt/local/bin:/opt/local/sbin:/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin:$PATH"
+1. Register as an [Apple Developer](https://developer.apple.com). While free,
+   such registration requires an existing Apple ID.
+1. Download [XCode](https://developer.apple.com/xcode). While free, such
+   download requires an [Apple Developer] login.
+1. Install XCode, ensuring the "UNIX Development Support" checkbox is checked.
+1. Download and install [MacPorts](https://www.macports.org).
+1. Open a terminal window (e.g., by running the pre-bundled
+   `Applications/Utilities/Terminal.app` application).
+1. Install dependencies:
+
+        >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
+
+1. Activate the version of Python required by `betse`:
+
+        >>> sudo port select --set python python34
+
+1. Close the terminal, if you like:
+
+        >>> exit
+
+1. Manually add the
+   `/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin` directory
+   to the current ${PATH}. To do so permanently, edit the `.profile` file in your
+   home directory and change the line beginning with `export PATH` to resemble
+   the following:
+
+        export PATH="/opt/local/bin:/opt/local/sbin:/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin:${PATH}"
 
 Note that MacPorts is a source-based package manager and hence extremely slow.
 Expect the installation of dependencies to take several hours to several days.
@@ -103,19 +110,38 @@ For simplicity, the following instructions assume use of the
 [Miniconda](http://conda.pydata.org/miniconda.html) Python distribution *and*
 [Babun](http://babun.github.io) POSIX compatibility layer under 64-bit Windows:
 
-. Download and install **Babun**, an open-source Cygwin convenience wrapper
-  complete with `pact`, a CLI-based package manager for Windows. Due to
-  unreconcilable flaws in Windows' non-POSIX-compatible process model, Cygwin
-  and hence Babun is incompatible with all Windows applications on the [Big List
-  of Dodgy Apps (BLODA)](https://cygwin.com/faq/faq.html#faq.using.bloda).
-  Unfortunately, this includes most antivirus software. If Babun begins behaving
-  erratically, consider temporarily disabling such software for the duration of
-  Babun usage. (This is the fault of neither Babun nor Cygwin!)
-. Download and install the 64-bit Python 3 Windows version of **Miniconda**.
-  (See the "Wine" subsection below for further details.)
-. Open a terminal window.
-. Install Python dependencies via `conda`, Miniconda's package manager:
-    >>> conda install numpy matplotlib pyside pywin32 scipy
+1. Download and install **Babun**, an open-source Cygwin convenience wrapper
+   complete with `pact`, a CLI-based package manager for Windows. Due to
+   unreconcilable flaws in Windows' non-POSIX-compatible process model, Cygwin
+   and hence Babun is incompatible with all Windows applications on the [Big List
+   of Dodgy Apps (BLODA)](https://cygwin.com/faq/faq.html#faq.using.bloda).
+   Unfortunately, this includes most antivirus software. If Babun begins behaving
+   erratically, consider temporarily disabling such software for the duration of
+   Babun usage. (This is the fault of neither Babun nor Cygwin!)
+1. Download and install the 64-bit Python 3 Windows version of **Miniconda**.
+   (See the "Wine" subsection below for further details.)
+1. Double click the desktop shortcut `babun` to open a new terminal window.
+1. Prioritize Miniconda- over Babun-installed Python packages. By default, Babun
+   prioritizes Babun- over Miniconda-installed Python packages. Since Babun
+   packages only a subset of the dependencies required by `betse`, Miniconda's
+   `conda` rather than Babun's `pact` package manager must be used to install
+   such dependencies. To permit this, modify the `${PATH}` global exported at
+   Babun startup by editing the `.zshrc` file in your home directory as follows:
+
+        # Alter this...
+        export PATH=$HOME/bin:/usr/local/bin:$PATH
+
+        # ...to this.
+        export MINICONDA_PATH="/cygdrive/c/Miniconda3"
+        export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${HOME}/bin:${PATH}"
+
+1. Apply such changes to the current shell session. 
+
+        >>> source ~/.zshrc
+
+1. Install Python dependencies via `conda`, Miniconda's package manager:
+
+        >>> conda install numpy matplotlib pyside pywin32 scipy
 
 ##### Wine
 
@@ -132,49 +158,58 @@ Linux. Thanks to the cross-platform portability of both Wine and Anaconda (if
 not PlayOnLinux, for obvious reasons), these instructions should trivially
 generalize to alternate setups (e.g., 32-bit OS X) as well:
 
-. Download the 64-bit Python 3 Windows installer for Miniconda, an open-source,
-  cross-platform, binary-based Python package manager, from
-  `http://conda.pydata.org/miniconda.html`. Miniconda is a minimalist version of
-  Anaconda, a popular full-stack SciPy distribution. Whereas Anaconda comes
-  pre-bundled with numerous Python and non-Python dependencies, Miniconda
-  requires manual installation of such dependencies. We prefer the latter.
-  Either suffices, however.
-. If using Linux *and* your preferred Linux distribution provides a readily
-  installable package for Wine Staging, consider installing Wine Staging.
-. Install PlayOnLinux, an open-source Wine manager simplifying Wine usage.
-    sudo apt-get install playonlinux
-. Install the newest 64-bit version of Wine via PlayOnLinux.
-  . Run PlayOnLinux.
-  . Select the *Tools* -> *Manage Wine versions* menu item.
-  . Select the *Wine versions (amd64)* tab.
-  . Select the topmost list item under *Available Wine versions*. Note that this
-    version of Wine *must* be greater than or equal to that stipulated above.
-  . Click the right arrow.
-  . Click the *Next* button until complete.
-. Create a new Wine prefix named `betse` via PlayOnLinux.
-  . Click the *Configure* toolbar button.
-  . Click the *New* button.
-  . Click the *Next* button.
-  . Select the *64 bits windows installation* list item and click the *Next*
-    button.
-  . Select the list item corresponding to the newly installed version of Wine
-    and click the *Next* button.
-  . Enter `betse` and click the *Next* button.
-. Open a terminal window.
-. Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
-  be replaced by the installed version number (e.g., `1.7.40`).
-    >>> export WINEDEBUG='-all'
-    >>> export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
-    >>> export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
-. Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
+1. Download the 64-bit Python 3 Windows installer for Miniconda, an open-source,
+   cross-platform, binary-based Python package manager, from
+   `http://conda.pydata.org/miniconda.html`. Miniconda is a minimalist version of
+   Anaconda, a popular full-stack SciPy distribution. Whereas Anaconda comes
+   pre-bundled with numerous Python and non-Python dependencies, Miniconda
+   requires manual installation of such dependencies. We prefer the latter.
+   Either suffices, however.
+1. If using Linux *and* your preferred Linux distribution provides a readily
+   installable package for Wine Staging, consider installing Wine Staging.
+1. Install PlayOnLinux, an open-source Wine manager simplifying Wine usage.
+
+        >>> sudo apt-get install playonlinux
+
+1. Install the newest 64-bit version of Wine via PlayOnLinux.
+  1. Run PlayOnLinux.
+  1. Select the *Tools* -> *Manage Wine versions* menu item.
+  1. Select the *Wine versions (amd64)* tab.
+  1. Select the topmost list item under *Available Wine versions*. Note that this
+     version of Wine *must* be greater than or equal to that stipulated above.
+  1. Click the right arrow.
+  1. Click the *Next* button until complete.
+1. Create a new Wine prefix named `betse` via PlayOnLinux.
+  1. Click the *Configure* toolbar button.
+  1. Click the *New* button.
+  1. Click the *Next* button.
+  1. Select the *64 bits windows installation* list item and click the *Next*
+     button.
+  1. Select the list item corresponding to the newly installed version of Wine
+     and click the *Next* button.
+  1. Enter `betse` and click the *Next* button.
+1. Open a terminal window.
+1. Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
+   be replaced by the installed version number (e.g., `1.7.40`).
+
+        >>> export WINEDEBUG='-all'
+        >>> export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
+        >>> export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
+
+1. Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
   by the path to the previously downloaded Miniconda installer (e.g.,
   `~/Downloads/Miniconda3-latest-Windows-x86\_64.exe`).
-    >>> wine "${MINICONDA_INSTALLER}"
-. Active Miniconda.
-    >>> export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
-    >>> export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
-. Install dependencies via `conda`, Miniconda's package manager:
-    >>> wine conda install numpy matplotlib pyside pywin32 scipy
+
+        >>> wine "${MINICONDA_INSTALLER}"
+
+1. Active Miniconda.
+
+        >>> export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
+        >>> export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
+
+1. Install dependencies via `conda`, Miniconda's package manager:
+
+        >>> wine conda install numpy matplotlib pyside pywin32 scipy
 
 ### Optional
 
@@ -212,10 +247,13 @@ absolute path of the top-level directory containing the source for `betse`.
 `betse` is installable into a system-wide directory as follows:
 
 * Compile `betse`.
-    >>> cd "${BETSE_DIR}"
-    >>> python3 setup.py build
+
+        >>> cd "${BETSE_DIR}"
+        >>> python3 setup.py build
+
 * Install `betse`.
-    >>> sudo python3 setup.py easy_install --no-deps .
+
+        >>> sudo python3 setup.py easy_install --no-deps .
 
 Curiously, although the `develop` command for `setuptools` provides a
 `--no-deps` option, the `install` command does not. Hence, the `easy\_install`
