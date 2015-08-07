@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range see table)
-    total time: 0.2                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 1.e-2            # time period to sample data from init run [s] (recommended range see table)
+    time step: 1.0e-2               # Simulation step-size [s] (recommended range see table)
+    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
@@ -89,7 +89,7 @@ init time settings:
 #
 # GJ sa          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
-# 1e-5               5e-3             5e-4          0.1         closed gap junctions
+# 1e-6               1e-2             5e-4          0.1         closed gap junctions
 # 1.0e-4             5e-3             5e-4          0.1         low gap junctions
 # 5.0e-4             1e-3             1e-5          1e-3        moderate gap junction
 # 1.0e-3             5e-4             1e-6          1e-4        high flux gap junctions
@@ -126,7 +126,7 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
     total time: 0.2                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
@@ -162,7 +162,7 @@ general options:
 
   grid size: 40                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)

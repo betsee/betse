@@ -113,13 +113,12 @@ class Simulator(object):
 
         i = -1                           # an index to track place in ion list
 
-        self.flx_gj_i = np.zeros(len(cells.gj_i))
-        self.fluxes_gj = []
+        self.flx_gj_i = np.zeros(len(cells.nn_i))
+        self.fluxes_gj_x = []
+        self.fluxes_gj_y = []
 
-        self.I_gj =np.zeros(len(cells.gj_i))     # total current in the network
-        self.I_gj_time = []                            # total current in the network at each time
-
-        self.gjopen_time = []   # stores gj open fraction at each time
+        self.I_gj_x =np.zeros(len(cells.nn_i))     # total current in the network
+        self.I_gj_y =np.zeros(len(cells.nn_i))     # total current in the network
 
         # Membrane current data structure initialization
         self.flx_mem_i = np.zeros(len(cells.mem_i))
@@ -168,7 +167,7 @@ class Simulator(object):
                     # gj diffusion for each ion
                     str_Dgj = 'Dgj' + name
 
-                    setattr(self, str_Dgj, np.zeros(len(cells.gj_i)))
+                    setattr(self, str_Dgj, np.zeros(len(cells.nn_i)))
                     vars(self)[str_Dgj][:] = p.free_diff[name]
 
                     str_z = 'z' + name
@@ -184,7 +183,8 @@ class Simulator(object):
                     self.D_free.append(p.free_diff[name])
                     self.D_gj.append(vars(self)[str_Dgj])
 
-                    self.fluxes_gj.append(self.flx_gj_i)
+                    self.fluxes_gj_x.append(self.flx_gj_i)
+                    self.fluxes_gj_y.append(self.flx_gj_i)
                     self.fluxes_mem.append(self.flx_mem_i)
 
                     if name == 'Ca':
@@ -244,7 +244,7 @@ class Simulator(object):
             DmH = np.zeros(len(cells.cell_i))
             DmH[:] = p.Dm_H
 
-            DgjH = np.zeros(len(cells.gj_i))
+            DgjH = np.zeros(len(cells.nn_i))
             DgjH[:] = p.free_diff[name]
 
             self.zH = np.zeros(len(cells.cell_i))
@@ -258,7 +258,8 @@ class Simulator(object):
             self.D_gj.append(DgjH)
             self.D_free.append(p.Do_H)
 
-            self.fluxes_gj.append(self.flx_gj_i)
+            self.fluxes_gj_x.append(self.flx_gj_i)
+            self.fluxes_gj_y.append(self.flx_gj_i)
             self.fluxes_mem.append(self.flx_mem_i)
 
         #-------------------------------------------------------------------------------------------------------
@@ -308,7 +309,7 @@ class Simulator(object):
             self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
             self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
 
-            self.cIP3_flux_gj = np.zeros(len(cells.gj_i))
+            self.cIP3_flux_gj = np.zeros(len(cells.nn_i))
             self.cIP3_flux_mem = np.zeros(len(cells.mem_i))
 
             self.cIP3_flux_gj_time = []
@@ -334,7 +335,7 @@ class Simulator(object):
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
 
-            self.Dye_flux_gj = np.zeros(len(cells.gj_i))
+            self.Dye_flux_gj = np.zeros(len(cells.nn_i))
             self.Dye_flux_mem = np.zeros(len(cells.mem_i))
 
 
@@ -381,9 +382,11 @@ class Simulator(object):
         self.tm = np.zeros(len(cells.mem_i))
         self.tm[:] = p.tm
 
-        self.flx_gj_i = np.zeros(len(cells.gj_i))  # flux matrix across gj for individual ions
-        self.fluxes_gj = []
-        self.I_gj =np.zeros(len(cells.gj_i))     # total current in the gj network
+        self.flx_gj_i = np.zeros(len(cells.nn_i))  # flux matrix across gj for individual ions
+        self.fluxes_gj_x = []
+        self.fluxes_gj_y = []
+        self.I_gj_x =np.zeros(len(cells.nn_i))     # total current in the gj network
+        self.I_gj_y =np.zeros(len(cells.nn_i))     # total current in the gj network
 
         # Membrane current data structure initialization
         self.flx_mem_i = np.zeros(len(cells.mem_i))
@@ -439,7 +442,7 @@ class Simulator(object):
                     # base membrane diffusion for each ion
                     str_Dgj = 'Dgj' + name
 
-                    setattr(self, str_Dgj, np.zeros(len(cells.gj_i)))
+                    setattr(self, str_Dgj, np.zeros(len(cells.nn_i)))
                     vars(self)[str_Dgj][:] = p.free_diff[name]
 
                     # environmental diffusion for each ion
@@ -539,7 +542,7 @@ class Simulator(object):
             DenvH = np.zeros(len(cells.xypts))
             DenvH[:] = p.free_diff['H']
 
-            DgjH = np.zeros(len(cells.gj_i))
+            DgjH = np.zeros(len(cells.nn_i))
             DgjH[:] = p.free_diff['H']
 
             self.cc_cells.append(self.cH_cells)
@@ -677,7 +680,7 @@ class Simulator(object):
 
         if p.global_options['gj_block'] != 0:
 
-            self.gj_block = np.ones(len(cells.gj_i))   # initialize the gap junction blocking vector to ones
+            self.gj_block = np.ones(len(cells.nn_i))   # initialize the gap junction blocking vector to ones
 
         else:
 
@@ -688,7 +691,7 @@ class Simulator(object):
             self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
             self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
 
-            self.cIP3_flux_gj = np.zeros(len(cells.gj_i))
+            self.cIP3_flux_gj = np.zeros(len(cells.nn_i))
             self.cIP3_flux_mem = np.zeros(len(cells.mem_i))
 
             self.cIP3_flux_gj_time = []
@@ -712,7 +715,7 @@ class Simulator(object):
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
 
-            self.Dye_flux_gj = np.zeros(len(cells.gj_i))
+            self.Dye_flux_gj = np.zeros(len(cells.nn_i))
             self.Dye_flux_mem = np.zeros(len(cells.mem_i))
 
 
@@ -776,10 +779,10 @@ class Simulator(object):
             self.Dye_flux_mem_time = []
 
         # gap junction specific arrays:
-        self.id_gj = np.ones(len(cells.gj_i))  # identity array for gap junction indices...
-        self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
-        self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
-        self.gjl[:] = cells.gj_len
+        self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
+        self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
+        self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
+        self.gjl[:] = cells.nn_len
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
         q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
@@ -973,7 +976,7 @@ class Simulator(object):
                     self.vm = get_volt(q_cells,cells.cell_sa,p)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
-            shuffle(cells.gj_i)
+
             shuffle(self.movingIons)
 
             for i in self.movingIons:
@@ -999,7 +1002,7 @@ class Simulator(object):
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                 # determine flux through gap junctions for IP3:
 
-                fIP3 = electroflux(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
+                fIP3 = electroflux(self.cIP3[cells.nn_i][:,0],self.cIP3[cells.nn_i][:,1],
                     self.id_gj*p.Do_IP3,self.gjl,p.z_IP3,self.vgj,self.T,p)
 
                 # update cell IP3 concentration due to gap junction flux:
@@ -1050,7 +1053,7 @@ class Simulator(object):
                 self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
 
                 # determine flux through gap junctions for voltage dye:
-                fDye = electroflux(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
+                fDye = electroflux(self.cDye_cell[cells.nn_i][:,0],self.cDye_cell[cells.nn_i][:,1],
                     self.id_gj*p.Do_Dye,self.gjl,p.z_Dye,self.vgj,self.T,p)
 
                 # update cell voltage-sensitive dye concentration due to gap junction flux:
@@ -1261,10 +1264,10 @@ class Simulator(object):
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
 
         # gap junction specific arrays:
-        self.id_gj = np.ones(len(cells.gj_i))  # identity array for gap junction indices...
-        self.gjopen = np.ones(len(cells.gj_i))   # holds gap junction open fraction for each gj
-        self.gjl = np.zeros(len(cells.gj_i))    # gj length for each gj
-        self.gjl[:] = cells.gj_len
+        self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
+        self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
+        self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
+        self.gjl[:] = cells.nn_len
 
         # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
         self.update_V_ecm(cells,p,0)
@@ -1380,7 +1383,7 @@ class Simulator(object):
                     self.Hplus_VATP_ecm(cells,p,t)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
-            shuffle(cells.gj_i)
+
             shuffle(self.movingIons)
 
             for i in self.movingIons:
@@ -1717,41 +1720,88 @@ class Simulator(object):
 
     def update_gj(self,cells,p,t,i):
 
-         # calculate voltage difference between cells:
+
+        # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM == True:
-            vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
+
+            self.vgj = self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0]
 
         else:
-            vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
+            self.vgj = self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0]
 
-        self.vgj = vmB - vmA
 
         if p.v_sensitive_gj == True:
             # determine the open state of gap junctions:
             self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
-        # determine flux through gap junctions for this ion:
+        # voltage gradient:
+        grad_vgj = self.vgj/cells.nn_len
 
-        fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-            self.D_gj[i],self.gjl,self.zs[i],self.vgj,self.T,p)
+        grad_vgj_x = grad_vgj*cells.nn_vects[:,2]
+        grad_vgj_y = grad_vgj*cells.nn_vects[:,3]
 
-        # deltac_gj = self.gjopen*(fgj)*p.dt
+        # concentration gradient for ion i:
+        grad_cgj = (self.cc_cells[i][cells.nn_i][:,1] - self.cc_cells[i][cells.nn_i][:,0])/cells.nn_len
 
-        # update cell concentration due to gap junction flux:
-        # self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
+        grad_cgj_x = grad_cgj*cells.nn_vects[:,2]
+        grad_cgj_y = grad_cgj*cells.nn_vects[:,3]
 
-        d_gj = self.gjopen*(fgj)
+        # midpoint concentration:
+        c = (self.cc_cells[i][cells.nn_i][:,1] + self.cc_cells[i][cells.nn_i][:,0])/2
 
-        delta_gj = ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(d_gj, cells.gjMatrix)
+        fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,
+            self.D_gj[i]*self.gjopen*p.gj_surface,self.zs[i],self.T,p)
 
-        self.cc_cells[i] = rk4(self.cc_cells[i],delta_gj,p)
+        fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
 
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        # self.update_V_ecm(cells,p,t)
+        delta_cc = np.dot(cells.gjMatrix,fgj)
 
-        self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
+        self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
-    def update_ecm(self,cells,p,t,i):
+        self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
+        self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
+
+         # recalculate the net, unbalanced charge and voltage in each cell:
+        if p.sim_ECM == True:
+            self.update_V_ecm(cells,p,t)
+
+
+# old way of doing this-----------------------------------------------------------------------------------------
+         # calculate voltage difference between cells:
+        # if p.sim_ECM == True:
+        #     vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
+        #
+        # else:
+        #     vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
+        #
+        # self.vgj = vmB - vmA
+        #
+        # if p.v_sensitive_gj == True:
+        #     # determine the open state of gap junctions:
+        #     self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+        #
+        # # determine flux through gap junctions for this ion:
+        #
+        # fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
+        #     self.D_gj[i],self.gjl,self.zs[i],self.vgj,self.T,p)
+        #
+        # # deltac_gj = self.gjopen*(fgj)*p.dt
+        #
+        # # update cell concentration due to gap junction flux:
+        # # self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
+        #
+        # d_gj = self.gjopen*(fgj)
+        #
+        # delta_gj = ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(d_gj, cells.gjMatrix)
+        #
+        # self.cc_cells[i] = rk4(self.cc_cells[i],delta_gj,p)
+        #
+        # # recalculate the net, unbalanced charge and voltage in each cell:
+        # # self.update_V_ecm(cells,p,t)
+        #
+        # self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
+
+    def update_ecm(self,cells,p,t,i):  # FIXME redo this whole section!!!
 
         #------------------------------
          # make v_env and cc_env into 2d matrices
@@ -1792,8 +1842,8 @@ class Simulator(object):
             f_env_y[-1,:]=0
 
         # calculate the spatial derivatives of the negative of each flux component to simulate divergence operator:
-        f_xx, _ = gradient(-f_env_x, cells.delta)
-        _, f_yy = gradient(-f_env_y, cells.delta)
+        f_xx, _ = gradient(f_env_x, cells.delta)
+        _, f_yy = gradient(f_env_y, cells.delta)
 
         # change in time is:
         delta_c = f_xx + f_yy
@@ -1891,7 +1941,7 @@ class Simulator(object):
         # _,_,fDye_gj = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
         #     self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
         #     cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,self.vgj,self.T,p)
-        fDye_gj = electroflux(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
+        fDye_gj = electroflux(self.cDye_cell[cells.nn_i][:,0],self.cDye_cell[cells.nn_i][:,1],
             p.Do_Dye,self.gjl,self.gjopen,p.z_Dye,self.vgj,self.T,p)
 
         # update cell voltage-sensitive dye concentration due to gap junction flux:
@@ -1909,7 +1959,7 @@ class Simulator(object):
 
         # electrodiffuse dye between environmental and ecm junctions:
 
-        self.cDye_ecm[cells.bflags_ecm],self.cDye_env,fDye_env = electrofuse(self.cDye_ecm[cells.bflags_ecm],
+        self.cDye_ecm[cells.bflags_ecm],self.cDye_env,fDye_env = electroflux(self.cDye_ecm[cells.bflags_ecm],
             self.cDye_env, self.id_env*p.Do_Dye,cells.len_ecm_junc[cells.bflags_ecm],
             self.ec2ec_sa[cells.bflags_ecm], cells.ecm_vol[cells.bflags_ecm],self.env_vol,
             p.z_Dye, self.v_ec2env, self.T, p,ignoreECM=True)
@@ -1919,7 +1969,7 @@ class Simulator(object):
         # _,_,fIP3 = electrofuse(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1],
         #     self.id_gj*p.Do_IP3,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
         #     cells.cell_vol[cells.gap_jun_i][:,1],p.z_IP3,self.vgj,self.T,p)
-        fIP3 = electroflux(self.cIP3[cells.gap_jun_i][:,0],self.cIP3[cells.gap_jun_i][:,1], p.Do_IP3,self.gjl,
+        fIP3 = electroflux(self.cIP3[cells.nn_i][:,0],self.cIP3[cells.nn_i][:,1], p.Do_IP3,self.gjl,
             self.gjopen,p.z_IP3,self.vgj,self.T,p)
 
         # update cell IP3 concentration due to gap junction flux:
@@ -1959,18 +2009,20 @@ class Simulator(object):
 
     def get_Efield(self,cells,p):
 
-        # calculate electric fields
-        if p.sim_ECM == False:
+         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
+        if p.sim_ECM == True:
 
-            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                self.vm,(cells.X,cells.Y))
-
-            V_CELL = np.nan_to_num(V_CELL)
-
-            self.E_gj_x, self.E_gj_y = gradient(V_CELL, cells.delta)
-
+            Egj = - (self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0])/cells.nn_len
 
         else:
+            Egj = - (self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0])/cells.nn_len
+
+        # get x and y components of the electric field:
+        self.E_gj_x = cells.nn_vects[:,2]*Egj
+        self.E_gj_y = cells.nn_vects[:,3]*Egj
+
+
+        if p.sim_ECM == True:
              # in the environment:
             venv = self.v_env.reshape(cells.X.shape)
             genv_x, genv_y = gradient(venv, cells.delta)
@@ -1978,42 +2030,34 @@ class Simulator(object):
             self.E_env_x = genv_x
             self.E_env_y = genv_y
 
-            # in gj connected cells:
-            V_CELL = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                self.v_cell,(cells.X,cells.Y))
-            V_CELL = np.nan_to_num(V_CELL)
-            self.E_gj_x, self.E_gj_y = gradient(V_CELL, cells.delta)
 
     def get_current(self,cells,p):
 
-        I_gj_x = np.zeros(len(cells.gj_i))
-        I_gj_y = np.zeros(len(cells.gj_i))
+        # calculate current across gap junctions in x direction:
+        I_gj_x = np.zeros(len(cells.nn_i))
 
-        self.I_mem = np.zeros(len(cells.mem_i))
+        for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
 
-        # calculate current across gap junctions:
-        for flux_array, zi in zip(self.fluxes_gj,self.zs):
-
-            tx = cells.gj_vects[:,2]
-            ty = cells.gj_vects[:,3]
-
-            fgjx = tx*flux_array
-            fgjy = ty*flux_array
-
-            I_i_x = fgjx*zi*p.F
-            I_i_y = fgjy*zi*p.F
+            I_i_x = flux_array*zi*p.F
 
             I_gj_x = I_gj_x + I_i_x
+
+        I_gj_y = np.zeros(len(cells.nn_i))
+
+        for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
+
+            I_i_y = flux_array*zi*p.F
+
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.gj_vects[:,0],cells.gj_vects[:,1]),I_gj_x,(cells.X,cells.Y))
-        self.I_gj_x = np.nan_to_num(self.I_gj_x)
+        self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.X,cells.Y), fill_value=0)
 
-        self.I_gj_y = interp.griddata((cells.gj_vects[:,0],cells.gj_vects[:,1]),I_gj_y,(cells.X,cells.Y))
-        self.I_gj_y = np.nan_to_num(self.I_gj_y)
+        self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.X,cells.Y),fill_value=0)
 
         # calculate current across cell membranes:
+
+        self.I_mem = np.zeros(len(cells.mem_i))
         for flux_array, zi in zip(self.fluxes_mem,self.zs):
 
             # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
@@ -2658,15 +2702,6 @@ def nernst_planck_flux(c, gcx, gcy, gvx, gvy,D,z,T,p):
     fy =  -D*gcy - alpha*gvy*c
 
     return fx, fy
-
-def nernst_planck(c,gcx,gcy,ddc,gvx,gvy,ddv,gdx,gdy,D,z,T,p):
-
-    alpha = (D*z*p.q)/(p.kb*T)
-    beta = (c*z*p.q)/(p.kb*T)
-
-    delta_c = (gdx*gcx + gdy*gcy) + D*ddc + alpha*(gcx*gvx + gcy*gvy) + beta*(gdx*gvx + gdy*gvy) + c*alpha*ddv
-
-    return delta_c
 
 def rk4(c,deltac,p):
 

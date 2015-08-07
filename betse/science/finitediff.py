@@ -68,7 +68,7 @@ class FiniteDiffSolver(object):
 
         self.map_ij2k = np.asarray(self.map_ij2k)
 
-    def cell_grid(self,grid_n, xmin, xmax, ymin, ymax):
+    def cell_grid(self,grid_delta, xmin, xmax, ymin, ymax):
 
         """
         Make a staggered n x n grid for use with finite volume or MACs method.
@@ -78,14 +78,17 @@ class FiniteDiffSolver(object):
         One n x n+1 grid contains the v-coordinate points for velocity
 
         """
-        self.grid_n = grid_n
+
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
         self.ymax = ymax
 
-        xv = np.linspace(xmin,xmax,grid_n+1)
-        yv = np.linspace(ymin,ymax,grid_n+1)
+        self.grid_nx = int((self.xmax - self.xmin)/grid_delta)
+        self.grid_ny = int((self.ymax - self.ymin)/grid_delta)
+
+        xv = np.linspace(xmin,xmax,self.grid_nx+1)
+        yv = np.linspace(ymin,ymax,self.grid_ny+1)
         self.verts_X, self.verts_Y = np.meshgrid(xv,yv)
 
         # grid and coordinate vectors defining the vertices of each cell:
@@ -171,9 +174,14 @@ class FiniteDiffSolver(object):
         self.delta_v_x = nnx[1] - nnx[0]
         self.delta_v_y = nny[1] - nny[0]
 
-    def stokes_Laplacian(self):
+    def makeLaplacian(self, bound = {'N':['flux',0],'S':['flux',0],'E':['flux',0],'W':['flux',0]}):
+        """
+        Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
+        on a regular Cartesian grid with square boundaries. Note: the graph must have
+        equal spacing in the x and y directions.
 
-        # Second type of Poisson solver -- calculates pressure with zero gradient at boundaries.
+        """
+
         size_rows = self.cents_shape[0]
         size_cols = self.cents_shape[1]
 
@@ -195,31 +203,42 @@ class FiniteDiffSolver(object):
                 A[k, k_i_jn1] = 1
                 A[k,k] = -4
 
-            if i == 0:
-                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
-                A[k, k_ip1_j] = 1
 
-                A[k,k] = -1
+            if i == 0: # if on the bottom (South) boundary:
 
-            if i == size_rows -1:
-                k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
-                A[k, k_in1_j] = 1
+                if bound['S'][0] == 'flux':
 
-                A[k,k] = -1
+                    k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                    A[k, k_ip1_j] = 1
 
-            if j == 0:
+                    A[k,k] = -1
 
-                k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
-                A[k, k_i_jp1] = 1
+            if i == size_rows -1: # if on the top (North) boundary:
 
-                A[k,k] = -1
+                if bound['N'][0] == 'flux':
 
-            if j == size_cols -1:
+                    k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
+                    A[k, k_in1_j] = 1
 
-                k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
-                A[k, k_i_jn1] = 1
+                    A[k,k] = -1
 
-                A[k,k] = -1
+            if j == 0: # if on the left (West) boundary:
+
+                if bound['W'][0] == 'flux':
+
+                    k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+                    A[k, k_i_jp1] = 1
+
+                    A[k,k] = -1
+
+            if j == size_cols -1: # if on the right (East) boundary:
+
+                if bound['E'][0] == 'flux':
+
+                    k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
+                    A[k, k_i_jn1] = 1
+
+                    A[k,k] = -1
 
         A = A/(self.delta_cents_x*self.delta_cents_y)
 
@@ -234,7 +253,6 @@ class FiniteDiffSolver(object):
         the Finite Difference method on a Marker and Cell (MACs) grid.
 
         """
-
         # parameters of the liquid
         rho = 1e3   # density
         visc = 0.1  # visocity
@@ -245,7 +263,7 @@ class FiniteDiffSolver(object):
 
         Fx = np.zeros(self.u_shape)
 
-        Ainv = self.stokes_Laplacian()
+        Ainv = self.makeLaplacian()
 
         time_step = 1e-5
         end_time = 1e-3
@@ -358,93 +376,6 @@ class FiniteDiffSolver(object):
             u_time.append(u_at_c)
             v_time.append(v_at_c)
 
-def makeLaplacian(grid_len,shape,map_ij2k,delx,dely,maskM=None):
-    """
-    Generate the discrete finite central difference 2D Laplacian operator based on:
-
-    d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
-
-    To solve the Poisson equation:
-
-    A*U = fxy
-
-    by:
-
-    U = Ainv*fxy
-
-    For a domain with an irregular boundary which is *embedded* within a 2D Cartesian grid.
-
-    Parameters
-    -----------
-    grid_len            The length of the unravelled 2D array
-    map_ij2k            An array where each index k corresponding to unravelled array
-                        maps to the i,jth element of the 2D array
-    delx                Grid spacing in the x-dimension
-    dely                Grid spacing in the y-dimension
-    maskM               A numpy nd array of the world grid, where 0 stands for external point where U = 0,
-                        1 for an internal point where U is calculated, and -1 for a point on a boundary.
-
-    Returns
-    --------
-    Ainv                Creates a laplacian matrix solver for the specified geometry (including boundary conditions)
-    bound_pts_k         A list of k-indices for the boundary points (specific to the maskM) for modifying source
-
-    Notes
-    -------
-    ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
-
-    """
-    if maskM is None:
-
-        maskM = np.ones(shape)
-
-        maskM[1,1:-1]= -1
-        maskM[-2,1:-1] =-1
-        maskM[1:-1,1]=-1
-        maskM[1:-1,-2] =-1
-
-        maskM[0,:]= 0
-        maskM[-1,:] = 0
-        maskM[:,0]= 0
-        maskM[:,-1] = 0
-
-
-    # initialize the laplacian operator matrix:
-    A = np.zeros((grid_len,grid_len))
-    bound_pts_k = []
-
-    for k, (i, j) in enumerate(map_ij2k):
-
-        maskVal = maskM[i, j]
-
-        if maskVal == 1:  # interior point, do full algorithm...
-
-            k_ip1_j = map_ij2k.tolist().index([i + 1,j])
-            k_in1_j = map_ij2k.tolist().index([i-1,j])
-            k_i_jp1 = map_ij2k.tolist().index([i,j+1])
-            k_i_jn1 = map_ij2k.tolist().index([i,j-1])
-
-            A[k, k_ip1_j] = 1
-            A[k, k_in1_j] = 1
-            A[k, k_i_jp1] = 1
-            A[k, k_i_jn1] = 1
-            A[k,k] = -4
-
-        elif maskVal == -1:  # boundary point, treat as such
-            A[k,k] = 1
-            bound_pts_k.append(k)
-
-        elif maskVal == 0:  # exterior point, treat as such
-            A[k,k] = 1
-
-    # complete the laplacian operator by diving through by grid spacing squared:
-    Ai = A/(delx*dely)
-
-    # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-    Ainv = np.linalg.inv(Ai)
-
-    return Ainv, bound_pts_k
-
 
 def jacobi(A,b,N=50,x=None):
     """
@@ -509,12 +440,6 @@ def laplacian(F,delx,dely=None):
     ddF[0,:] = ddF_T
     ddF[-1,:] = ddF_B
 
-    #------------------------------
-
-    # gx, gy = gradient(F, delx,dely)
-    # gxx = diff(gx, delx,axis=0)
-    # gyy = diff(gy,dely,axis=1)
-    # ddF = gxx + gyy
 
     return ddF
 
@@ -850,6 +775,93 @@ def integrator(P):
     #
     #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
     #     self.Ainv = np.linalg.inv(A)
+
+    # def makeLaplacian(grid_len,shape,map_ij2k,delx,dely,maskM=None):
+#     """
+#     Generate the discrete finite central difference 2D Laplacian operator based on:
+#
+#     d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
+#
+#     To solve the Poisson equation:
+#
+#     A*U = fxy
+#
+#     by:
+#
+#     U = Ainv*fxy
+#
+#     For a domain with an irregular boundary which is *embedded* within a 2D Cartesian grid.
+#
+#     Parameters
+#     -----------
+#     grid_len            The length of the unravelled 2D array
+#     map_ij2k            An array where each index k corresponding to unravelled array
+#                         maps to the i,jth element of the 2D array
+#     delx                Grid spacing in the x-dimension
+#     dely                Grid spacing in the y-dimension
+#     maskM               A numpy nd array of the world grid, where 0 stands for external point where U = 0,
+#                         1 for an internal point where U is calculated, and -1 for a point on a boundary.
+#
+#     Returns
+#     --------
+#     Ainv                Creates a laplacian matrix solver for the specified geometry (including boundary conditions)
+#     bound_pts_k         A list of k-indices for the boundary points (specific to the maskM) for modifying source
+#
+#     Notes
+#     -------
+#     ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
+#
+#     """
+#     if maskM is None:
+#
+#         maskM = np.ones(shape)
+#
+#         maskM[1,1:-1]= -1
+#         maskM[-2,1:-1] =-1
+#         maskM[1:-1,1]=-1
+#         maskM[1:-1,-2] =-1
+#
+#         maskM[0,:]= 0
+#         maskM[-1,:] = 0
+#         maskM[:,0]= 0
+#         maskM[:,-1] = 0
+#
+#
+#     # initialize the laplacian operator matrix:
+#     A = np.zeros((grid_len,grid_len))
+#     bound_pts_k = []
+#
+#     for k, (i, j) in enumerate(map_ij2k):
+#
+#         maskVal = maskM[i, j]
+#
+#         if maskVal == 1:  # interior point, do full algorithm...
+#
+#             k_ip1_j = map_ij2k.tolist().index([i + 1,j])
+#             k_in1_j = map_ij2k.tolist().index([i-1,j])
+#             k_i_jp1 = map_ij2k.tolist().index([i,j+1])
+#             k_i_jn1 = map_ij2k.tolist().index([i,j-1])
+#
+#             A[k, k_ip1_j] = 1
+#             A[k, k_in1_j] = 1
+#             A[k, k_i_jp1] = 1
+#             A[k, k_i_jn1] = 1
+#             A[k,k] = -4
+#
+#         elif maskVal == -1:  # boundary point, treat as such
+#             A[k,k] = 1
+#             bound_pts_k.append(k)
+#
+#         elif maskVal == 0:  # exterior point, treat as such
+#             A[k,k] = 1
+#
+#     # complete the laplacian operator by diving through by grid spacing squared:
+#     Ai = A/(delx*dely)
+#
+#     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+#     Ainv = np.linalg.inv(Ai)
+#
+#     return Ainv, bound_pts_k
 
 
 

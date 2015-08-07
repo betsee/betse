@@ -1027,7 +1027,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     # get the corresponding flags to membrane entities
     target_inds_mem = cells.cell_to_mems[target_inds_cell]
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
-    target_inds_gj,_,_ = tb.flatten(cells.cell_to_gj[target_inds_cell])
+    target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn[target_inds_cell])
 
     if p.sim_ECM == True: # get the flags to ecm structures: # FIXME need to leave ecm that are shared with remaining cells and add them to env
         # to tag the ecm for removal, we must find the ecm unique to removed cells and add shared ecm to new env
@@ -1094,7 +1094,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         elif len(data) == len(cells.mem_i):
                             data2 = np.delete(data,target_inds_mem)
 
-                        elif len(data) == len(cells.gj_i):
+                        elif len(data) == len(cells.nn_index):
                             data2 = np.delete(data,target_inds_gj)
 
                         if p.sim_ECM == True:  # FIXME need some way to fix environment fully (appending ecm data @ target_env to env)
@@ -1123,7 +1123,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                                 del data[index]
                             data2.append(data[index])
 
-                        elif len(data) == len(cells.gj_i):
+                        elif len(data) == len(cells.nn_index):
                             for index in sorted(target_inds_gj, reverse=True):
                                 del data[index]
                             data2.append(data[index])
@@ -1158,7 +1158,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         data2 = np.delete(data,target_inds_mem)
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(cells.gj_i):
+                    elif len(data) == len(cells.nn_index):
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
@@ -1193,7 +1193,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(cells.gj_i):
+                    elif len(data) == len(cells.nn_index):
                         for index in sorted(target_inds_gj, reverse=True):
                             del data[index]
                         data2.append(data[index])

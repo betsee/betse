@@ -478,7 +478,7 @@ class AnimateGJData(object):
         self.time = sim.time
 
         self.gjI_t = np.sign(sim.I_gj_time)
-        self.gjvects = cells.gj_vects
+        self.gjvects = cells.nn_vects
 
         self.cells = cells
         self.p = p
@@ -626,7 +626,7 @@ class AnimateGJData_smoothed(object):
         self.time = sim.time
 
         self.gjI_t = np.sign(sim.I_gj_time)
-        self.gjvects = cells.gj_vects
+        self.gjvects = cells.nn_vects
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
@@ -1216,16 +1216,22 @@ class AnimateEfield(object):
 
         elif p.ani_Efield_type == 'GJ':
 
-            efield = np.sqrt(sim.efield_gj_x_time[-1]**2 + sim.efield_gj_y_time[-1]**2)
+            E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0)
+
+            E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+                sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0)
+
+            efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
             self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
                 cells.ymin*p.um, cells.ymax*p.um],cmap=p.default_cm)
 
             if p.ani_Efield_vector == True:
 
-                enorm = np.max(np.sqrt(sim.efield_gj_x_time[-1]**2 + sim.efield_gj_y_time[-1]**2))
+                enorm = np.max(efield)
 
                 self.streamE = self.ax.quiver(p.um*cells.X, p.um*cells.Y,
-                    sim.efield_gj_x_time[-1]/enorm,sim.efield_gj_y_time[-1]/enorm)
+                    E_gj_x/enorm,E_gj_y/enorm,scale=10)
 
             tit_extra = 'Intracellular'
 
@@ -1273,13 +1279,20 @@ class AnimateEfield(object):
 
         elif self.p.ani_Efield_type == 'GJ':
 
-            efield = np.sqrt(self.sim.efield_gj_x_time[i]**2 + self.sim.efield_gj_y_time[i]**2)
+            E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+            self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0)
+
+            E_gj_y = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+                self.sim.efield_gj_y_time[i],(self.cells.X,self.cells.Y), fill_value=0)
+
+            efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
+
             self.msh.set_data(efield)
 
             if self.p.ani_Efield_vector == True:
 
-                enorm = np.max(np.sqrt(self.sim.efield_gj_x_time[i]**2 + self.sim.efield_gj_y_time[i]**2))
-                self.streamE.set_UVC(self.sim.efield_gj_x_time[i]/enorm,self.sim.efield_gj_y_time[i]/enorm)
+                enorm = np.max(efield)
+                self.streamE.set_UVC(E_gj_x/enorm,E_gj_y/enorm)
 
         cmax = np.max(efield)
 
@@ -1736,14 +1749,23 @@ def plotEfield(sim,cells,p):
 
     elif p.plot_Efield_type == 'GJ':
 
-        efield = np.sqrt(sim.efield_gj_x_time[-1]**2 + sim.efield_gj_y_time[-1]**2)
+        E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0)
+
+        E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+            sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0)
+
+        efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 
         msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
             cells.ymax*p.um],cmap=p.default_cm)
 
         if p.plot_Efield_vector == True:
 
-            ax.quiver(p.um*cells.X, p.um*cells.Y, sim.efield_gj_x_time[-1],sim.efield_gj_y_time[-1])
+            lw = (3.0*efield/efield.max()) + 0.5
+
+            ax.streamplot(p.um*cells.X, p.um*cells.Y,E_gj_x,E_gj_y,density=p.stream_density,linewidth=lw,
+                color='k',arrowsize=1.5)
 
         tit_extra = 'Intracellular'
 
