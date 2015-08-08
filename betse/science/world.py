@@ -214,9 +214,8 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
-            self.generalMask = self.makeMask(mask_type='exterior bound')
-            loggers.log_info('Creating environmental Poisson solver...')
-            self.lapENV, self.lapENVinv = self.makeLaplacian()
+            # self.generalMask = self.makeMask(mask_type='exterior bound')
+
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
             loggers.log_info('Creating cell network Poisson solver...')
             self.graphLaplacian()
@@ -232,6 +231,7 @@ class World(object):
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid
+            loggers.log_info('Completed major world-building computations.')
 
     def makeSeeds(self,p):
 
@@ -812,40 +812,69 @@ class World(object):
         # base parameter definitions
         self.delta = p.d_cell*(2/3)  # spacing between grid points -- approximately 2/3 of one cell
 
-        self.grid_n = int(p.wsx/self.delta) # number of grid points
+        self.grid_obj = fd.FiniteDiffSolver()
 
-        # linear vectors for spatial dimensions
-        self.x_v = np.linspace(self.xmin, self.xmax, self.grid_n)  # create lattice vector x
-        self.y_v = np.linspace(self.ymin, self.ymax, self.grid_n)  # create lattice vector y
+        self.grid_obj.cell_grid(self.delta,self.xmin,self.xmax,self.ymin,self.ymax)
 
-        # next define a 2d array of lattice points using the x- and y- vectors
-        self.X, self.Y = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
+        if self.grid_obj.grid_nx == self.grid_obj.grid_nx:
 
-        # recalculate delta as it'll be a little off:
+            self.grid_n = self.grid_obj.grid_nx
 
-        self.delta = self.x_v[1] - self.x_v[0]
+        else:
 
-        # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
-        self.xypts = []
-        self.map_ij2k = []
+            print('error! grids are not equal!')
 
-        for i, row in enumerate(self.X):
-            for j, val in enumerate(row):
-                xpt = self.X[i,j]
-                ypt = self.Y[i,j]
-                self.xypts.append([xpt,ypt])
-                self.map_ij2k.append([i,j])
+        self.X = self.grid_obj.cents_X
+        self.Y = self.grid_obj.cents_Y
+
+        self.xypts = self.grid_obj.xy_cents
+        self.map_ij2k = self.grid_obj.map_ij2k_cents
 
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]
 
-        # map for converting between k linear index and 2d i,j matrix
-        self.map_ij2k = np.asarray(self.map_ij2k)
-        self.xypts = np.asarray(self.xypts)
-
         # properties of ecm spaces local to each cell:
         self.ecm_sa = self.mem_length*p.cell_height
         self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
+        # self.ecm_vol = np.zeros(len(self.mem_length))
+        # self.ecm_vol[:] = np.mean(self.cell_vol)
+
+
+        #OLD WAY OF DOING IT-------------------------------------------------------------------------
+
+        # self.grid_n = int((self.xmax - self.xmin)/self.delta) # number of grid points
+        #
+        # # linear vectors for spatial dimensions
+        # self.x_v = np.linspace(self.xmin, self.xmax, self.grid_n)  # create lattice vector x
+        # self.y_v = np.linspace(self.ymin, self.ymax, self.grid_n)  # create lattice vector y
+        #
+        # # next define a 2d array of lattice points using the x- and y- vectors
+        # self.X, self.Y = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
+        #
+        # # # recalculate delta as it'll be a little off:
+        # # self.delta = self.x_v[1] - self.x_v[0]
+        #
+        # # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
+        # self.xypts = []
+        # self.map_ij2k = []
+        #
+        # for i, row in enumerate(self.X):
+        #     for j, val in enumerate(row):
+        #         xpt = self.X[i,j]
+        #         ypt = self.Y[i,j]
+        #         self.xypts.append([xpt,ypt])
+        #         self.map_ij2k.append([i,j])
+        #
+        # # linear k index:
+        # self.index_k = [x for x in range(0,len(self.xypts))]
+        #
+        # # map for converting between k linear index and 2d i,j matrix
+        # self.map_ij2k = np.asarray(self.map_ij2k)
+        # self.xypts = np.asarray(self.xypts)
+        #
+        # # properties of ecm spaces local to each cell:
+        # self.ecm_sa = self.mem_length*p.cell_height
+        # self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
 
     def environment(self,p):
 
@@ -877,17 +906,6 @@ class World(object):
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
-        # define ecm flux vectors allowing for anisotropic diffusion in cell cluster and isotropic outside of cluster:
-        self.env_flux_mult_x = np.ones(len(self.xypts))
-        self.env_flux_mult_y = np.ones(len(self.xypts))
-
-        # set env flux vectors to be equal to membrane tangents inside the cluster (but not at the boundary)
-        self.env_flux_mult_x[self.map_mem2ecm] = self.mem_vects_flat[:,4]
-        self.env_flux_mult_x[self.ecm_bound_k] = 1
-
-        self.env_flux_mult_y[self.map_mem2ecm] = self.mem_vects_flat[:,5]
-        self.env_flux_mult_y[self.ecm_bound_k] = 1
-
         # get a list of k indices to the four exterior (global) boundaries of the rectangular world:
         bBot_x = self.X[0,:]
         bTop_x = self.X[-1,:]
@@ -909,81 +927,41 @@ class World(object):
         self.bL_k = list(points_tree.query(bL_pts))[1]
         self.bR_k = list(points_tree.query(bR_pts))[1]
 
-        # for purposes of Laplacian solver, need to remove boundary elements and define a "core"
-        # of interior points:
-        # core_x = self.X[1:-1,1:-1]
-        # core_y = self.Y[1:-1,1:-1]
-        # core_pts = np.column_stack((core_x.ravel(), core_y.ravel()))
-        #
-        # self.core_k = list(points_tree.query(core_pts))[1]
-        #
-        # self.core_len = len(self.core_k)
-        #
-        # self.core_n = self.grid_n - 2
-        #
-        #  # get a list of k indices to the four 1st interior (global) boundaries of the rectangular world:
-        # bBot_xp = self.X[1,1:-1]
-        # bTop_xp = self.X[-2,1:-1]
-        # bL_xp = self.X[1:-1,1]
-        # bR_xp = self.X[1:-1,-2]
-        #
-        # bBot_yp = self.Y[1,1:-1]
-        # bTop_yp = self.Y[-2,1:-1]
-        # bL_yp = self.Y[1:-1,1]
-        # bR_yp = self.Y[1:-1,-2]
-        #
-        # bBot_pts_p = np.column_stack((bBot_xp, bBot_yp))
-        # bTop_pts_p = np.column_stack((bTop_xp, bTop_yp))
-        # bL_pts_p = np.column_stack((bL_xp, bL_yp))
-        # bR_pts_p = np.column_stack((bR_xp, bR_yp))
-        #
-        # self.bBot_kp = list(points_tree.query(bBot_pts_p))[1]
-        # self.bTop_kp = list(points_tree.query(bTop_pts_p))[1]
-        # self.bL_kp = list(points_tree.query(bL_pts_p))[1]
-        # self.bR_kp = list(points_tree.query(bR_pts_p))[1]
-        #
-        # # create a mapping from the ip, jp indexing to the kp index of the unraveled core matrix:
-        # M = []
-        # for i in range(self.core_n):
-        #     row = []
-        #     for j in range(self.core_n):
-        #         row.append([i,j])
-        #
-        #     M.append(row)
-        #
-        # self.map_ij2k_core = []
-        # for row in M:
-        #     for inds in row:
-        #         self.map_ij2k_core.append(inds)
-
-        # Create a matrix to update ecm from mem fluxes
+        # # Create a matrix to update ecm from mem fluxes
         self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
 
         for i, ecm_index in enumerate(self.map_mem2ecm):
             self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-    def makeMask(self, mask_type = 'exterior bound'):
+        loggers.log_info('Creating environmental Poisson solver for voltage...')
+        self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
 
-        if mask_type == 'cluster bound':
+        loggers.log_info('Creating environmental Poisson solver for pressure...')
+        bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
+        self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-            maskM = np.zeros(self.X.shape)
-
-            maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
-            maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
-
-        elif mask_type == 'exterior bound':
-            maskM = np.ones(self.X.shape)
-            maskM[1,1:-1]= -1
-            maskM[-2,1:-1] =-1
-            maskM[1:-1,1]=-1
-            maskM[1:-1,-2] =-1
-
-            maskM[0,:]= 0
-            maskM[-1,:] = 0
-            maskM[:,0]= 0
-            maskM[:,-1] =0
-
-        return maskM
+    # def makeMask(self, mask_type = 'exterior bound'):
+    #
+    #     if mask_type == 'cluster bound':
+    #
+    #         maskM = np.zeros(self.X.shape)
+    #
+    #         maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
+    #         maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
+    #
+    #     elif mask_type == 'exterior bound':
+    #         maskM = np.ones(self.X.shape)
+    #         maskM[1,1:-1]= -1
+    #         maskM[-2,1:-1] =-1
+    #         maskM[1:-1,1]=-1
+    #         maskM[1:-1,-2] =-1
+    #
+    #         maskM[0,:]= 0
+    #         maskM[-1,:] = 0
+    #         maskM[:,0]= 0
+    #         maskM[:,-1] =0
+    #
+    #     return maskM
 
     def graphLaplacian(self):
 
@@ -1003,6 +981,7 @@ class World(object):
 
                 nn_index = nn_i.index([i,j])
                 L = self.nn_len[nn_index]
+
                 idiag = idiag - (1/L)*(sa/vol)
                 self.lapGJ[i,j] = (1/L)*(sa/vol)
 
@@ -1010,79 +989,79 @@ class World(object):
 
         self.lapGJinv = np.linalg.inv(self.lapGJ)
 
-    def makeLaplacian(self, bound = {'N':['flux',0],'S':['flux',0],'E':['flux',0],'W':['flux',0]}):
-        """
-        Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
-        on a regular Cartesian grid with square boundaries. Note: the graph must have
-        equal spacing in the x and y directions.
-
-        """
-
-        maxi_size = len(self.xypts)
-
-        size = self.grid_n
-
-        A = np.zeros((maxi_size,maxi_size))
-
-        for k, (i,j) in enumerate(self.map_ij2k):
-
-            # if we're not on a main boundary:
-            if i != 0 and j != 0 and i != size-1 and j != size - 1:
-
-                k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
-                k_in1_j = self.map_ij2k.tolist().index([i-1,j])
-                k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
-                k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
-
-                A[k, k_ip1_j] = 1
-                A[k, k_in1_j] = 1
-                A[k, k_i_jp1] = 1
-                A[k, k_i_jn1] = 1
-                A[k,k] = -4
-
-
-            if i == 0: # if on the bottom (South) boundary:
-
-                if bound['S'][0] == 'flux':
-
-                    k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
-                    A[k, k_ip1_j] = 1
-
-                    A[k,k] = -1
-
-            if i == size -1: # if on the top (North) boundary:
-
-                if bound['N'][0] == 'flux':
-
-                    k_in1_j = self.map_ij2k.tolist().index([i-1,j])
-                    A[k, k_in1_j] = 1
-
-                    A[k,k] = -1
-
-            if j == 0: # if on the left (West) boundary:
-
-                if bound['W'][0] == 'flux':
-
-                    k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
-                    A[k, k_i_jp1] = 1
-
-                    A[k,k] = -1
-
-            if j == size -1: # if on the right (East) boundary:
-
-                if bound['E'][0] == 'flux':
-
-                    k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
-                    A[k, k_i_jn1] = 1
-
-                    A[k,k] = -1
-
-        A = A/(self.delta**2)
-
-        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-        Ainv = np.linalg.inv(A)
-
-        return A, Ainv
+    # def makeLaplacian(self, bound = {'N':['flux',0],'S':['flux',0],'E':['flux',0],'W':['flux',0]}):
+    #     """
+    #     Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
+    #     on a regular Cartesian grid with square boundaries. Note: the graph must have
+    #     equal spacing in the x and y directions.
+    #
+    #     """
+    #
+    #     maxi_size = len(self.xypts)
+    #
+    #     size = self.grid_n
+    #
+    #     A = np.zeros((maxi_size,maxi_size))
+    #
+    #     for k, (i,j) in enumerate(self.map_ij2k):
+    #
+    #         # if we're not on a main boundary:
+    #         if i != 0 and j != 0 and i != size-1 and j != size - 1:
+    #
+    #             k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
+    #             k_in1_j = self.map_ij2k.tolist().index([i-1,j])
+    #             k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
+    #             k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
+    #
+    #             A[k, k_ip1_j] = 1
+    #             A[k, k_in1_j] = 1
+    #             A[k, k_i_jp1] = 1
+    #             A[k, k_i_jn1] = 1
+    #             A[k,k] = -4
+    #
+    #
+    #         if i == 0: # if on the bottom (South) boundary:
+    #
+    #             if bound['S'][0] == 'flux':
+    #
+    #                 k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
+    #                 A[k, k_ip1_j] = 1
+    #
+    #                 A[k,k] = -1
+    #
+    #         if i == size -1: # if on the top (North) boundary:
+    #
+    #             if bound['N'][0] == 'flux':
+    #
+    #                 k_in1_j = self.map_ij2k.tolist().index([i-1,j])
+    #                 A[k, k_in1_j] = 1
+    #
+    #                 A[k,k] = -1
+    #
+    #         if j == 0: # if on the left (West) boundary:
+    #
+    #             if bound['W'][0] == 'flux':
+    #
+    #                 k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
+    #                 A[k, k_i_jp1] = 1
+    #
+    #                 A[k,k] = -1
+    #
+    #         if j == size -1: # if on the right (East) boundary:
+    #
+    #             if bound['E'][0] == 'flux':
+    #
+    #                 k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
+    #                 A[k, k_i_jn1] = 1
+    #
+    #                 A[k,k] = -1
+    #
+    #     A = A/(self.delta**2)
+    #
+    #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+    #     Ainv = np.linalg.inv(A)
+    #
+    #     return A, Ainv
 
     def cleanUp(self,p):
 

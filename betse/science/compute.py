@@ -8,6 +8,7 @@
 
 
 import numpy as np
+import math
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy import ndimage
@@ -18,7 +19,7 @@ from betse.science import filehandling as fh
 from betse.science import visualize as viz
 from betse.science import toolbox as tb
 from betse.science.dynamics import Dynamics
-from betse.science.finitediff import laplacian, gradient
+from betse.science.finitediff import gradient, flux_summer
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionSimulation
 from betse.util.io import loggers
@@ -473,7 +474,8 @@ class Simulator(object):
                     self.D_gj.append(vars(self)[str_Dgj])
                     self.D_free.append(p.free_diff[name])
 
-                    self.fluxes_gj.append(self.flx_gj_i)
+                    self.fluxes_gj_x.append(self.flx_gj_i)
+                    self.fluxes_gj_y.append(self.flx_gj_i)
                     self.fluxes_mem.append(self.flx_mem_i)
                     self.fluxes_env_x.append(self.flx_env_i)
                     self.fluxes_env_y.append(self.flx_env_i)
@@ -555,7 +557,8 @@ class Simulator(object):
             self.D_gj.append(DgjH)
             self.D_free.append(p.Do_H)
 
-            self.fluxes_gj.append(self.flx_gj_i)
+            self.fluxes_gj_x.append(self.flx_gj_i)
+            self.fluxes_gj_y.append(self.flx_gj_i)
             self.fluxes_mem.append(self.flx_mem_i)
             self.fluxes_env_x.append(self.flx_env_i)
             self.fluxes_env_y.append(self.flx_env_i)
@@ -609,7 +612,8 @@ class Simulator(object):
         self.D_env = np.asarray(self.D_env)
         self.D_free = np.asarray(self.D_free)
 
-        self.fluxes_gj  = np.asarray(self.fluxes_gj)
+        self.fluxes_gj_x  = np.asarray(self.fluxes_gj_x)
+        self.fluxes_gj_y  = np.asarray(self.fluxes_gj_y)
         self.fluxes_mem  = np.asarray(self.fluxes_mem)
         self.fluxes_env_x = np.asarray(self.fluxes_env_x)
         self.fluxes_env_y = np.asarray(self.fluxes_env_y)
@@ -1291,11 +1295,13 @@ class Simulator(object):
         # report
         if p.run_sim == True:
 
-            loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
+            loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) +
+                             ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
 
         else:
-            loggers.log_info('Your initialization (with extracellular spaces) is running from '+ str(0) + ' to '+ str(round(p.init_tsteps*p.dt,3))
+            loggers.log_info('Your initialization (with extracellular spaces) is running from '+ str(0) +
+                             ' to '+ str(round(p.init_tsteps*p.dt,3))
                          + ' seconds of in-world time.')
 
 
@@ -1607,13 +1613,6 @@ class Simulator(object):
         c_cells = copy.copy(self.cc_cells[ion_i][:])
         c_env = copy.copy(self.cc_env[ion_i][:])
 
-        # delta_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])*p.dt
-        # delta_c_env = flux*(cells.mem_sa/cells.ecm_vol)*p.dt
-        #
-        # self.cc_cells[ion_i] = c_cells + np.dot(delta_c_cells, cells.cell_UpdateMatrix)
-        #
-        # self.cc_env[ion_i] = c_env - np.dot(delta_c_env, cells.ecm_UpdateMatrix)
-
         d_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
         d_c_env = flux*(cells.mem_sa/cells.ecm_vol)
 
@@ -1623,7 +1622,6 @@ class Simulator(object):
         self.cc_cells[ion_i] = rk4(c_cells,delta_cells,p)
 
         self.cc_env[ion_i] = rk4(c_env,-delta_env,p)
-
 
         # self.cc_env[ion_i][cells.map_mem2ecm] = c_env[cells.map_mem2ecm] - delta_c_env
 
@@ -1765,141 +1763,118 @@ class Simulator(object):
         if p.sim_ECM == True:
             self.update_V_ecm(cells,p,t)
 
-
-# old way of doing this-----------------------------------------------------------------------------------------
-         # calculate voltage difference between cells:
-        # if p.sim_ECM == True:
-        #     vmA,vmB = self.v_cell[cells.gap_jun_i][:,0], self.v_cell[cells.gap_jun_i][:,1]
-        #
-        # else:
-        #     vmA,vmB = self.vm[cells.gap_jun_i][:,0], self.vm[cells.gap_jun_i][:,1]
-        #
-        # self.vgj = vmB - vmA
-        #
-        # if p.v_sensitive_gj == True:
-        #     # determine the open state of gap junctions:
-        #     self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
-        #
-        # # determine flux through gap junctions for this ion:
-        #
-        # fgj = electroflux(self.cc_cells[i][cells.gap_jun_i][:,0],self.cc_cells[i][cells.gap_jun_i][:,1],
-        #     self.D_gj[i],self.gjl,self.zs[i],self.vgj,self.T,p)
-        #
-        # # deltac_gj = self.gjopen*(fgj)*p.dt
-        #
-        # # update cell concentration due to gap junction flux:
-        # # self.cc_cells[i] = self.cc_cells[i] + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_gj, cells.gjMatrix)
-        #
-        # d_gj = self.gjopen*(fgj)
-        #
-        # delta_gj = ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(d_gj, cells.gjMatrix)
-        #
-        # self.cc_cells[i] = rk4(self.cc_cells[i],delta_gj,p)
-        #
-        # # recalculate the net, unbalanced charge and voltage in each cell:
-        # # self.update_V_ecm(cells,p,t)
-        #
-        # self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
-
-    def update_ecm(self,cells,p,t,i):  # FIXME redo this whole section!!!
+    def update_ecm(self,cells,p,t,i):
 
         #------------------------------
+
+        if p.closed_bound == True:
+            btag = 'closed'
+
+        else:
+            btag = 'open'
          # make v_env and cc_env into 2d matrices
         cenv = self.cc_env[i][:]
         denv = self.D_env[i][:]
 
         self.v_env = self.v_env.reshape(cells.X.shape)
-        # self.v_env = ndimage.filters.gaussian_filter(self.v_env, 1.0)
-        # self.rho_env = self.rho_env.reshape(cells.X.shape)
 
         cenv = cenv.reshape(cells.X.shape)
-        # cenv = ndimage.filters.gaussian_filter(cenv, 1.0)
+
+        # prepare concentrations and diffusion constants for MACs grid format
+        # by resampling the values at the u v coordinates of the flux:
+        cenv_x = np.zeros(cells.grid_obj.u_shape)
+        cenv_y = np.zeros(cells.grid_obj.v_shape)
+
+        cxo = (cenv[:,1:] + cenv[:,0:-1])/2
+        cyo = (cenv[1:,:] + cenv[0:-1,:])/2
+
+        # create the proper shape for the concentrations and state appropriate boundary conditions::
+        cenv_x[:,1:-1] = cxo
+        cenv_y[1:-1,:] = cyo
+
+        if p.closed_bound == True: # insulation boundary conditions
+            cenv_x[:,0] = cenv_x[:,1]
+            cenv_x[:,-1] = cenv_x[:,-2]
+            cenv_y[0,:] = cenv_y[1,:]
+            cenv_y[-1,:] = cenv_y[-2,:]
+
+            self.v_env[:,0] = self.v_env[:,1]
+            self.v_env[:,-1] = self.v_env[:,-2]
+            self.v_env[0,:] = self.v_env[1,:]
+            self.v_env[-1,:] = self.v_env[-2,:]
+
+        else:   # open and electrically grounded boundary conditions
+            cenv_x[:,0] =  self.c_env_bound[i]
+            cenv_x[:,-1] =  self.c_env_bound[i]
+            cenv_y[0,:] =  self.c_env_bound[i]
+            cenv_y[-1,:] =  self.c_env_bound[i]
+
+            self.v_env[:,0] = self.bound_V['L']
+            self.v_env[:,-1] = self.bound_V['R']
+            self.v_env[0,:] = self.bound_V['B']
+            self.v_env[-1,:] = self.bound_V['T']
 
         denv = denv.reshape(cells.X.shape)
 
-        flux_mult_x = cells.env_flux_mult_x.reshape(cells.X.shape)
-        flux_mult_y = cells.env_flux_mult_y.reshape(cells.X.shape)
+        denv_x = np.zeros(cells.grid_obj.u_shape)
+        denv_y = np.zeros(cells.grid_obj.v_shape)
+
+        dxo = (denv[:,1:] + denv[:,0:-1])/2
+        dyo = (denv[1:,:] + denv[0:-1,:])/2
+
+        # create the proper shape for the diffusion constants and state continuous boundaries:
+        denv_x[:,1:-1] = dxo
+        denv_x[:,0] = denv_x[:,1]
+        denv_x[:,-1] = denv_x[:,-2]
+
+        denv_y[1:-1,:] = dyo
+        denv_y[0,:] = denv_y[1,:]
+        denv_y[-1,:] = denv_y[-2,:]
 
         # calculate gradients in the environment
-        grad_V_env_x, grad_V_env_y = gradient(self.v_env, cells.delta)
-        grad_cc_env_x, grad_cc_env_y = gradient(cenv, cells.delta)
+        grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(self.v_env,bounds=btag)
+
+        grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
 
         # calculate fluxes for electrodiffusive transport:
-        f_env_x, f_env_y = nernst_planck_flux(cenv,grad_cc_env_x,grad_cc_env_y,
-            grad_V_env_x, grad_V_env_y, denv,self.zs[i],self.T,p)
+        f_env_x, f_env_y = np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
+            grad_V_env_x, grad_V_env_y, denv_x,denv_y,self.zs[i],self.T,p)
 
-        # modify fluxes to create anisotropic diffusion within the cell cluster (along cell membranes):
-        f_env_x = f_env_x*flux_mult_x
-        f_env_y = f_env_y*flux_mult_y
+        # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
+        delta_c = flux_summer(f_env_x,f_env_y,cells.X)/cells.delta
+
+        cenv = cenv + delta_c*p.dt
+        # cenv = rk4(cenv, delta_c,p)
 
         if p.closed_bound == True:
+            # Neumann boundary condition (flux at boundary)
+            # zero flux boundaries for concentration:
+            cenv[:,-1] = cenv[:,-2]
+            cenv[:,0] = cenv[:,1]
+            cenv[0,:] = cenv[1,:]
+            cenv[-1,:] = cenv[-2,:]
 
-            # if boundaries are closed, set normal fluxes at boundary to zero:
-            f_env_x[:,0] = 0
-            f_env_x[:,-1] = 0
-
-            f_env_y[0,:] = 0
-            f_env_y[-1,:]=0
-
-        # calculate the spatial derivatives of the negative of each flux component to simulate divergence operator:
-        f_xx, _ = gradient(f_env_x, cells.delta)
-        _, f_yy = gradient(f_env_y, cells.delta)
-
-        # change in time is:
-        delta_c = f_xx + f_yy
-
-        # cenv = cenv + delta_c*p.dt
-        cenv = rk4(cenv, delta_c,p)
-
-        # if p.closed_bound == True:
-        #     # Neumann boundary condition (flux at boundary)
-        #     # zero flux boundaries for concentration:
-        #     cenv[:,-1] = cenv[:,-2]
-        #     cenv[:,0] = cenv[:,1]
-        #     cenv[0,:] = cenv[1,:]
-        #     cenv[-1,:] = cenv[-2,:]
-
-        if p.closed_bound == False:
+        elif p.closed_bound == False:
             # if the boundary is open, set the concentration at the boundary
             # open boundary
-            self.cc_env[i][cells.bL_k] = self.c_env_bound[i]
-            self.cc_env[i][cells.bR_k] = self.c_env_bound[i]
-            self.cc_env[i][cells.bTop_k] = self.c_env_bound[i]
-            self.cc_env[i][cells.bBot_k] = self.c_env_bound[i]
+            cenv[:,-1] = self.c_env_bound[i]
+            cenv[:,0] = self.c_env_bound[i]
+            cenv[0,:] = self.c_env_bound[i]
+            cenv[-1,:] = self.c_env_bound[i]
 
-        # reshape the matrices into vectors
-        # self.rho_env = self.rho_env.ravel()
+        # reshape the matrices into vectors:
         self.v_env = self.v_env.ravel()
         self.cc_env[i] = cenv.ravel()
 
          # recalculate the net, unbalanced charge and voltage in each ecm space:
-        # self.rho_env = get_charge_density(self.cc_env,self.z_array_env,p)
+        self.rho_env = get_charge_density(self.cc_env,self.z_array_env,p)
         # self.v_env = get_Venv(self,cells,p)
 
-        self.fluxes_env_x[i] = -f_env_x.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = -f_env_y.ravel()  # store ecm junction flux for this ion
+        fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
+        fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
 
-        #-----------------------------
-        #  # calculate voltage differences between ecm <---> ecm nearest neighbours:
-        # self.v_ec2ec = self.v_ecm[cells.ecm_nn_i[:,1]] - self.v_ecm[cells.ecm_nn_i[:,0]]
-        #
-        # # electrodiffuse through ecm <---> ecm junctions
-        #
-        # # _,_,f_ecm = electrofuse(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
-        # #         self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,
-        # #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-        # #         self.zs[i],self.v_ec2ec,self.T,p)
-        #
-        # f_ecm = electroflux(self.cc_ecm[i][cells.ecm_nn_i[:,0]],self.cc_ecm[i][cells.ecm_nn_i[:,1]],
-        #         self.D_ecm_juncs[i],cells.len_ecm_junc,self.ec2ec_sa,self.zs[i],self.v_ec2ec,self.T,p)
-        #
-        # self.cc_ecm[i] = (self.cc_ecm[i]*cells.ecm_vol + np.dot(f_ecm*p.dt,cells.ecmMatrix))/cells.ecm_vol
-        #
-        #  # recalculate the net, unbalanced charge and voltage in each ecm space:
-        # self.rho_env = get_charge_density(self.cc_ecm,self.z_array_ecm,p)
-        # self.v_ecm = get_Vecm(self.rho_env,p)
-        #
-        # self.fluxes_ecm[i] = f_ecm  # store ecm junction flux for this ion
+        self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
 
     def update_er(self,cells,p,t):
 
@@ -2029,7 +2004,6 @@ class Simulator(object):
 
             self.E_env_x = genv_x
             self.E_env_y = genv_y
-
 
     def get_current(self,cells,p):
 
@@ -2497,6 +2471,10 @@ def get_Vcell(self,cells,p):
     #
     # v_cell = self.rho_cells[:]*(p.rc**2)/(4*p.eo*80.0)
 
+    r_cell = np.sqrt(cells.cell_sa/math.pi)
+
+    v_cell = (self.rho_cells*cells.cell_vol)/(4*math.pi*80*p.eo*r_cell)
+
 
     #-------------------
 
@@ -2509,35 +2487,35 @@ def get_Vcell(self,cells,p):
     # rho[cells.map_mem2ecm] = self.rho_cells[cells.mem_to_cells]
     # # rho = rho_env.ravel()
 
-    rho = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                self.rho_cells,(cells.X,cells.Y))
-
-    rho = np.nan_to_num(rho)
-
-    rho = rho.ravel()
+    # rho = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+    #             self.rho_cells,(cells.X,cells.Y))
+    #
+    # rho = np.nan_to_num(rho)
+    #
+    # rho = rho.ravel()
 
     # create a solution vector in the same shape as the source vector
     # V = np.zeros(len(cells.xypts))
 
-    # modify the source charge distribution in line with electrostatic Poisson equation:
-    fxy = -rho/(80*p.eo)
-
-    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on the cell cluster:
-    # fxy[cells.bound_pts_k] = 0
-    # fxy[cells.bTop_kp] = (self.bound_V['T']/cells.delta**2)
-    # fxy[cells.bL_kp] = (self.bound_V['L']/cells.delta**2)
-    # fxy[cells.bR_kp] = (self.bound_V['R']/cells.delta**2)
-
-    # Solve Poisson's electrostatic equation:
-    V = np.dot(cells.Ainv,fxy)
-
-    # if the boundary conditions set the outside of the matrix:
-    V[cells.bBot_k] = self.bound_V['B']
-    V[cells.bTop_k] = self.bound_V['T']
-    V[cells.bL_k] = self.bound_V['L']
-    V[cells.bR_k] = self.bound_V['R']
-
-    v_cell = V[cells.map_cell2ecm]
+    # # modify the source charge distribution in line with electrostatic Poisson equation:
+    # fxy = -rho/(80*p.eo)
+    #
+    # # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on the cell cluster:
+    # # fxy[cells.bound_pts_k] = 0
+    # # fxy[cells.bTop_kp] = (self.bound_V['T']/cells.delta**2)
+    # # fxy[cells.bL_kp] = (self.bound_V['L']/cells.delta**2)
+    # # fxy[cells.bR_kp] = (self.bound_V['R']/cells.delta**2)
+    #
+    # # Solve Poisson's electrostatic equation:
+    # V = np.dot(cells.Ainv,fxy)
+    #
+    # # if the boundary conditions set the outside of the matrix:
+    # V[cells.bBot_k] = self.bound_V['B']
+    # V[cells.bTop_k] = self.bound_V['T']
+    # V[cells.bL_k] = self.bound_V['L']
+    # V[cells.bR_k] = self.bound_V['R']
+    #
+    # v_cell = V[cells.map_cell2ecm]
 
     return v_cell
 
@@ -2557,52 +2535,23 @@ def get_Venv(self,cells,p):
 
     """
 
-    # v_env = (self.rho_env*(p.cell_space**2))/(8*p.eo*80.0)
-    # v_env[cells.ecm_bound_k] = 0
-
-    # Poisson solver----------------------------------------------------------------
-
-    # rho_env = self.rho_env[cells.core_k][:]
-    # v_env = self.v_env[:]
-    #
-    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
-    #
-    # rho_env[cells.bBot_kp] = rho_env[cells.bBot_kp] - (self.bound_V['B']/cells.delta**2)
-    # rho_env[cells.bTop_kp] = rho_env[cells.bTop_kp] - (self.bound_V['T']/cells.delta**2)
-    # rho_env[cells.bL_kp] = rho_env[cells.bL_kp] - (self.bound_V['L']/cells.delta**2)
-    # rho_env[cells.bR_kp] = rho_env[cells.bR_kp] - (self.bound_V['R']/cells.delta**2)
-    #
-    # # Solve Poisson's electrostatic equation:
-    # V = np.dot(cells.Ainv,-rho_env)
-    #
-    # # Re-pack the solution to the original vector:
-    # v_env[cells.core_k] = V
-    #
-    # # set boundary values on the original vector
-    # v_env[cells.bTop_k] = self.bound_V['T']
-    # v_env[cells.bBot_k] = self.bound_V['B']
-    # v_env[cells.bL_k] = self.bound_V['L']
-    # v_env[cells.bR_k] = self.bound_V['R']
-
     # unravel the source vector
-    rho = copy.copy(self.rho_env)
+    # rho = copy.copy(self.rho_env)
     # rho = rho_env.ravel()
 
-    # create a solution vector in the same shape as the source vector
-    V = np.zeros(rho.shape)
-
     # modify the source charge distribution in line with electrostatic Poisson equation:
-    fxy = -rho/(80*p.eo)
-    # fxy = -rho
+    # note this should be divided by the electric permeability, but it produces way too high a voltage
+    # in lieu of a feasible solution, the divisor is reduced to 1.0e-3 from 80*8.85e-12
+    fxy = -self.rho_env/1.0e-3
 
-    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions:
-    fxy[cells.bBot_kp] = (self.bound_V['B']/cells.delta**2)
-    fxy[cells.bTop_kp] = (self.bound_V['T']/cells.delta**2)
-    fxy[cells.bL_kp] = (self.bound_V['L']/cells.delta**2)
-    fxy[cells.bR_kp] = (self.bound_V['R']/cells.delta**2)
+    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
+    fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
+    fxy[cells.bTop_k] = (self.bound_V['T']/cells.delta**2)
+    fxy[cells.bL_k] = (self.bound_V['L']/cells.delta**2)
+    fxy[cells.bR_k] = (self.bound_V['R']/cells.delta**2)
 
     # Solve Poisson's electrostatic equation:
-    V = np.dot(cells.Ainv,fxy)
+    V = np.dot(cells.lapENVinv,fxy)
 
     # if the boundary conditions set the outside of the matrix:
     V[cells.bBot_k] = self.bound_V['B']
@@ -2700,6 +2649,17 @@ def nernst_planck_flux(c, gcx, gcy, gvx, gvy,D,z,T,p):
     fx =  -D*gcx - alpha*gvx*c
 
     fy =  -D*gcy - alpha*gvy*c
+
+    return fx, fy
+
+def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,Dx,Dy,z,T,p):
+
+    alphax = (Dx*z*p.q)/(p.kb*T)
+    alphay = (Dy*z*p.q)/(p.kb*T)
+
+    fx =  -Dx*gcx - alphax*gvx*cx
+
+    fy =  -Dy*gcy - alphay*gvy*cy
 
     return fx, fy
 

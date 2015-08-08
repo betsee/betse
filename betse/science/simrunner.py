@@ -165,7 +165,7 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            p.method = 1 # set the simulation to run with pseudo RK4 updates
+            p.method = 0 # set the simulation to run with pseudo RK4 updates
 
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
             # sim.tissueInit(cells,p)

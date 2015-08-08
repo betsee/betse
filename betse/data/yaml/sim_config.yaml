@@ -79,7 +79,7 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-2               # Simulation step-size [s] (recommended range see table)
+    time step: 5.0e-4               # Simulation step-size [s] (recommended range see table)
     total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
@@ -90,8 +90,8 @@ init time settings:
 # GJ sa          no ecm space      ecm spaces    sampling t      effect
 #--------       -------------      ----------   -----------     --------
 # 1e-6               1e-2             5e-4          0.1         closed gap junctions
-# 1.0e-4             5e-3             5e-4          0.1         low gap junctions
-# 5.0e-4             1e-3             1e-5          1e-3        moderate gap junction
+# 1.0e-5             5e-3             5e-4          0.1         low gap junctions
+# 1.0e-4             1e-3             1e-5          1e-3        moderate gap junction
 # 1.0e-3             5e-4             1e-6          1e-4        high flux gap junctions
 
 # -----------------------------------------------------------------------------
@@ -126,7 +126,7 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
     total time: 0.2                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
@@ -162,7 +162,7 @@ general options:
 
   grid size: 40                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -293,7 +293,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-6   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-5   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -438,7 +438,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
@@ -456,7 +456,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile

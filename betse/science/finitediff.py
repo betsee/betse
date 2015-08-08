@@ -84,6 +84,8 @@ class FiniteDiffSolver(object):
         self.ymin = ymin
         self.ymax = ymax
 
+        self.delta = grid_delta
+
         self.grid_nx = int((self.xmax - self.xmin)/grid_delta)
         self.grid_ny = int((self.ymax - self.ymin)/grid_delta)
 
@@ -158,23 +160,23 @@ class FiniteDiffSolver(object):
         self.map_ij2k_u = np.asarray(self.map_ij2k_u)
 
         # calculate the delta values for different grids:
-        ccx = np.unique(self.xy_cents[:,0])
-        ccy = np.unique(self.xy_cents[:,1])
+        # ccx = np.unique(self.xy_cents[:,0])
+        # ccy = np.unique(self.xy_cents[:,1])
 
-        self.delta_cents_x = ccx[1] - ccx[0]
-        self.delta_cents_y = ccy[1] - ccy[0]
+        # self.delta_cents_x = ccx[1] - ccx[0]
+        # self.delta_cents_y = ccy[1] - ccy[0]
 
-        mmx = np.unique(self.u_pts[:,0])
-        mmy = np.unique(self.u_pts[:,1])
-        self.delta_u_x = mmx[1] - mmx[0]
-        self.delta_u_y = mmy[1] - mmy[0]
+        # mmx = np.unique(self.u_pts[:,0])
+        # mmy = np.unique(self.u_pts[:,1])
+        # self.delta_u_x = mmx[1] - mmx[0]
+        # self.delta_u_y = mmy[1] - mmy[0]
 
-        nnx = np.unique(self.v_pts[:,0])
-        nny = np.unique(self.v_pts[:,1])
-        self.delta_v_x = nnx[1] - nnx[0]
-        self.delta_v_y = nny[1] - nny[0]
+        # nnx = np.unique(self.v_pts[:,0])
+        # nny = np.unique(self.v_pts[:,1])
+        # self.delta_v_x = nnx[1] - nnx[0]
+        # self.delta_v_y = nny[1] - nny[0]
 
-    def makeLaplacian(self, bound = {'N':['flux',0],'S':['flux',0],'E':['flux',0],'W':['flux',0]}):
+    def makeLaplacian(self, bound = {'N':'value','S':'value','E':'value','W':'value'}):
         """
         Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
         on a regular Cartesian grid with square boundaries. Note: the graph must have
@@ -206,46 +208,74 @@ class FiniteDiffSolver(object):
 
             if i == 0: # if on the bottom (South) boundary:
 
-                if bound['S'][0] == 'flux':
+                if bound['S'] == 'flux':
 
                     k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
                     A[k, k_ip1_j] = 1
 
                     A[k,k] = -1
 
+                elif bound['S'] == 'value':
+
+                    k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+
+                    A[k,k] = 1
+                    A[k,k_ip1_j] = 1
+
             if i == size_rows -1: # if on the top (North) boundary:
 
-                if bound['N'][0] == 'flux':
+                if bound['N'] == 'flux':
 
                     k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
                     A[k, k_in1_j] = 1
 
                     A[k,k] = -1
 
+                elif bound['N'] == 'value':
+
+                    k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
+
+                    A[k,k] = 1
+                    A[k,k_in1_j] = 1
+
             if j == 0: # if on the left (West) boundary:
 
-                if bound['W'][0] == 'flux':
+                if bound['W'] == 'flux':
 
                     k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
                     A[k, k_i_jp1] = 1
 
                     A[k,k] = -1
 
+                elif bound['W'] == 'value':
+
+                    k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+
+                    A[k,k] = 1
+                    A[k,k_i_jp1] = 1
+
             if j == size_cols -1: # if on the right (East) boundary:
 
-                if bound['E'][0] == 'flux':
+                if bound['E'] == 'flux':
 
                     k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
                     A[k, k_i_jn1] = 1
 
                     A[k,k] = -1
 
-        A = A/(self.delta_cents_x*self.delta_cents_y)
+                elif bound['E'] == 'value':
+
+                    k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
+
+                    A[k,k] = 1
+                    A[k,k_i_jn1] = 1
+
+        A = A/(self.delta**2)
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
         Ainv = np.linalg.inv(A)
 
-        return Ainv
+        return A, Ainv
 
     def stokes_kernel(self):
         """
@@ -375,6 +405,43 @@ class FiniteDiffSolver(object):
             P_time.append(P)
             u_time.append(u_at_c)
             v_time.append(v_at_c)
+
+    def grid_gradient(self,P,bounds='closed'):
+        """
+        Calculates a gradient for the MACs grid for a property P
+        defined on MACs cell centres.
+
+        Allows boundary conditions to be set: 'closed' means no flux out of boundary
+        'open' means an exchange of flux can occur.
+
+        """
+
+        # gradient for ecm:
+        gPx = np.zeros(self.u_shape)
+        gPy = np.zeros(self.v_shape)
+
+        gPxo = (P[:,1:] - P[:,0:-1])/self.delta
+        gPyo = (P[1:,:] - P[0:-1,:])/self.delta
+
+        gPx[:,1:-1] = gPxo
+        gPy[1:-1,:] = gPyo
+
+        # decide on boundary conditions:
+        if bounds == 'open':
+            # no "acceleration":
+            gPx[:,0] = gPx[:,1]
+            gPx[:,-1] = gPx[:,-2]
+            gPy[0,:] = gPy[1,:]
+            gPy[-1,:] = gPy[-2,:]
+
+        if bounds == 'closed':
+            # no flux:
+            gPx[:,0] = 0
+            gPx[:,-1] = 0
+            gPy[0,:] = 0
+            gPy[-1,:] = 0
+
+        return gPx, gPy
 
 
 def jacobi(A,b,N=50,x=None):
@@ -691,6 +758,21 @@ def integrator(P):
     F[0:-1,1:] = F[0:-1,1:] + swP
 
     F = (1/36)*F
+
+    return F
+
+# flux summer
+def flux_summer(U,V,P):
+
+    F = np.zeros(P.shape)
+
+    eU = U[:,1::1] # east midpoints
+    wU = U[:,0:-1:1] # west midpoints
+    nV = V[1::1,:] # north midpoints
+    sV = V[0:-1:1,:] # south midpoints
+
+    # do the sum:
+    F[:,:] = - nV + sV - eU + wU
 
     return F
 
