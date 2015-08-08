@@ -1603,8 +1603,8 @@ class Simulator(object):
 
         self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
         self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-        self.v_cell = get_Vcell(self,cells,p)
         self.v_env = get_Venv(self,cells,p)
+        self.v_cell = get_Vcell(self,cells,p)
 
         self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
 
@@ -2468,54 +2468,26 @@ def get_Vcell(self,cells,p):
     v_cell          an array of voltages in each cell space  [V]
 
     """
+
+    # get the value of the environmental voltage at each cell membrane:
+    venv_at_mem = self.v_env[cells.map_mem2ecm]
+
+    # sum the environmental voltage at each mem for each cell and take the average:
+    cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
+
+    # calculate the voltage in each cell:
+    v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
+
+    #--------------------------------------------------------
     #
     # v_cell = self.rho_cells[:]*(p.rc**2)/(4*p.eo*80.0)
 
-    r_cell = np.sqrt(cells.cell_sa/math.pi)
-
-    v_cell = (self.rho_cells*cells.cell_vol)/(4*math.pi*80*p.eo*r_cell)
-
-
-    #-------------------
-
-    #   # # Poisson solver----------------------------------------------------------------
-
-    # rho = np.zeros(len(cells.xypts))
+    # r_cell = np.sqrt(cells.cell_sa/math.pi)
     #
-    # # map charge density in cells to cell and membrane points of the global lattice:
-    # rho[cells.map_cell2ecm] = self.rho_cells
-    # rho[cells.map_mem2ecm] = self.rho_cells[cells.mem_to_cells]
-    # # rho = rho_env.ravel()
+    # v_cell = (self.rho_cells*cells.cell_vol)/(4*math.pi*80*p.eo*r_cell)
 
-    # rho = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-    #             self.rho_cells,(cells.X,cells.Y))
-    #
-    # rho = np.nan_to_num(rho)
-    #
-    # rho = rho.ravel()
 
-    # create a solution vector in the same shape as the source vector
-    # V = np.zeros(len(cells.xypts))
 
-    # # modify the source charge distribution in line with electrostatic Poisson equation:
-    # fxy = -rho/(80*p.eo)
-    #
-    # # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on the cell cluster:
-    # # fxy[cells.bound_pts_k] = 0
-    # # fxy[cells.bTop_kp] = (self.bound_V['T']/cells.delta**2)
-    # # fxy[cells.bL_kp] = (self.bound_V['L']/cells.delta**2)
-    # # fxy[cells.bR_kp] = (self.bound_V['R']/cells.delta**2)
-    #
-    # # Solve Poisson's electrostatic equation:
-    # V = np.dot(cells.Ainv,fxy)
-    #
-    # # if the boundary conditions set the outside of the matrix:
-    # V[cells.bBot_k] = self.bound_V['B']
-    # V[cells.bTop_k] = self.bound_V['T']
-    # V[cells.bL_k] = self.bound_V['L']
-    # V[cells.bR_k] = self.bound_V['R']
-    #
-    # v_cell = V[cells.map_cell2ecm]
 
     return v_cell
 
@@ -2542,7 +2514,7 @@ def get_Venv(self,cells,p):
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is reduced to 1.0e-3 from 80*8.85e-12
-    fxy = -self.rho_env/1.0e-3
+    fxy = -self.rho_env/(1e8*p.eo)
 
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
     fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)

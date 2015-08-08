@@ -166,8 +166,6 @@ class World(object):
 
     def __init__(self, p, worldtype = 'basic'):
         # Extract the constants from the input object:
-        # self.vorclose = vorclose   # whether or not to close the voronoi
-        # self.crop_mask = crop_mask # whether or not to clip the cluster
         self.worldtype = worldtype # the complexity of cluster to create
         self.fileInit(p)
 
@@ -836,45 +834,6 @@ class World(object):
         # properties of ecm spaces local to each cell:
         self.ecm_sa = self.mem_length*p.cell_height
         self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
-        # self.ecm_vol = np.zeros(len(self.mem_length))
-        # self.ecm_vol[:] = np.mean(self.cell_vol)
-
-
-        #OLD WAY OF DOING IT-------------------------------------------------------------------------
-
-        # self.grid_n = int((self.xmax - self.xmin)/self.delta) # number of grid points
-        #
-        # # linear vectors for spatial dimensions
-        # self.x_v = np.linspace(self.xmin, self.xmax, self.grid_n)  # create lattice vector x
-        # self.y_v = np.linspace(self.ymin, self.ymax, self.grid_n)  # create lattice vector y
-        #
-        # # next define a 2d array of lattice points using the x- and y- vectors
-        # self.X, self.Y = np.meshgrid(self.x_v, self.y_v)  # create 2D array of lattice points
-        #
-        # # # recalculate delta as it'll be a little off:
-        # # self.delta = self.x_v[1] - self.x_v[0]
-        #
-        # # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
-        # self.xypts = []
-        # self.map_ij2k = []
-        #
-        # for i, row in enumerate(self.X):
-        #     for j, val in enumerate(row):
-        #         xpt = self.X[i,j]
-        #         ypt = self.Y[i,j]
-        #         self.xypts.append([xpt,ypt])
-        #         self.map_ij2k.append([i,j])
-        #
-        # # linear k index:
-        # self.index_k = [x for x in range(0,len(self.xypts))]
-        #
-        # # map for converting between k linear index and 2d i,j matrix
-        # self.map_ij2k = np.asarray(self.map_ij2k)
-        # self.xypts = np.asarray(self.xypts)
-        #
-        # # properties of ecm spaces local to each cell:
-        # self.ecm_sa = self.mem_length*p.cell_height
-        # self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
 
     def environment(self,p):
 
@@ -988,80 +947,6 @@ class World(object):
             self.lapGJ[i,i] = idiag
 
         self.lapGJinv = np.linalg.inv(self.lapGJ)
-
-    # def makeLaplacian(self, bound = {'N':['flux',0],'S':['flux',0],'E':['flux',0],'W':['flux',0]}):
-    #     """
-    #     Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
-    #     on a regular Cartesian grid with square boundaries. Note: the graph must have
-    #     equal spacing in the x and y directions.
-    #
-    #     """
-    #
-    #     maxi_size = len(self.xypts)
-    #
-    #     size = self.grid_n
-    #
-    #     A = np.zeros((maxi_size,maxi_size))
-    #
-    #     for k, (i,j) in enumerate(self.map_ij2k):
-    #
-    #         # if we're not on a main boundary:
-    #         if i != 0 and j != 0 and i != size-1 and j != size - 1:
-    #
-    #             k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
-    #             k_in1_j = self.map_ij2k.tolist().index([i-1,j])
-    #             k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
-    #             k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
-    #
-    #             A[k, k_ip1_j] = 1
-    #             A[k, k_in1_j] = 1
-    #             A[k, k_i_jp1] = 1
-    #             A[k, k_i_jn1] = 1
-    #             A[k,k] = -4
-    #
-    #
-    #         if i == 0: # if on the bottom (South) boundary:
-    #
-    #             if bound['S'][0] == 'flux':
-    #
-    #                 k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
-    #                 A[k, k_ip1_j] = 1
-    #
-    #                 A[k,k] = -1
-    #
-    #         if i == size -1: # if on the top (North) boundary:
-    #
-    #             if bound['N'][0] == 'flux':
-    #
-    #                 k_in1_j = self.map_ij2k.tolist().index([i-1,j])
-    #                 A[k, k_in1_j] = 1
-    #
-    #                 A[k,k] = -1
-    #
-    #         if j == 0: # if on the left (West) boundary:
-    #
-    #             if bound['W'][0] == 'flux':
-    #
-    #                 k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
-    #                 A[k, k_i_jp1] = 1
-    #
-    #                 A[k,k] = -1
-    #
-    #         if j == size -1: # if on the right (East) boundary:
-    #
-    #             if bound['E'][0] == 'flux':
-    #
-    #                 k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
-    #                 A[k, k_i_jn1] = 1
-    #
-    #                 A[k,k] = -1
-    #
-    #     A = A/(self.delta**2)
-    #
-    #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-    #     Ainv = np.linalg.inv(A)
-    #
-    #     return A, Ainv
 
     def cleanUp(self,p):
 
@@ -1219,6 +1104,25 @@ class World(object):
 
             for i, cell_index in enumerate(self.mem_to_cells):
                 self.cell_UpdateMatrix[i,cell_index] = 1
+
+
+        # matrix for summing property on membranes for each cell and a count of number of mems per cell:
+        self.M_sum_mems = np.zeros((len(self.cell_i),len(self.mem_i)))
+        self.num_mems = []
+
+        for i, inds in enumerate(self.cell_to_mems):
+            n = 0
+            for j in inds:
+                self.M_sum_mems[i,j] = 1
+                n = n+1
+
+            self.num_mems.append(n)
+
+        self.num_mems = np.asarray(self.num_mems)
+
+
+
+        #---------------------------------------------------------------------------
 
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM

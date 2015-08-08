@@ -1421,7 +1421,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
             clrmap = p.default_cm
 
         if zdata is None:
-            zdata = np.ones((cells.msize,cells.mside))
+            zdata = np.ones((cells.msize,cells.msize))
 
         ax.axis('equal')
 
