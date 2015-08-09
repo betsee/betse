@@ -2498,8 +2498,8 @@ def get_Venv(self,cells,p):
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is increased from 80*8.85e-12
-    # fxy = -self.rho_env/(1e8*p.eo)
-    fxy = -self.rho_env/(100*p.eo)
+    fxy = -self.rho_env/(1e8*p.eo)
+    # fxy = -self.rho_env/(100*p.eo)
 
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
     fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
