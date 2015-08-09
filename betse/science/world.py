@@ -25,6 +25,7 @@ for each cell.
 
 import numpy as np
 import scipy.spatial as sps
+from scipy import interpolate as interp
 import copy
 import math
 from betse.science import toolbox as tb
@@ -899,28 +900,14 @@ class World(object):
         bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
         self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-    # def makeMask(self, mask_type = 'exterior bound'):
-    #
-    #     if mask_type == 'cluster bound':
-    #
-    #         maskM = np.zeros(self.X.shape)
-    #
-    #         maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
-    #         maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
-    #
-    #     elif mask_type == 'exterior bound':
-    #         maskM = np.ones(self.X.shape)
-    #         maskM[1,1:-1]= -1
-    #         maskM[-2,1:-1] =-1
-    #         maskM[1:-1,1]=-1
-    #         maskM[1:-1,-2] =-1
-    #
-    #         maskM[0,:]= 0
-    #         maskM[-1,:] = 0
-    #         maskM[:,0]= 0
-    #         maskM[:,-1] =0
-    #
-    #     return maskM
+
+    def makeMask(self,p):
+
+        self.maskM = np.zeros(self.X.shape)
+
+        self.maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
+        # self.maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
+
 
     def graphLaplacian(self):
 
@@ -974,13 +961,6 @@ class World(object):
 
 
         loggers.log_info('Creating computational matrices for discrete transfers... ')
-
-        # calculating centre, min, max of cluster after all modifications
-        # self.clust_centre = np.mean(self.cell_centres)
-        # self.clust_x_max = np.max(self.cell_centres[:,0])
-        # self.clust_x_min = np.min(self.cell_centres[:,0])
-        # self.clust_y_max = np.max(self.cell_centres[:,1])
-        # self.clust_y_min = np.min(self.cell_centres[:,1])
 
         # define map allowing a dispatch from cell index to each respective membrane
         self.indmap_mem = np.asarray(self.indmap_mem)
@@ -1058,7 +1038,6 @@ class World(object):
 
             # create a matrix that will map and interpolate data on mem mids to the mem verts
             # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
-
             self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
             for i, indices in enumerate(self.index_to_mem_verts):
                 self.matrixMap2Verts[i,indices[0]]=1/2
@@ -1092,13 +1071,35 @@ class World(object):
                 self.memMatrix[imem,ci] = -1
                 self.memMatrix[imem,cj] = 1
 
+            #---------------------------------------------------------------------
+
             # structures for plotting interpolated data and streamlines:
             self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
+            xv = np.linspace(self.xmin,self.xmax,self.msize)
+            yv = np.linspace(self.ymin,self.ymax,self.msize)
+            Xv, Yv = np.meshgrid(xv,yv)
+
+            xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
+
             # structures for plotting interpolated data on cell centres:
-            xgrid = np.linspace(self.xmin,self.xmax,self.msize)
-            ygrid = np.linspace(self.ymin,self.ymax,self.msize)
+            xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
+            ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
             self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+            # zi = interp.griddata((xpts,ypts),zdata,(X,Y))
+
+            mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
+
+            # interpret the value of extracellular electric field components at the centre of each membrane:
+            maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
+
+            maskM = maskM.reshape(self.Xgrid.shape)
+
+            self.cluster_mask = maskM
+
+            #---------------------------------------------------------------------
+
 
             self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
 
@@ -1119,8 +1120,6 @@ class World(object):
             self.num_mems.append(n)
 
         self.num_mems = np.asarray(self.num_mems)
-
-
 
         #---------------------------------------------------------------------------
 

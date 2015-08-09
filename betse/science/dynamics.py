@@ -192,8 +192,8 @@ class Dynamics(object):
             name_positive = self.apply_extV[0]
             name_negative = self.apply_extV[1]
 
-            self.targets_extV_positive = self.env_target_inds[name_positive]
-            self.targets_extV_negative = self.env_target_inds[name_negative]
+            self.targets_extV_positive = self.env_target_label[name_positive]
+            self.targets_extV_negative = self.env_target_label[name_negative]
 
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True:
 
@@ -360,15 +360,10 @@ class Dynamics(object):
 
                 sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
-            elif p.sim_ECM == True:
+            elif p.sim_ECM == True: # simulate addition of potassium salt to remain charge neutral
 
-                if cells.cavity_inds:
-
-                    sim.cc_env[sim.iK][cells.true_env_inds] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
-
-                else:
-
-                    sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
+                sim.c_env_bound[sim.iK] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['K']
+                sim.c_env_bound[sim.iM] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['M']
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
 
@@ -378,15 +373,10 @@ class Dynamics(object):
 
                 sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
 
-            elif p.sim_ECM == True:
+            elif p.sim_ECM == True:  # simulate addition of sodium chloride to remain charge neutral
 
-                if cells.cavity_inds:
-
-                    sim.cc_env[sim.iCl][cells.true_env_inds] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
-
-                else:
-
-                    sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
+                sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
+                sim.c_env_bound[sim.iNa] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Na']
 
 
         if p.global_options['Na_env'] != 0:
@@ -397,21 +387,16 @@ class Dynamics(object):
 
                 sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
-            elif p.sim_ECM == True:
+            elif p.sim_ECM == True: # simulate addition of sodium salt to remain charge neutral
 
-                if cells.cavity_inds:
-
-                    sim.cc_env[sim.iNa][cells.true_env_inds] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
-
-                else:
-
-                    sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
+                sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
+                sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
 
         if p.global_options['T_change'] != 0:
 
             sim.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
 
-        if p.global_options['gj_block'] != 0:
+        if p.global_options['gj_block'] != 0:  # FIXME change this to the targeted zone
 
             sim.gj_block = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
 
@@ -507,16 +492,21 @@ class Dynamics(object):
 
             cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
-    def externalVoltage(self,sim,cells,p,t,v_env_o):
-
         if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
             effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
 
-            sim.v_env_mod[self.targets_extV_positive] = self.peak_val_extV*effector_extV
-            sim.v_env_mod[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
+            sim.bound_V[self.targets_extV_positive] = self.peak_val_extV*effector_extV
+            sim.bound_V[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
 
-            sim.v_env = sim.v_env_mod + v_env_o
+    # def externalVoltage(self,sim,cells,p,t,v_env_o):
+    #
+    #     if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
+    #
+    #         effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
+    #
+    #         sim.bound_V['T'] = self.peak_val_extV*effector_extV
+    #         sim.bound_V['B'] = -self.peak_val_extV*effector_extV
 
     def dynamicDyn(self,sim,cells,p,t):
 
@@ -835,13 +825,14 @@ class Dynamics(object):
 
         profile_names = list(p.boundary_profiles.keys())
 
-        self.env_target_inds = {}
+        self.env_target_label = {}
 
         for name in profile_names:
 
             target_method = p.boundary_profiles[name]
+            self.env_target_label[name] = target_method
 
-            self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
+            # self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
 
     def makeAllChanges(self,sim):
         # Add together all effects to make change on the cell membrane permeabilities:

@@ -841,12 +841,14 @@ class PlotWhileSolving(object):
 
             if p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
 
-                boundv = sim.v_env*1e3
+                pass
 
-                self.vext_plot = self.ax.scatter(p.um*cells.env_points[:,0],p.um*cells.env_points[:,1],
-                    cmap=self.colormap,c=boundv,zorder=10)
-
-                self.vext_plot.set_clim(self.cmin,self.cmax)
+                # boundv = sim.v_env*1e3
+                #
+                # self.vext_plot = self.ax.scatter(p.um*cells.env_points[:,0],p.um*cells.env_points[:,1],
+                #     cmap=self.colormap,c=boundv,zorder=10)
+                #
+                # self.vext_plot.set_clim(self.cmin,self.cmax)
 
             if p.showCells == True:
 
@@ -902,11 +904,13 @@ class PlotWhileSolving(object):
 
         if p.sim_ECM == True and p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
 
-            boundv = sim.v_env*1e3
-            self.vext_plot.set_array(boundv)
+            pass
 
-            if self.clrAutoscale == True:
-                self.vext_plot.set_clim(cmin,cmax)
+            # boundv = sim.v_env*1e3
+            # self.vext_plot.set_array(boundv)
+            #
+            # if self.clrAutoscale == True:
+            #     self.vext_plot.set_clim(cmin,cmax)
 
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'

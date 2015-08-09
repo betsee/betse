@@ -70,7 +70,7 @@ init time settings:
                                # settings for 'custom init' time-profile can be
                                # edited below.
 
-  total time: 10               # set the time for the initialization run [s]
+  total time: 60               # set the time for the initialization run [s]
                                 # recommend 10 to 60 s of initialization.
                                 # note this is overriden if you are using 'cutom init' with settings
                                 # defined below.
@@ -79,20 +79,20 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-2               # Simulation step-size [s] (recommended range see table)
-    total time: 30.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
+    time step: 1.0e-8               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0e-4                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 1.0e-7            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
 #
-# GJ sa          no ecm space      ecm spaces    sampling t      effect
-#--------       -------------      ----------   -----------     --------
-# 1e-6               1e-2             5e-4          0.1         closed gap junctions
-# 1.0e-5             5e-3             5e-4          0.1         low gap junctions
-# 1.0e-4             1e-3             1e-5          1e-3        moderate gap junction
-# 1.0e-3             5e-4             1e-6          1e-4        high flux gap junctions
+# GJ sa          time step            sampling t      effect
+#--------       -------------         -----------     --------
+# 1e-6               1e-2                0.1         closed gap junctions
+# 1.0e-5             5e-3                0.1         low gap junctions
+# 1.0e-4             1e-3                1e-3        moderate gap junction
+# 1.0e-3             5e-4                1e-4        high flux gap junctions
 
 # -----------------------------------------------------------------------------
 
@@ -126,11 +126,11 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-7               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 0.2                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 30.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.01            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 1.0e-6            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
 #    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
 #                                  # warning!!! the stability of your simulation is dramatically affected by the
@@ -160,7 +160,7 @@ sim time settings:
 
 general options:
 
-  grid size: 40                # size of the square grid used in computation of spatial gradients and laplacians
+  grid size: 50                # size of the square grid used in computation of spatial gradients and laplacians
 
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
@@ -293,7 +293,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-6   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-5   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -318,18 +318,18 @@ world variables:
 change K env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 1.0           # sim time to start change [s]
-  change finish: 20.0         # sim time to end change and return to original [s]
-  change rate: 0.5            # rate of change [s]
-  multiplier: 2            # factor to multiply base level
+  change start: 5.0           # sim time to start change [s]
+  change finish: 25.0         # sim time to end change and return to original [s]
+  change rate: 2.0            # rate of change [s]
+  multiplier: 20            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 1           # sim time to start change [s]
-  change finish: 9         # sim time to end change and return to original [s]
-  change rate: 0.1            # rate of change [s]
-  multiplier: 20             # factor to multiply base level
+  change start: 5.0           # sim time to start change [s]
+  change finish: 25.0         # sim time to end change and return to original [s]
+  change rate: 2.0            # rate of change [s]
+  multiplier: 10             # factor to multiply base level
 
 change Na env:       # Change the environmental concentration of K+
 
@@ -350,9 +350,9 @@ change temperature:
 block gap junctions:     # block the gap junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 1        # sim time to start change [s]
-  change finish: 9       # sim time to end change and return to original [s]
-  change rate: 0.5         # rate of change [s]
+  change start: 5        # sim time to start change [s]
+  change finish: 25       # sim time to end change and return to original [s]
+  change rate: 1.0         # rate of change [s]
 
 change ecm junctions:     # block the ecm junctions between cells  # FIXME IMPLEMENT
 
@@ -365,9 +365,9 @@ change ecm junctions:     # block the ecm junctions between cells  # FIXME IMPLE
 block NaKATP pump:
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 1           # sim time to start change [s]
-  change finish: 9         # sim time to end change and return to original [s]
-  change rate: 0.5            # rate of change [s]
+  change start: 5           # sim time to start change [s]
+  change finish: 25         # sim time to end change and return to original [s]
+  change rate: 1.0            # rate of change [s]
 
 block HKATP pump:
 
@@ -438,7 +438,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-7     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 
@@ -448,15 +448,15 @@ tissue profile 1:
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
-    Dm_Na: 2.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
+    ecm diffusion factor: 1    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: gradient       # give your profile a name that will be used to apply the profile
@@ -492,18 +492,19 @@ tissue profile 3:
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
-number of boundary profiles: 0      # Note: boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 2      # Note: boundary profiles only apply if simulating extracellular spaces
 
-boundary profile 1:   # options include 'top', 'bottom', 'left', and 'right to specify the respective boundaries
+boundary profile 1:   # options include top = T, bottom = B, left = L, and right = R to specify the respective boundaries
     name: applied pos voltage
-    boundary targets: top
+    boundary targets: L
 
 boundary profile 2:
     name: applied neg voltage
-    boundary targets: bottom
+    boundary targets: R
 
-boundaries closed: True      # are outer boundaries closed to fluxes of ions (True) ?
-
+boundaries closed: False      # are outer boundaries closed to fluxes of ions ?
+                              # NOTE: boundaries must be OPEN (closed == False) to allow for changes to
+                              # global concentrations
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -566,10 +567,10 @@ produce IP3:        # Schedule cell production of IP3
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
     event happens: False            # turn the even on (True) or off (False)
-    change start: 1.0                 # time event starts [s]
-    change finish: 10.0               # time event finishes [s]
-    change rate: 0.1                  # time to reach peak value [s]
-    peak value: 1.0                   # peak value [V]
+    change start: 5.0                 # time event starts [s]
+    change finish: 20.0               # time event finishes [s]
+    change rate: 2.0                  # time to reach peak value [s]
+    peak value: 0.5                   # peak value [V]
     function: None                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
@@ -660,7 +661,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: True     # use this setting to quickly toggle creation of all
+  create all animations: False     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -911,9 +912,9 @@ internal parameters:
 #  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
 #  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  24        # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_NaK:  5.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
+  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  5.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]

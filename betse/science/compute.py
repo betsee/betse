@@ -547,8 +547,11 @@ class Simulator(object):
             DgjH = np.zeros(len(cells.nn_i))
             DgjH[:] = p.free_diff['H']
 
+            self.c_env_bound.append(p.env_concs['H'])
+
             self.cc_cells.append(self.cH_cells)
             self.cc_env.append(self.cH_env)
+
             self.zs.append(p.z_H)
             self.z_array.append(self.zH)
             self.z_array_env.append(self.zH2)
@@ -565,7 +568,6 @@ class Simulator(object):
 
         #-------------------------------------------------------------------------------------------------------
         # set up the ecm diffusion constants, which may be heterogeneous between cell cluster and free environment:
-
         for i, dmat in enumerate(self.D_env):
             # for all cells in the cluster, set the internal diffusion constant:
             self.D_env[i][cells.map_cell2ecm] = dmat[cells.map_cell2ecm]*p.D_ecm_mult
@@ -573,7 +575,6 @@ class Simulator(object):
             self.D_env[i][cells.map_mem2ecm] = dmat[cells.map_mem2ecm]*p.D_ecm_mult
             # undo the transform for membranes on the boundary (set them back to free-diffusion values):
             self.D_env[i][cells.ecm_bound_k] = dmat[cells.ecm_bound_k]/p.D_ecm_mult
-
 
         self.Dm_er = self.Dm_cells[:]
 
@@ -631,19 +632,17 @@ class Simulator(object):
     def tissueInit(self,cells,p):
 
         if p.sim_ECM == True:
-            pass
             #  # re-initialize diffusion constants for the ecm-ecm junctions in case value changed:
-            # self.id_ecm = np.ones(len(cells.ecm_nn_i))
-            #
-            # self.D_ecm_juncs = []
-            # for D in self.D_free:
-            #     DD = D*self.id_ecm*p.D_ecm_mult
-            #     self.D_ecm_juncs.append(DD)
-            #
-            # self.D_ecm_juncs = np.asarray(self.D_ecm_juncs)
-            #
-            # # create a v_ecm copy that will let us change the voltage externally:
-            # self.v_env_mod = np.zeros(len(cells.env_i))
+            for i, dmat in enumerate(self.D_env):
+                # for all cells in the cluster, set the internal diffusion constant:
+                self.D_env[i][cells.map_cell2ecm] = dmat[cells.map_cell2ecm]*p.D_ecm_mult
+                # for all membranes in the cluster, set the internal diffusion constant representing ecm junctions:
+                self.D_env[i][cells.map_mem2ecm] = dmat[cells.map_mem2ecm]*p.D_ecm_mult
+                # undo the transform for membranes on the boundary (set them back to free-diffusion values):
+                self.D_env[i][cells.ecm_bound_k] = dmat[cells.ecm_bound_k]/p.D_ecm_mult
+
+            # create a v_ecm copy that will let us change the voltage externally:
+            self.v_env_mod = np.zeros(len(cells.xypts))
 
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
@@ -1236,7 +1235,9 @@ class Simulator(object):
         self.time = []     # time values of the simulation
 
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
-        self.fgj_time = []      # stores the gj fluxes for each ion at each time
+
+        self.f_gj_x_time = []      # stores the gj fluxes for each ion at each time
+
         self.Igj_time = []      # current for each gj at each time
 
         self.I_gj_x_time = []    # initialize gap junction current data storage
@@ -1718,7 +1719,6 @@ class Simulator(object):
 
     def update_gj(self,cells,p,t,i):
 
-
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM == True:
 
@@ -1731,6 +1731,9 @@ class Simulator(object):
         if p.v_sensitive_gj == True:
             # determine the open state of gap junctions:
             self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+
+        else:
+            self.gjopen = 1
 
         # voltage gradient:
         grad_vgj = self.vgj/cells.nn_len
@@ -1876,7 +1879,7 @@ class Simulator(object):
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
 
-    def update_er(self,cells,p,t):
+    def update_er(self,cells,p,t):  # FIXME complete this er section
 
          # electrodiffusion of ions between cell and endoplasmic reticulum
         self.cc_cells[self.iCa],self.cc_er[0],_ = \
@@ -1989,21 +1992,19 @@ class Simulator(object):
 
             Egj = - (self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0])/cells.nn_len
 
+            # in the environment:
+            venv = self.v_env.reshape(cells.X.shape)
+            genv_x, genv_y = gradient(venv, cells.delta)
+
+            self.E_env_x = -genv_x
+            self.E_env_y = -genv_y
+
         else:
             Egj = - (self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0])/cells.nn_len
 
         # get x and y components of the electric field:
         self.E_gj_x = cells.nn_vects[:,2]*Egj
         self.E_gj_y = cells.nn_vects[:,3]*Egj
-
-
-        if p.sim_ECM == True:
-             # in the environment:
-            venv = self.v_env.reshape(cells.X.shape)
-            genv_x, genv_y = gradient(venv, cells.delta)
-
-            self.E_env_x = genv_x
-            self.E_env_y = genv_y
 
     def get_current(self,cells,p):
 
@@ -2192,7 +2193,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
-        f_Na  = -alpha*cNai*cKo      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_Na  = -alpha*cNai*(cKo**(1/5))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     elif p.backward_pumps == True:
 
@@ -2206,9 +2207,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         f_Na = np.zeros(len(cNai))
 
-        f_Na[inds_forwards]  = -alpha*cNai*cKo      #flux as [mol/s]   scaled to concentrations Na in and K out
+        f_Na[inds_forwards]  = -alpha*cNai*(cKo**(1/5))      #flux as [mol/s]   scaled to concentrations Na in and K out
 
-        f_Na[inds_backwards]  = -alpha*cNao*cKi      #flux as [mol/s]   scaled to concentrations K in and Na out
+        f_Na[inds_backwards]  = -alpha*cNao*(cKi**(1/5))      #flux as [mol/s]   scaled to concentrations K in and Na out
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
@@ -2416,11 +2417,6 @@ def get_charge(concentrations,zs,vol,p):
 
     """
 
-    # q = 0
-    #
-    # for conc,z in zip(concentrations,zs):
-    #     q = q+ conc*z
-    #
     netcharge = np.sum(p.F*vol*concentrations*zs,axis=0)
 
     return netcharge
@@ -2440,14 +2436,6 @@ def get_charge_density(concentrations,zs,p):
     -------------
     netcharge     the net charge density in spaces C/m3
     """
-
-    # q = 0
-    #
-    # for conc,z in zip(concentrations,zs):
-    #
-    #     q = q + conc*z
-    #
-    # netcharge = p.F*q
 
     netcharge = np.sum(p.F*zs*concentrations, axis=0)
 
@@ -2507,14 +2495,11 @@ def get_Venv(self,cells,p):
 
     """
 
-    # unravel the source vector
-    # rho = copy.copy(self.rho_env)
-    # rho = rho_env.ravel()
-
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
-    # in lieu of a feasible solution, the divisor is reduced to 1.0e-3 from 80*8.85e-12
-    fxy = -self.rho_env/(1e8*p.eo)
+    # in lieu of a feasible solution, the divisor is increased from 80*8.85e-12
+    # fxy = -self.rho_env/(1e8*p.eo)
+    fxy = -self.rho_env/(100*p.eo)
 
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
     fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)

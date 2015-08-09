@@ -136,7 +136,7 @@ class SimRunner(object):
                 loggers.log_info("Ooops! Cell cluster and config settings don't match!")
                 loggers.log_info("Automatically creating cell cluster from current config file settings...")
                 loggers.log_info("Warning: specified tissue profiles may no longer be correctly assigned.")
-                self.makeWorld(plotWorld=False)  # create an instance of world
+                self.makeWorld()  # create an instance of world
                 loggers.log_info('Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
@@ -146,7 +146,7 @@ class SimRunner(object):
 
             if p.autoInit == True:
                 loggers.log_info("Automatically creating cell cluster from config file settings...")
-                self.makeWorld(plotWorld=False)  # create an instance of world
+                self.makeWorld()  # create an instance of world
                 loggers.log_info('Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
@@ -165,7 +165,7 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            p.method = 0 # set the simulation to run with pseudo RK4 updates
+            p.method = 0 # set the simulation to run with normal updates
 
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
             # sim.tissueInit(cells,p)
@@ -609,53 +609,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.plotEfield(sim,cells,p)
 
-
-        # figE2 = plt.figure()
-        # axE2 = plt.subplot(111)
-        #
-        # if p.sim_ECM == True and p.plot_Efield_type == 'ECM':
-        #
-        #     efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
-        #     msh = axE2.pcolormesh(p.um*cells.X_ecm, p.um*cells.Y_ecm,efield, cmap = p.default_cm)
-        #
-        #     if p.plot_Efield_vector == True:
-        #         # axE2.quiver(cells.X_ecm, cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-        #         lw = (3.0*efield/efield.max()) + 0.5
-        #         axE2.streamplot(p.um*cells.X_ecm, p.um*cells.Y_ecm, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-        #         linewidth = lw, color = 'k', density = p.stream_density)
-        #
-        #     tit_extra = 'Extracellular'
-        #
-        # elif p.plot_Efield_type == 'GJ':
-        #
-        #     efield = np.sqrt(sim.efield_x_time[-1]**2 + sim.efield_y_time[-1]**2)
-        #     msh = axE2.pcolormesh(p.um*cells.X_cells, p.um*cells.Y_cells,efield, cmap = p.default_cm)
-        #
-        #     if p.plot_Efield_vector == True:
-        #         # axE2.quiver(cells.X_cells, cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1])
-        #         lw = (3.0*efield/efield.max()) + 0.5
-        #         axE2.streamplot(p.um*cells.X_cells, p.um*cells.Y_cells, sim.efield_ecm_x_time[-1],sim.efield_ecm_y_time[-1],
-        #         linewidth = lw, color ='k',density = p.stream_density)
-        #
-        #     tit_extra = 'Intracellular'
-        #
-        # axE2.axis('equal')
-        #
-        # xmin = cells.xmin*p.um
-        # xmax = cells.xmax*p.um
-        # ymin = cells.ymin*p.um
-        # ymax = cells.ymax*p.um
-        #
-        # axE2.axis([xmin,xmax,ymin,ymax])
-        # cbE2 = figE2.colorbar(msh)
-        # plt.show(block=False)
-        #
-        # tit = "Final Electric Field in " + tit_extra + ' Spaces'
-        # axE2.set_title(tit)
-        # axE2.set_xlabel('Spatial distance [um]')
-        # axE2.set_ylabel('Spatial distance [um]')
-        # cbE2.set_label('Electric Field [V/m]')
-
         if saveImages == True:
             savename12 = savedImg + 'Final_Electric_Field' + '.png'
             plt.savefig(savename12,format='png')
@@ -792,62 +745,3 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show()
 
 
-# def plots4Init(plot_cell,cells,sim,p,saveImages=False):
-#
-#     if p.plot_single_cell_graphs == True:
-#
-#         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
-#              ax=None,lncolor='g',ionname='Na+')
-#
-#         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=figConcs,
-#             ax=axConcs,lncolor='b',ionname='K+')
-#
-#         figConcs, axConcs = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=figConcs,
-#              ax=axConcs,lncolor='r',ionname='M-')
-#
-#         lg = axConcs.legend()
-#         lg.draw_frame(True)
-#         titC = 'Concentration of main ions in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
-#         axConcs.set_title(titC)
-#         plt.show(block=False)
-#
-#         figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
-#         titV = 'Voltage (Vmem) in cell index ' + str(plot_cell) + ' as a function of time'
-#         axVt.set_title(titV)
-#         plt.show(block=False)
-#
-#         if p.ions_dict['Ca'] ==1:
-#             figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
-#                  ax=None,lncolor='g',ionname='Ca2+ cell')
-#             titCa =  'Calcium concentration in cell index ' + str(plot_cell) + ' cytoplasm as a function of time'
-#             axA.set_title(titCa)
-#             plt.show(block=False)
-#
-#             if p.Ca_dyn == 1:
-#                 figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,0,plot_cell,fig=None,
-#                      ax=None,lncolor='b',ionname='Ca2+ cell')
-#                 titER =  'Calcium concentration in cell index ' + str(plot_cell) + ' ER as a function of time'
-#                 axD.set_title(titER)
-#                 plt.show(block=False)
-#
-#     if p.plot_vm2d == True:
-#
-#         if p.sim_ECM == True:
-#
-#             figV, axV, cbV = viz.plotHetMem(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
-#                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-#                 edgeOverlay = p.showCells, number_ecm = p.enumerate_cells)
-#
-#         elif p.sim_ECM == False:
-#
-#             if p.showCells == True:
-#                 figV, axV, cbV = viz.plotPolyData(cells,p,zdata=1000*sim.vm_time[-1],number_cells=p.enumerate_cells,
-#                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm)
-#             else:
-#                 figV, axV, cbV = viz.plotCellData(cells,p,zdata=1000*sim.vm_time[-1], clrAutoscale = p.autoscale_Vmem,
-#                     clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm, number_cells=p.enumerate_cells)
-#
-#         axV.set_title('Final Vmem in cell collection')
-#         axV.set_xlabel('Spatial distance [um]')
-#         axV.set_ylabel('Spatial distance [um]')
-#         cbV.set_label('Voltage mV')
