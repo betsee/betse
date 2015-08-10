@@ -3,6 +3,8 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME there's a funny issue with the time plot data so that it won't plot the fine detail with p.sim_ECM. Try to fix it.
+
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
 from betse.science.compute import Simulator
@@ -165,8 +167,6 @@ class SimRunner(object):
 
         elif p.sim_ECM == True:
 
-            p.method = 0 # set the simulation to run with normal updates
-
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
             # sim.tissueInit(cells,p)
             sim.runSim_ECM(cells,p)     # run and save the initialization
@@ -231,8 +231,6 @@ class SimRunner(object):
             sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
 
         elif p.sim_ECM == True:
-
-            p.method = 1  # set simulation to run with pseudo RK4 updates
 
             sim.runSim_ECM(cells,p,save=True)   # run and optionally save the simulation to the cache
 
@@ -383,41 +381,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-        #----------------single cell current-------------------------------------------------
-
-        # # get current for plot cell
-        # I_tot_t = []
-        #
-        # for ti in range(0,len(sim.time)):
-        #
-        #     gj_inds = cells.cell_to_gj[p.plot_cell]   # get gj indices for the plot cell
-        #     I_at_gj = np.mean(sim.I_gj_time[ti][gj_inds])*1e15  # net gj current from cell in picoamps (into cell positive)
-        #     mem_inds = cells.cell_to_mems[p.plot_cell]  # get mem inds for the plot cell
-        #     I_at_mem = np.mean(sim.I_mem_time[ti][mem_inds])*1e15  # net trans-membrane current in picoamps (into cell positive)
-        #     I_tot = I_at_gj + I_at_mem
-        #     I_tot_t.append(I_tot)
-        #
-        # figIt = plt.figure()# define the figure and axes instances
-        # axIt = plt.subplot(111)
-        #
-        # # xmin = simtime[0]
-        # # xmax = simtime[-1]
-        # # ymin = np.min(data_cell)
-        # # ymax = np.max(data_cell)
-        #
-        # axIt.plot(sim.time, I_tot_t)
-        # axIt.set_xlabel('Time [s]')
-        # axIt.set_ylabel('Current [fA]')
-        #
-        # titI = 'Current in cell ' + str(plot_cell) + ' (net inward flow is +)'
-        # axIt.set_title(titI)
-        #
-        # if saveImages == True:
-        #     savename2 = savedImg + 'Icell_time' + '.png'
-        #     plt.savefig(savename2,dpi=300,format='png')
-        #
-        # plt.show(block=False)
-
         #------------------------------------------------------------------------------------
 
         if p.ions_dict['Ca'] ==1:
@@ -453,7 +416,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                     plt.savefig(savename5,dpi=300,format='png')
 
                 plt.show(block=False)
-
 
 
     if p.plot_vcell2d == True and p.sim_ECM == True:

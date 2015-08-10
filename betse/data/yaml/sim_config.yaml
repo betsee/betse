@@ -79,9 +79,9 @@ init time settings:
                                 # settings. To use it call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-8               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0e-4                 # time to end the initialization run [s] (recommended range 10 to 60 s)
-    sampling rate: 1.0e-7            # time period to sample data from init run [s] (recommended range see table)
+    time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
 #------------------------------------------------------------------------------
@@ -89,10 +89,10 @@ init time settings:
 #
 # GJ sa          time step            sampling t      effect
 #--------       -------------         -----------     --------
-# 1e-6               1e-2                0.1         closed gap junctions
-# 1.0e-5             5e-3                0.1         low gap junctions
-# 1.0e-4             1e-3                1e-3        moderate gap junction
-# 1.0e-3             5e-4                1e-4        high flux gap junctions
+# 1e-6               1e-3                0.1          closed gap junctions
+# 1.0e-5             1e-3                0.1          low gap junctions
+# 1.0e-4             1e-3                0.1          moderate gap junction
+# 1.0e-3             5e-4                0.1          high flux gap junctions
 
 # -----------------------------------------------------------------------------
 
@@ -126,32 +126,24 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-7               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 30.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 10.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 1.0e-6            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
-#    gap junction radius: 1e-8        # radius of gap junctions connecting cells [m] (recommended range 0 to 1.0e-10 m)
-#                                  # warning!!! the stability of your simulation is dramatically affected by the
-#                                  # gap junction radius. If the radius is too large for the time-step you are using,
-#                                  # the simulation will become unstable and an error message will appear.
-#                                  # rule of thumb, gap junction radii up to 1.0e-10 for time step of 5e-4 s
-#                                  # gap junction radii up to 1.5e-9 for time step of 5e-5 s.
 
 #------------------------------------------------------------------------------
 # Time-step Recommendations
 #
-# GJ sa          no ecm space      ecm spaces    sampling t      effect
-#--------       -------------      ----------   -----------     --------
-# 1e-5               5e-3             5e-4          0.1         closed gap junctions
-# 1.0e-4             5e-3             5e-4          0.1         low gap junctions
-# 5.0e-4             1e-3             1e-5          1e-3        moderate gap junction
-# 1.0e-3             5e-4             1e-6          1e-4        high flux gap junctions
+# GJ sa          time step            sampling t      effect
+#--------       -------------         -----------     --------
+# 1e-6               1e-3                0.1          closed gap junctions
+# 1.0e-5             1e-3                0.1          low gap junctions
+# 1.0e-4             1e-3                0.1          moderate gap junction
+# 1.0e-3             5e-4                0.1          high flux gap junctions
 
-
-
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
@@ -293,7 +285,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-5   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -440,11 +432,11 @@ base tissue properties:    # specify the base membrane diffusion constants below
 
     ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: tissue       # give your profile a name that will be used to apply the profile
-    cell targets: bitmap      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    cell targets: [10]      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -456,15 +448,15 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1    # multiplier for ecm diffusion
+    ecm diffusion factor: 0.1    # multiplier for ecm diffusion
 
 tissue profile 2:
-    name: gradient       # give your profile a name that will be used to apply the profile
-    cell targets: all     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    name: test       # give your profile a name that will be used to apply the profile
+    cell targets: [10]     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_Na: 2.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
@@ -472,7 +464,7 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
+    ecm diffusion factor: 0.1    # multiplier for ecm diffusion
 
 tissue profile 3:
     name: depolarized_b       # give your profile a name that will be used to apply the profile
@@ -488,11 +480,11 @@ tissue profile 3:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-4    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
-number of boundary profiles: 2      # Note: boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 0      # Note: boundary profiles only apply if simulating extracellular spaces
 
 boundary profile 1:   # options include top = T, bottom = B, left = L, and right = R to specify the respective boundaries
     name: applied pos voltage
@@ -516,11 +508,11 @@ boundaries closed: False      # are outer boundaries closed to fluxes of ions ?
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False              # turn the even on (True) or off (False)
+  event happens: True              # turn the even on (True) or off (False)
   change start: 2.0                # sim time to start change [s]
   change finish: 8.0               # sim time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
-  multiplier: 10.0                  # factor to multiply base level
+  multiplier: 100.0                  # factor to multiply base level
   function: None                   # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
   apply to: ['tissue']        # name(s) of the tissue profile(s) to apply it to
 
@@ -674,13 +666,13 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: True         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
                                  # warning should not be used for world sizes over 200 um.
 
-  plot cell index: 7              # State the cell index to use for single-cell time plots
+  plot cell index: 10              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
@@ -898,13 +890,13 @@ internal parameters:
 
   # default free diffusion constants (cytoplasmic)
 
-  Do_Na:  1.33e-10       # free diffusion constant sodium [m2/s]
-  Do_K:  1.96e-10        # free diffusion constant potassium [m2/s]
-  Do_Cl:  2.03e-10       # free diffusion constant chloride [m2/s]
-  Do_Ca:  1.0e-11        # free diffusion constant calcium [m2/s]
-  Do_H:  2.5e-10         # free diffusion constant hydrogen [m2/s]
-  Do_M:  1.0e-10         # free diffusion constant mystery anchor ion [m2/s]
-  Do_P:  5.0e-12        # free diffusion constant protein [m2/s]
+  Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
+  Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
+  Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
+  Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
+  Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
+  Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
+  Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
 
   # pump parameters
 

@@ -13,18 +13,9 @@ import scipy.spatial as sps
 
 class FiniteDiffSolver(object):
     """
-    Provides methods to establish a square recti-liniear grid, compute discrete Laplacian operators
-       and solve the Poisson, Laplacian, or Heat equation in 2D using
-       the Central Finite Difference method.
-
-       Laplace Equation:
-       d2U/dx2 + d2U/dy2 = 0
-
-       Poisson Equation:
-       d2U/dx2 + d2U/dy2 = fxy
-
-       Heat Equation (spatially varying diffusion constant D):
-       U = dD/dx*dC/dx + dD/dy*dC/dy + D*(d2C/dx2 + d2C/dy2)
+    Provides methods to establish a rectangular Marker and Cell (MACs) grid, compute discrete Laplacian operators
+    and solve the Poisson, Laplacian, Heat, or Unsteady Stokes Flow (linearized Navier-Stokes) equations in 2D using
+    the Central Finite Difference method.
 
     """
 
@@ -36,7 +27,7 @@ class FiniteDiffSolver(object):
 
         """
         Create linear vectors, rectangular grids and expanded grids of spatial coordinates
-        and solution vectors.
+        and solution vectors.This method produces a standard grid.
 
         delta:          spacing between grid points (same in the x and y dimensions)
         xmin:           minimum x-value  [m]
@@ -74,26 +65,29 @@ class FiniteDiffSolver(object):
         Make a staggered n x n grid for use with finite volume or MACs method.
         One n x n grid contains the cell centres.
         One n+1 x n+1 grid contains the cell corners (vertices)
-        One n+1 x n grid contains the u-coordinate points for veloctiy
-        One n x n+1 grid contains the v-coordinate points for velocity
+        One n+1 x n grid contains the u-coordinate points for velocity and x-coordinate for fluxes
+        One n x n+1 grid contains the v-coordinate points for velocity and y-coordinate for fluxes
 
         """
 
+        # max-min dimensions of the 2D world space:
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
         self.ymax = ymax
 
+        # spacing of the grid points (uniform in x and y dimensions):
         self.delta = grid_delta
 
+        # number of points in the x and y directions
         self.grid_nx = int((self.xmax - self.xmin)/grid_delta)
         self.grid_ny = int((self.ymax - self.ymin)/grid_delta)
 
+        # creation of the first mesh -- these are the corners of each MACs grid square:
         xv = np.linspace(xmin,xmax,self.grid_nx+1)
         yv = np.linspace(ymin,ymax,self.grid_ny+1)
         self.verts_X, self.verts_Y = np.meshgrid(xv,yv)
 
-        # grid and coordinate vectors defining the vertices of each cell:
         x_verts = self.verts_X.ravel()
         y_verts = self.verts_Y.ravel()
         self.xy_verts = np.column_stack((x_verts,y_verts))
@@ -106,10 +100,12 @@ class FiniteDiffSolver(object):
         x_cent = self.cents_X.ravel()
         y_cent = self.cents_Y.ravel()
 
+        # unravelled x,y points for cell centres:
         self.xy_cents = np.column_stack((x_cent,y_cent))
 
         self.cents_shape = self.cents_X.shape
 
+        # define a mapping between the (i,j) centers mesh and the linear unravelled k index:
         self.map_ij2k_cents = []
 
         for i, row in enumerate(self.cents_X):
@@ -118,6 +114,7 @@ class FiniteDiffSolver(object):
 
         self.map_ij2k_cents = np.asarray(self.map_ij2k_cents)
 
+        # Next define grids for the x and y cordinates as midpoints of each MACs cell:
         # cell side midpoints in the x (u) and x (v) directions:
         mx = self.cents_X[0,:]
         my = self.verts_Y[:,0]
@@ -127,7 +124,6 @@ class FiniteDiffSolver(object):
         y_m = self.v_Y.ravel()
 
         # points on which y co-ordinate of velocity is defined:
-
         self.v_pts = np.column_stack((x_m,y_m))
         self.v_shape = self.v_X.shape
 
@@ -147,7 +143,6 @@ class FiniteDiffSolver(object):
         y_n = self.u_Y.ravel()
 
         # points on which x co-ordinate of velocity is defined:
-
         self.u_pts = np.column_stack((x_n,y_n))
         self.u_shape = self.u_X.shape
 
@@ -159,35 +154,20 @@ class FiniteDiffSolver(object):
 
         self.map_ij2k_u = np.asarray(self.map_ij2k_u)
 
-        # calculate the delta values for different grids:
-        # ccx = np.unique(self.xy_cents[:,0])
-        # ccy = np.unique(self.xy_cents[:,1])
-
-        # self.delta_cents_x = ccx[1] - ccx[0]
-        # self.delta_cents_y = ccy[1] - ccy[0]
-
-        # mmx = np.unique(self.u_pts[:,0])
-        # mmy = np.unique(self.u_pts[:,1])
-        # self.delta_u_x = mmx[1] - mmx[0]
-        # self.delta_u_y = mmy[1] - mmy[0]
-
-        # nnx = np.unique(self.v_pts[:,0])
-        # nny = np.unique(self.v_pts[:,1])
-        # self.delta_v_x = nnx[1] - nnx[0]
-        # self.delta_v_y = nny[1] - nny[0]
-
     def makeLaplacian(self, bound = {'N':'value','S':'value','E':'value','W':'value'}):
         """
         Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
         on a regular Cartesian grid with square boundaries. Note: the graph must have
-        equal spacing in the x and y directions.
+        equal spacing in the x and y directions (the same delta in x and y directions).
 
         """
 
         size_rows = self.cents_shape[0]
         size_cols = self.cents_shape[1]
 
-        A = np.zeros((size_rows**2,size_cols**2))
+        sze = size_rows*size_cols
+
+        A = np.zeros((sze,sze))
 
         for k, (i,j) in enumerate(self.map_ij2k_cents):
 

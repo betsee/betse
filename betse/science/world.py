@@ -3,7 +3,6 @@
 # See "LICENSE" for further details.
 
 
-# FIXME need an ECM update matrix
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 
@@ -65,28 +64,11 @@ class World(object):
 
     self.cluster_centre     x,y coordinate of cluster centre
 
-    self.xypts      numpy array holding [x,y] points of irregular world grid
+    self.xypts      numpy array holding unravelled [x,y] centre points of 2d regular world grid
 
-    self.ecm_verts_unique   a numpy array listing [x,y] coordinates of ecm vertices (flattened from ecm_verts)
-
-    self.ecm_edges_i    a list of [n,m] indices into ecm_verts_unique which return two points defining a unique ecm
-                        segment. Note the index of ecm_edges_i is *the* ecm index: ecm_i
-
-    self.ecm_mids       a python list of midpoint [x,y] for each unique ecm segment (in ecm_i order)
-
-    self.ecm_vol     a python list of the length of each ecm segment (in ecm_i order)
-
-    self.ecm_vects      a numpy array of [x, y, tx, ty] for each ecm segment (in ecm_i order)
-
-    self.ecmMatrix     a 2D numpy array allowing ecm fluxes to be propperly applied to ecm<-->ecm distributions
-
-    self.mem_to_ecm    a numpy array mapping ecm spaces (ecm_i) to the appropriate membrane
-
-    self.ecm_UpdateMatrix    a matrix updating ecm space concentrations for cell <---> ecm fluxes
+    self.ecm_vol     volume of ecm spaces
 
     self.cell_UpdateMatrix   a matrix updating cell space concentrations for cell <----> ecm fluxes
-
-    self.cell2ecm_map   a nested numpy array returns the k-ecm indices given the cell [cell_i] and membrane [mem_j] inds
 
     self.bflags_ecm     a python list of indices to ecm vertices on the env bound (ordered to ecm_verts_unique)
 
@@ -131,8 +113,6 @@ class World(object):
 
     self.cell_i         a python list of indices to cell data arrays (cell_i)
 
-    self.ecm_i          a python list of indices to ecm data arrays (ecm_i)
-
     self.gj_i           a python list of indices to gj data arrays (gj_i)
 
     self.mem_i          a python list of indices to membrane data arrays (mem_i)
@@ -143,18 +123,20 @@ class World(object):
 
     Methods
     -------
-    makeWorld()                             Create a cell cluster for simulation
-    makeSeeds()                             Create an irregular lattice of seed points in 2d space
-    cropSeeds(crop_mask =None)              Crop the points cluster to a polygonal shape (circle)
-    makeVoronoi(vorclose = None)            Make and clip/close a Voronoi diagram from the seed points
-    vor_area()                              Returns the area of each polygon in the closed Voronoi diagram
-    cell_index()                            Returns a list of [x,y] points defining the cell centres in order
-    near_neigh()                            Calculate the nearest neighbour (nn) array for each cell
-    clean_ecm()                             Open ecm cells at the environmental boundary and reformulate data structs
-    boundTag(points)                        Creates index-matched boolean lists identifying elements on environ bound
-    cellVerts()                             Copy & scale in points from the ecm matrix to create unique polygonal cells
-    cellGeo()                               Creates midpoints, lengths, volumes, normal and tangent vectors + more
-    cleanUp()                               After computations, null unimportant fields to free up memory
+    makeWorld()                       Create a cell cluster for simulation
+    fileInit()                        Create directories for file saving
+    makeSeeds()                       Create an irregular lattice of seed points in 2d space
+    makeVoronoi()                     Make and clip/close a Voronoi diagram from the seed points
+    cell_index()                      Returns a list of [x,y] points defining the cell centres in order
+    near_neigh()                      Calculate the nearest neighbour (nn) array for each cell (make gap junctions)
+    boundTag(points)                  Creates index-matched boolean lists identifying elements on environ bound
+    cellVerts()                       Copy & scale in points from the ecm matrix to create unique polygonal cells
+    cleanUp()                         Accessory calculations, including creating of computational matrices
+    makeECM()                         Make the Marker and Cell (MACs) grid for extracellular calculations
+    environment()                     Calculate details for the extracellular calculations, including mappings
+    graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
+
+
 
 
     Notes
@@ -213,14 +195,11 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
-            # self.generalMask = self.makeMask(mask_type='exterior bound')
 
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
             loggers.log_info('Creating cell network Poisson solver...')
             self.graphLaplacian()
             loggers.log_info('Completed major world-building computations.')
-
-            # self.makeLaplacian()  # create the Laplacian solver
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
@@ -815,14 +794,6 @@ class World(object):
 
         self.grid_obj.cell_grid(self.delta,self.xmin,self.xmax,self.ymin,self.ymax)
 
-        if self.grid_obj.grid_nx == self.grid_obj.grid_nx:
-
-            self.grid_n = self.grid_obj.grid_nx
-
-        else:
-
-            print('error! grids are not equal!')
-
         self.X = self.grid_obj.cents_X
         self.Y = self.grid_obj.cents_Y
 
@@ -832,9 +803,9 @@ class World(object):
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]
 
-        # properties of ecm spaces local to each cell:
-        self.ecm_sa = self.mem_length*p.cell_height
-        self.ecm_vol = self.mem_length*p.cell_height*p.cell_space
+        # properties of ecm spaces:
+        self.ecm_sa = self.delta*p.cell_height
+        self.ecm_vol = p.cell_height*self.delta**2
 
     def environment(self,p):
 
@@ -900,14 +871,12 @@ class World(object):
         bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
         self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-
-    def makeMask(self,p):
-
-        self.maskM = np.zeros(self.X.shape)
-
-        self.maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
-        # self.maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
-
+    # def makeMask(self,p):
+    #
+    #     self.maskM = np.zeros(self.X.shape)
+    #
+    #     self.maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
+    #     # self.maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
 
     def graphLaplacian(self):
 
@@ -1205,145 +1174,5 @@ class World(object):
             message = 'Cell cluster saved to' + ' ' + self.savedWorld
             loggers.log_info(message)
 
-    # def redoCells(self,p):
-    #
-    #     loggers.log_info('Re-creating computational matrices... ')
-    #
-    #     # calculating matrix for gap junction flux calculation between cells
-    #     self.gjMatrix = np.zeros((len(self.gj_i),len(self.cell_i)))
-    #     for igj, pair in enumerate(self.gap_jun_i):
-    #         ci = pair[0]
-    #         cj = pair[1]
-    #         self.gjMatrix[igj,ci] = -1
-    #         self.gjMatrix[igj,cj] = 1
-    #
-    #     # define map allowing a dispatch from cell index to each respective membrane
-    #     self.mem_mids_flat, self.indmap_mem, self.rindmap_mem = tb.flatten(self.mem_mids)
-    #     self.indmap_mem = np.asarray(self.indmap_mem)
-    #
-    #     self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
-    #
-    #     # data structures for plotting current streamlines
-    #     self.xpts_Igj = np.hstack((self.gj_vects[:,0],self.mem_vects_flat[:,0]))
-    #     self.ypts_Igj = np.hstack((self.gj_vects[:,1],self.mem_vects_flat[:,1]))
-    #     self.nx_Igj = np.hstack((self.gj_vects[:,2],self.mem_vects_flat[:,2]))
-    #     self.ny_Igj = np.hstack((self.gj_vects[:,3],self.mem_vects_flat[:,3]))
-    #
-    #     # structures for plotting interpolated data on cell centres:
-    #     xgrid = np.linspace(self.xmin,self.xmax,self.msize)
-    #     ygrid = np.linspace(self.ymin,self.ymax,self.msize)
-    #     self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-    #
-    #     # compute mapping between cell and gj:
-    #     self.cell_to_gj =[[] for x in range(0,len(self.cell_i))]
-    #
-    #     for i, inds in enumerate(self.gap_jun_i):
-    #         ind1 = inds[0]
-    #         ind2 = inds[1]
-    #         self.cell_to_gj[ind1].append(i)
-    #         self.cell_to_gj[ind2].append(i)
-    #
-    #     self.cell_to_gj = np.asarray(self.cell_to_gj)
-    #
-    #     self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
-    #
-    #     for cell_index in self.cell_i:
-    #
-    #         index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
-    #         self.cell_to_mems.append(index2mems)
-    #
-    #     self.cell_to_mems = np.asarray(self.cell_to_mems)
-    #
-    #     # define matrix for updating cells with fluxes from membranes:
-    #     if self.worldtype == 'full':
-    #
-    #         loggers.log_info('Setting global environmental conditions... ')
-    #
-    #         # first obtain a structure to map to total xypts vector index:
-    #         points_tree = sps.KDTree(self.xypts)
-    #
-    #         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-    #         self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
-    #         self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat))[1]
-    #
-    #         self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
-    #
-    #         for i, cell_index in enumerate(self.mem_to_cells):
-    #             self.cell_UpdateMatrix[i,cell_index] =1
-    #
-    #     self.cell_number = self.cell_centres.shape[0]
-    #     self.sim_ECM = p.sim_ECM
-    #
-    #     # loggers.log_info('Cell cluster re-creation complete!')
-
-
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
 
-
-    # def makeLaplacian(self,maskM):
-    #     """
-    #     Generate the discrete finite central difference 2D Laplacian operator based on:
-    #
-    #     d2 Uij / dx2 + d2 Uij / dy2 = (Ui+1,j + Ui-1,j + Ui,j+1, Ui,j-1 - 4Uij)*1/(delta_x)**2
-    #
-    #     To solve the Poisson equation:
-    #
-    #     A*U = fxy
-    #
-    #     by:
-    #
-    #     U = Ainv*fxy
-    #
-    #     For a domain with an irregular boundary which is *embedded* within a 2D Cartesian grid.
-    #
-    #     Parameters
-    #     -----------
-    #     maskM               A numpy nd array of the world grid, where 0 stands for external point where U = 0,
-    #                         1 for an internal point where U is calculated, and -1 for a point on a boundary.
-    #
-    #     Returns
-    #     --------
-    #     Ainv                Creates a laplacian matrix solver for the specified geometry (including boundary conditions)
-    #     bound_pts_k         A list of k-indices for the boundary points (specific to the maskM) for modifying source
-    #
-    #     Notes
-    #     -------
-    #     ip and jp are related to the original matrix index scheme by ip = i +1 and j = jp + 1.
-    #
-    #     """
-    #
-    #     # initialize the laplacian operator matrix:
-    #     A = np.zeros((self.grid_len,self.grid_len))
-    #     bound_pts_k = []
-    #
-    #     for k, (i, j) in enumerate(self.map_ij2k):
-    #
-    #         maskVal = maskM[i, j]
-    #
-    #         if maskVal == 1:  # interior point, do full algorithm...
-    #
-    #             k_ip1_j = self.map_ij2k.tolist().index([i + 1,j])
-    #             k_in1_j = self.map_ij2k.tolist().index([i-1,j])
-    #             k_i_jp1 = self.map_ij2k.tolist().index([i,j+1])
-    #             k_i_jn1 = self.map_ij2k.tolist().index([i,j-1])
-    #
-    #             A[k, k_ip1_j] = 1
-    #             A[k, k_in1_j] = 1
-    #             A[k, k_i_jp1] = 1
-    #             A[k, k_i_jn1] = 1
-    #             A[k,k] = -4
-    #
-    #         elif maskVal == -1:  # boundary point, treat as such
-    #             A[k,k] = 1
-    #             bound_pts_k.append(k)
-    #
-    #         elif maskVal == 0:  # exterior point, treat as such
-    #             A[k,k] = 1
-    #
-    #     # complete the laplacian operator by diving through by grid spacing squared:
-    #     Ai = A/self.delta**2
-    #
-    #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-    #     Ainv = np.linalg.inv(Ai)
-    #
-    #     return Ainv

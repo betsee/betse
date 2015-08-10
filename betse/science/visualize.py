@@ -1336,10 +1336,10 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
 
     lab = ionname
 
-    xmin = simtime[0]
-    xmax = simtime[-1]
-    ymin = np.min(ccIon_cell)
-    ymax = np.max(ccIon_cell)
+    # xmin = simtime[0]
+    # xmax = simtime[-1]
+    # ymin = np.min(ccIon_cell)
+    # ymax = np.max(ccIon_cell)
 
     ax.plot(simtime, ccIon_cell,lncolor,label=lab)
     ax.set_xlabel('Time [s]')
@@ -1429,11 +1429,6 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -1489,11 +1484,6 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
             for i,mem in enumerate(cells.mem_mids_flat):
                 ax.text(p.um*mem[0],p.um*mem[1],i,ha='center',va='center')
-
-        if number_ecm == True:
-
-            for i,point in enumerate(cells.env_points):
-                ax.text(p.um*point[0],p.um*point[1],i,ha='center',va='center',color='k',weight ='bold')
 
         if current_overlay == True:
 
@@ -2300,15 +2290,6 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
                 # cb_tick_labels.append(name)
 
 
-    # if p.sim_ECM == True:
-    #     ax.scatter(cells.env_points[:,0]*p.um,cells.env_points[:,1]*p.um,c='k',s=1.0)
-    #     if len(dyna.env_target_inds):
-    #
-    #         for name in p.boundary_profiles.keys():
-    #             special_inds = dyna.env_target_inds[name]
-    #             ax.scatter(p.um*cells.env_points[:,0][special_inds],p.um*cells.env_points[:,1][special_inds],c='r')
-
-
     if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
 
         ax_cb = fig.colorbar(col_dic[dyna.tissue_profile_names[0]],ax=ax, ticks=cb_ticks)
@@ -2322,10 +2303,6 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
         for i,cll in enumerate(cells.cell_centres):
             ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
-        if p.sim_ECM == True:
-
-            for i,point in enumerate(cells.env_points):
-                ax.text(p.um*point[0],p.um*point[1],i,ha='center',va='center',color='k',weight ='bold')
 
     ax.set_xlabel('Spatial Distance [um]')
     ax.set_ylabel('Spatial Distance [um]')
@@ -2337,11 +2314,6 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     xmax = cells.xmax*p.um
     ymin = cells.ymin*p.um
     ymax = cells.ymax*p.um
-
-    # xmin = p.um*(cells.clust_x_min - p.clip)
-    # xmax = p.um*(cells.clust_x_max + p.clip)
-    # ymin = p.um*(cells.clust_y_min - p.clip)
-    # ymax = p.um*(cells.clust_y_max + p.clip)
 
     ax.axis([xmin,xmax,ymin,ymax])
 

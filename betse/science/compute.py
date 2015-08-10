@@ -1104,7 +1104,9 @@ class Simulator(object):
 
                 self.dvm_time.append(self.dvm[:])
 
-                self.gjopen_time.append(self.gjopen[:])
+                if p.v_sensitive_gj == True:
+
+                    self.gjopen_time.append(self.gjopen[:])
 
                 self.time.append(t)
 
@@ -1256,7 +1258,7 @@ class Simulator(object):
         self.efield_ecm_y_time = []
 
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
-        vm_dato = np.zeros(len(cells.mem_i))       # FIXME this will be HUGE do we need it?>>
+        vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
 
@@ -1332,6 +1334,8 @@ class Simulator(object):
             if p.run_sim == True:
                 self.dyna.runAllDynamics(self,cells,p,t)
 
+            #-----------------PUMPS-------------------------------------------------------------------------------------
+
             # run the Na-K-ATPase pump:
             fNa_NaK, fK_NaK =\
                 pumpNaKATP(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_env[self.iNa][cells.map_mem2ecm],
@@ -1389,6 +1393,8 @@ class Simulator(object):
 
                     self.Hplus_VATP_ecm(cells,p,t)
 
+            #----------------ELECTRODIFFUSION---------------------------------------------------------------------------
+
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
 
             shuffle(self.movingIons)
@@ -1406,9 +1412,6 @@ class Simulator(object):
 
                 # update concentrations in the extracellular spaces:
                 self.update_ecm(cells,p,t,i)
-
-                # uppdate concentrations for extracellular spaces in contact with environment:
-                # self.update_environment(cells,p,t,i)
 
                 # update flux between cells due to gap junctions
                 self.update_gj(cells,p,t,i)
@@ -1462,6 +1465,7 @@ class Simulator(object):
                 self.efield_ecm_y_time.append(self.E_env_y[:])
 
                 concs = self.cc_cells[:]
+                concs.tolist()
                 self.cc_time.append(concs)
                 concs = None
 
@@ -1473,7 +1477,9 @@ class Simulator(object):
 
                 self.dvm_time.append(self.dvm[:])
 
-                self.gjopen_time.append(self.gjopen[:])
+                if p.v_sensitive_gj == True:
+
+                    self.gjopen_time.append(self.gjopen[:])
 
                 self.vcell_time.append(self.v_cell[:])
 
@@ -1488,7 +1494,7 @@ class Simulator(object):
                 self.I_mem_time.append(self.I_mem[:])
 
                 # calculate interpolated verts and midpoint data for Vmem:
-                dat_grid_vm = vertData(self.vm[:],cells,p)    # FIXME this will be huge -- reduce it!
+                dat_grid_vm = vertData(self.vm[:],cells,p)
 
                 self.vm_Matrix.append(dat_grid_vm[:])
 
@@ -1595,8 +1601,6 @@ class Simulator(object):
             loggers.log_info('Final average dye concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
                              ' mmol/L')
 
-        print(self.D_env[self.iNa][0])
-
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
@@ -1624,7 +1628,55 @@ class Simulator(object):
 
         self.cc_env[ion_i] = rk4(c_env,-delta_env,p)
 
-        # self.cc_env[ion_i][cells.map_mem2ecm] = c_env[cells.map_mem2ecm] - delta_c_env
+    def half_step(self,flux,cells,p):
+
+        c_cells = copy.copy(self.cc_cells)
+        c_env = copy.copy(self.cc_env)
+
+        for ion_i in self.movingIons: # update all concentrations due to the flux:
+
+            d_c_cells = flux[ion_i]*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+            d_c_env = flux[ion_i]*(cells.mem_sa/cells.ecm_vol)
+
+            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+
+            c_cells[ion_i] = c_cells[ion_i] + delta_cells*p.dt
+
+            c_env[ion_i] = c_env[ion_i] + delta_env*p.dt
+
+        rho_cells_o = get_charge_density(c_cells, self.z_array, p)
+        rho_env_o = get_charge_density(c_env, self.z_array_env, p)
+
+        # t+1 environmental voltage: ------------------------
+        fxy = -rho_env_o/(100*p.eo)
+        # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
+        fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
+        fxy[cells.bTop_k] = (self.bound_V['T']/cells.delta**2)
+        fxy[cells.bL_k] = (self.bound_V['L']/cells.delta**2)
+        fxy[cells.bR_k] = (self.bound_V['R']/cells.delta**2)
+
+        # Solve Poisson's electrostatic equation:
+        v_env_o = np.dot(cells.lapENVinv,fxy)
+
+        # if the boundary conditions set the outside of the matrix:
+        v_env_o[cells.bBot_k] = self.bound_V['B']
+        v_env_o[cells.bTop_k] = self.bound_V['T']
+        v_env_o[cells.bL_k] = self.bound_V['L']
+        v_env_o[cells.bR_k] = self.bound_V['R']
+
+        # t+1 cell voltage: ----------------------------------
+        # get the value of the environmental voltage at each cell membrane:
+        venv_at_mem = v_env_o[cells.map_mem2ecm]
+        # sum the environmental voltage at each mem for each cell and take the average:
+        cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
+        # calculate the voltage in each cell:
+        v_cell_o = (rho_cells_o*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
+
+        # t+1 vmem:
+        vm_o = v_cell_o[cells.mem_to_cells] - v_env_o[cells.map_mem2ecm]  # calculate v_mem
+
+        return vm_o
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -1762,10 +1814,6 @@ class Simulator(object):
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
 
-         # recalculate the net, unbalanced charge and voltage in each cell:
-        if p.sim_ECM == True:
-            self.update_V_ecm(cells,p,t)
-
     def update_ecm(self,cells,p,t,i):
 
         #------------------------------
@@ -1868,10 +1916,6 @@ class Simulator(object):
         # reshape the matrices into vectors:
         self.v_env = self.v_env.ravel()
         self.cc_env[i] = cenv.ravel()
-
-         # recalculate the net, unbalanced charge and voltage in each ecm space:
-        self.rho_env = get_charge_density(self.cc_env,self.z_array_env,p)
-        # self.v_env = get_Venv(self,cells,p)
 
         fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
         fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
@@ -2138,10 +2182,18 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     alpha = (zc*vBA*p.F)/(p.R*T)
 
+    # find indicies where the exponential of alpha is an overflow and pre-calculate the exp(-alpha) term:
+    inds_overflow = (alpha < -500).nonzero()
+    inds_OK = (alpha >= -500).nonzero()
+
+    exp_alpha = np.zeros(len(alpha))
+    exp_alpha[inds_OK] = np.exp(-alpha[inds_OK])
+    exp_alpha[inds_overflow] = 1.40e+217
+
     #volab = (vola + volb)/2
     #qualityfactor = abs((Dc/d)*(sa/volab)*p.dt*alpha)   # quality factor should be <1.0 for stable simulations
 
-    deno = 1 - np.exp(-alpha)   # calculate the denominator for the electrodiffusion equation,..
+    deno = 1 - exp_alpha   # calculate the denominator for the electrodiffusion equation,..
 
     izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
     inotzero = (deno!=0).nonzero()
@@ -2157,7 +2209,7 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
         # calculate the flux for those elements:
         flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
-                        cA[inotzero]*np.exp(-alpha[inotzero]))/deno[inotzero])
+                        cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
 
     return flux
 
@@ -2193,7 +2245,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
-        f_Na  = -alpha*cNai*(cKo**(1/5))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_Na  = -alpha*(cNai**(1/2))*(cKo**(1/5))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     elif p.backward_pumps == True:
 
@@ -2207,9 +2259,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         f_Na = np.zeros(len(cNai))
 
-        f_Na[inds_forwards]  = -alpha*cNai*(cKo**(1/5))      #flux as [mol/s]   scaled to concentrations Na in and K out
+        f_Na[inds_forwards]  = -alpha*cNai**(1/2)*(cKo**(1/5))      #flux as [mol/s]   scaled to concentrations Na in and K out
 
-        f_Na[inds_backwards]  = -alpha*cNao*(cKi**(1/5))      #flux as [mol/s]   scaled to concentrations K in and Na out
+        f_Na[inds_backwards]  = -alpha*cNao**(1/5)*(cKi**(1/5))      #flux as [mol/s]   scaled to concentrations K in and Na out
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
@@ -2465,17 +2517,7 @@ def get_Vcell(self,cells,p):
 
     # calculate the voltage in each cell:
     v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-
-    #--------------------------------------------------------
-    #
-    # v_cell = self.rho_cells[:]*(p.rc**2)/(4*p.eo*80.0)
-
-    # r_cell = np.sqrt(cells.cell_sa/math.pi)
-    #
-    # v_cell = (self.rho_cells*cells.cell_vol)/(4*math.pi*80*p.eo*r_cell)
-
-
-
+    # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
     return v_cell
 
@@ -2498,7 +2540,7 @@ def get_Venv(self,cells,p):
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is increased from 80*8.85e-12
-    fxy = -self.rho_env/(1e8*p.eo)
+    fxy = -self.rho_env/(5e7*p.eo)
     # fxy = -self.rho_env/(100*p.eo)
 
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
@@ -2621,22 +2663,16 @@ def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,Dx,Dy,z,T,p):
     return fx, fy
 
 def rk4(c,deltac,p):
+    """
+    This function is here for the day we figure out how to
+    do a suitable RK4 solver for the complex physics we're
+    simulating.
 
-    if p.method == 0:
+    For now it just computes forwards Euler method.
+    """
 
-        c2 = c + deltac*p.dt
+    c2 = c + deltac*p.dt
 
-    elif p.method == 1:
-
-        k1 = deltac*p.dt
-
-        k2 = (1/2)*k1*p.dt
-
-        k3 = (1/2)*k2*p.dt
-
-        k4 = k3*p.dt
-
-        c2 = c + (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
 
     return c2
 
@@ -2645,259 +2681,6 @@ def rk4(c,deltac,p):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
-
-# def pumpNaKATP(cNai,cNao,cKi,cKo,sa,voli,volo,Vm,T,p,block):
-#
-#     """
-#     Parameters
-#     ----------
-#     cNai            Concentration of Na+ inside the cell
-#     cNao            Concentration of Na+ outside the cell
-#     cKi             Concentration of K+ inside the cell
-#     cKo             Concentration of K+ outside the cell
-#     voli            Volume of the cell [m3]
-#     volo            Volume outside the cell [m3]
-#     Vm              Voltage across cell membrane [V]
-#     p               An instance of Parameters object
-#
-#
-#     Returns
-#     -------
-#     cNai2           Updated Na+ inside cell
-#     cNao2           Updated Na+ outside cell
-#     cKi2            Updated K+ inside cell
-#     cKo2            Updated K+ outside cell
-#     f_Na            Na+ flux (into cell +)
-#     f_K             K+ flux (into cell +)
-#     """
-#     deltaGATP = 20*p.R*T
-#
-#     delG_Na = p.R*T*np.log(cNao/cNai) - p.F*Vm
-#     delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
-#     delG_NaKATP = deltaGATP - (3*delG_Na + 2*delG_K)
-#     delG_pump = (delG_NaKATP/1000)
-#     delG = np.absolute(delG_pump)
-#     signG = np.sign(delG)
-#
-#
-#     if p.backward_pumps == False:
-#
-#         alpha = sa*block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
-#
-#         f_Na  = -alpha*cNai*cKo      #flux as [mol/s]   scaled to concentrations Na in and K out
-#
-#     elif p.backward_pumps == True:
-#
-#         alpha = sa*signG*block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
-#
-#         truth_forwards = signG == 1    # boolean array tagging forward-running pump cells
-#         truth_backwards = signG == -1  # boolean array tagging backwards-running pump cells
-#
-#         inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
-#         inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
-#
-#         f_Na = np.zeros(len(cNai))
-#
-#         f_Na[inds_forwards]  = -alpha*cNai*cKo      #flux as [mol/s]   scaled to concentrations Na in and K out
-#
-#         f_Na[inds_backwards]  = -alpha*cNao*cKi      #flux as [mol/s]   scaled to concentrations K in and Na out
-#
-#     f_K = -(2/3)*f_Na          # flux as [mol/s]
-#
-#     if p.sim_ECM == True: # if extracellular spaces are included, concentrations need to be updated by matrix math
-#
-#         cNai2 = None
-#         cNao2 = None
-#         cKi2 = None
-#         cKo2 = None
-#
-#     elif p.sim_ECM == False:
-#
-#         if p.method == 0:
-#
-#             dmol = f_Na*p.dt
-#
-#             cNai2 = cNai + dmol/voli
-#             cNao2 = cNao - dmol/volo
-#
-#             cKi2 = cKi - (2/3)*dmol/voli
-#             cKo2 = cKo + (2/3)*dmol/volo
-#
-#         elif p.method == 1:
-#
-#             k1 = alpha*cNai*cKo
-#
-#             k2 = alpha*(cNai+(1/2)*k1*p.dt)*cKo
-#
-#             k3 = alpha*(cNai+(1/2)*k2*p.dt)*cKo
-#
-#             k4 = alpha*(cNai+ k3*p.dt)*cKo
-#
-#             dmol = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
-#
-#             cNai2 = cNai - dmol/voli
-#             cNao2 = cNao + dmol/volo
-#
-#             cKi2 = cKi + (2/3)*dmol/voli
-#             cKo2 = cKo - (2/3)*dmol/volo
-#
-#
-#     return cNai2,cNao2,cKi2,cKo2, f_Na, f_K
-
-
-#---------------------------
-    # Dc = rho*Dc
-    #
-    # grad_c = (cB - cA)/d
-    #
-    # c_mid = (cA + cB)/2
-    #
-    # grad_V = vBA/d
-    #
-    # flux = -Dc*grad_c - ((Dc*p.q*zc)/(p.kb*T))*c_mid*grad_V
-    #
-    # flux = rho*flux
-
-
-
-#----------------------------
-
-#def electrofuse(cA,cB,Dc,d,sa,vola,volb,zc,Vba,T,p,rho=1,ignoreECM = False):
-#     """
-#     Returns updated concentrations for electro-diffusion between two
-#     connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
-#     a positive flux moving from a to b. The voltage is defined as
-#     Vb - Va (Vba), which is equivalent to Vmem.
-#
-#     This function defaults to regular diffusion if Vba == 0.0
-#
-#     This function takes numpy matrix values as input. All inputs must be matrices of
-#     the same shape.
-#
-#     Parameters
-#     ----------
-#     cA          Initial concentration of c in region A [mol/m3] (out)
-#     cB          Initial concentration of c in region B [mol/m3] (in)
-#     Dc          Diffusion constant of c  [m2/s]
-#     d           Distance between region A and region B [m]
-#     sa          Surface area separating region A and B [m2]
-#     vola        volume of region A [m3]
-#     volb        volume of region B [m3]
-#     zc          valence of ionic species c
-#     Vba         voltage between B and A as Vb - Va  [V]
-#     p           an instance of the Parameters class
-#
-#
-#     Returns
-#     --------
-#     cA2         Updated concentration of cA in region A [mol/m3]
-#     cB2         Updated concentration of cB in region B [mol/m3]
-#     flux        Chemical flux magnitude between region A and B [mol/s]
-#
-#     """
-#
-#     # modify the diffusion constant by the membrane density
-#     Dc = rho*Dc
-#
-#     alpha = (zc*Vba*p.F)/(p.R*T)
-#
-#     #volab = (vola + volb)/2
-#     #qualityfactor = abs((Dc/d)*(sa/volab)*p.dt*alpha)   # quality factor should be <1.0 for stable simulations
-#
-#     deno = 1 - np.exp(-alpha)   # calculate the denominator for the electrodiffusion equation,..
-#
-#     izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
-#     inotzero = (deno!=0).nonzero()
-#
-#     # initialize data matrices to the same shape as input data
-#     dmol = np.zeros(deno.shape)
-#     cA2 = np.zeros(deno.shape)
-#     cB2 = np.zeros(deno.shape)
-#     flux = np.zeros(deno.shape)
-#
-#     if p.method == 1:
-#
-#         k1 = np.zeros(deno.shape)
-#         k2 = np.zeros(deno.shape)
-#         k3 = np.zeros(deno.shape)
-#         k4 = np.zeros(deno.shape)
-#
-#     if len(deno[izero]):   # if there's anything in the izero array:
-#          # calculate the flux for those elements [mol/s]:
-#         flux[izero] = -(sa[izero]/d[izero])*Dc[izero]*(cB[izero] - cA[izero])
-#
-#         if p.sim_ECM == True and ignoreECM == False:  # if we're simulating extracellular spaces, just calculate the flux
-#
-#             cA2 = None
-#             cB2 = None
-#
-#         elif p.sim_ECM == False or ignoreECM == True:
-#
-#             if p.method == 0:
-#
-#                 #dmol[izero] = sa[izero]*p.dt*Dc[izero]*(cB[izero] - cA[izero])/d[izero]
-#                 dmol[izero] = -p.dt*flux[izero]
-#
-#                 cA2[izero] = cA[izero] + (dmol[izero]/vola[izero])
-#                 cB2[izero] = cB[izero] - (dmol[izero]/volb[izero])
-#
-#             elif p.method == 1:
-#
-#                 k1[izero] = -flux[izero]
-#
-#                 k2[izero] = sa[izero]*Dc[izero]*(cB[izero] - (cA[izero] + (1/2)*k1[izero]*p.dt))/d[izero]
-#
-#                 k3[izero] = sa[izero]*Dc[izero]*(cB[izero] - (cA[izero] + (1/2)*k2[izero]*p.dt))/d[izero]
-#
-#                 k4[izero] = sa[izero]*Dc[izero]*(cB[izero] - (cA[izero] + k3[izero]*p.dt))/d[izero]
-#
-#                 dmol[izero] = (p.dt/6)*(k1 + 2*k2 + 2*k3 + k4)
-#
-#                 cA2[izero] = cA[izero] + dmol[izero]/vola[izero]
-#                 cB2[izero] = cB[izero] - dmol[izero]/volb[izero]
-#
-#
-#     if len(deno[inotzero]):   # if there's any indices in the inotzero array:
-#
-#         # calculate the flux for those elements:
-#         flux[inotzero] = -((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
-#                        ((cB[inotzero] - cA[inotzero]*np.exp(-alpha[inotzero]))/deno[inotzero])
-#
-#         if p.sim_ECM == True and ignoreECM == False:
-#
-#             cA2 = None
-#             cB2 = None
-#
-#         elif p.sim_ECM == False or ignoreECM == True:
-#
-#             if p.method == 0:
-#
-#                 dmol[inotzero] = -flux[inotzero]*p.dt
-#
-#                 cA2[inotzero] = cA[inotzero] + (dmol[inotzero]/vola[inotzero])
-#                 cB2[inotzero] = cB[inotzero] - (dmol[inotzero]/volb[inotzero])
-#
-#
-#             elif p.method == 1:
-#
-#                 k1[inotzero] = -flux[inotzero]
-#
-#                 k2[inotzero] = ((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
-#                              (cB[inotzero] - (cA[inotzero] + (1/2)*k1[inotzero]*p.dt)*np.exp(-alpha[inotzero]))/deno[inotzero]
-#
-#                 k3[inotzero] = ((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
-#                              (cB[inotzero] - (cA[inotzero] + (1/2)*k2[inotzero]*p.dt)*np.exp(-alpha[inotzero]))/deno[inotzero]
-#
-#                 k4[inotzero] = ((sa[inotzero]*Dc[inotzero]*alpha[inotzero])/d[inotzero])*\
-#                              (cB[inotzero] - (cA[inotzero] + k3[inotzero]*p.dt)*np.exp(-alpha[inotzero]))/deno[inotzero]
-#
-#                 dmol[inotzero] = (p.dt/6)*(k1[inotzero] + 2*k2[inotzero] + 2*k3[inotzero] + k4[inotzero])
-#
-#                 cA2[inotzero] = cA[inotzero] + dmol[inotzero]/vola[inotzero]
-#                 cB2[inotzero] = cB[inotzero] - dmol[inotzero]/volb[inotzero]
-#
-#
-#     return cA2, cB2, flux
 
 #--------------------------------------------------
 
@@ -2929,126 +2712,6 @@ def rk4(c,deltac,p):
 #     v_mem = v_cells - v_ecm
 #
 #     return v_mem, v_cells, v_ecm
-
-    # def tissueInit(self,cells,p):
-    #     """
-    #     Runs initializations for all user-specified options that will be used in the main simulation.
-    #
-    #     """
-    #
-    #     # add channel noise to the model:
-    #     self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
-    #
-    #     # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
-    #     Dm_cellsA = np.asarray(self.Dm_cells)
-    #     Dm_cellsER = np.asarray(self.Dm_er)
-    #
-    #     self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
-    #
-    #     self.Dm_scheduled = np.copy(Dm_cellsA)
-    #     self.Dm_scheduled[:] = 0
-    #
-    #     # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
-    #     self.Dm_vg = np.copy(Dm_cellsA)
-    #     self.Dm_vg[:] = 0
-    #
-    #     # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
-    #     self.Dm_cag = np.copy(Dm_cellsA)
-    #     self.Dm_cag[:] = 0
-    #
-    #     self.Dm_er_base = np.copy(Dm_cellsER)
-    #
-    #     self.Dm_er_CICR = np.copy(Dm_cellsER)
-    #     self.Dm_er_CICR[:] = 0
-    #
-    #     self.gj_block = np.ones(len(cells.gj_i))   # initialize the gap junction blocking vector to ones
-    #
-    #     self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
-    #     self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
-    #
-    #     self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
-    #     self.cIP3_env[:] = p.cIP3_to_env
-    #
-    #
-    #     # Initialize target cell sets for dynamically gated channels from user options:
-    #     if p.gated_targets == 'none':
-    #         self.target_cells = np.zeros(len(cells.cell_i))
-    #
-    #     elif p.gated_targets == 'all':
-    #         self.target_cells = np.ones(len(cells.cell_i))
-    #
-    #     elif p.gated_targets == 'random1':
-    #         shuffle(cells.cell_i)
-    #         trgt = cells.cell_i[0]
-    #         self.target_cells = np.zeros(len(cells.cell_i))
-    #         self.target_cells[trgt] = 1
-    #
-    #     elif p.gated_targets == 'random50':
-    #         self.target_cells = np.random.random(len(cells.cell_i))
-    #         self.target_cells = np.rint(self.target_cells)
-    #
-    #     elif isinstance(p.gated_targets,list):
-    #         self.target_cells = np.zeros(len(cells.cell_i))
-    #         self.target_cells[p.gated_targets] = 1
-    #
-    #     # allow for option to independently schedule an intervention to cells distinct from voltage gated:
-    #     if p.scheduled_targets == 'none':
-    #         self.scheduled_target_inds = []
-    #
-    #     elif p.scheduled_targets == 'all':
-    #         self.scheduled_target_inds = cells.cell_i
-    #
-    #     elif p.scheduled_targets =='random1':
-    #         shuffle(cells.cell_i)
-    #         trgt2 = cells.cell_i[0]
-    #         self.scheduled_target_inds = [trgt2]
-    #
-    #     elif p.scheduled_targets == 'random50':
-    #         shuffle(cells.cell_i)
-    #         halflength = int(len(cells.cell_i)/2)
-    #         self.scheduled_target_inds = [cells.cell_i[x] for x in range(0,halflength)]
-    #
-    #     elif isinstance(p.scheduled_targets, list):
-    #         # self.scheduled_target_inds = np.zeros(len(cells.cell_i))
-    #         # self.scheduled_target_inds[p.scheduled_targets] = 1
-    #         self.scheduled_target_inds = p.scheduled_targets
-    #
-    #
-    #
-    #     loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-    #     loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
-    #     loggers.log_info('You are running the ion profile: '+ p.ion_profile)
-    #
-    #
-    #     loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-    #     loggers.log_info('If you have selected features using other ions, they will be ignored.')
-
-
-    # def update_environment(self,cells,p,t,i):
-    #
-    #     # calculate voltage differences between ecm <---> env nearest environmental neighbours:
-    #     self.v_ec2env =  self.v_env - self.v_ecm[cells.bflags_ecm]
-    #
-    #     # electrodiffuse between ecm <---> env and simultaneously update concentrations
-    #     self.cc_ecm[i][cells.bflags_ecm],self.cc_env[i],f_env = electrofuse(self.cc_ecm[i][cells.bflags_ecm],
-    #             self.cc_env[i], self.D_env_juncs[i],cells.len_ecm_junc[cells.bflags_ecm],
-    #             self.ec2ec_sa[cells.bflags_ecm], cells.ecm_vol[cells.bflags_ecm],self.env_vol,
-    #             self.zs[i], self.v_ec2env, self.T, p,ignoreECM=True)
-    #
-    #     self.rho_env = get_charge_density(self.cc_ecm, self.z_array_ecm, p)
-    #     self.v_ecm = get_Vecm(self.rho_env,p)
-    #
-    #     self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-    #     self.v_env = get_Vecm(self.rho_env,p)
-    #
-    #     self.fluxes_env[i] = f_env  # store ecm junction flux to the environment for this ion
-    #
-    #     # if p.ecm_bound_open == True: # if the geometry is open to the environment
-    #     #     self.cc_env[i] = self.cc_env_bulk[i]  # make outer ecm spaces equal to bulk environment
-    #     #     self.v_env[:] = 0
-    #
-    #     if p.scheduled_options['extV'] != 0 and p.run_sim == True:
-    #         self.dyna.externalVoltage(self,cells,p,t,self.v_env)      # apply a voltage to the environmental connectors
 
 
 

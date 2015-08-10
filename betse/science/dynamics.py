@@ -4,7 +4,6 @@
 
 # FIXME do cut cells routine for p.sim_ECM true !!!
 # FIXME cut out all the grey areas -- don't need 'em anymore
-# FIXME re-do boundary stuff for new environmental grid approach
 
 
 import numpy as np
@@ -1087,19 +1086,6 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
                         elif len(data) == len(cells.nn_index):
                             data2 = np.delete(data,target_inds_gj)
-
-                        if p.sim_ECM == True:  # FIXME need some way to fix environment fully (appending ecm data @ target_env to env)
-
-                            pass
-
-                            # if len(data) == len(cells.ecm_i):
-                            #     data2 = np.delete(data,target_inds_ecm)
-                            #
-                            # if len(data) == len(cells.env_i):
-                            #     data_val = np.mean(data)
-                            #     data_a = np.zeros(len(target_inds_env))
-                            #     data_a[:] = data_val
-                            #     data2 = np.append(data,data_a)
 
 
                     if isinstance(data,list):

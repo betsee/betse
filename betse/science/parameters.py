@@ -938,7 +938,7 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
-        if self.ion_profile == 'customized':  # FIXME need to create dics on the fly
+        if self.ion_profile == 'customized':
 
             cip = self.config['general options']['customized ion profile']
 
