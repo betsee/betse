@@ -132,7 +132,7 @@ For simplicity, the following instructions assume use of the
         export PATH=$HOME/bin:/usr/local/bin:$PATH
 
         # ...to this.
-        export MINICONDA_PATH="/cygdrive/c/Miniconda3"
+        export MINICONDA_HOME="/cygdrive/c/Miniconda3"
         export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${HOME}/bin:${PATH}"
 
 1. Apply such changes to the current shell session. 
@@ -142,6 +142,14 @@ For simplicity, the following instructions assume use of the
 1. Install Python dependencies via `conda`, Miniconda's package manager:
 
         >>> conda install numpy matplotlib pyside pywin32 scipy
+
+1. Symbolically link the Python 3 executable `python.exe` installed by Miniconda
+   to `python3`. For disambiguity, numerous core scripts including `betse`'s
+   `setup.py` installer run Python 3 as `python3` rather than `python`. For
+   unknown reasons, the Python 3-specific version of Miniconda under Windows
+   does *not* appear to provide a `python3` executable. To fix this:
+
+        >>> ln -s /c/Miniconda3/python.exe /c/Miniconda3/python3
 
 ##### Wine
 
