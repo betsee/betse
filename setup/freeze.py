@@ -58,11 +58,12 @@ from setuptools import Command
 from distutils.errors import DistutilsExecError
 
 # ....................{ COMMANDS                           }....................
-def add_setup_commands(setup_options: dict) -> None:
+def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add `freeze` commands to the passed dictionary of `setuptools` options.
     '''
-    util.add_setup_command_classes(setup_options, freeze_dir, freeze_file)
+    util.add_setup_command_classes(
+        metadata, setup_options, freeze_dir, freeze_file)
 
 # ....................{ CLASSES                            }....................
 class freeze(Command, metaclass = ABCMeta):
@@ -160,9 +161,8 @@ class freeze(Command, metaclass = ABCMeta):
         # hence considerably larger executables.
         if not util.is_pathable('upx'):
             util.output_warning(
-                'UPX not installed or "upx" not in the current path. '
-                'All frozen executables will be uncompressed.'
-            )
+                'UPX not installed or "upx" not in the current ${PATH}. ')
+            util.output_warning('Frozen binaries will *NOT* be compressed.')
 
         # Relative path of the top-level PyInstaller directory.
         pyinstaller_dirname = 'freeze'
@@ -201,7 +201,7 @@ class freeze(Command, metaclass = ABCMeta):
         if self.clean:
             pyinstaller_command.append('--clean')
 
-	# True if at least one script wrapper has been installed.
+        # True if at least one script wrapper has been installed.
         is_script_installed = False
 
         # Freeze each previously installed script wrapper.
@@ -249,9 +249,11 @@ class freeze(Command, metaclass = ABCMeta):
                     self.install_scripts_dir, script_basename)
                 util.die_unless_file(
                     script_filename, (
-                        'Script "{}" not found. Consider first running either'
+                        'Command "{}" not found.\n'
+                        'Consider first running either '
                         '"sudo python3 setup.py install" or '
-                        '"sudo python3 setup.py symlink".'
+                        '"sudo python3 setup.py symlink".'.format(
+                            script_filename)
                     ),
                 )
 
@@ -299,10 +301,20 @@ class freeze(Command, metaclass = ABCMeta):
             #FIXME: Excise when beginning GUI work.
             break
 
-        # If no script wrappers have been installed, fail.
+        # If no script wrappers are currently installed, fail.
         if not is_script_installed:
+            # Human-readable list of the basenames of such script wrappers.
+            script_wrapper_basenames = '" and "'.join(
+                self._metadata['entry_point_basenames'])
+
+            # Die, you! Die!
             raise DistutilsExecError(
-                'Script wrapper not installed. Please run either the "install" or "symlink" setuptools commands and try again. See "README.md" for details.')
+                'Commands "{}" not found.\n'
+                'Consider first running either '
+                '"sudo python3 setup.py install" or '
+                '"sudo python3 setup.py symlink".'.format(
+                    script_wrapper_basenames)
+            )
 
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
@@ -420,6 +432,9 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+                # 'Consider running either the "install" or "symlink" '
+                # 'subcommand and trying again. '
+                # 'See "README.md" for details.'.format(script_wrapper_basenames)
             #FUXME: The following paths should be shell-quoted. Sadly,
             #we were unable to grok a simple solution, so the current
             #lethargic approach stands.

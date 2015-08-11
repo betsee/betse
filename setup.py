@@ -62,6 +62,17 @@ from setup import build, freeze, symlink
 import setuptools
 
 # ....................{ OPTIONS                            }....................
+# Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
+# "freeze_file") of other metadata *NOT* already declared by the "setup_options"
+# dictionary defined below.
+metadata = {
+    # List of the basenames of all cross-platform script wrappers dynamically
+    # created at installation time.
+    'entry_point_basenames': [SCRIPT_NAME_CLI, SCRIPT_NAME_GUI,],
+}
+
+# Setuptools-specific options. Keywords not explicitly recognized by either
+# setuptools or distutils must be added to the above dictionary instead.
 setup_options = {
     # ..................{ CORE                               }..................
     # Self-explanatory metadata. Since the "NAME" constant provided by
@@ -91,8 +102,7 @@ setup_options = {
     'cmdclass': {},
 
     # ..................{ PATH                               }..................
-    # Cross-platform executable files to be dynamically created at both
-    # installation and symlink time.
+    # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
         # CLI-specific scripts.
         'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
@@ -150,7 +160,7 @@ setup_options = {
     # platform could be detected and the corresponding absolute path embedded in
     # 'data_files', such implementation would be inherently fragile. (That's
     # bad.) In lieu of sane setuptools support, we defer to the methodology
-    # employed by everyone. setuptools, you must die and die quickly.
+    # employed by everyone. setuptools, your death is coming.
     'include_package_data': True,
 
     # Install to uncompressed directories rather than compressed archives.
@@ -189,7 +199,7 @@ defining custom commands).
 # ....................{ COMMANDS                           }....................
 # Define all BETSE-specific setuptools commands.
 for setup_module in (build, freeze, symlink):
-    setup_module.add_setup_commands(setup_options)
+    setup_module.add_setup_commands(metadata, setup_options)
 
 # ....................{ SETUP                              }....................
 setuptools.setup(**setup_options)

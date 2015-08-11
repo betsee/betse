@@ -16,11 +16,12 @@ from os import path
 import os
 
 # ....................{ COMMANDS                           }....................
-def add_setup_commands(setup_options: dict) -> None:
+def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add `symlink` commands to the passed dictionary of `setuptools` options.
     '''
-    util.add_setup_command_classes(setup_options,
+    util.add_setup_command_classes(
+        metadata, setup_options,
         symlink, symlink_lib, symlink_scripts, unsymlink)
 
 # ....................{ INSTALLERS                         }....................

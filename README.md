@@ -437,14 +437,21 @@ follows:
 
 * Make a local directory to which the PyInstaller codebase will be downloaded
   and change to such directory: e.g.,
-    >>> mkdir ~/py
-    >>> cd ~/py
+
+        >>> mkdir ~/py
+        >>> cd ~/py
+
 * Download the PyInstaller codebase.
-    >>> git clone --branch scipy https://github.com/leycec/pyinstaller.git
+
+        >>> git clone --branch scipy https://github.com/leycec/pyinstaller.git
+
 * Change to the downloaded directory.
-    >>> cd pyinstaller
+
+        >>> cd pyinstaller
+
 * Install PyInstaller.
-    >>> sudo python3 setup.py install
+
+        >>> sudo python3 setup.py install
 
 This branch provides critical patches submitted to but *not* yet accepted into
 PyInstaller's [official Python 3
@@ -453,10 +460,13 @@ is remotely updated (e.g., with new patches{, consider reinstalling PyInstaller
 as follows:
 
 * Change to the PyInstaller codebase: e.g.,
-    >>> cd ~/py/pyinstaller
+
+        >>> cd ~/py/pyinstaller
+
 * Update the PyInstaller codebase.
 * Reinstall PyInstaller.
-    >>> sudo python3 setup.py install
+
+        >>> sudo python3 setup.py install
 
 #### UPX
 

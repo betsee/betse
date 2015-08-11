@@ -400,7 +400,8 @@ def remove_symlink(filename: str) -> None:
     os.unlink(filename)
 
 # ....................{ SETUPTOOLS                         }....................
-def add_setup_command_classes(setup_options: dict, *command_classes) -> None:
+def add_setup_command_classes(
+    metadata: dict, setup_options: dict, *command_classes) -> None:
     '''
     Add one application-specific `setuptools` command for each passed class to
     the passed dictionary of `setuptools` options.
@@ -409,6 +410,8 @@ def add_setup_command_classes(setup_options: dict, *command_classes) -> None:
     corresponding class. Hence, the names of such classes are recommended to be
     short lowercase strings (e.g., `freeze`, `symlink`).
     '''
+    assert isinstance(metadata, dict),\
+        '"{}" not a dictionary.'.format(metadata)
     assert isinstance(setup_options, dict),\
         '"{}" not a dictionary.'.format(setup_options)
 
@@ -420,11 +423,12 @@ def add_setup_command_classes(setup_options: dict, *command_classes) -> None:
         # Add such command.
         setup_options['cmdclass'][command_class.__name__] = command_class
 
-        # Expose the passed dictionary of "setuptools" options to such class by
-        # adding a new private class field "_setup_options" to such class. While
-        # passing such dictionary to instances of such class would be ideal,
-        # distutils and hence setuptools requires commands to be added as
-        # classes rather than instances. Thus, the current approach.
+        # Expose the passed dictionaries to such class by monkey-patching
+        # correspoding private class fields into such classes. While passing
+        # such dictionaries to instances of such class (e.g., on initialization)
+        # would be ideal, distutils and hence setuptools requires commands to be
+        # added as classes rather than instances. (Thus, the current approach.)
+        command_class._metadata = metadata
         command_class._setup_options = setup_options
 
 # ....................{ SETUPTOOLS ~ entry points          }....................

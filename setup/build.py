@@ -45,7 +45,7 @@ Script template to be formatted by `ScriptWriterSimple.get_script_args()`.
 '''
 
 # ....................{ COMMANDS                           }....................
-def add_setup_commands(setup_options: dict) -> None:
+def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add wrapper script-specific commands to the passed dictionary of
     `setuptools` options.

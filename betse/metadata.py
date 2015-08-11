@@ -13,8 +13,10 @@ interpreter. An exception is raised if such version is insufficient.
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
-# module may import *ONLY* from packages guaranteed to exist at installation
-# time -- namely, stock Python packages and bundled BETSE packages.
+# module may import *ONLY* from packages guaranteed to exist at the start of
+# installation. This includes all standard Python and BETSE packages but *NOT*
+# third-party dependencies, which if currently uninstalled will only be
+# installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ METADATA                           }....................
