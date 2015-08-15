@@ -3,6 +3,17 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: Refactor backend_names() to discover backend names via the standard
+#module "pkg_utils" rather than by manually delving through the filesystem,
+#which fails under frozen executables.
+
+#FIXME: It'd be great to raise human-readable exceptions on the specified
+#backends *NOT* being available. This is certainly feasible, as the
+#following stackoverflow answer demonstrates -- if somewhat involved:
+#    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
+#That said, we really want to do this *ANYWAY* to print such list when running
+#"betse info". So, let's just get this done, please.
+
 '''
 High-level support facilities for `matplotlib`, a mandatory runtime dependency.
 
@@ -52,134 +63,6 @@ Footnote descriptions are as follows:
     # ...with this header import.
     import tkinter as Tk
 '''
-
-#FIXME: O.K.; so, basically, Tcl/Tk is absolutely terrible and fundamentally
-#does *NOT* work anywhere. At the very least, we need to revert back the change
-#that conditionally set the "macosx" backend for that operating system. I'm not
-#convinced that the frozen Linux version will actually work in the absence of
-#Tcl/Tk data files in the expected system locations. We'll want to test this on
-#a pristine laptop -- and soon.
-
-#FIXME: "tkinter" support is, frankly, bizarre. It works *ONLY* under
-#"matplotlib-1.3.0". It fails both under "matplotlib-1.4.0" and newer *AND* when
-#imported directly (e.g., via "import tkinter") with an inscrutable "ValueError"
-#Unicode exception of the sort described at:
-#
-#    https://github.com/pyinstaller/pyinstaller/issues/1164
-#
-#This makes absolutely no sense. However, it doesn't have to. Here's what we
-#factually know, from which the truth should be deducible:
-#
-#* The versions of Tcl, Tk, tkinter, and Python are the exact same in all three
-#  scenarious. We have personally verified this by recompiling Python and hence
-#  tkinter.
-#* tkinter works under matplotlib 1.3 and *NOT* under 1.4, both of which are
-#  readily installable under Gentoo.
-#
-#Given that, all we have to do is take the difference of the
-#"matplotlib/backends/backend_tkagg.py" files between the two versions and
-#figure out what changed. The 1.3 version is given locally, of course; the 1.4
-#version is available remotely at:
-#
-#    https://github.com/matplotlib/matplotlib/tree/master/lib/matplotlib/backends
-#
-#Our gut intuition is that this has something to do with the "tkinter"-specific
-#shared library "_tkagg". The 1.3 version does the following, in order:
-#
-#* Directly imports "tkinter" which directly imports the shared library
-#  "_tkinter".
-#* Directly imports "tkagg" which directly imports the shared library
-#  "_tkagg".
-#
-#The 1.4 version similarly does the following, in order:
-#
-#* Indirectly imports "tkinter" which directly imports the shared library
-#  "_tkinter".
-#* Directly imports "tkagg" which:
-#  * Indirectly imports "tkinter" which directly imports the shared library
-#    "_tkinter".
-#  * Directly imports the shared library "_tkagg".
-#
-#It's a small difference, but it's probably enough. The key here is that, since
-#PyInstaller fails to detect the indirect importation of "tkinter" and hence
-#"_tkinter", "tkagg" and hence "_tkagg" is imported *BEFORE* "_tkinter". This
-#absolutely has to be an order-of-shared-library-loading thing. Well, it doesn't
-#*HAVE* to be, but that's all we've got. This could be determined by, at some
-#point:
-#
-#* Reinstalling matplotlib 1.4.
-#* Iteratively reverting the "backends/backend_tkagg.py" and "backends/tkagg.py"
-#  files installed with 1.4 to their 1.3 counterparts *UNTIL* BETSE is
-#  freezable. This is pretty much guaranteed to work, albeit annoyingly. But
-#  there's no alternative, given the blatant inscrutability of the "tkinter"
-#  exception message.
-
-#FIXME: Refactor backend_names() to discover backend names via the standard
-#module "pkg_utils" rather than by manually delving through the filesystem,
-#which fails under frozen executables.
-
-#FIXME: On attempting to enable the "TkAgg" backend under OS X, we receive the
-#following runtime exception from PyInstaller-frozen executables despite such
-#freezing appearing to have succeeded:
-#
-#    Traceback (most recent call last):
-#      File "/Users/osxguest/py/betse/betse/cli/cli.py", line 82, in run
-#        self._run()
-#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 114, in _run
-#        subcommand_method()
-#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 329, in _run_sim
-#        subcommand_method()
-#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 356, in _run_sim_plot_init
-#        self._get_sim_runner().plotInit()
-#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 371, in _get_sim_runner
-#        from betse.science.simrunner import SimRunner
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
-#        exec(bytecode, module.__dict__)
-#      File "/Users/osxguest/py/betse/betse/science/simrunner.py", line 11, in <module>
-#        from betse.science import visualize as viz
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
-#        exec(bytecode, module.__dict__)
-#      File "/Users/osxguest/py/betse/betse/science/visualize.py", line 46, in <module>
-#        import matplotlib.pyplot as plt
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
-#        exec(bytecode, module.__dict__)
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/pyplot.py", line 109, in <module>
-#        _backend_mod, new_figure_manager, draw_if_interactive, _show = pylab_setup()
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/backends/__init__.py", line 32, in pylab_setup
-#        globals(),locals(),[backend_name],0)
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
-#        exec(bytecode, module.__dict__)
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/backends/backend_tkagg.py", line 7, in <module>
-#        from six.moves import tkinter_filedialog as FileDialog
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 89, in __get__
-#        result = self._resolve()
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 108, in _resolve
-#        return _import_module(self.mod)
-#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 79, in _import_module
-#        __import__(name)
-#    ImportError: No module named 'tkinter.filedialog'
-#
-#The crux of the issue is the hidden import
-#"from six.moves import tkinter_filedialog as FileDialog". Given the popularity
-#of the "six" module for purposes of cross-Python[23]-portability, the long-
-#term solution is to patch PyInstaller's imports detection to also detect "six"-
-#style imports. Since there are only a relatively small number of possible
-#imports that "six" supports in this manner, this should be *VERY* feasible.
-#Indeed, "py2exe" recently added support for this very functionality via the
-#following commit:
-#
-#    http://sourceforge.net/p/py2exe/svn/764
-#
-#This is incredibly important. matplotlib officially dropped 2to3 in favor of
-#six starting with version 1.4, implying that PyInstaller now basically requires
-#six support to also support newer matplotlib versions. To quote: "As of
-#matplotlib 1.4, the six library is used to support Python 2 and 3 from a
-#single code base."
-#
-#A short-term solution, alternately, is to patch the "matplotlib_backends()"
-#function in "hookutils.py" to append such hidden imports to the list of
-#returned hidden imports. This is significantly easier and hence the way to go,
-#for now.
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -526,6 +409,129 @@ Singleton `matplotlib` configuration wrapper.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: O.K.; so, basically, Tcl/Tk is absolutely terrible and fundamentally
+#does *NOT* work anywhere. At the very least, we need to revert back the change
+#that conditionally set the "macosx" backend for that operating system. I'm not
+#convinced that the frozen Linux version will actually work in the absence of
+#Tcl/Tk data files in the expected system locations. We'll want to test this on
+#a pristine laptop -- and soon.
+
+#FUXME: On attempting to enable the "TkAgg" backend under OS X, we receive the
+#following runtime exception from PyInstaller-frozen executables despite such
+#freezing appearing to have succeeded:
+#
+#    Traceback (most recent call last):
+#      File "/Users/osxguest/py/betse/betse/cli/cli.py", line 82, in run
+#        self._run()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 114, in _run
+#        subcommand_method()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 329, in _run_sim
+#        subcommand_method()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 356, in _run_sim_plot_init
+#        self._get_sim_runner().plotInit()
+#      File "/Users/osxguest/py/betse/betse/cli/clicli.py", line 371, in _get_sim_runner
+#        from betse.science.simrunner import SimRunner
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/Users/osxguest/py/betse/betse/science/simrunner.py", line 11, in <module>
+#        from betse.science import visualize as viz
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/Users/osxguest/py/betse/betse/science/visualize.py", line 46, in <module>
+#        import matplotlib.pyplot as plt
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/pyplot.py", line 109, in <module>
+#        _backend_mod, new_figure_manager, draw_if_interactive, _show = pylab_setup()
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/backends/__init__.py", line 32, in pylab_setup
+#        globals(),locals(),[backend_name],0)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/PyInstaller-3.0dev_bfa3b79-py3.4.egg/PyInstaller/loader/pyi_importers.py", line 302, in load_module
+#        exec(bytecode, module.__dict__)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/matplotlib/backends/backend_tkagg.py", line 7, in <module>
+#        from six.moves import tkinter_filedialog as FileDialog
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 89, in __get__
+#        result = self._resolve()
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 108, in _resolve
+#        return _import_module(self.mod)
+#      File "/opt/local/Library/Frameworks/Python.framework/Versions/3.4/lib/python3.4/site-packages/six.py", line 79, in _import_module
+#        __import__(name)
+#    ImportError: No module named 'tkinter.filedialog'
+#
+#The crux of the issue is the hidden import
+#"from six.moves import tkinter_filedialog as FileDialog". Given the popularity
+#of the "six" module for purposes of cross-Python[23]-portability, the long-
+#term solution is to patch PyInstaller's imports detection to also detect "six"-
+#style imports. Since there are only a relatively small number of possible
+#imports that "six" supports in this manner, this should be *VERY* feasible.
+#Indeed, "py2exe" recently added support for this very functionality via the
+#following commit:
+#
+#    http://sourceforge.net/p/py2exe/svn/764
+#
+#This is incredibly important. matplotlib officially dropped 2to3 in favor of
+#six starting with version 1.4, implying that PyInstaller now basically requires
+#six support to also support newer matplotlib versions. To quote: "As of
+#matplotlib 1.4, the six library is used to support Python 2 and 3 from a
+#single code base."
+#
+#A short-term solution, alternately, is to patch the "matplotlib_backends()"
+#function in "hookutils.py" to append such hidden imports to the list of
+#returned hidden imports. This is significantly easier and hence the way to go,
+#for now.
+#FUXME: "tkinter" support is, frankly, bizarre. It works *ONLY* under
+#"matplotlib-1.3.0". It fails both under "matplotlib-1.4.0" and newer *AND* when
+#imported directly (e.g., via "import tkinter") with an inscrutable "ValueError"
+#Unicode exception of the sort described at:
+#
+#    https://github.com/pyinstaller/pyinstaller/issues/1164
+#
+#This makes absolutely no sense. However, it doesn't have to. Here's what we
+#factually know, from which the truth should be deducible:
+#
+#* The versions of Tcl, Tk, tkinter, and Python are the exact same in all three
+#  scenarious. We have personally verified this by recompiling Python and hence
+#  tkinter.
+#* tkinter works under matplotlib 1.3 and *NOT* under 1.4, both of which are
+#  readily installable under Gentoo.
+#
+#Given that, all we have to do is take the difference of the
+#"matplotlib/backends/backend_tkagg.py" files between the two versions and
+#figure out what changed. The 1.3 version is given locally, of course; the 1.4
+#version is available remotely at:
+#
+#    https://github.com/matplotlib/matplotlib/tree/master/lib/matplotlib/backends
+#
+#Our gut intuition is that this has something to do with the "tkinter"-specific
+#shared library "_tkagg". The 1.3 version does the following, in order:
+#
+#* Directly imports "tkinter" which directly imports the shared library
+#  "_tkinter".
+#* Directly imports "tkagg" which directly imports the shared library
+#  "_tkagg".
+#
+#The 1.4 version similarly does the following, in order:
+#
+#* Indirectly imports "tkinter" which directly imports the shared library
+#  "_tkinter".
+#* Directly imports "tkagg" which:
+#  * Indirectly imports "tkinter" which directly imports the shared library
+#    "_tkinter".
+#  * Directly imports the shared library "_tkagg".
+#
+#It's a small difference, but it's probably enough. The key here is that, since
+#PyInstaller fails to detect the indirect importation of "tkinter" and hence
+#"_tkinter", "tkagg" and hence "_tkagg" is imported *BEFORE* "_tkinter". This
+#absolutely has to be an order-of-shared-library-loading thing. Well, it doesn't
+#*HAVE* to be, but that's all we've got. This could be determined by, at some
+#point:
+#
+#* Reinstalling matplotlib 1.4.
+#* Iteratively reverting the "backends/backend_tkagg.py" and "backends/tkagg.py"
+#  files installed with 1.4 to their 1.3 counterparts *UNTIL* BETSE is
+#  freezable. This is pretty much guaranteed to work, albeit annoyingly. But
+#  there's no alternative, given the blatant inscrutability of the "tkinter"
+#  exception message.
+
             # self.backend_name = 'Cairo'
 # In the above table, `(`- and `)`-delimited numbers signify the following
 # footnotes of the same number:

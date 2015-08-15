@@ -11,37 +11,34 @@ This module provides functions intended to be called by high-level interface
 modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 '''
 
-#FIXME: Refactor as follows:
-#
-#* Create a new subpackage "betse.util.dependency".
-#* Split this module into two modules:
-#  * "betse.util.dependency.dependencies", providing the exception handling
-#    function.
-#  * "betse.util.dependency.matplotlib", providing the matplotlib-specific
-#    functions.
-#
-#Hence, this module survives, albeit in *EXTREMELY* limited form. That's fine,
-#for now. (Better minimal than overkill, we should think.)
-
-#FIXME: It'd be great to raise human-readable exceptions on the specified
-#backends *NOT* being available. This is certainly feasible, as the
-#following stackoverflow answer demonstrates -- if somewhat involved:
-#    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
-#That said, we really want to do this *ANYWAY* to print such list when running
-#"betse info". So, let's just get this done, please.
-
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time (e.g., stock Python packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse import metadata
 from betse.util.dependency import matplotlibs
 from betse.util.python import modules
 from collections import OrderedDict
 
 # ....................{ GETTERS                            }....................
+#FIXME: Terrible. This is implementable with pure-setuptools-based logic, which
+#would have the distinct advantage of being implicitly synchronized with the
+#list of required dependencies in "betse.metadata" *WITHOUT* explicitly
+#requiring that this function ever be manually changed. To do so:
+#
+#* Iterate through the list of "betse.metadata.DEPENDENCIES_RUNTIME" setuptools
+#  specifications.
+#* For each such specification, pass that to the
+#  pkg_resources.get_distribution() function.
+#* That returns the setuptools distribution for that dependency. Given that,
+#  simply append the following tuple to the returned OrderedDict:
+#    (distro.project_name + ' version', distro.version)
+#
+#Done. Awesome it is.
+
 def get_metadata() -> OrderedDict:
     '''
     Get an ordered dictionary synopsizing all currently installed dependencies.
@@ -75,6 +72,24 @@ def init() -> None:
     matplotlibs.config.init()
 
 # ....................{ EXCEPTIONS                         }....................
+#FIXME: Ugh. This doesn't appear to work as expected, as trivially verified by
+#the fact that the prior "yaml >= 3.10" specification appeared to work when that
+#should have read "pyyaml >= 3.10". Even if this function is (somehow)
+#mystically correct, however, it's still overblown. Given what we now know of
+#setuptools, this is reducible to the following algorithm:
+#
+#* Iterate through the list of "betse.metadata.DEPENDENCIES_RUNTIME" setuptools
+#  specifications.
+#* For each such specification, pass that to the
+#  pkg_resources.get_distribution() function.
+#* That returns the setuptools distribution for that dependency. Given that,
+#  simply perform the following test and raise an exception as required:
+#
+#    if dependency_distro not in pkg_resources.parse_version(depndency_spec):
+#        raise VersionConflict('yadda yadda')
+#
+#Done. Awesome it is.
+
 def die_unless_satisfiable() -> None:
     '''
     Raise an exception unless mandatory runtime dependencies of `betse` are
@@ -151,6 +166,18 @@ def die_unless_satisfiable() -> None:
                        requirement_required, requirement_provided))
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Refactor as follows:
+#
+#* Create a new subpackage "betse.util.dependency".
+#* Split this module into two modules:
+#  * "betse.util.dependency.dependencies", providing the exception handling
+#    function.
+#  * "betse.util.dependency.matplotlib", providing the matplotlib-specific
+#    functions.
+#
+#Hence, this module survives, albeit in *EXTREMELY* limited form. That's fine,
+#for now. (Better minimal than overkill, we should think.)
+
     # If the current operating system is Apple OS X, prefer the "CocoaAgg"
     # backend to the "MacOSX" backend. The former leverages the cross-platform
     # C++ library AGG (Anti-grain Geometry) and hence tends to be better
