@@ -63,8 +63,8 @@ def die_if_os_non_posix() -> None:
     '''
     if not is_os_posix():
         raise DistutilsPlatformError(
-            'This command requires POSIX compliance. Distressingly, the current '
-            'operating system is POSIX-noncompliant (e.g., Windows).'
+            'This command requires POSIX compatibility.\n'
+            'However, the current operating system is POSIX-incompatible (e.g., Windows).'
         )
 
 # ....................{ EXCEPTIONS ~ path                  }....................
@@ -181,18 +181,35 @@ def die_unless_symlink(filename: str) -> None:
 # ....................{ TESTERS ~ os                       }....................
 def is_os_posix() -> bool:
     '''
-    True if the current operating system does `not` complies with POSIX
-    standards (e.g., as required for symbolic link manipulation).
+    `True` if the current operating system does _not_ complies with POSIX
+    standards (e.g., as required by symbolic link manipulation).
 
-    Typically, this implies such system to *not* be Microsoft Windows.
+    Typically, this implies such system to _not_ be vanilla Microsoft Windows.
     '''
     return os.name == 'posix'
 
+# ....................{ TESTERS ~ os : windows             }....................
 def is_os_windows() -> bool:
     '''
-    True if the current operating system is Microsoft Windows.
+    `True` if the current operating system is Microsoft Windows.
+
+    This function reports `True` for both vanilla and Cygwin Microsoft Windows.
     '''
-    return platform.system() == 'Windows'
+    return is_os_windows_vanilla() or is_os_windows_cygwin()
+
+def is_os_windows_cygwin() -> bool:
+    '''
+    `True` if the current operating system is **Cygwin Microsoft Windows**
+    (i.e., running the Cygwin POSIX compatibility layer).
+    '''
+    return sys.platform == 'cygwin'
+
+def is_os_windows_vanilla() -> bool:
+    '''
+    `True` if the current operating system is **vanilla Microsoft Windows**
+    (i.e., _not_ running the Cygwin POSIX compatibility layer).
+    '''
+    return sys.platform == 'win32'
 
 # ....................{ TESTERS ~ path                     }....................
 def is_path(pathname: str) -> bool:
@@ -287,13 +304,14 @@ def shell_quote(text: str) -> str:
     '''
     assert isinstance(text, str), '"{}" not a string.'.format(text)
 
-    # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
-    # Windows is POSIX-incompatible and hence does *NOT* parse command-line
-    # arguments according to POSIX standards. In particular, Windows does *NOT*
-    # treat single-quoted arguments as single arguments but rather as multiple
-    # shell words delimited by the raw literal `'`.  This is circumventable by
-    # calling an officially undocumented Windows-specific function. (Awesome.)
-    if is_os_windows():
+    # If the current OS is vanilla Windows, do *NOT* perform POSIX-compatible
+    # quoting. Vanilla Windows is POSIX-incompatible and hence does *NOT* parse
+    # command-line arguments according to POSIX standards. In particular,
+    # vanilla Windows does *NOT* treat single-quoted arguments as single
+    # arguments but rather as multiple shell words delimited by the raw literal
+    # `'`. This is circumventable by calling an officially undocumented
+    # Windows-specific Python function. (Awesome.)
+    if is_os_windows_vanilla():
         import subprocess
         return subprocess.list2cmdline([text])
     # Else, perform POSIX-compatible quoting.
@@ -495,6 +513,9 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
             yield script_basename, script_type, entry_point
 
 # --------------------( WASTELANDS                         )--------------------
+    # return platform.system().startswith('CYGWIN_NT-')
+    # return platform.system() == 'Windows'
+
     # The latter constraint implies shell quo this function to *not* be a general-purpose  inherently
     # If such path is *NOT* a symbolic link, fail.
     # Remove such link.

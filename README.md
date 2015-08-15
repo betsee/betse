@@ -141,7 +141,7 @@ For simplicity, the following instructions assume use of the
 
 1. Install Python dependencies via `conda`, Miniconda's package manager:
 
-        >>> conda install numpy matplotlib pyside pywin32 scipy
+        >>> conda install numpy matplotlib pyside pyyaml pywin32 scipy
 
 1. Symbolically link the Python 3 executable `python.exe` installed by Miniconda
    to `python3`. For disambiguity, numerous core scripts including `betse`'s
@@ -217,7 +217,7 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 
 1. Install dependencies via `conda`, Miniconda's package manager:
 
-        >>> wine conda install numpy matplotlib pyside pywin32 scipy
+        >>> wine conda install numpy matplotlib pyside pyyaml pywin32 scipy
 
 ### Optional
 

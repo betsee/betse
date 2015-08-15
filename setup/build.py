@@ -22,8 +22,7 @@ maintaining backward compatibility with older `setuptools` versions.
 # ....................{ IMPORTS                            }....................
 from pkg_resources import Distribution
 from setup import util
-from setuptools.command import easy_install
-from setuptools.command.easy_install import ScriptWriter
+from setuptools.command.easy_install import ScriptWriter, WindowsScriptWriter
 
 # ....................{ CONSTANTS                          }....................
 SCRIPT_TEMPLATE = """
@@ -47,22 +46,27 @@ Script template to be formatted by `ScriptWriterSimple.get_script_args()`.
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
-    Add wrapper script-specific commands to the passed dictionary of
+    Add commands building distribution entry points to the passed dictionary of
     `setuptools` options.
     '''
     assert isinstance(setup_options, dict),\
         '"{}" not a dictionary.'.format(setup_options)
 
     # If the ScriptWriter.get_args() method exists, this is a recent version of
-    # setuptools. In such case, monkey patch such method.
+    # setuptools. In such case, monkey-patch such method.
     if hasattr(ScriptWriter, 'get_args'):
         ScriptWriter.get_args = _get_args
-    # Else, this is an older version of setuptools. In such case, monkey patch
+    # Else, this is an older version of setuptools. In such case, monkey-patch
     # the deprecated ScriptWriter.get_script_args() method.
     else:
         ScriptWriter.get_script_args = _get_script_args
 
 # ....................{ PATCHES                            }....................
+# Functions monkey-patching existing methods of the "ScriptWriter" class above
+# and hence defined to have the same method signatures. The "cls" parameter
+# implicitly passed to such methods by the @classmethod decorator is guaranteed
+# to be the "ScriptWriter" class.
+
 @classmethod
 def _get_args(
     cls: type,
@@ -70,10 +74,15 @@ def _get_args(
     script_shebang: str = None
 ):
     '''
-    Yield write_script() argument tuples for a distribution's entry points.
+    Yield `write_script()` argument tuples for the passed distribution's **entry
+    points** (i.e., platform-specific executables running such distribution).
 
-    This function monkey patches the `ScriptWriter.get_args()` class function.
+    This function monkey-patches the `ScriptWriter.get_args()` class function.
     '''
+    # Default such shebang line if unpassed.
+    if script_shebang is None:
+        script_shebang = cls.get_header()
+
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
     assert isinstance(script_shebang, str),\
         '"{}" not a string.'.format(script_shebang)
@@ -97,30 +106,38 @@ def _get_script_args(
     cls: type,
     distribution: Distribution,
     executable = None,
-    is_executable_windows: bool = False
+    is_windows_vanilla: bool = False
 ):
     '''
-    Yield write_script() argument tuples for a distribution's entry points.
+    Yield `write_script()` argument tuples for the passed distribution's **entry
+    points** (i.e., platform-specific executables running such distribution).
 
-    This function monkey patches the now-obsolete
+    This function monkey-patches the deprecated
     `ScriptWriter.get_script_args()` class function.
     '''
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
 
+    # Platform-specific entry point writer.
+    script_writer = (
+        WindowsScriptWriter if is_windows_vanilla else ScriptWriter).best()
+
     # Shebang line prefixing the contents of all such scripts.
     script_shebang = cls.get_script_header(
-        '', executable, is_executable_windows)
+        '', executable, is_windows_vanilla)
 
     # Defer to the newer _get_args() function.
-    return _get_args(cls, distribution, script_shebang)
+    return script_writer.get_args(distribution, script_shebang)
 
 # --------------------( WASTELANDS                         )--------------------
+    # If a shebang line was passed (e.g., if the current platform is *NOT*
+    # Windows), validate such line.
+# from setuptools.command import easy_install
     # # Class with which to write such scripts.
-    # gen_class = cls.get_writer(is_executable_windows)
+    # gen_class = cls.get_writer(is_windows_vanilla)
 
     # # Shebang line prefixing the contents of all such scripts.
     # script_shebang = easy_install.get_script_header(
-    #     '', executable, is_executable_windows)
+    #     '', executable, is_windows_vanilla)
 
     # # For each such script...
     # for script_basename, script_type, entry_point in\

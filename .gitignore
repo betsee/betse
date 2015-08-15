@@ -20,6 +20,8 @@
 /freeze/dist/
 
 # Ignore all top-level setuptools-specific directories.
+/build/
+/dist/
 /*.egg-info/
 
 # ....................{ DIRECTORIES ~ general              }....................
