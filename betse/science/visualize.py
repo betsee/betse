@@ -477,7 +477,8 @@ class AnimateGJData(object):
         self.colormap = clrmap
         self.time = sim.time
 
-        self.gjI_t = np.sign(sim.I_gj_time)
+        self.gjI_t_x = sim.I_gj_x_time
+        self.gjI_t_x = sim.I_gj_y_time
         self.gjvects = cells.nn_vects
 
         self.cells = cells
@@ -499,7 +500,7 @@ class AnimateGJData(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        con_segs = cells.cell_centres[cells.gap_jun_i]
+        con_segs = cells.cell_centres[cells.nn_i]
         connects = p.um*np.asarray(con_segs)
         self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=5)
         self.collection.set_clim(0.0,1.0)
@@ -590,8 +591,8 @@ class AnimateGJData(object):
         zz = self.zdata_t[i]
         zv = self.vdata_t[i]
 
-        vx = np.multiply(self.gjI_t[i],self.gjvects[:,2])
-        vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
+        # vx = np.multiply(self.gjI_t[i],self.gjvects[:,2])
+        # vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
 
         self.collection.set_array(zz)
 

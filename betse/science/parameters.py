@@ -177,9 +177,11 @@ class Parameters(object):
         bool_Kenv = bool(self.config['change K env']['event happens'])
         bool_Clenv = bool(self.config['change Cl env']['event happens'])
         bool_gjblock = bool(self.config['block gap junctions']['event happens'])
+        bool_ecm = bool(self.config['change ecm junctions']['event happens'])
         bool_temp =  bool(self.config['change temperature']['event happens'])
         bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
         bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
+        bool_Vblock = bool(self.config['block VATP pump']['event happens'])
 
         if bool_Kenv == False:
             self.global_options['K_env'] = 0
@@ -217,8 +219,19 @@ class Parameters(object):
             on_gj = float(self.config['block gap junctions']['change start'])
             off_gj = float(self.config['block gap junctions']['change finish'])
             rate_gj = float(self.config['block gap junctions']['change rate'])
-            gjb = [on_gj,off_gj,rate_gj]
+            fraction_gj = float(self.config['block gap junctions']['random fraction'])
+            gjb = [on_gj,off_gj,rate_gj,fraction_gj]
             self.global_options['gj_block'] = gjb
+
+        if bool_ecm == False:
+            self.global_options['ecm_change'] = 0
+        elif bool_ecm == True:
+            on_ecm = float(self.config['change ecm junctions']['change start'])
+            off_ecm = float(self.config['change ecm junctions']['change finish'])
+            rate_ecm = float(self.config['change ecm junctions']['change rate'])
+            multi_ecm = float(self.config['change ecm junctions']['multiplier'])
+            ecmb = [on_ecm,off_ecm,rate_ecm,multi_ecm]
+            self.global_options['ecm_change'] = ecmb
 
         if bool_temp == False:
             self.global_options['T_change'] = 0
@@ -247,6 +260,15 @@ class Parameters(object):
             rate_hk = float(self.config['block HKATP pump']['change rate'])
             hk = [on_hk,off_hk,rate_hk]
             self.global_options['HKATP_block'] = hk
+
+        if bool_Vblock == False:
+            self.global_options['VATP_block'] = 0
+        elif bool_Vblock == True:
+            on_v = float(self.config['block VATP pump']['change start'])
+            off_v = float(self.config['block VATP pump']['change finish'])
+            rate_v = float(self.config['block VATP pump']['change rate'])
+            vk = [on_v,off_v,rate_v]
+            self.global_options['VATP_block'] = vk
 
         #--------------------------------------------------------------------------------------------------------------
         # Tissue Definition

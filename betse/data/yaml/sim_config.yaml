@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 30.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -156,7 +156,7 @@ general options:
 
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'basic'   # set the ion profile to be used in the simulation
+  ion profile: 'animal'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -186,7 +186,7 @@ general options:
   backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
 
 
-  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
+  HKATPase pump: True     # include the HK-ATPase pump in the simulation?
                            # only works for an ion profile with H+ ions (animal or invertebrate)
                            # options True or False (case sensitive)
 
@@ -342,17 +342,18 @@ change temperature:
 block gap junctions:     # block the gap junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 5        # sim time to start change [s]
-  change finish: 25       # sim time to end change and return to original [s]
+  change start: 2        # sim time to start change [s]
+  change finish: 9       # sim time to end change and return to original [s]
   change rate: 1.0         # rate of change [s]
+  random fraction: 100     # percentage of gap junctions randomly targeted
 
 change ecm junctions:     # block the ecm junctions between cells  # FIXME IMPLEMENT
 
   event happens: False      # turn the even on (True) or off (False)
-  change start: 0.3        # sim time to start change [s]
-  change finish: 40       # sim time to end change and return to original [s]
-  change rate: 0.05         # rate of change [s]
-  multiplier: 100           # factor to multiply base level
+  change start: 1.0        # sim time to start change [s]
+  change finish: 8.0       # sim time to end change and return to original [s]
+  change rate: 1.0         # rate of change [s]
+  multiplier: 1000.0           # factor to multiply base level + base level
 
 block NaKATP pump:
 
@@ -363,10 +364,10 @@ block NaKATP pump:
 
 block HKATP pump:
 
-  event happens: False      # turn the even on (True) or off (False)
+  event happens: True      # turn the even on (True) or off (False)
   change start: 1           # sim time to start change [s]
   change finish: 9         # sim time to end change and return to original [s]
-  change rate: 0.5            # rate of change [s]
+  change rate: 1.0            # rate of change [s]
 
 block VATP pump:   # FIXME implement
 
@@ -423,8 +424,8 @@ default tissue name: base   # name of cells to which no profile is applied
 base tissue properties:    # specify the base membrane diffusion constants below
                          # this is an easy way to control resting Vmem of cells
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 20.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -432,17 +433,17 @@ base tissue properties:    # specify the base membrane diffusion constants below
 
     ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: tissue       # give your profile a name that will be used to apply the profile
-    cell targets: [10]      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 20.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -508,7 +509,7 @@ boundaries closed: False      # are outer boundaries closed to fluxes of ions ?
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True              # turn the even on (True) or off (False)
+  event happens: False              # turn the even on (True) or off (False)
   change start: 2.0                # sim time to start change [s]
   change finish: 8.0               # sim time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
@@ -653,7 +654,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: False     # use this setting to quickly toggle creation of all
+  create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -754,7 +755,7 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
+    animate Vmem: False           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
@@ -782,7 +783,7 @@ results options:
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
@@ -910,16 +911,16 @@ internal parameters:
 
   alpha_Ca:  5.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
-  halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_Ca:  24         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_Ca:  6       # the free energy level at which pump activity is halved [kJ]
+  slope_Ca:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  1.0e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  24         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_HK:  1e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  halfmax_HK:  24       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  1e-3     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  alpha_V:  5e-3     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
   halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  24         # the energy window width of the NaK-ATPase pump [kJ]
+  slope_V:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
 
 # Configuration file version that this file conforms to. For reliable

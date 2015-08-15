@@ -97,7 +97,7 @@ class SimRunner(object):
             sim.baseInit_ECM(cells,p)
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
-            dyna.ecmBoundProfiles(sim,cells,p)
+            # dyna.ecmBoundProfiles(sim,cells,p)
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 

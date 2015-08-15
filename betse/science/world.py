@@ -62,8 +62,6 @@ class World(object):
 
     self.centre     [x,y] coordinate of world lattice co-ords (after noise, before cropping)
 
-    self.cluster_centre     x,y coordinate of cluster centre
-
     self.xypts      numpy array holding unravelled [x,y] centre points of 2d regular world grid
 
     self.ecm_vol     volume of ecm spaces
@@ -343,7 +341,7 @@ class World(object):
 
         # load the bitmap used to clip the cell cluster and create a clipping function
         loggers.log_info('Clipping Voronoi geometry to cluster shape... ')
-        bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
+        self.bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
 
@@ -354,7 +352,7 @@ class World(object):
 
                 for i, pnt in enumerate(cell_poly):
 
-                    point_val = bitmasker.clipping_function(pnt[0],pnt[1])
+                    point_val = self.bitmasker.clipping_function(pnt[0],pnt[1])
 
                     if point_val != 0.0:
 
@@ -365,8 +363,8 @@ class World(object):
                     cell_polya = cell_poly.tolist()
                     self.ecm_verts.append(cell_polya)
 
-        self.cluster_mask = bitmasker.clippingMatrix
-        self.msize = bitmasker.msize
+        self.cluster_mask = self.bitmasker.clippingMatrix
+        self.msize = self.bitmasker.msize
 
         # next redefine the set of unique vertex points from ecm_verts arrangement
         ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
@@ -837,6 +835,8 @@ class World(object):
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
+        self.all_clust_pts = np.vstack((self.cell_centres,self.mem_mids_flat))
+
         # get a list of k indices to the four exterior (global) boundaries of the rectangular world:
         bBot_x = self.X[0,:]
         bTop_x = self.X[-1,:]
@@ -870,13 +870,6 @@ class World(object):
         loggers.log_info('Creating environmental Poisson solver for pressure...')
         bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
         self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
-
-    # def makeMask(self,p):
-    #
-    #     self.maskM = np.zeros(self.X.shape)
-    #
-    #     self.maskM[self.map_ij2k[self.map_cell2ecm][:,0], self.map_ij2k[self.map_cell2ecm][:,1]] =1
-    #     # self.maskM[self.map_ij2k[self.bound_pts_k][:,0], self.map_ij2k[self.bound_pts_k][:,1]] =-1
 
     def graphLaplacian(self):
 

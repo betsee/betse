@@ -290,6 +290,11 @@ class Simulator(object):
         else:
             self.HKATP_block = 1
 
+        if p.VATPase_dyn == True and p.global_options['VATP_block'] != 0:
+            self.VATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
+        else:
+            self.VATP_block = 1
+
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(len(cells.cell_i))
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
@@ -568,13 +573,13 @@ class Simulator(object):
 
         #-------------------------------------------------------------------------------------------------------
         # set up the ecm diffusion constants, which may be heterogeneous between cell cluster and free environment:
-        for i, dmat in enumerate(self.D_env):
-            # for all cells in the cluster, set the internal diffusion constant:
-            self.D_env[i][cells.map_cell2ecm] = dmat[cells.map_cell2ecm]*p.D_ecm_mult
-            # for all membranes in the cluster, set the internal diffusion constant representing ecm junctions:
-            self.D_env[i][cells.map_mem2ecm] = dmat[cells.map_mem2ecm]*p.D_ecm_mult
-            # undo the transform for membranes on the boundary (set them back to free-diffusion values):
-            self.D_env[i][cells.ecm_bound_k] = dmat[cells.ecm_bound_k]/p.D_ecm_mult
+        # for i, dmat in enumerate(self.D_env):
+        #     # for all cells in the cluster, set the internal diffusion constant:
+        #     self.D_env[i][cells.map_cell2ecm] = dmat[cells.map_cell2ecm]*p.D_ecm_mult
+        #     # for all membranes in the cluster, set the internal diffusion constant representing ecm junctions:
+        #     self.D_env[i][cells.map_mem2ecm] = dmat[cells.map_mem2ecm]*p.D_ecm_mult
+        #     # undo the transform for membranes on the boundary (set them back to free-diffusion values):
+        #     self.D_env[i][cells.ecm_bound_k] = dmat[cells.ecm_bound_k]/p.D_ecm_mult
 
         self.Dm_er = self.Dm_cells[:]
 
@@ -589,9 +594,14 @@ class Simulator(object):
             self.NaKATP_block = 1
 
         if p.HKATPase_dyn == True and p.global_options['HKATP_block'] != 0:
-            self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
+            self.HKATP_block = np.ones(len(cells.mem_i))  # initialize HKATP blocking vector
         else:
             self.HKATP_block = 1
+
+        if p.VATPase_dyn == True and p.global_options['VATP_block'] != 0:
+            self.VATP_block = np.ones(len(cells.mem_i))  # initialize HKATP blocking vector
+        else:
+            self.VATP_block = 1
 
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(len(cells.mem_i))
@@ -632,7 +642,7 @@ class Simulator(object):
     def tissueInit(self,cells,p):
 
         if p.sim_ECM == True:
-            #  # re-initialize diffusion constants for the ecm-ecm junctions in case value changed:
+            #  Initialize diffusion constants for the ecm-ecm junctions in case value changed:
             for i, dmat in enumerate(self.D_env):
                 # for all cells in the cluster, set the internal diffusion constant:
                 self.D_env[i][cells.map_cell2ecm] = dmat[cells.map_cell2ecm]*p.D_ecm_mult
@@ -641,14 +651,15 @@ class Simulator(object):
                 # undo the transform for membranes on the boundary (set them back to free-diffusion values):
                 self.D_env[i][cells.ecm_bound_k] = dmat[cells.ecm_bound_k]/p.D_ecm_mult
 
-            # create a v_ecm copy that will let us change the voltage externally:
-            self.v_env_mod = np.zeros(len(cells.xypts))
-
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
 
         if p.sim_ECM == True:
-            self.dyna.ecmBoundProfiles(self,cells,p) # initialize boundary profiles
+            # create a copy-base of the environmental junctions diffusion constants:
+            self.D_env_base = copy.copy(self.D_env)
+
+        # if p.sim_ECM == True:
+            # self.dyna.ecmBoundProfiles(self,cells,p) # initialize boundary profiles
 
         # add channel noise to the model:
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
@@ -678,6 +689,8 @@ class Simulator(object):
 
         self.Dm_er_CICR = np.copy(Dm_cellsER)
         self.Dm_er_CICR[:] = 0
+
+
 
         self.dcc_ER = []
 
@@ -958,7 +971,7 @@ class Simulator(object):
                 if p.VATPase_dyn == 1:
 
                      # if HKATPase pump is desired, run the H-K-ATPase pump:
-                    f_H3 = pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.vm,self.T,p)
+                    f_H3 = pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block)
 
                     self.cc_cells[self.iH] = self.cc_cells[self.iH] + f_H3*(cells.cell_sa/cells.cell_vol)*p.dt
 
@@ -1628,82 +1641,30 @@ class Simulator(object):
 
         self.cc_env[ion_i] = rk4(c_env,-delta_env,p)
 
-    def half_step(self,flux,cells,p):
-
-        c_cells = copy.copy(self.cc_cells)
-        c_env = copy.copy(self.cc_env)
-
-        for ion_i in self.movingIons: # update all concentrations due to the flux:
-
-            d_c_cells = flux[ion_i]*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_c_env = flux[ion_i]*(cells.mem_sa/cells.ecm_vol)
-
-            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
-
-            c_cells[ion_i] = c_cells[ion_i] + delta_cells*p.dt
-
-            c_env[ion_i] = c_env[ion_i] + delta_env*p.dt
-
-        rho_cells_o = get_charge_density(c_cells, self.z_array, p)
-        rho_env_o = get_charge_density(c_env, self.z_array_env, p)
-
-        # t+1 environmental voltage: ------------------------
-        fxy = -rho_env_o/(100*p.eo)
-        # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
-        fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
-        fxy[cells.bTop_k] = (self.bound_V['T']/cells.delta**2)
-        fxy[cells.bL_k] = (self.bound_V['L']/cells.delta**2)
-        fxy[cells.bR_k] = (self.bound_V['R']/cells.delta**2)
-
-        # Solve Poisson's electrostatic equation:
-        v_env_o = np.dot(cells.lapENVinv,fxy)
-
-        # if the boundary conditions set the outside of the matrix:
-        v_env_o[cells.bBot_k] = self.bound_V['B']
-        v_env_o[cells.bTop_k] = self.bound_V['T']
-        v_env_o[cells.bL_k] = self.bound_V['L']
-        v_env_o[cells.bR_k] = self.bound_V['R']
-
-        # t+1 cell voltage: ----------------------------------
-        # get the value of the environmental voltage at each cell membrane:
-        venv_at_mem = v_env_o[cells.map_mem2ecm]
-        # sum the environmental voltage at each mem for each cell and take the average:
-        cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
-        # calculate the voltage in each cell:
-        v_cell_o = (rho_cells_o*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-
-        # t+1 vmem:
-        vm_o = v_cell_o[cells.mem_to_cells] - v_env_o[cells.map_mem2ecm]  # calculate v_mem
-
-        return vm_o
-
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
         # electrofuse the H+ ion between the cytoplasm and the ecms
-        _,_,f_H1 = \
-            electrofuse(self.cc_ecm[self.iH][cells.mem_to_ecm],self.cc_cells[self.iH][cells.mem_to_cells],
-                self.Dm_cells[self.iH],self.tm[cells.mem_to_cells],cells.mem_sa,
-                cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],self.zs[self.iH],
-                self.vm,self.T,p)
+        f_H1 = \
+            electroflux(self.cc_env[self.iH][cells.map_mem2ecm],self.cc_cells[self.iH][cells.mem_to_cells],
+                self.Dm_cells[self.iH],self.tm[cells.mem_to_cells],self.zs[self.iH],self.vm,self.T,p)
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H1
 
         H_cell_to = self.cc_cells[self.iH][:]     # keep track of original H+ in cell and ecm
-        H_ecm_to = self.cc_ecm[self.iH][:]
+        H_ecm_to = self.cc_env[self.iH][:]
 
         # update the concentration in the cytoplasm and ecms
         self.update_C_ecm(self.iH,f_H1,cells,p)
 
         # buffer what's happening with H+ flux to or from the cell and environment:
         delH_cell = self.cc_cells[self.iH] - H_cell_to    # relative change in H wrt the cell
-        delH_ecm = self.cc_ecm[self.iH] - H_ecm_to    # relative change in H wrt to environment
+        delH_ecm = self.cc_env[self.iH] - H_ecm_to    # relative change in H wrt to environment
 
         self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
             self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
 
-        self.cc_ecm[self.iH], self.cc_ecm[self.iM], self.cHM_ecm = bicarbBuffer(
-            self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
+        self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+            self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
@@ -1711,17 +1672,15 @@ class Simulator(object):
     def Hplus_HKATP_ecm(self,cells,p,t):
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
-        _,_,_,_, f_H2, f_K2 =\
-        pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_ecm[self.iH][cells.mem_to_ecm],
-            self.cc_cells[self.iK][cells.mem_to_cells],self.cc_ecm[self.iK][cells.mem_to_ecm],
-            cells.mem_sa,cells.cell_vol[cells.mem_to_cells],cells.ecm_vol[cells.mem_to_ecm],
+        f_H2, f_K2 = pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_env[self.iH][cells.map_mem2ecm],
+            self.cc_cells[self.iK][cells.mem_to_cells],self.cc_env[self.iK][cells.map_mem2ecm],
             self.vm,self.T,p,self.HKATP_block)
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H2
         self.fluxes_mem[self.iK] =  self.fluxes_mem[self.iK] + f_K2
 
         H_cell_to = self.cc_cells[self.iH][:]     # keep track of original H+ in cell and ecm
-        H_ecm_to = self.cc_ecm[self.iH][:]
+        H_ecm_to = self.cc_env[self.iH][:]
 
         # update the concentrations of H+ and K+ in the cell and ecm
         self.update_C_ecm(self.iH,f_H2,cells,p)
@@ -1729,13 +1688,13 @@ class Simulator(object):
 
          # buffer what's happening with H+ flux to or from the cell and environment:
         delH_cell = self.cc_cells[self.iH] - H_cell_to    # relative change in H wrt the cell
-        delH_ecm = self.cc_ecm[self.iH] - H_ecm_to    # relative change in H wrt to environment
+        delH_ecm = self.cc_env[self.iH] - H_ecm_to    # relative change in H wrt to environment
 
         self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
             self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
 
-        self.cc_ecm[self.iH], self.cc_ecm[self.iM], self.cHM_ecm = bicarbBuffer(
-            self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
+        self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+            self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
@@ -1743,28 +1702,26 @@ class Simulator(object):
     def Hplus_VATP_ecm(self,cells,p,t):
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
-        _, _, f_H3 =\
-        pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_ecm[self.iH][cells.mem_to_ecm],
-            cells.mem_sa,cells.cell_vol[cells.mem_to_cells],cells.ecm_vol[cells.mem_to_ecm],
-            self.vm,self.T,p)
+        f_H3 = pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_env[self.iH][cells.map_mem2ecm],
+            self.vm,self.T,p,self.VATP_block)
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H3
 
         H_cell_to = self.cc_cells[self.iH][:]     # keep track of original H+ in cell and ecm
-        H_ecm_to = self.cc_ecm[self.iH][:]
+        H_ecm_to = self.cc_env[self.iH][:]
 
         # update the concentration in the cytoplasm and ecms
         self.update_C_ecm(self.iH,f_H3,cells,p)
 
         # buffer what's happening with H+ flux to or from the cell and environment:
         delH_cell = self.cc_cells[self.iH] - H_cell_to    # relative change in H wrt the cell
-        delH_ecm = self.cc_ecm[self.iH] - H_ecm_to    # relative change in H wrt to environment
+        delH_ecm = self.cc_env[self.iH] - H_ecm_to    # relative change in H wrt to environment
 
         self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
             self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
 
-        self.cc_ecm[self.iH], self.cc_ecm[self.iM], self.cHM_ecm = bicarbBuffer(
-            self.cc_ecm[self.iH],self.cc_ecm[self.iM],self.cHM_ecm,delH_ecm,p)
+        self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
+            self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_ecm,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
@@ -2245,7 +2202,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
-        f_Na  = -alpha*(cNai**(1/2))*(cKo**(1/5))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_Na  = -alpha*(cNai**(1/2))*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     elif p.backward_pumps == True:
 
@@ -2259,9 +2216,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         f_Na = np.zeros(len(cNai))
 
-        f_Na[inds_forwards]  = -alpha*cNai**(1/2)*(cKo**(1/5))      #flux as [mol/s]   scaled to concentrations Na in and K out
+        f_Na[inds_forwards]  = -alpha*cNai**(1/2)*(cKo**(1/2))      #flux as [mol/s]   scaled to concentrations Na in and K out
 
-        f_Na[inds_backwards]  = -alpha*cNao**(1/5)*(cKi**(1/5))      #flux as [mol/s]   scaled to concentrations K in and Na out
+        f_Na[inds_backwards]  = -alpha*cNao**(1/5)*(cKi**(1/2))      #flux as [mol/s]   scaled to concentrations K in and Na out
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
@@ -2365,7 +2322,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     if p.backward_pumps == False:
 
         alpha = block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
-        f_H  = -alpha*cHi*cKo      #flux as [mol/s], scaled by concentrations in and out
+        f_H  = -alpha*np.sqrt(cHi)*np.sqrt(cKo)      #flux as [mol/s], scaled by concentrations in and out
 
     elif p.backward_pumps == True:
 
@@ -2379,14 +2336,14 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
         f_H = np.zeros(len(cHi))
 
-        f_H[inds_forwards]  = -alpha*cHi*cKo      #flux as [mol/s], scaled by concentrations in and out
-        f_H[inds_backwards]  = -alpha*cHo*cKi
+        f_H[inds_forwards]  = -alpha*np.sqrt(cHi)*np.sqrt(cKo)      #flux as [mol/s], scaled by concentrations in and out
+        f_H[inds_backwards]  = -alpha*np.sqrt(cHo)*np.sqrt(cKi)
 
     f_K = -f_H          # flux as [mol/s]
 
     return f_H, f_K
 
-def pumpVATP(cHi,cHo,Vm,T,p):
+def pumpVATP(cHi,cHo,Vm,T,p,block):
 
     deltaGATP = 20*p.R*T
 
@@ -2399,12 +2356,12 @@ def pumpVATP(cHi,cHo,Vm,T,p):
 
     if p.backward_pumps == False:
 
-        alpha = p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
+        alpha = block*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
         f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
 
     elif p.backward_pumps == True:
 
-        alpha = signG*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
+        alpha = block*signG*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
 
         truth_forwards = signG == 1
         truth_backwards = signG == -1
@@ -2516,8 +2473,8 @@ def get_Vcell(self,cells,p):
     cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
 
     # calculate the voltage in each cell:
-    v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-    # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+    # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
+    v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
     return v_cell
 

@@ -71,6 +71,29 @@ class Dynamics(object):
             self.toffGJ = p.global_options['gj_block'][1]
             self.trampGJ = p.global_options['gj_block'][2]
 
+            numo = p.global_options['gj_block'][3]
+
+            numo = int(numo)
+
+            if numo > 100:
+                numo = 100
+            elif numo < 1:
+                numo = 1
+
+            data_length = len(cells.nn_index)
+            data_fraction = int((numo/100)*data_length)
+
+            shuffle(cells.nn_index)
+
+            self.targets_gj_block = [cells.nn_index[x] for x in range(0,data_fraction)]
+
+        if p.global_options['ecm_change'] != 0:
+
+            self.t_on_ecm = p.global_options['ecm_change'][0]
+            self.t_off_ecm = p.global_options['ecm_change'][1]
+            self.t_change_ecm = p.global_options['ecm_change'][2]
+            self.mult_ecm = p.global_options['ecm_change'][3]
+
         if p.global_options['NaKATP_block'] != 0:
 
             self.tonNK = p.global_options['NaKATP_block'][0]
@@ -82,6 +105,12 @@ class Dynamics(object):
             self.tonHK = p.global_options['HKATP_block'][0]
             self.toffHK = p.global_options['HKATP_block'][1]
             self.trampHK = p.global_options['HKATP_block'][2]
+
+        if p.global_options['VATP_block'] != 0:
+
+            self.tonV = p.global_options['VATP_block'][0]
+            self.toffV = p.global_options['VATP_block'][1]
+            self.trampV = p.global_options['VATP_block'][2]
 
     def scheduledInit(self,sim,cells,p):
 
@@ -349,7 +378,7 @@ class Dynamics(object):
             self.target_mask_Ca = np.zeros(self.data_length)
             self.target_mask_Ca[self.targets_Ca] = 1
 
-    def globalDyn(self,sim,cells,p,t):    # FIXME should now set cc_env for the p.sim_ECM == True
+    def globalDyn(self,sim,cells,p,t):
 
         if p.global_options['K_env'] != 0:
 
@@ -395,9 +424,25 @@ class Dynamics(object):
 
             sim.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
 
-        if p.global_options['gj_block'] != 0:  # FIXME change this to the targeted zone
+        if p.global_options['gj_block'] != 0:
 
-            sim.gj_block = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
+            sim.gj_block[self.targets_gj_block] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
+
+        if p.global_options['ecm_change'] != 0:
+
+            effector_ecm = tb.pulse(t,self.t_on_ecm,self.t_off_ecm,self.t_change_ecm)
+
+            for i, subD in enumerate(sim.D_env_base):
+
+                sim.D_env[i][cells.map_cell2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_cell2ecm] + \
+                                                   sim.D_env_base[i][cells.map_cell2ecm]
+
+                sim.D_env[i][cells.map_mem2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_mem2ecm] + \
+                                                  sim.D_env_base[i][cells.map_mem2ecm]
+
+                # ensure cells on the cluster boundary aren't involved in the change:
+                sim.D_env[i][cells.ecm_bound_k] = sim.D_env_base[i][cells.ecm_bound_k]
+
 
         if p.global_options['NaKATP_block'] != 0:
 
@@ -406,6 +451,10 @@ class Dynamics(object):
         if p.global_options['HKATP_block'] != 0:
 
             sim.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
+
+        if p.global_options['VATP_block'] != 0:
+
+            sim.VATP_block = (1.0 - tb.pulse(t,self.tonV,self.toffV,self.trampV))
 
     def scheduledDyn(self,sim,cells,p,t):
 
@@ -497,15 +546,6 @@ class Dynamics(object):
 
             sim.bound_V[self.targets_extV_positive] = self.peak_val_extV*effector_extV
             sim.bound_V[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
-
-    # def externalVoltage(self,sim,cells,p,t,v_env_o):
-    #
-    #     if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
-    #
-    #         effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
-    #
-    #         sim.bound_V['T'] = self.peak_val_extV*effector_extV
-    #         sim.bound_V['B'] = -self.peak_val_extV*effector_extV
 
     def dynamicDyn(self,sim,cells,p,t):
 
@@ -711,7 +751,9 @@ class Dynamics(object):
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
         self.cuts_target_inds = {}
+        self.env_target_inds = {}
         self.tissue_profile_names = []
+
 
         # Do a first search to find requests for any cavities as they modify the world structure:
 
@@ -745,93 +787,114 @@ class Dynamics(object):
                 self.tissue_target_inds[name] = getCellTargets(name,target_method, cells, p)
                 self.cell_target_inds[name] = getCellTargets(name,target_method, cells, p, ignoreECM=True)
 
-
                 if p.sim_ECM == True:
-                    pass
                     #get ecm targets
-                    # ecm_targs_a = cells.cell_to_ecm[self.cell_target_inds[name]]
-                    # ecm_targs,_,_ = tb.flatten(ecm_targs_a)
+                    # self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
+
+                    ecm_targs_cell = list(cells.map_cell2ecm[self.cell_target_inds[name]])
+                    ecm_targs_mem = list(cells.map_mem2ecm[self.tissue_target_inds[name]])
+
+                    ecm_targs = []
+
+                    for v in ecm_targs_cell:
+                        ecm_targs.append(v)
+
+                    for v in ecm_targs_mem:
+                        ecm_targs.append(v)
+
+                    self.env_target_inds[name] = ecm_targs
 
                 # set the values of Dmems and ecm diffusion based on the identified target indices
-
                 if p.ions_dict['Na'] == 1:
                     dNa = dmem_list['Dm_Na']
                     sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iNa][ecm_targs] = p.Do_Na*ecm_val
+                        sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
+                        # sim.D_env[sim.iNa][ecm_targs_mem] = p.Do_Na*ecm_val
+                        # sim.D_env[sim.iNa][ecm_targs_cell] = p.Do_Na*ecm_val
 
                 if p.ions_dict['K'] == 1:
                     dK = dmem_list['Dm_K']
                     sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iK][ecm_targs] = p.Do_K*ecm_val
+                        sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
+                        # sim.D_env[sim.iK][ecm_targs_mem] = p.Do_K*ecm_val
+                        # sim.D_env[sim.iK][ecm_targs_cell] = p.Do_K*ecm_val
 
                 if p.ions_dict['Cl'] == 1:
                     dCl = dmem_list['Dm_Cl']
                     sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iCl][ecm_targs] = p.Do_Cl*ecm_val
+                        sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
+                        # sim.D_env[sim.iCl][ecm_targs_mem] = p.Do_Cl*ecm_val
+                        # sim.D_env[sim.iCl][ecm_targs_cell] = p.Do_Cl*ecm_val
 
                 if p.ions_dict['Ca'] == 1:
                     dCa = dmem_list['Dm_Ca']
                     sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iCa][ecm_targs] = p.Do_Ca*ecm_val
+
+                        sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
+                        # sim.D_env[sim.iCa][ecm_targs_mem] = p.Do_Ca*ecm_val
+                        # sim.D_env[sim.iCa][ecm_targs_cell] = p.Do_Ca*ecm_val
 
                 if p.ions_dict['H'] == 1:
                     dH = dmem_list['Dm_H']
                     sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iH][ecm_targs] = p.Do_H*ecm_val
+
+                        sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
+                        # sim.D_env[sim.iH][ecm_targs_mem] = p.Do_H*ecm_val
+                        # sim.D_env[sim.iH][ecm_targs_cell] = p.Do_H*ecm_val
 
                 if p.ions_dict['M'] == 1:
                     dM = dmem_list['Dm_M']
                     sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iM][ecm_targs] = p.Do_M*ecm_val
+
+                        sim.D_env[sim.iM][self.env_target_inds[name]] = p.Do_M*ecm_val
+                        # sim.D_env[sim.iM][ecm_targs_mem] = p.Do_M*ecm_val
+                        # sim.D_env[sim.iM][ecm_targs_cell] = p.Do_M*ecm_val
 
                 if p.ions_dict['P'] == 1:
                     dP = dmem_list['Dm_P']
                     sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
 
                     if p.sim_ECM == True:
-                        pass
-                        # sim.D_ecm_juncs[sim.iP][ecm_targs] = p.Do_P*ecm_val
+
+                        sim.D_env[sim.iP][self.env_target_inds[name]] = p.Do_P*ecm_val
+                        # sim.D_env[sim.iP][ecm_targs_mem] = p.Do_P*ecm_val
+                        # sim.D_env[sim.iP][ecm_targs_cell] = p.Do_P*ecm_val
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
                 self.cuts_target_inds[name] = getCellTargets(name,target_method, cells, p,ignoreECM=True)
 
-    def ecmBoundProfiles(self,sim,cells,p):
-
-        """
-        Reads in parameters data to build ecm-boundary specific (if p.sim_ECM == True) index
-        sets for each user-defined boundary profile.
-
-        """
-
-        profile_names = list(p.boundary_profiles.keys())
-
-        self.env_target_label = {}
-
-        for name in profile_names:
-
-            target_method = p.boundary_profiles[name]
-            self.env_target_label[name] = target_method
-
-            # self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
+    # def ecmBoundProfiles(self,sim,cells,p):
+    #
+    #     """
+    #     Reads in parameters data to build ecm-boundary specific (if p.sim_ECM == True) index
+    #     sets for each user-defined boundary profile.
+    #
+    #     """
+    #
+    #     profile_names = list(p.boundary_profiles.keys())
+    #
+    #     self.env_target_label = {}
+    #     self.env_target_inds = {}
+    #
+    #     for name in profile_names:
+    #
+    #         target_method = p.boundary_profiles[name]
+    #         self.env_target_label[name] = target_method
+    #
+    #         self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
 
     def makeAllChanges(self,sim):
         # Add together all effects to make change on the cell membrane permeabilities:
@@ -967,32 +1030,32 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
     """
 
+    target_inds = []
+
     if isinstance(targets_description,str):
 
-        inds_ecm = np.asarray(cells.ecm_i)
-        inds_env = np.asarray(cells.env_i)
+        inds_env = np.asarray(len(cells.xypts))
 
         if targets_description == 'bitmap':
 
             if p.use_bitmaps == True:
                 bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
-                bitmask.clipPoints(cells.env_points[:,0],cells.env_points[:,1])
+                bitmask.clipPoints(cells.xypts[:,0],cells.xypts[:,1])
                 target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
 
-            else:
-                target_inds = []
-
-        elif targets_description == 'all':
-
-            if boundaryOnly == True:
-                target_inds = inds_env
-
-            else:
-                target_inds = inds_ecm
-
-    if isinstance(targets_description, list):
-
-        target_inds = targets_description
+    #     elif targets_description == 'all':
+    #
+    #         target_inds = inds_env
+    #
+    # if isinstance(targets_description, list):
+    #
+    #     inds_cell = cells.map_cell2ecm[targets_description]
+    #     inds_mem = cells.map_mem2ecm[targets_description]
+    #
+    #     target_inds = []
+    #
+    #     target_inds.append(inds_cell)
+    #     target_inds.append(inds_mem)
 
     return target_inds
 
