@@ -4,7 +4,6 @@
 
 # FIXME manage the H+ stuff...
 # FIXME straighten out the ER dynamics...
-# FIXME do runSim_ECM for cut cell dynamics and proper pickling...
 
 
 import numpy as np
@@ -232,15 +231,15 @@ class Simulator(object):
             self.cHM_env = np.zeros(len(cells.cell_i))
             self.cHM_env[:] = 0.03*p.CO2
 
-            self.cH_cells = np.zeros(len(cells.cell_i))
+            # self.cH_cells = np.zeros(len(cells.cell_i))
             # cH_cells[:]=p.cH_cell
             self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
-            self.cH_cells = (10**(-self.pH_cell))*1000  # units mmol/L
+            self.cH_cells = (10**(-self.pH_cell))  # units mmol/L
 
-            self.cH_env = np.zeros(len(cells.cell_i))
+            # self.cH_env = np.zeros(len(cells.cell_i))
             # cH_env[:]=p.cH_env
             self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
-            self.cH_env = (10**(-self.pH_env))*1000 # units mmol/L
+            self.cH_env = (10**(-self.pH_env)) # units mmol/L
 
             DmH = np.zeros(len(cells.cell_i))
             DmH[:] = p.Dm_H
@@ -524,17 +523,18 @@ class Simulator(object):
             self.cHM_cells = np.zeros(len(cells.cell_i))
             self.cHM_cells[:] = 0.03*p.CO2
 
-            self.cHM_env = np.zeros(len(cells.xypts))
-            self.cHM_env[:] = 0.03*p.CO2
+            # self.cHM_env = np.zeros(len(cells.xypts))
+            # self.cHM_env[:] = 0.03*p.CO2
+            self.cHM_env = 0.03*p.CO2
 
-            self.cH_cells = np.zeros(len(cells.cell_i))
+            # self.cH_cells = np.zeros(len(cells.cell_i))
 
             self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
-            self.cH_cells = (10**(-self.pH_cell))*1000  # units mmol/L
+            self.cH_cells = (10**(-self.pH_cell)) # units mmol/L
 
-            self.cH_env = np.zeros(len(cells.xypts))
+            # self.cH_env = np.zeros(len(cells.xypts))
             self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
-            self.cH_env = (10**(-self.pH_env))*1000 # units mmol/L
+            self.cH_env = (10**(-self.pH_env)) # units mmol/L
 
             DmH = np.zeros(len(cells.mem_i))
             DmH[:] = p.Dm_H
@@ -921,20 +921,22 @@ class Simulator(object):
                 f_H1 = electroflux(self.cc_env[self.iH],self.cc_cells[self.iH],self.Dm_cells[self.iH],self.tm,
                     self.zs[self.iH],self.vm,self.T,p)
 
-                self.cc_cells[self.iH] = self.cc_cells[self.iH] + f_H1*(cells.cell_sa/cells.cell_vol)*p.dt
-                self.cc_env[self.iH] = self.cc_env[self.iH] - f_H1*(cells.cell_sa/p.vol_env)*p.dt
+                # update the anion rather than H+, assuming that the bicarbonate buffer is working:
+
+                self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_H1*(cells.cell_sa/cells.cell_vol)*p.dt
+                # self.cc_env[self.iM] = self.cc_env[self.iM] + f_H1*(cells.cell_sa/p.vol_env)*p.dt
 
                 self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
 
                 # # buffer what's happening with H+ flux to or from the cell and environment:
-                delH_cell = f_H1*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
-                delH_env =  -f_H1*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
-
-                self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-                    self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-                self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-                    self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+                # delH_cell = f_H1*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
+                # delH_env =  -f_H1*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
+                #
+                # self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells,self.pH_cell = bicarbBuffer(
+                #     self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+                #
+                # self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env,self.pH_env = bicarbBuffer(
+                #     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
@@ -947,22 +949,22 @@ class Simulator(object):
                         self.cc_env[self.iK],self.vm,self.T,p,self.HKATP_block)
 
                     # update the concentration in cells (assume environment steady and constant supply of ions)
-                    self.cc_cells[self.iH] = self.cc_cells[self.iH] + f_H2*(cells.cell_sa/cells.cell_vol)*p.dt
+                    self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_H2*(cells.cell_sa/cells.cell_vol)*p.dt
                     self.cc_cells[self.iK] = self.cc_cells[self.iK] + f_K2*(cells.cell_sa/cells.cell_vol)*p.dt
 
                     # store fluxes for this pump:
                     self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2[cells.mem_to_cells]
                     self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2[cells.mem_to_cells]
 
-                     # buffer what's happening with H+ flux to or from the cell and environment:
-                    delH_cell = f_H2*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
-                    delH_env =  -f_H2*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
-
-                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+                    #  # buffer what's happening with H+ flux to or from the cell and environment:
+                    # delH_cell = f_H2*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
+                    # delH_env =  -f_H2*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
+                    #
+                    # self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells,self.pH_cell = bicarbBuffer(
+                    #     self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+                    #
+                    # self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env,self.pH_env = bicarbBuffer(
+                    #     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
@@ -973,19 +975,19 @@ class Simulator(object):
                      # if HKATPase pump is desired, run the H-K-ATPase pump:
                     f_H3 = pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block)
 
-                    self.cc_cells[self.iH] = self.cc_cells[self.iH] + f_H3*(cells.cell_sa/cells.cell_vol)*p.dt
+                    self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_H3*(cells.cell_sa/cells.cell_vol)*p.dt
 
                     self.fluxes_mem[self.iH]  = self.fluxes_mem[self.iH] + f_H3[cells.mem_to_cells]
 
-                     # buffer what's happening with H+ flux to or from the cell and environment:
-                    delH_cell = f_H3*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
-                    delH_env =  -f_H3*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
-
-                    self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-                        self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-                    self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-                        self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+                    #  # buffer what's happening with H+ flux to or from the cell and environment:
+                    # delH_cell = f_H3*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
+                    # delH_env =  -f_H3*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
+                    #
+                    # self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells,self.pH_cell = bicarbBuffer(
+                    #     self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+                    #
+                    # self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env,self.pH_env = bicarbBuffer(
+                    #     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
@@ -1200,10 +1202,10 @@ class Simulator(object):
         loggers.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
+            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])))
             loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
 
-            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
+            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])))
             loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
 
 
@@ -1477,12 +1479,13 @@ class Simulator(object):
 
                 self.efield_ecm_y_time.append(self.E_env_y[:])
 
-                concs = self.cc_cells[:]
+                concs = np.copy(self.cc_cells[:])
                 concs.tolist()
                 self.cc_time.append(concs)
                 concs = None
 
-                ecmsc = self.cc_env[:]
+                ecmsc = np.copy(self.cc_env[:])
+                ecmsc.tolist()
                 self.cc_env_time.append(ecmsc)
                 ecmsc = None
 
@@ -1585,10 +1588,10 @@ class Simulator(object):
         loggers.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
+            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])))
             loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
 
-            final_pH_ecm = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
+            final_pH_ecm = -np.log10(np.mean((self.cc_env_time[-1][self.iH])))
             loggers.log_info('Final extracellular pH '+ str(np.round(final_pH_ecm,2)))
 
 
@@ -1628,8 +1631,8 @@ class Simulator(object):
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
-        c_cells = copy.copy(self.cc_cells[ion_i][:])
-        c_env = copy.copy(self.cc_env[ion_i][:])
+        c_cells = self.cc_cells[ion_i][:]
+        c_env = self.cc_env[ion_i][:]
 
         d_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
         d_c_env = flux*(cells.mem_sa/cells.ecm_vol)
@@ -1650,21 +1653,15 @@ class Simulator(object):
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H1
 
-        H_cell_to = self.cc_cells[self.iH][:]     # keep track of original H+ in cell and ecm
-        H_ecm_to = self.cc_env[self.iH][:]
+        # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
+        self.update_C_ecm(self.iM,-f_H1,cells,p)
 
-        # update the concentration in the cytoplasm and ecms
-        self.update_C_ecm(self.iH,f_H1,cells,p)
+        # Calculate the new pH and H+ concentration:
+        self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
+        self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
-        # buffer what's happening with H+ flux to or from the cell and environment:
-        delH_cell = self.cc_cells[self.iH] - H_cell_to    # relative change in H wrt the cell
-        delH_ecm = self.cc_env[self.iH] - H_ecm_to    # relative change in H wrt to environment
-
-        self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-            self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-        self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-            self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_ecm,p)
+        self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
+        self.cc_env[self.iH] = 10**(-self.pH_env)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
@@ -1679,22 +1676,17 @@ class Simulator(object):
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H2
         self.fluxes_mem[self.iK] =  self.fluxes_mem[self.iK] + f_K2
 
-        H_cell_to = self.cc_cells[self.iH][:]     # keep track of original H+ in cell and ecm
-        H_ecm_to = self.cc_env[self.iH][:]
-
-        # update the concentrations of H+ and K+ in the cell and ecm
-        self.update_C_ecm(self.iH,f_H2,cells,p)
+        # calculate the update to K+ in the cell and ecm:
         self.update_C_ecm(self.iK,f_K2,cells,p)
 
-         # buffer what's happening with H+ flux to or from the cell and environment:
-        delH_cell = self.cc_cells[self.iH] - H_cell_to    # relative change in H wrt the cell
-        delH_ecm = self.cc_env[self.iH] - H_ecm_to    # relative change in H wrt to environment
+        # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
+        self.update_C_ecm(self.iM,-f_H2,cells,p)
 
-        self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-            self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
+        self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
+        self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
-        self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-            self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_ecm,p)
+        self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
+        self.cc_env[self.iH] = 10**(-self.pH_env)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
@@ -1707,21 +1699,14 @@ class Simulator(object):
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H3
 
-        H_cell_to = self.cc_cells[self.iH][:]     # keep track of original H+ in cell and ecm
-        H_ecm_to = self.cc_env[self.iH][:]
+        # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
+        self.update_C_ecm(self.iM,-f_H3,cells,p)
 
-        # update the concentration in the cytoplasm and ecms
-        self.update_C_ecm(self.iH,f_H3,cells,p)
+        self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
+        self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
-        # buffer what's happening with H+ flux to or from the cell and environment:
-        delH_cell = self.cc_cells[self.iH] - H_cell_to    # relative change in H wrt the cell
-        delH_ecm = self.cc_env[self.iH] - H_ecm_to    # relative change in H wrt to environment
-
-        self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells = bicarbBuffer(
-            self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-
-        self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env = bicarbBuffer(
-            self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_ecm,p)
+        self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
+        self.cc_env[self.iH] = 10**(-self.pH_env)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
@@ -2027,9 +2012,12 @@ class Simulator(object):
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.X,cells.Y), fill_value=0)
+        self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid), fill_value=0)
+        self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
-        self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.X,cells.Y),fill_value=0)
+        self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),fill_value=0)
+        self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
+
 
         # calculate current across cell membranes:
 
@@ -2202,7 +2190,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
-        f_Na  = -alpha*(cNai**(1/2))*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_Na  = -alpha*(cNai**(1/2))*(cKo**(1/5))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     elif p.backward_pumps == True:
 
@@ -2216,9 +2204,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         f_Na = np.zeros(len(cNai))
 
-        f_Na[inds_forwards]  = -alpha*cNai**(1/2)*(cKo**(1/2))      #flux as [mol/s]   scaled to concentrations Na in and K out
+        f_Na[inds_forwards]  = -alpha*cNai**(1/2)*(cKo**(1/5))      #flux as [mol/s]   scaled to concentrations Na in and K out
 
-        f_Na[inds_backwards]  = -alpha*cNao**(1/5)*(cKi**(1/2))      #flux as [mol/s]   scaled to concentrations K in and Na out
+        f_Na[inds_backwards]  = -alpha*cNao**(1/5)*(cKi**(1/5))      #flux as [mol/s]   scaled to concentrations K in and Na out
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
@@ -2375,18 +2363,6 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
         f_H[inds_backwards]  = -alpha*cHo
 
     return f_H
-
-def bicarbBuffer(cH,cM,cHM,delH,p):
-
-    cM2 = cM - delH
-
-    cHM2 = 0.03*p.CO2
-
-    pH = 6.1 + np.log10(cM/cHM2)
-
-    cH2 = 10**(-pH)*1000
-
-    return cH2, cM2, cHM2
 
 def get_volt(q,sa,p):
 
@@ -2589,12 +2565,17 @@ def vertData(data, cells, p):
 
     """
 
+    # dat_grid = np.zeros(len(cells.xypts))
+    # dat_grid[cells.map_mem2ecm] = data[cells.mem_to_cells]
+    # dat_grid[cells.map_cell2ecm] = data
+    # dat_grid = dat_grid.reshape(cells.X.shape)
+
     verts_data = np.dot(data,cells.matrixMap2Verts)
     plot_data = np.hstack((data,verts_data))
 
-    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid))
-    dat_grid = np.nan_to_num(dat_grid)
-    dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), fill_value=0)
+
+    dat_grid = np.multiply(dat_grid,cells.maskM)
 
     return dat_grid
 

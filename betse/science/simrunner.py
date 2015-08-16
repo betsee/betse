@@ -3,7 +3,6 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME there's a funny issue with the time plot data so that it won't plot the fine detail with p.sim_ECM. Try to fix it.
 
 from betse.science import visualize as viz
 from betse.science import filehandling as fh

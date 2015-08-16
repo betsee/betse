@@ -714,7 +714,7 @@ class Parameters(object):
         self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
 
         # partial pressure dissolved CO2
-        self.CO2 = 50.0   # [mmHg]
+        self.CO2 = 40.0   # [mmHg]
 
         # charge states of ions
         self.z_Na = 1
@@ -841,7 +841,7 @@ class Parameters(object):
             self.cK_env = 5.0
             self.cCl_env = 105.0
             self.cCa_env = 1.0
-            self.cH_env = 3.98e-5
+            self.cH_env = 6.98e-8
             self.cP_env = 9.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
@@ -855,7 +855,7 @@ class Parameters(object):
             self.cK_cell = 148.0
             self.cCl_cell = 10.0
             self.cCa_cell = 1.0e-3
-            self.cH_cell = 6.31e-5
+            self.cH_cell = 6.31e-8
             self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
@@ -887,7 +887,7 @@ class Parameters(object):
             self.cK_env = 0.31
             self.cCl_env = 5.64
             self.cCa_env = 3.75
-            self.cH_env = 3.98e-5
+            self.cH_env = 3.98e-8
             self.cP_env = 7.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
@@ -908,7 +908,7 @@ class Parameters(object):
             self.cK_cell = 406.09
             self.cCl_cell = 45.56
             self.cCa_cell = 3.0e-4
-            self.cH_cell = 6.31e-5
+            self.cH_cell = 6.31e-8
             self.cP_cell = 350.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]

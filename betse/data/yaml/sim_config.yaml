@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 30.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 2.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -190,7 +190,7 @@ general options:
                            # only works for an ion profile with H+ ions (animal or invertebrate)
                            # options True or False (case sensitive)
 
-  VATPase pump: False       # include the plasma membrane V-ATPase pump?
+  VATPase pump: False    # include the plasma membrane V-ATPase pump?
                             # only works for an ion profile with H+ ions (animal or invertebrate)
                             # options True or False (case sensitive)
 
@@ -347,7 +347,7 @@ block gap junctions:     # block the gap junctions between cells
   change rate: 1.0         # rate of change [s]
   random fraction: 100     # percentage of gap junctions randomly targeted
 
-change ecm junctions:     # block the ecm junctions between cells  # FIXME IMPLEMENT
+change ecm junctions:     # block the ecm junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
   change start: 1.0        # sim time to start change [s]
@@ -364,17 +364,17 @@ block NaKATP pump:
 
 block HKATP pump:
 
-  event happens: True      # turn the even on (True) or off (False)
+  event happens: False      # turn the even on (True) or off (False)
   change start: 1           # sim time to start change [s]
   change finish: 9         # sim time to end change and return to original [s]
   change rate: 1.0            # rate of change [s]
 
-block VATP pump:   # FIXME implement
+block VATP pump:
 
   event happens: False      # turn the even on (True) or off (False)
   change start: 1           # sim time to start change [s]
   change finish: 9         # sim time to end change and return to original [s]
-  change rate: 0.5            # rate of change [s]
+  change rate: 1.0            # rate of change [s]
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -386,7 +386,7 @@ geometry defining bitmaps:
 
     directory: geo/circle              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 2          # total number of bitmaps to load
+    number of bitmaps: 3          # total number of bitmaps to load
 
     bitmap 1:
 
@@ -398,25 +398,14 @@ geometry defining bitmaps:
 
         file: cut_hole.png        # name of the first bitmap defining geometry
 
-        designation: tissue   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+        designation: hole   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 3:
 
-        file: box_bottom_cells.png        # name of the first bitmap defining geometry
+        file: tissue.png        # name of the first bitmap defining geometry
 
-        designation: depolarized_b  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+        designation: tissue  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
-    bitmap 4:
-
-        file: box_bottom_cells.png        # name of the first bitmap defining geometry
-
-        designation: applied neg voltage  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
-
-    bitmap 5:
-
-        file: box_top_cells.png        # name of the first bitmap defining geometry
-
-        designation: applied pos voltage   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
 
 default tissue name: base   # name of cells to which no profile is applied
@@ -424,26 +413,26 @@ default tissue name: base   # name of cells to which no profile is applied
 base tissue properties:    # specify the base membrane diffusion constants below
                          # this is an easy way to control resting Vmem of cells
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 20.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 0.5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: tissue       # give your profile a name that will be used to apply the profile
+    name: hole       # give your profile a name that will be used to apply the profile
     cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
+    designation: cuts    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 20.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
     Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -452,8 +441,8 @@ tissue profile 1:
     ecm diffusion factor: 0.1    # multiplier for ecm diffusion
 
 tissue profile 2:
-    name: test       # give your profile a name that will be used to apply the profile
-    cell targets: [10]     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    name: tissue       # give your profile a name that will be used to apply the profile
+    cell targets: 'bitmap'     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -465,23 +454,7 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 0.1    # multiplier for ecm diffusion
-
-tissue profile 3:
-    name: depolarized_b       # give your profile a name that will be used to apply the profile
-    cell targets: bitmap    #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: None    # special instructions for making the profile:'cavity' or 'cuts'
-    insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
-
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
-    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
+    ecm diffusion factor: 0.2    # multiplier for ecm diffusion
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
@@ -535,7 +508,7 @@ change Cl mem:      # Change the membrane permeability to Cl-
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
   function: None                    # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['gradient']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['tissue']     # name(s) of the tissue profile(s) to apply it to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
 
@@ -545,7 +518,7 @@ change Ca mem:       # Change the membrane permeability to Ca2+
   change rate: 1                    # rate of change [s]
   multiplier: 10                    # factor to multiply base level
   function: None                    # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['gradient']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['tissue']     # name(s) of the tissue profile(s) to apply it to
 
 produce IP3:        # Schedule cell production of IP3
 
@@ -555,7 +528,7 @@ produce IP3:        # Schedule cell production of IP3
   change rate: 1                    # rate of production ramp up [s]
   multiplier: 1e-4                  # maximum rate of production [mol/(s*m3)]
   function: None                    # a temporal or spatial function to shape event: 'periodic','gradient_x', 'gradient_y'
-  apply to: ['hyperpolarized']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['tissue']     # name(s) of the tissue profile(s) to apply it to
 
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
@@ -568,9 +541,9 @@ apply external voltage:             # apply external voltage to ecm spaces on th
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 cutting event:
-    event happens: False
+    event happens: True
     cut time: 2.0
-    apply to: 'gradient'    # tissue profile to apply this to -- can only be one profile, no lists
+    apply to: 'hole'    # tissue profile to apply this to -- can only be one profile, no lists
     internal hole: False
 
 function properties:        # set properties of functions defined in above
@@ -667,7 +640,7 @@ results options:
                                    # comma-delimited (csv) text file
                                    # options True or False (case sensitive)
 
-  enumerate cells: True         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                  # this can help to decide which cell you are interested in getting
                                  # specific data on (for single cell graphs plotted over time).
                                  # options True or False (case sensitive)
@@ -679,7 +652,7 @@ results options:
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
-  show cells: True                # if True, plots and animations show individual cells,
+  show cells: False                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data. If False,
                                   # plots and animations show data as interpolated over a 2D
                                   # surface so individual cells are not shown.
@@ -744,7 +717,6 @@ results options:
     max val: 900                   # maximum colorbar value in V/m
     min val: 0                      # maximum colorbar value in V/m
 
-
   Currents 2D:
 
     plot Currents: True               # 2d plot of net current flow in the collective?
@@ -755,28 +727,28 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: False           # 2d animation of vmem with time?
+    animate Vmem: True           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
-    animate Ca2+: False           # 2d animation of cell calcium with time ?
+    animate Ca2+: True           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: False            # 2d animation of cIP3 with time?
+    animate IP3: True            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Dye Ani:
 
-    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
@@ -909,18 +881,18 @@ internal parameters:
   halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  5.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_CaER:  1e-5  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  6       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  1e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  24       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  12         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_HK:  5.0e-2    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  halfmax_HK:  6       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  5e-3     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  12         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_V:  1.5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  halfmax_V:  6       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
 
 # Configuration file version that this file conforms to. For reliable

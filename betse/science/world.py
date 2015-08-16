@@ -980,12 +980,39 @@ class World(object):
         self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
         self.mem_edges_flat = np.asarray(self.mem_edges_flat)
 
+        # structures for plotting interpolated data and streamlines:
+        # create a flattened version of cell_verts that will serve as membrane verts:
+        self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+        self.mem_verts = np.asarray(self.mem_verts)
+
+        self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+
+        xv = np.linspace(self.xmin,self.xmax,self.msize)
+        yv = np.linspace(self.ymin,self.ymax,self.msize)
+        Xv, Yv = np.meshgrid(xv,yv)
+
+        xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
+
+        # structures for plotting interpolated data on cell centres:
+        xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
+        ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+        # zi = interp.griddata((xpts,ypts),zdata,(X,Y))
+
+        mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
+
+        # interpret the value of extracellular electric field components at the centre of each membrane:
+        self.maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
+
+        self.maskM = self.maskM.reshape(self.Xgrid.shape)
+
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
 
-            # create a flattened version of cell_verts that will serve as membrane verts:
-            self.mem_verts,_,_ = tb.flatten(self.cell_verts)
-            self.mem_verts = np.asarray(self.mem_verts)
+            # # create a flattened version of cell_verts that will serve as membrane verts:
+            # self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+            # self.mem_verts = np.asarray(self.mem_verts)
 
             cellVertTree = sps.KDTree(self.mem_verts)
 
@@ -1035,30 +1062,30 @@ class World(object):
 
             #---------------------------------------------------------------------
 
-            # structures for plotting interpolated data and streamlines:
-            self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+            # # structures for plotting interpolated data and streamlines:
+            # self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+            #
+            # xv = np.linspace(self.xmin,self.xmax,self.msize)
+            # yv = np.linspace(self.ymin,self.ymax,self.msize)
+            # Xv, Yv = np.meshgrid(xv,yv)
+            #
+            # xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
+            #
+            # # structures for plotting interpolated data on cell centres:
+            # xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
+            # ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
+            # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+            #
+            # # zi = interp.griddata((xpts,ypts),zdata,(X,Y))
+            #
+            # mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
+            #
+            # # interpret the value of extracellular electric field components at the centre of each membrane:
+            # self.maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
+            #
+            # self.maskM = self.maskM.reshape(self.Xgrid.shape)
 
-            xv = np.linspace(self.xmin,self.xmax,self.msize)
-            yv = np.linspace(self.ymin,self.ymax,self.msize)
-            Xv, Yv = np.meshgrid(xv,yv)
-
-            xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
-
-            # structures for plotting interpolated data on cell centres:
-            xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
-            ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
-            self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-
-            # zi = interp.griddata((xpts,ypts),zdata,(X,Y))
-
-            mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
-
-            # interpret the value of extracellular electric field components at the centre of each membrane:
-            maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
-
-            maskM = maskM.reshape(self.Xgrid.shape)
-
-            self.cluster_mask = maskM
+            # self.cluster_mask = maskM
 
             #---------------------------------------------------------------------
 

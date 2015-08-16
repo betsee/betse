@@ -2,12 +2,12 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME do cut cells routine for p.sim_ECM true !!!
 # FIXME cut out all the grey areas -- don't need 'em anymore
 
 
 import numpy as np
 from scipy import spatial as sps
+from scipy import interpolate as interp
 from random import shuffle
 from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
@@ -789,7 +789,6 @@ class Dynamics(object):
 
                 if p.sim_ECM == True:
                     #get ecm targets
-                    # self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
 
                     ecm_targs_cell = list(cells.map_cell2ecm[self.cell_target_inds[name]])
                     ecm_targs_mem = list(cells.map_mem2ecm[self.tissue_target_inds[name]])
@@ -811,8 +810,6 @@ class Dynamics(object):
 
                     if p.sim_ECM == True:
                         sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
-                        # sim.D_env[sim.iNa][ecm_targs_mem] = p.Do_Na*ecm_val
-                        # sim.D_env[sim.iNa][ecm_targs_cell] = p.Do_Na*ecm_val
 
                 if p.ions_dict['K'] == 1:
                     dK = dmem_list['Dm_K']
@@ -1082,51 +1079,19 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
     target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn[target_inds_cell])
 
-    if p.sim_ECM == True: # get the flags to ecm structures: # FIXME need to leave ecm that are shared with remaining cells and add them to env
-        # to tag the ecm for removal, we must find the ecm unique to removed cells and add shared ecm to new env
-        # first distinguish between keeper and removal cell indices:
-        cell_targets_set = set(target_inds_cell)
-        all_cells_set = set(cells.cell_i)
-        cell_keepers_set = all_cells_set.difference(cell_targets_set)
 
-        cell_targets = list(cell_targets_set)
-        cell_keepers = list(cell_keepers_set)
-
-        # # next get the ecm indicies for both the keeper and removal cells (some of these ecm will be shared)
-        # removal_queery = cells.cell_to_ecm[cell_targets]
-        # removal_queery_flat,_,_ = tb.flatten(removal_queery)
-        # ecm_keepers = cells.cell_to_ecm[cell_keepers]
-        # ecm_keepers_flat,_,_ = tb.flatten(ecm_keepers)
-        #
-        # removal_queery_set = set(removal_queery_flat)
-        # ecm_keepers_set = set(ecm_keepers_flat)
-        #
-        # # use set intersection to determine new env ecm indices:
-        # new_env_set = removal_queery_set & ecm_keepers_set
-        # # the ecm to be totally removed are the ones that aren't shared between keeper and removal cells:
-        # ecm_targets = removal_queery_set.difference(new_env_set)
-        #
-        # ecm_keepers = list(ecm_keepers_set)
-        # target_inds_env = list(new_env_set)
-        # target_inds_ecm = list(ecm_targets)
-        #
-        # new_ecm_env_mids = cells.ecm_mids[target_inds_env]  # [x,y] coords of ecm on boundary, for work later...
-        # old_ecm_env_mids = cells.ecm_mids[cells.bflags_ecm]  # original coords of ecm on boundary, for work later..
-        #
-        # cells.ecm_nn_i_old = cells.ecm_nn_i
-
-    # If doing online, real-time modifications the simulator object must be updated first:
-    # get names of all attributes of sim object and convert to list
     if simMod == True:
 
         sim_names = list(sim.__dict__.keys())
-        specials_list = ['cc_cells','cc_env','z_array','Dm_cells','fluxes_gj','fluxes_mem','Dm_base',\
-            'Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR','D_gj','cc_er']
+        specials_list = ['cc_cells','cc_env','z_array','z_array_er','Dm_cells','fluxes_gj_x','fluxes_gj_y',
+            'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR','D_gj','cc_er']
 
         if p.sim_ECM == True:
-            extra = ['cc_ecm','cc_env','D_env_juncs','fluxes_ecm','fluxes_env','z_array_cells','z_array_ecm','z_array_env']
+            specials_list.remove('cc_env')
+            extra = ['z_array_cells']
             for ent in extra:
                 specials_list.append(ent)
+
 
         special_names = set(specials_list)
 
@@ -1168,15 +1133,6 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                                 del data[index]
                             data2.append(data[index])
 
-                        if p.sim_ECM == True:
-
-                            pass
-
-                            # if len(data) == len(cells.ecm_i):
-                            #     for index in sorted(target_inds_ecm, reverse=True):
-                            #         del data[index]
-                            #     data2.append(data[index])
-
 
                     super_data2.append(data2)
 
@@ -1202,22 +1158,6 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
-                    if p.sim_ECM == True:
-
-                        pass
-
-                        # if len(data) == len(cells.ecm_i):
-                        #     data2 = np.delete(data,target_inds_ecm)
-                        #     setattr(sim,name,data2)
-                        #
-                        # if len(data) == len(cells.env_i):
-                        #     data_val = np.mean(data)
-                        #     data2 = np.zeros(len(target_inds_env))
-                        #     data2[:] = data_val
-                        #     data3 = np.append(data,data2)
-                        #     setattr(sim,name,data3)
-
-
                 if isinstance(data,list):
                     data2 = []
 
@@ -1239,30 +1179,12 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
-                    if p.sim_ECM == True:
-                        pass
 
-                        # if len(data) == len(cells.ecm_i):
-                        #     for index in sorted(target_inds_ecm, reverse=True):
-                        #         del data[index]
-                        #     data2.append(data[index])
-                        #     setattr(sim,name,data2)
-
-
-#-------------------------------Fix cell world up------------------------------------
+#-------------------------------Fix-up cell world ----------------------------------------------------------------------
     new_cell_centres = []
     new_ecm_verts = []
     removal_flags = np.zeros(len(cells.cell_i))
     removal_flags[target_inds_cell] = 1
-
-    if cavity_volume == True and p.sim_ECM == True: # if true, want the new cavity volume to be assigned to the model
-        pass
-
-        # # keep track of the original environmental points:
-        # original_env_points = cells.env_points
-        #  # calculate the volume of the cavity based on cells removed
-        # cells.cavity_volume = np.sum(cells.cell_vol[target_inds_cell])
-
 
     for i,flag in enumerate(removal_flags):
 
@@ -1278,44 +1200,18 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
     if p.sim_ECM == True:
 
-        # np.append(cells.bflags_ecm,target_inds_env)
-        # cells.bmask_ecm = np.zeros(len(cells.ecm_i))
-
         cells.cellVerts(p)   # create individual cell polygon vertices
-        # cells.bflags_ecm,cells.bmask_ecm = cells.boundTag(cells.ecm_verts_unique,p,alpha=1.4)   # flag ecm domains on the env bound
-        # cells.cellGeo(p,close_ecm='yes') # calculate volumes, surface areas, membrane domains, ecm segments and unit vectors
         cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
-
-        # ecmTree = sps.KDTree(cells.ecm_mids)
-        # _,new_bflags_ecm = ecmTree.query(new_ecm_env_mids)
-        # _,old_bflags_ecm = ecmTree.query(old_ecm_env_mids)
-        #
-        # cells.bflags_ecm = None
-        #
-        # cells.bflags_ecm = np.append(old_bflags_ecm,new_bflags_ecm)
-        # cells.bflags_ecm,_ = cells.boundTag(cells.ecm_mids,p,alpha=1.4)   # flag ecm domains on the env bound
-
-        # cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)  # flag cell centres on the env bound
         cells.near_neigh(p)    # Calculate the nn array for each cell
-        # cells.make_env_points(p)  # get the environmental interaction points for each boundary ecm
         cells.cleanUp(p)       # Free up memory...
         # cells.makeECM(p)       # create the ecm grid
         cells.environment(p)   # define features of the ecm grid
         cells.grid_len =len(cells.xypts)
-        cells.generalMask = cells.makeMask(mask_type='exterior bound')
-        loggers.log_info('Creating environmental Poisson solver...')
-        cells.Ainv = cells.makeLaplacian(cells.generalMask)
 
-        if cavity_volume == True:
-            pass
-
-            # envTree = sps.KDTree(cells.env_points)  # make a points search tree out of the new environmental points...
-            # _, cells.true_env_inds = envTree.query(original_env_points) # find inds in new vector matching original env points...
-            #
-            # # prepare a vector that flags cavity env spaces with 1 and original env spaces with zero...
-            # env_flags = np.ones(len(cells.env_points))
-            # env_flags[cells.true_env_inds] = 0
-            # cells.cavity_inds = (env_flags == 1).nonzero()
+        # make a laplacian and solver for discrete transfers on closed, irregular cell network:
+        loggers.log_info('Creating cell network Poisson solver...')
+        cells.graphLaplacian()
+        loggers.log_info('Completed major world-building computations.')
 
     else:
 
@@ -1323,35 +1219,6 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
         cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)      # Free up memory...
-
-    # re-initialize environmental spaces for currents
-    #---------------------------
-    if simMod == True and p.sim_ECM == True:
-
-        pass
-
-        # for name, dat in vars(sim).items():
-        #
-        #     if isinstance(dat,np.ndarray):
-        #
-        #         if len(dat.shape) == 1 and len(dat) == len(cells.ecm_nn_i_old):
-        #             mean_val = np.mean(dat)
-        #             data2 = np.zeros(len(cells.ecm_nn_i))
-        #             data2[:] = mean_val
-        #             setattr(sim,name,data2)
-        #
-        #         elif len(dat.shape) > 1 and dat.shape[1] == len(cells.ecm_nn_i):
-        #
-        #             sub_dat_2 = []
-        #
-        #             for sub_dat in dat:
-        #                 mean_val = np.mean(sub_dat)
-        #                 data2 = np.zeros(len(cells.ecm_nn_i))
-        #                 data2[:] = mean_val
-        #                 sub_dat_2.append(data2)
-        #
-        #             data3 = np.asarray(sub_dat_2)
-        #             setattr(sim,name,data3)
 
 
 

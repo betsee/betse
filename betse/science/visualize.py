@@ -87,10 +87,6 @@ class AnimateCellData(object):
 
         self.ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -111,7 +107,7 @@ class AnimateCellData(object):
             dat_grid = sim.vm_Matrix[0]
 
             if p.plotMask == True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.cluster_mask))
+                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.maskM))
 
             self.collection = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
 
@@ -143,7 +139,7 @@ class AnimateCellData(object):
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
                 self.tit_extra = 'Gap junction and trans-membrane current'
@@ -233,7 +229,7 @@ class AnimateCellData(object):
             dat_grid = 1e3*self.sim.vm_Matrix[i]
 
             if self.p.plotMask == True:
-                dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+                dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.maskM))
 
             # self.collection.set_array(dat_grid.ravel())
             self.collection.set_data(dat_grid)
@@ -256,7 +252,7 @@ class AnimateCellData(object):
                 self.streams.lines.remove()
                 self.ax.patches = []
 
-                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,J_x,J_y,
+                self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
             elif self.IecmPlot == True:
@@ -310,10 +306,6 @@ class AnimateCellData_smoothed(object):
 
         self.ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -330,9 +322,15 @@ class AnimateCellData_smoothed(object):
 
         # set range of the colormap
         if clrAutoscale == True:
-            self.cmean = np.mean(self.zdata_t)
-            self.cmin = round(np.min(self.zdata_t),1)
-            self.cmax = round(np.max(self.zdata_t),1)
+            # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in zdata_t:
+                for val in zarray:
+                    all_z.append(val)
+
+            self.cmean = np.mean(all_z)
+            self.cmin = round(np.min(all_z),1)
+            self.cmax = round(np.max(all_z),1)
             clrCheck = self.cmax - self.cmin
 
             if clrCheck == 0:
@@ -345,10 +343,10 @@ class AnimateCellData_smoothed(object):
 
         dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),zdata_t[0],(cells.Xgrid,cells.Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
-        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+        dat_grid = np.multiply(dat_grid,cells.maskM)
 
         if p.plotMask == True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
         self.triplt = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
 
@@ -376,7 +374,7 @@ class AnimateCellData_smoothed(object):
 
                 lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
                 self.tit_extra = 'Gap junction and trans-membrane current'
@@ -412,13 +410,10 @@ class AnimateCellData_smoothed(object):
         dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),self.zdata_t[i],
             (self.cells.Xgrid,self.cells.Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
-        dat_grid = np.multiply(dat_grid,self.cells.cluster_mask)
+        dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
         if self.p.plotMask == True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
-
-        if self.p.plotMask == True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.maskM))
 
         self.triplt.set_data(dat_grid)
 
@@ -436,7 +431,7 @@ class AnimateCellData_smoothed(object):
                 self.streams.lines.remove()
                 self.ax.patches = []
 
-                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,J_x,J_y,
+                self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
             elif self.IecmPlot == True:
@@ -532,9 +527,20 @@ class AnimateGJData(object):
 
         # set range of the colormap
         if clrAutoscale == True:
-            self.cmean = np.mean(self.vdata_t)
-            self.cmin = round(np.min(self.vdata_t),1)
-            self.cmax = round(np.max(self.vdata_t),1)
+
+             # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in self.vdata_t:
+                for val in zarray:
+                    all_z.append(val)
+
+            self.cmean = np.mean(all_z)
+            self.cmin = round(np.min(all_z),1)
+            self.cmax = round(np.max(all_z),1)
+
+            # self.cmean = np.mean(self.vdata_t)
+            # self.cmin = round(np.min(self.vdata_t),1)
+            # self.cmax = round(np.max(self.vdata_t),1)
             clrCheck = self.cmax - self.cmin
 
             if clrCheck == 0:
@@ -565,11 +571,6 @@ class AnimateGJData(object):
         self.ax.set_title(self.tit)
 
         self.ax.axis('equal')
-
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
@@ -626,7 +627,8 @@ class AnimateGJData_smoothed(object):
         self.colormap = clrmap
         self.time = sim.time
 
-        self.gjI_t = np.sign(sim.I_gj_time)
+        self.gjIx_t = np.sign(sim.I_gj_x_time)
+        self.gjIy_t = np.sign(sim.I_gj_y_time)
         self.gjvects = cells.nn_vects
 
         self.fig = plt.figure()       # define figure
@@ -648,24 +650,20 @@ class AnimateGJData_smoothed(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        con_segs = cells.cell_centres[cells.gap_jun_i]
+        con_segs = cells.cell_centres[cells.nn_i]
         connects = p.um*np.asarray(con_segs)
-        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap=p.gj_cm, linewidths=3.0, zorder=5)
+        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap=p.gj_cm, linewidths=2.0, zorder=5)
         self.collection.set_clim(0.0,1.0)
         self.ax.add_collection(self.collection)
 
-        xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
-        ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
-        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-
-        dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.vdata_t[0],(self.Xgrid,self.Ygrid))
+        dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.vdata_t[0],(cells.Xgrid,cells.Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
-        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+        dat_grid = np.multiply(dat_grid,cells.maskM)
 
         if p.plotMask == True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
-        self.triplt = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
+        self.triplt = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
 
         # Next add a triplot with interpolated and animated voltage data
         # self.triplt = self.ax.tripcolor(p.um*cells.cell_centres[:, 0], p.um*cells.cell_centres[:, 1],
@@ -673,9 +671,19 @@ class AnimateGJData_smoothed(object):
 
          # set range of the colormap
         if clrAutoscale == True:
-            self.cmean = np.mean(self.vdata_t)
-            self.cmin = round(np.min(self.vdata_t),1)
-            self.cmax = round(np.max(self.vdata_t),1)
+             # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in self.vdata_t:
+                for val in zarray:
+                    all_z.append(val)
+
+            self.cmean = np.mean(all_z)
+            self.cmin = round(np.min(all_z),1)
+            self.cmax = round(np.max(all_z),1)
+
+            # self.cmean = np.mean(self.vdata_t)
+            # self.cmin = round(np.min(self.vdata_t),1)
+            # self.cmax = round(np.max(self.vdata_t),1)
             clrCheck = self.cmax - self.cmin
 
             if clrCheck == 0:
@@ -690,11 +698,11 @@ class AnimateGJData_smoothed(object):
         self.cb = self.fig.colorbar(self.triplt)   # define colorbar for figure
 
         # Next add in gap junction I_gj direction
-        vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
-        vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
-
-        self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-            vx,vy,self.zdata_t[0],zorder=10, cmap=p.gj_cm,clim=[0,1])
+        # vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
+        # vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
+        #
+        # self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
+        #     vx,vy,self.zdata_t[0],zorder=10, cmap=p.gj_cm,clim=[0,1])
 
         if number_cells == True:
             for i,cll in enumerate(cells.cell_centres):
@@ -707,10 +715,6 @@ class AnimateGJData_smoothed(object):
 
         self.ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -730,22 +734,23 @@ class AnimateGJData_smoothed(object):
         zz = self.zdata_t[i]
         zv = self.vdata_t[i]
 
-        vx = np.multiply(self.gjI_t[i],self.gjvects[:,2])
-        vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
+        # vx = np.multiply(self.gjI_t[i],self.gjvects[:,2])
+        # vy = np.multiply(self.gjI_t[i],self.gjvects[:,3])
 
         self.collection.set_array(zz)
 
-        dat_grid = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),zv,(self.Xgrid,self.Ygrid))
+        dat_grid = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),zv,
+            (self.cells.Xgrid,self.cells.Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
-        dat_grid = np.multiply(dat_grid,self.cells.cluster_mask)
+        dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
         if self.p.plotMask == True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.cluster_mask))
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.maskM))
 
         self.triplt.set_array(dat_grid.ravel())
 
         # self.triplt.set_array(zv)
-        self.Qplot.set_UVC(vx,vy,zz)
+        # self.Qplot.set_UVC(vx,vy,zz)
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
         self.ax.set_title(titani)
@@ -780,10 +785,6 @@ class PlotWhileSolving(object):
 
         self.ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -816,40 +817,24 @@ class PlotWhileSolving(object):
                 self.coll2.set_alpha(1.0)
                 self.ax.add_collection(self.coll2)
 
-            else:  # FIXME do this for smoothed data with no ecm
-                pass
-                # xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
-                # ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
-                # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-                #
-                # dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,(self.Xgrid,self.Ygrid))
-                # dat_grid = np.nan_to_num(dat_grid)
-                # dat_grid = np.multiply(dat_grid,cells.cluster_mask)
-                #
-                # if p.plotMask == True:
-                #     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
-                #
-                # self.coll2 = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+            else:
+
+                dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
+                    (cells.Xgrid,cells.Ygrid),fill_value=0)
+
+                dat_grid = np.multiply(dat_grid,cells.maskM)
+
+                self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
+                    cmap=self.colormap)
 
         elif p.sim_ECM == True:
 
             dat_grid = sim.vm_Matrix[0]
 
             if p.plotMask == True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.cluster_mask))
+                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
-
-            if p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
-
-                pass
-
-                # boundv = sim.v_env*1e3
-                #
-                # self.vext_plot = self.ax.scatter(p.um*cells.env_points[:,0],p.um*cells.env_points[:,1],
-                #     cmap=self.colormap,c=boundv,zorder=10)
-                #
-                # self.vext_plot.set_clim(self.cmin,self.cmax)
 
             if p.showCells == True:
 
@@ -887,8 +872,15 @@ class PlotWhileSolving(object):
     def updatePlot(self,sim,p):
 
         if p.sim_ECM == False:
-            zv = sim.vm_time[-1]*1000
-            self.coll2.set_array(zv)
+
+            if p.showCells == True:
+                zv = sim.vm_time[-1]*1000
+                self.coll2.set_array(zv)
+            else:
+                dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),
+                    sim.vm_time[-1]*1000,(self.cells.Xgrid,self.cells.Ygrid),fill_value=0)
+                dat_grid = np.multiply(dat_grid,self.cells.maskM)
+                self.coll2.set_array(dat_grid.ravel())
 
         else:
             zv = sim.vm_Matrix[-1]*1000
@@ -901,17 +893,6 @@ class PlotWhileSolving(object):
             self.coll2.set_clim(cmin,cmax)
 
         time = sim.time[-1]
-
-
-        if p.sim_ECM == True and p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
-
-            pass
-
-            # boundv = sim.v_env*1e3
-            # self.vext_plot.set_array(boundv)
-            #
-            # if self.clrAutoscale == True:
-            #     self.vext_plot.set_clim(cmin,cmax)
 
 
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'
@@ -933,10 +914,10 @@ class PlotWhileSolving(object):
 
         self.ax.cla()
 
-        xmin = p.um*(cells.clust_x_min - p.clip)
-        xmax = p.um*(cells.clust_x_max + p.clip)
-        ymin = p.um*(cells.clust_y_min - p.clip)
-        ymax = p.um*(cells.clust_y_max + p.clip)
+        xmin = p.um*cells.xmin
+        xmax = p.um*cells.xmax
+        ymin = p.um*cells.ymin
+        ymax = p.um*cells.ymax
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
@@ -965,27 +946,25 @@ class PlotWhileSolving(object):
                 self.coll2.set_alpha(1.0)
                 self.ax.add_collection(self.coll2)
 
-            else:  # FIXME do this for smoothed data with no ecm
-                pass
-                # xgrid = np.linspace(cells.xmin,cells.xmax,cells.msize)
-                # ygrid = np.linspace(cells.ymin,cells.ymax,cells.msize)
-                # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-                #
-                # dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,(self.Xgrid,self.Ygrid))
-                # dat_grid = np.nan_to_num(dat_grid)
-                # dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+            else:
+
+                dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
+                    (cells.Xgrid,cells.Ygrid),fill_value=0)
+
+                dat_grid = np.multiply(dat_grid,cells.maskM)
                 #
                 # if p.plotMask == True:
-                #     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+                #     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
                 #
-                # self.coll2 = plt.pcolormesh(p.um*self.Xgrid, p.um*self.Ygrid,dat_grid,shading='gouraud', cmap=self.colormap)
+                self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
+                    cmap=self.colormap)
 
         elif p.sim_ECM == True:
 
             dat_grid = sim.vm_Matrix[0]
 
             if p.plotMask == True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.cluster_mask))
+                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
@@ -1078,7 +1057,7 @@ class AnimateCurrent(object):
 
             if p.I_overlay == True:
 
-                self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
+                self.streamplot = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
                     linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
             self.tit = 'Gap junction and trans-membrane current'
@@ -1154,7 +1133,7 @@ class AnimateCurrent(object):
                 self.streamplot.lines.remove()
                 self.ax.patches = []
 
-                self.streamplot = self.ax.streamplot(self.cells.X*self.p.um,self.cells.Y*self.p.um,J_x,J_y,
+                self.streamplot = self.ax.streamplot(self.cells.Xgrid*self.p.um,self.cells.Ygrid*self.p.um,J_x,J_y,
                     density=self.p.stream_density, linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
 
         else:
@@ -1327,7 +1306,13 @@ def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'
 def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
 
 
-    ccIon_cell = [arr[ioni][celli] for arr in simdata_time]
+    # ccIon_cell = [arr[ioni][celli] for arr in simdata_time]
+    ccIon_cell = []
+
+    for carray in simdata_time:
+
+        conc = carray[ioni][celli]
+        ccIon_cell.append(conc)
 
     if fig is None:
         fig = plt.figure()# define the figure and axes instances
@@ -1438,7 +1423,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         ax.axis([xmin,xmax,ymin,ymax])
 
         if p.plotMask == True:
-            zdata = ma.masked_array(zdata, np.logical_not(cells.cluster_mask))
+            zdata = ma.masked_array(zdata, np.logical_not(cells.maskM))
 
         meshplt = plt.imshow(zdata,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
 
@@ -1662,11 +1647,6 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
 
         ax.axis('equal')
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -1676,10 +1656,10 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
 
         dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),z,(cells.Xgrid,cells.Ygrid))
         dat_grid = np.nan_to_num(dat_grid)
-        dat_grid = np.multiply(dat_grid,cells.cluster_mask)
+        dat_grid = np.multiply(dat_grid,cells.maskM)
 
         if p.plotMask == True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.cluster_mask))
+            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
         triplt = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
 
@@ -2178,7 +2158,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-        streamplot = ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
+        streamplot = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('Final gap junction and trans-membrane currents')
@@ -2478,7 +2458,7 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
-        ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+        ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('(gap junction and trans-membrane current overlay)')
 
