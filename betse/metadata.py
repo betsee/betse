@@ -93,16 +93,13 @@ DEPENDENCIES_RUNTIME = [
     # matplotlib 1.4.0 switched Python compatability layers from "2to3" to
     # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
     # and hence end-user use of such version of matplotlib.
-    'matplotlib >= 1.3.0',
+    'Matplotlib >= 1.3.0',
 
     # Dependencies directly required by BETSE.
     # 'PySide >= 1.2.0',
-    'numpy >= 1.8.0',
-    'scipy >= 0.12.0',
-
-    #FIXME: Terrible. Should be "pyyaml", but that currently breaks "betse"!
-    'yaml >= 3.10',
-    # 'pyyaml >= 3.10',
+    'Numpy >= 1.8.0',
+    'SciPy >= 0.12.0',
+    'PyYAML >= 3.10',
 
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, such dependencies are
@@ -160,6 +157,10 @@ if sys.hexversion < 0x03030000:
     )))
 
 # --------------------( WASTELANDS                         )--------------------
+    # 'simpo >= 3.10',
+    # 'PyYAML < 3.10',
+    #FUXME: Terrible. Should be "pyyaml", but that currently breaks "betse"!
+    # 'yaml >= 3.10',
     # 'voluptuous >= 0.8.7',
     # 'matplotlib < 1.4.0',
 #FUXME: There appears to be no way to provide build-time dependencies to
