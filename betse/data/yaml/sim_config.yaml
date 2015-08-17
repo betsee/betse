@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 2.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -156,7 +156,7 @@ general options:
 
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'animal'   # set the ion profile to be used in the simulation
+  ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -177,7 +177,7 @@ general options:
 
   membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
 
-  water viscocity: 1.0   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
+  water viscocity: 1.0e-3   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
 
   membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
@@ -285,7 +285,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 5.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -420,7 +420,7 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 0.5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
 number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
@@ -438,7 +438,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 0.1    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-1    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: tissue       # give your profile a name that will be used to apply the profile
@@ -454,7 +454,7 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 0.2    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-1    # multiplier for ecm diffusion
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 

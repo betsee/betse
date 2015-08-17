@@ -579,15 +579,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #------------------------------------------------------------------------------------------------------------------
 
     if p.sim_ECM == True:
-        U = np.sqrt(sim.u_at_c**2 + sim.v_at_c**2)
+
+        u = np.float64(sim.u_at_c)
+        v = np.float64(sim.v_at_c)
+        U = np.sqrt(u**2 + v**2)*1e6
 
 
         plt.figure()
         plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
         plt.colorbar()
-        plt.quiver(cells.X,cells.Y,sim.u_at_c,sim.v_at_c)
+        plt.quiver(cells.X,cells.Y,u,v)
         plt.axis('equal')
-        plt.title('VELOCITY RULES! (?maybe?)')
+        plt.title('VELOCITY RULES! [um/s]')
 
         plt.show(block=False)
 
