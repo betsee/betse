@@ -18,7 +18,7 @@ from betse.science import filehandling as fh
 from betse.science import visualize as viz
 from betse.science import toolbox as tb
 from betse.science.dynamics import Dynamics
-from betse.science.finitediff import gradient, flux_summer
+from betse.science.finitediff import gradient, flux_summer, laplacian
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionSimulation
 from betse.util.io import loggers
@@ -126,6 +126,16 @@ class Simulator(object):
 
         self.I_mem =np.zeros(len(cells.mem_i))     # total current across membranes
         self.I_mem_time = []                            # membrane current unit time
+
+        # initialize vectors for electroosmosis in the cell collection:
+        self.u_cells = np.zeros(len(cells.nn_i))
+        self.P_cells = np.zeros(len(cells.cell_i))
+
+        # force of gravity:
+        Fg_x = np.zeros(len(cells.nn_i))
+        Fg_y = -9.81*p.rho*np.ones(len(cells.nn_i))
+        # get the component of the gravity force tangent to each gap junction:
+        self.Fgj = Fg_x*cells.nn_vects[:,2] + Fg_y*cells.nn_vects[:,3]
 
         ion_names = list(p.ions_dict.keys())
 
@@ -358,6 +368,8 @@ class Simulator(object):
                 self.cDye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
                 self.cDye_env[:] = p.cDye_to
 
+        self.z_array = np.asarray(self.z_array)
+
     def baseInit_ECM(self,cells,p):
 
         self.cc_cells = []  # cell concentrations initialized
@@ -402,6 +414,17 @@ class Simulator(object):
         self.fluxes_env_x = []
         self.fluxes_env_y = []
         self.I_env =np.zeros(len(cells.xypts))     # total current in environment
+
+        # Electroosmosis: start with a test force of gravity:
+        self.Fx = np.zeros(cells.grid_obj.u_shape)
+        self.Fy = np.zeros(cells.grid_obj.v_shape)
+
+        self.Fy[5:-5,5:-5] = -p.rho*9.81
+
+        # initialize vectors for env flow:
+        self.u_env_x = np.zeros(cells.grid_obj.u_shape)  # velocity wrt gap junction vectors
+        self.u_env_y = np.zeros(cells.grid_obj.v_shape)  # velocity wrt gap junction vectors
+        self.P_env = np.zeros(cells.grid_obj.cents_shape)
 
         if p.sim_eosmosis == True:
             self.rho_channel = np.ones(len(cells.mem_i))
@@ -788,6 +811,10 @@ class Simulator(object):
         self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
         self.efield_gj_y_time = []
 
+        # initialize time-storage vectors for electroosmosis:
+        self.P_cells_time = []
+        self.u_cells_time = []
+
         if p.voltage_dye == True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
@@ -801,8 +828,9 @@ class Simulator(object):
         self.gjl[:] = cells.nn_len
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
-        q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-        self.vm = get_volt(q_cells,cells.cell_sa,p)
+        # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+        # self.vm = get_volt(q_cells,cells.cell_sa,p)
+        self.update_V_ecm(cells,p,0)
 
         # vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
         self.vm_to = self.vm[:]
@@ -880,8 +908,9 @@ class Simulator(object):
             self.fluxes_mem[self.iK] = fK_NaK[cells.mem_to_cells]
 
             # recalculate the net, unbalanced charge and voltage in each cell:
-            q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-            self.vm = get_volt(q_cells,cells.cell_sa,p)
+            # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+            # self.vm = get_volt(q_cells,cells.cell_sa,p)
+            self.update_V_ecm(cells,p,t)
 
             if p.ions_dict['Ca'] == 1:
                 # run the calcium ATPase membrane pump:
@@ -894,8 +923,9 @@ class Simulator(object):
                 self.fluxes_mem[self.iCa] = fCaATP[cells.mem_to_cells]
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
 
@@ -907,8 +937,9 @@ class Simulator(object):
                     self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fCaATP_ER*(cells.cell_sa/cells.cell_vol)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    self.update_V_ecm(cells,p,t)
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -922,25 +953,19 @@ class Simulator(object):
                     self.zs[self.iH],self.vm,self.T,p)
 
                 # update the anion rather than H+, assuming that the bicarbonate buffer is working:
-
                 self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_H1*(cells.cell_sa/cells.cell_vol)*p.dt
                 # self.cc_env[self.iM] = self.cc_env[self.iM] + f_H1*(cells.cell_sa/p.vol_env)*p.dt
 
                 self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
 
-                # # buffer what's happening with H+ flux to or from the cell and environment:
-                # delH_cell = f_H1*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
-                # delH_env =  -f_H1*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
-                #
-                # self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells,self.pH_cell = bicarbBuffer(
-                #     self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-                #
-                # self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env,self.pH_env = bicarbBuffer(
-                #     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+                # Calculate the new pH and H+ concentration:
+                self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
+                self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                self.update_V_ecm(cells,p,t)
 
                 if p.HKATPase_dyn == 1:
 
@@ -956,19 +981,14 @@ class Simulator(object):
                     self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2[cells.mem_to_cells]
                     self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2[cells.mem_to_cells]
 
-                    #  # buffer what's happening with H+ flux to or from the cell and environment:
-                    # delH_cell = f_H2*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
-                    # delH_env =  -f_H2*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
-                    #
-                    # self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells,self.pH_cell = bicarbBuffer(
-                    #     self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-                    #
-                    # self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env,self.pH_env = bicarbBuffer(
-                    #     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+                    # Calculate the new pH and H+ concentration:
+                    self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
+                    self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    self.update_V_ecm(cells,p,t)
 
                 if p.VATPase_dyn == 1:
 
@@ -979,19 +999,14 @@ class Simulator(object):
 
                     self.fluxes_mem[self.iH]  = self.fluxes_mem[self.iH] + f_H3[cells.mem_to_cells]
 
-                    #  # buffer what's happening with H+ flux to or from the cell and environment:
-                    # delH_cell = f_H3*(cells.cell_sa/cells.cell_vol)*p.dt    # relative change in H wrt the cell
-                    # delH_env =  -f_H3*(cells.cell_sa/p.vol_env)*p.dt    # relative change in H wrt to environment
-                    #
-                    # self.cc_cells[self.iH], self.cc_cells[self.iM], self.cHM_cells,self.pH_cell = bicarbBuffer(
-                    #     self.cc_cells[self.iH],self.cc_cells[self.iM],self.cHM_cells,delH_cell,p)
-                    #
-                    # self.cc_env[self.iH], self.cc_env[self.iM], self.cHM_env,self.pH_env = bicarbBuffer(
-                    #     self.cc_env[self.iH],self.cc_env[self.iM],self.cHM_env,delH_env,p)
+                    # Calculate the new pH and H+ concentration:
+                    self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
+                    self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                    self.update_V_ecm(cells,p,t)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
 
@@ -1008,14 +1023,18 @@ class Simulator(object):
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED[cells.mem_to_cells]
 
                 # # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                self.update_V_ecm(cells,p,t)
 
                 self.update_gj(cells,p,t,i)
 
-            # caculate electric fields:
+            # calculate electric fields:
 
             self.get_Efield(cells, p)
+
+            # calculate electroosmotic flow:
+            self.getFlow(cells,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
                 # determine flux through gap junctions for IP3:
@@ -1055,8 +1074,9 @@ class Simulator(object):
                 self.cc_er[1] = self.cc_er[1] + fER_m*(cells.cell_sa/(cells.cell_vol*p.ER_vol))*p.dt
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                self.update_V_ecm(cells,p,t)
 
                 q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                 v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
@@ -1087,8 +1107,9 @@ class Simulator(object):
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                self.vm = get_volt(q_cells,cells.cell_sa,p)
+                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
+                # self.vm = get_volt(q_cells,cells.cell_sa,p)
+                self.update_V_ecm(cells,p,t)
 
             check_v(self.vm)
 
@@ -1118,6 +1139,10 @@ class Simulator(object):
                 self.vm_time.append(self.vm[:])
 
                 self.dvm_time.append(self.dvm[:])
+
+                self.P_cells_time.append(self.P_cells[:])
+                self.u_cells_time.append(self.u_cells[:])
+
 
                 if p.v_sensitive_gj == True:
 
@@ -1271,6 +1296,11 @@ class Simulator(object):
 
         self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
         self.efield_ecm_y_time = []
+
+        # initialize time-storage vectors:
+        self.P_env_time = []
+        self.u_env_x_time = []
+        self.u_env_y_time = []
 
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
@@ -1436,6 +1466,8 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
+            self.getFlow(cells,p)
+
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
                 self.update_IP3(cells,p,t)
@@ -1508,6 +1540,10 @@ class Simulator(object):
                 self.I_env_y_time.append(self.I_env_y[:])
 
                 self.I_mem_time.append(self.I_mem[:])
+
+                self.P_env_time.append(self.P_env[:])
+                self.u_env_x_time.append(self.u_at_c[:])
+                self.u_env_y_time.append(self.v_at_c[:])
 
                 # calculate interpolated verts and midpoint data for Vmem:
                 dat_grid_vm = vertData(self.vm[:],cells,p)
@@ -1622,12 +1658,20 @@ class Simulator(object):
 
     def update_V_ecm(self,cells,p,t):
 
-        self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-        self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-        self.v_env = get_Venv(self,cells,p)
-        self.v_cell = get_Vcell(self,cells,p)
 
-        self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
+        if p.sim_ECM == True:
+
+            self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
+            self.v_env = get_Venv(self,cells,p)
+            self.v_cell = get_Vcell(self,cells,p)
+
+            self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
+
+        else:
+
+            self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            self.vm = get_Vcell(self,cells,p)
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -1976,7 +2020,7 @@ class Simulator(object):
          # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM == True:
 
-            Egj = - (self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0])/cells.nn_len
+            self.Egj = - (self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0])/cells.nn_len
 
             # in the environment:
             venv = self.v_env.reshape(cells.X.shape)
@@ -1986,11 +2030,11 @@ class Simulator(object):
             self.E_env_y = -genv_y
 
         else:
-            Egj = - (self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0])/cells.nn_len
+            self.Egj = - (self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0])/cells.nn_len
 
         # get x and y components of the electric field:
-        self.E_gj_x = cells.nn_vects[:,2]*Egj
-        self.E_gj_y = cells.nn_vects[:,3]*Egj
+        self.E_gj_x = cells.nn_vects[:,2]*self.Egj
+        self.E_gj_y = cells.nn_vects[:,3]*self.Egj
 
     def get_current(self,cells,p):
 
@@ -2017,7 +2061,6 @@ class Simulator(object):
 
         self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
-
 
         # calculate current across cell membranes:
 
@@ -2048,6 +2091,143 @@ class Simulator(object):
 
             self.I_env_x = self.I_env_x.reshape(cells.X.shape)
             self.I_env_y = self.I_env_y.reshape(cells.X.shape)
+
+    def getFlow(self,cells,p):
+        """
+        Calculate the electroosmotic-magneto-hydrodynamic fluid flow in the cell and extracellular
+         networks.
+
+        """
+
+        if p.sim_ECM== True:
+
+            # reinforce boundary conditions -- closed boundary
+            #left
+            self.u_env_x[:,0] = 0
+            # right
+            self.u_env_x[:,-1] = 0
+            # top
+            self.u_env_x[-1,:] = 0
+            # bottom
+            self.u_env_x[0,:] = 0
+
+            # left
+            self.u_env_y[:,0] = 0
+            # right
+            self.u_env_y[:,-1] = 0
+            # top
+            self.u_env_y[-1,:] = 0
+            # bottom
+            self.u_env_y[0,:] = 0
+
+            # calculate the flow, omitting the pressure term:
+            lap_u = laplacian(self.u_env_x,cells.delta)
+            lap_v = laplacian(self.u_env_y,cells.delta)
+
+            u = self.u_env_x + (p.dt/p.rho)*(p.mu_water*lap_u + self.Fx)
+
+            v = self.u_env_y + (p.dt/p.rho)*(p.mu_water*lap_v + self.Fy)
+
+            # take the divergence of the interm flow field using a forward difference
+            # that creates a matrix the same size as the pressure matrix:
+
+            u_dx = (u[:,1:] - u[:,0:-1])/cells.delta
+            v_dy = (v[1:,:] - v[0:-1,:])/cells.delta
+
+            div_u = u_dx + v_dy
+
+            print(np.mean(div_u))
+
+            source = (p.rho/p.dt)*div_u.ravel()
+
+            self.P_env = np.dot(cells.lapENV_P_inv, source)
+            self.P_env = self.P_env.reshape(cells.grid_obj.cents_shape)
+
+            # enforce zero gradient boundary conditions on P:
+            self.P_env[:,0] = self.P_env[:,1]
+            self.P_env[:,-1] = self.P_env[:,-2]
+            self.P_env[0,:] = self.P_env[1,:]
+            self.P_env[-1,:] = self.P_env[-2,:]
+
+            # Take the gradient of the pressue:
+            gPx, gPy = cells.grid_obj.grid_gradient(self.P_env,bounds='open')
+
+            # subtract the pressure from the solution to yeild a divergence-free flow field
+            self.u_env_x = u - gPx*(p.dt/p.rho)
+            self.u_env_y = v - gPy*(p.dt/p.rho)
+
+            # interpolate u and v values at the centre for easy plotting:
+            self.u_at_c = self.u_env_x[:,0:-1]
+
+            self.v_at_c = self.u_env_y[0:-1,:]
+
+            # reinforce boundary conditions
+            #left
+            self.u_at_c[:,0] = 0
+            # right
+            self.u_at_c[:,-1] = 0
+            # top
+            self.u_at_c[-1,:] = 0
+            # bottom
+            self.u_at_c[0,:] = 0
+
+            # left
+            self.v_at_c[:,0] = 0
+            # right
+            self.v_at_c[:,-1] = 0
+            # top
+            self.v_at_c[-1,:] = 0
+            # bottom
+            self.v_at_c[0,:] = 0
+
+
+
+
+        else:
+
+            pass   # FIXME presently unstable -- way to fix it?
+            #
+            # #---------------Flow through gap junction connected cells------------------------------------------------------
+            # # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            # # estimate the charge at each gj by interpolating between connected cells:
+            # rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
+            #
+            # # First calculate the next time-step flow, omitting the pressure term:
+            # # Begin by finding the average normal velocity for each cell-cell connection to the cell centre:
+            # u_cells_o = np.dot(cells.gj2cellMatrix,self.u_cells)
+            #
+            # # Next, get gradient of u in the direction of cell-cell connections:
+            # grad_u = (u_cells_o[cells.nn_i][:,1] - u_cells_o[cells.nn_i][:,0])/cells.nn_len
+            #
+            # # calculated the laplacian as the discrete divergence of the velocity gradient in each cell:
+            # lap_u = np.dot(cells.gjMatrix, grad_u)
+            #
+            # # interpolate the laplacian back to the gap junctions:
+            # lap_u_gj = (lap_u[cells.nn_i][:,0] + lap_u[cells.nn_i][:,1])/2
+            #
+            # # calculate the in-term velocity, which lacks the internal pressure term:
+            # u_gj = self.u_cells + (p.dt/p.rho)*(p.mu_water*lap_u_gj + rho_gj*self.Egj)
+            #
+            # # Next calculate the divergence of the in-term velocity:
+            #
+            # # take the divergence of the flow field as the sum of outflow from each cell:
+            # div_u = np.dot(cells.gjMatrix,u_gj)
+            #
+            # # calculate the pressure from the remaining divergence:
+            # source = (p.rho/p.dt)*div_u
+            #
+            # self.P_cells = np.dot(cells.lapGJinv, -source)
+            #
+            # # Take the gradient of the pressue:
+            # gP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
+            #
+            # # subtract the pressure from the solution to generate a divergence-free flow field:
+            # self.u_cells = u_gj - gP*(p.dt/p.rho)
+            #
+            # # components of flow in the Cartesian x- and y- directions:
+            #
+            # self.u_cells_x = self.u_cells*cells.nn_vects[:,2]
+            # self.u_cells_y = self.u_cells*cells.nn_vects[:,3]
 
     def eosmosis(self,cells,p):
 
@@ -2382,6 +2562,7 @@ def get_volt(q,sa,p):
 
     cap = sa*p.cm
     V = (1/cap)*q
+
     return V
 
 def get_charge(concentrations,zs,vol,p):
@@ -2442,15 +2623,18 @@ def get_Vcell(self,cells,p):
 
     """
 
-    # get the value of the environmental voltage at each cell membrane:
-    venv_at_mem = self.v_env[cells.map_mem2ecm]
+    if p.sim_ECM == False:
+        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
-    # sum the environmental voltage at each mem for each cell and take the average:
-    cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
+    else:
+        # get the value of the environmental voltage at each cell membrane:
+        venv_at_mem = self.v_env[cells.map_mem2ecm]
 
-    # calculate the voltage in each cell:
-    # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-    v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+        # sum the environmental voltage at each mem for each cell and take the average:
+        cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
+
+        # calculate the voltage in each cell:
+        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
 
     return v_cell
 
@@ -2472,7 +2656,7 @@ def get_Venv(self,cells,p):
 
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
-    # in lieu of a feasible solution, the divisor is increased from 80*8.85e-12
+    # in lieu of a feasible solution, the divisor is increased from 80*p.eo
     fxy = -self.rho_env/(5e7*p.eo)
     # fxy = -self.rho_env/(100*p.eo)
 
@@ -2564,11 +2748,6 @@ def vertData(data, cells, p):
     dat_grid      THe data sampled on a uniform grid
 
     """
-
-    # dat_grid = np.zeros(len(cells.xypts))
-    # dat_grid[cells.map_mem2ecm] = data[cells.mem_to_cells]
-    # dat_grid[cells.map_cell2ecm] = data
-    # dat_grid = dat_grid.reshape(cells.X.shape)
 
     verts_data = np.dot(data,cells.matrixMap2Verts)
     plot_data = np.hstack((data,verts_data))

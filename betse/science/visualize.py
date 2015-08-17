@@ -1569,11 +1569,6 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
 
             I_overlay(sim,cells,p,ax,clrmap,plotIecm)
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um

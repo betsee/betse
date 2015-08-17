@@ -253,7 +253,7 @@ class FiniteDiffSolver(object):
         A = A/(self.delta**2)
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-        Ainv = np.linalg.inv(A)
+        Ainv = np.linalg.pinv(A)
 
         return A, Ainv
 
@@ -422,7 +422,6 @@ class FiniteDiffSolver(object):
             gPy[-1,:] = 0
 
         return gPx, gPy
-
 
 def jacobi(A,b,N=50,x=None):
     """
@@ -836,7 +835,7 @@ def flux_summer(U,V,P):
     #     A = A/self.delta**2
     #
     #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-    #     self.Ainv = np.linalg.inv(A)
+    #     self.Ainv = np.linalg.pinv(A)
 
     # def makeLaplacian(grid_len,shape,map_ij2k,delx,dely,maskM=None):
 #     """
@@ -921,7 +920,7 @@ def flux_summer(U,V,P):
 #     Ai = A/(delx*dely)
 #
 #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-#     Ainv = np.linalg.inv(Ai)
+#     Ainv = np.linalg.pinv(Ai)
 #
 #     return Ainv, bound_pts_k
 

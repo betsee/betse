@@ -177,7 +177,7 @@ general options:
 
   membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
 
-  water viscocity: 1.0e-3   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
+  water viscocity: 1.0   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
 
   membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
@@ -627,7 +627,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: True     # use this setting to quickly toggle creation of all
+  create all animations: False     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)

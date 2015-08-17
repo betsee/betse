@@ -761,6 +761,8 @@ class Parameters(object):
 
         self.water_const = (80.0*self.eo/self.mu_water)*self.zeta    # electroosmosis constant
 
+        self.rho = 1000 # mass density of system [kg/m3]
+
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':
 

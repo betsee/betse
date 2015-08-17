@@ -817,8 +817,6 @@ class Dynamics(object):
 
                     if p.sim_ECM == True:
                         sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
-                        # sim.D_env[sim.iK][ecm_targs_mem] = p.Do_K*ecm_val
-                        # sim.D_env[sim.iK][ecm_targs_cell] = p.Do_K*ecm_val
 
                 if p.ions_dict['Cl'] == 1:
                     dCl = dmem_list['Dm_Cl']
@@ -826,8 +824,6 @@ class Dynamics(object):
 
                     if p.sim_ECM == True:
                         sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
-                        # sim.D_env[sim.iCl][ecm_targs_mem] = p.Do_Cl*ecm_val
-                        # sim.D_env[sim.iCl][ecm_targs_cell] = p.Do_Cl*ecm_val
 
                 if p.ions_dict['Ca'] == 1:
                     dCa = dmem_list['Dm_Ca']
@@ -836,8 +832,6 @@ class Dynamics(object):
                     if p.sim_ECM == True:
 
                         sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
-                        # sim.D_env[sim.iCa][ecm_targs_mem] = p.Do_Ca*ecm_val
-                        # sim.D_env[sim.iCa][ecm_targs_cell] = p.Do_Ca*ecm_val
 
                 if p.ions_dict['H'] == 1:
                     dH = dmem_list['Dm_H']
@@ -846,8 +840,6 @@ class Dynamics(object):
                     if p.sim_ECM == True:
 
                         sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
-                        # sim.D_env[sim.iH][ecm_targs_mem] = p.Do_H*ecm_val
-                        # sim.D_env[sim.iH][ecm_targs_cell] = p.Do_H*ecm_val
 
                 if p.ions_dict['M'] == 1:
                     dM = dmem_list['Dm_M']
@@ -872,26 +864,6 @@ class Dynamics(object):
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
                 self.cuts_target_inds[name] = getCellTargets(name,target_method, cells, p,ignoreECM=True)
-
-    # def ecmBoundProfiles(self,sim,cells,p):
-    #
-    #     """
-    #     Reads in parameters data to build ecm-boundary specific (if p.sim_ECM == True) index
-    #     sets for each user-defined boundary profile.
-    #
-    #     """
-    #
-    #     profile_names = list(p.boundary_profiles.keys())
-    #
-    #     self.env_target_label = {}
-    #     self.env_target_inds = {}
-    #
-    #     for name in profile_names:
-    #
-    #         target_method = p.boundary_profiles[name]
-    #         self.env_target_label[name] = target_method
-    #
-    #         self.env_target_inds[name] = getEcmTargets(name,target_method,cells,p)
 
     def makeAllChanges(self,sim):
         # Add together all effects to make change on the cell membrane permeabilities:

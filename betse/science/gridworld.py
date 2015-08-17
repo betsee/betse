@@ -549,7 +549,7 @@ class GridWorld(object):
         Ai = A/self.delta**2
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-        Ainv = np.linalg.inv(Ai)
+        Ainv = np.linalg.pinv(Ai)
 
         return Ainv
 
@@ -717,4 +717,4 @@ class GridWorld(object):
     #     loggers.log_info('Creating Poisson solver... ')
     #
     #     # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
-    #     self.Ainv = np.linalg.inv(A)
+    #     self.Ainv = np.linalg.pinv(A)

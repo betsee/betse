@@ -576,6 +576,48 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+    #------------------------------------------------------------------------------------------------------------------
+
+    if p.sim_ECM == True:
+        U = np.sqrt(sim.u_at_c**2 + sim.v_at_c**2)
+
+
+        plt.figure()
+        plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+        plt.colorbar()
+        plt.quiver(cells.X,cells.Y,sim.u_at_c,sim.v_at_c)
+        plt.axis('equal')
+        plt.title('VELOCITY RULES! (?maybe?)')
+
+        plt.show(block=False)
+
+
+    # if p.showCells == True:
+    #     figU, axU, cbU = viz.plotPolyData(sim,cells,p,zdata=sim.P_cells,number_cells= p.enumerate_cells,
+    #     clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
+    #
+    #     axU.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],sim.u_cells_x,sim.u_cells_y)
+    #
+    # else:
+    #     figU, axU, cbU = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+    #     clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
+    #
+    #     axU.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],sim.u_cells_x,sim.u_cells_y)
+
+    # axU.set_title('Final environmental fluid velocity')
+    # axU.set_xlabel('Spatial distance [um]')
+    # axU.set_ylabel('Spatial distance [um]')
+    # cbU.set_label('Velocity [m/s]')
+
+    # if saveImages == True:
+    #     savename = savedImg + 'final_U_2D' + '.png'
+    #     plt.savefig(savename,format='png')
+
+
+
+
+    #------------------------------------------------------------------------------------------------------------------
+
 
     if p.ani_ip32d ==True and p.scheduled_options['IP3'] != 0 and animate == 1:
         IP3plotting = np.asarray(sim.cIP3_time)

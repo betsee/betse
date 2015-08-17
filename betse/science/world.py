@@ -207,6 +207,11 @@ class World(object):
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid
+
+             # make a laplacian and solver for discrete transfers on closed, irregular cell network
+            loggers.log_info('Creating cell network Poisson solver...')
+            self.graphLaplacian()
+
             loggers.log_info('Completed major world-building computations.')
 
     def makeSeeds(self,p):
@@ -534,56 +539,20 @@ class World(object):
         cell_tree = sps.KDTree(self.cell_centres)
         self.cell_nn=cell_tree.query_ball_point(self.cell_centres,p.search_d*p.d_cell)
 
+        # first need to go through and modify cell nn list to get rid of any empty returns:
+        temp_cell_nn = []
+        for inds in self.cell_nn:
+            if len(inds) != 0:
+                temp_cell_nn.append(inds)
+
+        self.cell_nn = temp_cell_nn
+
         self.num_nn = []  # initialize a list that will hold number of nns to a cell
 
         for indices in self.cell_nn:
             self.num_nn.append(len(indices) -1)  # minus one because query cell is included in each nn list
 
         self.average_nn = (sum(self.num_nn)/len(self.num_nn))
-
-        # GJs = set()
-        # for cell1_ind, nn_inds in enumerate(self.cell_nn):
-        #     for cell2_ind in nn_inds:
-        #         if cell1_ind == cell2_ind:
-        #             pass
-        #         elif cell1_ind < cell2_ind:
-        #             indpair = (cell1_ind,cell2_ind)
-        #             GJs.add(indpair)
-        #         elif cell1_ind > cell2_ind:
-        #             indpair = (cell2_ind, cell1_ind)
-        #             GJs.add(indpair)
-        #
-        # self.gap_jun_i = []
-        #
-        # gv_x = []
-        # gv_y = []
-        # gv_tx = []
-        # gv_ty = []
-        #
-        # for val in GJs:
-        #     vallist = list(val)
-        #     pt1 = self.cell_centres[vallist[0]]
-        #     pt2 = self.cell_centres[vallist[1]]
-        #     pt1 = np.asarray(pt1)
-        #     pt2 = np.asarray(pt2)
-        #     mid = (pt1 + pt2)/2       # midpoint calculation
-        #     tang_a = pt2 - pt1       # tangent
-        #     tang = tang_a/np.linalg.norm(tang_a)
-        #     gv_x.append(mid[0])
-        #     gv_y.append(mid[1])
-        #     gv_tx.append(tang[0])
-        #     gv_ty.append(tang[1])
-        #     self.gap_jun_i.append(vallist)
-        #
-        # self.gj_vects = np.array([gv_x,gv_y,gv_tx,gv_ty]).T
-        #
-        # self.gap_jun_i = np.asarray(self.gap_jun_i)
-        #
-        # # calculate lengths of gap junctions
-        # seg1=self.cell_centres[self.gap_jun_i[:,0]]
-        # seg2=self.cell_centres[self.gap_jun_i[:,1]]
-        # nn_diff_gj = (seg2 - seg1)**2
-        # self.gj_len = np.sqrt(nn_diff_gj[:,0] + nn_diff_gj[:,1])
 
         #--------------------------------------------------------------------------------------------
         # first -- need to re-do cell nearest neighbours list to remove the self value for each entry:
@@ -895,7 +864,7 @@ class World(object):
 
             self.lapGJ[i,i] = idiag
 
-        self.lapGJinv = np.linalg.inv(self.lapGJ)
+        self.lapGJinv = np.linalg.pinv(self.lapGJ)
 
     def cleanUp(self,p):
 
@@ -975,6 +944,15 @@ class World(object):
 
             self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
 
+        # matrix for averaging values on gap junctions to each cell:
+
+        self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
+
+        for i, inds in enumerate(self.cell_to_nn):
+            ave_fact = len(inds)
+            for j in inds:
+                self.gj2cellMatrix[i,j] = 1/ave_fact
+
         #--------------------------------------------------------------------------------------------------------------
 
         self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
@@ -1009,10 +987,6 @@ class World(object):
 
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
-
-            # # create a flattened version of cell_verts that will serve as membrane verts:
-            # self.mem_verts,_,_ = tb.flatten(self.cell_verts)
-            # self.mem_verts = np.asarray(self.mem_verts)
 
             cellVertTree = sps.KDTree(self.mem_verts)
 
@@ -1060,41 +1034,11 @@ class World(object):
                 self.memMatrix[imem,ci] = -1
                 self.memMatrix[imem,cj] = 1
 
-            #---------------------------------------------------------------------
-
-            # # structures for plotting interpolated data and streamlines:
-            # self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
-            #
-            # xv = np.linspace(self.xmin,self.xmax,self.msize)
-            # yv = np.linspace(self.ymin,self.ymax,self.msize)
-            # Xv, Yv = np.meshgrid(xv,yv)
-            #
-            # xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
-            #
-            # # structures for plotting interpolated data on cell centres:
-            # xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
-            # ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
-            # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-            #
-            # # zi = interp.griddata((xpts,ypts),zdata,(X,Y))
-            #
-            # mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
-            #
-            # # interpret the value of extracellular electric field components at the centre of each membrane:
-            # self.maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
-            #
-            # self.maskM = self.maskM.reshape(self.Xgrid.shape)
-
-            # self.cluster_mask = maskM
-
-            #---------------------------------------------------------------------
-
 
             self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
 
             for i, cell_index in enumerate(self.mem_to_cells):
                 self.cell_UpdateMatrix[i,cell_index] = 1
-
 
         # matrix for summing property on membranes for each cell and a count of number of mems per cell:
         self.M_sum_mems = np.zeros((len(self.cell_i),len(self.mem_i)))
