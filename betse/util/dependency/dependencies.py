@@ -25,62 +25,16 @@ from betse.util.python import modules
 from betse.util.type import containers
 from collections import OrderedDict
 
-# ....................{ GETTERS                            }....................
-#FIXME: Terrible. This is implementable with pure-setuptools-based logic, which
-#would have the distinct advantage of being implicitly synchronized with the
-#list of required dependencies in "betse.metadata" *WITHOUT* explicitly
-#requiring that this function ever be manually changed. To do so:
-#
-#* Iterate through the list of "betse.metadata.DEPENDENCIES_RUNTIME" setuptools
-#  specifications.
-#* For each such specification, pass that to the
-#  pkg_resources.get_distribution() function.
-#* That returns the setuptools distribution for that dependency. Given that,
-#  simply append the following tuple to the returned OrderedDict:
-#    (distro.project_name + ' version', distro.version)
-#
-#Done. Awesome it is.
-
-def get_metadata() -> OrderedDict:
-    '''
-    Get an ordered dictionary synopsizing all currently installed dependencies.
-    '''
-    # Imports deferred to their point of use, as documented above.
-    import pkg_resources
-
-    # Such dictionary.
-    dependency_metadata = OrderedDict()
-
-    # Set of all BETSE-specific dependencies as instances of the "Requirements"
-    # class. For readibility, lexicographically sort such dependencies.
-    requirements = pkg_resources.parse_requirements(
-        containers.sort_as_lexicographic_ascending(
-            metadata.DEPENDENCIES_RUNTIME))
-
-    # For each such dependency...
-    for requirement in requirements:
-        # Setuptools distribution describing such dependency. Since the
-        # previously called dependencies.init() function presumably succeeded,
-        # such distribution is guaranteed to exist.
-        distribution = pkg_resources.get_distribution(requirement)
-
-        # Append metadata describing such dependency.
-        dependency_metadata[distribution.project_name + ' version'] =\
-            distribution.version
-
-    # Get such dictionary.
-    return dependency_metadata
-
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
     Initialize all mandatory runtime dependencies of `betse`.
 
-    Specifically (in order):
+    This function (in order):
 
-    * Raise an exception unless all such dependencies are currently satisfiable.
-    * Reconfigure `matplotlib` with sane defaults specific to the current
-      system.
+    . Raises an exception unless all dependencies are currently satisfiable.
+    . Reconfigure `matplotlib` with sane defaults specific to the current
+      platform.
     '''
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.
@@ -90,25 +44,6 @@ def init() -> None:
     matplotlibs.config.init()
 
 # ....................{ EXCEPTIONS                         }....................
-#FIXME: Ugh. This doesn't appear to work as expected, as trivially verified by
-#the fact that the prior "yaml >= 3.10" specification appeared to work when that
-#should have read "pyyaml >= 3.10". Even if this function is (somehow)
-#mystically correct, however, it's still overblown. Given what we now know of
-#setuptools, this is reducible to the following algorithm:
-#
-#* Iterate through the list of "betse.metadata.DEPENDENCIES_RUNTIME" setuptools
-#  specifications.
-#* For each such specification, pass that to the
-#  pkg_resources.get_distribution() function.
-#* That returns the setuptools distribution for that dependency. Given that,
-#  simply perform the following test and raise an exception as required:
-#
-#    if dependency_distro not in pkg_resources.parse_version(depndency_spec):
-#        raise VersionConflict('yadda yadda')
-#
-#Done. Awesome it is.
-
-# def die_unless_satisfiable_new() -> None:
 def die_unless_satisfiable() -> None:
     '''
     Raise an exception unless all mandatory runtime dependencies of `betse` are
@@ -171,7 +106,71 @@ def die_unless_satisfiable() -> None:
         if exception:
             raise exception
 
+# ....................{ GETTERS                            }....................
+def get_metadata() -> OrderedDict:
+    '''
+    Get an ordered dictionary synopsizing all currently installed dependencies.
+    '''
+    # Imports deferred to their point of use, as documented above.
+    import pkg_resources
+
+    # Such dictionary.
+    dependency_metadata = OrderedDict()
+
+    # Set of all BETSE-specific dependencies as instances of the "Requirements"
+    # class. For readibility, lexicographically sort such dependencies.
+    requirements = pkg_resources.parse_requirements(
+        containers.sort_as_lexicographic_ascending(
+            metadata.DEPENDENCIES_RUNTIME))
+
+    # For each such dependency...
+    for requirement in requirements:
+        # Setuptools distribution describing such dependency. Since the
+        # previously called dependencies.init() function presumably succeeded,
+        # such distribution is guaranteed to exist.
+        distribution = pkg_resources.get_distribution(requirement)
+
+        # Append metadata describing such dependency.
+        dependency_metadata[distribution.project_name + ' version'] =\
+            distribution.version
+
+    # Get such dictionary.
+    return dependency_metadata
+
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Ugh. This doesn't appear to work as expected, as trivially verified by
+#the fact that the prior "yaml >= 3.10" specification appeared to work when that
+#should have read "pyyaml >= 3.10". Even if this function is (somehow)
+#mystically correct, however, it's still overblown. Given what we now know of
+#setuptools, this is reducible to the following algorithm:
+#
+#* Iterate through the list of "betse.metadata.DEPENDENCIES_RUNTIME" setuptools
+#  specifications.
+#* For each such specification, pass that to the
+#  pkg_resources.get_distribution() function.
+#* That returns the setuptools distribution for that dependency. Given that,
+#  simply perform the following test and raise an exception as required:
+#
+#    if dependency_distro not in pkg_resources.parse_version(depndency_spec):
+#        raise VersionConflict('yadda yadda')
+#
+#Done. Awesome it is.
+
+#FUXME: Terrible. This is implementable with pure-setuptools-based logic, which
+#would have the distinct advantage of being implicitly synchronized with the
+#list of required dependencies in "betse.metadata" *WITHOUT* explicitly
+#requiring that this function ever be manually changed. To do so:
+#
+#* Iterate through the list of "betse.metadata.DEPENDENCIES_RUNTIME" setuptools
+#  specifications.
+#* For each such specification, pass that to the
+#  pkg_resources.get_distribution() function.
+#* That returns the setuptools distribution for that dependency. Given that,
+#  simply append the following tuple to the returned OrderedDict:
+#    (distro.project_name + ' version', distro.version)
+#
+#Done. Awesome it is.
+
         # try:
         # except VersionConflict as version_conflict:
     # # Imports deferred to their point of use, as documented above.

@@ -11,6 +11,7 @@ High-level application initialization common to both the CLI and GUI.
 from betse import pathtree
 from betse.util.dependency import dependencies
 from betse.util.io import loggers
+from betse.util.python import pythons
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -41,9 +42,15 @@ def init() -> None:
     # self._logger.info('INFO!')
     # self._logger.debug('DEBUG!')
 
-    # Validate mandatory dependency *AFTER* configuring logging,
+    # Validate mandatory dependencies *AFTER* configuring logging,
     # ensuring that exceptions raised by such validation will be logged.
     dependencies.init()
+
+    # Validate the active Python interpreter *AFTER* validating mandatory
+    # dependencies. While the former (mostly) comprises unenforced
+    # recommendations, the latter comprises enforced requirements and hence is
+    # performed first.
+    pythons.init()
 
 # --------------------( WASTELANDS                         )--------------------
     #FUXME: This appears to be required due to a PyInstaller bug. Research.
