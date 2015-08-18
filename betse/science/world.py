@@ -845,14 +845,20 @@ class World(object):
         # now define a Laplacian matrix for this cell collection
         self.lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
 
+        nn_inds = self.nn_i.tolist()
+
         for i, inds in enumerate(self.cell_nn):
 
             idiag = 0
+            ave_mem = p.gj_surface*self.av_mem_sa[i]
 
             for j in inds:
 
-                idiag = idiag - 1
-                self.lapGJ[i,j] = 1
+                nn_index = nn_inds.index([i,j])
+                L = self.nn_len[nn_index]
+
+                idiag = idiag - (1/L)
+                self.lapGJ[i,j] = (1/L)
 
             self.lapGJ[i,i] = idiag
 
@@ -890,14 +896,16 @@ class World(object):
 
         self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
-        # compute mapping between cell and nn:
+        # compute mapping between cell and nn with outwards vectors:
         self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
 
-        for i, inds in enumerate(self.nn_i):
-            ind1 = inds[0]
-            ind2 = inds[1]
-            self.cell_to_nn[ind1].append(i)
-            self.cell_to_nn[ind2].append(i)
+        nn_inds = self.nn_i.tolist()
+
+        for i, inds in enumerate(self.cell_nn):
+
+            for j in inds:
+                nn_index = nn_inds.index([i,j])
+                self.cell_to_nn[i].append(nn_index)
 
         self.cell_to_nn = np.asarray(self.cell_to_nn)
 
@@ -938,14 +946,14 @@ class World(object):
 
             self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
 
-        # matrix for averaging values on gap junctions to each cell:
+        # matrix for summing values on gap junctions to each cell:
 
         self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
 
         for i, inds in enumerate(self.cell_to_nn):
             ave_fact = len(inds)
             for j in inds:
-                self.gj2cellMatrix[i,j] = 1/ave_fact
+                self.gj2cellMatrix[i,j] = 1
 
         #--------------------------------------------------------------------------------------------------------------
 

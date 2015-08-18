@@ -612,12 +612,24 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         Ucells = np.sqrt(ucells**2 + vcells**2)*1e6
 
         plt.figure()
+        plt.tripcolor(cells.cell_centres[:,0],cells.cell_centres[:,1],P,shading='gouraud')
+        # plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+        plt.colorbar()
+        plt.streamplot(cells.X,cells.Y,ucells,vcells,density=2.0,color='k')
+        plt.axis('equal')
+        plt.title('GJ Pressure RULES! [Pa]')
+
+        plt.show(block=False)
+
+        plt.figure()
         # plt.tripcolor(cells.cell_centres[:,0],cells.cell_centres[:,1],P,shading='gouraud')
         plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
         plt.colorbar()
         plt.streamplot(cells.X,cells.Y,ucells,vcells,density=2.0,color='k')
         plt.axis('equal')
         plt.title('GJ VELOCITY RULES! [um/s]')
+
+        plt.show(block=False)
 
 
     # if p.showCells == True:

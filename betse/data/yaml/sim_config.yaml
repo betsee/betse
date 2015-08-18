@@ -420,14 +420,14 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-1     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: hole       # give your profile a name that will be used to apply the profile
     cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: cuts    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
+    designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -438,7 +438,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-1    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: tissue       # give your profile a name that will be used to apply the profile
@@ -454,7 +454,7 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-1    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
@@ -468,7 +468,7 @@ boundary profile 2:
     name: applied neg voltage
     boundary targets: R
 
-boundaries closed: True      # are outer boundaries closed to fluxes of ions ?
+boundaries closed: False      # are outer boundaries closed to fluxes of ions ?
                               # NOTE: boundaries must be OPEN (closed == False) to allow for changes to
                               # global concentrations
 
@@ -541,7 +541,7 @@ apply external voltage:             # apply external voltage to ecm spaces on th
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 cutting event:
-    event happens: True
+    event happens: False
     cut time: 2.0
     apply to: 'hole'    # tissue profile to apply this to -- can only be one profile, no lists
     internal hole: False
