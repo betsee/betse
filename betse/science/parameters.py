@@ -750,6 +750,7 @@ class Parameters(object):
         self.wsy = self.wsy + 5 * self.nl * self.d_cell
 
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
+        self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
 
         self.um = 1e6    # multiplication factor to convert m to um
 
@@ -1028,7 +1029,7 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
+
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM == True:
@@ -1041,7 +1042,6 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':

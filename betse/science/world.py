@@ -196,7 +196,7 @@ class World(object):
 
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
             loggers.log_info('Creating cell network Poisson solver...')
-            self.graphLaplacian()
+            self.graphLaplacian(p)
             loggers.log_info('Completed major world-building computations.')
 
         elif self.worldtype == 'basic':
@@ -210,7 +210,7 @@ class World(object):
 
              # make a laplacian and solver for discrete transfers on closed, irregular cell network
             loggers.log_info('Creating cell network Poisson solver...')
-            self.graphLaplacian()
+            self.graphLaplacian(p)
 
             loggers.log_info('Completed major world-building computations.')
 
@@ -840,12 +840,10 @@ class World(object):
         bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
         self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-    def graphLaplacian(self):
+    def graphLaplacian(self,p):
 
         # now define a Laplacian matrix for this cell collection
         self.lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
-
-        nn_i = self.nn_i.tolist()
 
         for i, inds in enumerate(self.cell_nn):
 
@@ -853,14 +851,8 @@ class World(object):
 
             for j in inds:
 
-                sa = self.av_mem_sa[i]
-                vol = self.cell_vol[i]
-
-                nn_index = nn_i.index([i,j])
-                L = self.nn_len[nn_index]
-
-                idiag = idiag - (1/L)*(sa/vol)
-                self.lapGJ[i,j] = (1/L)*(sa/vol)
+                idiag = idiag - 1
+                self.lapGJ[i,j] = 1
 
             self.lapGJ[i,i] = idiag
 
@@ -928,6 +920,8 @@ class World(object):
 
         # get an average cell_sa for each membrane domain (used in graph Laplacian calculation):
         self.av_mem_sa = self.cell_sa/self.num_nn
+
+        self.ave_sa_all = np.mean(self.cell_sa)/np.mean(self.num_nn)
 
         #--------------------------------------------------------------------------------------------------------------
 

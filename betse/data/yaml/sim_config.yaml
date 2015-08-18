@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -126,11 +126,11 @@ sim time settings:
                             # settings. To use it call 'custom sim' in time profile
                             # setting above.
 
-    time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
+    time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 10.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 0.1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 1.0e-3            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
 
 #------------------------------------------------------------------------------
@@ -285,7 +285,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 5.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-3   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -468,7 +468,7 @@ boundary profile 2:
     name: applied neg voltage
     boundary targets: R
 
-boundaries closed: False      # are outer boundaries closed to fluxes of ions ?
+boundaries closed: True      # are outer boundaries closed to fluxes of ions ?
                               # NOTE: boundaries must be OPEN (closed == False) to allow for changes to
                               # global concentrations
 
@@ -664,7 +664,7 @@ results options:
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
@@ -711,7 +711,7 @@ results options:
   Efield 2D:
 
     plot Efield: True              # 2d plot of electric field
-    data type: GJ                   # data type can be 'ECM' or 'GJ'
+    data type: ECM                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
     max val: 900                   # maximum colorbar value in V/m
@@ -719,7 +719,7 @@ results options:
 
   Currents 2D:
 
-    plot Currents: True               # 2d plot of net current flow in the collective?
+    plot Currents: False               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -776,7 +776,7 @@ results options:
 
   Efield Ani:
     animate Efield: True        # 2d animation of electric field in extracellullar matrix
-    data type: GJ                  # data type can be 'ECM' or 'GJ'
+    data type: ECM                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 1500               # max colorbar value [V/m]
