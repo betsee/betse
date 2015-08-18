@@ -67,6 +67,20 @@ def is_path(pathname: str) -> bool:
     # common usage patterns and should *NOT* be discriminated against here.
     return path.lexists(pathname)
 
+def is_absolute(pathname: str) -> bool:
+    '''
+    `True` if the passed path is absolute.
+
+    The definition of "absolute" depends on the current operating system. Under:
+
+    * POSIX-compatible systems, absolute paths are prefixed by `/`.
+    * Microsoft Windows, absolute paths are prefixed by an optional drive
+      indicator (e.g., `C:`) followed by `\`.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+    return path.isabs(pathname)
+
 # ....................{ TESTERS ~ pathname                 }....................
 def is_dirname_empty(pathname: str) -> bool:
     '''
@@ -135,7 +149,7 @@ def get_type_label(pathname: str) -> str:
 # ....................{ GETTERS ~ dirname                  }....................
 def get_dirname(pathname: str) -> str:
     '''
-    Get the *dirname* (i.e., parent directory) of the passed path if such path
+    Get the **dirname** (i.e., parent directory) of the passed path if such path
     has a dirname or raise an exception otherwise.
     '''
     # Raise an exception unless such path has a dirname.
@@ -150,7 +164,7 @@ def get_dirname(pathname: str) -> str:
 
 def get_dirname_or_empty(pathname: str) -> str:
     '''
-    Get the *dirname* (i.e., parent directory) of the passed path if such path
+    Get the **dirname** (i.e., parent directory) of the passed path if such path
     has a dirname or the empty string otherwise.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
@@ -187,6 +201,26 @@ def get_pathname_sans_filetype(pathname: str) -> str:
     return path.splitext(pathname)[0]
 
 # ....................{ JOINERS                            }....................
+#FIXME: According to the Python documentation, os.path.join() implicitly
+#performs the following terrible operation:
+#
+#    If a component is an absolute path, all previous components are thrown away
+#    and joining continues from the absolute path component.
+#
+#This is inherently dumb and we wish it to stop. Fortunately, we can! Maybe?
+#It's trivial to strip leading directory separators from all passed paths except
+#the first as follows:
+#
+#    pathnames_munged = [pathnames[0]]
+#    pathnames_munged.extend(
+#        pathname[1:] if path.isabs(pathname) else pathname
+#        for pathname in pathnames[1:]
+#    )
+#
+#Unfortunately, that fails to take into account the drive letter prefixing
+#absolute Windows pathnames. There appears to exist a function path.splitdrive()
+#doing so, but such function inefficiently returns a tuple. *shrug*
+
 def join(*pathnames) -> str:
     '''
     Join the passed pathnames on the directory separator specific to the current
@@ -196,6 +230,7 @@ def join(*pathnames) -> str:
     function _without_ adding functionality to such function -- principally to
     unify and hence simplify `import` statements in other modules.
     '''
+
     return path.join(*pathnames)
 
 # ....................{ CANONICALIZERS                     }....................

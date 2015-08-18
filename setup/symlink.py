@@ -4,7 +4,24 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`-specific `symlink` commands for `setuptools`.
+`betse`-specific `symlink` subcommands for `setuptools`.
+
+## Microsoft Windows
+
+Microsoft Windows does _not_ comply with POSIX standards and hence does _not_
+generally support symbolic links.
+
+While post-Vista versions of Microsoft Windows _do_ purport to support symbolic
+links, the Windows version of the (Ana|Mini)conda Python distribution does _not_
+appear to (at least, not reliably). Since this renders symbolic links useless
+for common Windows use, this module assumes Windows to _never_ support symbolic
+links regardless of version.
+
+Under Microsoft Windows, this module "fakes" symbolic link-based installation by
+artifically prepending the Python-specific `sys.path` list of search dirnames
+with the absolute path of the parent directory containing the top-level Python
+package -- which largely has the same effect, albeit less resiliently. While
+`sys.path` manipulation is (justifiably) frowned upon, no alternatives exist.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -18,7 +35,7 @@ import os
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
-    Add `symlink` commands to the passed dictionary of `setuptools` options.
+    Add `symlink` subcommands to the passed dictionary of `setuptools` options.
     '''
     util.add_setup_command_classes(
         metadata, setup_options,
@@ -54,9 +71,35 @@ class symlink(install):
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
-        # If the current operating system is *NOT* POSIX-compatible, such system
-        # does *NOT* provide conventional symbolic links. Raise an exception.
-        util.die_if_os_non_posix()
+        # If the current operating system is POSIX-incompatible, such system
+        # does *NOT* support conventional symbolic links. See details above.
+        if not util.is_os_posix():
+            # Avoid circular import dependencies.
+            from setup import build
+
+            # Print a non-fatal warning.
+            util.output_warning(
+                'Symbolic links require POSIX compatibility. Since the current platform is\n'
+                'POSIX-incompatible (e.g., Windows), symbolic links will be faked with black magic.'
+            )
+
+            # Absolute path of the parent directory containing the top-level
+            # "betse" package.
+            parent_dirname = util.get_setup_dirname()
+            # print('parent: ' + parent_dirname)
+
+            # Prepend the template for subsequently installed entry points by a
+            # Python statement "faking" symlink-based installation.
+            build.SCRIPT_TEMPLATE = """
+# The current operating system is POSIX-incompatible and hence does *NOT*
+# support symlinks. To "fake" symlink-based installation, the standard list of
+# search dirnames is prepended by the absolute path of the parent directory of
+# the top-level "betse" package. For compatibility with third-party modules,
+# the first entry of such list (i.e., the parent directory of this script) is
+# preserved by inserting at index 1 rather than 0.
+import sys
+sys.path.insert(1, {})
+            """.format(repr(parent_dirname)) + build.SCRIPT_TEMPLATE
 
         # Run all subcommands.
         for subcommand_name in self.get_sub_commands():
@@ -85,7 +128,10 @@ class symlink_lib(install_lib):
             'symlink', ('install_lib', 'install_dir'))
 
     def run(self):
-        util.die_if_os_non_posix()
+        # If the current operating system is POSIX-incompatible, such system
+        # does *NOT* support conventional symbolic links. Return immediately.
+        if not util.is_os_posix():
+            return
 
         # Absolute path of betse's top-level Python package in the current
         # directory.
@@ -96,14 +142,8 @@ class symlink_lib(install_lib):
             self.install_dir,
             self._setup_options['name'])
 
-        # If such link currently exists, remove such link.
-        if util.is_symlink(symlink_filename):
-            util.remove_symlink(symlink_filename)
-
         # (Re)create such link.
-        print('Symbolically linking "{}" to "{}".'.format(
-            package_dirname, symlink_filename))
-        os.symlink(package_dirname, symlink_filename)
+        util.make_symlink(package_dirname, symlink_filename)
 
 class symlink_scripts(install_scripts):
     '''
@@ -174,15 +214,14 @@ class unsymlink(install):
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
-        # If the current operating system is *NOT* POSIX-compatible, such system
-        # does *NOT* provide conventional symbolic links. Raise an exception.
-        util.die_if_os_non_posix()
-
-        # Remove the installed library symbolic link.
-        util.remove_symlink(path.join(
-            self.install_lib_dir,
-            self._setup_options['name'],
-        ))
+        # If the current operating system is POSIX-compatible, such system
+        # supports symbolic links. In such case, remove the previously installed
+        # symbolic link.
+        if util.is_os_posix():
+            util.remove_symlink(path.join(
+                self.install_lib_dir,
+                self._setup_options['name'],
+            ))
 
         # Remove all installed scripts.
         for script_basename, _, _ in util.command_entry_points(self):
@@ -190,6 +229,63 @@ class unsymlink(install):
                 self.install_scripts_dir, script_basename))
 
 # --------------------( WASTELANDS                         )--------------------
+            # Absolute path of the parent directory containing the top-level
+            # "betse" package, which Python makes available as the first entry
+            # of the "sys.path" list. While you know what they say about
+            # assumptions, computing such path in a cross-platform manner turns
+            # out to be non-trivial. In theory, the following should work:
+            #
+            #     parent_dirname = util.get_path_canonicalized(
+            #         path.join('..', util.get_path_dirname(__file__)))
+            #
+            # Since path.join() implicitly discards all passed paths preceding
+            # the first absolute path *AND* since the second passed path is
+            # absolute, this fails. Fixing this would require stripping the
+            # optional drive letter and directory separator prefixing such path,
+            # which is certainly feasible but tiresome. "Die, path.join()! Die!"
+            # parent_dirname = util.get_path_dirname(
+            #     util.get_path_dirname(__file__))
+            # parent_dirname = util.get_setup_dirname()
+
+            # parent_dirname = util.get_path_canonicalized(
+            #     path.join('..', util.get_path_dirname(__file__)[1:]))
+            # print('subpath: ' + path.join('..', util.get_path_dirname(__file__)))
+            # print('parent: ' + parent_dirname)
+
+            # Prepend the template for subsequently installed entry points by a
+            # Python statement prepending the "sys.path" list of search dirnames
+            # with the absolute path  -- which largely has the same effect.
+        # # If such link currently exists, remove such link.
+        # if util.is_symlink(symlink_filename):
+        #     util.remove_symlink(symlink_filename)
+        #
+        # # (Re)create such link.
+        # print('Symbolically linking "{}" to "{}".'.format(
+        #     package_dirname, symlink_filename))
+        # os.symlink(package_dirname, symlink_filename)
+
+# ....................{ WARNERS                            }....................
+# def warn_if_os_non_posix() -> None:
+#     '''
+#     Print a non-fatal warning if the current operating system does _not_ comply
+#     with POSIX standards and hence does _not_ support symbolic linking.
+#
+#     ## Microsoft Windows
+#
+#     Typically, this implies such system to be Microsoft Windows. While
+#     post-Vista Microsoft Windows systems _do_ purport to support symbolic
+#     linking, the (Ana|Mini)conda Python distribution does _not_ appear to.
+#     Since this renders symbolic linking useless for common Windows use, we
+#     currently assume Windows to _never_ support symbolic linking regardless of
+#     operating system version.
+#     '''
+#     if not util.is_os_posix():
+#         util.output_warning(
+#             'Symbolic links require POSIX-compatibility, but the current\n'
+#             'platform is POSIX-incompatible (e.g., Windows). For usability, such links\n'
+#             'will be faked via Python-specific "sys.path" manipulation.'
+#         )
+
         # Declare all attributes subsequently set by the call to
         # self.set_undefined_options(). (Such method raises exceptions if such
         # attributes have *NOT* been declared. This is rather terrible but par

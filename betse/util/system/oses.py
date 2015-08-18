@@ -13,25 +13,47 @@ form. Call such functions only when absolutely necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import platform
+import platform, sys
 
 # ....................{ TESTERS ~ os                       }....................
 def is_linux() -> bool:
     '''
-    True if the current operating system is Linux.
+    `True` if the current operating system is Linux.
     '''
     return platform.system() == 'Linux'
 
 def is_os_x() -> bool:
     '''
-    True if the current operating system is Apple OS X.
+    `True` if the current operating system is Apple OS X.
     '''
     return platform.system() == 'Darwin'
 
+# ....................{ TESTERS ~ os : windows             }....................
 def is_windows() -> bool:
     '''
-    True if the current operating system is Microsoft Windows.
+    `True` if the current operating system is Microsoft Windows.
+
+    This function reports `True` for both vanilla and Cygwin Microsoft Windows.
     '''
-    return platform.system() == 'Windows'
+    return is_os_windows_vanilla() or is_os_windows_cygwin()
+
+def is_os_windows_cygwin() -> bool:
+    '''
+    `True` if the current operating system is **Cygwin Microsoft Windows**
+    (i.e., running the Cygwin POSIX compatibility layer).
+    '''
+    return sys.platform == 'cygwin'
+
+def is_os_windows_vanilla() -> bool:
+    '''
+    `True` if the current operating system is **vanilla Microsoft Windows**
+    (i.e., _not_ running the Cygwin POSIX compatibility layer).
+    '''
+    return sys.platform == 'win32'
 
 # --------------------( WASTELANDS                         )--------------------
+# def is_windows() -> bool:
+#     '''
+#     `True` if the current operating system is Microsoft Windows.
+#     '''
+#     return platform.system() == 'Windows'

@@ -6,11 +6,10 @@
 '''Error-handling functions for `betse`-specific `setuptools` commands.'''
 
 # ....................{ IMPORTS                            }....................
-from distutils.errors import (
-    DistutilsExecError, DistutilsFileError, DistutilsPlatformError)
+from distutils.errors import DistutilsExecError, DistutilsFileError
 from os import path
 from setuptools import Command
-import os, platform, pkg_resources, shutil, subprocess, sys, time
+import os, pkg_resources, shutil, subprocess, sys, time
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_command_succeeds(*command_words) -> None:
@@ -22,8 +21,8 @@ def die_unless_command_succeeds(*command_words) -> None:
     elements the command-line arguments to be passed to such command (e.g.,
     `['ls', '/']`).
     '''
-    # Die unless the first passed shell word is an existing command.
-    die_unless_command(command_words[0])
+    # If the first passed shell word is *NOT* pathable, raise an exception.
+    die_unless_pathable(command_words[0])
 
     # Print the command to be run before doing so.
     print('Running "{}".'.format(' '.join(command_words)))
@@ -31,16 +30,14 @@ def die_unless_command_succeeds(*command_words) -> None:
     # Run such command.
     subprocess.check_call(command_words)
 
-def die_unless_command(command_basename: str, exception_message: str = None):
+def die_unless_pathable(command_basename: str, exception_message: str = None):
     '''
-    Raise a fatal exception with the passed message if the external command with
-    the passed basename does *not* exist.
+    Raise an exception with the passed message if the passed **pathable** (i.e.,
+    external command in the current `${PATH}`) does _not_ exist.
 
-    Specifically, raise such exception if such basename is not that of an
-    executable file in the current `${PATH}`. If such basename contains a
-    directory separator, an exception is also raised.
+    If such pathable contains a directory separator, an exception is raised.
     '''
-    # If such command is not found, fail.
+    # If such pathable is not found, raise an exception.
     if not is_pathable(command_basename):
         # If no such message was passed, default such message.
         if not exception_message:
@@ -53,27 +50,12 @@ def die_unless_command(command_basename: str, exception_message: str = None):
         # Raise such exception.
         raise DistutilsExecError(exception_message)
 
-# ....................{ EXCEPTIONS ~ os                    }....................
-def die_if_os_non_posix() -> None:
-    '''
-    Raise a fatal exception if the current operating system does `not` comply
-    with POSIX standards (e.g., as required for symbolic link manipulation).
-
-    Typically, this implies such system to be Windows.
-    '''
-    if not is_os_posix():
-        raise DistutilsPlatformError(
-            'This command requires POSIX compatibility.\n'
-            'However, the current operating system is POSIX-incompatible (e.g., Windows).'
-        )
-
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_unless_dir_or_not_found(
     pathname: str, exception_message: str = None) -> None:
     '''
-    Raise a fatal exception unless the passed path is either an existing
-    directory *or* does not exist (i.e., if such path is an existing non-
-    directory).
+    Raise an exception unless the passed path is either an existing directory
+    *or* does not exist (i.e., if such path is an existing non- directory).
     '''
     # If such path is an existing non-directory, fail.
     if is_path(pathname) and not is_dir(pathname):
@@ -98,9 +80,8 @@ def die_unless_dir_or_not_found(
 def die_unless_file_or_not_found(
     pathname: str, exception_message: str = None) -> None:
     '''
-    Raise a fatal exception unless the passed path is either an existing non-
-    special file *or* does not exist (e.g., if such path is an existing
-    directory).
+    Raise an exception unless the passed path is either an existing non-special
+    file *or* does not exist (e.g., if such path is an existing directory).
     '''
     # If such path exists and is *NOT* an existing non-special file, fail.
     if is_path(pathname) and not is_file(pathname):
@@ -123,7 +104,7 @@ def die_unless_file_or_not_found(
 
 def die_unless_path(pathname: str, exception_message: str = None) -> None:
     '''
-    Raise a fatal exception unless the passed path exists.
+    Raise an exception unless the passed path exists.
     '''
     # If such path is not found, fail.
     if not is_path(pathname):
@@ -138,7 +119,7 @@ def die_unless_path(pathname: str, exception_message: str = None) -> None:
 
 def die_unless_dir(dirname: str, exception_message: str = None) -> None:
     '''
-    Raise a fatal exception unless the passed directory exists.
+    Raise an exception unless the passed directory exists.
     '''
     # If such dir is not found, fail.
     if not is_dir(dirname):
@@ -154,7 +135,7 @@ def die_unless_dir(dirname: str, exception_message: str = None) -> None:
 
 def die_unless_file(filename: str, exception_message: str = None) -> None:
     '''
-    Raise a fatal exception unless the passed non-special file exists.
+    Raise an exception unless the passed non-special file exists.
     '''
     # If such file is not found, fail.
     if not is_file(filename):
@@ -169,7 +150,7 @@ def die_unless_file(filename: str, exception_message: str = None) -> None:
 
 def die_unless_symlink(filename: str) -> None:
     '''
-    Raise a fatal exception unless the passed symbolic link exists.
+    Raise an exception unless the passed symbolic link exists.
     '''
     assert isinstance(filename, str),\
         '"{}" not a string.'.format(filename)
@@ -187,6 +168,7 @@ def is_os_posix() -> bool:
     Typically, this implies such system to _not_ be vanilla Microsoft Windows.
     '''
     return os.name == 'posix'
+    # return False
 
 # ....................{ TESTERS ~ os : windows             }....................
 def is_os_windows() -> bool:
@@ -269,6 +251,46 @@ def is_pathable(command_basename: str) -> bool:
     # Return whether such command is found.
     return shutil.which(command_basename) is not None
 
+# ....................{ GETTERS                            }....................
+def get_setup_dirname():
+    '''
+    Get the absolute path of the directory containing the currently run
+    `setup.py` script.
+    '''
+    # While such path is also typically  available as the first entry of the
+    # "sys.path" list, you know what they say about assumptions.
+    return get_path_dirname(get_path_dirname(__file__))
+
+# ....................{ GETTERS : path                     }....................
+def get_path_canonicalized(pathname: str) -> str:
+    '''
+    Get the **canonical form** (i.e., unique absolute path) of the passed path.
+
+    Specifically (in order):
+
+    * Perform **tilde expansion,** replacing a `~` character prefixing such path
+      by the absolute path of the current user's home directory.
+    * Perform **path normalization,** thus:
+      * Collapsing redundant separators (e.g., converting `//` to `/`).
+      * Converting relative to absolute path components (e.g., converting `../`
+        to the name of the parent directory of such component).
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+    return path.abspath(path.expanduser(pathname))
+
+def get_path_dirname(pathname: str) -> str:
+    '''
+    Get the **dirname** (i.e., parent directory) of the passed path if such path
+    has a dirname or raise an exception otherwise.
+    '''
+    # Get such dirname. Since the path.dirname() function returns the empty
+    # string for paths containing no directory separators and hence having no
+    # dirnames, assert such return value to be non-empty.
+    dirname = path.dirname(pathname)
+    assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
+    return dirname
+
 # ....................{ OUTPUTTERS                         }....................
 def output_sans_newline(*strings) -> None:
     '''
@@ -282,7 +304,7 @@ def output_warning(*warnings) -> None:
     '''
     Print the passed warning messages to standard error.
     '''
-    print('WARNING: ', *warnings, file = sys.stderr)
+    print('WARNING:', *warnings, file = sys.stderr)
 
 # ....................{ QUOTERS                            }....................
 def shell_quote(text: str) -> str:
@@ -342,12 +364,35 @@ def make_dir_unless_found(dirname: str) -> None:
         # Create such directory if still needed.
         os.makedirs(dirname, exist_ok = True)
 
+def make_symlink(pathname_source: str, filename_target: str) -> None:
+    '''
+    Symbolically link the passed source path to the passed target symlink.
+
+    If such target is an existing symlink, such symlink will be implicitly
+    removed before being recreated.
+
+    If such source does _not_ exist, an exception will be raised. Hence, this
+    function does _not_ support creation of **dangling symbolic links** (i.e.,
+    links to non-existent paths).
+    '''
+    # If such source path does *NOT* exist, raise an exception.
+    die_unless_path(pathname_source)
+
+    # If such link currently exists, remove such link.
+    if is_symlink(filename_target):
+        remove_symlink(filename_target)
+
+    # (Re)create such link.
+    print('Symbolically linking "{}" to "{}".'.format(
+        pathname_source, filename_target))
+    os.symlink(pathname_source, filename_target)
+
 # ....................{ MOVERS                             }....................
 def move_file(filename_source: str, filename_target: str) -> None:
     '''
     Move the passed source to the passed target file.
     '''
-    # If such file does *NOT* exist, fail.
+    # If such file does *NOT* exist, raise an exception.
     die_unless_file(filename_source)
 
     # Move such file.
@@ -513,6 +558,25 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
             yield script_basename, script_type, entry_point
 
 # --------------------( WASTELANDS                         )--------------------
+    # Python, you win the balls.
+    # return sys.path[0]
+    # assert isinstance(pathname_source, str),\
+    #     '"{}" not a string.'.format(pathname_source)
+    # assert len(), 'Source pathname empty.'
+# ....................{ EXCEPTIONS ~ os                    }....................
+# def die_if_os_non_posix() -> None:
+#     '''
+#     Raise a fatal exception if the current operating system does `not` comply
+#     with POSIX standards (e.g., as required for symbolic link manipulation).
+#
+#     Typically, this implies such system to be Windows.
+#     '''
+#     if not is_os_posix():
+#         raise DistutilsPlatformError(
+#             'This command requires POSIX compatibility.\n'
+#             'However, the current operating system is POSIX-incompatible (e.g., Windows).'
+#         )
+
     # return platform.system().startswith('CYGWIN_NT-')
     # return platform.system() == 'Windows'
 
@@ -586,7 +650,7 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
 #     Unix shell is available to the active Python3 interpreter (thus excluding
 #     non-Cygwin Windows), such command may also be specified as a simple string.
 #     '''
-    # die_unless_command(command)
+    # die_unless_pathable(command)
     # If such command fails, a CalledProcessError exception is raised.
 #FUXME: Common functionality. Contemplate a utility function. To implement
 #such function, we'd probably want such function to accept a list of class
@@ -598,7 +662,7 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
 #FUXME: Actually, this function currently only searches for command basenames in
 #the current ${PATH} -- the most common usage. *shrug*
 
-# def die_unless_command(command_name: str):
+# def die_unless_pathable(command_name: str):
 #     '''
 #     Raise a fatal exception if the external command with the passed pathname
 #     either does *not* exist *or* does but is *not* executable.
