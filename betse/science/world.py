@@ -899,18 +899,18 @@ class World(object):
 
         self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
-        # compute mapping between cell and nn with outwards vectors:
-        self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
-
-        nn_inds = self.nn_i.tolist()
-
-        for i, inds in enumerate(self.cell_nn):
-
-            for j in inds:
-                nn_index = nn_inds.index([i,j])
-                self.cell_to_nn[i].append(nn_index)
-
-        self.cell_to_nn = np.asarray(self.cell_to_nn)
+        # # compute mapping between cell and nn with outwards vectors:
+        # self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
+        #
+        # nn_inds = self.nn_i.tolist()
+        #
+        # for i, inds in enumerate(self.cell_nn):
+        #
+        #     for j in inds:
+        #         nn_index = nn_inds.index([i,j])
+        #         self.cell_to_nn[i].append(nn_index)
+        #
+        # self.cell_to_nn = np.asarray(self.cell_to_nn)
 
         self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
 
@@ -936,27 +936,27 @@ class World(object):
 
         #--------------------------------------------------------------------------------------------------------------
 
-        # calculating matrix for gj divergence of the flux calculation:  # FIXME is this correct?
-        self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
-
-        for i, inds in enumerate(self.cell_to_nn):
-
-            sa_i = self.av_mem_sa[i]
-
-            vol_i = self.cell_vol[i]
-
-            for j in inds:
-
-                self.gjMatrix[i,j] = 1*(sa_i/vol_i)
+        # calculating matrix for gj divergence of the flux calculation:
+        # self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
+        #
+        # for i, inds in enumerate(self.cell_to_nn):
+        #
+        #     sa_i = self.av_mem_sa[i]
+        #
+        #     vol_i = self.cell_vol[i]
+        #
+        #     for j in inds:
+        #
+        #         self.gjMatrix[i,j] = 1*(sa_i/vol_i)
 
         # matrix for averaging values on gap junctions to each cell:
 
-        self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
-
-        for i, inds in enumerate(self.cell_to_nn):
-            ave_fact = len(inds)
-            for j in inds:
-                self.gj2cellMatrix[i,j] = 1/ave_fact
+        # self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
+        #
+        # for i, inds in enumerate(self.cell_to_nn):
+        #     ave_fact = len(inds)
+        #     for j in inds:
+        #         self.gj2cellMatrix[i,j] = 1/ave_fact
 
         #--------------------------------------------------------------------------------------------------------------
 
@@ -1108,6 +1108,36 @@ class World(object):
         # remake gap junction properties based on new configuration:
         self.nn_index = [x for x in range(0,len(self.nn_i))]
 
+        #------------------------------------------------------------
+
+        # compute mapping between cell and nn with outwards vectors:
+        self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
+
+        nn_inds = self.nn_i.tolist()
+
+        for i, inds in enumerate(self.cell_nn):
+
+            for j in inds:
+                nn_index = nn_inds.index([i,j])
+                self.cell_to_nn[i].append(nn_index)
+
+        self.cell_to_nn = np.asarray(self.cell_to_nn)
+
+        #--------------------------------------------------------------
+
+        # calculating matrix for gj divergence of the flux calculation:
+        # self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
+        #
+        # for i, inds in enumerate(self.cell_to_nn):
+        #
+        #     sa_i = self.av_mem_sa[i]
+        #
+        #     vol_i = self.cell_vol[i]
+        #
+        #     for j in inds:
+        #
+        #         self.gjMatrix[i,j] = -1*(sa_i/vol_i)
+
         # recalculate matrix for gj divergence of the flux calculation:
         self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
 
@@ -1122,15 +1152,26 @@ class World(object):
             self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
 
         # recompute mapping between cell and gj:
-        self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
+        # self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
+        #
+        # for i, inds in enumerate(self.nn_i):
+        #     ind1 = inds[0]
+        #     ind2 = inds[1]
+        #     self.cell_to_nn[ind1].append(i)
+        #     self.cell_to_nn[ind2].append(i)
+        #
+        # self.cell_to_nn = np.asarray(self.cell_to_nn)
 
-        for i, inds in enumerate(self.nn_i):
-            ind1 = inds[0]
-            ind2 = inds[1]
-            self.cell_to_nn[ind1].append(i)
-            self.cell_to_nn[ind2].append(i)
 
-        self.cell_to_nn = np.asarray(self.cell_to_nn)
+         # matrix for averaging values on gap junctions to each cell:
+
+        self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
+
+        for i, inds in enumerate(self.cell_to_nn):
+            ave_fact = len(inds)
+            for j in inds:
+                self.gj2cellMatrix[i,j] = 1/ave_fact
+
 
         if savecells == True:
 

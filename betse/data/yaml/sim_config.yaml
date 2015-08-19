@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 5.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 3.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -246,7 +246,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # the x-dimension of the world space [m]
+  world x: 150e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -269,13 +269,17 @@ world variables:
 
   temperature: 310            # World temperature [K]
 
+
+  gravity: False               # apply a global force of gravity acting in the -y direction?
+
+
   search distance: 1.8        # distance to search for nearest neighbours
                               # relative to cell diameter
                               # min 1.1 max 3.5
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 5.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -420,7 +424,7 @@ tissue profile 1:
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_Na: 20.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
@@ -436,7 +440,7 @@ tissue profile 2:
     designation: None      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
-    Dm_Na: 10.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
@@ -458,7 +462,7 @@ boundary profile 2:
     name: applied neg voltage
     boundary targets: R
 
-boundaries closed: False      # are outer boundaries closed to fluxes of ions ?
+boundaries closed: True      # are outer boundaries closed to fluxes of ions ?
                               # NOTE: boundaries must be OPEN (closed == False) to allow for changes to
                               # global concentrations
 
@@ -691,7 +695,7 @@ results options:
 
   Vcell 2D:
 
-    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 100                    # maximum colorbar value in mV
     min val: -100                   # minimum colorbar value in mV

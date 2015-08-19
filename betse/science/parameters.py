@@ -120,6 +120,8 @@ class Parameters(object):
 
         self.T = float(self.config['world variables']['temperature'])  # World temperature
 
+        self.gravity = self.config['world variables']['gravity']
+
         # gap junction constants and network connectivity
         self.search_d = float(self.config['world variables']['search distance']) # distance to search for nearest neighbours
 

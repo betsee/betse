@@ -1309,7 +1309,7 @@ class AnimateVelocity(object):
 
         if p.sim_ECM == True and p.ani_Velocity_type == 'ECM':
 
-            vfield = np.sqrt(sim.u_env_x_time[-1]**2 + sim.u_env_y_time[-1]**2)*1e6
+            vfield = np.sqrt(sim.u_env_x_time[0]**2 + sim.u_env_y_time[0]**2)*1e6
 
             self.msh = self.ax.imshow(vfield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
                 cells.ymin*p.um, cells.ymax*p.um], cmap=p.default_cm)
@@ -1323,8 +1323,8 @@ class AnimateVelocity(object):
 
         elif p.ani_Velocity_type == 'GJ':
 
-            ugjx = sim.u_cells_x_time[-1]
-            ugjy = sim.u_cells_y_time[-1]
+            ugjx = sim.u_cells_x_time[0]
+            ugjy = sim.u_cells_y_time[0]
 
             v_gj_x = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjx,(cells.X,cells.Y), fill_value=0)
 
@@ -1337,7 +1337,12 @@ class AnimateVelocity(object):
 
             vnorm = np.max(vfield)
 
-            self.streamV = self.ax.quiver(p.um*cells.X, p.um*cells.Y, v_gj_x/vnorm,v_gj_y/vnorm)
+
+            lw = (3.0*vfield/vnorm) + 0.5
+
+            # self.streamV = self.ax.quiver(p.um*cells.X, p.um*cells.Y, v_gj_x/vnorm,v_gj_y/vnorm)
+            self.streamV = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,v_gj_x/vnorm,v_gj_y/vnorm,density=p.stream_density,
+                    linewidth=lw,color='k',cmap=p.default_cm,arrowsize=1.5)
 
             tit_extra = 'Intracellular'
 
@@ -1399,7 +1404,16 @@ class AnimateVelocity(object):
             self.msh.set_data(vfield)
 
             vnorm = np.max(vfield)
-            self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
+
+            self.streamV.lines.remove()
+            self.ax.patches = []
+
+            lw = (3.0*vfield/vnorm) + 0.5
+
+            self.streamV = self.ax.streamplot(self.cells.X*self.p.um,self.cells.Y*self.p.um,u_gj_x/vnorm,u_gj_y/vnorm,
+                density=self.p.stream_density,linewidth=lw,color='k',cmap=self.p.default_cm,arrowsize=1.5)
+
+            # self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
 
         cmax = np.max(vfield)
 

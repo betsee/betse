@@ -638,10 +638,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         Ucells = np.sqrt(ucells**2 + vcells**2)*1e6
 
+        lw = (Ucells/Ucells.max()) + 0.5
+
         plt.figure()
         plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
         plt.colorbar()
-        plt.streamplot(cells.X,cells.Y,ucells,vcells,density=p.stream_density,color='k')
+        plt.streamplot(cells.X,cells.Y,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
         plt.axis('equal')
         plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
         plt.title('Final Fluid Velocity in Cell Collective [um/s]')
@@ -807,6 +809,23 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
 
     #------------------------------------------------------------------------------------------------------------
+
+    # Bx = sim.Bx
+    # By = sim.By
+    #
+    # Bcx = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),Bx,(cells.X,cells.Y), fill_value=0)
+    #
+    # Bcy = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),By,(cells.X,cells.Y), fill_value=0)
+    #
+    # Bcells = np.sqrt(Bcx**2 + Bcy**2)
+    #
+    # plt.figure()
+    # plt.imshow(Bcells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+    # plt.colorbar()
+    # plt.streamplot(cells.X,cells.Y,Bcx,Bcy,density=p.stream_density,color='k')
+    # plt.axis('equal')
+    # plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+    # plt.title('Final Magnetic Field in Cell Collective [unit]')
 
     # P = np.float64(sim.P_cells)
     #
