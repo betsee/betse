@@ -128,7 +128,8 @@ class Simulator(object):
         self.I_mem_time = []                            # membrane current unit time
 
         # initialize vectors for electroosmosis in the cell collection:
-        self.u_cells = np.zeros(len(cells.nn_i))
+        self.u_cells_x = np.zeros(len(cells.cell_i))
+        self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
 
         # force of gravity:
@@ -424,7 +425,8 @@ class Simulator(object):
         self.P_env = np.zeros(cells.grid_obj.cents_shape)
 
         # initialize vectors for electroosmosis in the cell collection wrt each gap junction (note data type!):
-        self.u_cells = np.zeros(len(cells.nn_i))
+        self.u_cells_x = np.zeros(len(cells.cell_i))
+        self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
 
         if p.sim_eosmosis == True:
@@ -814,7 +816,8 @@ class Simulator(object):
 
         # initialize time-storage vectors for electroosmosis:
         self.P_cells_time = []
-        self.u_cells_time = []
+        self.u_cells_x_time = []
+        self.u_cells_y_time = []
 
         if p.voltage_dye == True:
 
@@ -1142,8 +1145,8 @@ class Simulator(object):
                 self.dvm_time.append(self.dvm[:])
 
                 self.P_cells_time.append(self.P_cells[:])
-                self.u_cells_time.append(self.u_cells[:])
-
+                self.u_cells_x_time.append(self.u_cells_x[:])
+                self.u_cells_y_time.append(self.u_cells_y[:])
 
                 if p.v_sensitive_gj == True:
 
@@ -1303,7 +1306,8 @@ class Simulator(object):
         self.u_env_x_time = []
         self.u_env_y_time = []
 
-        self.u_cells_time = []
+        self.u_cells_x_time = []
+        self.u_cells_y_time = []
         self.P_cells_time = []
 
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
@@ -1550,7 +1554,8 @@ class Simulator(object):
                 self.u_env_y_time.append(self.v_at_c[:])
 
                 self.P_cells_time.append(np.float64(self.P_cells[:]))
-                self.u_cells_time.append(np.float64(self.u_cells))
+                self.u_cells_x_time.append(np.float64(self.u_cells_x))
+                self.u_cells_y_time.append(np.float64(self.u_cells_y))
 
                 # calculate interpolated verts and midpoint data for Vmem:
                 dat_grid_vm = vertData(self.vm[:],cells,p)
@@ -1796,17 +1801,20 @@ class Simulator(object):
         c = (self.cc_cells[i][cells.nn_i][:,1] + self.cc_cells[i][cells.nn_i][:,0])/2
 
         # electroosmotic fluid velocity:
-        ux = np.float64(self.u_cells*cells.nn_vects[:,2])
-        uy = np.float64(self.u_cells*cells.nn_vects[:,3])
-        # ux = 0
-        # uy = 0
+        # ux = np.float64(self.u_cells*cells.nn_vects[:,2])
+        # uy = np.float64(self.u_cells*cells.nn_vects[:,3])
+        # ux = np.float64(self.u_cells_x_gj)
+        # uy = np.float64(self.u_cells_y_gj)
+
+        ux = np.float64((self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2)
+        uy = np.float64((self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2)
 
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
-            self.D_gj[i]*self.gjopen*p.gj_surface,self.zs[i],self.T,p)
+            self.D_gj[i]*self.gjopen,self.zs[i],self.T,p)
 
         fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
 
-        delta_cc = np.dot(cells.gjMatrix,fgj)
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface,fgj)
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
@@ -2227,19 +2235,57 @@ class Simulator(object):
             # bottom
             self.v_at_c[0,:] = 0
 
+            self.P_env = np.float64(P[:])
+
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
+
+        # # gravity force:
+        # Fgx = np.zeros(len(cells.nn_i))
+        # Fgy = np.zeros(len(cells.nn_i))
+        # Fgy[:] = -9.81*1000
+        #
+        # # FIXME put in an optino here
+        # # Fgj_gravity = cells.nn_vects[:,2]*Fgx + cells.nn_vects[:,3]*Fgy
+        #
+        # Fgj_gravity = 0
+        #
+        # sagj = p.gj_surface*cells.ave_sa_all    # average total gj surface area
+        # rgj = np.sqrt(sagj/math.pi)          # average gj radius
+        #
+        # # to get the body force at each gap junction, first map the charge density from cell to gj:
+        # rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
+        #
+        # # body force is equal to the electric field at the gap junction multiplied by the charge density there.
+        # F_gj = rho_gj*self.Egj
+        #
+        # F_source = F_gj + Fgj_gravity
+        #
+        # # sum the tangential body force pressure at the gap junctions for each cell:
+        #
+        # Fgj_sum = np.dot(cells.gjMatrix,F_source)
+        #
+        # # # calculate the pressure in each cell required to create a divergence-free (mass conserved) flow field:
+        # self.P_cells = np.dot(cells.lapGJinv, -Fgj_sum)
+        #
+        # gradP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
+        #
+        # self.u_cells = ((rgj**2)/(8*p.mu_water))*(F_gj +Fgj_gravity - gradP)
+
+        # # method 2-----------------------------------------------------------------------------------------------------
 
         # gravity force:
         Fgx = np.zeros(len(cells.nn_i))
         Fgy = np.zeros(len(cells.nn_i))
         Fgy[:] = -9.81*1000
+
+        # FIXME put in an optino here
         # Fgj_gravity = cells.nn_vects[:,2]*Fgx + cells.nn_vects[:,3]*Fgy
 
-        Fgj_gravity=0
+        Fgj_gravity = 0
 
-        sagj = p.gj_surface*cells.ave_sa_all    # average total gj surface area
-        rgj = np.sqrt(sagj/math.pi)          # average gj radius
+        # sagj = p.gj_surface*cells.ave_sa_all    # average total gj surface area
+        # rgj = np.sqrt(sagj/math.pi)          # average gj radius
 
         # to get the body force at each gap junction, first map the charge density from cell to gj:
         rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
@@ -2250,17 +2296,30 @@ class Simulator(object):
         F_source = F_gj + Fgj_gravity
 
         # sum the tangential body force pressure at the gap junctions for each cell:
-        Fgj_sum = np.dot(cells.gj2cellMatrix,F_source)
+        Fgj_sum = np.dot(cells.gjMatrix,F_source)
 
         # # calculate the pressure in each cell required to create a divergence-free (mass conserved) flow field:
-        self.P_cells = np.dot(cells.lapGJinv, Fgj_sum)
+        self.P_cells = np.dot(cells.lapGJinv, -Fgj_sum)
 
         gradP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
 
-        self.u_cells = ((rgj**2)/(8*p.mu_water))*(F_gj +Fgj_gravity - gradP)
+        source_term = -(1/p.mu_water)*(F_gj +Fgj_gravity - gradP)
 
+        st_x = source_term*cells.nn_vects[:,2]
+        source_term_x = np.dot(cells.gj2cellMatrix,st_x)
 
+        st_y = source_term*cells.nn_vects[:,3]
+        source_term_y = np.dot(cells.gj2cellMatrix,st_y)
 
+        self.u_cells_x = np.dot(cells.lapGJinv,source_term_x*p.gj_surface)
+        self.u_cells_y = np.dot(cells.lapGJinv,source_term_y*p.gj_surface)
+
+        # self.u_cells_x_gj = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
+        # self.u_cells_y_gj = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
+
+        # self.u_cells = np.sqrt(self.u_cells_x_gj**2 + self.u_cells_y_gj**2)
+
+        # self.u_cells = ((rgj**2)/(8*p.mu_water))*(F_gj +Fgj_gravity - gradP)
 
     def eosmosis(self,cells,p):
 
@@ -2832,7 +2891,55 @@ def rk4(c,deltac,p):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
-
+        # # gravity force:
+        # Fgx = np.zeros(len(cells.nn_i))
+        # Fgy = np.zeros(len(cells.nn_i))
+        # Fgy[:] = -9.81*1000
+        #
+        # # FIXME put in an option here
+        # Fgj_gravity = cells.nn_vects[:,2]*Fgx + cells.nn_vects[:,3]*Fgy
+        #
+        # Fgj_gravity = 0
+        #
+        #
+        # ts = p.dt*np.mean(cells.nn_len)
+        # # to get the body force at each gap junction, first map the charge density from cell to gj:
+        # rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
+        #
+        # # body force is equal to the electric field at the gap junction multiplied by the charge density there:
+        # F_gj = rho_gj*self.Egj
+        #
+        # # Next calculate the flow, omitting the pressure term:
+        # # Begin by finding the average velocity for each cell-cell connection at the cell centre:
+        # u_cells_o = np.dot(cells.gj2cellMatrix,self.u_cells)
+        #
+        # grad_u_cells_o = (u_cells_o[cells.nn_i][:,1] - u_cells_o[cells.nn_i][:,0])/cells.nn_len
+        #
+        # lap_u = np.dot(cells.gjMatrix,grad_u_cells_o)
+        #
+        # # lap_u = np.dot(cells.lapGJ*p.gj_surface,u_cells_o)
+        #
+        # # interpolate the laplacian back to the gap junctions:
+        # lap_u_gj = (lap_u[cells.nn_i][:,0] + lap_u[cells.nn_i][:,1])/2
+        #
+        # # calculate the in-term velocity, which lacks the internal pressure term:
+        # u_gj = self.u_cells + (ts/p.rho)*(p.mu_water*lap_u_gj + F_gj + Fgj_gravity)
+        #
+        # # Next calculate the divergence of the in-term velocity:
+        #
+        # # take the divergence of the flow field as the sum density of outflow from each cell:
+        # div_u = np.dot(cells.gjMatrix,u_gj)
+        #
+        # # calculate the pressure from the remaining divergence:
+        # source = (p.rho/ts)*div_u
+        #
+        # self.P_cells = np.dot(cells.lapGJinv, -source)
+        #
+        # # Take the gradient of the pressure:
+        # gP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
+        #
+        # # subtract the pressure from the solution to generate a divergence-free flow field:
+        # self.u_cells = u_gj - gP*(ts/p.rho)
         #--------------------------------------------------------------------------------------------------------------
         # # to get the body force at each gap junction, first map the charge density from cell to gj:
         # rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
@@ -2862,7 +2969,7 @@ def rk4(c,deltac,p):
         # div_u = np.dot(cells.gjMatrix,u_gj)
         #
         # # calculate the pressure from the remaining divergence:
-        # source = (p.rho/p.dt)*div_u*np.mean(cells.nn_len)**2
+        # source = (p.rho/p.dt)*div_u
         #
         # self.P_cells = np.dot(cells.lapGJinv, source)
         #

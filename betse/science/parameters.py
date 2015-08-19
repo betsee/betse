@@ -54,9 +54,9 @@ class Parameters(object):
         self.mu_membrane = float(self.config['general options']['membrane viscocity'])  # in membrane diffusion coefficient
         self.D_membrane = float(self.config['general options']['membrane mobility']) # charge of membrane pumps and channels
 
-        self.mu_water = float(self.config['general options']['water viscocity'])
+        self.mu_water = 1e-3   # viscocity of water [Pa.s]
 
-        self.zeta = float(self.config['general options']['zeta potential'])
+        self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
         self.gj_surface = float(self.config['world variables']['gap junction surface area'])
 
@@ -104,7 +104,7 @@ class Parameters(object):
         self.sim_filename = self.config['sim file saving']['file']
         self.world_filename = self.config['init file saving']['worldfile']
 
-        self.backward_pumps = self.config['general options']['backward running pumps']   # boolean letting us know if pumps can run backwards
+        self.backward_pumps = False   # boolean letting us know if pumps can run backwards
 
          # Geometric constants and factors
         self.wsx = float(self.config['world variables']['world x'])  # the x-dimension of the world space
@@ -114,7 +114,7 @@ class Parameters(object):
         self.cell_space = float(self.config['world variables']['cell spacing'])  # the true cell-cell spacing
         self.nl = float(self.config['world variables']['lattice disorder'])  # noise level for the lattice
 
-        volmult = float(self.config['world variables']['environmental volume'])
+        volmult = 1
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
 
@@ -578,7 +578,7 @@ class Parameters(object):
 
         self.IecmPlot = ro['plot extracellular I']    # True = plot extracellular currents, false plot gj
 
-        self.extVPlot = ro['plot environmental V']
+        self.extVPlot = False   # plot the environmental spaces -- no longer used
 
         self.plotMask = ro['plot masked geometry']
 
@@ -619,6 +619,16 @@ class Parameters(object):
         self.autoscale_Efield =ro['Efield 2D']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Efield_min_clr =float(ro['Efield 2D']['max val'])         # maximum colorbar value in V/m
         self.Efield_max_clr =float(ro['Efield 2D']['min val'])       # maximum colorbar value in V/m
+
+        self.plot_P = ro['Pressure 2D']['plot Pressure']
+        self.autoscale_P = ro['Pressure 2D']['autoscale colorbar']
+        self.P_min_clr = float(ro['Pressure 2D']['min val'])
+        self.P_max_clr = float(ro['Pressure 2D']['max val'])
+
+        self.plot_Vel = ro['Velocity 2D']['plot Velocity']
+        self.autoscale_Vel = ro['Velocity 2D']['autoscale colorbar']
+        self.Vel_min_clr = float(ro['Velocity 2D']['min val'])
+        self.Vel_max_clr = float(ro['Velocity 2D']['max val'])
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 
@@ -664,6 +674,12 @@ class Parameters(object):
         self.autoscale_Efield_ani =ro['Efield Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Efield_ani_min_clr =float(ro['Efield Ani']['max val'])         # maximum colorbar value in V/m
         self.Efield_ani_max_clr =float(ro['Efield Ani']['min val'])       # maximum colorbar value in V/m
+
+        self.ani_Velocity = ro['Velocity Ani']['animate Velocity']   # 2d animation of electric field
+        self.ani_Velocity_type =ro['Velocity Ani']['data type']   # data type can be 'ECM' or 'GJ'
+        self.autoscale_Velocity_ani =ro['Velocity Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
+        self.Velocity_ani_min_clr =float(ro['Velocity Ani']['max val'])         # maximum colorbar value in V/m
+        self.Velocity_ani_max_clr =float(ro['Velocity Ani']['min val'])       # maximum colorbar value in V/m
 
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
         self.saveAnimations = ro['save animations']    # save all animations as png sequences

@@ -257,6 +257,212 @@ class FiniteDiffSolver(object):
 
         return A, Ainv
 
+    def makeLaplacian_u(self, bound = {'N':'value','S':'value','E':'value','W':'value'}):
+        """
+        Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
+        on a regular Cartesian grid with square boundaries. Note: the graph must have
+        equal spacing in the x and y directions (the same delta in x and y directions).
+
+        """
+
+        size_rows = self.u_shape[0]
+        size_cols = self.u_shape[1]
+
+        sze = size_rows*size_cols
+
+        A = np.zeros((sze,sze))
+
+        for k, (i,j) in enumerate(self.map_ij2k_u):
+
+            # if we're not on a main boundary:
+            if i != 0 and j != 0 and i != size_rows-1 and j != size_cols-1:
+
+                k_ip1_j = self.map_ij2k_u.tolist().index([i + 1,j])
+                k_in1_j = self.map_ij2k_u.tolist().index([i-1,j])
+                k_i_jp1 = self.map_ij2k_u.tolist().index([i,j+1])
+                k_i_jn1 = self.map_ij2k_u.tolist().index([i,j-1])
+
+                A[k, k_ip1_j] = 1
+                A[k, k_in1_j] = 1
+                A[k, k_i_jp1] = 1
+                A[k, k_i_jn1] = 1
+                A[k,k] = -4
+
+
+            if i == 0: # if on the bottom (South) boundary:
+
+                if bound['S'] == 'flux':
+
+                    k_ip1_j = self.map_ij2k_u.tolist().index([i + 1,j])
+                    A[k, k_ip1_j] = 1
+
+                    A[k,k] = -1
+
+                elif bound['S'] == 'value':
+
+                    k_ip1_j = self.map_ij2k_u.tolist().index([i + 1,j])
+
+                    A[k,k] = 1
+                    A[k,k_ip1_j] = 1
+
+            if i == size_rows -1: # if on the top (North) boundary:
+
+                if bound['N'] == 'flux':
+
+                    k_in1_j = self.map_ij2k_u.tolist().index([i-1,j])
+                    A[k, k_in1_j] = 1
+
+                    A[k,k] = -1
+
+                elif bound['N'] == 'value':
+
+                    k_in1_j = self.map_ij2k_u.tolist().index([i-1,j])
+
+                    A[k,k] = 1
+                    A[k,k_in1_j] = 1
+
+            if j == 0: # if on the left (West) boundary:
+
+                if bound['W'] == 'flux':
+
+                    k_i_jp1 = self.map_ij2k_u.tolist().index([i,j+1])
+                    A[k, k_i_jp1] = 1
+
+                    A[k,k] = -1
+
+                elif bound['W'] == 'value':
+
+                    k_i_jp1 = self.map_ij2k_u.tolist().index([i,j+1])
+
+                    A[k,k] = 1
+                    A[k,k_i_jp1] = 1
+
+            if j == size_cols -1: # if on the right (East) boundary:
+
+                if bound['E'] == 'flux':
+
+                    k_i_jn1 = self.map_ij2k_u.tolist().index([i,j-1])
+                    A[k, k_i_jn1] = 1
+
+                    A[k,k] = -1
+
+                elif bound['E'] == 'value':
+
+                    k_i_jn1 = self.map_ij2k_u.tolist().index([i,j-1])
+
+                    A[k,k] = 1
+                    A[k,k_i_jn1] = 1
+
+        A = A/(self.delta**2)
+
+        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+        Ainv = np.linalg.pinv(A)
+
+        return A, Ainv
+
+    def makeLaplacian_v(self, bound = {'N':'value','S':'value','E':'value','W':'value'}):
+        """
+        Calculate a Laplacian operator matrix suitable for solving a 2D Poisson equation
+        on a regular Cartesian grid with square boundaries. Note: the graph must have
+        equal spacing in the x and y directions (the same delta in x and y directions).
+
+        """
+
+        size_rows = self.v_shape[0]
+        size_cols = self.v_shape[1]
+
+        sze = size_rows*size_cols
+
+        A = np.zeros((sze,sze))
+
+        for k, (i,j) in enumerate(self.map_ij2k_v):
+
+            # if we're not on a main boundary:
+            if i != 0 and j != 0 and i != size_rows-1 and j != size_cols-1:
+
+                k_ip1_j = self.map_ij2k_v.tolist().index([i + 1,j])
+                k_in1_j = self.map_ij2k_v.tolist().index([i-1,j])
+                k_i_jp1 = self.map_ij2k_v.tolist().index([i,j+1])
+                k_i_jn1 = self.map_ij2k_v.tolist().index([i,j-1])
+
+                A[k, k_ip1_j] = 1
+                A[k, k_in1_j] = 1
+                A[k, k_i_jp1] = 1
+                A[k, k_i_jn1] = 1
+                A[k,k] = -4
+
+
+            if i == 0: # if on the bottom (South) boundary:
+
+                if bound['S'] == 'flux':
+
+                    k_ip1_j = self.map_ij2k_v.tolist().index([i + 1,j])
+                    A[k, k_ip1_j] = 1
+
+                    A[k,k] = -1
+
+                elif bound['S'] == 'value':
+
+                    k_ip1_j = self.map_ij2k_v.tolist().index([i + 1,j])
+
+                    A[k,k] = 1
+                    A[k,k_ip1_j] = 1
+
+            if i == size_rows -1: # if on the top (North) boundary:
+
+                if bound['N'] == 'flux':
+
+                    k_in1_j = self.map_ij2k_v.tolist().index([i-1,j])
+                    A[k, k_in1_j] = 1
+
+                    A[k,k] = -1
+
+                elif bound['N'] == 'value':
+
+                    k_in1_j = self.map_ij2k_v.tolist().index([i-1,j])
+
+                    A[k,k] = 1
+                    A[k,k_in1_j] = 1
+
+            if j == 0: # if on the left (West) boundary:
+
+                if bound['W'] == 'flux':
+
+                    k_i_jp1 = self.map_ij2k_v.tolist().index([i,j+1])
+                    A[k, k_i_jp1] = 1
+
+                    A[k,k] = -1
+
+                elif bound['W'] == 'value':
+
+                    k_i_jp1 = self.map_ij2k_v.tolist().index([i,j+1])
+
+                    A[k,k] = 1
+                    A[k,k_i_jp1] = 1
+
+            if j == size_cols -1: # if on the right (East) boundary:
+
+                if bound['E'] == 'flux':
+
+                    k_i_jn1 = self.map_ij2k_v.tolist().index([i,j-1])
+                    A[k, k_i_jn1] = 1
+
+                    A[k,k] = -1
+
+                elif bound['E'] == 'value':
+
+                    k_i_jn1 = self.map_ij2k_v.tolist().index([i,j-1])
+
+                    A[k,k] = 1
+                    A[k,k_i_jn1] = 1
+
+        A = A/(self.delta**2)
+
+        # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
+        Ainv = np.linalg.pinv(A)
+
+        return A, Ainv
+
     def stokes_kernel(self):
         """
         Calculate the linearized Navier-Stokes equations using

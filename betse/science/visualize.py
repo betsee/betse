@@ -1288,6 +1288,129 @@ class AnimateEfield(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
+class AnimateVelocity(object):
+
+    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = '/animation/Velocity',saveFile = 'Velocity_'):
+
+        self.fig = plt.figure()
+        self.ax = plt.subplot(111)
+        self.p = p
+        self.sim = sim
+        self.cells = cells
+        self.save = save
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+        if p.sim_ECM == True and p.ani_Velocity_type == 'ECM':
+
+            vfield = np.sqrt(sim.u_env_x_time[-1]**2 + sim.u_env_y_time[-1]**2)*1e6
+
+            self.msh = self.ax.imshow(vfield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
+                cells.ymin*p.um, cells.ymax*p.um], cmap=p.default_cm)
+
+            vnorm = np.max(vfield)
+
+            self.streamV = self.ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1],
+                    sim.u_env_x_time[-1].ravel()/vnorm,sim.u_env_y_time[-1].ravel()/vnorm)
+
+            tit_extra = 'Extracellular'
+
+        elif p.ani_Velocity_type == 'GJ':
+
+            ugjx = sim.u_cells_x_time[-1]
+            ugjy = sim.u_cells_y_time[-1]
+
+            v_gj_x = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjx,(cells.X,cells.Y), fill_value=0)
+
+            v_gj_y = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjy,(cells.X,cells.Y), fill_value=0)
+
+            vfield = np.sqrt(v_gj_x**2 + v_gj_y**2)*1e6
+
+            self.msh = self.ax.imshow(vfield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
+                cells.ymin*p.um, cells.ymax*p.um],cmap=p.default_cm)
+
+            vnorm = np.max(vfield)
+
+            self.streamV = self.ax.quiver(p.um*cells.X, p.um*cells.Y, v_gj_x/vnorm,v_gj_y/vnorm)
+
+            tit_extra = 'Intracellular'
+
+        self.ax.axis('equal')
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if p.autoscale_Velocity_ani == False:
+            self.msh.set_clim(p.Velocity_ani_min_clr,p.Velocity_ani_max_clr)
+
+        cb = self.fig.colorbar(self.msh)
+
+        self.tit = "Velocity in " + tit_extra + ' Spaces'
+        self.ax.set_title(self.tit)
+        self.ax.set_xlabel('Spatial distance [um]')
+        self.ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Velocity [um/s]')
+
+        self.frames = len(sim.time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        plt.show()
+
+    def aniFunc(self,i):
+
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        if self.p.sim_ECM == True and self.p.ani_Velocity_type == 'ECM':
+
+            vfield = np.sqrt(self.sim.u_env_x_time[i]**2 + self.sim.u_env_y_time[i]**2)*1e6
+
+            self.msh.set_data(vfield)
+
+            vnorm = np.max(vfield)
+
+            self.streamV.set_UVC(self.sim.u_env_x_time[i]/vnorm,self.sim.u_env_y_time[i]/vnorm)
+
+        elif self.p.ani_Velocity_type == 'GJ':
+
+            ugjx = self.sim.u_cells_x_time[i]
+            ugjy = self.sim.u_cells_y_time[i]
+
+            u_gj_x = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
+            ugjx,(self.cells.X,self.cells.Y), fill_value=0)
+
+            u_gj_y = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
+                ugjy,(self.cells.X,self.cells.Y), fill_value=0)
+
+            vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e6
+
+            self.msh.set_data(vfield)
+
+            vnorm = np.max(vfield)
+            self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
+
+        cmax = np.max(vfield)
+
+        if self.p.autoscale_Velocity_ani == True:
+            self.msh.set_clim(0,cmax)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
     tvect_data=[x[celli]*1000 for x in simdata_time]

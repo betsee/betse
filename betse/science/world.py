@@ -850,15 +850,18 @@ class World(object):
         for i, inds in enumerate(self.cell_nn):
 
             idiag = 0
-            ave_mem = p.gj_surface*self.av_mem_sa[i]
+            ave_mem = self.av_mem_sa[i]
+            vol = self.cell_vol[i]
+
+            alpha = ave_mem/vol
 
             for j in inds:
 
                 nn_index = nn_inds.index([i,j])
                 L = self.nn_len[nn_index]
 
-                idiag = idiag - (1/L)
-                self.lapGJ[i,j] = (1/L)
+                idiag = idiag - (1/L)*alpha
+                self.lapGJ[i,j] = (1/L)*alpha
 
             self.lapGJ[i,i] = idiag
 
@@ -933,27 +936,27 @@ class World(object):
 
         #--------------------------------------------------------------------------------------------------------------
 
-        # calculating matrix for gj divergence of the flux calculation:
+        # calculating matrix for gj divergence of the flux calculation:  # FIXME is this correct?
         self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
 
-        for igj, pair in enumerate(self.nn_i):
+        for i, inds in enumerate(self.cell_to_nn):
 
-            ci = pair[0]
+            sa_i = self.av_mem_sa[i]
 
-            sa_i = self.av_mem_sa[ci]
+            vol_i = self.cell_vol[i]
 
-            vol_i = self.cell_vol[ci]
+            for j in inds:
 
-            self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
+                self.gjMatrix[i,j] = 1*(sa_i/vol_i)
 
-        # matrix for summing values on gap junctions to each cell:
+        # matrix for averaging values on gap junctions to each cell:
 
         self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
 
         for i, inds in enumerate(self.cell_to_nn):
             ave_fact = len(inds)
             for j in inds:
-                self.gj2cellMatrix[i,j] = 1
+                self.gj2cellMatrix[i,j] = 1/ave_fact
 
         #--------------------------------------------------------------------------------------------------------------
 

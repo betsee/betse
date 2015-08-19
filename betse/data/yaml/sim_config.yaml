@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 5.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -154,7 +154,7 @@ general options:
 
   grid size: 50                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
 
   ion profile: 'basic'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
@@ -177,16 +177,10 @@ general options:
 
   membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
 
-  water viscocity: 1.0e-3   # viscovity of ecm space (for bulk electroosmosis) [Ns/m2]
-
   membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
-  zeta potential: -70e-3      # zeta potential of membrane for electroosmosis, of proteins for electrophoresis (V)
 
-  backward running pumps: False  # include the capacity for pumps to run backwards if free-energy dictates?
-
-
-  HKATPase pump: True     # include the HK-ATPase pump in the simulation?
+  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
                            # only works for an ion profile with H+ ions (animal or invertebrate)
                            # options True or False (case sensitive)
 
@@ -252,7 +246,7 @@ general options:
 
 world variables:
 
-  world x: 150e-6         # the x-dimension of the world space [m]
+  world x: 200e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -273,10 +267,6 @@ world variables:
                               # square grid. If equal to 0 a perfect
                               # square grid is created.
 
-
-  environmental volume: 100.0   # volume of the environmental space as a multiplier
-                              # of total volume of the cell cluster.
-
   temperature: 310            # World temperature [K]
 
   search distance: 1.8        # distance to search for nearest neighbours
@@ -285,7 +275,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-3   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 5.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -420,9 +410,9 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-5     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
+    ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
 
-number of tissue profiles: 0     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: hole       # give your profile a name that will be used to apply the profile
@@ -438,7 +428,7 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 tissue profile 2:
     name: tissue       # give your profile a name that will be used to apply the profile
@@ -446,7 +436,7 @@ tissue profile 2:
     designation: None      # special instructions for making the profile:'cavity' or 'cuts'
     insular: False           # make tissue have gap junctions connecting within tissue and not between tissues
 
-    Dm_Na: 2.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_Na: 10.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
     Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
     Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
@@ -454,7 +444,7 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-5    # multiplier for ecm diffusion
+    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
@@ -627,7 +617,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: False     # use this setting to quickly toggle creation of all
+  create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -649,7 +639,7 @@ results options:
   plot cell index: 10              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
   show cells: False                # if True, plots and animations show individual cells,
@@ -664,14 +654,12 @@ results options:
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: False      # for currents, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
-  plot environmental V: True     # plot voltage on enivronmental spaces -- useful if applying external voltage
+  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
-  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot
-
-  plot masked geometry: False      # plot the geometry using the overal shape as a mask
+  plot masked geometry: False      # plot the geometry using the overall shape as a mask
 
   Vmem 2D:
 
@@ -711,7 +699,7 @@ results options:
   Efield 2D:
 
     plot Efield: True              # 2d plot of electric field
-    data type: ECM                   # data type can be 'ECM' or 'GJ'
+    data type: GJ                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
     max val: 900                   # maximum colorbar value in V/m
@@ -719,69 +707,92 @@ results options:
 
   Currents 2D:
 
-    plot Currents: False               # 2d plot of net current flow in the collective?
+    plot Currents: True               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
     colormap: coolwarm                    # colorbar for the currents
 
+  Pressure 2D:                      # 2D plot of pressure in the cluster
+
+    plot Pressure: True
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+
+  Velocity 2D:                      # 2D plot of electroosmotic fluid velocity in the cluster
+
+    plot Velocity: True
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+
+
+  #---------Animations -------------------------------------------------------------------------------------------------
+
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
+    animate Vmem: False           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
-    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    animate Ca2+: False           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: True            # 2d animation of cIP3 with time?
+    animate IP3: False            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Dye Ani:
 
-    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
 
-    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Current Ani:
 
-    animate current: True       # 2d animation of current in individual cells of the collective?
+    animate current: False       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
   Efield Ani:
-    animate Efield: True        # 2d animation of electric field in extracellullar matrix
+    animate Efield: False        # 2d animation of electric field in extracellullar matrix
     data type: ECM                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 1500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]
 
+  Velocity Ani:
+    animate Velocity: True        # 2d animation of electric field in extracellullar matrix
+    data type: GJ                  # data type can be 'ECM' or 'GJ'
+    autoscale colorbar: True    # autoscale colorbar to min max of datat set?
+    max val: 1               # max colorbar value [V/m]
+    min val: 0                  # min colorbar value [V/m]
 
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
                                # options include

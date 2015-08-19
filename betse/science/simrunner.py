@@ -4,6 +4,7 @@
 # See "LICENSE" for further details.
 
 
+from scipy import interpolate as interp
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
 from betse.science.compute import Simulator
@@ -332,6 +333,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         os.makedirs(image_cache_dir, exist_ok=True)
         savedImg = os.path.join(image_cache_dir, 'fig_')
 
+    #--------Single cell data graphs-----------------------------------------------------------------------------------
+
     if p.plot_single_cell_graphs == True:
 
         figConcsNa, axConcsNa = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
@@ -380,8 +383,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-        #------------------------------------------------------------------------------------
-
         if p.ions_dict['Ca'] ==1:
             figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
                  ax=None,lncolor='g',ionname='Ca2+ cell')
@@ -416,6 +417,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
                 plt.show(block=False)
 
+    #-----2D data graphs-----------------------------------------------------------------------------------------------
 
     if p.plot_vcell2d == True and p.sim_ECM == True:
 
@@ -441,6 +443,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename9,format='png')
 
         plt.show(block=False)
+
+    #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_vm2d == True:
 
@@ -474,6 +478,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+    #-------------------------------------------------------------------------------------------------------------------
+
     if p.plot_ip32d == True and p.scheduled_options['IP3'] != 0:
 
         if p.showCells == True:
@@ -493,6 +499,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename6,format='png')
 
         plt.show(block=False)
+
+    #-------------------------------------------------------------------------------------------------------------------
 
     if p.plot_dye2d == True and p.voltage_dye == 1:
 
@@ -514,6 +522,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+    #-------------------------------------------------------------------------------------------------------------------
+
     if p.plot_ca2d ==True and p.ions_dict['Ca'] == 1:
 
         if p.showCells == True:
@@ -533,6 +543,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename8,format='png')
 
         plt.show(block=False)
+
+    #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_I2d == True:
 
@@ -566,6 +578,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
+    #-------------------------------------------------------------------------------------------------------------------
+
     if p.plot_Efield == True:
 
         viz.plotEfield(sim,cells,p)
@@ -577,87 +591,88 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
+    if p.plot_P == True:
 
+        if p.showCells == True:
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
+        axP.set_title('Final Pressure in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure [Pa]')
 
-    if p.sim_ECM == True:
-
-        u = sim.u_at_c
-        v = sim.v_at_c
-        U = np.sqrt(u**2 + v**2)*1e6
-
-
-        plt.figure()
-        plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-        plt.colorbar()
-        plt.quiver(cells.X,cells.Y,u,v)
-        plt.axis('equal')
-        plt.title('VELOCITY RULES! [um/s]')
+        if saveImages == True:
+            savename13 = savedImg + 'final_P_2D_gj' + '.png'
+            plt.savefig(savename13,format='png')
 
         plt.show(block=False)
 
-        ucellso = sim.u_cells_time[-1]*cells.nn_vects[:,2]
-        vcellso = sim.u_cells_time[-1]*cells.nn_vects[:,3]
+        if p.sim_ECM == True:
 
-        P = sim.P_cells[:]
+            plt.figure()
+            plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+            plt.colorbar()
+            plt.axis('equal')
+            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+            plt.title('Extracellular Pressure [Pa]')
 
-        from scipy import interpolate as interp
+            if saveImages == True:
+                savename13 = savedImg + 'final_P_2D_env' + '.png'
+                plt.savefig(savename13,format='png')
 
-        ucells = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            ucellso,(cells.X,cells.Y), fill_value=0)
+            plt.show(block=False)
 
-        vcells = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                vcellso,(cells.X,cells.Y), fill_value=0)
+
+    if p.plot_Vel == True:
+
+        ucellso = sim.u_cells_x_time[-1]
+        vcellso = sim.u_cells_y_time[-1]
+
+        ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ucellso,(cells.X,cells.Y), fill_value=0)
+
+        vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),vcellso,(cells.X,cells.Y), fill_value=0)
 
         Ucells = np.sqrt(ucells**2 + vcells**2)*1e6
 
         plt.figure()
-        plt.tripcolor(cells.cell_centres[:,0],cells.cell_centres[:,1],P,shading='gouraud')
-        # plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+        plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
         plt.colorbar()
-        plt.streamplot(cells.X,cells.Y,ucells,vcells,density=2.0,color='k')
+        plt.streamplot(cells.X,cells.Y,ucells,vcells,density=p.stream_density,color='k')
         plt.axis('equal')
-        plt.title('GJ Pressure RULES! [Pa]')
+        plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+        plt.title('Final Fluid Velocity in Cell Collective [um/s]')
+
+        if saveImages == True:
+            savename13 = savedImg + 'final_vel_2D_gj' + '.png'
+            plt.savefig(savename13,format='png')
 
         plt.show(block=False)
 
-        plt.figure()
-        # plt.tripcolor(cells.cell_centres[:,0],cells.cell_centres[:,1],P,shading='gouraud')
-        plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-        plt.colorbar()
-        plt.streamplot(cells.X,cells.Y,ucells,vcells,density=2.0,color='k')
-        plt.axis('equal')
-        plt.title('GJ VELOCITY RULES! [um/s]')
+        if p.sim_ECM == True:
 
-        plt.show(block=False)
+            u = sim.u_at_c
+            v = sim.v_at_c
+            U = np.sqrt(u**2 + v**2)*1e6
 
+            plt.figure()
+            plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+            plt.colorbar()
+            plt.streamplot(cells.X,cells.Y,u,v,density=p.stream_density,color='k')
+            plt.axis('equal')
+            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+            plt.title('Final Extracellular Fluid Velocity [um/s]')
 
-    # if p.showCells == True:
-    #     figU, axU, cbU = viz.plotPolyData(sim,cells,p,zdata=sim.P_cells,number_cells= p.enumerate_cells,
-    #     clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
-    #
-    #     axU.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],sim.u_cells_x,sim.u_cells_y)
-    #
-    # else:
-    #     figU, axU, cbU = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-    #     clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
-    #
-    #     axU.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],sim.u_cells_x,sim.u_cells_y)
+            if saveImages == True:
+                savename13 = savedImg + 'final_vel_2D_env' + '.png'
+                plt.savefig(savename13,format='png')
 
-    # axU.set_title('Final environmental fluid velocity')
-    # axU.set_xlabel('Spatial distance [um]')
-    # axU.set_ylabel('Spatial distance [um]')
-    # cbU.set_label('Velocity [m/s]')
-
-    # if saveImages == True:
-    #     savename = savedImg + 'final_U_2D' + '.png'
-    #     plt.savefig(savename,format='png')
-
-
-
+            plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-
 
     if p.ani_ip32d ==True and p.scheduled_options['IP3'] != 0 and animate == 1:
         IP3plotting = np.asarray(sim.cIP3_time)
@@ -776,6 +791,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)
 
+    if p.ani_Velocity == True and animate == 1:
+
+        viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
 
     if p.exportData == True:
         viz.exportData(cells, sim, p)
@@ -786,5 +804,37 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
         plt.quiver(p.um*cells.Y_ecm,p.um*cells.X_ecm,sim.E_ECM_x,sim.E_ECM_y)
         plt.show()
+
+
+    #------------------------------------------------------------------------------------------------------------
+
+    # P = np.float64(sim.P_cells)
+    #
+    # plt.figure()
+    # plt.tripcolor(cells.cell_centres[:,0],cells.cell_centres[:,1],P,shading='gouraud')
+    # plt.colorbar()
+    # plt.axis('equal')
+    # plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+    # plt.title('Test Fluid Pressure in Cell Collective [um/s]')
+    #
+    # plt.show(block=False)
+    #
+    # ux = np.float64(sim.u_cells_x)
+    # uy = np.float64(sim.u_cells_y)
+    #
+    # uxgj = np.float64(sim.u_cells_x_gj)
+    # uygj = np.float64(sim.u_cells_y_gj)
+    #
+    # uu = np.sqrt(ux**2 + uy**2)*1e6
+    #
+    # plt.figure()
+    # plt.tripcolor(cells.cell_centres[:,0],cells.cell_centres[:,1],uu,shading='gouraud')
+    # plt.colorbar()
+    # plt.quiver(cells.nn_vects[:,0],cells.nn_vects[:,1],uxgj,uygj)
+    # plt.axis('equal')
+    # plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+    # plt.title('Test Fluid Velocity in Cell Collective [um/s]')
+    #
+    # plt.show(block=False)
 
 
