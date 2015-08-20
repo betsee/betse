@@ -476,26 +476,42 @@ def periodic(cells,sim,p):
 
 def gradient_x(cells,sim,p):
 
+    fx = np.abs(cells.cell_centres[:,0] - p.gradient_x_properties['offset'])
 
-    x = np.linspace(cells.clust_x_min,cells.clust_x_max,100)
+    fx = (fx/fx.max())*p.gradient_x_properties['slope']
 
-    yy = x*p.gradient_x_properties['slope'] + p.gradient_x_properties['offset']
+    if p.sim_ECM == True:
 
-    yy = yy/np.max(yy)
+        fx = fx[cells.mem_to_cells]
 
-    y = interp.interp1d(x,yy)
-
-    return y
+    return fx
 
 def gradient_y(cells,sim,p):
 
-    z = np.linspace(cells.clust_y_min,cells.clust_y_max,100)
+    fy = np.abs(cells.cell_centres[:,1] - p.gradient_y_properties['offset'])
 
-    yy = z*p.gradient_y_properties['slope'] + p.gradient_y_properties['offset']
+    fy = (fy/fy.max())*p.gradient_y_properties['slope']
 
-    yy = yy/np.max(yy)
+    if p.sim_ECM == True:
 
-    y = interp.interp1d(z,yy)
+        fy = fy[cells.mem_to_cells]
 
-    return y
+    return fy
+
+
+def gradient_r(cells,sim,p):
+
+    fx = cells.cell_centres[:,0] - cells.centre[0] - p.gradient_r_properties['offset']
+    fy = cells.cell_centres[:,1] - cells.centre[1] - p.gradient_r_properties['offset']
+    r = np.sqrt(fx**2 + fy**2)
+
+    r = r/r.max()
+
+    r = r*p.gradient_r_properties['slope']
+
+    if p.sim_ECM == True:
+
+        r = r[cells.mem_to_cells]
+
+    return r
 

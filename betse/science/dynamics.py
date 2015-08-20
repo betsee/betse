@@ -114,14 +114,6 @@ class Dynamics(object):
 
     def scheduledInit(self,sim,cells,p):
 
-        # set up any functions that may be used in event calls:
-        self.frequency = p.periodic_properties['frequency']
-        self.phase = p.periodic_properties['phase']
-        self.x_slope = p.gradient_x_properties['slope']
-        self.y_slope = p.gradient_y_properties['slope']
-        self.x_offset = p.gradient_x_properties['offset']
-        self.y_offset = p.gradient_y_properties['offset']
-
         if p.scheduled_options['Na_mem'] != 0:
 
             self.t_on_Namem = p.scheduled_options['Na_mem'][0]
@@ -160,6 +152,12 @@ class Dynamics(object):
 
             self.targets_Kmem = [item for sublist in self.targets_Kmem for item in sublist]
 
+            self.scalar_Kmem = 1
+
+            if self.function_Kmem != 'None':
+
+                self.scalar_Kmem = getattr(tb,self.function_Kmem)(cells,sim,p)
+
         if p.scheduled_options['Cl_mem'] != 0:
 
             self.t_on_Clmem = p.scheduled_options['Cl_mem'][0]
@@ -175,6 +173,12 @@ class Dynamics(object):
                 self.targets_Clmem.append(targets)
 
             self.targets_Clmem = [item for sublist in self.targets_Clmem for item in sublist]
+
+            self.scalar_Clmem = 1
+
+            if self.function_Clmem != 'None':
+
+                self.scalar_Clmem = getattr(tb,self.function_Clmem)(cells,sim,p)
 
         if p.scheduled_options['Ca_mem'] != 0:
 
@@ -192,6 +196,12 @@ class Dynamics(object):
 
             self.targets_Camem = [item for sublist in self.targets_Camem for item in sublist]
 
+            self.scalar_Camem = 1
+
+            if self.function_Camem != 'None':
+
+                self.scalar_Camem = getattr(tb,self.function_Camem)(cells,sim,p)
+
         if p.scheduled_options['IP3'] != 0:
 
             self.t_onIP3 = p.scheduled_options['IP3'][0]
@@ -208,6 +218,12 @@ class Dynamics(object):
 
             self.targets_IP3 = [item for sublist in self.targets_IP3 for item in sublist]
 
+            self.scalar_IP3 = 1
+
+            if self.function_IP3 != 'None':
+
+                self.scalar_IP3 = getattr(tb,self.function_IP3)(cells,sim,p)
+
         if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
             self.t_on_extV = p.scheduled_options['extV'][0]
@@ -215,7 +231,6 @@ class Dynamics(object):
             self.t_change_extV = p.scheduled_options['extV'][2]
             self.peak_val_extV = p.scheduled_options['extV'][3]
             self.apply_extV = p.scheduled_options['extV'][4]
-            self.function_extV = p.scheduled_options['extV'][5]
 
             name_positive = self.apply_extV[0]
             name_negative = self.apply_extV[1]
@@ -460,57 +475,31 @@ class Dynamics(object):
 
         if p.scheduled_options['Na_mem'] != 0:
 
-            modifier = 1
-
-            if self.function_Namem == 'periodic':
-
-                modifier = self.scalar_Namem(sim.t)
-
-            elif self.function_Namem == 'gradient_x':
-
-                if p.sim_ECM == False:
-
-                   modifier = self.scalar_Namem(cells.cell_centres[:,0][self.targets_Namem])
-
-                else:
-
-                   modifier = self.scalar_Namem(cells.cell_centres[:,0][cells.mem_to_cells][self.targets_Namem])
-
-            elif self.function_Namem == 'gradient_y':
-
-                if p.sim_ECM == False:
-
-                    modifier =self.scalar_Namem(cells.cell_centres[:,1][self.targets_Namem])
-
-                else:
-
-                    modifier =self.scalar_Namem(cells.cell_centres[:,1][cells.mem_to_cells][self.targets_Namem])
-
-            effector_Na = modifier*tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
+            effector_Na = self.scalar_Namem*tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
 
             sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
         if p.scheduled_options['K_mem'] != 0:
 
-            effector_K = tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
+            effector_K = self.scalar_Kmem*tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
 
             sim.Dm_scheduled[sim.iK][self.targets_Kmem] = self.mem_mult_Kmem*effector_K*p.Dm_K
 
         if p.scheduled_options['Cl_mem'] != 0 and p.ions_dict['Cl'] != 0:
 
-            effector_Cl = tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
+            effector_Cl = self.scalar_Clmem*tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
 
             sim.Dm_scheduled[sim.iCl][self.targets_Clmem] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
 
         if p.scheduled_options['Ca_mem'] != 0 and p.ions_dict['Ca'] != 0:
 
-            effector_Ca = tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
+            effector_Ca = self.scalar_Camem*tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
 
             sim.Dm_scheduled[sim.iCa][self.targets_Camem] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
 
         if p.scheduled_options['IP3'] != 0:
 
-            sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.rate_IP3*tb.pulse(t,self.t_onIP3,
+            sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.scalar_IP3*self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
 
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:

@@ -153,14 +153,19 @@ class Parameters(object):
         # include V-ATPase in the simulation? Yes =1, No = 0
         self.VATPase_dyn = self.config['general options']['VATPase pump']
 
-        # include diffusion of a voltage sensitive dye? Yes = 1, No = 0
-        self.voltage_dye = self.config['general options']['voltage dye']
+        # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
+        self.voltage_dye = self.config['general options']['morphogen']
 
-        self.Dm_Dye = float(self.config['general options']['voltage dye properties']['Dm_Dye'])
-        self.Do_Dye = float(self.config['general options']['voltage dye properties']['Do_Dye'])
-        self.z_Dye = float(self.config['general options']['voltage dye properties']['z_Dye'])
-        self.cDye_to = float(self.config['general options']['voltage dye properties']['cDye_to'])
-        self.cDye_to_cell = float(self.config['general options']['voltage dye properties']['cDye_to_cell'])
+        self.Dm_Dye = float(self.config['general options']['morphogen properties']['Dm'])
+        self.Do_Dye = float(self.config['general options']['morphogen properties']['Do'])
+        self.z_Dye = float(self.config['general options']['morphogen properties']['z'])
+        self.cDye_to = float(self.config['general options']['morphogen properties']['env conc'])
+        self.cDye_to_cell = float(self.config['general options']['morphogen properties']['cell conc'])
+        self.Dye_target_channel = self.config['general options']['morphogen properties']['ion channel target']
+        self.Dye_Hill_K = float(self.config['general options']['morphogen properties']['target Hill coefficient'])
+        self.Dye_Hill_exp = float(self.config['general options']['morphogen properties']['target Hill exponent'])
+        self.Dye_peak_channel = float(self.config['general options']['morphogen properties']['peak channel opening'])
+        self.Dye_acts_extracell = bool(self.config['general options']['morphogen properties']['acts extracellularly'])
 
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['general options']['static noise level'])
@@ -405,7 +410,6 @@ class Parameters(object):
             rate_extV = float(self.config['apply external voltage']['change rate'])
             peak_extV = float(self.config['apply external voltage']['peak value'])
             apply_extV = self.config['apply external voltage']['apply to']
-            function = self.config['apply external voltage']['function']
             extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV, function]
             self.scheduled_options['extV'] = extV
 
@@ -419,18 +423,18 @@ class Parameters(object):
             cuts_params = [cut_time, apply_to, hole]
             self.scheduled_options['cuts'] = cuts_params
 
-        self.periodic_properties = {}
         self.gradient_x_properties = {}
         self.gradient_y_properties = {}
-
-        self.periodic_properties['frequency'] = self.config['function properties']['periodic']['frequency']
-        self.periodic_properties['phase'] =self.config['function properties']['periodic']['phase']
+        self.gradient_r_properties = {}
 
         self.gradient_x_properties['slope'] =self.config['function properties']['gradient_x']['slope']
         self.gradient_x_properties['offset'] =self.config['function properties']['gradient_x']['offset']
 
         self.gradient_y_properties['slope'] =self.config['function properties']['gradient_y']['slope']
         self.gradient_y_properties['offset'] =self.config['function properties']['gradient_y']['offset']
+
+        self.gradient_r_properties['slope'] =self.config['function properties']['gradient_r']['slope']
+        self.gradient_r_properties['offset'] =self.config['function properties']['gradient_r']['offset']
 
 
 

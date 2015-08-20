@@ -511,13 +511,15 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
 
-        axVdye.set_title('Final voltage-sensitive dye')
+        axVdye.quiver(cells.nn_vects[:,0]*p.um,cells.nn_vects[:,1]*p.um,sim.Dye_flux_x_gj_time[-1],sim.Dye_flux_y_gj_time[-1])
+
+        axVdye.set_title('Final Morphogen Concentration')
         axVdye.set_xlabel('Spatial distance [um]')
         axVdye.set_ylabel('Spatial distance [um]')
         cbVdye.set_label('Concentration umol/L')
 
         if saveImages == True:
-            savename7 = savedImg + 'final_dye_2D' + '.png'
+            savename7 = savedImg + 'final_morphogen_2D' + '.png'
             plt.savefig(savename7,format='png')
 
         plt.show(block=False)

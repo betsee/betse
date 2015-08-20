@@ -354,21 +354,9 @@ class Simulator(object):
             self.Dye_flux_gj = np.zeros(len(cells.nn_i))
             self.Dye_flux_mem = np.zeros(len(cells.mem_i))
 
-
-            if p.sim_ECM == True:
-                self.cDye_ecm = np.zeros(len(cells.ecm_i))
-                self.cDye_ecm[:] = p.cDye_to
-                self.cDye_env = np.zeros(len(cells.env_i))
-                self.cDye_env[:] = p.cDye_to
-
-                self.Dye_flux_ecm = np.zeros(len(cells.ecm_i))
-                self.Dye_flux_env = np.zeros(len(cells.env_i))
-
-
-            else:
-                self.cDye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
-                self.cDye_env[:] = p.cDye_to
-
+            self.cDye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
+            self.cDye_env[:] = p.cDye_to
+        #
         self.z_array = np.asarray(self.z_array)
 
     def baseInit_ECM(self,cells,p):
@@ -708,8 +696,6 @@ class Simulator(object):
         self.Dm_er_CICR = np.copy(Dm_cellsER)
         self.Dm_er_CICR[:] = 0
 
-
-
         self.dcc_ER = []
 
         if p.global_options['gj_block'] != 0:
@@ -749,24 +735,33 @@ class Simulator(object):
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
 
-            self.Dye_flux_gj = np.zeros(len(cells.nn_i))
+            self.Dye_flux_x_gj = np.zeros(len(cells.nn_i))
+            self.Dye_flux_y_gj = np.zeros(len(cells.nn_i))
             self.Dye_flux_mem = np.zeros(len(cells.mem_i))
 
+            if p.Dye_target_channel != 'None':
+
+                # get the ion index of the target ion:
+                self.dye_target = self.get_ion(p.Dye_target_channel)
+
+                # make a copy of the appropriate ion list
+                self.Dm_mod_dye = np.copy(self.Dm_cells[self.dye_target][:])
+
+            else:
+
+                self.dye_target = None
 
             if p.sim_ECM == True:
-                # self.cDye_ecm = np.zeros(len(cells.ecm_i))
-                # self.cDye_ecm[:] = p.cDye_to
+
                 self.cDye_env = np.zeros(len(cells.xypts))
                 self.cDye_env[:] = p.cDye_to
 
                 self.Dye_flux_env_x = np.zeros(len(cells.xypts))
                 self.Dye_flux_env_y = np.zeros(len(cells.xypts))
 
-
             else:
                 self.Dye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
                 self.Dye_env[:] = p.cDye_to
-
 
         self.dyna.globalInit(self,cells,p)     # initialize any global interventions
         self.dyna.scheduledInit(self,cells,p)  # initialize any scheduled interventions
@@ -814,7 +809,8 @@ class Simulator(object):
         if p.voltage_dye == True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
-            self.Dye_flux_gj_time = []
+            self.Dye_flux_x_gj_time = []
+            self.Dye_flux_y_gj_time = []
             self.Dye_flux_mem_time = []
 
         # gap junction specific arrays:
@@ -890,6 +886,16 @@ class Simulator(object):
             # self.allDynamics(t,p)  # user-scheduled (forced) interventions
             if p.run_sim == True:
                 self.dyna.runAllDynamics(self,cells,p,t)
+
+             # update membrane permeability if dye targets an ion channel:
+            if p.voltage_dye == True and self.dye_target is not None and p.run_sim ==True:
+
+                if p.Dye_acts_extracell == False:
+
+                    self.Dm_mod_dye = p.Dye_peak_channel*tb.hill(self.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
+
+                    self.Dm_cells[self.dye_target] = self.Dm_mod_dye + self.Dm_base[self.dye_target]
+
 
             # run the Na-K-ATPase pump:
             fNa_NaK, fK_NaK = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],
@@ -1081,21 +1087,7 @@ class Simulator(object):
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
 
-                fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
-
-                # update dye concentration
-                self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
-
-                # determine flux through gap junctions for voltage dye:
-                fDye = electroflux(self.cDye_cell[cells.nn_i][:,0],self.cDye_cell[cells.nn_i][:,1],
-                    self.id_gj*p.Do_Dye,self.gjl,p.z_Dye,self.vgj,self.T,p)
-
-                # update cell voltage-sensitive dye concentration due to gap junction flux:
-                deltac_dye = self.gjopen*(fDye)*p.dt
-                self.cDye_cell = self.cDye_cell + ((cells.cell_sa*p.gj_surface)/cells.cell_vol)*np.dot(deltac_dye, cells.gjMatrix)
-
-                self.Dye_flux_mem = fdye_ED[cells.mem_to_cells]
-                self.Dye_flux_gj = fDye
+                self.update_dye(cells,p,t)
 
             if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
@@ -1158,7 +1150,8 @@ class Simulator(object):
 
                     self.cDye_time.append(self.cDye_cell[:])
 
-                    self.Dye_flux_gj_time.append(self.Dye_flux_gj[:])
+                    self.Dye_flux_x_gj_time.append(self.Dye_flux_x_gj[:])
+                    self.Dye_flux_y_gj_time.append(self.Dye_flux_y_gj[:])
 
                     ffmemDye = self.Dye_flux_mem[:]
                     self.Dye_flux_mem_time.append(self.Dye_flux_mem[:])
@@ -1309,9 +1302,10 @@ class Simulator(object):
 
         if p.voltage_dye == True:
 
-            self.Dye_flux_ecm_time = []
-            self.Dye_flux_env_time = []
-            self.Dye_flux_gj_time = []
+            self.Dye_flux_env_x_time = []
+            self.Dye_flux_env_y_time = []
+            self.Dye_flux_x_gj_time = []
+            self.Dye_flux_y_gj_time = []
             self.Dye_flux_mem_time = []
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
 
@@ -1378,6 +1372,22 @@ class Simulator(object):
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
             if p.run_sim == True:
                 self.dyna.runAllDynamics(self,cells,p,t)
+
+            # update membrane permeability if dye targets an ion channel:
+            if p.voltage_dye == True and self.dye_target is not None and p.run_sim == True:
+
+                if p.Dye_acts_extracell == False:
+
+                    self.Dm_mod_dye = p.Dye_peak_channel*tb.hill(self.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
+
+                    self.Dm_cells[self.dye_target] = self.Dm_mod_dye[cells.mem_to_cells] + self.Dm_base[self.dye_target]
+
+                elif p.Dye_acts_extracell == True:
+
+                    self.Dm_mod_dye = p.Dye_peak_channel*tb.hill(self.cDye_env,p.Dye_Hill_K,p.Dye_Hill_exp)
+
+                    self.Dm_cells[self.dye_target] = self.Dm_mod_dye[cells.map_mem2ecm] + self.Dm_base[self.dye_target]
+
 
             #-----------------PUMPS-------------------------------------------------------------------------------------
 
@@ -1566,6 +1576,9 @@ class Simulator(object):
                     self.cDye_time.append(ccDye_cells)
                     ccDye_cells = None
 
+                    self.Dye_flux_x_gj_time.append(self.Dye_flux_x_gj[:])
+                    self.Dye_flux_y_gj_time.append(self.Dye_flux_y_gj[:])
+
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     ccer = self.cc_er[:]
                     self.cc_er_time.append(ccer)
@@ -1650,11 +1663,11 @@ class Simulator(object):
             loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
 
         if p.voltage_dye ==1:
-            dye_ecm_final = np.mean(self.cDye_ecm)
+            dye_ecm_final = np.mean(self.cDye_env)
             dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final extracellular dye concentration: '+ str(np.round(dye_ecm_final,6))
+            loggers.log_info('Final extracellular morphogen concentration: '+ str(np.round(dye_ecm_final,6))
                              + ' mmol/L')
-            loggers.log_info('Final average dye concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
+            loggers.log_info('Final average morphogen concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
                              ' mmol/L')
 
         plt.close()
@@ -1793,12 +1806,8 @@ class Simulator(object):
         c = (self.cc_cells[i][cells.nn_i][:,1] + self.cc_cells[i][cells.nn_i][:,0])/2
 
         # electroosmotic fluid velocity:
-
         ux = np.float64((self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2)
         uy = np.float64((self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2)
-
-        # ux = 0
-        # uy = 0
 
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             self.D_gj[i]*self.gjopen,self.zs[i],self.T,p)
@@ -1930,12 +1939,12 @@ class Simulator(object):
 
          # electrodiffusion of ions between cell and endoplasmic reticulum
         self.cc_cells[self.iCa],self.cc_er[0],_ = \
-        electrofuse(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
+        electroflux(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,p.ER_sa*cells.cell_sa,
             cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[0],self.v_er,self.T,p)
 
         # Electrodiffusion of charge compensation anion
         self.cc_cells[self.iM],self.cc_er[1],_ = \
-        electrofuse(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
+        electroflux(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,p.ER_sa*cells.cell_sa,
             cells.cell_vol,p.ER_vol*cells.cell_vol,self.z_er[1],self.v_er,self.T,p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
@@ -1946,48 +1955,173 @@ class Simulator(object):
 
     def update_dye(self,cells,p,t):
 
-        # _,_,flux_dye = \
-        #                 electrofuse(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
-        #                     p.Dm_Dye*self.id_cells[cells.mem_to_cells],self.tm[cells.mem_to_cells],cells.mem_sa,
-        #                     cells.ecm_vol[cells.mem_to_ecm],cells.cell_vol[cells.mem_to_cells],p.z_Dye,self.vm,self.T,p)
+        # Update dye concentration in the gj connected cell network:
 
-        flux_dye = electroflux(self.cDye_ecm[cells.mem_to_ecm],self.cDye_cell[cells.mem_to_cells],
-                            p.Dm_Dye,self.tm[cells.mem_to_cells],cells.mem_sa,
-                            p.z_Dye,self.vm,self.T,p)
+        # voltage gradient:
+        grad_vgj = self.vgj/cells.nn_len
 
-         # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-        self.cDye_cell = self.cDye_cell + \
-                            np.dot((flux_dye/cells.cell_vol[cells.mem_to_cells])*p.dt,cells.cell_UpdateMatrix)
+        grad_vgj_x = grad_vgj*cells.nn_vects[:,2]
+        grad_vgj_y = grad_vgj*cells.nn_vects[:,3]
 
-        self.cDye_ecm = self.cDye_ecm - \
-                            np.dot((flux_dye/cells.ecm_vol[cells.mem_to_ecm])*p.dt,cells.ecm_UpdateMatrix)
+        # concentration gradient for Dye:
+        grad_cgj = (self.cDye_cell[cells.nn_i][:,1] - self.cDye_cell[cells.nn_i][:,0])/cells.nn_len
 
-        # determine flux through gap junctions for voltage dye:
-        # _,_,fDye_gj = electrofuse(self.cDye_cell[cells.gap_jun_i][:,0],self.cDye_cell[cells.gap_jun_i][:,1],
-        #     self.id_gj*p.Do_Dye,self.gjl,self.gjopen*self.gjsa,cells.cell_vol[cells.gap_jun_i][:,0],
-        #     cells.cell_vol[cells.gap_jun_i][:,1],p.z_Dye,self.vgj,self.T,p)
-        fDye_gj = electroflux(self.cDye_cell[cells.nn_i][:,0],self.cDye_cell[cells.nn_i][:,1],
-            p.Do_Dye,self.gjl,self.gjopen,p.z_Dye,self.vgj,self.T,p)
+        grad_cgj_x = grad_cgj*cells.nn_vects[:,2]
+        grad_cgj_y = grad_cgj*cells.nn_vects[:,3]
 
-        # update cell voltage-sensitive dye concentration due to gap junction flux:
-        self.cDye_cell = (self.cDye_cell*cells.cell_vol + np.dot((fDye_gj*p.dt), cells.gjMatrix))/cells.cell_vol
+        # midpoint concentration:
+        c = (self.cDye_cell[cells.nn_i][:,1] + self.cDye_cell[cells.nn_i][:,0])/2
 
-        # electrodiffuse dye through ecm <---> ecm junctions
-        # _,_,flux_ecm_dye = electrofuse(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
-        #         self.id_ecm*p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,
-        #         cells.ecm_vol[cells.ecm_nn_i[:,0]],cells.ecm_vol[cells.ecm_nn_i[:,1]],
-        #         p.z_Dye,self.v_ec2ec,self.T,p)
-        flux_ecm_dye = electroflux(self.cDye_ecm[cells.ecm_nn_i[:,0]],self.cDye_ecm[cells.ecm_nn_i[:,1]],
-                p.Do_Dye,cells.len_ecm_junc,self.ec2ec_sa,p.z_Dye,self.v_ec2ec,self.T,p)
-                    #
-        self.cDye_ecm = (self.cDye_ecm*cells.ecm_vol + np.dot(flux_ecm_dye*p.dt,cells.ecmMatrix))/cells.ecm_vol
+        # electroosmotic fluid velocity:
+        ux = np.float64((self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2)
+        uy = np.float64((self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2)
 
-        # electrodiffuse dye between environmental and ecm junctions:
+        fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
+            p.Do_Dye*self.gjopen,p.z_Dye,self.T,p)
 
-        self.cDye_ecm[cells.bflags_ecm],self.cDye_env,fDye_env = electroflux(self.cDye_ecm[cells.bflags_ecm],
-            self.cDye_env, self.id_env*p.Do_Dye,cells.len_ecm_junc[cells.bflags_ecm],
-            self.ec2ec_sa[cells.bflags_ecm], cells.ecm_vol[cells.bflags_ecm],self.env_vol,
-            p.z_Dye, self.v_ec2env, self.T, p,ignoreECM=True)
+        fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
+
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface,fgj)
+
+        self.cDye_cell = self.cDye_cell + p.dt*delta_cc
+
+        self.Dye_flux_x_gj = fgj_x  # store gap junction flux for this ion
+        self.Dye_flux_y_gj = fgj_y  # store gap junction flux for this ion
+
+        if p.sim_ECM == False:
+
+            fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
+
+            # update dye concentration
+            self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
+
+        elif p.sim_ECM == True:
+
+            flux_dye = electroflux(self.cDye_env[cells.map_mem2ecm],self.cDye_cell[cells.mem_to_cells],
+                            np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
+
+            # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
+            d_c_cells = flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+            d_c_env = flux_dye*(cells.mem_sa/cells.ecm_vol)
+
+            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+
+            self.cDye_cell = rk4(self.cDye_cell,delta_cells,p)
+
+            self.cDye_env = rk4(self.cDye_env,-delta_env,p)
+
+            # transport dye through environment: _________________________________________________________
+
+            if p.closed_bound == True:
+                btag = 'closed'
+
+            else:
+                btag = 'open'
+             # make v_env and cc_env into 2d matrices
+            cenv = self.cDye_env[:]
+            denv = p.Do_Dye*np.ones(len(cells.xypts))  # FIXME need to make a Do_Dye for the environment?
+
+            self.v_env = self.v_env.reshape(cells.X.shape)
+
+            cenv = cenv.reshape(cells.X.shape)
+
+            # prepare concentrations and diffusion constants for MACs grid format
+            # by resampling the values at the u v coordinates of the flux:
+            cenv_x = np.zeros(cells.grid_obj.u_shape)
+            cenv_y = np.zeros(cells.grid_obj.v_shape)
+
+            cxo = (cenv[:,1:] + cenv[:,0:-1])/2
+            cyo = (cenv[1:,:] + cenv[0:-1,:])/2
+
+            # create the proper shape for the concentrations and state appropriate boundary conditions::
+            cenv_x[:,1:-1] = cxo
+            cenv_y[1:-1,:] = cyo
+
+            if p.closed_bound == True: # insulation boundary conditions
+                cenv_x[:,0] = cenv_x[:,1]
+                cenv_x[:,-1] = cenv_x[:,-2]
+                cenv_y[0,:] = cenv_y[1,:]
+                cenv_y[-1,:] = cenv_y[-2,:]
+
+                self.v_env[:,0] = self.v_env[:,1]
+                self.v_env[:,-1] = self.v_env[:,-2]
+                self.v_env[0,:] = self.v_env[1,:]
+                self.v_env[-1,:] = self.v_env[-2,:]
+
+            else:   # open and electrically grounded boundary conditions
+                cenv_x[:,0] =  p.cDye_to
+                cenv_x[:,-1] =  p.cDye_to
+                cenv_y[0,:] =  p.cDye_to
+                cenv_y[-1,:] =  p.cDye_to
+
+                self.v_env[:,0] = self.bound_V['L']
+                self.v_env[:,-1] = self.bound_V['R']
+                self.v_env[0,:] = self.bound_V['B']
+                self.v_env[-1,:] = self.bound_V['T']
+
+            denv = denv.reshape(cells.X.shape)
+
+            denv_x = np.zeros(cells.grid_obj.u_shape)
+            denv_y = np.zeros(cells.grid_obj.v_shape)
+
+            dxo = (denv[:,1:] + denv[:,0:-1])/2
+            dyo = (denv[1:,:] + denv[0:-1,:])/2
+
+            # create the proper shape for the diffusion constants and state continuous boundaries:
+            denv_x[:,1:-1] = dxo
+            denv_x[:,0] = denv_x[:,1]
+            denv_x[:,-1] = denv_x[:,-2]
+
+            denv_y[1:-1,:] = dyo
+            denv_y[0,:] = denv_y[1,:]
+            denv_y[-1,:] = denv_y[-2,:]
+
+            # calculate gradients in the environment
+            grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(self.v_env,bounds=btag)
+
+            grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
+
+            # calculate fluxes for electrodiffusive transport:
+            uenvx = np.float64(self.u_env_x[:])
+            uenvy = np.float64(self.u_env_y[:])
+            # uenvx = 0
+            # uenvy = 0
+
+            f_env_x, f_env_y = np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
+                grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_Dye,self.T,p)
+
+            # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
+            delta_c = fd.flux_summer(f_env_x,f_env_y,cells.X)/cells.delta
+
+            cenv = cenv + delta_c*p.dt
+            # cenv = rk4(cenv, delta_c,p)
+
+            if p.closed_bound == True:
+                # Neumann boundary condition (flux at boundary)
+                # zero flux boundaries for concentration:
+                cenv[:,-1] = cenv[:,-2]
+                cenv[:,0] = cenv[:,1]
+                cenv[0,:] = cenv[1,:]
+                cenv[-1,:] = cenv[-2,:]
+
+            elif p.closed_bound == False:
+                # if the boundary is open, set the concentration at the boundary
+                # open boundary
+                cenv[:,-1] = p.cDye_to
+                cenv[:,0] = p.cDye_to
+                cenv[0,:] = p.cDye_to
+                cenv[-1,:] = p.cDye_to
+
+            # reshape the matrices into vectors:
+            self.v_env = self.v_env.ravel()
+            self.cDye_env = cenv.ravel()
+
+            fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
+            fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
+
+            self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
+            self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
 
     def update_IP3(self,cells,p,t):
          # determine flux through gap junctions for IP3:
@@ -2440,6 +2574,33 @@ class Simulator(object):
         # make sure nothing is non-zero:
         fix_inds = (self.rho_channel < 0).nonzero()
         self.rho_channel[fix_inds] = 0
+
+    def get_ion(self,label):
+        """
+        Given a string input, returns the simulation index of the appropriate ion.
+
+        """
+
+        if label == 'Na':
+
+            ion = self.iNa
+
+        elif label == 'K':
+
+            ion = self.iK
+
+        elif label == 'Ca':
+
+            ion = self.iCa
+
+        elif label == 'Cl':
+
+            ion = self.iCl
+
+        else:
+            ion = []
+
+        return ion
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -2963,6 +3124,10 @@ def rk4(c,deltac,p):
 
 
     return c2
+
+
+
+
 
 
 
