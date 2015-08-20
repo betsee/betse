@@ -85,7 +85,7 @@ class symlink(install):
 
             # Absolute path of the parent directory containing the top-level
             # "betse" package.
-            parent_dirname = util.get_setup_dirname()
+            parent_dirname = util.get_project_dirname()
             # print('parent: ' + parent_dirname)
 
             # Prepend the template for subsequently installed entry points by a

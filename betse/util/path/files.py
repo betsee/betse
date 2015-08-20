@@ -66,7 +66,7 @@ def is_file(pathname: str) -> bool:
     sockets), this function returns `True` for *all* non-directory files
     regardless of whether such files are special or not.
 
-    Why? Because this function complies with POSIX semantics, while
+    **Why?** Because this function complies with POSIX semantics, whereas
     `path.isfile()` does *not*. The specialness of non-directory files is
     usually irrelevant; in general, it only matters whether such files are
     directories or not. For example, the external command `rm` removes only

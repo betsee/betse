@@ -27,8 +27,42 @@ def die_unless_command_succeeds(*command_words) -> None:
     # Print the command to be run before doing so.
     print('Running "{}".'.format(' '.join(command_words)))
 
+    # Keyword arguments to be passed to subprocess.check_call() below, which
+    # accepts all arguments accepted by subprocess.Popen.__init__().
+    popen_kwargs = {}
+
+    # If the current platform is vanilla Windows, permit such command to inherit
+    # all file handles (including stdin, stdout, and stderr) from the current
+    # process. By default, subprocess.Popen documentation insists that:
+    #
+    #     "On Windows, if close_fds is true then no handles will be inherited by
+    #      the child process."
+    #
+    # The child process will then open new file handles for stdin, stdout, and
+    # stderr. If the current terminal is a Windows Console, the underlying
+    # terminal devices and hence file handles will remain the same, in which
+    # case this is *NOT* an issue. If the current terminal is Cygwin-based
+    # (e.g.,, MinTTY), however, the underlying terminal devices and hence file
+    # handles will differ, in which case such behaviour prevents interaction
+    # between the current shell and the vanilla Windows command to be run below.
+    # In particular, all output from such command will be squelched.
+    #
+    # If at least one of stdin, stdout, or stderr are redirected to a blocking
+    # pipe, setting "close_fds" to False can induce deadlocks under certain
+    # edge-case scenarios. Since all such file handles default to None and hence
+    # are *NOT* redirected in this case, "close_fds" may be safely set to False.
+    #
+    # On all other platforms, if "close_fds" is True then no handles *EXCEPT*
+    # stdin, stdout, and stderr will be inherited by the child process. Hence,
+    # this function fundamentally differs in subtle (and only slightly
+    # documented ways) between vanilla Windows and all other platforms. Such
+    # discrepancies appear to be harmful but probably unavoidable, given the
+    # philosophical gulf between vanilla Windows and all other platforms.
+    if is_os_windows_vanilla():
+        popen_kwargs['close_fds'] = False
+
     # Run such command.
-    subprocess.check_call(command_words)
+    subprocess.check_call(command_words, **popen_kwargs)
 
 def die_unless_pathable(command_basename: str, exception_message: str = None):
     '''
@@ -196,37 +230,47 @@ def is_os_windows_vanilla() -> bool:
 # ....................{ TESTERS ~ path                     }....................
 def is_path(pathname: str) -> bool:
     '''
-    True if the passed path exists.
+    `True` if the passed path exists.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     return path.exists(pathname)
 
-def is_dir(dirname: str) -> bool:
+def is_dir(pathname: str) -> bool:
     '''
-    True if the passed directory exists.
+    `True` if the passed directory exists.
     '''
-    assert isinstance(dirname, str), '"{}" not a string.'.format(dirname)
-    return path.isdir(dirname)
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    return path.isdir(pathname)
 
-def is_file(filename: str) -> bool:
+def is_file(pathname: str) -> bool:
     '''
-    True if the passed non-special file exists.
+    `True` if the passed path is an existing non-directory file exists *after*
+    following symbolic links.
 
-    This function returns False if such file exists but is **special** (e.g.,
-    directory, device node, symbolic link).
+    Versus `path.isfile()`
+    ----------
+    This function intrinsically differs from the standard `path.isfile()`
+    function. While the latter returns `True` only for non-special files and
+    hence `False` for all non-directory special files (e.g., device nodes,
+    sockets), this function returns `True` for *all* non-directory files
+    regardless of whether such files are special or not.
+
+    **Why?** Because this function complies with POSIX semantics, whereas
+    `path.isfile()` does *not*. The specialness of non-directory files is
+    usually irrelevant; in general, it only matters whether such files are
+    directories or not. For example, the external command `rm` removes only
+    non-directory files (regardless of specialness) while the external command
+    `rmdir` removes only empty directories.
     '''
-    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-    return path.isfile(filename)
+    return is_path(pathname) and not is_dir(pathname)
 
 def is_symlink(filename: str) -> bool:
     '''
-    True if the passed symbolic link exists.
+    `True` if the passed symbolic link exists.
 
-    Caveats
-    ----------
-    This function returns False if the passed symbolic link exists but the
-    current user has insufficient privelages to follow such link. This may
-    constitute a bug in the underlying `path.islink()` function.
+    `False` is returned if the passed symbolic link exists but the current user
+    has insufficient privelages to follow such link. This may constitute a bug
+    in the underlying `path.islink()` function.
     '''
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.islink(filename)
@@ -252,7 +296,7 @@ def is_pathable(command_basename: str) -> bool:
     return shutil.which(command_basename) is not None
 
 # ....................{ GETTERS                            }....................
-def get_setup_dirname():
+def get_project_dirname():
     '''
     Get the absolute path of the directory containing the currently run
     `setup.py` script.
@@ -290,6 +334,25 @@ def get_path_dirname(pathname: str) -> str:
     dirname = path.dirname(pathname)
     assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
     return dirname
+
+def get_path_filetype(pathname: str) -> str:
+    '''
+    Get the **last filetype** (i.e., last `.`-prefixed substring of the
+    basename *not* including such `.`) of the passed path if such path has a
+    filetype or `None` otherwise.
+
+    If such path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
+    last such filetype will be returned.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+
+    # Such filetype. (Yes, splitext() is exceedingly poorly named.)
+    filetype = path.splitext(pathname)[1]
+
+    # Get such filetype, stripping the prefixing "." from the string returned by
+    # the prior call if such path has a filetype or returning None otherwise.
+    return filetype[1:] if filetype else None
 
 # ....................{ OUTPUTTERS                         }....................
 def output_sans_newline(*strings) -> None:
@@ -494,16 +557,16 @@ def add_setup_command_classes(
         command_class._metadata = metadata
         command_class._setup_options = setup_options
 
-# ....................{ SETUPTOOLS ~ entry points          }....................
+# ....................{ SETUPTOOLS ~ wrappers : generators }....................
 def command_entry_points(command: Command):
     '''
     Generator yielding a 3-tuple detailing each wrapper script installed for the
-    *Python distribution* (i.e., top-level package) identified by the passed
+    **Python distribution** (i.e., top-level package) identified by the passed
     `setuptools` command.
 
     See Also
     ----------
-    dist_entry_points
+    `dist_entry_points`
         For further details on tuple contents.
     '''
     assert isinstance(command, Command),\
@@ -538,7 +601,9 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
 
     Such 3-tuple consists of each such script's (in order):
 
-    * Basename (e.g., `betse`).
+    * Basename (e.g., `betse`). On both vanilla and Cygwin Microsoft Windows,
+      such basename will be suffixed by the `.exe` filetype. On all other
+      platforms, such basename will have no filetype.
     * Type string, guaranteed to be either:
       * `console` if such script is console-specific.
       * `gui` otherwise.
@@ -548,16 +613,32 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
     assert isinstance(distribution, pkg_resources.Distribution),\
         '"{}" not a setuptools distribution.'.format(distribution)
 
-    # Iterate script types.
+    # For each type of script wrapper...
     for script_type in 'console', 'gui':
         script_type_group = script_type + '_scripts'
 
-        # Yield such 3-tuple for each script of such type.
+        # for each script of such type...
         for script_basename, entry_point in\
             distribution.get_entry_map(script_type_group).items():
+            # If the current platform is Windows and such script's basename has
+            # no filetype, suffix such basename by ".exe".
+            if is_os_windows() and get_path_filetype(script_basename) is None:
+                script_basename += '.exe'
+
+            # Yield such 3-tuple.
             yield script_basename, script_type, entry_point
 
 # --------------------( WASTELANDS                         )--------------------
+# def is_file(filename: str) -> bool:
+#     '''
+#     `True` if the passed non-special file exists.
+#
+#     `False` is returned if the passed file exists but is **special** (e.g.,
+#     directory, symbolic link).
+#     '''
+#     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+#     return path.isfile(filename)
+
     # Python, you win the balls.
     # return sys.path[0]
     # assert isinstance(pathname_source, str),\

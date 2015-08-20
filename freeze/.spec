@@ -28,13 +28,30 @@
 # ....................{ IMPORTS                            }....................
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: PyInstaller spec files are *NOT* valid Python code. Specifically,
-# attempting to import modules in such files does nothing at beast and silently
+# attempting to import modules in such files does nothing at best and silently
 # corrupts the current global namespace at worst, preventing further processing.
 # The following modules are "imported" only to avoid lint errors during editing.
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from os import path
-import os, platform
+import os, platform, sys
+
+# ....................{ SANITY                             }....................
+# If a requisite environment variable exported by a "freeze_*" setuptools
+# command does *NOT* exist, this file was manually passed to a PyInstaller
+# command without the help of setuptools. Since we are in uncharted territory,
+# raise an exception.
+if '__FREEZE_MODULE_FILENAME' not in os.environ:
+    raise RuntimeError(
+        'Setuptools-assisted PyInstaller environment not found.\n'
+        'Please freeze under setuptools by running either:\n'
+        '    ./setup.py freeze_dir\n'
+        '    ./setup.py freeze_file\n'
+    )
+
+# ....................{ CONSTANTS ~ os                     }....................
+# Cryptographic cipher with which to encrypt the frozen executable.
+BLOCK_CIPHER = None
 
 # ....................{ CONSTANTS ~ os                     }....................
 # True if the current operating system is Linux.
@@ -44,7 +61,7 @@ IS_OS_LINUX = platform.system() == 'Linux'
 IS_OS_OS_X = platform.system() == 'Darwin'
 
 # True if the current operating system is Windows.
-IS_OS_WINDOWS = platform.system() == 'Windows'
+IS_OS_WINDOWS = sys.platform == 'win32'
 
 # ....................{ CONSTANTS ~ path                   }....................
 # Absolute path of the current directory.
@@ -53,21 +70,22 @@ CURRENT_DIRNAME = os.getcwd()
 # Absolute path of the root Python module running such script. For portability,
 # such path references a module in the Python package tree for this application
 # rather than a script wrapper previously installed by setuptools (e.g.,
-# "/usr/bin/betse").
-MODULE_ROOT_FILENAME = path.join(
-    CURRENT_DIRNAME, 'betse', 'cli', '__main__.py')
+# "C:\Miniconda3\Scripts\betse.exe'). While such wrappers are valid Python
+# scripts under POSIX-compatible platforms, such wrappers are binary blobs *NOT*
+# analyzable by PyInstaller under other platforms (e.g., Windows).
+MODULE_ROOT_FILENAME = os.environ['__FREEZE_MODULE_FILENAME']
 
 # Absolute path of the top-level directory containing all non-Python data files
 # to be bundled with such executable.
 DATA_ROOT_DIRNAME = path.join(CURRENT_DIRNAME, 'betse', 'data')
 
 # ....................{ CONSTANTS ~ exe                    }....................
-# Basename of the executable to be output.
+# Basename of such executable.
 EXE_basename = 'betse'
 if IS_OS_WINDOWS:
     EXE_basename += '.exe'
 
-# Keyword arguments to be subsequently passed to EXE() by parent files.
+# Keyword arguments to be subsequently passed to EXE() by parent specifications.
 EXE_options = {
     'name': EXE_basename,
     'debug': False,
@@ -81,11 +99,12 @@ EXE_options = {
     # 'icon': path.join(APPPATH, "..", "res", "Icon.ico"),
 }
 
-# ....................{ MAIN                               }....................
+# ....................{ MAIN ~ analysis                    }....................
 # Analyze such top-level Python module.
 a = Analysis(
     [MODULE_ROOT_FILENAME],
     pathex = [CURRENT_DIRNAME],
+    cipher = BLOCK_CIPHER,
 
     # List of the names of all imported and hence required modules *NOT*
     # automatically detectable by PyInstaller.
@@ -93,16 +112,20 @@ a = Analysis(
 
     # List of the relative paths of all directories containing non-runtime
     # PyInstaller hooks.
-    hookspath = ['freeze/hooks'],
+    hookspath = [path.join('freeze', 'hooks')],
 
     # List of the relative paths of all directories containing runtime
     # PyInstaller hooks.
     runtime_hooks = None,
+
+    # List of the fully-qualified names of all importables (e.g., modules,
+    # packages, extensions) to *NOT* be frozen into such executable.
+    excludes = None,
 )
 
 # ....................{ MAIN ~ datas                       }....................
-# Record all non-Python data files to be bundled with such executable. For
-# further details, see http://pythonhosted.org/PyInstaller/#id38.
+# Record all non-Python data files to be frozen into such executable. For
+# details, see http://pythonhosted.org/PyInstaller/#id38.
 a.datas += Tree(
     DATA_ROOT_DIRNAME,
 
@@ -112,10 +135,81 @@ a.datas += Tree(
 
 # ....................{ MAIN ~ pyz                         }....................
 # Create an intermediate archive containing only Python modules and scripts.
-pyz = PYZ(a.pure)
+pyz = PYZ(
+    a.pure,
+    cipher = BLOCK_CIPHER,
+)
+
+# ....................{ MAIN ~ exe, collect                }....................
+# If freezing in "one-file" mode, do so.
+if os.environ['__FREEZE_MODE'] == 'file':
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        **EXE_options)
+# Else, freeze in "one-directory" mode.
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        exclude_binaries=True,
+        **EXE_options
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=None,
+        upx=True,
+
+        #FIXME: Incorrect. This should be "betse-qt" and hence conditionally
+        #depend on the current entry point.
+        name='betse'
+    )
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: This hard-codes the CLI-based BETSE entry point and hence obviously
+#fails to generalize to the GUI-based BETSE entry point (e.g., "betse-qt".) To
+#support both, we'll need to generalize this. Unfortunately, it doesn't appear
+#to be feasible to pass arguments to specification files. Possibly? Hmm.
+#
+#Actually, we could probably do it the old-fashioned way: set an environment
+#variable in the "setup/freeze.py" setuptools command -- named, say,
+#${_FREEZE_MODULE_ROOT_FILENAME} -- whose value is the absolute path of the
+#desired module here. Assuming that works, such command should conditionally set
+#such value in a platform-specific way. Under vanilla Windows, such path will
+#need to be munged from the passed executable path to the desired Python wrapper
+#(e.g., from
+#"C:\Miniconda3\Scripts\betse.exe' to
+#"C:\Miniconda3\Scripts\betse-script.py'); on all other platforms, such path
+#should simply be set to the current entry point path unmodified.
+#
+#If passing environment variables does *NOT* work, see if there's a way that we
+#can force a global module attribute to be set by PyInstaller (e.g., via a
+#"pyinstaller" CLI argument). If even that doesn't work, things get considerably
+#more complex. We'll need to perform such munging here (trivial) *AND* to split
+#both "betse.file.spec" and "betse.dir.spec" into two new specs each: the first
+#specific to the CLI-based BETSE entry point and the second specific to the
+#GUI-based BETSE entry point (non-trivial).
+#
+#Actually, that's sufficiently horrible that we should do the following as a
+#fallback: use a temporary file whose filename is guaranteed *NOT* to change but
+#be sufficiently unique as to conflict with nothing (e.g.,
+#"${system_temp_dir}/__MEI_PASS_betse_entry_point_path") and whose contents are
+#simply the absolute path of the desired entry point. Simple, if annoying.
+#
+#Actually, I'd rather not munge around with external files. Too fragile, really.
+#So let's just go the route of splitting up our specifications if we have to.
+# MODULE_ROOT_FILENAME = path.join(
+#     CURRENT_DIRNAME, 'betse', 'cli', '__main__.py')
+
+# IS_OS_WINDOWS = platform.system() == 'Windows'
         # 'scipy.sparse.sparsetools._csr',
+
 # ....................{ MAIN ~ binaries : scipy            }....................
 # Include all `scipy`-specific shared libraries.
 

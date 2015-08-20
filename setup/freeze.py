@@ -49,6 +49,7 @@ from os import path
 from setup import util
 from setuptools import Command
 from distutils.errors import DistutilsExecError
+import os
 
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(metadata: dict, setup_options: dict) -> None:
@@ -85,6 +86,16 @@ class freeze(Command, metaclass = ABCMeta):
     install_scripts_dir : str
         Absolute path of the directory to which all wrapper scripts were
         previously installed.
+    _pyinstaller_command : list
+        List of all shell words of the PyInstaller command to be run.
+    _pyinstaller_spec_filename : str
+        Relative path of the PyInstaller spec file converting the current
+        platform-independent wrapper script into a platform-specific executable.
+    _pyinstaller_dist_dirname : str
+        Relative path of the PyInstaller directory to which the final executable
+        (as either a file or directory) is written.
+    _pyinstaller_hooks_dirname : str
+        Relative path of the input hooks subdirectory.
     '''
 
     user_options = [
@@ -119,6 +130,10 @@ class freeze(Command, metaclass = ABCMeta):
         '''
         self.clean = False
         self.install_scripts_dir = None
+        self._pyinstaller_command = None
+        self._pyinstaller_spec_filename = None
+        self._pyinstaller_dist_dirname = None
+        self._pyinstaller_hooks_dirname = None
 
     def finalize_options(self):
         '''
@@ -132,79 +147,21 @@ class freeze(Command, metaclass = ABCMeta):
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
-        # Basename of the PyInstaller command to be run. To avoid confusion with
-        # non-Windows executables in the current ${PATH} when running under Wine
-        # emulation, accept only Windows executables when running under Windows.
-        pyinstaller_command_name = 'pyinstaller'
-        if util.is_os_windows():
-            pyinstaller_command_name += '.exe'
-
-        # If PyInstaller is not found, fail.
-        util.die_unless_pathable(
-            pyinstaller_command_name,
-            'PyInstaller not installed or "{}" not in the current ${{PATH}}.'.format(
-                pyinstaller_command_name)
-        )
-
         # List of all shell words of the PyInstaller command to be run.
-        pyinstaller_command = [pyinstaller_command_name]
-
-        # If UPX is not found, print a warning to standard error. While
-        # optional, freezing in the absence of UPX produces uncompressed and
-        # hence considerably larger executables.
-        if not util.is_pathable('upx'):
-            util.output_warning(
-                'UPX not installed or "upx" not in the current ${PATH}. ')
-            util.output_warning('Frozen binaries will *NOT* be compressed.')
-
-        # Relative path of the top-level PyInstaller directory.
-        pyinstaller_dirname = 'freeze'
-
-        # Relative path of the input hooks subdirectory.
-        pyinstaller_hooks_dirname = path.join(pyinstaller_dirname, 'hooks')
-
-        # Relative path of the intermediate build subdirectory.
-        pyinstaller_work_dirname = path.join(pyinstaller_dirname, 'build')
-
-        # Relative path of the final output subdirectory.
-        pyinstaller_dist_dirname = path.join(pyinstaller_dirname, 'dist')
-
-        # Create such hooks subdirectory if not found, as failing to do so
-        # will induce fatal PyInstaller errors.
-        util.make_dir_unless_found(pyinstaller_hooks_dirname)
-
-        # Append all PyInstaller command options common to running such command
-        # for both reuse and regeneration of spec files. (Most such options are
-        # specific to the latter only and hence omitted.)
-        pyinstaller_command.extend([
-            # Overwrite existing output paths under the "dist/" subdirectory
-            # without confirmation, the default behaviour.
-            '--noconfirm',
-
-            # Non-default PyInstaller directories.
-            '--workpath=' + util.shell_quote(pyinstaller_work_dirname),
-            '--distpath=' + util.shell_quote(pyinstaller_dist_dirname),
-
-            # Non-default log level.
-            '--log-level=DEBUG',
-        ])
-
-        # If the user passed the custom option "--clean" to the current
-        # setuptools command, pass such option on to "pyinstaller".
-        if self.clean:
-            pyinstaller_command.append('--clean')
+        self._init_pyinstaller_command()
 
         # True if at least one script wrapper has been installed.
         is_script_installed = False
 
         # Freeze each previously installed script wrapper.
-        for script_basename, script_type, _ in util.command_entry_points(self):
+        for script_basename, script_type, entry_point in\
+            util.command_entry_points(self):
             # Note at least one script wrapper to be installed.
             is_script_installed = True
 
             # Relative path of the output frozen executable file or directory.
             frozen_pathname = path.join(
-                pyinstaller_dist_dirname, script_basename)
+                self._pyinstaller_dist_dirname, script_basename)
 
             # If cleaning and such path exists, remove such path *BEFORE*
             # validating such path. Why? Because such path could be an existing
@@ -216,74 +173,14 @@ class freeze(Command, metaclass = ABCMeta):
             # Validate such path.
             self._check_frozen_path(frozen_pathname)
 
-            # Filename of the PyInstaller spec file converting such
-            # platform-independent script into a platform-specific executable.
-            script_spec_filename = path.join(
-                pyinstaller_dirname,
-                self._get_script_spec_basename(script_basename))
+            # Set all environment variables used to communicate with the BETSE-
+            # specific PyInstaller specification file run below.
+            self._set_environment_variables(
+                script_basename, script_type, entry_point)
 
-            # If such spec exists, instruct PyInstaller to reuse rather than
-            # recreate such file, thus preserving edits to such file.
-            if util.is_file(script_spec_filename):
-                print('Reusing spec file "{}".'.format(script_spec_filename))
-
-                # Append the relative path of such spec file.
-                pyinstaller_command.append(
-                    util.shell_quote(script_spec_filename))
-
-                # Freeze such script with such spec file.
-                util.die_unless_command_succeeds(*pyinstaller_command)
-            # Else, instruct PyInstaller to (re)create such ".spec" file.
-            else:
-                print('Generating spec file "{}".'.format(script_spec_filename))
-
-                # Absolute path of such script.
-                script_filename = path.join(
-                    self.install_scripts_dir, script_basename)
-                util.die_unless_file(
-                    script_filename, (
-                        'Command "{}" not found.\n'
-                        'Consider first running either '
-                        '"sudo python3 setup.py install" or '
-                        '"sudo python3 setup.py symlink".'.format(
-                            script_filename)
-                    ),
-                )
-
-                # List of all shell words of the PyInstaller command to be run.
-                pyinstaller_command.extend([
-                    # Non-default PyInstaller directories.
-                    '--additional-hooks-dir=' + util.shell_quote(
-                        pyinstaller_hooks_dirname),
-
-                    # If this is a console script, configure standard input and
-                    # output for console handling; else, do *NOT* and, if the
-                    # current operating system is OS X, generate an ".app"-suffixed
-                    # application bundle rather than a customary executable.
-                    '--console' if script_type == 'console' else '--windowed',
-                ])
-
-                # Append all subclass-specific options.
-                pyinstaller_command.extend(self._get_pyinstaller_options())
-
-                # Append the absolute path of such script.
-                pyinstaller_command.append(util.shell_quote(script_filename))
-
-                # Freeze such script and generate a spec file.
-                util.die_unless_command_succeeds(*pyinstaller_command)
-
-                # Basename of such file.
-                script_spec_basename_current = '{}.spec'.format(script_basename)
-
-                # Rename such file to have the basename expected by the prior
-                # conditional on the next invocation of this setuptools command.
-                #
-                # Note that "pyinstaller" accepts an option "--name" permitting
-                # the basename of such file to be specified prior to generating
-                # such file. Unfortunately, such option *ALSO* specifies the
-                # basename of the generated executable. Since we only
-                util.move_file(
-                    script_spec_basename_current, script_spec_filename)
+            # Run the desired PyInstaller command.
+            self._run_pyinstaller(
+                script_basename, script_type, entry_point)
 
             # Report such results to the user.
             if util.is_file(frozen_pathname):
@@ -309,6 +206,197 @@ class freeze(Command, metaclass = ABCMeta):
                     script_wrapper_basenames)
             )
 
+    # ..................{ INITIALIZERS                       }..................
+    def _init_pyinstaller_command(self) -> None:
+        '''
+        Initialize the list of all shell words of the PyInstaller command to be
+        run.
+        '''
+        # Basename of the PyInstaller command to be run. To avoid confusion with
+        # non-Windows executables in the current ${PATH} when running under Wine
+        # emulation, accept only Windows executables when running under Windows.
+        pyinstaller_command_name = 'pyinstaller'
+        if util.is_os_windows():
+            pyinstaller_command_name += '.exe'
+
+        # If PyInstaller is not found, fail.
+        util.die_unless_pathable(
+            pyinstaller_command_name,
+            'PyInstaller not installed or "{}" not in the current ${{PATH}}.'.format(
+                pyinstaller_command_name))
+
+        # List of all shell words of the PyInstaller command to be run.
+        self._pyinstaller_command = [pyinstaller_command_name]
+
+        # If UPX is not found, print a warning to standard error. While
+        # optional, freezing in the absence of UPX produces uncompressed and
+        # hence considerably larger executables.
+        if not util.is_pathable('upx'):
+            util.output_warning(
+                'UPX not installed or "upx" not in the current ${PATH}. ')
+            util.output_warning('Frozen binaries will *NOT* be compressed.')
+
+        # Relative path of the top-level PyInstaller directory.
+        pyinstaller_dirname = 'freeze'
+
+        # Relative path of the PyInstaller spec file converting such
+        # platform-independent script into a platform-specific executable.
+        self._pyinstaller_spec_filename = path.join(
+            pyinstaller_dirname, '.spec')
+
+        # Relative path of the final output subdirectory.
+        self._pyinstaller_dist_dirname = path.join(pyinstaller_dirname, 'dist')
+
+        # Relative path of the input hooks subdirectory.
+        self._pyinstaller_hooks_dirname = path.join(pyinstaller_dirname, 'hooks')
+
+        # Relative path of the intermediate build subdirectory.
+        pyinstaller_work_dirname = path.join(pyinstaller_dirname, 'build')
+
+        # Create such hooks subdirectory if not found, as failing to do so
+        # will induce fatal PyInstaller errors.
+        util.make_dir_unless_found(self._pyinstaller_hooks_dirname)
+
+        # Append all PyInstaller command options common to running such command
+        # for both reuse and regeneration of spec files. (Most such options are
+        # specific to the latter only and hence omitted.)
+        self._pyinstaller_command.extend([
+            # Overwrite existing output paths under the "dist/" subdirectory
+            # without confirmation, the default behaviour.
+            '--noconfirm',
+
+            # Non-default PyInstaller directories.
+            '--workpath=' + util.shell_quote(pyinstaller_work_dirname),
+            '--distpath=' + util.shell_quote(self._pyinstaller_dist_dirname),
+
+            # Non-default log level.
+            '--log-level=DEBUG',
+        ])
+
+        # If the user passed the custom option "--clean" to the current
+        # setuptools command, pass such option on to "pyinstaller".
+        if self.clean:
+            self._pyinstaller_command.append('--clean')
+
+    # ..................{ SETTERS                            }..................
+    def _set_environment_variables(
+        self, script_basename: str, script_type: str, entry_point: str) -> None:
+        '''
+        Set all environment variables used to communicate with the BETSE-
+        specific PyInstaller specification file run in a separate process, given
+        the passed arguments yielded by the `command_entry_points()` generator.
+
+        While hardly ideal, PyInstaller appears to provide no other means of
+        communicating with such file.
+        '''
+        # Absolute path of the root Python module running such script.
+        #
+        # The relative path of script module to the top-level project directory
+        # is obtained by converting the entry point specifier defined by
+        # "setup.py" for the current entry point (e.g., "betse.gui.guicli:main")
+        # to the corresponding platform-specific path.
+        #
+        # Sadly, setuptools offers no cross-platform API for reliably obtaining
+        # the Python script wrapper serving as the top-level entry point for
+        # this executable. Even if it did, such path would be of little use
+        # under POSIX-incompatible platforms (e.g., Windows), where such
+        # wrappers are actually binary blobs rather than valid Python scripts.
+        #
+        # Instead, we reverse-engineer the absolute path of the module in the
+        # Python package tree for this application corresponding to the passed
+        # entry point, which is guaranteed to work in a cross-platform manner.
+        module_filename = path.join(
+            util.get_project_dirname(),
+            entry_point.module_name.replace('.', path.sep) + '.py')
+
+        # Ensure such module exists.
+        util.die_unless_file(module_filename)
+
+        # Such path.
+        os.environ['__FREEZE_MODULE_FILENAME'] = module_filename
+
+        # Whether to freeze in "one-file" or "one-directory" mode.
+        os.environ['__FREEZE_MODE'] = self._get_freeze_mode()
+
+        # Whether to freeze a CLI- or GUI-based application.
+        os.environ['__FREEZE_INTERFACE_TYPE'] = script_type
+
+    # ..................{ RUNNERS                            }..................
+    def _run_pyinstaller(
+        self, script_basename: str, script_type: str, entry_point: str) -> None:
+        '''
+        Run the desired PyInstaller command.
+        '''
+        # If such spec exists, instruct PyInstaller to reuse rather than
+        # recreate such file, thus preserving edits to such file.
+        if util.is_file(self._pyinstaller_spec_filename):
+            print('Reusing spec file "{}".'.format(
+                self._pyinstaller_spec_filename))
+
+            # Append the relative path of such spec file.
+            self._pyinstaller_command.append(
+                util.shell_quote(self._pyinstaller_spec_filename))
+
+            # Freeze such script with such spec file.
+            util.die_unless_command_succeeds(*self._pyinstaller_command)
+        # Else, instruct PyInstaller to (re)create such ".spec" file.
+        else:
+            # Absolute path of such script.
+            script_filename = path.join(
+                self.install_scripts_dir, script_basename)
+            util.die_unless_file(
+                script_filename, (
+                    'File "{}" not found.\n'
+                    'Consider first running either '
+                    '"sudo python3 setup.py install" or '
+                    '"sudo python3 setup.py symlink".'.format(
+                        script_filename)
+                ),
+            )
+
+            # Inform the user of such action *AFTER* the above validation.
+            # Since specification files should typically be reused rather
+            # than regenerated, do so as a non-fatal warning.
+            util.output_warning(
+                'Generating spec file "{}".'.format(
+                    self._pyinstaller_spec_filename))
+
+            # List of all shell words of the PyInstaller command to be run.
+            self._pyinstaller_command.extend([
+                # Non-default PyInstaller directories.
+                '--additional-hooks-dir=' + util.shell_quote(
+                    self._pyinstaller_hooks_dirname),
+
+                # If this is a console script, configure standard input and
+                # output for console handling; else, do *NOT* and, if the
+                # current operating system is OS X, generate an ".app"-suffixed
+                # application bundle rather than a customary executable.
+                '--console' if script_type == 'console' else '--windowed',
+            ])
+
+            # Append all subclass-specific options.
+            self._pyinstaller_command.extend(self._get_pyinstaller_options())
+
+            # Append the absolute path of such script.
+            self._pyinstaller_command.append(util.shell_quote(script_filename))
+
+            # Freeze such script and generate a spec file.
+            util.die_unless_command_succeeds(*self._pyinstaller_command)
+
+            # Basename of such file.
+            script_spec_basename_current = '{}.spec'.format(script_basename)
+
+            # Rename such file to have the basename expected by the prior
+            # conditional on the next invocation of this setuptools command.
+            #
+            # Note that "pyinstaller" accepts an option "--name" permitting
+            # the basename of such file to be specified prior to generating
+            # such file. Unfortunately, such option *ALSO* specifies the
+            # basename of the generated executable. Since we only
+            util.move_file(
+                script_spec_basename_current,
+                    self._pyinstaller_spec_filename)
+
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
     def _check_frozen_path(self, frozen_pathname: str) -> None:
@@ -320,18 +408,15 @@ class freeze(Command, metaclass = ABCMeta):
         pass
 
     @abstractmethod
-    def _get_script_spec_basename(self, script_basename: str) -> str:
+    def _get_freeze_mode(self) -> str:
         '''
-        Get the subclass-specific basename of the PyInstaller spec file
-        converting the platform-independent Python script with the passed
-        basename into a platform-specific executable file or directory.
+        Get a string constant specific to this subclass.
 
-        To ensure such spec file is recreated and reused in the same directory
-        as the top-level setuptools script `setup.py`, such file is returned as
-        a basename relative to such directory.
-
-        This method may also perform subclass-specific validation pertaining to
-        such basename.
+        This constant should be `file` when freezing in "one-file" mode and
+        `dir` when freezing in "one-directory" mode. The BETSE-specific
+        `__FREEZE_MODE` environment variable will be set to this constant,
+        informing the BETSE-specific PyInstaller specification file run in a
+        separate process of which mode to freeze in.
         '''
         pass
 
@@ -377,10 +462,8 @@ class freeze_dir(freeze):
         '''
         util.die_unless_dir_or_not_found(frozen_pathname)
 
-    def _get_script_spec_basename(self, script_basename: str) -> str:
-        assert isinstance(script_basename, str),\
-            '"{}" not a string.'.format(script_basename)
-        return '{}.dir.spec'.format(script_basename)
+    def _get_freeze_mode(self) -> str:
+        return 'dir'
 
     def _get_pyinstaller_options(self) -> list:
         return [
@@ -414,10 +497,8 @@ class freeze_file(freeze):
         '''
         util.die_unless_file_or_not_found(frozen_pathname)
 
-    def _get_script_spec_basename(self, script_basename: str) -> str:
-        assert isinstance(script_basename, str),\
-            '"{}" not a string.'.format(script_basename)
-        return '{}.file.spec'.format(script_basename)
+    def _get_freeze_mode(self) -> str:
+        return 'file'
 
     def _get_pyinstaller_options(self) -> list:
         return [
@@ -425,6 +506,38 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+    # @abstractmethod
+    # def _get_script_spec_basename(self, script_basename: str) -> str:
+    #     '''
+    #     Get the subclass-specific basename of the PyInstaller spec file
+    #     converting the platform-independent Python script with the passed
+    #     basename into a platform-specific executable file or directory.
+    #
+    #     To ensure such spec file is recreated and reused in the same directory
+    #     as the top-level setuptools script `setup.py`, such file is returned as
+    #     a basename relative to such directory.
+    #
+    #     This method may also perform subclass-specific validation pertaining to
+    #     such basename.
+    #     '''
+    #     pass
+
+    #FUXME: Refactor this method everywhere to accept no arguments.
+    # def _get_script_spec_basename(self, script_basename: str) -> str:
+    #     assert isinstance(script_basename, str),\
+    #         '"{}" not a string.'.format(script_basename)
+    #     return 'dir.spec'
+    #     # return '{}.dir.spec'.format(script_basename)
+    # def _get_script_spec_basename(self, script_basename: str) -> str:
+    #     assert isinstance(script_basename, str),\
+    #         '"{}" not a string.'.format(script_basename)
+    #     return 'file.spec'
+        # return '{}.file.spec'.format(script_basename)
+
+            # self._pyinstaller_spec_filename = path.join('.spec')
+            #     pyinstaller_dirname,
+            #     self._get_script_spec_basename(script_basename))
+
 #FUXME: We'll almost certainly want to modify the output ".spec" file to
 #transparently detect the current OS and modify its behaviour accordingly.
 #Happily, ".spec" files appear to be mostly Python. As a trivial example, see:
@@ -509,13 +622,13 @@ class freeze_file(freeze):
             # Since such file is specific to both the basename of such script
             # *AND* the type of the current operating system, such substrings
             # are embedded in such filename.
-            # script_spec_filename = path.join(
+            # self._pyinstaller_spec_filename = path.join(
             #     script_basename, util.get_os_type()
             # )
 
             # util.output_sans_newline(
             #     'Searching for existing spec file "{}"... '.format(
-            #         path.basename(script_spec_filename)))
+            #         path.basename(self._pyinstaller_spec_filename)))
 #".app"-suffixed
         # # List of shell words common to all "pyinstaller" commands called below.
         # command_words_base = [
