@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 2.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 5.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -189,7 +189,7 @@ general options:
                             # options True or False (case sensitive)
 
 
-  morphogen: True     # include electrodiffusion of a morphogenic chemical substance?
+  morphogen: False     # include electrodiffusion of a morphogenic chemical substance?
 
                          # options True or False (case sensitive)
 
@@ -275,7 +275,7 @@ world variables:
   temperature: 310            # World temperature [K]
 
 
-  gravity: True               # apply a global force of gravity acting in the -y direction?
+  gravity: False               # apply a global force of gravity acting in the -y direction?
 
 
   search distance: 1.8        # distance to search for nearest neighbours
@@ -284,7 +284,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 2.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
+  gap junction surface area: 1.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
   voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -294,6 +294,10 @@ world variables:
   gj voltage window: 10e-3        # the range over which gj goes from open to shut
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
+
+  tight junction scaling: 1.0e-1   # degree to which tight junctions scale free-diffusion in water
+
+  adherens junction scaling: 1.0e-1   # degree to which adheren cell-cell junctions scale free-diffusion in water
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -419,8 +423,6 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3     # amount to multiply free-diffusion constants by for ecm-ecm ion fluxes (default 1e-4)
-
 number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
@@ -437,8 +439,6 @@ tissue profile 1:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
-
 tissue profile 2:
     name: tissue       # give your profile a name that will be used to apply the profile
     cell targets: 'all'     #  'random##', 'boundary', 'all', 'bitmap', or list of inds
@@ -453,8 +453,6 @@ tissue profile 2:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-    ecm diffusion factor: 1e-3    # multiplier for ecm diffusion
-
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
 number of boundary profiles: 0      # Note: boundary profiles only apply if simulating extracellular spaces
@@ -467,9 +465,6 @@ boundary profile 2:
     name: applied neg voltage
     boundary targets: R
 
-boundaries closed: True      # are outer boundaries closed to fluxes of ions ?
-                              # NOTE: boundaries must be OPEN (closed == False) to allow for changes to
-                              # global concentrations
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -699,7 +694,8 @@ results options:
 
   Vcell 2D:
 
-    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    plot Venv: True                 # plot the environmental spaces volage (if p.sim_ECM = True)?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 100                    # maximum colorbar value in mV
     min val: -100                   # minimum colorbar value in mV
@@ -723,7 +719,7 @@ results options:
 
   Pressure 2D:                      # 2D plot of pressure in the cluster
 
-    plot Pressure: False
+    plot Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -896,7 +892,7 @@ internal parameters:
 #  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
 #  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_NaK:  5.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-6   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 

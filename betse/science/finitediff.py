@@ -207,9 +207,9 @@ class FiniteDiffSolver(object):
                 if bound['N'] == 'flux':
 
                     k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
-                    A[k, k_in1_j] = 1
+                    A[k, k_in1_j] = -1
 
-                    A[k,k] = -1
+                    A[k,k] = 1
 
                 elif bound['N'] == 'value':
 
@@ -239,9 +239,9 @@ class FiniteDiffSolver(object):
                 if bound['E'] == 'flux':
 
                     k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
-                    A[k, k_i_jn1] = 1
+                    A[k, k_i_jn1] = -1
 
-                    A[k,k] = -1
+                    A[k,k] = 1
 
                 elif bound['E'] == 'value':
 
@@ -614,18 +614,26 @@ class FiniteDiffSolver(object):
 
         # decide on boundary conditions:
         if bounds == 'open':
-            # no "acceleration":
+            # no "acceleration" on any boundary:
             gPx[:,0] = gPx[:,1]
             gPx[:,-1] = gPx[:,-2]
+            gPx[0,:] = gPx[1,:]
+            gPx[-1,:] = gPx[-2,:]
+
             gPy[0,:] = gPy[1,:]
             gPy[-1,:] = gPy[-2,:]
+            gPy[:,0] = gPy[:,1]
+            gPy[:,-1] = gPy[:,-2]
 
-        if bounds == 'closed':
+        elif bounds == 'closed':
             # no flux:
             gPx[:,0] = 0
             gPx[:,-1] = 0
             gPy[0,:] = 0
             gPy[-1,:] = 0
+
+        elif bounds == 'none':
+            pass
 
         return gPx, gPy
 

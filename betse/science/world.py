@@ -188,6 +188,7 @@ class World(object):
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
             self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)       # Free up memory...
             self.makeECM(p)       # create the ecm grid
@@ -802,7 +803,14 @@ class World(object):
         self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
         self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
 
+        # get a list of all membranes for boundary cells:
+        all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
+        all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
+        all_bound_mem_xy = self.mem_mids_flat[all_bound_mem_inds]
+
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
+
+        self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 
         self.all_clust_pts = np.vstack((self.cell_centres,self.mem_mids_flat))
 

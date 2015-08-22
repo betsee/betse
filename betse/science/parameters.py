@@ -130,6 +130,12 @@ class Parameters(object):
 
         self.v_sensitive_gj = self.config['world variables']['voltage sensitive gj']
 
+        self.env_type = True # for now, can't handle air boundaries
+
+        self.D_tj = float(self.config['world variables']['tight junction scaling'])
+
+        self.D_adh = float(self.config['world variables']['adherens junction scaling'])
+
         # default membrane diffusion constants: easy control of cell's base resting potential
         self.Dm_Na = float(self.config['base tissue properties']['Dm_Na'])     # sodium [m2/s]
         self.Dm_K = float(self.config['base tissue properties']['Dm_K'])     #  potassium [m2/s]
@@ -138,8 +144,6 @@ class Parameters(object):
         self.Dm_H = float(self.config['base tissue properties']['Dm_H'])    #  hydrogen [m2/s]
         self.Dm_M = float(self.config['base tissue properties']['Dm_M'])    #  anchor ion [m2/s]
         self.Dm_P = float(self.config['base tissue properties']['Dm_P'])     #  proteins [m2/s]
-
-        self.D_ecm_mult = float(self.config['base tissue properties']['ecm diffusion factor'])  # re-scale diffusion in ecms
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = self.config['general options']['ion profile']
@@ -310,7 +314,6 @@ class Parameters(object):
                 diffusion_constants[label] = float(self.config[profile_string][label])
 
             profile_features['diffusion constants'] = diffusion_constants
-            profile_features['ecm multiplier'] = float(self.config[profile_string]['ecm diffusion factor'])
 
             self.tissue_profiles[profile_name] = profile_features
 
@@ -325,7 +328,7 @@ class Parameters(object):
 
         # boundary properties:
 
-        self.closed_bound = self.config['boundaries closed']
+        self.closed_bound = False
 
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions
@@ -610,6 +613,7 @@ class Parameters(object):
         self.Dye_max_clr = float(ro['Dye 2D']['max val'])
 
         self.plot_vcell2d = ro['Vcell 2D']['plot Vcell']
+        self.plot_venv = ro['Vcell 2D']['plot Venv']
         self.autoscale_vcell = ro['Vcell 2D']['autoscale colorbar']
         self.vcell_min_clr = float(ro['Vcell 2D']['min val'])
         self.vcell_max_clr = float(ro['Vcell 2D']['max val'])

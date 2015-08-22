@@ -752,7 +752,6 @@ class Dynamics(object):
                 data_stream = p.tissue_profiles[name]
                 target_method = data_stream['target method']
                 dmem_list = data_stream['diffusion constants']
-                ecm_val = data_stream['ecm multiplier']
                 designation = data_stream['designation']
 
                 if designation == 'cavity':
@@ -766,7 +765,6 @@ class Dynamics(object):
             data_stream = p.tissue_profiles[name]
             target_method = data_stream['target method']
             dmem_list = data_stream['diffusion constants']
-            ecm_val = data_stream['ecm multiplier']
             designation = data_stream['designation']
 
             if designation == 'None':
@@ -797,58 +795,56 @@ class Dynamics(object):
                     dNa = dmem_list['Dm_Na']
                     sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
-                    if p.sim_ECM == True:
-                        sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
+                    # if p.sim_ECM == True:
+                    #     sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
 
                 if p.ions_dict['K'] == 1:
                     dK = dmem_list['Dm_K']
                     sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
 
-                    if p.sim_ECM == True:
-                        sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
+                    # if p.sim_ECM == True:
+                    #     sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
 
                 if p.ions_dict['Cl'] == 1:
                     dCl = dmem_list['Dm_Cl']
                     sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
-                    if p.sim_ECM == True:
-                        sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
+                    # if p.sim_ECM == True:
+                    #     sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
 
                 if p.ions_dict['Ca'] == 1:
                     dCa = dmem_list['Dm_Ca']
                     sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
-                    if p.sim_ECM == True:
-
-                        sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
+                    # if p.sim_ECM == True:
+                    #
+                    #     sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
 
                 if p.ions_dict['H'] == 1:
                     dH = dmem_list['Dm_H']
                     sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
-                    if p.sim_ECM == True:
-
-                        sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
+                    # if p.sim_ECM == True:
+                    #
+                    #     sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
 
                 if p.ions_dict['M'] == 1:
                     dM = dmem_list['Dm_M']
                     sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
 
-                    if p.sim_ECM == True:
-
-                        sim.D_env[sim.iM][self.env_target_inds[name]] = p.Do_M*ecm_val
-                        # sim.D_env[sim.iM][ecm_targs_mem] = p.Do_M*ecm_val
-                        # sim.D_env[sim.iM][ecm_targs_cell] = p.Do_M*ecm_val
+                    # if p.sim_ECM == True:
+                    #
+                    #     sim.D_env[sim.iM][self.env_target_inds[name]] = p.Do_M*ecm_val
 
                 if p.ions_dict['P'] == 1:
                     dP = dmem_list['Dm_P']
                     sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
 
-                    if p.sim_ECM == True:
-
-                        sim.D_env[sim.iP][self.env_target_inds[name]] = p.Do_P*ecm_val
-                        # sim.D_env[sim.iP][ecm_targs_mem] = p.Do_P*ecm_val
-                        # sim.D_env[sim.iP][ecm_targs_cell] = p.Do_P*ecm_val
+                    # if p.sim_ECM == True:
+                    #
+                    #     sim.D_env[sim.iP][self.env_target_inds[name]] = p.Do_P*ecm_val
+                    #     # sim.D_env[sim.iP][ecm_targs_mem] = p.Do_P*ecm_val
+                    #     # sim.D_env[sim.iP][ecm_targs_cell] = p.Do_P*ecm_val
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:

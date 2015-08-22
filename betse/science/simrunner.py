@@ -421,6 +421,24 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_vcell2d == True and p.sim_ECM == True:
 
+        if p.plot_venv == True:
+
+            plt.figure()
+            plt.imshow(1000*sim.v_env.reshape(cells.X.shape),origin='lower',
+                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+            plt.colorbar()
+            plt.title('Environmental Voltage [mV]')
+            plt.show(block=False)
+
+            plt.figure()
+            plt.imshow(sim.rho_env.reshape(cells.X.shape),origin='lower',
+                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+            plt.colorbar()
+            plt.title('Environmental Charge Density [C/m3]')
+            plt.show(block =False)
+
+
+
         if p.showCells == True:
 
             figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
