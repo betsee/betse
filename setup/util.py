@@ -305,7 +305,7 @@ def get_project_dirname():
     # "sys.path" list, you know what they say about assumptions.
     return get_path_dirname(get_path_dirname(__file__))
 
-# ....................{ GETTERS : path                     }....................
+# ....................{ GETTERS ~ path                     }....................
 def get_path_canonicalized(pathname: str) -> str:
     '''
     Get the **canonical form** (i.e., unique absolute path) of the passed path.
@@ -335,6 +335,7 @@ def get_path_dirname(pathname: str) -> str:
     assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
     return dirname
 
+# ....................{ GETTERS ~ path : filetype          }....................
 def get_path_filetype(pathname: str) -> str:
     '''
     Get the **last filetype** (i.e., last `.`-prefixed substring of the
@@ -353,6 +354,15 @@ def get_path_filetype(pathname: str) -> str:
     # Get such filetype, stripping the prefixing "." from the string returned by
     # the prior call if such path has a filetype or returning None otherwise.
     return filetype[1:] if filetype else None
+
+def get_path_sans_filetype(pathname: str) -> str:
+    '''
+    Get the passed path without last filetype (including prefixing `.`) if such
+    path has a filetype *or* as is otherwise.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+    assert len(pathname), 'Pathname empty.'
+    return path.splitext(pathname)[0]
 
 # ....................{ OUTPUTTERS                         }....................
 def output_sans_newline(*strings) -> None:

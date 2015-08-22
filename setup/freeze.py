@@ -101,13 +101,15 @@ class freeze(Command, metaclass = ABCMeta):
     user_options = [
         ('clean', None,
          'clean PyInstaller cache of temporary paths before building'),
+        ('debug', None,
+         'print debug messages during PyInstaller bootloader startup'),
     ]
     '''
     List of 3-tuples specifying command-line options accepted by this command.
 
     For each such option, an attribute of the same name as such option's long
-    form *must* be explicitly initialized in method `initialize_options()`.
-    `setuptools` fails to recognize options for which this is *not* the case.
+    form _must_ be explicitly initialized in the `initialize_options()` method.
+    `setuptools` fails to recognize options for which this is _not_ the case.
     (You fail a simple sanity check yet again, `setuptools`.)
 
     See Also
@@ -122,14 +124,22 @@ class freeze(Command, metaclass = ABCMeta):
         Declare option-specific attributes subsequently initialized by
         `finalize_options()`.
 
-        If this function is *not* defined, the default implementation of this
+        If this function is _not_ defined, the default implementation of this
         method raises an inscrutable `distutils` exception. If such attributes
-        are *not* declared, the subsequent call to
+        are _not_ declared, the subsequent call to
         `self.set_undefined_options()` raises an inscrutable `setuptools`
         exception. (This is terrible. So much hate.)
         '''
+        # Option-specific public attributes. For each option declared by the
+        # "user_options" list above, a public attribute of the same name as such
+        # option's long form *MUST* be initialized here to its default value.
         self.clean = False
+        self.debug = False
+
+        # setuptools-specific public attributes.
         self.install_scripts_dir = None
+
+        # Custom private attributes.
         self._pyinstaller_command = None
         self._pyinstaller_spec_filename = None
         self._pyinstaller_dist_dirname = None
@@ -159,9 +169,11 @@ class freeze(Command, metaclass = ABCMeta):
             # Note at least one script wrapper to be installed.
             is_script_installed = True
 
-            # Relative path of the output frozen executable file or directory.
+            # Relative path of the output frozen executable file or directory,
+            # created by stripping the suffixing ".exe" filetype on Windows.
             frozen_pathname = path.join(
-                self._pyinstaller_dist_dirname, script_basename)
+                self._pyinstaller_dist_dirname,
+                util.get_path_sans_filetype(script_basename))
 
             # If cleaning and such path exists, remove such path *BEFORE*
             # validating such path. Why? Because such path could be an existing
@@ -183,10 +195,9 @@ class freeze(Command, metaclass = ABCMeta):
                 script_basename, script_type, entry_point)
 
             # Report such results to the user.
-            if util.is_file(frozen_pathname):
-                print('Froze file "{}".\n'.format(frozen_pathname))
-            else:
-                print('Froze directory "{}".\n'.format(frozen_pathname))
+            frozen_pathtype =\
+                'directory' if util.is_dir(frozen_pathname) else 'file'
+            print('Froze {} "{}".\n'.format(frozen_pathtype, frozen_pathname))
 
             #FIXME: Excise when beginning GUI work.
             break
@@ -203,8 +214,7 @@ class freeze(Command, metaclass = ABCMeta):
                 'Consider first running either '
                 '"sudo python3 setup.py install" or '
                 '"sudo python3 setup.py symlink".'.format(
-                    script_wrapper_basenames)
-            )
+                    script_wrapper_basenames))
 
     # ..................{ INITIALIZERS                       }..................
     def _init_pyinstaller_command(self) -> None:
@@ -227,14 +237,6 @@ class freeze(Command, metaclass = ABCMeta):
 
         # List of all shell words of the PyInstaller command to be run.
         self._pyinstaller_command = [pyinstaller_command_name]
-
-        # If UPX is not found, print a warning to standard error. While
-        # optional, freezing in the absence of UPX produces uncompressed and
-        # hence considerably larger executables.
-        if not util.is_pathable('upx'):
-            util.output_warning(
-                'UPX not installed or "upx" not in the current ${PATH}. ')
-            util.output_warning('Frozen binaries will *NOT* be compressed.')
 
         # Relative path of the top-level PyInstaller directory.
         pyinstaller_dirname = 'freeze'
@@ -273,10 +275,32 @@ class freeze(Command, metaclass = ABCMeta):
             '--log-level=DEBUG',
         ])
 
-        # If the user passed the custom option "--clean" to the current
-        # setuptools command, pass such option on to "pyinstaller".
+        # Forward all custom boolean options passed by the user to the current
+        # setuptools command (e.g., "--clean") to the "pyinstaller" command.
         if self.clean:
             self._pyinstaller_command.append('--clean')
+        if self.debug:
+            self._pyinstaller_command.extend((
+                '--debug',
+
+                # UPX-based compression uselessly consumes non-trivial time
+                # (especially under Windows, where process creation is fairly
+                # heavyweight) when freezing debug binaries. To optimize and
+                # simplify debugging, such compression is disabled.
+                '--noupx',
+            ))
+            util.output_warning(
+                'Enabling bootloader debug messages.')
+            util.output_warning(
+                'Disabling UPX-based compression.')
+        # If *NOT* debugging and UPX is *NOT* found, print a non-fatal warning.
+        # While optional, freezing in the absence of UPX produces uncompressed
+        # and hence considerably larger executables.
+        elif not util.is_pathable('upx'):
+            util.output_warning(
+                'UPX not installed or "upx" not in the current ${PATH}.')
+            util.output_warning(
+                'Frozen binaries will *NOT* be compressed.')
 
     # ..................{ SETTERS                            }..................
     def _set_environment_variables(
@@ -361,17 +385,19 @@ class freeze(Command, metaclass = ABCMeta):
                 'Generating spec file "{}".'.format(
                     self._pyinstaller_spec_filename))
 
-            # List of all shell words of the PyInstaller command to be run.
+            # Append all options specific to spec file generation.
             self._pyinstaller_command.extend([
-                # Non-default PyInstaller directories.
-                '--additional-hooks-dir=' + util.shell_quote(
-                    self._pyinstaller_hooks_dirname),
-
                 # If this is a console script, configure standard input and
                 # output for console handling; else, do *NOT* and, if the
                 # current operating system is OS X, generate an ".app"-suffixed
                 # application bundle rather than a customary executable.
                 '--console' if script_type == 'console' else '--windowed',
+
+                # Non-default PyInstaller directories.
+                '--additional-hooks-dir=' + util.shell_quote(
+                    self._pyinstaller_hooks_dirname),
+                '--specpath=' + util.shell_quote(
+                    util.get_dirname(self._pyinstaller_spec_filename)),
             ])
 
             # Append all subclass-specific options.
@@ -392,10 +418,11 @@ class freeze(Command, metaclass = ABCMeta):
             # Note that "pyinstaller" accepts an option "--name" permitting
             # the basename of such file to be specified prior to generating
             # such file. Unfortunately, such option *ALSO* specifies the
-            # basename of the generated executable. Since we only
+            # basename of the generated executable. While the former is reliably
+            # renamable, the former is *NOT* (e.g., due to code signing). Hence,
+            # such file is manually renamed without passing such option.
             util.move_file(
-                script_spec_basename_current,
-                    self._pyinstaller_spec_filename)
+                script_spec_basename_current, self._pyinstaller_spec_filename)
 
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
