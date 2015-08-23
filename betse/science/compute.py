@@ -132,11 +132,14 @@ class Simulator(object):
         self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
 
-        # force of gravity:
-        # Fg_x = np.zeros(len(cells.nn_i))
-        # Fg_y = -9.81*p.rho*np.ones(len(cells.nn_i))
-        # # get the component of the gravity force tangent to each gap junction:
-        # self.Fgj = Fg_x*cells.nn_vects[:,2] + Fg_y*cells.nn_vects[:,3]
+        if p.gj_flux_sensitive == True:
+
+            self.gj_rho = np.zeros(len(cells.nn_i))
+
+        else:
+
+            self.gj_rho = 1
+
 
         ion_names = list(p.ions_dict.keys())
 
@@ -416,6 +419,15 @@ class Simulator(object):
         self.u_cells_x = np.zeros(len(cells.cell_i))
         self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
+
+
+        if p.gj_flux_sensitive == True:
+
+            self.gj_rho = np.zeros(len(cells.nn_i))
+
+        else:
+
+            self.gj_rho = 1
 
         if p.sim_eosmosis == True:
             self.rho_channel = np.ones(len(cells.mem_i))
@@ -1537,12 +1549,15 @@ class Simulator(object):
             # if desired, electroosmosis of membrane channels
             if p.sim_eosmosis == True:
 
-                self.eosmosis(cells,p)
+                self.get_current(cells,p)   # get the current in the gj network connection of cells
+
+                self.eosmosis(cells,p)    # modify membrane pump and channel density according to current
 
             if t in tsamples:
 
                 # #
-                self.get_current(cells,p)   # get the current in the gj network connection of cells
+                if p.sim_eosmosis == False:
+                    self.get_current(cells,p)   # get the current in the gj network connection of cells
 
                 # add the new concentration and voltage data to the time-storage matrices:
 
@@ -1823,6 +1838,62 @@ class Simulator(object):
         else:
             self.gjopen = 1
 
+        if p.gj_flux_sensitive == True:
+
+
+            if p.gj_respond_flow == True:
+
+                # map intracellular flow velocity to gap junctions:
+                ux_gj = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
+                uy_gj = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
+
+                # get the length of the flow at the gap junction:
+                u_gj_s = np.sqrt(ux_gj**2 + uy_gj**2)
+
+                # sum the flow vector lengths for individual cells
+                u_sum = np.dot(cells.gj2cellSum,u_gj_s)
+
+            else: # respond to total current instead:
+
+                 # calculate current across gap junctions in x direction:
+                I_gj_x = np.zeros(len(cells.nn_i))
+
+                for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
+
+                    I_i_x = flux_array*zi*p.F
+
+                    I_gj_x = I_gj_x + I_i_x
+
+                I_gj_y = np.zeros(len(cells.nn_i))
+
+                for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
+
+                    I_i_y = flux_array*zi*p.F
+
+                    I_gj_y = I_gj_y + I_i_y
+
+                u_gj_s = np.sqrt(I_gj_x**2 + I_gj_y**2)
+
+                # sum the flow vector lengths for individual cells
+                u_sum = np.dot(cells.gj2cellSum,u_gj_s)
+
+
+            if u_sum.any() == 0:
+
+                pass
+
+            else:
+                # normalize cell vector length by the cell sum -- this is the input to each rho_gj growth
+                U_gj_cell_norm = u_gj_s/u_sum[cells.nn_i][:,0]
+
+                delta_gj_rho = (U_gj_cell_norm)*(p.max_gj_enhancement - self.gj_rho) - (p.u_decay_rate)*self.gj_rho
+                self.gj_rho = self.gj_rho + p.dt*delta_gj_rho*p.alpha_rho_gj
+
+
+        else:
+
+            self.gj_rho = 1
+
         # voltage gradient:
         grad_vgj = self.vgj/cells.nn_len
 
@@ -1845,7 +1916,7 @@ class Simulator(object):
         # uy =0
 
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
-            self.D_gj[i]*self.gjopen,self.zs[i],self.T,p)
+            self.D_gj[i]*self.gjopen*self.gj_rho,self.zs[i],self.T,p)
 
         fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
 
@@ -2425,7 +2496,7 @@ class Simulator(object):
 
         """
 
-        if p.sim_ECM== True:   # FIXME the forces still aren't right for an "air" world...
+        if p.sim_ECM== True:
 
             # method 1-------------------------------------------------------------------------------------------------
             # force of gravity:
@@ -2456,8 +2527,8 @@ class Simulator(object):
             rho_env_x = np.zeros(cells.grid_obj.u_X.shape)
             rho_env_y = np.zeros(cells.grid_obj.v_X.shape)
 
-            rho_env_x[:,0:-1] = self.rho_env.reshape(cells.X.shape)/self.ff
-            rho_env_y[0:-1,:] = self.rho_env.reshape(cells.X.shape)/self.ff
+            rho_env_x[:,0:-1] = self.rho_env.reshape(cells.X.shape)/10
+            rho_env_y[0:-1,:] = self.rho_env.reshape(cells.X.shape)/10
 
             Fe_x = (rho_env_x)*env_x
             Fe_y = (rho_env_y)*env_y
@@ -2549,15 +2620,6 @@ class Simulator(object):
                 self.u_env_x[:,0] = self.u_env_x[:,1]
                 # right
                 self.u_env_x[:,-1] = self.u_env_x[:,-2]
-                # # top
-                # self.u_env_x[-1,:] = self.u_env_x[-2,:]
-                # # bottom
-                # self.u_env_x[0,:] = self.u_env_x[1,:]
-
-                # left
-                # self.u_env_y[:,0] = self.u_env_y[:,1]
-                # # right
-                # self.u_env_y[:,-1] = self.u_env_y[:,-2]
                 # top
                 self.u_env_y[-1,:] = self.u_env_y[-2,:]
                 # bottom
@@ -2595,15 +2657,6 @@ class Simulator(object):
                 self.u_at_c[:,0] = self.u_at_c[:,1]
                 # right
                 self.u_at_c[:,-1] = self.u_at_c[:,-2]
-                # top
-                # self.u_at_c[-1,:] = self.u_at_c[-2,:]
-                # # bottom
-                # self.u_at_c[0,:] = self.u_at_c[1,:]
-
-                # left
-                # self.v_at_c[:,0] = self.v_at_c[:,1]
-                # # right
-                # self.v_at_c[:,-1] = self.v_at_c[:,-2]
                 # top
                 self.v_at_c[-1,:] = self.v_at_c[-2,:]
                 # bottom
@@ -2790,7 +2843,7 @@ class Simulator(object):
             Fgj_gravity = cells.nn_vects[:,2]*Fgx + cells.nn_vects[:,3]*Fgy
 
         else:
-            Fgj_gravity = 0
+            Fgj_gravity = np.zeros(len(cells.nn_vects))
 
 
 
@@ -2811,14 +2864,14 @@ class Simulator(object):
         # scale the forces to the alpha value as r may vary over space:
         S_source = alpha_gj*F_source
 
-        Fgj_sum = np.dot(cells.gjMatrix,F_source)
+        Fgj_sum = np.dot(cells.gjMatrix,S_source)
 
         # # calculate the pressure in each cell required to create a divergence-free (mass conserved) flow field:
         self.P_cells = np.dot(cells.lapGJinv, -Fgj_sum)
 
         gradP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
 
-        u_cells = (alpha_gj)*(F_gj +Fgj_gravity - gradP)
+        u_cells = (alpha_gj)*(F_gj +Fgj_gravity) - gradP
 
         u_cells_x = u_cells*cells.nn_vects[:,2]
         u_cells_y = u_cells*cells.nn_vects[:,3]
@@ -2929,43 +2982,49 @@ class Simulator(object):
 
     def eosmosis(self,cells,p):
 
-        # create interpolation functions for the components of the extracellular electric field:
-        E_ECM_x_interp = interp.RectBivariateSpline(cells.X_ecm[0,:], cells.Y_ecm[:,0], self.E_ECM_x)
-        E_ECM_y_interp = interp.RectBivariateSpline(cells.X_ecm[0,:], cells.Y_ecm[:,0], self.E_ECM_y)
+        """
+        Electroosmosis of ion pumps and channels to potentially create directional fluxes in individual cells.
 
-        # interpret the value of extracellular electric field components at the centre of each membrane:
-        Efield_x = E_ECM_x_interp.ev(cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1])
-        Efield_y = E_ECM_y_interp.ev(cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1])
+        This is presently simulated by calculating the Nernst-Planck concentration flux of a weighting
+        agent, rho, which moves under its own concentration gradient and
+        through the influence of the extracellular voltage gradient and fluid flows tangential to the membrane.
 
-        # Take the dot product of the membrane tangent vector and the ecm E-field vector (E_tang_mem):
-        E_tang_x = cells.mem_vects_flat[:,4]*Efield_x
-        E_tang_y = cells.mem_vects_flat[:,5]*Efield_y
+        """
 
-        self.E_tang_mem = E_tang_x + E_tang_y
+        vmem = self.v_env[cells.map_mem2ecm]
 
-        # map the value of rho channel to the vertices
-        self.rho_channel_verts = np.dot(self.rho_channel,cells.matrixMap2Verts)
+        # components of fluid flow velocity at the membrane:
+        ux_mem = self.u_at_c.ravel()[cells.map_mem2ecm]
+        uy_mem = self.v_at_c.ravel()[cells.map_mem2ecm]
 
-        # calculate the concentration gradient of the rho factor in the membrane:
-        self.grad_c_mem = (self.rho_channel_verts[cells.mem_seg_i[:,1]] -
-                self.rho_channel_verts[cells.mem_seg_i[:,0]])/cells.mem_length
+        # get the gradient of rho concentration around each membrane:
+        grad_c = np.dot(cells.gradMem,self.rho_channel)
 
-        # Calculate the flux due to electroosmosis
-        self.f_eosmo = p.mem_const*self.E_tang_mem*self.rho_channel*(cells.mem_length/cells.mem_sa)
+        # gcx = grad_c*cells.mem_vects_flat[:,4]   # FIXME no concentration gradient will be used for now
+        # gcy = grad_c*cells.mem_vects_flat[:,5]
+        gcx = 0
+        gcy = 0
 
-        # calculate the flux due to standard diffusion:
-        self.f_ficks = p.D_membrane*self.grad_c_mem*(cells.mem_length/cells.mem_sa)
+        # electric field at each membrane
 
-        # calculate the total flux
-        f_net = self.f_eosmo + self.f_ficks
-        # f_net = self.f_eosmo
+        gvx = - self.E_env_x.ravel()[cells.map_mem2ecm]
+        gvy = - self.E_env_y.ravel()[cells.map_mem2ecm]
 
-        # calculate the change in verts data due to electroosmosis and diffusion:
-        self.rho_channel_verts = self.rho_channel_verts - (np.dot(f_net*p.dt, cells.memMatrix))
-        # map data back to midpoints
-        self.rho_channel = np.dot(self.rho_channel_verts,cells.matrixMap2Mids)
+        # calculate the total Nernst-Planck flux at each membrane:
 
-        # make sure nothing is non-zero:
+        fx, fy = nernst_planck_flux(self.rho_channel, gcx, gcy, gvx, gvy,ux_mem,uy_mem,p.D_membrane,p.z_channel,
+            self.T,p)
+
+        # component of total flux in direction of membrane
+        ftot = fx*cells.mem_vects_flat[:,4] + fy*cells.mem_vects_flat[:,5]
+
+        # calculate the membrane-specific divergence of the flux which will be the "delta rho" at each membrane:
+        delta_rho = np.dot(cells.gradMem,ftot)
+
+        # update the channel property:
+        self.rho_channel = self.rho_channel + p.dt*delta_rho
+
+        # # make sure nothing is non-zero:
         fix_inds = (self.rho_channel < 0).nonzero()
         self.rho_channel[fix_inds] = 0
 
@@ -3097,7 +3156,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
-        f_Na  = -alpha*(cNai)*(cKo**(1/5))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_Na  = -alpha*(cNai)*(cKo)      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     elif p.backward_pumps == True:
 
@@ -3111,9 +3170,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
         f_Na = np.zeros(len(cNai))
 
-        f_Na[inds_forwards]  = -alpha*cNai*(cKo**(1/5))      #flux as [mol/s]   scaled to concentrations Na in and K out
+        f_Na[inds_forwards]  = -alpha*cNai*(cKo)      #flux as [mol/s]   scaled to concentrations Na in and K out
 
-        f_Na[inds_backwards]  = -alpha*cNao*(cKi**(1/5))      #flux as [mol/s]   scaled to concentrations K in and Na out
+        f_Na[inds_backwards]  = -alpha*cNao*(cKi)      #flux as [mol/s]   scaled to concentrations K in and Na out
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
@@ -3361,8 +3420,8 @@ def get_Vcell(self,cells,p):
         cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
 
         # calculate the voltage in each cell:
-        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
+        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
     return v_cell
 

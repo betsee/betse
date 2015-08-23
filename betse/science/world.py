@@ -1020,32 +1020,32 @@ class World(object):
                 self.matrixMap2Verts[i,indices[1]]=1/2
 
             # create a mapping from each vert to each membrane segment, mem_seg_i:
-            self.mem_seg_i = []
+            # self.mem_seg_i = []
 
             self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
             self.mem_edges_flat = np.asarray(self.mem_edges_flat)
 
-            vertTree = sps.KDTree(self.mem_verts)
-
-            for seg in self.mem_edges_flat:
-                pt1 = seg[0]
-                pt2 = seg[1]
-                seg_ind1 = vertTree.query(pt1)[1]
-                seg_ind2 = vertTree.query(pt2)[1]
-                self.mem_seg_i.append([seg_ind1,seg_ind2])
-
-            self.mem_seg_i = np.asarray(self.mem_seg_i)  # pairs two indices to mem_verts defining line segment
+            # vertTree = sps.KDTree(self.mem_verts)
+            #
+            # for seg in self.mem_edges_flat:
+            #     pt1 = seg[0]
+            #     pt2 = seg[1]
+            #     seg_ind1 = vertTree.query(pt1)[1]
+            #     seg_ind2 = vertTree.query(pt2)[1]
+            #     self.mem_seg_i.append([seg_ind1,seg_ind2])
+            #
+            # self.mem_seg_i = np.asarray(self.mem_seg_i)  # pairs two indices to mem_verts defining line segment
 
             # now to go from membrane vert data to mid data by calculating the pseudo-inverse:
-            self.matrixMap2Mids = np.linalg.pinv(self.matrixMap2Verts)
+            # self.matrixMap2Mids = np.linalg.pinv(self.matrixMap2Verts)
 
-            # calculating matrix for membrane flux calculation between connected vertices:
-            self.memMatrix = np.zeros((len(self.mem_seg_i),len(self.mem_i)))
-            for imem, pair in enumerate(self.mem_seg_i):
-                ci = pair[0]
-                cj = pair[1]
-                self.memMatrix[imem,ci] = -1
-                self.memMatrix[imem,cj] = 1
+            # # calculating matrix for membrane flux calculation between connected vertices:
+            # self.memMatrix = np.zeros((len(self.mem_seg_i),len(self.mem_i)))
+            # for imem, pair in enumerate(self.mem_seg_i):
+            #     ci = pair[0]
+            #     cj = pair[1]
+            #     self.memMatrix[imem,ci] = -1
+            #     self.memMatrix[imem,cj] = 1
 
 
             self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
@@ -1066,6 +1066,38 @@ class World(object):
             self.num_mems.append(n)
 
         self.num_mems = np.asarray(self.num_mems)
+
+        # create a matrix that will take a continuous gradient for a value on a cell membrane
+        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+
+        for i, inds in enumerate(self.cell_to_mems):
+
+            inds = np.asarray(inds)
+
+            inds_p1 = np.roll(inds,1)
+            inds_n1 = np.roll(inds,-1)
+            inds_o = np.roll(inds,0)
+
+            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
+            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+            dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
+
+            tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
+            tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
+
+            # len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+            #
+            self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
+            self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+            # self.gradMem[inds_o,inds_p1] = 1 + 1
+            # self.gradMem[inds_o,inds_n1] = -1 - 1
+
+            # self.gradMem[inds_o[0],inds_1[0]] = -1/len_mem[0]
+            # self.gradMem[inds_o[-1],inds_1[-1]] = -1/len_mem[-1]
+
+            # for j, indy in enumerate(inds):
+            #     self.gradMem[inds_o[j],inds_1[j]] = -1/len_mem[j]
+
 
         #---------------------------------------------------------------------------
 
@@ -1179,6 +1211,12 @@ class World(object):
             ave_fact = len(inds)
             for j in inds:
                 self.gj2cellMatrix[i,j] = 1/ave_fact
+
+        self.gj2cellSum = np.zeros((len(self.cell_i),len(self.nn_i)))
+
+        for i, inds in enumerate(self.cell_to_nn):
+            for j in inds:
+                self.gj2cellSum[i,j] = 1
 
 
         if savecells == True:

@@ -822,10 +822,20 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
 
     if p.sim_eosmosis == True:
-        #
+
         viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
-        plt.quiver(p.um*cells.Y_ecm,p.um*cells.X_ecm,sim.E_ECM_x,sim.E_ECM_y)
-        plt.show()
+        # plt.quiver(p.um*cells.mem_vects_flat[:,0],p.um*cells.mem_vects_flat[:,1],Im_x,Im_y)
+        plt.show(block=False)
+
+    if p.gj_flux_sensitive == True:
+
+        # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
+        plt.figure()
+        plt.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],cells.nn_vects[:,2],cells.nn_vects[:,3],sim.gj_rho)
+        plt.show(block=False)
+
+
+    plt.show()
 
 
     #------------------------------------------------------------------------------------------------------------

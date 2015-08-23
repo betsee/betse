@@ -53,12 +53,15 @@ class Parameters(object):
 
         self.mu_membrane = float(self.config['general options']['membrane viscocity'])  # in membrane diffusion coefficient
         self.D_membrane = float(self.config['general options']['membrane mobility']) # charge of membrane pumps and channels
+        self.z_channel = float(self.config['general options']['channel charge'])
 
         self.mu_water = 1e-3   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
         self.gj_surface = float(self.config['world variables']['gap junction surface area'])
+
+        self.gj_flux_sensitive = self.config['world variables']['gj flux sensitive']
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -127,6 +130,8 @@ class Parameters(object):
 
         self.gj_vthresh = float(self.config['world variables']['gj voltage threshold'])
         self.gj_vgrad  = float(self.config['world variables']['gj voltage window'])
+
+        self.gj_respond_flow = self.config['world variables']['gj sensitive to flow']
 
         self.v_sensitive_gj = self.config['world variables']['voltage sensitive gj']
 
@@ -728,6 +733,10 @@ class Parameters(object):
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
         self.halfmax_V = float(iu['halfmax_V'])
         self.slope_V = float(iu['slope_V'])
+
+        self.max_gj_enhancement = float(iu['max_gj_enhancement'])   # parameters relating to flow sensitivity of gap junctions
+        self.u_decay_rate = float(iu['u_decay_rate'])
+        self.alpha_rho_gj = float(iu['alpha_rho_gj'])
 
          # Calcium dynamics parameters
         self.ER_vol = float(cdp['ER_vol'])   # volume of endoplasmic reticulum as a fraction of cell volume
