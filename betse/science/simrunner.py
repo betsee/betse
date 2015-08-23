@@ -437,6 +437,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.title('Environmental Charge Density [C/m3]')
             plt.show(block =False)
 
+            plt.figure()
+            plt.imshow(np.log10(sim.D_env_weight.reshape(cells.X.shape)),origin='lower',
+                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+            plt.colorbar()
+            plt.title('Logarithm of Environmental Diffusion Weight Matrix')
+            plt.show(block =False)
+
 
 
         if p.showCells == True:

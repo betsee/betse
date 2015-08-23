@@ -187,8 +187,8 @@ class World(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
-            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
+            self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=1.1)  # flag membranes on the cluster bound
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.1)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)       # Free up memory...
             self.makeECM(p)       # create the ecm grid
@@ -806,7 +806,6 @@ class World(object):
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
         all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
-        all_bound_mem_xy = self.mem_mids_flat[all_bound_mem_inds]
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
@@ -1163,21 +1162,6 @@ class World(object):
 
         self.cell_to_nn = np.asarray(self.cell_to_nn)
 
-        #--------------------------------------------------------------
-
-        # calculating matrix for gj divergence of the flux calculation:
-        # self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
-        #
-        # for i, inds in enumerate(self.cell_to_nn):
-        #
-        #     sa_i = self.av_mem_sa[i]
-        #
-        #     vol_i = self.cell_vol[i]
-        #
-        #     for j in inds:
-        #
-        #         self.gjMatrix[i,j] = -1*(sa_i/vol_i)
-
         # recalculate matrix for gj divergence of the flux calculation:
         self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
 
@@ -1191,18 +1175,6 @@ class World(object):
 
             self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
 
-        # recompute mapping between cell and gj:
-        # self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
-        #
-        # for i, inds in enumerate(self.nn_i):
-        #     ind1 = inds[0]
-        #     ind2 = inds[1]
-        #     self.cell_to_nn[ind1].append(i)
-        #     self.cell_to_nn[ind2].append(i)
-        #
-        # self.cell_to_nn = np.asarray(self.cell_to_nn)
-
-
          # matrix for averaging values on gap junctions to each cell:
 
         self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
@@ -1212,6 +1184,7 @@ class World(object):
             for j in inds:
                 self.gj2cellMatrix[i,j] = 1/ave_fact
 
+        # matrix for summing values on gap junctions to each cell:
         self.gj2cellSum = np.zeros((len(self.cell_i),len(self.nn_i)))
 
         for i, inds in enumerate(self.cell_to_nn):

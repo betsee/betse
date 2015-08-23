@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 0.5                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -296,13 +296,13 @@ world variables:
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
-  gj flux sensitive: True         # gj conductivity increases with increasing flow
+  gj flux sensitive: False         # gj conductivity increases with increasing flow or current
 
-  gj sensitive to flow: True      # gj sensitive to electroosmotic fluid flow (True) or total chemical flux (False)?
+  gj sensitive to flow: False      # gj sensitive to electroosmotic fluid flow (True) or total chemical flux (False)?
 
   tight junction scaling: 1.0e-5   # degree to which tight junctions scale free-diffusion in water
 
-  adherens junction scaling: 1.0e-3   # degree to which adheren cell-cell junctions scale free-diffusion in water
+  adherens junction scaling: 1.0e-1   # degree to which adheren cell-cell junctions scale free-diffusion in water
 
 
 # ----------------------------------------------------------------------------------------------------------------------
