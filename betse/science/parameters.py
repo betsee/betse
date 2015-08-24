@@ -193,7 +193,7 @@ class Parameters(object):
         bool_Kenv = bool(self.config['change K env']['event happens'])
         bool_Clenv = bool(self.config['change Cl env']['event happens'])
         bool_gjblock = bool(self.config['block gap junctions']['event happens'])
-        bool_ecm = bool(self.config['change ecm junctions']['event happens'])
+        # bool_ecm = bool(self.config['change ecm junctions']['event happens'])
         bool_temp =  bool(self.config['change temperature']['event happens'])
         bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
         bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
@@ -239,15 +239,6 @@ class Parameters(object):
             gjb = [on_gj,off_gj,rate_gj,fraction_gj]
             self.global_options['gj_block'] = gjb
 
-        if bool_ecm == False:
-            self.global_options['ecm_change'] = 0
-        elif bool_ecm == True:
-            on_ecm = float(self.config['change ecm junctions']['change start'])
-            off_ecm = float(self.config['change ecm junctions']['change finish'])
-            rate_ecm = float(self.config['change ecm junctions']['change rate'])
-            multi_ecm = float(self.config['change ecm junctions']['multiplier'])
-            ecmb = [on_ecm,off_ecm,rate_ecm,multi_ecm]
-            self.global_options['ecm_change'] = ecmb
 
         if bool_temp == False:
             self.global_options['T_change'] = 0
@@ -347,6 +338,7 @@ class Parameters(object):
         bool_Camem = bool(self.config['change Ca mem']['event happens'])
         bool_ip3 = bool(self.config['produce IP3']['event happens'])
         bool_extV = bool(self.config['apply external voltage']['event happens'])
+        bool_ecmj = bool(self.config['break ecm junctions']['event happens'])
         bool_cut = bool(self.config['cutting event']['event happens'])
 
         if bool_Namem == False:
@@ -421,6 +413,18 @@ class Parameters(object):
             extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV, function]
             self.scheduled_options['extV'] = extV
 
+        if bool_ecmj == False:
+            self.scheduled_options['ecmJ'] = 0
+        elif bool_ecmj == True:
+            on_ecmj = float(self.config['break ecm junctions']['change start'])
+            off_ecmj = float(self.config['break ecm junctions']['change finish'])
+            rate_ecmj = float(self.config['break ecm junctions']['change rate'])
+            apply_ecmj = self.config['break ecm junctions']['apply to']
+            ecmj = [on_ecmj, off_ecmj, rate_ecmj, apply_ecmj]
+
+            self.scheduled_options['ecmJ'] = ecmj
+
+
         if bool_cut == False:
             self.scheduled_options['cuts'] = 0
 
@@ -443,7 +447,6 @@ class Parameters(object):
 
         self.gradient_r_properties['slope'] =self.config['function properties']['gradient_r']['slope']
         self.gradient_r_properties['offset'] =self.config['function properties']['gradient_r']['offset']
-
 
 
         #.........................DYNAMIC CHANNELS.....................................................................

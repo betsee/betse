@@ -662,7 +662,7 @@ class Simulator(object):
         if p.sim_ECM == True:
             #  Initialize diffusion constants for the extracellular transport:
 
-            for i, dmat in enumerate(self.D_env):  # FIXME need a way better way to do the ecm --> grid mapping!!!
+            for i, dmat in enumerate(self.D_env):
 
                 if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
                     self.D_env[i][:] = 0
@@ -677,13 +677,7 @@ class Simulator(object):
                 dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
                 dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
 
-                if p.env_type == True:
-                    pass
-
-                    # dummyMems[cells.bflags_mems] = self.D_free[i]  # set the points on the  very outer bounds back to free value
-
                 # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-
                 if p.env_type == True:
                     Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
                         (cells.X,cells.Y),method='linear',fill_value=self.D_free[i])
@@ -692,27 +686,13 @@ class Simulator(object):
                     Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
                         (cells.X,cells.Y),method='linear',fill_value=0)
 
-                # smooth out the diffusion matrix:
-                # Denv_o = fd.integrator(Denv_o)
-
                 # create an ecm diffusion grid filled with the environmental values
                 self.D_env[i] = Denv_o.ravel()
-
-                # self.D_env[i][cells.map_cell2ecm] = self.D_free[i]*p.D_adh
-                # self.D_env[i][cells.map_mem2ecm] = self.D_free[i]*p.D_adh
-                # # set membranes on the boundaries of outer cells set to the tight-junction level:
-                # self.D_env[i][cells.ecm_allbound_k] = p.D_tj*self.D_free[i]
-
-                # # set membranes on the very outside of the cluster (facing the watery environment) to the free-value
-                # if p.env_type == True:
-                #
-                #     self.D_env[i][cells.ecm_bound_k] = self.D_free[i]
-
-
 
             # create a matrix that weights the relative transport efficiency in the world space:
             D_env_weight = self.D_env[0]/self.D_env[0].max()
             self.D_env_weight = D_env_weight.reshape(cells.X.shape)
+            self.D_env_weight_base = np.copy(self.D_env_weight)
 
             self.D_env_weight_u = np.zeros(cells.grid_obj.u_shape)
             self.D_env_weight_u[:,1:] = self.D_env_weight[:]
@@ -2497,9 +2477,9 @@ class Simulator(object):
             gPx, gPy = cells.grid_obj.grid_gradient(P,bounds=btag)
 
              # subtract the correction pressure term from the solution to yield a divergence-free flow field
-            # FIXME these terms might be able to have integrator applied...
-            self.u_env_x = alpha_x*(Fx) - gPx
-            self.u_env_y = alpha_y*(Fy) - gPy
+
+            self.u_env_x = fd.integrator(alpha_x*Fx) - fd.integrator(gPx)
+            self.u_env_y = fd.integrator(alpha_y*Fy) - fd.integrator(gPy)
 
             # reinforce boundary conditions
             if p.closed_bound == True:
@@ -2537,7 +2517,10 @@ class Simulator(object):
 
             self.v_at_c = (self.u_env_y[0:-1,:]+self.u_env_y[1:,:])/2
 
-            self.P_env = P[:]
+            # resample alpha's:
+            alpha = (alpha_x[:,0:-1] + alpha_x[:,1:])/2
+
+            self.P_env = P[:]*(1/alpha)
 
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
@@ -2592,6 +2575,11 @@ class Simulator(object):
         # average components to the cell centres:
         self.u_cells_x = np.dot(cells.gj2cellMatrix,u_cells_x)
         self.u_cells_y = np.dot(cells.gj2cellMatrix,u_cells_y)
+
+        # resample alpha to the cell centres:
+        alpha_ave = np.dot(cells.gj2cellMatrix,alpha_gj)
+
+        self.P_cells = self.P_cells*(1/alpha_ave)
 
     def eosmosis(self,cells,p):
 

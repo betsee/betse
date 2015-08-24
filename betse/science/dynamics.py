@@ -87,12 +87,12 @@ class Dynamics(object):
 
             self.targets_gj_block = [cells.nn_index[x] for x in range(0,data_fraction)]
 
-        if p.global_options['ecm_change'] != 0:
-
-            self.t_on_ecm = p.global_options['ecm_change'][0]
-            self.t_off_ecm = p.global_options['ecm_change'][1]
-            self.t_change_ecm = p.global_options['ecm_change'][2]
-            self.mult_ecm = p.global_options['ecm_change'][3]
+        # if p.global_options['ecm_change'] != 0:
+        #
+        #     self.t_on_ecm = p.global_options['ecm_change'][0]
+        #     self.t_off_ecm = p.global_options['ecm_change'][1]
+        #     self.t_change_ecm = p.global_options['ecm_change'][2]
+        #     self.mult_ecm = p.global_options['ecm_change'][3]
 
         if p.global_options['NaKATP_block'] != 0:
 
@@ -237,6 +237,21 @@ class Dynamics(object):
 
             self.targets_extV_positive = self.env_target_label[name_positive]
             self.targets_extV_negative = self.env_target_label[name_negative]
+
+        if p.scheduled_options['ecmJ'] != 0:
+
+            self.t_on_ecmJ = p.scheduled_options['ecmJ'][0]
+            self.t_off_ecmJ= p.scheduled_options['ecmJ'][1]
+            self.t_change_ecmJ = p.scheduled_options['ecmJ'][2]
+            self.apply_ecmJ = p.scheduled_options['ecmJ'][3]
+
+            self.targets_ecmJ = []
+            for profile in self.apply_ecmJ:
+                targets = self.env_target_inds[profile]
+                self.targets_ecmJ.append(targets)
+
+            self.targets_ecmJ = [item for sublist in self.targets_ecmJ for item in sublist]
+
 
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True:
 
@@ -443,20 +458,20 @@ class Dynamics(object):
 
             sim.gj_block[self.targets_gj_block] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
 
-        if p.global_options['ecm_change'] != 0:
-
-            effector_ecm = tb.pulse(t,self.t_on_ecm,self.t_off_ecm,self.t_change_ecm)
-
-            for i, subD in enumerate(sim.D_env_base):
-
-                sim.D_env[i][cells.map_cell2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_cell2ecm] + \
-                                                   sim.D_env_base[i][cells.map_cell2ecm]
-
-                sim.D_env[i][cells.map_mem2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_mem2ecm] + \
-                                                  sim.D_env_base[i][cells.map_mem2ecm]
-
-                # ensure cells on the cluster boundary aren't involved in the change:
-                sim.D_env[i][cells.ecm_bound_k] = sim.D_env_base[i][cells.ecm_bound_k]
+        # if p.global_options['ecm_change'] != 0:
+        #
+        #     effector_ecm = tb.pulse(t,self.t_on_ecm,self.t_off_ecm,self.t_change_ecm)
+        #
+        #     for i, subD in enumerate(sim.D_env_base):
+        #
+        #         sim.D_env[i][cells.map_cell2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_cell2ecm] + \
+        #                                            sim.D_env_base[i][cells.map_cell2ecm]
+        #
+        #         sim.D_env[i][cells.map_mem2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_mem2ecm] + \
+        #                                           sim.D_env_base[i][cells.map_mem2ecm]
+        #
+        #         # ensure cells on the cluster boundary aren't involved in the change:
+        #         sim.D_env[i][cells.ecm_bound_k] = sim.D_env_base[i][cells.ecm_bound_k]
 
 
         if p.global_options['NaKATP_block'] != 0:
@@ -501,6 +516,29 @@ class Dynamics(object):
 
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.scalar_IP3*self.rate_IP3*tb.pulse(t,self.t_onIP3,
                 self.t_offIP3,self.t_changeIP3)
+
+        if p.scheduled_options['ecmJ'] != 0:
+
+            for i, dmat in enumerate(sim.D_env):
+
+                effector_ecmJ = tb.pulse(t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
+                sim.D_env[i][self.targets_ecmJ] = sim.D_env_base[i][self.targets_ecmJ]*(1 - effector_ecmJ) \
+                                                  + effector_ecmJ*sim.D_free[i]
+
+                sim.D_env_weight = sim.D_env_weight.ravel()
+                sim.D_env_weight_base = sim.D_env_weight_base.ravel()
+
+                sim.D_env_weight[self.targets_ecmJ] = sim.D_env_weight_base[self.targets_ecmJ]*(1-effector_ecmJ) + \
+                                                      effector_ecmJ
+
+                sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
+                sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
+
+                sim.D_env_weight_u[:,1:] = sim.D_env_weight[:]
+                sim.D_env_weight_u[:,0] = sim.D_env_weight_u[:,1]
+
+                sim.D_env_weight_v[1:,:] = sim.D_env_weight[:]
+                sim.D_env_weight_v[0,:] = sim.D_env_weight_v[1,:]
 
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:
 
