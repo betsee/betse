@@ -196,9 +196,9 @@ class World(object):
             self.grid_len =len(self.xypts)
 
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-            loggers.log_info('Creating cell network Poisson solver...')
-            self.graphLaplacian(p)
-            loggers.log_info('Completed major world-building computations.')
+            # loggers.log_info('Creating cell network Poisson solver...')
+            # self.graphLaplacian(p)
+
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
@@ -208,12 +208,8 @@ class World(object):
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid
-
-             # make a laplacian and solver for discrete transfers on closed, irregular cell network
-            loggers.log_info('Creating cell network Poisson solver...')
-            self.graphLaplacian(p)
-
-            loggers.log_info('Completed major world-building computations.')
+            #
+            # loggers.log_info('Completed major world-building computations.')
 
     def makeSeeds(self,p):
 
@@ -997,6 +993,9 @@ class World(object):
 
         self.maskM = self.maskM.reshape(self.Xgrid.shape)
 
+        # do gj stuff as we need it for later:
+        self.gj_stuff(p)
+
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
 
@@ -1144,13 +1143,22 @@ class World(object):
         self.nn_i = np.asarray(new_nn_i)
         self.nn_vects = np.asarray(new_nn_vects)
 
-        # remake gap junction properties based on new configuration:
+
+        self.gj_stuff(p)
+
+
+    def gj_stuff(self,p):
+
+         # remake gap junction properties based on new configuration:
         self.nn_index = [x for x in range(0,len(self.nn_i))]
 
         #------------------------------------------------------------
 
         # compute mapping between cell and nn with outwards vectors:
         self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
+
+        # mapping between cell and all nn with duplicates:
+        self.cell_to_nn_full = [[] for x in range(0,len(self.cell_i))]
 
         nn_inds = self.nn_i.tolist()
 
@@ -1160,7 +1168,12 @@ class World(object):
                 nn_index = nn_inds.index([i,j])
                 self.cell_to_nn[i].append(nn_index)
 
+                self.cell_to_nn_full[i].append(nn_index)
+                self.cell_to_nn_full[j].append(nn_index)
+
         self.cell_to_nn = np.asarray(self.cell_to_nn)
+        self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
+
 
         # recalculate matrix for gj divergence of the flux calculation:
         self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
@@ -1191,6 +1204,21 @@ class World(object):
             for j in inds:
                 self.gj2cellSum[i,j] = 1
 
+
+        # the nnAveMatrix will take a property defined from two cells onto a single gap junction and average
+        # the property to provide one unique result.
+        self.nnAveMatrix = np.zeros((len(self.nn_i),len(self.nn_i)))
+
+        nn_list = self.nn_i.tolist()
+
+        for i, (pt1, pt2) in enumerate(self.nn_i):
+            # find the index of the duplicate point in the gj matrix:
+            nn_dupe = nn_list.index([pt2,pt1])
+
+            self.nnAveMatrix[i,i] = 1/2
+            self.nnAveMatrix[i,nn_dupe] = 1/2
+
+    def save_cluster(self,p,savecells = True):
 
         if savecells == True:
 

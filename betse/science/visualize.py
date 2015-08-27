@@ -468,6 +468,12 @@ class AnimateGJData(object):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
 
+        if p.gj_flux_sensitive == True:
+            max_zdata = p.max_gj_enhancement
+
+        else:
+            max_zdata = 1.0
+
         self.vdata_t = [1000*arr for arr in sim.vm_time]   # data array for cell coloring
         self.colormap = clrmap
         self.time = sim.time
@@ -498,7 +504,7 @@ class AnimateGJData(object):
         con_segs = cells.cell_centres[cells.nn_i]
         connects = p.um*np.asarray(con_segs)
         self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=5)
-        self.collection.set_clim(0.0,1.0)
+        self.collection.set_clim(0.0,max_zdata)
         self.ax.add_collection(self.collection)
 
         # Next add a collection of cell polygons, with animated voltage data
@@ -604,6 +610,8 @@ class AnimateGJData(object):
         else:
 
              self.coll2.set_array(zv)
+
+
 
         # self.Qplot.set_UVC(vx,vy,zz)
 
@@ -911,8 +919,10 @@ class PlotWhileSolving(object):
 
         self.cells = cells
         self.p = p
-
-        self.ax.cla()
+        #
+        # self.ax.cla()
+        self.fig.clf()
+        self.ax = plt.subplot(111)
 
         xmin = p.um*cells.xmin
         xmax = p.um*cells.xmax
@@ -988,7 +998,7 @@ class PlotWhileSolving(object):
          # set range of the colormap
 
         self.coll2.set_clim(self.cmin,self.cmax)
-        # self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
+        self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
 
         if self.number_cells == True and p.showCells == True:
             for i,cll in enumerate(cells.cell_centres):
@@ -1198,7 +1208,7 @@ class AnimateEfield(object):
 
             tit_extra = 'Extracellular'
 
-        elif p.ani_Efield_type == 'GJ':
+        elif p.ani_Efield_type == 'GJ' or p.sim_ECM == False:
 
             E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
             sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0)
@@ -1261,7 +1271,7 @@ class AnimateEfield(object):
                 enorm = np.max(np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2))
                 self.streamE.set_UVC(self.sim.efield_ecm_x_time[i]/enorm,self.sim.efield_ecm_y_time[i]/enorm)
 
-        elif self.p.ani_Efield_type == 'GJ':
+        elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM == False:
 
             E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
             self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0)
@@ -1321,7 +1331,7 @@ class AnimateVelocity(object):
 
             tit_extra = 'Extracellular'
 
-        elif p.ani_Velocity_type == 'GJ':
+        elif p.ani_Velocity_type == 'GJ' or p.sim_ECM == True:
 
             ugjx = sim.u_cells_x_time[0]
             ugjy = sim.u_cells_y_time[0]
@@ -1388,7 +1398,7 @@ class AnimateVelocity(object):
 
             self.streamV.set_UVC(self.sim.u_env_x_time[i]/vnorm,self.sim.u_env_y_time[i]/vnorm)
 
-        elif self.p.ani_Velocity_type == 'GJ':
+        elif self.p.ani_Velocity_type == 'GJ' or self.p.sim_ECM == False:
 
             ugjx = self.sim.u_cells_x_time[i]
             ugjy = self.sim.u_cells_y_time[i]
@@ -1854,7 +1864,7 @@ def plotEfield(sim,cells,p):
 
         tit_extra = 'Extracellular'
 
-    elif p.plot_Efield_type == 'GJ':
+    elif p.plot_Efield_type == 'GJ' or p.sim_ECM == False:
 
         E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
             sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0)

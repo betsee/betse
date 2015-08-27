@@ -429,10 +429,11 @@ class Parameters(object):
             self.scheduled_options['cuts'] = 0
 
         else:
-            cut_time = float(self.config['cutting event']['cut time']) # time event happens
+            cut_time = 0.0 # time event happens
             apply_to = self.config['cutting event']['apply to']    # tissue profile to apply this to
-            hole = self.config['cutting event']['internal hole']  # does the cut produce an internal hole rather than free boundary?
-            cuts_params = [cut_time, apply_to, hole]
+            dangling_gj = self.config['cutting event']['dangling gap junctions']  # does the cut produce env open cells?
+            hurt_level = self.config['cutting event']['hurt level']
+            cuts_params = [cut_time, apply_to, dangling_gj,hurt_level]
             self.scheduled_options['cuts'] = cuts_params
 
         self.gradient_x_properties = {}

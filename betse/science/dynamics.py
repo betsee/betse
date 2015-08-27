@@ -13,6 +13,7 @@ from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
 from betse.science.bitmapper import Bitmapper
 from betse.util.io import loggers
+import matplotlib.pyplot as plt
 
 class Dynamics(object):
 
@@ -238,7 +239,7 @@ class Dynamics(object):
             self.targets_extV_positive = self.env_target_label[name_positive]
             self.targets_extV_negative = self.env_target_label[name_negative]
 
-        if p.scheduled_options['ecmJ'] != 0:
+        if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM == True:
 
             self.t_on_ecmJ = p.scheduled_options['ecmJ'][0]
             self.t_off_ecmJ= p.scheduled_options['ecmJ'][1]
@@ -257,7 +258,8 @@ class Dynamics(object):
 
             self.t_cuts = p.scheduled_options['cuts'][0]
             self.apply_cuts = p.scheduled_options['cuts'][1]
-            self.cut_hole = p.scheduled_options['cuts'][2]
+            self.dangling_gj = p.scheduled_options['cuts'][2]
+            p.hurt_level = p.scheduled_options['cuts'][3]
             self.targets_cuts = []
             targets = self.cuts_target_inds[self.apply_cuts]
             self.targets_cuts.append(targets)
@@ -544,7 +546,7 @@ class Dynamics(object):
 
             target_method = p.tissue_profiles[self.apply_cuts]['target method']
 
-            removeCells(self.apply_cuts,target_method,sim,cells,p,cavity_volume=self.cut_hole,simMod = True)
+            removeCells(self.apply_cuts,target_method,sim,cells,p,simMod = True, dangling_gj = self.dangling_gj)
 
             # redo main data length variable for this dynamics module with updated world:
             if p.sim_ECM == True:
@@ -1051,7 +1053,7 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
     return target_inds
 
-def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = False, simMod = False):
+def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, dangling_gj = False):
 
     loggers.log_info('Cutting hole in cell cluster! Removing cells...')
 
@@ -1072,7 +1074,48 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     # get the corresponding flags to membrane entities
     target_inds_mem = cells.cell_to_mems[target_inds_cell]
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
-    target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn[target_inds_cell])
+    target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
+
+    # set up the situation to make cells joined to cut cells have more permeable membranes:
+    hurt_cells = np.zeros(len(cells.cell_i))
+
+    if dangling_gj == True: # if we're creating a dangling gap junction situation
+
+        hurt_level = p.hurt_level  # amount by which membrane permeability increases for all ions
+
+        target_inds_gj_unique = np.unique(target_inds_gj)
+
+        for i, inds in enumerate(cells.cell_to_nn): # for all the nn inds to a cell...
+
+            inds_array = np.asarray(inds)
+
+            inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
+
+            if len(inds_in_target):
+                hurt_cells[i] = 1  # flag the cell as a "hurt" cell
+
+        hurt_inds = (hurt_cells == 1).nonzero()
+
+        if p.sim_ECM == True:
+
+            mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
+
+            for i,dmat_a in enumerate(sim.Dm_cells):
+
+                sim.Dm_cells[i][mem_flags] = hurt_level*dmat_a[mem_flags]
+
+        else:
+
+            for i, dmat_a in enumerate(sim.Dm_cells):
+
+                sim.Dm_cells[i][hurt_inds] = hurt_level*dmat_a[hurt_inds]
+
+        # copy the Dm to the base:
+
+        sim.Dm_base = np.copy(sim.Dm_cells)
+
+
+
 
 
     if simMod == True:
@@ -1107,7 +1150,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                         elif len(data) == len(cells.mem_i):
                             data2 = np.delete(data,target_inds_mem)
 
-                        elif len(data) == len(cells.nn_index):
+                        elif len(data) == len(cells.nn_i):
                             data2 = np.delete(data,target_inds_gj)
 
 
@@ -1123,7 +1166,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
                                 del data[index]
                             data2.append(data[index])
 
-                        elif len(data) == len(cells.nn_index):
+                        elif len(data) == len(cells.nn_i):
                             for index in sorted(target_inds_gj, reverse=True):
                                 del data[index]
                             data2.append(data[index])
@@ -1196,7 +1239,8 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
     if p.sim_ECM == True:
 
         cells.cellVerts(p)   # create individual cell polygon vertices
-        cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+        cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=1.1)  # flag membranes on the cluster bound
+        cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=1.1)  # flag membranes on the cluster bound
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)       # Free up memory...
         # cells.makeECM(p)       # create the ecm grid
@@ -1205,7 +1249,7 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
 
         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
         loggers.log_info('Creating cell network Poisson solver...')
-        cells.graphLaplacian()
+        cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
 
     else:
@@ -1214,6 +1258,12 @@ def removeCells(profile_name,targets_description,sim,cells,p,cavity_volume = Fal
         cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)      # Free up memory...
+        cells.gj_stuff(p)
+         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
+        loggers.log_info('Creating cell network Poisson solver...')
+        cells.graphLaplacian(p)
+        loggers.log_info('Completed major world-building computations.')
+
 
 
 

@@ -18,6 +18,7 @@ import numpy as np
 import os, os.path
 import time
 from betse.exceptions import BetseExceptionSimulation
+from matplotlib.collections import LineCollection
 
 class SimRunner(object):
     '''
@@ -80,6 +81,12 @@ class SimRunner(object):
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
+            # make a laplacian and solver for discrete transfers on closed, irregular cell network
+            loggers.log_info('Creating cell network Poisson solver...')
+            cells.graphLaplacian(p)
+
+            cells.save_cluster(p)
+
             loggers.log_info('Cell cluster creation complete!')
 
             fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
@@ -100,6 +107,12 @@ class SimRunner(object):
             # dyna.ecmBoundProfiles(sim,cells,p)
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
+
+            # make a laplacian and solver for discrete transfers on closed, irregular cell network
+            loggers.log_info('Creating cell network Poisson solver...')
+            cells.graphLaplacian(p)
+
+            cells.save_cluster(p)
 
             loggers.log_info('Cell cluster creation complete!')
 
@@ -443,8 +456,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.colorbar()
             plt.title('Logarithm of Environmental Diffusion Weight Matrix')
             plt.show(block =False)
-
-
 
         if p.showCells == True:
 
@@ -834,12 +845,26 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         # plt.quiver(p.um*cells.mem_vects_flat[:,0],p.um*cells.mem_vects_flat[:,1],Im_x,Im_y)
         plt.show(block=False)
 
-    if p.gj_flux_sensitive == True:
+    if p.gj_flux_sensitive == True or p.v_sensitive_gj == True:
 
         # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
-        plt.figure()
-        plt.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],cells.nn_vects[:,2],cells.nn_vects[:,3],sim.gj_rho)
+        fig_x = plt.figure()
+        ax_x = plt.subplot(111)
+        # plt.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],cells.nn_vects[:,2],cells.nn_vects[:,3],
+        #     sim.gj_rho,cmap = p.default_cm)
+        con_segs = cells.cell_centres[cells.nn_i]
+        connects = p.um*np.asarray(con_segs)
+        collection = LineCollection(connects, array=sim.gjopen, cmap= p.default_cm, linewidths=2.0)
+        ax_x.add_collection(collection)
+        cb = fig_x.colorbar(collection)
+        plt.axis('equal')
+        plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
         plt.show(block=False)
+
+        cb.set_label('Relative Permeability')
+        ax_x.set_xlabel('Spatial x [um]')
+        ax_x.set_ylabel('Spatial y [um')
+        ax_x.set_title('Gap Junction Relative Permeability')
 
 
     plt.show()

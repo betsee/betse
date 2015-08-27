@@ -361,6 +361,7 @@ class Simulator(object):
             self.cDye_env[:] = p.cDye_to
         #
         self.z_array = np.asarray(self.z_array)
+        self.D_gj = np.asarray(self.D_gj)
 
     def baseInit_ECM(self,cells,p):
 
@@ -640,6 +641,7 @@ class Simulator(object):
         self.Dm_cells = np.asarray(self.Dm_cells)
         self.D_env = np.asarray(self.D_env)
         self.D_free = np.asarray(self.D_free)
+        self.D_gj = np.asarray(self.D_gj)
 
         self.fluxes_gj_x  = np.asarray(self.fluxes_gj_x)
         self.fluxes_gj_y  = np.asarray(self.fluxes_gj_y)
@@ -1186,9 +1188,7 @@ class Simulator(object):
                 self.u_cells_x_time.append(self.u_cells_x[:])
                 self.u_cells_y_time.append(self.u_cells_y[:])
 
-                if p.v_sensitive_gj == True:
-
-                    self.gjopen_time.append(self.gjopen[:])
+                self.gjopen_time.append(self.gjopen[:])
 
                 self.time.append(t)
 
@@ -1592,9 +1592,7 @@ class Simulator(object):
 
                 self.dvm_time.append(self.dvm[:])
 
-                if p.v_sensitive_gj == True:
-
-                    self.gjopen_time.append(self.gjopen[:])
+                self.gjopen_time.append(self.gjopen[:])
 
                 self.vcell_time.append(self.v_cell[:])
 
@@ -1840,15 +1838,7 @@ class Simulator(object):
             self.vgj = self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0]
 
 
-        if p.v_sensitive_gj == True:
-            # determine the open state of gap junctions:
-            self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
-
-        else:
-            self.gjopen = 1
-
         if p.gj_flux_sensitive == True:
-
 
             if p.gj_respond_flow == True:
 
@@ -1856,11 +1846,14 @@ class Simulator(object):
                 ux_gj = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
                 uy_gj = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
 
-                # get the length of the flow at the gap junction:
+                # get the magnitude of flow at the gap junction:
                 u_gj_s = np.sqrt(ux_gj**2 + uy_gj**2)
 
                 # sum the flow vector lengths for individual cells
-                u_sum = np.dot(cells.gj2cellSum,u_gj_s)
+                # u_sum = np.dot(cells.gj2cellSum,u_gj_s)
+
+                # average flow vector lengths for whole cell collection:
+                u_sum = np.mean(u_gj_s)
 
             else: # respond to total current instead:
 
@@ -1884,7 +1877,9 @@ class Simulator(object):
                 u_gj_s = np.sqrt(I_gj_x**2 + I_gj_y**2)
 
                 # sum the flow vector lengths for individual cells
-                u_sum = np.dot(cells.gj2cellSum,u_gj_s)
+                # u_sum = np.dot(cells.gj2cellSum,u_gj_s)
+
+                u_sum =np.mean(u_gj_s)
 
 
             if u_sum.any() == 0:
@@ -1893,15 +1888,30 @@ class Simulator(object):
 
             else:
                 # normalize cell vector length by the cell sum -- this is the input to each rho_gj growth
-                U_gj_cell_norm = u_gj_s/u_sum[cells.nn_i][:,0]
+                # U_gj_cell_norm = u_gj_s/u_sum[cells.nn_i][:,0]
+                U_gj_cell_norm = u_gj_s/u_sum
 
-                delta_gj_rho = (U_gj_cell_norm)*(p.max_gj_enhancement - self.gj_rho) - (p.u_decay_rate)*self.gj_rho
+                delta_gj_rho = (U_gj_cell_norm)*(p.max_gj_enhancement - self.gj_rho) -\
+                               (p.u_decay_rate*p.max_gj_enhancement)*self.gj_rho
+
+                # average the delta (calculated on nn duplicates) between cells:
+                delta_gj_rho = np.dot(cells.nnAveMatrix,delta_gj_rho)
+
                 self.gj_rho = self.gj_rho + p.dt*delta_gj_rho*p.alpha_rho_gj
 
 
         else:
 
-            self.gj_rho = 1
+            self.gj_rho = np.zeros(len(cells.nn_i))
+
+
+        if p.v_sensitive_gj == True:
+            # determine the open state of gap junctions:
+            self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+
+        else:
+            self.gjopen = 1 + self.gj_rho
+
 
         # voltage gradient:
         grad_vgj = self.vgj/cells.nn_len
@@ -1927,9 +1937,11 @@ class Simulator(object):
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             self.D_gj[i],self.zs[i],self.T,p)
 
+
+
         fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen*self.gj_rho,fgj)
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj)
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
@@ -2094,7 +2106,7 @@ class Simulator(object):
 
         fgj_dye = fgj_x_dye*cells.nn_vects[:,2] + fgj_y_dye*cells.nn_vects[:,3]
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen*self.gj_rho,fgj_dye)
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_dye)
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
@@ -2537,7 +2549,7 @@ class Simulator(object):
         else:
             Fgj_gravity = np.zeros(len(cells.nn_vects))
 
-        sa_term = p.gj_surface*self.gj_rho*self.gjopen
+        sa_term = p.gj_surface*self.gjopen
 
         sagj = sa_term*cells.ave_sa_all    # average total gj surface area
         rgj = np.sqrt(sagj/math.pi)          # average gj radius
@@ -3158,8 +3170,8 @@ def vertData(data, cells, p):
     plot_data = np.hstack((data,verts_data))
 
     dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), fill_value=0)
-
-    dat_grid = np.multiply(dat_grid,cells.maskM)
+    #
+    # dat_grid = np.multiply(dat_grid,cells.maskM)
 
     return dat_grid
 
