@@ -18,7 +18,7 @@ import numpy as np
 import os, os.path
 import time
 from betse.exceptions import BetseExceptionSimulation
-from matplotlib.collections import LineCollection
+from matplotlib.collections import LineCollection, PolyCollection
 
 class SimRunner(object):
     '''
@@ -451,9 +451,16 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.show(block =False)
 
             plt.figure()
-            plt.imshow(np.log10(sim.D_env_weight.reshape(cells.X.shape)),origin='lower',
-                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+            ax99 = plt.subplot(111)
+            plt.imshow(np.log10(sim.D_env_weight_u.reshape(cells.grid_obj.u_shape)),origin='lower',
+                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
+
+            cell_edges_flat = cells.um*cells.mem_edges_flat
+            coll = LineCollection(cell_edges_flat,colors='k')
+            coll.set_alpha(1.0)
+            ax99.add_collection(coll)
+
             plt.title('Logarithm of Environmental Diffusion Weight Matrix')
             plt.show(block =False)
 
@@ -516,14 +523,36 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    if p.plot_ip32d == True and p.scheduled_options['IP3'] != 0:
+    if p.plot_ip32d == True and p.scheduled_options['IP3'] != 0 or p.Ca_dyn != 0:
 
-        if p.showCells == True:
-            figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+        if p.sim_ECM is False:
+
+            if p.showCells == True:
+                figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            else:
+                 figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
+                 clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+
         else:
-             figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+
+            figIP3 = plt.figure()
+            axIP3 = plt.subplot(111)
+
+            ip3env = sim.cIP3_env*1e3
+
+            axIP3.imshow(ip3env.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
+                p.um*cells.ymax],cmap=p.default_cm)
+
+            if p.showCells == True:
+                figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,
+                    number_cells=p.enumerate_cells,fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
+                    clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            else:
+                 figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,
+                     number_cells=p.enumerate_cells, fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
+                     clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+
 
         axIP3.set_title('Final IP3 concentration')
         axIP3.set_xlabel('Spatial distance [um]')
@@ -540,14 +569,67 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.plot_dye2d == True and p.voltage_dye == 1:
 
-        if p.showCells == True:
-            figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
-        else:
-            figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+        if p.sim_ECM == False:
 
-        axVdye.quiver(cells.nn_vects[:,0]*p.um,cells.nn_vects[:,1]*p.um,sim.Dye_flux_x_gj_time[-1],sim.Dye_flux_y_gj_time[-1])
+            if p.showCells == True:
+                figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+            else:
+                figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+
+        else:
+
+            figVdye = plt.figure()
+            axVdye = plt.subplot(111)
+
+            dyeEnv = sim.cDye_env*1e3
+            dyeCell = sim.cDye_cell*1e3
+
+            bkgPlot = axVdye.imshow(dyeEnv.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
+                p.um*cells.ymax],cmap=p.default_cm)
+
+            if p.showCells == True:
+
+                points = np.multiply(cells.cell_verts, p.um)
+
+                coll = PolyCollection(points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
+                axVdye.add_collection(coll)
+                axVdye.axis('equal')
+
+                # Add a colorbar for the PolyCollection
+                maxvala = np.max(dyeCell,axis=0)
+                maxvalb = np.max(dyeEnv,axis=0)
+                minvala = np.min(dyeCell,axis=0)
+                minvalb = np.min(dyeEnv,axis=0)
+
+                if maxvala > maxvalb:
+                    maxval = maxvala
+                else:
+                    maxval = maxvalb
+
+                if minvala < minvalb:
+                    minval = minvala
+                else:
+                    minval = minvalb
+
+                if p.autoscale_Dye is True:
+                    coll.set_clim(minval,maxval)
+                    bkgPlot.set_clim(minval,maxval)
+                    cbVdye = figVdye.colorbar(coll)
+
+                else:
+
+                    coll.set_clim(p.Dye_min_clr,p.Dye_max_clr)
+                    bkgPlot.set_clim(p.Dye_min_clr,p.Dye_max_clr)
+                    cbVDye = figVdye.colorbar(coll)
+
+                xmin = cells.xmin*p.um
+                xmax = cells.xmax*p.um
+                ymin = cells.ymin*p.um
+                ymax = cells.ymax*p.um
+
+                axVdye.axis([xmin,xmax,ymin,ymax])
 
         axVdye.set_title('Final Morphogen Concentration')
         axVdye.set_xlabel('Spatial distance [um]')
@@ -629,7 +711,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P == True:
+    if p.plot_P == True and p.base_eosmo == True:
 
         if p.showCells == True:
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
@@ -665,7 +747,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.show(block=False)
 
 
-    if p.plot_Vel == True:
+    if p.plot_Vel == True and p.base_eosmo == True:
 
         ucellso = sim.u_cells_x_time[-1]
         vcellso = sim.u_cells_y_time[-1]
@@ -731,18 +813,29 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.ani_dye2d == True and p.voltage_dye == 1 and animate ==1:
 
-        Dyeplotting = np.asarray(sim.cDye_time)
-        Dyeplotting = np.multiply(Dyeplotting,1e3)
+        if p.sim_ECM == False:
 
-        if p.showCells == True:
-            viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye',
-                saveFile = 'dye_',ignore_simECM =True)
+            Dyeplotting = np.asarray(sim.cDye_time)
+            Dyeplotting = np.multiply(Dyeplotting,1e3)
+
+
+            if p.showCells == True:
+                viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+                    clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
+                    save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye',
+                    saveFile = 'dye_',ignore_simECM =True)
+            else:
+                viz.AnimateCellData_smoothed(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
+                    clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
+                    save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'Dye_')
+
         else:
-            viz.AnimateCellData_smoothed(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'dye_')
+
+            zenv_t = sim.cDye_env_time[:]
+
+            viz.AnimateDyeData(sim,cells,p,save=saveAni,ani_repeat=True, current_overlay = p.I_overlay,
+            clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
+            number_cells = p.enumerate_cells, saveFolder = '/animation/Dye', saveFile = 'Dye_')
 
     if p.ani_ca2d==True and p.ions_dict['Ca'] == 1 and animate == 1:
 
@@ -831,7 +924,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    if p.ani_Velocity == True and animate == 1:
+    if p.ani_Velocity == True and p.base_eosmo is True and animate == 1:
 
         viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
 
@@ -839,10 +932,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         viz.exportData(cells, sim, p)
 
 
-    if p.sim_eosmosis == True:
+    if p.sim_eosmosis == True and p.sim_ECM == True:
 
         viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
-        # plt.quiver(p.um*cells.mem_vects_flat[:,0],p.um*cells.mem_vects_flat[:,1],Im_x,Im_y)
+        plt.xlabel('Spatial Dimension [um]')
+        plt.ylabel('Spatial Dimention [um]')
+        plt.title('Membrane ion pump and channel density factor')
+
         plt.show(block=False)
 
     if p.gj_flux_sensitive == True or p.v_sensitive_gj == True:
@@ -859,12 +955,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cb = fig_x.colorbar(collection)
         plt.axis('equal')
         plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
-        plt.show(block=False)
 
         cb.set_label('Relative Permeability')
         ax_x.set_xlabel('Spatial x [um]')
         ax_x.set_ylabel('Spatial y [um')
         ax_x.set_title('Gap Junction Relative Permeability')
+
+        plt.show(block=False)
 
 
     plt.show()

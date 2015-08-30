@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 1.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 2.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -128,7 +128,7 @@ sim time settings:
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 2.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 7.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
     sampling rate: 0.1            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
@@ -154,9 +154,9 @@ general options:
 
   grid size: 50                # size of the square grid used in computation of spatial gradients and laplacians
 
-  simulate ECM: False           # include extracellular spaces and heterogeneous cell Vmem?
+  simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'basic'   # set the ion profile to be used in the simulation
+  ion profile: 'animal'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -172,13 +172,6 @@ general options:
                                 # General Options section.
                                 # Note you cannot change this option between an init and sim run.
 
-  channel electroosmosis: False   # turn on electroosmosis of pumps and channels under ecm currents
-                                 # (only works for simulate ECM: True)
-  channel charge: -1         # charge of protein membrane pumps and channels.
-
-  membrane viscocity: 1.0   # membrane viscocity constant (for pumps and channels, larger = slower movement) [Ns/m2]
-
-  membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
 
   HKATPase pump: False     # include the HK-ATPase pump in the simulation?
@@ -190,22 +183,23 @@ general options:
                             # options True or False (case sensitive)
 
 
-  morphogen: False     # include electrodiffusion of a morphogenic chemical substance?
+
 
                          # options True or False (case sensitive)
 
   morphogen properties:  # specify the properties of the morphogen (if it's included in the sim)
 
+    include morphogen: False     # include electrodiffusion of a morphogenic chemical substance?
     Dm: 1.0e-12        # morphogen membrane diffusion coefficient [m2/s]
-    Do: 1.0e-9         # morphogen free diffusion constant [m2/s]
-    z: -1               # charge of morphogen (oxidation state)
-    env conc: 1.0e-3        # initial concentration of morphogen in the environment [mmol/L]
-    cell conc: 1.0e-3    # initial concentration of morphogen in the cell network [mmol/L]
-    ion channel target: Na     # does the morphogen open an ion channel ('None', 'Na', 'K', 'Cl','Ca','CaER')
-    target Hill coefficient: 0.5e-3   # half max value for channel opening with respect to concentration
-    target Hill exponent: 10.0           # the Hill exponent, affects shape of opening-vs-concentration curve
+    Do: 1.0e-10         # morphogen free diffusion constant [m2/s]
+    z: 1               # charge of morphogen (oxidation state)
+    env conc: 1.0e-6        # initial concentration of morphogen in the environment [mmol/L]
+    cell conc: 1.0e-6    # initial concentration of morphogen in the cell network [mmol/L]
+    ion channel target: None     # does the morphogen open an ion channel ('None', 'Na', 'K', 'Cl','Ca','CaER')
+    target Hill coefficient: 1.0e-3   # half max value for channel opening with respect to concentration
+    target Hill exponent: 1.0           # the Hill exponent, affects shape of opening-vs-concentration curve
     peak channel opening: 1e-16        # maximum diffusion constant of membrane to target ion when channel fully open
-    acts extracellularly: False         # does the morphogen signal via its extracellular concentration?
+    acts extracellularly: True         # does the morphogen signal via its extracellular concentration?
 
 
   static noise level: 0    # level of variance in K+ leaks on cell membranes
@@ -252,7 +246,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # the x-dimension of the world space [m]
+  world x: 150e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -279,30 +273,43 @@ world variables:
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
 
-  search distance: 1.8        # distance to search for nearest neighbours
+  electroosmosis: True         # electroosmotic contributions in the intra and extracellular spaces?
+
+  channel electroosmosis:  # pump and channel movement via electro-phoresis/osmosis? (works for simulate ECM: True)
+
+    turn on: False              # turn on electroosmosis of pumps and channels via full Nernst-Planck equation?
+
+    channel charge: 1         # charge of protein membrane pumps and channels.
+
+    membrane mobility: 1e-9    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+
+
+  gap junctions:
+
+    search distance: 1.8        # distance to search for nearest neighbours
                               # relative to cell diameter
                               # min 1.1 max 3.5
                               # warning high search distances can produce
                               # extremely long simulation time
 
-  gap junction surface area: 1.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
+    gap junction surface area: 1.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
-  voltage sensitive gj: True    # do the gj close with voltage difference between cells?
+    voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
-  gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 20 to 80e-3 V
 
-  gj voltage window: 10e-3        # the range over which gj goes from open to shut
+    gj voltage window: 10e-3        # the range over which gj goes from open to shut
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
-  gj flux sensitive: False         # gj conductivity increases with increasing flow or current
+    gj flux sensitive: False         # gj conductivity increases with increasing flow or current
 
-  gj sensitive to flow: False      # gj sensitive to electroosmotic fluid flow (True) or total chemical flux (False)?
+
 
   tight junction scaling: 1.0e-5   # degree to which tight junctions scale free-diffusion in water
 
-  adherens junction scaling: 1.0e-2   # degree to which adheren cell-cell junctions scale free-diffusion in water
+  adherens junction scaling: 1.0e-3   # degree to which adheren cell-cell junctions scale free-diffusion in water
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -319,8 +326,8 @@ change K env:       # Change the environmental concentration of K+
 
   event happens: False      # turn the even on (True) or off (False)
   change start: 1.0           # sim time to start change [s]
-  change finish: 5.0         # sim time to end change and return to original [s]
-  change rate: 0.5            # rate of change [s]
+  change finish: 10.0         # sim time to end change and return to original [s]
+  change rate: 1.0            # rate of change [s]
   multiplier: 20            # factor to multiply base level
 
 change Cl env:       # Change the environmental concentration of K+
@@ -338,6 +345,14 @@ change Na env:       # Change the environmental concentration of K+
   change finish: 9        # sim time to end change and return to original [s]
   change rate: 1           # rate of change [s]
   multiplier: 5            # factor to multiply base level
+
+change morphogen:       # Change the environmental concentration of morphogen (if morphogen is activated)
+
+  event happens: False     # turn the even on (True) or off (False)
+  change start: 1          # sim time to start change [s]
+  change finish: 6        # sim time to end change and return to original [s]
+  change rate: 1           # rate of change [s]
+  concentration: 1e-3            # concentration to introduce
 
 change temperature:
 
@@ -420,12 +435,12 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
     name: hole       # give your profile a name that will be used to apply the profile
     cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
-    designation: cuts    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
+    designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -514,12 +529,12 @@ change Ca mem:       # Change the membrane permeability to Ca2+
 produce IP3:        # Schedule cell production of IP3
 
   event happens: False              # turn the even on (True) or off (False)
-  change start: 5                   # sim time to start IP3 production [s]
-  change finish: 20                 # sim time to end IP3 production [s]
+  change start: 2                   # sim time to start IP3 production [s]
+  change finish: 6                 # sim time to end IP3 production [s]
   change rate: 1                    # rate of production ramp up [s]
   multiplier: 1e-4                  # maximum rate of production [mol/(s*m3)]
   function: None              # a spatial function to shape event:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['tissue']     # name(s) of the tissue profile(s) to apply it to
+  apply to: ['hole']     # name(s) of the tissue profile(s) to apply it to
 
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
@@ -539,7 +554,7 @@ break ecm junctions:     # break the ecm junctions between cells by setting thei
   apply to: ['tissue']           # factor to multiply base level + base level
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a simulation run
-    event happens: True
+    event happens: False
     apply to: 'hole'    # tissue profile to apply this to -- can only be one profile, no lists
     dangling gap junctions: True
     hurt level: 100     # amount by which cell membranes adjacent to the cut lines are dammaged (and become leaky)
@@ -587,8 +602,8 @@ calcium gated K+:                       # calcium gated potassium channel ?
     apply to: ['tissue']         # name(s) of the tissue profile(s) to apply it to
 
 Ca dynamics:                      # include full calcium dynamics in the situation?
-    turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
-    apply to: ['tissue']     # IP3 mediated calcium release from the ER
+    turn on: True               # this creates an endoplasmic reticulum (ER) in each cell and
+    apply to: ['hole']     # IP3 mediated calcium release from the ER
                                   # note this only works for an ion profile with Ca2+ ions
                                   # options True or False (case sensitive)
 
@@ -630,7 +645,7 @@ results options:
                                   # true, all animations created.
                                   # options True or False (case sensitive)
 
-  save animations: True           # save all animations as png sequences in animation-specific folders
+  save animations: False           # save all animations as png sequences in animation-specific folders
                                    # inside the results directory
                                    # options True or False (case sensitive)
 
@@ -647,7 +662,7 @@ results options:
   plot cell index: 10              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
   show cells: True                # if True, plots and animations show individual cells,
@@ -658,11 +673,11 @@ results options:
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
 
-  overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
+  overlay currents: False          # overlay electric current or concentration flux streamlines on 2d plotted data
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: True      # for currents, if simululating extracellular spaces, plot
+  plot extracellular I: False      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
   plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
@@ -707,7 +722,7 @@ results options:
 
   Efield 2D:
 
-    plot Efield: True              # 2d plot of electric field
+    plot Efield: False              # 2d plot of electric field
     data type: ECM                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
@@ -724,7 +739,7 @@ results options:
 
   Pressure 2D:                      # 2D plot of pressure in the cluster
 
-    plot Pressure: True
+    plot Pressure: False
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -872,11 +887,11 @@ calcium dynamics parameters:
     ER_vol:  0.1               # volume of endoplasmic reticulum as a fraction of cell volume
     ER_sa:  1.0                # surface area of endoplasmic reticulum as a fraction of cell surface area
 
-    Dm_IP3: 1.0e-18             # membrane diffusion constant of IP3 [m2/s]
-    Do_IP3: 1.0e-5              # IP3 free diffusion constant [m2/s]
+    Dm_IP3: 1.0e-12             # membrane diffusion constant of IP3 [m2/s]
+    Do_IP3: 1.0e-9              # IP3 free diffusion constant [m2/s]
     z_IP3: -3                   # charge (oxidation state) of IP3
-    cIP3_to: 1e-6               # initial value of IP3 in all cells [mmol/L]
-    cIP3_to_env: 1e-6           # initial value of IP3 in environment [mmol/L]
+    cIP3_to: 1e-3               # initial value of IP3 in all cells [mmol/L]
+    cIP3_to_env: 1e-3           # initial value of IP3 in environment [mmol/L]
 
 
 internal parameters:
@@ -897,24 +912,24 @@ internal parameters:
 #  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
 #  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_NaK:  1.0e-6   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
   halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
-  alpha_CaER:  1e-5  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
+  alpha_CaER:  1e-6  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  6       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  5.0e-2    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  6       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  6         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_HK:  2.5e-3    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_V:  1.5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  6       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  6         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
-  max_gj_enhancement: 5   # parameters relating to flow sensitivity of gap junctions
+  max_gj_enhancement: 10   # parameters relating to flow sensitivity of gap junctions
   u_decay_rate: 0.9
   alpha_rho_gj: 1e-2
 

@@ -102,6 +102,8 @@ class AnimateCellData(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
+        self.bkgBool = False
+
         if p.sim_ECM == True and ignore_simECM == False:
 
             dat_grid = sim.vm_Matrix[0]
@@ -1435,6 +1437,223 @@ class AnimateVelocity(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
+class AnimateDyeData(object):
+    """
+    Animate morphogen concentration data in cell and environment as a function of time.
+
+    """
+
+    def __init__(self,sim,cells,p, save=False,ani_repeat=False,current_overlay=False,
+        clrAutoscale = True, clrMin = None, clrMax = None, clrmap = cm.rainbow,
+        number_cells = False, saveFolder = '/animation', saveFile = 'sim_'):
+
+        self.zdata_t = np.multiply(np.asarray(sim.cDye_time[:]),1e3)
+        self.zenv_t = np.multiply(np.asarray(sim.cDye_env_time[:]),1e3)
+
+        self.colormap = clrmap
+        self.time = sim.time
+        self.save = save
+
+        self.cells = cells
+        self.p = p
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
+        self.sim = sim
+
+        self.current_overlay = current_overlay
+
+        self.clrmap = clrmap
+
+        self.sim_ECM = p.sim_ECM
+        self.IecmPlot = p.IecmPlot
+        self.density = p.stream_density
+
+        self.ax.axis('equal')
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+        self.bkgPlot = self.ax.imshow(self.zenv_t[0].reshape(cells.X.shape),origin='lower',
+            extent= [xmin,xmax,ymin,ymax],cmap=clrmap)
+
+        # define a polygon collection based on individual cell polygons
+        self.points = np.multiply(cells.cell_verts, p.um)
+        self.collection =  PolyCollection(self.points, cmap=self.colormap, edgecolors='none')
+        self.collection.set_array(self.zdata_t[0])
+        self.ax.add_collection(self.collection)
+
+        if self.current_overlay == True:
+
+            if p.IecmPlot == False:
+
+                dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+                    sim.Dye_flux_x_gj_time[0],(self.cells.X,self.cells.Y),fill_value=0)
+
+                dye_fy = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+                    sim.Dye_flux_y_gj_time[0],(self.cells.X,self.cells.Y),fill_value=0)
+
+                Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
+
+                F_x = np.asarray(dye_fx/Fmag_M)
+                F_y = np.asarray(dye_fy/Fmag_M)
+
+                lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
+
+                lw = lw.reshape(cells.X.shape)
+
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,F_x.reshape(cells.X.shape),
+                    F_y.reshape(cells.X.shape),density=self.density,linewidth=lw,color='k',
+                    cmap=clrmap,arrowsize=1.5)
+
+            elif p.IecmPlot == True:
+
+                Fmag_M = np.sqrt(sim.Dye_flux_env_x_time[0]**2 + sim.Dye_flux_env_y_time[0]**2) + 1e-30
+
+                F_x = np.asarray(sim.Dye_flux_env_x_time[0]/Fmag_M)
+                F_y = np.asarray(sim.Dye_flux_env_y_time[0]/Fmag_M)
+
+                lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
+
+                lw = lw.reshape(cells.X.shape)
+
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,F_x.reshape(cells.X.shape),
+                    F_y.reshape(cells.X.shape),density=self.density,linewidth=lw,color='k',
+                    cmap=clrmap,arrowsize=1.5)
+
+        # set range of the colormap
+
+        if clrAutoscale == True:
+            # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in self.zdata_t:
+                for val in zarray:
+                    all_z.append(val)
+
+            cmina = np.min(all_z)
+            cmaxa = np.max(all_z)
+
+            cminb = np.min(self.zenv_t)
+            cmaxb = np.max(self.zenv_t)
+
+            if cmaxa > cmaxb:
+                self.cmax = cmaxa
+            else:
+                self.cmax = cmaxb
+
+            if cmina < cminb:
+                self.cmin = cmina
+            else:
+                self.cmin = cminb
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
+
+        self.collection.set_clim(self.cmin,self.cmax)
+        self.bkgPlot.set_clim(self.cmin,self.cmax)
+
+        self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
+        self.cb.set_label('Morphogen concentration [umol/L]')
+
+        self.tit = 'Morphogen concentration in cell and environment'
+
+        if number_cells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
+
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+        self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
+
+        self.frames = len(self.zdata_t)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        #FIXME: If issues persist, bloggers recommend increasing the above "interval".
+        try:
+            plt.show()
+        # plt.show() unreliably raises exceptions on window close resembling:
+        #     AttributeError: 'NoneType' object has no attribute 'tk'
+        # This error appears to ignorable and hence is caught and squelched.
+        except AttributeError as exception:
+            # If this is such exception, mercilessly squelch it.
+            if str(exception) == "'NoneType' object has no attribute 'tk'":
+                pass
+            # Else, reraise such exception.
+            else:
+                raise
+
+    def aniFunc(self,i):
+
+        zz = self.zdata_t[i]
+        zenv = self.zenv_t[i]
+
+        self.collection.set_array(zz)
+        self.bkgPlot.set_data(zenv.reshape(self.cells.X.shape))
+
+        if self.current_overlay == True:
+
+            if self.IecmPlot == False:
+
+                dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+                    self.sim.Dye_flux_x_gj_time[i],(self.cells.X,self.cells.Y),fill_value=0)
+
+                dye_fy = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+                    self.sim.Dye_flux_y_gj_time[i],(self.cells.X,self.cells.Y),fill_value=0)
+
+                Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
+
+                F_x = dye_fx/Fmag_M
+                F_y = dye_fy/Fmag_M
+
+                lw = (3.0*Fmag_M/Fmag_M.max()) + 0.5
+
+                self.streams.lines.remove()
+                self.ax.patches = []
+
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,F_x,F_y,
+                    density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
+
+            elif self.IecmPlot == True:
+
+                Fmag_M = np.sqrt(self.sim.Dye_flux_env_x_time[i]**2 + self.sim.Dye_flux_env_y_time[i]**2) + 1e-30
+
+                F_x = np.asarray(self.sim.Dye_flux_env_x_time[i]/Fmag_M)
+                F_y = np.asarray(self.sim.Dye_flux_env_y_time[i]/Fmag_M)
+
+                lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
+                lw = lw.reshape(self.cells.X.shape)
+
+                self.streams.lines.remove()
+                self.ax.patches = []
+
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,F_x.reshape(self.cells.X.shape),
+                    F_y.reshape(self.cells.X.shape),density=self.density,linewidth=lw,color='k',
+                    cmap=self.colormap,arrowsize=1.5)
+
+        titani = 'sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s'
+        self.ax.set_title(titani)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
 def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
 
     tvect_data=[x[celli]*1000 for x in simdata_time]
@@ -1685,7 +1904,6 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
         ax.axis('equal')
 
         # Add a colorbar for the PolyCollection
-
         if zdata is not None:
             maxval = round(np.max(zdata,axis=0),1)
             minval = round(np.min(zdata,axis=0),1)
@@ -1702,7 +1920,6 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
         elif clrAutoscale == False:
 
             coll.set_clim(clrMin,clrMax)
-
             ax_cb = fig.colorbar(coll,ax=ax)
 
         elif zdata is None:

@@ -49,19 +49,24 @@ class Parameters(object):
 
         self.sim_ECM = self.config['general options']['simulate ECM']    # boolean letting us know if extracellular spaces are included
 
-        self.sim_eosmosis = self.config['general options']['channel electroosmosis']
+        self.base_eosmo = self.config['world variables']['electroosmosis']
 
-        self.mu_membrane = float(self.config['general options']['membrane viscocity'])  # in membrane diffusion coefficient
-        self.D_membrane = float(self.config['general options']['membrane mobility']) # charge of membrane pumps and channels
-        self.z_channel = float(self.config['general options']['channel charge'])
+        self.sim_eosmosis = self.config['world variables']['channel electroosmosis']['turn on']
+
+        self.mu_membrane = 1.0 # membrane viscocity
+
+        # in-membrane diffusion coefficient
+        self.D_membrane = float(self.config['world variables']['channel electroosmosis']['membrane mobility'])
+        # charge of membrane pumps and channels:
+        self.z_channel = float(self.config['world variables']['channel electroosmosis']['channel charge'])
 
         self.mu_water = 1e-3   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
-        self.gj_surface = float(self.config['world variables']['gap junction surface area'])
+        self.gj_surface = float(self.config['world variables']['gap junctions']['gap junction surface area'])
 
-        self.gj_flux_sensitive = self.config['world variables']['gj flux sensitive']
+        self.gj_flux_sensitive = self.config['world variables']['gap junctions']['gj flux sensitive']
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -126,14 +131,14 @@ class Parameters(object):
         self.gravity = self.config['world variables']['gravity']
 
         # gap junction constants and network connectivity
-        self.search_d = float(self.config['world variables']['search distance']) # distance to search for nearest neighbours
+        self.search_d = float(self.config['world variables']['gap junctions']['search distance']) # distance to search for nearest neighbours
 
-        self.gj_vthresh = float(self.config['world variables']['gj voltage threshold'])
-        self.gj_vgrad  = float(self.config['world variables']['gj voltage window'])
+        self.gj_vthresh = float(self.config['world variables']['gap junctions']['gj voltage threshold'])
+        self.gj_vgrad  = float(self.config['world variables']['gap junctions']['gj voltage window'])
 
-        self.gj_respond_flow = self.config['world variables']['gj sensitive to flow']
+        self.gj_respond_flow = False
 
-        self.v_sensitive_gj = self.config['world variables']['voltage sensitive gj']
+        self.v_sensitive_gj = self.config['world variables']['gap junctions']['voltage sensitive gj']
 
         self.env_type = True # for now, can't handle air boundaries
 
@@ -163,7 +168,7 @@ class Parameters(object):
         self.VATPase_dyn = self.config['general options']['VATPase pump']
 
         # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
-        self.voltage_dye = self.config['general options']['morphogen']
+        self.voltage_dye = self.config['general options']['morphogen properties']['include morphogen']
 
         self.Dm_Dye = float(self.config['general options']['morphogen properties']['Dm'])
         self.Do_Dye = float(self.config['general options']['morphogen properties']['Do'])
@@ -192,6 +197,7 @@ class Parameters(object):
         bool_Naenv = bool(self.config['change Na env']['event happens'])
         bool_Kenv = bool(self.config['change K env']['event happens'])
         bool_Clenv = bool(self.config['change Cl env']['event happens'])
+        bool_MorphEnv = bool(self.config['change morphogen']['event happens'])
         bool_gjblock = bool(self.config['block gap junctions']['event happens'])
         # bool_ecm = bool(self.config['change ecm junctions']['event happens'])
         bool_temp =  bool(self.config['change temperature']['event happens'])
@@ -228,6 +234,16 @@ class Parameters(object):
             multi_Naenv = float(self.config['change Na env']['multiplier'])
             Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
             self.global_options['Na_env'] = Naenv
+
+        if bool_MorphEnv == False:
+            self.global_options['Morph_env'] = 0
+        elif bool_MorphEnv == True:
+            on_MorphEnv = float(self.config['change morphogen']['change start'])
+            off_MorphEnv = float(self.config['change morphogen']['change finish'])
+            rate_MorphEnv = float(self.config['change morphogen']['change rate'])
+            conc_MorphEnv = float(self.config['change morphogen']['concentration'])
+            MorphEnv = [on_MorphEnv, off_MorphEnv, rate_MorphEnv, conc_MorphEnv]
+            self.global_options['Morph_env'] = MorphEnv
 
         if bool_gjblock == False:
             self.global_options['gj_block'] = 0

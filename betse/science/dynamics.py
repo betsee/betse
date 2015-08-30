@@ -59,6 +59,13 @@ class Dynamics(object):
             self.t_change_Naenv = p.global_options['Na_env'][2]
             self.mem_mult_Naenv = p.global_options['Na_env'][3]
 
+        if p.global_options['Morph_env'] != 0:
+
+            self.t_on_MorphEnv = p.global_options['Morph_env'][0]
+            self.t_off_MorphEnv = p.global_options['Morph_env'][1]
+            self.t_change_MorphEnv = p.global_options['Morph_env'][2]
+            self.conc_MorphEnv = p.global_options['Morph_env'][3]
+
         if p.global_options['T_change'] != 0:
 
             self.tonT = p.global_options['T_change'][0]
@@ -438,7 +445,6 @@ class Dynamics(object):
                 sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Na']
 
-
         if p.global_options['Na_env'] != 0:
 
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
@@ -451,6 +457,27 @@ class Dynamics(object):
 
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
+
+        if p.global_options['Morph_env'] != 0 and p.voltage_dye is True:
+
+            effector_MorphEnv = tb.pulse(t,self.t_on_MorphEnv,self.t_off_MorphEnv,self.t_change_MorphEnv)
+
+            if p.sim_ECM == False:
+
+                sim.cDye_env[:] = self.conc_MorphEnv*effector_MorphEnv + sim.cDye_env*(1-effector_MorphEnv)
+
+            elif p.sim_ECM == True: # simulate addition of counter salt to maintain charge neutrality:
+
+                sim.c_dye_bound = self.conc_MorphEnv*effector_MorphEnv + p.cDye_to*(1-effector_MorphEnv)
+
+                # if np.sign(p.z_Dye) == 1:
+                #
+                #     sim.c_env_bound[sim.iM] = self.conc_MorphEnv*effector_MorphEnv*p.env_concs['M'] +\
+                #                               p.env_concs['M']*(1-effector_MorphEnv)
+                #
+                # elif np.sign(p.z_Dye) == -1:
+                #     sim.c_env_bound[sim.iNa] = self.conc_MorphEnv*effector_MorphEnv*p.env_concs['Na'] + \
+                #                                p.env_concs['Na']*(1-effector_MorphEnv)
 
         if p.global_options['T_change'] != 0:
 
