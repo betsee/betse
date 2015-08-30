@@ -407,14 +407,14 @@ class Dynamics(object):
 
             self.targets_Ca = []
             for profile in self.apply_Ca:
-                targets = self.tissue_target_inds[profile]
+                targets = self.cell_target_inds[profile]
                 self.targets_Ca.append(targets)
 
             self.targets_Ca = [item for sublist in self.targets_Ca for item in sublist]
 
             self.targets_Ca = np.asarray(self.targets_Ca)
 
-            self.target_mask_Ca = np.zeros(self.data_length)
+            self.target_mask_Ca = np.zeros(len(cells.cell_i))
             self.target_mask_Ca[self.targets_Ca] = 1
 
     def globalDyn(self,sim,cells,p,t):
@@ -470,14 +470,6 @@ class Dynamics(object):
 
                 sim.c_dye_bound = self.conc_MorphEnv*effector_MorphEnv + p.cDye_to*(1-effector_MorphEnv)
 
-                # if np.sign(p.z_Dye) == 1:
-                #
-                #     sim.c_env_bound[sim.iM] = self.conc_MorphEnv*effector_MorphEnv*p.env_concs['M'] +\
-                #                               p.env_concs['M']*(1-effector_MorphEnv)
-                #
-                # elif np.sign(p.z_Dye) == -1:
-                #     sim.c_env_bound[sim.iNa] = self.conc_MorphEnv*effector_MorphEnv*p.env_concs['Na'] + \
-                #                                p.env_concs['Na']*(1-effector_MorphEnv)
 
         if p.global_options['T_change'] != 0:
 
@@ -486,21 +478,6 @@ class Dynamics(object):
         if p.global_options['gj_block'] != 0:
 
             sim.gj_block[self.targets_gj_block] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
-
-        # if p.global_options['ecm_change'] != 0:
-        #
-        #     effector_ecm = tb.pulse(t,self.t_on_ecm,self.t_off_ecm,self.t_change_ecm)
-        #
-        #     for i, subD in enumerate(sim.D_env_base):
-        #
-        #         sim.D_env[i][cells.map_cell2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_cell2ecm] + \
-        #                                            sim.D_env_base[i][cells.map_cell2ecm]
-        #
-        #         sim.D_env[i][cells.map_mem2ecm] = self.mult_ecm*effector_ecm*subD[cells.map_mem2ecm] + \
-        #                                           sim.D_env_base[i][cells.map_mem2ecm]
-        #
-        #         # ensure cells on the cluster boundary aren't involved in the change:
-        #         sim.D_env[i][cells.ecm_bound_k] = sim.D_env_base[i][cells.ecm_bound_k]
 
 
         if p.global_options['NaKATP_block'] != 0:
@@ -748,17 +725,22 @@ class Dynamics(object):
         #
         # self.active_cagK[inds_cagK_targets] = tb.hill(sim.cc_cells[sim.iCa][inds_cagK_targets],
         #     self.Kcag_halfmax,self.Kcag_n)
+        if p.sim_ECM is False:
 
-        self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][self.targets_cagK],
-            self.Kcag_halfmax,self.Kcag_n)
+            self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][self.targets_cagK],
+                self.Kcag_halfmax,self.Kcag_n)
+
+        else:
+
+            self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][cells.mem_to_cells][self.targets_cagK],
+                self.Kcag_halfmax,self.Kcag_n)
+
 
         sim.Dm_cag[sim.iK] = self.maxDmKcag*self.active_cagK
 
     def calciumDynamics(self,sim,cells,p):
 
         if p.Ca_dyn_options['CICR'] != 0:
-
-            dcc_CaER_sign = np.sign(sim.dcc_ER[0])
 
             if len(p.Ca_dyn_options['CICR'][1])==0:
                 term_Ca_reg = 1.0
@@ -772,27 +754,27 @@ class Dynamics(object):
             else:
                 term_IP3_reg = tb.hill(sim.cIP3,self.KhmIP3,self.n_IP3)
 
-            if p.FMmod == 1:
-                span = self.topCa - self.bottomCa
-                FMmod = p.ip3FM*span
-                topCa = self.topCa - FMmod*term_IP3_reg
-            else:
-                topCa = self.topCa
+            # if p.FMmod == 1:
+            #     span = self.topCa - self.bottomCa
+            #     FMmod = p.ip3FM*span
+            #     topCa = self.topCa - FMmod*term_IP3_reg
+            # else:
+            #     topCa = self.topCa
 
-            truth_overHighCa = sim.cc_er[0] >=  topCa
-            truth_increasingCa = dcc_CaER_sign == 1
-            truth_alreadyClosed = self.stateER == 0.0
-            inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
+            # truth_overHighCa = sim.cc_er[0] >=  topCa
+            # truth_increasingCa = dcc_CaER_sign == 1
+            # truth_alreadyClosed = self.stateER == 0.0
+            # inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
+            #
+            # truth_underBottomCa = sim.cc_er[0]< self.bottomCa
+            # truth_decreasingCa = dcc_CaER_sign == -1
+            # truth_alreadyOpen = self.stateER == 1.0
+            # inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
+            #
+            # self.stateER[inds_open_ER] = 1.0
+            # self.stateER[inds_close_ER] = 0.0
 
-            truth_underBottomCa = sim.cc_er[0]< self.bottomCa
-            truth_decreasingCa = dcc_CaER_sign == -1
-            truth_alreadyOpen = self.stateER == 1.0
-            inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
-
-            self.stateER[inds_open_ER] = 1.0
-            self.stateER[inds_close_ER] = 0.0
-
-            sim.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
+            sim.Dm_er_CICR[0] = self.maxDmCaER*term_IP3_reg*term_Ca_reg
 
             sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
 
@@ -1290,6 +1272,50 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
+
+
+
+#--------------------------WASTELANDS----------------------------------------------------------------------------------
+
+        # if p.Ca_dyn_options['CICR'] != 0:
+        #
+        #     dcc_CaER_sign = np.sign(sim.dcc_ER[0])
+        #
+        #     if len(p.Ca_dyn_options['CICR'][1])==0:
+        #         term_Ca_reg = 1.0
+        #
+        #     else:
+        #         term_Ca_reg = (np.exp(-((sim.cc_cells[sim.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
+        #
+        #     # if len(p.Ca_dyn_options['CICR'][2]) == 0:
+        #     #     term_IP3_reg = 1.0
+        #     #
+        #     # else:
+        #     term_IP3_reg = tb.hill(sim.cIP3,self.KhmIP3,self.n_IP3)
+        #
+        #     if p.FMmod == 1:
+        #         span = self.topCa - self.bottomCa
+        #         FMmod = p.ip3FM*span
+        #         topCa = self.topCa - FMmod*term_IP3_reg
+        #     else:
+        #         topCa = self.topCa
+        #
+        #     truth_overHighCa = sim.cc_er[0] >=  topCa
+        #     truth_increasingCa = dcc_CaER_sign == 1
+        #     truth_alreadyClosed = self.stateER == 0.0
+        #     inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
+        #
+        #     truth_underBottomCa = sim.cc_er[0]< self.bottomCa
+        #     truth_decreasingCa = dcc_CaER_sign == -1
+        #     truth_alreadyOpen = self.stateER == 1.0
+        #     inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
+        #
+        #     self.stateER[inds_open_ER] = 1.0
+        #     self.stateER[inds_close_ER] = 0.0
+        #
+        #     sim.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
+        #
+        #     sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
 
 
 

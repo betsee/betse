@@ -211,12 +211,12 @@ class Simulator(object):
                         self.cc_er.append(self.cCa_er)
                         self.z_er.append(p.z_Ca)
                         self.z_array_er.append(self.zCa_er)
-                        self.Dm_er.append(p.Dm_Ca)
+                        # self.Dm_er.append(p.Dm_Ca)
 
                     if name == 'M' and p.ions_dict['Ca'] == 1:
 
                         self.cM_er = np.zeros(len(cells.cell_i))
-                        self.cM_er[:]=p.cM_er
+                        self.cM_er[:]=p.cCa_er
 
                         self.zM_er = np.zeros(len(cells.cell_i))
                         self.zM_er[:]=p.z_M
@@ -224,7 +224,7 @@ class Simulator(object):
                         self.cc_er.append(self.cM_er)
                         self.z_er.append(p.z_M)
                         self.z_array_er.append(self.zM_er)
-                        self.Dm_er.append(p.Dm_M)
+                        # self.Dm_er.append(p.Dm_M)
 
         # Do H+ separately as it's complicated by the buffer
         # initialize the carbonic acid for the carbonate buffer
@@ -286,7 +286,9 @@ class Simulator(object):
         self.envV = np.zeros(len(cells.cell_i))
         self.envV[:] = p.vol_env
 
-        self.Dm_er = self.Dm_cells[:]
+        self.Dm_er = np.zeros((2,len(cells.cell_i)))
+        self.Dm_er[0,:] = p.Dm_Ca
+        self.Dm_er[1,:] = p.Dm_M
 
         self.vm_to = np.zeros(len(cells.cell_i))
         self.v_er = np.zeros(len(cells.cell_i))
@@ -506,12 +508,12 @@ class Simulator(object):
                         self.cc_er.append(self.cCa_er)
                         self.z_er.append(p.z_Ca)
                         self.z_array_er.append(self.zCa_er)
-                        self.Dm_er.append(p.Dm_Ca)
+                        # self.Dm_er.append(p.Dm_Ca)
 
                     if name == 'M' and p.ions_dict['Ca'] == 1:
 
                         self.cM_er = np.zeros(len(cells.cell_i))
-                        self.cM_er[:]=p.cM_er
+                        self.cM_er[:]=p.cCa_er
 
                         self.zM_er = np.zeros(len(cells.cell_i))
                         self.zM_er[:]=p.z_M
@@ -519,7 +521,7 @@ class Simulator(object):
                         self.cc_er.append(self.cM_er)
                         self.z_er.append(p.z_M)
                         self.z_array_er.append(self.zM_er)
-                        self.Dm_er.append(p.Dm_M)
+                        # self.Dm_er.append(p.Dm_M)
 
         # Do H+ separately as it's complicated by the buffer
         # initialize the carbonic acid for the carbonate buffer
@@ -587,7 +589,10 @@ class Simulator(object):
 
         #-------------------------------------------------------------------------------------------------------
 
-        self.Dm_er = self.Dm_cells[:]
+        # Define the diffusion matrix for the endoplasmic reticulum:
+        self.Dm_er = np.zeros((2,len(cells.cell_i)))
+        self.Dm_er[0,:] = p.Dm_Ca
+        self.Dm_er[1,:] = p.Dm_M
 
         self.vm_to = np.zeros(len(cells.cell_i))
         self.v_er = np.zeros(len(cells.cell_i))
@@ -628,6 +633,7 @@ class Simulator(object):
         self.z_array_env = np.asarray(self.z_array_env)
         self.z_array_er = np.asarray(self.z_array_er)
         self.Dm_cells = np.asarray(self.Dm_cells)
+        self.Dm_er = np.asarray(self.Dm_er)
         self.D_env = np.asarray(self.D_env)
         self.D_free = np.asarray(self.D_free)
         self.D_gj = np.asarray(self.D_gj)
@@ -737,7 +743,7 @@ class Simulator(object):
 
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
-        Dm_cellsER = np.asarray(self.Dm_er)
+        Dm_cellsER = np.copy(self.Dm_er)
 
         # if tb.emptyDict(p.scheduled_options) == False or tb.emptyDict(p.vg_options) == False or p.Ca_dyn == True:
         self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
@@ -1009,9 +1015,11 @@ class Simulator(object):
                     # run the calcium ATPase endoplasmic reticulum pump:
                     fCaATP_ER = pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],self.v_er,self.T,p)
 
+
+
                     # update calcium concentrations in the ER and cell:
                     self.cc_er[0] = self.cc_er[0] + fCaATP_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
-                    self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fCaATP_ER*(cells.cell_sa/cells.cell_vol)
+                    self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fCaATP_ER*(cells.cell_sa/cells.cell_vol)*p.dt
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
@@ -1020,7 +1028,7 @@ class Simulator(object):
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-                    self.v_er = v_er_o
+                    self.v_er = v_er_o - self.vm
 
             if p.ions_dict['H'] == 1:
 
@@ -1142,7 +1150,7 @@ class Simulator(object):
 
                 q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                 v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
-                self.v_er = v_er_o - self.vm
+                self.v_er = v_er_o
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
@@ -1197,7 +1205,7 @@ class Simulator(object):
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
                     self.cIP3_time.append(self.cIP3[:])
-                    self.cIP3_env_time.append(self.cIP3_env[:])
+                    # self.cIP3_env_time.append(self.cIP3_env[:])
 
                     self.IP3_flux_x_gj_time.append(self.IP3_flux_x_gj[:])
                     self.IP3_flux_y_gj_time.append(self.IP3_flux_y_gj[:])
@@ -1215,7 +1223,7 @@ class Simulator(object):
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 
-                    self.cc_er_time.append(self.cc_er[:])
+                    self.cc_er_time.append(np.copy(self.cc_er[:]))
 
 
                 if p.plot_while_solving == True:
@@ -1490,9 +1498,9 @@ class Simulator(object):
 
                     f_Ca_ER = pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],self.v_er,self.T,p)
 
-                     # update calcium concentrations in the ER and cell:
+                    # update calcium concentrations in the ER and cell:
                     self.cc_er[0] = self.cc_er[0] + f_Ca_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
-                    self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_Ca_ER*(cells.cell_sa/cells.cell_vol)
+                    self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_Ca_ER*(cells.cell_sa/cells.cell_vol)*p.dt
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V_ecm(cells,p,t)
@@ -1501,7 +1509,7 @@ class Simulator(object):
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
 
-                    self.v_er = v_er_o
+                    self.v_er = v_er_o - self.v_cell
 
             if p.ions_dict['H'] == 1:
 
@@ -1654,9 +1662,8 @@ class Simulator(object):
                     self.Dye_flux_env_y_time.append(self.Dye_flux_env_y[:])
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-                    ccer = self.cc_er[:]
-                    self.cc_er_time.append(ccer)
-                    ccer = None
+                    self.cc_er_time.append(np.copy(self.cc_er[:]))
+
 
                 if p.plot_while_solving == True:
                     self.checkPlot.updatePlot(self,p)
@@ -2142,13 +2149,17 @@ class Simulator(object):
 
         # update calcium concentrations in the ER and cell:
         self.cc_er[0] = self.cc_er[0] + f_Ca_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
-        self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_Ca_ER*(cells.cell_sa/cells.cell_vol)
+        self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_Ca_ER*(cells.cell_sa/cells.cell_vol)*p.dt
+
+        # update anion concentration in the ER and cell:
+        self.cc_er[1] = self.cc_er[1] + f_M_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
+        self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_M_ER*(cells.cell_sa/cells.cell_vol)*p.dt
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
 
         q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-        self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+        self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p) - self.v_cell
 
     def update_dye(self,cells,p,t):
 
@@ -2651,10 +2662,10 @@ class Simulator(object):
             rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
             # map the charge density to the grid
-            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/100
+            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/10
             rho_env_x[:,0] = rho_env_x[:,1]
 
-            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/100
+            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/10
             rho_env_y[0,:] = rho_env_y[1,:]
 
             # these are negative because the gradient of the voltage is the electric field and we just took the grad
@@ -3076,7 +3087,7 @@ def pumpCaER(cCai,cCao,Vm,T,p):
 
     alpha = p.alpha_CaER
 
-    f_Ca  = alpha*(cCao)*(1.0 - cCai)      #flux as [mol/s]
+    f_Ca  = alpha*(cCao**(1/2))*(1.0 - cCai)**(1/2)      #flux as [mol/s]
 
     return f_Ca
 

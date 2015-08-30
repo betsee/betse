@@ -881,7 +881,7 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cCa_er = 0.5
+            self.cCa_er = 1.0e-3
             self.cM_er = self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
@@ -1020,6 +1020,9 @@ class Parameters(object):
         # user-specified environmental and cytoplasm values (customized)
         if self.ion_profile == 'customized':
 
+            self.cCa_er = 0.5
+            self.cM_er = -self.cCa_er
+
             cip = self.config['general options']['customized ion profile']
 
             self.cNa_env = float(cip['extracellular Na+ concentration'])
@@ -1084,8 +1087,6 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-
-                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM == True:
 

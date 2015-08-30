@@ -1321,7 +1321,7 @@ class AnimateVelocity(object):
 
         if p.sim_ECM == True and p.ani_Velocity_type == 'ECM':
 
-            vfield = np.sqrt(sim.u_env_x_time[0]**2 + sim.u_env_y_time[0]**2)*1e6
+            vfield = np.sqrt(sim.u_env_x_time[0]**2 + sim.u_env_y_time[0]**2)*1e9
 
             self.msh = self.ax.imshow(vfield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
                 cells.ymin*p.um, cells.ymax*p.um], cmap=p.default_cm)
@@ -1342,7 +1342,7 @@ class AnimateVelocity(object):
 
             v_gj_y = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjy,(cells.X,cells.Y), fill_value=0)
 
-            vfield = np.sqrt(v_gj_x**2 + v_gj_y**2)*1e6
+            vfield = np.sqrt(v_gj_x**2 + v_gj_y**2)*1e9
 
             self.msh = self.ax.imshow(vfield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
                 cells.ymin*p.um, cells.ymax*p.um],cmap=p.default_cm)
@@ -1376,7 +1376,7 @@ class AnimateVelocity(object):
         self.ax.set_title(self.tit)
         self.ax.set_xlabel('Spatial distance [um]')
         self.ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Velocity [um/s]')
+        cb.set_label('Velocity [nm/s]')
 
         self.frames = len(sim.time)
 
@@ -1392,7 +1392,7 @@ class AnimateVelocity(object):
 
         if self.p.sim_ECM == True and self.p.ani_Velocity_type == 'ECM':
 
-            vfield = np.sqrt(self.sim.u_env_x_time[i]**2 + self.sim.u_env_y_time[i]**2)*1e6
+            vfield = np.sqrt(self.sim.u_env_x_time[i]**2 + self.sim.u_env_y_time[i]**2)*1e9
 
             self.msh.set_data(vfield)
 
@@ -1411,7 +1411,7 @@ class AnimateVelocity(object):
             u_gj_y = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
                 ugjy,(self.cells.X,self.cells.Y), fill_value=0)
 
-            vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e6
+            vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
 
             self.msh.set_data(vfield)
 

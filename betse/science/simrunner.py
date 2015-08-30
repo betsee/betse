@@ -539,19 +539,60 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             figIP3 = plt.figure()
             axIP3 = plt.subplot(111)
 
-            ip3env = sim.cIP3_env*1e3
+            ip3Env = sim.cIP3_env*1e3
+            ip3Cell = sim.cIP3*1e3
 
-            axIP3.imshow(ip3env.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
+            bkgPlot = axIP3.imshow(ip3Env.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
                 p.um*cells.ymax],cmap=p.default_cm)
 
-            if p.showCells == True:
-                figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,
-                    number_cells=p.enumerate_cells,fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
-                    clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            points = np.multiply(cells.cell_verts, p.um)
+
+            coll = PolyCollection(points, array=ip3Cell, cmap=p.default_cm, edgecolors='none')
+            axIP3.add_collection(coll)
+            axIP3.axis('equal')
+
+            # Add a colorbar for the PolyCollection
+            maxvala = np.max(ip3Cell,axis=0)
+            maxvalb = np.max(ip3Env,axis=0)
+            minvala = np.min(ip3Cell,axis=0)
+            minvalb = np.min(ip3Env,axis=0)
+
+            if maxvala > maxvalb:
+                maxval = maxvala
             else:
-                 figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,
-                     number_cells=p.enumerate_cells, fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
-                     clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+                maxval = maxvalb
+
+            if minvala < minvalb:
+                minval = minvala
+            else:
+                minval = minvalb
+
+            if p.autoscale_IP3 is True:
+                coll.set_clim(minval,maxval)
+                bkgPlot.set_clim(minval,maxval)
+                cbIP3 = figIP3.colorbar(coll)
+
+            else:
+
+                coll.set_clim(p.IP3_min_clr,p.IP3_max_clr)
+                bkgPlot.set_clim(p.IP3_min_clr,p.IP3_max_clr)
+                cbIP3 = figIP3.colorbar(coll)
+
+            xmin = cells.xmin*p.um
+            xmax = cells.xmax*p.um
+            ymin = cells.ymin*p.um
+            ymax = cells.ymax*p.um
+
+            axIP3.axis([xmin,xmax,ymin,ymax])
+
+            # if p.showCells == True:
+            #     figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,
+            #         number_cells=p.enumerate_cells,fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
+            #         clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            # else:
+            #      figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,
+            #          number_cells=p.enumerate_cells, fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
+            #          clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
 
 
         axIP3.set_title('Final IP3 concentration')
@@ -589,47 +630,45 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             bkgPlot = axVdye.imshow(dyeEnv.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
                 p.um*cells.ymax],cmap=p.default_cm)
 
-            if p.showCells == True:
+            points = np.multiply(cells.cell_verts, p.um)
 
-                points = np.multiply(cells.cell_verts, p.um)
+            coll = PolyCollection(points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
+            axVdye.add_collection(coll)
+            axVdye.axis('equal')
 
-                coll = PolyCollection(points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
-                axVdye.add_collection(coll)
-                axVdye.axis('equal')
+            # Add a colorbar for the PolyCollection
+            maxvala = np.max(dyeCell,axis=0)
+            maxvalb = np.max(dyeEnv,axis=0)
+            minvala = np.min(dyeCell,axis=0)
+            minvalb = np.min(dyeEnv,axis=0)
 
-                # Add a colorbar for the PolyCollection
-                maxvala = np.max(dyeCell,axis=0)
-                maxvalb = np.max(dyeEnv,axis=0)
-                minvala = np.min(dyeCell,axis=0)
-                minvalb = np.min(dyeEnv,axis=0)
+            if maxvala > maxvalb:
+                maxval = maxvala
+            else:
+                maxval = maxvalb
 
-                if maxvala > maxvalb:
-                    maxval = maxvala
-                else:
-                    maxval = maxvalb
+            if minvala < minvalb:
+                minval = minvala
+            else:
+                minval = minvalb
 
-                if minvala < minvalb:
-                    minval = minvala
-                else:
-                    minval = minvalb
+            if p.autoscale_Dye is True:
+                coll.set_clim(minval,maxval)
+                bkgPlot.set_clim(minval,maxval)
+                cbVdye = figVdye.colorbar(coll)
 
-                if p.autoscale_Dye is True:
-                    coll.set_clim(minval,maxval)
-                    bkgPlot.set_clim(minval,maxval)
-                    cbVdye = figVdye.colorbar(coll)
+            else:
 
-                else:
+                coll.set_clim(p.Dye_min_clr,p.Dye_max_clr)
+                bkgPlot.set_clim(p.Dye_min_clr,p.Dye_max_clr)
+                cbVDye = figVdye.colorbar(coll)
 
-                    coll.set_clim(p.Dye_min_clr,p.Dye_max_clr)
-                    bkgPlot.set_clim(p.Dye_min_clr,p.Dye_max_clr)
-                    cbVDye = figVdye.colorbar(coll)
+            xmin = cells.xmin*p.um
+            xmax = cells.xmax*p.um
+            ymin = cells.ymin*p.um
+            ymax = cells.ymax*p.um
 
-                xmin = cells.xmin*p.um
-                xmax = cells.xmax*p.um
-                ymin = cells.ymin*p.um
-                ymax = cells.ymax*p.um
-
-                axVdye.axis([xmin,xmax,ymin,ymax])
+            axVdye.axis([xmin,xmax,ymin,ymax])
 
         axVdye.set_title('Final Morphogen Concentration')
         axVdye.set_xlabel('Spatial distance [um]')
@@ -756,7 +795,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),vcellso,(cells.X,cells.Y), fill_value=0)
 
-        Ucells = np.sqrt(ucells**2 + vcells**2)*1e6
+        Ucells = np.sqrt(ucells**2 + vcells**2)*1e9
 
         lw = (Ucells/Ucells.max()) + 0.5
 
@@ -766,7 +805,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.streamplot(cells.X,cells.Y,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
         plt.axis('equal')
         plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-        plt.title('Final Fluid Velocity in Cell Collective [um/s]')
+        plt.title('Final Fluid Velocity in Cell Collective [nm/s]')
 
         if saveImages == True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
@@ -796,7 +835,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     #------------------------------------------------------------------------------------------------------------------
 
-    if p.ani_ip32d ==True and p.scheduled_options['IP3'] != 0 and animate == 1:
+    if p.ani_ip32d ==True and p.Ca_dyn is True and animate == 1:
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
