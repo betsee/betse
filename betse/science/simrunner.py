@@ -331,7 +331,7 @@ class SimRunner(object):
             sim.baseInit_ECM(cells,p)
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
-            dyna.ecmBoundProfiles(sim,cells,p)
+
 
         fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
 

@@ -128,9 +128,9 @@ sim time settings:
 
     time step: 1.0e-4               # Simulation step-size [s] (recommended range 5e-6 to 5e-3)
 
-    total time: 1.0                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
+    total time: 0.1                  # time to end the sim run [s] (recommended range 0.010 s to 60 minutes)
 
-    sampling rate: 1.0e-3            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
+    sampling rate: 1.0e-4            # time period to sample data from sim run [s] (recommended range 1e-4 to 1 s)
 
 
 #------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ general options:
 
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
-  ion profile: 'basic'   # set the ion profile to be used in the simulation
+  ion profile: 'basic_Ca'   # set the ion profile to be used in the simulation
                                 # 'basic' (Na+, K+, and proteins)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins)
@@ -296,7 +296,7 @@ world variables:
 
     voltage sensitive gj: False    # do the gj close with voltage difference between cells?
 
-    gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 20e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 20 to 80e-3 V
 
     gj voltage window: 10e-3        # the range over which gj goes from open to shut
@@ -307,9 +307,9 @@ world variables:
 
 
 
-  tight junction scaling: 1.0e-3   # degree to which tight junctions scale free-diffusion in water
+  tight junction scaling: 1.0e-9   # degree to which tight junctions scale free-diffusion in water
 
-  adherens junction scaling: 1.0e-1   # degree to which adheren cell-cell junctions scale free-diffusion in water
+  adherens junction scaling: 1.0e-3   # degree to which adheren cell-cell junctions scale free-diffusion in water
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -439,7 +439,7 @@ number of tissue profiles: 2     # specify any number of profiles, which are giv
 
 tissue profile 1:
     name: hole       # give your profile a name that will be used to apply the profile
-    cell targets: [0]      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
+    cell targets: [51,80]      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: None    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
 
@@ -491,7 +491,7 @@ change Na mem:       # Change the membrane permeability to Na+
   event happens: True              # turn the even on (True) or off (False)
   change start: 5.0e-3                # sim time to start change [s]
   change finish: 100.0e-3               # sim time to end change and return to original [s]
-  change rate: 1.0e-3                 # rate of change [s]
+  change rate: 0.5e-3                 # rate of change [s]
   multiplier: 1000.0                  # factor to multiply base level
   function: None               # a spatial function to shape event:'gradient_x','gradient_y', 'gradient_r' or 'None'
   apply to: ['hole']        # name(s) of the tissue profile(s) to apply it to
@@ -645,7 +645,7 @@ results options:
                                   # true, all animations created.
                                   # options True or False (case sensitive)
 
-  save animations: False           # save all animations as png sequences in animation-specific folders
+  save animations: True           # save all animations as png sequences in animation-specific folders
                                    # inside the results directory
                                    # options True or False (case sensitive)
 
@@ -659,7 +659,7 @@ results options:
                                  # options True or False (case sensitive)
                                  # warning should not be used for world sizes over 200 um.
 
-  plot cell index: 14              # State the cell index to use for single-cell time plots
+  plot cell index: 5              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
   plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
@@ -673,7 +673,7 @@ results options:
                                   # show cells (set to False) as it will plot very slowly.
                                   # options True or False (case sensitive)
 
-  overlay currents: False          # overlay electric current or concentration flux streamlines on 2d plotted data
+  overlay currents: True          # overlay electric current or concentration flux streamlines on 2d plotted data
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
@@ -686,35 +686,35 @@ results options:
 
   Vmem 2D:
 
-    plot Vmem: True              # 2d plot of final vmem ?
+    plot Vmem: False              # 2d plot of final vmem ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -60.0               # minimum colorbar value in mV
 
   Ca 2D:
 
-    plot Ca: True                # 2d plot of final cell calcium ?
+    plot Ca: False                # 2d plot of final cell calcium ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
 
   IP3 2D:
 
-    plot IP3: True               # 2d plot of final cIP3 ?
+    plot IP3: False               # 2d plot of final cIP3 ?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
 
   Dye 2D:
 
-    plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
+    plot Dye: False               # 2d plot of voltage sensitive dye in cell collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
 
   Vcell 2D:
 
-    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
     plot Venv: True                 # plot the environmental spaces volage (if p.sim_ECM = True)?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 100                    # maximum colorbar value in mV
@@ -731,7 +731,7 @@ results options:
 
   Currents 2D:
 
-    plot Currents: True               # 2d plot of net current flow in the collective?
+    plot Currents: False               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -746,7 +746,7 @@ results options:
 
   Velocity 2D:                      # 2D plot of electroosmotic fluid velocity in the cluster
 
-    plot Velocity: True
+    plot Velocity: False
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -756,55 +756,55 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
+    animate Vmem: False           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -80.0               # maximum colorbar value in mV
 
   Ca Ani:
 
-    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    animate Ca2+: False           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: True            # 2d animation of cIP3 with time?
+    animate IP3: False            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Dye Ani:
 
-    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Dye: False            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
 
-    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Current Ani:
 
-    animate current: True       # 2d animation of current in individual cells of the collective?
+    animate current: False       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
   Efield Ani:
-    animate Efield: True        # 2d animation of electric field in extracellullar matrix
+    animate Efield: False        # 2d animation of electric field in extracellullar matrix
     data type: ECM                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
@@ -814,8 +814,8 @@ results options:
   Velocity Ani:
     animate Velocity: True        # 2d animation of electric field in extracellullar matrix
     data type: GJ                  # data type can be 'ECM' or 'GJ'
-    autoscale colorbar: True    # autoscale colorbar to min max of datat set?
-    max val: 1               # max colorbar value [V/m]
+    autoscale colorbar: False    # autoscale colorbar to min max of datat set?
+    max val: 500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]
 
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
@@ -838,7 +838,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 1e-16        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
+        max Dmem Na: 2.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
         activation v: -50e-3      # voltage threshold above which vgNa is activated [V]
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V]
         deactivation v: -52e-3    # voltage threshold below which vgNa is deactivated [V]
@@ -847,7 +847,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated K:
 
-        max Dmem K: 5e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
+        max Dmem K: 1.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
         activation v: -20e-3        # voltage threshold above which vgK is activated [V]
         deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V]
         live time: 20e-3            # time activated state can exist [s]
@@ -856,8 +856,8 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
         max Dmem Ca: 1.0e-15        # maximum Ca2+ membrane diffusion coefficient channel open [m2/s]
         activation v: -40e-3        # voltage threshold above which vgK is activated [V]
-        inactivation v: 40e-3       # voltage threshold above which vgCa is inactivated [V]
-        inactivation Ca: 1.0e-3     # level of cytosolic Ca2+ above which vgCa is inactivated [mmol/L]
+        inactivation v: 30e-3       # voltage threshold above which vgCa is inactivated [V]
+        inactivation Ca: 5.0e-3     # level of cytosolic Ca2+ above which vgCa is inactivated [mmol/L]
         reactivation Ca: 200e-6     # level of cytosolic Ca2+ below which vgCa is un-inactivated [mmol/L]
 
     calcium gated K:
@@ -916,7 +916,7 @@ internal parameters:
   halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  6       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  6         # the energy window width of the NaK-ATPase pump [kJ]

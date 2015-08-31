@@ -3009,7 +3009,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
     alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
-    f_Na  = -alpha*(cNai**(1/2))*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+    f_Na  = -alpha*(cNai)*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # elif p.backward_pumps == True:
     #

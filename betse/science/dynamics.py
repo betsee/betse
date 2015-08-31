@@ -692,7 +692,13 @@ class Dynamics(object):
     def vgCalcium(self,sim,cells,p,t):
          # detect condition to turn vg_Ca channel on:
         truth_vmGTvon_Ca = sim.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
-        truth_caLTcaOff = sim.cc_cells[sim.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
+
+        if p.sim_ECM is False:
+            truth_caLTcaOff = sim.cc_cells[sim.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
+
+        else:
+            truth_caLTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
+
         truth_depol_Ca = self.dvsign == 1  # bools matrix for cells that are depolarizing
         truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
 
@@ -701,7 +707,12 @@ class Dynamics(object):
         self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
 
         # detect condition to turn off vg_Ca channel:
-        truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
+        if p.sim_ECM is False:
+            truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
+
+        else:
+            truth_caGTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] > self.ca_upper_ca   # check that calcium exceeds maximum
+
         truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
         inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_mask_vgCa).nonzero()
         self.vgCa_state[inds_inactivate_Ca] = 0
