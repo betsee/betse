@@ -9,7 +9,7 @@
 from distutils.errors import DistutilsExecError, DistutilsFileError
 from os import path
 from setuptools import Command
-import os, pkg_resources, shutil, subprocess, sys, time
+import importlib, os, pkg_resources, shutil, subprocess, sys, time
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_command_succeeds(*command_words) -> None:
@@ -294,6 +294,32 @@ def is_pathable(command_basename: str) -> bool:
 
     # Return whether such command is found.
     return shutil.which(command_basename) is not None
+
+# ....................{ TESTERS ~ module                   }....................
+def is_module(module_name: str) -> bool:
+    '''
+    `True` if the module with the passed fully-qualified name is importable
+    under the active Python interpreter.
+
+    If this module is a **submodule** (i.e., contains a `.` character), all
+    parent modules of this module will be imported as a side effect of this
+    function call. Likewise, if this module is _not_ importable via standard
+    mechanisms (e.g., the OS X-specific `PyObjCTools` package), the module
+    itself may also be imported as a side effect.
+    '''
+    # See betse.util.python.modules.is_module() for implementation details.
+    assert isinstance(module_name, str),\
+        '"{}" not a string.'.format(module_name)
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except ValueError:
+        try:
+            importlib.import_module(module_name)
+            return True
+        except ImportError:
+            return False
+        # print('ValueError!')
+        # return False
 
 # ....................{ GETTERS                            }....................
 def get_project_dirname():

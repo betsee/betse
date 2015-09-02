@@ -6,8 +6,24 @@
 '''
 Metadata constants synopsizing high-level `betse` behaviour.
 
-Unrelatedly, this module also validates the version of the active Python 3
-interpreter. An exception is raised if such version is insufficient.
+Python Version
+----------
+For uniformity between both the main BETSE codebase and the "setup.py"
+setuptools script importing this module, this module also validates the version
+of the active Python 3 interpreter. An exception is raised if such version is
+insufficient.
+
+BETSE currently requires **Python 3.4**, as:
+
+* Python 3.3 provides insufficient machinery for dynamically inspecting modules
+  at runtime. In particular, both the long-standing `imp.find_module()` function
+  and the `importlib.find_loader()` function introduced by Python 3.3 require
+  all parent packages of the passed module to be recursively imported _before_
+  such functions are called; failing to do so results in such functions
+  unconditionally returning `None`. Since this has been the source of numerous
+  subtle issues throughout the codebase, Python 3.3 is strictly out. Since
+  modern Linux distributions have long since switched away from Python 3.3 as
+  their default Python 3 interpreters, this _should_ impose no hardships.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -68,10 +84,13 @@ AUTHORS = 'Alexis Pietak, Cecil Curry'
 # setup() in "setup.py" (e.g., "requires_python = ['>=2.2.1'],"), such field has
 # yet to be integrated into either disutils or setuputils. Hence, such field is
 # validated manually in the typical way. Behead the infidel setuptools!
-if sys.hexversion < 0x03030000:
+#
+# WARNING: When modifying this, please document the justification for doing so
+# in the "Python Version" subsection of this module's docstring above.
+if sys.hexversion < 0x03040000:
     raise RuntimeError(''.join((
         NAME, ' ',
-        'requires at least Python 3.3, ',
+        'requires at least Python 3.4, ',
         'but the active Python interpreter is only\n',
         'Python ', sys.version, '. We feel sadness for you.',
     )))

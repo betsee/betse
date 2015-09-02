@@ -160,12 +160,25 @@ class freeze(Command, metaclass = ABCMeta):
         # List of all shell words of the PyInstaller command to be run.
         self._init_pyinstaller_command()
 
+        # Advice to be appended to exceptions raised below.
+        EXCEPTION_ADVICE = (
+            'Consider running either:\n'
+            '\tsudo python3 setup.py install\n'
+            '\tsudo python3 setup.py symlink')
+
         # True if at least one script wrapper has been installed.
         is_script_installed = False
 
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, entry_point in\
             util.command_entry_points(self):
+            # If this entry point's main module is unimportable, raise an
+            # exception.
+            if not util.is_module(entry_point.module_name):
+                raise ImportError(
+                    'Module "{}" unimportable. {}'.format(
+                    entry_point.module_name, EXCEPTION_ADVICE))
+
             # Note at least one script wrapper to be installed.
             is_script_installed = True
 
@@ -210,11 +223,8 @@ class freeze(Command, metaclass = ABCMeta):
 
             # Die, you! Die!
             raise DistutilsExecError(
-                'Commands "{}" not found.\n'
-                'Consider first running either '
-                '"sudo python3 setup.py install" or '
-                '"sudo python3 setup.py symlink".'.format(
-                    script_wrapper_basenames))
+                'Commands "{}" not found. {}'.format(
+                    script_wrapper_basenames, EXCEPTION_ADVICE))
 
     # ..................{ INITIALIZERS                       }..................
     def _init_pyinstaller_command(self) -> None:
@@ -313,22 +323,19 @@ class freeze(Command, metaclass = ABCMeta):
         While hardly ideal, PyInstaller appears to provide no other means of
         communicating with such file.
         '''
-        # Absolute path of the root Python module running such script.
+        # Absolute path of the entry module.
         #
-        # The relative path of script module to the top-level project directory
-        # is obtained by converting the entry point specifier defined by
-        # "setup.py" for the current entry point (e.g., "betse.gui.guicli:main")
-        # to the corresponding platform-specific path.
+        # This module's relative path to the top-level project directory is
+        # obtained by converting the entry point specifier defined by "setup.py"
+        # for the current entry point (e.g., "betse.gui.guicli:main") into a
+        # platform-specific path. Sadly, setuptools provides no cross-platform
+        # API for reliably obtaining the absolute path of the corresponding
+        # script wrapper. Even if it did, such path would be of little use under
+        # POSIX-incompatible platforms (e.g., Windows), where these wrappers are
+        # binary blobs rather than valid Python scripts.
         #
-        # Sadly, setuptools offers no cross-platform API for reliably obtaining
-        # the Python script wrapper serving as the top-level entry point for
-        # this executable. Even if it did, such path would be of little use
-        # under POSIX-incompatible platforms (e.g., Windows), where such
-        # wrappers are actually binary blobs rather than valid Python scripts.
-        #
-        # Instead, we reverse-engineer the absolute path of the module in the
-        # Python package tree for this application corresponding to the passed
-        # entry point, which is guaranteed to work in a cross-platform manner.
+        # Instead, we reverse-engineer the desired path via brute-force path
+        # manipulation. Thus burns out another tawdry piece of my soul.
         module_filename = path.join(
             util.get_project_dirname(),
             entry_point.module_name.replace('.', path.sep) + '.py')
@@ -533,6 +540,25 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+        #FUXME: Oh, boy. We need to verify here that "betse" has actually been
+        #installed under the active Python interpreter. The mere existence of
+        #script wrappers is a necessary though insufficient condition! Peruse
+        #the main codebase for module detection utility functions.
+        #FUXME: Such verification *MUST* be duplicated in the script wrappers as
+        #well. We absolutely can't permit this issue to persist in the future.
+        #FUXME: Something has gone horribly wrong. To help debug this, let's
+        #improve build.py to print the "__file__" attribute of the imported
+        #"betse.cli.clicli" module in script wrappers: e.g.,
+        #
+        #    from betse.cli import clicli
+        #
+        #    # For debugging purposes, print the absolute path of this module.
+        #    print('betse.cli.clicli: ' + clicli.__file__)
+        #
+        #    # Propagate the return value of such function (hopefully a single-
+        #    # byte integer) to the calling shell as this script's exit status.
+        #    sys.exit(clicli.main())
+
     # @abstractmethod
     # def _get_script_spec_basename(self, script_basename: str) -> str:
     #     '''

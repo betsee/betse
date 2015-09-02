@@ -100,6 +100,13 @@ EXE_options = {
 }
 
 # ....................{ MAIN ~ analysis                    }....................
+# Since PyInstaller curiously fails to do so, inform the current user of:
+#
+# * The version of the active Python interpreter.
+# * The absolute path of the entry module.
+print('Freezing Python {} entry point:\n\t{}'.format(
+    platform.python_version(), MODULE_ROOT_FILENAME), file=sys.stderr)
+
 # Analyze such top-level Python module.
 a = Analysis(
     [MODULE_ROOT_FILENAME],
