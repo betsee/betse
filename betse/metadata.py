@@ -137,6 +137,11 @@ DEPENDENCY_SETUPTOOLS = 'setuptools >= 5.0'
 Version of `setuptools` required by `betse` at both install and runtime.
 
 For simplicity, such version is a `setuptools`-specific requirements string.
+
+Note that `betse` only requires the `pkg_resources` package installed along
+with `setuptools` rather than the `setuptools` package itself. Since there
+appears to exist no means of asserting a dependency on only `pkg_resources`,
+we pretend to require `setuptools` itself. This is non-ideal, of course.
 '''
 
 #FIXME: Reenable commented dependencies when actually imported by the codebase.

@@ -19,21 +19,6 @@ from betse.cli.cli import CLI
 from betse.util.io import loggers
 from betse.util.path import files, paths
 
-# ....................{ MAIN                               }....................
-def main() -> int:
-    '''Run `betse`'s command line interface (CLI).
-
-    This function is provided as a convenience to callers requiring procedural
-    functions rather than classical methods (e.g., `setuptools`).
-
-    Returns
-    ----------
-    int
-        Exit status of such interface. This is a non-negative integer in
-        `[0, 255]` where 0 signifies success and all other values failure.
-    '''
-    return CLICLI().run()
-
 # ....................{ CLASS                              }....................
 class CLICLI(CLI):
     '''`betse`'s command line interface (CLI).

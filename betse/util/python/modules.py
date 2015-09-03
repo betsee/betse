@@ -117,6 +117,17 @@ def get_dirname(mod) -> str:
     # Get such dirname.
     return paths.get_dirname(mod.__file__)
 
+# ....................{ IMPORTERS                          }....................
+def import_module(module_name: str) -> type(sys):
+    '''
+    Dynamically import and return the module, package, or C extension with the
+    passed fully-qualified name.
+    '''
+    assert isinstance(module_name, str),\
+        '"{}" not a string.'.format(module_name)
+    assert len(module_name), 'Module name empty.'
+    return importlib.import_module(module_name)
+
 # --------------------( WASTELANDS                         )--------------------
 #FUXME: importlib.find_loader() has been deprecated by
 #importlib.util.find_spec() in Python 3.4. After migrating all developer

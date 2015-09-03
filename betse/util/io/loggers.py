@@ -69,7 +69,7 @@ loggers except the root logger to be unconfigured, messages will be logged
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
-from textwrap import TextWrapper
+# from textwrap import TextWrapper
 import logging, os, sys
 
 # ....................{ CONSTANTS ~ int                    }....................

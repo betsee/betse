@@ -42,6 +42,19 @@ def init() -> None:
             '64-bit Python interpreters.'.format(name=metadata.NAME)
         )
 
+# ....................{ TESTERS                            }....................
+def is_frozen():
+    '''
+    `True` if the active Python interpreter is **frozen** (i.e., embedded in a
+    platform-specific binary containing `betse` and all dependencies thereof).
+    '''
+    # If the "sys" module has an attribute:
+    #
+    # * "_MEIPASS", this is a binary frozen by PyInstaller.
+    # * "frozen", this is a binary frozen by a non-PyInstaller freezer (e.g.,
+    #   "py2app", "py2exe").
+    return hasattr(sys, '_MEIPASS') or hasattr(sys, 'frozen')
+
 # ....................{ TESTERS ~ arch                     }....................
 def is_wordsize_32():
     '''

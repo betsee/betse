@@ -44,11 +44,12 @@
 '''
 
 # ....................{ IMPORTS                            }....................
+from distutils.errors import DistutilsExecError
 from abc import ABCMeta, abstractmethod
 from os import path
+from pkg_resources import EntryPoint
 from setup import util
 from setuptools import Command
-from distutils.errors import DistutilsExecError
 import os
 
 # ....................{ COMMANDS                           }....................
@@ -118,6 +119,13 @@ class freeze(Command, metaclass = ABCMeta):
         Inarguably, the best (albeit unofficial) documentation on such list.
     '''
 
+    # ..................{ ATTRIBUTES                         }..................
+    # Advice to be appended to exceptions raised below.
+    EXCEPTION_ADVICE = (
+        'Consider running either:\n'
+        '\tsudo python3 setup.py install\n'
+        '\tsudo python3 setup.py symlink')
+
     # ..................{ SUPERCLASS                         }..................
     def initialize_options(self):
         '''
@@ -160,27 +168,17 @@ class freeze(Command, metaclass = ABCMeta):
         # List of all shell words of the PyInstaller command to be run.
         self._init_pyinstaller_command()
 
-        # Advice to be appended to exceptions raised below.
-        EXCEPTION_ADVICE = (
-            'Consider running either:\n'
-            '\tsudo python3 setup.py install\n'
-            '\tsudo python3 setup.py symlink')
-
-        # True if at least one script wrapper has been installed.
-        is_script_installed = False
+        # True if the current distribution has at least one entry point.
+        is_entry_point = False
 
         # Freeze each previously installed script wrapper.
         for script_basename, script_type, entry_point in\
             util.command_entry_points(self):
-            # If this entry point's main module is unimportable, raise an
-            # exception.
-            if not util.is_module(entry_point.module_name):
-                raise ImportError(
-                    'Module "{}" unimportable. {}'.format(
-                    entry_point.module_name, EXCEPTION_ADVICE))
+            # Note at least one entry point to be installed.
+            is_entry_point = True
 
-            # Note at least one script wrapper to be installed.
-            is_script_installed = True
+            # Validate this wrapper's entry point.
+            # freeze._check_entry_point(entry_point)
 
             # Relative path of the output frozen executable file or directory,
             # created by stripping the suffixing ".exe" filetype on Windows.
@@ -215,16 +213,11 @@ class freeze(Command, metaclass = ABCMeta):
             #FIXME: Excise when beginning GUI work.
             break
 
-        # If no script wrappers are currently installed, fail.
-        if not is_script_installed:
-            # Human-readable list of the basenames of such script wrappers.
-            script_wrapper_basenames = '" and "'.join(
-                self._metadata['entry_point_basenames'])
-
-            # Die, you! Die!
+        # If no entry points are registered for the current distribution, raise
+        # an exception.
+        if not is_entry_point:
             raise DistutilsExecError(
-                'Commands "{}" not found. {}'.format(
-                    script_wrapper_basenames, EXCEPTION_ADVICE))
+                'No entry points found. {}'.format(freeze.EXCEPTION_ADVICE))
 
     # ..................{ INITIALIZERS                       }..................
     def _init_pyinstaller_command(self) -> None:
@@ -370,20 +363,18 @@ class freeze(Command, metaclass = ABCMeta):
 
             # Freeze such script with such spec file.
             util.die_unless_command_succeeds(*self._pyinstaller_command)
-        # Else, instruct PyInstaller to (re)create such ".spec" file.
+        # Else, instruct PyInstaller to (re)create such spec file.
         else:
-            # Absolute path of such script.
+            # Absolute path of the directory containing such files.
+            pyinstaller_spec_dirname = util.get_path_dirname(
+                self._pyinstaller_spec_filename)
+
+            # Absolute path of the current script wrapper.
             script_filename = path.join(
                 self.install_scripts_dir, script_basename)
             util.die_unless_file(
-                script_filename, (
-                    'File "{}" not found.\n'
-                    'Consider first running either '
-                    '"sudo python3 setup.py install" or '
-                    '"sudo python3 setup.py symlink".'.format(
-                        script_filename)
-                ),
-            )
+                script_filename, 'File "{}" not found. {}'.format(
+                    script_filename, freeze.EXCEPTION_ADVICE))
 
             # Inform the user of such action *AFTER* the above validation.
             # Since specification files should typically be reused rather
@@ -403,8 +394,7 @@ class freeze(Command, metaclass = ABCMeta):
                 # Non-default PyInstaller directories.
                 '--additional-hooks-dir=' + util.shell_quote(
                     self._pyinstaller_hooks_dirname),
-                '--specpath=' + util.shell_quote(
-                    util.get_dirname(self._pyinstaller_spec_filename)),
+                '--specpath=' + util.shell_quote(pyinstaller_spec_dirname),
             ])
 
             # Append all subclass-specific options.
@@ -416,8 +406,9 @@ class freeze(Command, metaclass = ABCMeta):
             # Freeze such script and generate a spec file.
             util.die_unless_command_succeeds(*self._pyinstaller_command)
 
-            # Basename of such file.
-            script_spec_basename_current = '{}.spec'.format(script_basename)
+            # Absolute path of such file.
+            script_spec_filename = path.join(
+                pyinstaller_spec_dirname, script_basename + '.spec')
 
             # Rename such file to have the basename expected by the prior
             # conditional on the next invocation of this setuptools command.
@@ -429,7 +420,41 @@ class freeze(Command, metaclass = ABCMeta):
             # renamable, the former is *NOT* (e.g., due to code signing). Hence,
             # such file is manually renamed without passing such option.
             util.move_file(
-                script_spec_basename_current, self._pyinstaller_spec_filename)
+                script_spec_filename, self._pyinstaller_spec_filename)
+
+    # ..................{ CLASS                              }..................
+    @classmethod
+    def _check_entry_point(entry_point: EntryPoint):
+        '''
+        Validate the passed entry point, describing the current script wrapper
+        to be frozen.
+        '''
+        assert isinstance(entry_point, EntryPoint),\
+            '"{}" not an entry point.'.format(entry_point)
+
+        # If this entry module is unimportable, raise an exception.
+        if not util.is_module(entry_point.module_name):
+            raise ImportError(
+                'Entry module "{}" unimportable. {}'.format(
+                entry_point.module_name, freeze.EXCEPTION_ADVICE))
+
+        # If this entry module's basename is *NOT* "__main__", print a
+        # non-fatal warning. For unknown reasons, attempting to freeze
+        # customary modules usually causes the frozen executable to reduce
+        # to a noop (i.e., silently do nothing).
+        if entry_point.module_name.split('.') != '__main__':
+            util.output_warning(
+                'Entry module "{}" basename not "__main__".'.format(
+                entry_point.module_name))
+
+        # If this entry module has no entry function, print a non-fatal
+        # warning. For unknown reasons, attempting to freeze without an
+        # entry function usually causes the frozen executable to reduce to a
+        # noop (i.e., silently do nothing).
+        if not len(entry_point.attrs):
+            util.output_warning(
+                'Entry module "{}" entry function undefined.'.format(
+                entry_point.module_name))
 
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
@@ -540,6 +565,16 @@ class freeze_file(freeze):
         ]
 
 # --------------------( WASTELANDS                         )--------------------
+        # if not is_entry_point:
+        #     # Human-readable list of the basenames of such script wrappers.
+        #     script_wrapper_basenames = '" and "'.join(
+        #         self._metadata['entry_point_basenames'])
+        #
+        #     # Die, you! Die!
+        #     raise DistutilsExecError(
+        #         'Entry points "{}" not found. {}'.format(
+        #             script_wrapper_basenames, freeze.EXCEPTION_ADVICE))
+
         #FUXME: Oh, boy. We need to verify here that "betse" has actually been
         #installed under the active Python interpreter. The mere existence of
         #script wrappers is a necessary though insufficient condition! Peruse

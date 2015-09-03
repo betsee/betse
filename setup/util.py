@@ -529,7 +529,7 @@ def remove_dir(dirname: str) -> None:
     die_unless_dir(dirname)
 
     # For safety, wait several seconds to do so. (Read: panic button.)
-    sleep_seconds = 8
+    sleep_seconds = 4
     print('Removing directory "{}" in {} seconds...'.format(
         dirname, sleep_seconds))
     time.sleep(sleep_seconds)
@@ -615,7 +615,7 @@ def command_entry_points(command: Command):
     #
     # It should be noted that all commands have an attribute "distribution".
     # Naturally, this is a setuptools-specific distribution that has literally
-    # *NOTHING* to do with "pkg_resources"-specific distribution.
+    # *NOTHING* to do with the "pkg_resources"-specific distribution.
     #
     # Die, setuptools. Die!
     ei_cmd = command.get_finalized_command('egg_info')

@@ -64,11 +64,10 @@ import setuptools
 # ....................{ OPTIONS                            }....................
 # Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
 # "freeze_file") of other metadata *NOT* already declared by the "setup_options"
-# dictionary defined below.
+# dictionary defined below. Since setuptools raises fatal exceptions on such
+# dictionary containing unrecognized keys, such keys are collected here.
 metadata = {
-    # List of the basenames of all cross-platform script wrappers dynamically
-    # created at installation time.
-    'entry_point_basenames': [SCRIPT_NAME_CLI, SCRIPT_NAME_GUI,],
+    # While currently empty, it's likely we'll want this again... someday.
 }
 
 # Setuptools-specific options. Keywords not explicitly recognized by either
@@ -105,7 +104,8 @@ setup_options = {
     # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
         # CLI-specific scripts.
-        'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
+        'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',],
+        # 'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
 
         #FIXME: Create "betse.gui.guicli".
         # GUI-specific scripts.
@@ -205,6 +205,9 @@ for setup_module in (build, freeze, symlink):
 setuptools.setup(**setup_options)
 
 # --------------------( WASTELANDS                         )--------------------
+    # List of the basenames of all cross-platform script wrappers dynamically
+    # created at installation time.
+    # 'entry_point_basenames': [SCRIPT_NAME_CLI, SCRIPT_NAME_GUI,],
 #FUXME: Likewise, such script should also be instructed to *NOT* zip such
 #directory. Doing so significantly complicates usage of the
 #pkg_resources.resource_filename() function by requiring decompression of such

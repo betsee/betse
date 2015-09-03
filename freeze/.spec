@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- mode: python -*-
 # ====================[ betse.core.spec                    ]====================
 #
@@ -71,8 +72,8 @@ CURRENT_DIRNAME = os.getcwd()
 # such path references a module in the Python package tree for this application
 # rather than a script wrapper previously installed by setuptools (e.g.,
 # "C:\Miniconda3\Scripts\betse.exe'). While such wrappers are valid Python
-# scripts under POSIX-compatible platforms, such wrappers are binary blobs *NOT*
-# analyzable by PyInstaller under other platforms (e.g., Windows).
+# scripts under POSIX-compatible platforms, such wrappers are binary blobs
+# *NOT* analyzable by PyInstaller under other platforms (e.g., Windows).
 MODULE_ROOT_FILENAME = os.environ['__FREEZE_MODULE_FILENAME']
 
 # Absolute path of the top-level directory containing all non-Python data files
@@ -111,7 +112,7 @@ print('Freezing Python {} entry point:\n\t{}'.format(
 a = Analysis(
     [MODULE_ROOT_FILENAME],
     pathex = [CURRENT_DIRNAME],
-    cipher = BLOCK_CIPHER,
+    # cipher = BLOCK_CIPHER,
 
     # List of the names of all imported and hence required modules *NOT*
     # automatically detectable by PyInstaller.
@@ -130,6 +131,12 @@ a = Analysis(
     excludes = None,
 )
 
+# a = Analysis(['/usr/local/bin/betse'],
+#              pathex=['freeze'],
+#              hiddenimports=[],
+#              hookspath=['freeze/hooks'],
+#              runtime_hooks=None)
+
 # ....................{ MAIN ~ datas                       }....................
 # Record all non-Python data files to be frozen into such executable. For
 # details, see http://pythonhosted.org/PyInstaller/#id38.
@@ -144,7 +151,7 @@ a.datas += Tree(
 # Create an intermediate archive containing only Python modules and scripts.
 pyz = PYZ(
     a.pure,
-    cipher = BLOCK_CIPHER,
+    # cipher = BLOCK_CIPHER,
 )
 
 # ....................{ MAIN ~ exe, collect                }....................

@@ -13,9 +13,40 @@ managed by `setuptools` (e.g., `betse`).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.cli.clicli import main
+import sys
+from betse.cli.clicli import CLICLI
 
 # ....................{ MAIN                               }....................
-# If this module is imported from the command line, run betse's CLI; else, noop.
+def main() -> int:
+    '''Run `betse`'s command line interface (CLI).
+
+    This function is provided as a convenience to callers requiring procedural
+    functions rather than conventional methods (e.g., `setuptools`).
+
+    Returns
+    ----------
+    int
+        Exit status of such interface. This is a non-negative integer in
+        `[0, 255]` where 0 signifies success and all other values failure.
+    '''
+    # print('In main')
+    return CLICLI().run()
+
+# ....................{ MAIN                               }....................
+# If this module is imported from the command line, run BETSE's CLI; else, noop.
+#
+# For POSIX compliance, the value returned by this function (ideally a single-
+# byte integer) will be propagated back to the calling shell as this script's
+# exit status.
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
+
+# --------------------( WASTELANDS                         )--------------------
+# Unconditionally nun BETSE's CLI, regardless of whether this module is directly
+# imported from the command line or indirectly imported by another module.
+# print('Before main')
+# main()
+# sys.exit(main())
+# If this module is imported from the command line, run betse's CLI; else, noop.
+# if __name__ == '__main__':
+#     main()

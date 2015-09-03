@@ -19,7 +19,6 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
-from betse.exceptions import BetseExceptionModule
 from betse.util.dependency import matplotlibs
 from betse.util.python import modules
 from betse.util.type import containers
@@ -38,13 +37,13 @@ def init() -> None:
     '''
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.
-    die_unless_satisfiable()
+    die_unless_satisfiable_all()
 
     # Configure such dependencies.
     matplotlibs.config.init()
 
 # ....................{ EXCEPTIONS                         }....................
-def die_unless_satisfiable() -> None:
+def die_unless_satisfiable_all() -> None:
     '''
     Raise an exception unless all mandatory runtime dependencies of `betse` are
     **satisfiable** (i.e., importable and of a satisfactory version).
@@ -64,47 +63,9 @@ def die_unless_satisfiable() -> None:
         exception_message = 'Mandatory dependency "pkg_resources" not found.'
     )
 
-    # Import such dependency and all required classes from such dependency.
-    from pkg_resources import DistributionNotFound, VersionConflict
-    import pkg_resources
-
-    # Set of all BETSE-specific dependencies as instances of the "Requirements"
-    # setuptools class.
-    requirements = pkg_resources.parse_requirements(
-        metadata.DEPENDENCIES_RUNTIME)
-
-    # For each such dependency...
-    for requirement in requirements:
-        # Human-readable exception to be raised below if any.
-        exception = None
-
-        # If setuptools raises a non-human-readable exception on attempting to
-        # validate such dependency, convert that to a human-readable exception.
-        try:
-            pkg_resources.get_distribution(requirement)
-        # If such dependency does *NOT* exist, a non-human-readable resembling
-        # the following is raised:
-        #
-        #    pkg_resources.DistributionNotFound: PyYAML>=3.10
-        except DistributionNotFound:
-            exception = BetseExceptionModule(
-                'Mandatory dependency "{}" not found.'.format(requirement))
-        # If such dependency exists but is of an insufficient version, a
-        # non-human-readable resembling the following is raised:
-        #
-        #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
-        except VersionConflict as version_conflict:
-            exception = BetseExceptionModule(
-                'Mandatory dependency "{}" unsatisfied by installed dependency "{}".'.format(
-                    version_conflict.req, version_conflict.dist))
-
-        # If a human-readable exception is to be raised, do so. While it would
-        # be preferable to simply raise such exception in the above exception
-        # handler, doing so induces Python 3 to implicitly prepend such
-        # exception by the non-human-readable setuptools exception given above.
-        # Which is exactly what we *DON'T* want to happen. (Hence, bad.)
-        if exception:
-            raise exception
+    # Validate such dependencies via "pkg_resources".
+    from betse.util.dependency import setuptool
+    setuptool.die_unless_requirements_satisfiable_all()
 
 # ....................{ GETTERS                            }....................
 def get_metadata() -> OrderedDict:
@@ -138,6 +99,19 @@ def get_metadata() -> OrderedDict:
     return dependency_metadata
 
 # --------------------( WASTELANDS                         )--------------------
+        # If the current dependency is setuptools *AND* the active Python
+        # interpreter is frozen, avoid attempting to validate this dependency.
+        # Since the BETSE codebase imports the setuptools-provided
+        # "pkg_resources" package but *NOT* the separate "setuptools" package,
+        # BETSE is usually frozen with the former rather than the latter. Since
+        # the existence of the former has already been validated above, assume
+        # for simplicity that the currently frozen version of "pkg_resources"
+        # satisfies this dependency.
+        # print('Validating dependency: ' + requirement.project_name)
+        # if requirement.project_name == 'setuptools' and pythons.is_frozen():
+        #     # print('Skipped!')
+        #     continue
+
 #FUXME: Ugh. This doesn't appear to work as expected, as trivially verified by
 #the fact that the prior "yaml >= 3.10" specification appeared to work when that
 #should have read "pyyaml >= 3.10". Even if this function is (somehow)
