@@ -1444,7 +1444,7 @@ class Simulator(object):
                 self.dyna.runAllDynamics(self,cells,p,t)
 
             # update membrane permeability if dye targets an ion channel:
-            if p.voltage_dye == True and self.dye_target is not None and p.run_sim == True:
+            if p.voltage_dye == True and self.dye_target is not None:
 
                 if p.Dye_acts_extracell == False:
 
@@ -2662,10 +2662,10 @@ class Simulator(object):
             rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
             # map the charge density to the grid
-            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/10
+            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/self.ff
             rho_env_x[:,0] = rho_env_x[:,1]
 
-            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/10
+            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/self.ff
             rho_env_y[0,:] = rho_env_y[1,:]
 
             # these are negative because the gradient of the voltage is the electric field and we just took the grad

@@ -340,7 +340,7 @@ class Parameters(object):
 
         # boundary properties:
 
-        self.closed_bound = True
+        self.closed_bound = False
 
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions
@@ -426,7 +426,7 @@ class Parameters(object):
             rate_extV = float(self.config['apply external voltage']['change rate'])
             peak_extV = float(self.config['apply external voltage']['peak value'])
             apply_extV = self.config['apply external voltage']['apply to']
-            extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV, function]
+            extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV]
             self.scheduled_options['extV'] = extV
 
         if bool_ecmj == False:

@@ -39,22 +39,22 @@
 
 init file saving:
 
-    directory: init_run_14         # name of the directory to save the initialization
+    directory: init_run_08         # name of the directory to save the initialization
 
-    file: init_run_14b.betse        # Specify the filename saving the initialization run.
+    file: init_run_08.betse        # Specify the filename saving the initialization run.
 
-    worldfile: world_14.betse      # Specify the filename saving the cell cluster geometry object
+    worldfile: world_08.betse      # Specify the filename saving the cell cluster geometry object
 
 
 sim file saving:
 
-    directory: init_run_14/sim_run_14b    # Specify a directory to hold the sim and its results
+    directory: init_run_08/sim_run_08    # Specify a directory to hold the sim and its results
 
-    file: sim_run_14b.betse    # Specify the file name saving the results of the simulation run.
+    file: sim_run_08.betse    # Specify the file name saving the results of the simulation run.
 
 results file saving:
 
-    directory: init_run_14/sim_run_14b/results_14b  # Name of directory to save plots and animations.
+    directory: init_run_08/sim_run_08/results_08   # Name of directory to save plots and animations.
 
 
 # -----------------------------------------------------------------------------
@@ -80,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 15.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 10.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -189,15 +189,15 @@ general options:
 
   morphogen properties:  # specify the properties of the morphogen (if it's included in the sim)
 
-    include morphogen: True     # include electrodiffusion of a morphogenic chemical substance?
-    Dm: 1.0e-18        # morphogen membrane diffusion coefficient [m2/s]
-    Do: 1.0e-9         # morphogen free diffusion constant [m2/s]
+    include morphogen: False     # include electrodiffusion of a morphogenic chemical substance?
+    Dm: 1.0e-12        # morphogen membrane diffusion coefficient [m2/s]
+    Do: 1.0e-10         # morphogen free diffusion constant [m2/s]
     z: 1               # charge of morphogen (oxidation state)
-    env conc: 1.0e-3        # initial concentration of morphogen in the environment [mmol/L]
-    cell conc: 1.0e-3    # initial concentration of morphogen in the cell network [mmol/L]
-    ion channel target: Na     # does the morphogen open an ion channel ('None', 'Na', 'K', 'Cl','Ca','CaER')
-    target Hill coefficient: 1.5e-3   # half max value for channel opening with respect to concentration
-    target Hill exponent: 10.0           # the Hill exponent, affects shape of opening-vs-concentration curve
+    env conc: 1.0e-6        # initial concentration of morphogen in the environment [mmol/L]
+    cell conc: 1.0e-6    # initial concentration of morphogen in the cell network [mmol/L]
+    ion channel target: None     # does the morphogen open an ion channel ('None', 'Na', 'K', 'Cl','Ca','CaER')
+    target Hill coefficient: 1.0e-3   # half max value for channel opening with respect to concentration
+    target Hill exponent: 1.0           # the Hill exponent, affects shape of opening-vs-concentration curve
     peak channel opening: 1e-16        # maximum diffusion constant of membrane to target ion when channel fully open
     acts extracellularly: True         # does the morphogen signal via its extracellular concentration?
 
@@ -281,7 +281,7 @@ world variables:
 
     channel charge: -1         # charge of protein membrane pumps and channels.
 
-    membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+    membrane mobility: 1e-9    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
 
   gap junctions:
@@ -292,7 +292,7 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-    gap junction surface area: 5.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
+    gap junction surface area: 1.0e-5   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
     voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
@@ -303,13 +303,13 @@ world variables:
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
-    gj flux sensitive: False         # gj conductivity increases with increasing flow or current
+    gj flux sensitive: True         # gj conductivity increases with increasing flow or current
 
 
 
   tight junction scaling: 1.0e-9   # degree to which tight junctions scale free-diffusion in water
 
-  adherens junction scaling: 1.0e-5   # degree to which cell-cell junctions scale free-diffusion in water
+  adherens junction scaling: 1.0e-5   # degree to which adheren cell-cell junctions scale free-diffusion in water
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -467,15 +467,15 @@ tissue profile 2:
 
 # specify a property to happen at a specific global (i.e. bounding box) boundary
 
-number of boundary profiles: 0      # Note: boundary profiles only apply if simulating extracellular spaces
+number of boundary profiles: 1      # Note: boundary profiles only apply if simulating extracellular spaces
 
 boundary profile 1:   # options include top = T, bottom = B, left = L, and right = R to specify the respective boundaries
     name: applied pos voltage
-    boundary targets: T
+    boundary targets: L
 
 boundary profile 2:
     name: applied neg voltage
-    boundary targets: B
+    boundary targets: R
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -539,10 +539,10 @@ produce IP3:        # Schedule cell production of IP3
 apply external voltage:             # apply external voltage to ecm spaces on the boundary
                                     # voltages can only be applied if extracellular spaces are simulated
     event happens: False            # turn the even on (True) or off (False)
-    change start: 1.0                 # time event starts [s]
-    change finish: 10.0               # time event finishes [s]
-    change rate: 1.0                  # time to reach peak value [s]
-    peak value: 0.100                   # peak value [V]
+    change start: 5.0                 # time event starts [s]
+    change finish: 20.0               # time event finishes [s]
+    change rate: 2.0                  # time to reach peak value [s]
+    peak value: 0.5                   # peak value [V]
     apply to: ['applied pos voltage','applied neg voltage']     # user must specify two bound profiles, first + then -
 
 break ecm junctions:     # break the ecm junctions between cells by setting their conductivity to the env value
@@ -640,7 +640,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: False     # use this setting to quickly toggle creation of all
+  create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -931,7 +931,7 @@ internal parameters:
 
   max_gj_enhancement: 100   # parameters relating to flow sensitivity of gap junctions
   u_decay_rate: 0.9
-  alpha_rho_gj: 1.0e-1
+  alpha_rho_gj: 1.0e-2
 
 
 # Configuration file version that this file conforms to. For reliable

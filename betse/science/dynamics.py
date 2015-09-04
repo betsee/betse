@@ -243,8 +243,8 @@ class Dynamics(object):
             name_positive = self.apply_extV[0]
             name_negative = self.apply_extV[1]
 
-            self.targets_extV_positive = self.env_target_label[name_positive]
-            self.targets_extV_negative = self.env_target_label[name_negative]
+            self.targets_extV_positive = p.boundary_profiles[name_positive]
+            self.targets_extV_negative = p.boundary_profiles[name_negative]
 
         if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM == True:
 
