@@ -340,7 +340,7 @@ class Parameters(object):
 
         # boundary properties:
 
-        self.closed_bound = False
+        self.closed_bound = bool(self.config['closed boundary'])
 
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions

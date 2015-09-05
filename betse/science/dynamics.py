@@ -573,6 +573,8 @@ class Dynamics(object):
 
             cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
+            cells.maskM = cells.maskM_temp[:]
+
         if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
             effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
@@ -1096,6 +1098,69 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
     target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
+    # recreate structures for plotting interpolated data on cell centres:
+    xgrid = np.linspace(cells.xmin,cells.xmax,p.grid_size)
+    ygrid = np.linspace(cells.ymin,cells.ymax,p.grid_size)
+    cells.Xgrid, cells.Ygrid = np.meshgrid(xgrid,ygrid)
+
+    mask_interp = np.ones(len(cells.mem_i))
+    mask_interp[target_inds_mem] = 0
+
+    cells.maskM_temp = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
+                                 mask_interp,(cells.Xgrid,cells.Ygrid),fill_value=0)
+
+
+    if p.sim_ECM == True:
+
+        # get environmental targets around each removed cell:
+        ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
+        ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
+
+        ecm_targs = []
+
+        for v in ecm_targs_cell:
+            ecm_targs.append(v)
+
+        for v in ecm_targs_mem:
+            ecm_targs.append(v)
+
+        # # redo environmental diffusion matrices by
+        # # setting the environmental spaces around cut cells to the free value:
+        for i in range(0,len(sim.D_env)):
+            sim.D_env[i][ecm_targs] = sim.D_free[i]
+
+        D_env_weight = sim.D_env[0]/sim.D_env[0].max()
+        sim.D_env_weight = D_env_weight.reshape(cells.X.shape)
+        sim.D_env_weight_base = np.copy(sim.D_env_weight)
+
+        sim.D_env_weight_u[:,0:-1] = sim.D_env_weight[:,:]
+        sim.D_env_weight_v[0:-1,:] = sim.D_env_weight[:,:]
+
+        if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+
+            sim.D_env_weight_u[:,0] = 0
+            sim.D_env_weight_u[:,-1] = 0
+            sim.D_env_weight_u[0,:] = 0
+            sim.D_env_weight_u[-1,:] = 0
+
+            sim.D_env_weight_v[:,0] = 0
+            sim.D_env_weight_v[:,-1] = 0
+            sim.D_env_weight_v[0,:] = 0
+            sim.D_env_weight_v[-1,:] = 0
+
+        else:
+
+            sim.D_env_weight_u[:,0] = sim.D_env_weight_u[:,1]
+            sim.D_env_weight_u[:,-1] =  sim.D_env_weight_u[:,-2]
+            sim.D_env_weight_u[0,:] =  sim.D_env_weight_u[1,:]
+            sim.D_env_weight_u[-1,:] =  sim.D_env_weight_u[-2,:]
+
+            sim.D_env_weight_v[:,0] =  sim.D_env_weight_v[:,1]
+            sim.D_env_weight_v[:,-1] = sim.D_env_weight_v[:,-2]
+            sim.D_env_weight_v[0,:] = sim.D_env_weight_v[1,:]
+            sim.D_env_weight_v[-1,:] = sim.D_env_weight_v[-2,:]
+
+
     # set up the situation to make cells joined to cut cells have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
 
@@ -1133,10 +1198,6 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         # copy the Dm to the base:
 
         sim.Dm_base = np.copy(sim.Dm_cells)
-
-
-
-
 
     if simMod == True:
 
@@ -1283,6 +1344,9 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
+
+
+
 
 
 

@@ -839,10 +839,10 @@ class PlotWhileSolving(object):
 
         elif p.sim_ECM == True:
 
-            dat_grid = sim.vm_Matrix[0]
+            dat_grid = sim.vm_Matrix[0]*1000
 
             if p.plotMask == True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.maskM))
+                dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
@@ -893,7 +893,11 @@ class PlotWhileSolving(object):
                 self.coll2.set_array(dat_grid.ravel())
 
         else:
-            zv = sim.vm_Matrix[-1]*1000
+            if p.plotMask == False:
+                zv = sim.vm_Matrix[-1]*1000
+            else:
+                zv = ma.masked_array(sim.vm_Matrix[-1]*1000, np.logical_not(self.cells.maskM))
+
             self.coll2.set_data(zv)
 
         if self.clrAutoscale == True:
@@ -963,20 +967,20 @@ class PlotWhileSolving(object):
                 dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
                     (cells.Xgrid,cells.Ygrid),fill_value=0)
 
-                dat_grid = np.multiply(dat_grid,cells.maskM)
+                # dat_grid = np.multiply(dat_grid,cells.maskM)
                 #
-                # if p.plotMask == True:
-                #     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
+                if p.plotMask == True:
+                    dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
                 #
                 self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
                     cmap=self.colormap)
 
         elif p.sim_ECM == True:
 
-            dat_grid = sim.vm_Matrix[0]
+            dat_grid = sim.vm_Matrix[0]*1000
 
             if p.plotMask == True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.maskM))
+                dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
@@ -2630,7 +2634,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
                 # cb_tick_labels.append(name)
 
 
-    if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
+    if len(dyna.tissue_profile_names):
 
         ax_cb = fig.colorbar(col_dic[dyna.tissue_profile_names[0]],ax=ax, ticks=cb_ticks)
         ax_cb.ax.set_yticklabels(cb_tick_labels)

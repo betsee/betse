@@ -187,8 +187,8 @@ class World(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=1.1)  # flag membranes on the cluster bound
-            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.1)  # flag membranes on the cluster bound
+            self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)       # Free up memory...
             self.makeECM(p)       # create the ecm grid
@@ -208,6 +208,7 @@ class World(object):
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid
+            self.environment(p)   # features of the environment, without Poisson solvers...
             #
             # loggers.log_info('Completed major world-building computations.')
 
@@ -752,7 +753,8 @@ class World(object):
         """
 
         # base parameter definitions
-        self.delta = p.d_cell*(2/3)  # spacing between grid points -- approximately 2/3 of one cell
+        # self.delta = p.d_cell*(2/3)
+        self.delta = (p.wsx/p.grid_size) # spacing between grid points -- approximately 2/3 of one cell
 
         self.grid_obj = fd.FiniteDiffSolver()
 
@@ -836,12 +838,14 @@ class World(object):
         for i, ecm_index in enumerate(self.map_mem2ecm):
             self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-        loggers.log_info('Creating environmental Poisson solver for voltage...')
-        self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
+        if p.sim_ECM == True:
 
-        loggers.log_info('Creating environmental Poisson solver for pressure...')
-        bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
-        self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+            loggers.log_info('Creating environmental Poisson solver for voltage...')
+            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
+
+            loggers.log_info('Creating environmental Poisson solver for pressure...')
+            bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
+            self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
     def graphLaplacian(self,p):
 
@@ -973,25 +977,22 @@ class World(object):
 
         self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
-        xv = np.linspace(self.xmin,self.xmax,self.msize)
-        yv = np.linspace(self.ymin,self.ymax,self.msize)
-        Xv, Yv = np.meshgrid(xv,yv)
+        # xv = np.linspace(self.xmin,self.xmax,self.msize)
+        # yv = np.linspace(self.ymin,self.ymax,self.msize)
+        # Xv, Yv = np.meshgrid(xv,yv)
+        #
+        # xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
 
-        xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
 
-        # structures for plotting interpolated data on cell centres:
-        xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
-        ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
-        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
 
-        # zi = interp.griddata((xpts,ypts),zdata,(X,Y))
 
-        mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
 
-        # interpret the value of extracellular electric field components at the centre of each membrane:
-        self.maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
-
-        self.maskM = self.maskM.reshape(self.Xgrid.shape)
+        # mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
+        #
+        # # interpret the value of extracellular electric field components at the centre of each membrane:
+        # self.maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
+        #
+        # self.maskM = self.maskM.reshape(self.Xgrid.shape)
 
         # do gj stuff as we need it for later:
         self.gj_stuff(p)
@@ -1145,6 +1146,20 @@ class World(object):
 
 
         self.gj_stuff(p)
+
+        # create structures for plotting interpolated data on cell centres:
+        xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
+        ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+        mask_interp = np.ones(len(self.mem_i))
+        # mask_interp[self.map_cell2ecm] = 1
+        # mask_interp[self.map_mem2ecm] = 1
+
+        # self.maskM = mask_interp.reshape(self.Xgrid.shape)
+
+        self.maskM = interp.griddata((self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),
+                                     mask_interp,(self.Xgrid,self.Ygrid),fill_value=0)
 
 
     def gj_stuff(self,p):

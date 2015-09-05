@@ -654,82 +654,88 @@ class Simulator(object):
         self.bound_V['L'] = 0
         self.bound_V['R'] = 0
 
+        # initialize the environmental diffusion matrix:
+        self.initDenv(cells,p)
+
     def tissueInit(self,cells,p):
 
         if p.sim_ECM == True:
             #  Initialize diffusion constants for the extracellular transport:
-
-            for i, dmat in enumerate(self.D_env):
-
-                if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
-                    self.D_env[i][:] = 0
-                # for all cells and mems in the cluster, set the internal diffusion constant for adherens junctions:
-                dummyMems = np.ones(len(cells.mem_i))*self.D_free[i]*p.D_adh
-
-                # get a list of all membranes for boundary cells:
-                all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
-                all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
-
-                # set external membrane of boundary cells to the diffusion constant of tight junctions:
-                dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
-                dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
-
-                # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-                if p.env_type == True:
-                    Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                        (cells.X,cells.Y),method='linear',fill_value=self.D_free[i])
-
-                    Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                        (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=self.D_free[i])
-
-                    Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                        (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
-
-                else:
-                    Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                        (cells.X,cells.Y),method='linear',fill_value=0)
-
-                    Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                        (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=0)
-
-                    Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                        (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=0)
-
-                # create an ecm diffusion grid filled with the environmental values
-                self.D_env[i] = Denv_o.ravel()
-
-            # create a matrix that weights the relative transport efficiency in the world space:
-            D_env_weight = self.D_env[0]/self.D_env[0].max()
-            self.D_env_weight = D_env_weight.reshape(cells.X.shape)
-            self.D_env_weight_base = np.copy(self.D_env_weight)
-
-            self.D_env_weight_u = Denv_u/Denv_u.max()
-
-            self.D_env_weight_v = Denv_v/Denv_v.max()
-
-            if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
-
-                self.D_env_weight_u[:,0] = 0
-                self.D_env_weight_u[:,-1] = 0
-                self.D_env_weight_u[0,:] = 0
-                self.D_env_weight_u[-1,:] = 0
-
-                self.D_env_weight_v[:,0] = 0
-                self.D_env_weight_v[:,-1] = 0
-                self.D_env_weight_v[0,:] = 0
-                self.D_env_weight_v[-1,:] = 0
-
-            else:
-
-                self.D_env_weight_u[:,0] = self.D_env_weight_u[:,1]
-                self.D_env_weight_u[:,-1] =  self.D_env_weight_u[:,-2]
-                self.D_env_weight_u[0,:] =  self.D_env_weight_u[1,:]
-                self.D_env_weight_u[-1,:] =  self.D_env_weight_u[-2,:]
-
-                self.D_env_weight_v[:,0] =  self.D_env_weight_v[:,1]
-                self.D_env_weight_v[:,-1] = self.D_env_weight_v[:,-2]
-                self.D_env_weight_v[0,:] = self.D_env_weight_v[1,:]
-                self.D_env_weight_v[-1,:] = self.D_env_weight_v[-2,:]
+            self.initDenv(cells,p)
+            # for i, dmat in enumerate(self.D_env):
+            #
+            #     if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
+            #         self.D_env[i][:] = 0
+            #     # for all cells and mems in the cluster, set the internal diffusion constant for adherens junctions:
+            #     dummyMems = np.ones(len(cells.mem_i))*self.D_free[i]*p.D_adh
+            #
+            #     # get a list of all membranes for boundary cells:
+            #     all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
+            #     all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
+            #
+            #     # set external membrane of boundary cells to the diffusion constant of tight junctions:
+            #     dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
+            #     dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
+            #
+            #     # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
+            #     if p.env_type == True:
+            #         Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+            #             (cells.X,cells.Y),method='linear',fill_value=self.D_free[i])
+            #
+            #         Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+            #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=self.D_free[i])
+            #
+            #         Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+            #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
+            #
+            #     else:
+            #         Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+            #             (cells.X,cells.Y),method='linear',fill_value=0)
+            #
+            #         Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+            #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=0)
+            #
+            #         Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+            #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=0)
+            #
+            #     #smooth things out a bit:
+            #     # Denv_o = fd.integrator(Denv_o)
+            #
+            #     # create an ecm diffusion grid filled with the environmental values
+            #     self.D_env[i] = Denv_o.ravel()
+            #
+            # # create a matrix that weights the relative transport efficiency in the world space:
+            # D_env_weight = self.D_env[0]/self.D_env[0].max()
+            # self.D_env_weight = D_env_weight.reshape(cells.X.shape)
+            # self.D_env_weight_base = np.copy(self.D_env_weight)
+            #
+            # self.D_env_weight_u = Denv_u/Denv_u.max()
+            #
+            # self.D_env_weight_v = Denv_v/Denv_v.max()
+            #
+            # if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+            #
+            #     self.D_env_weight_u[:,0] = 0
+            #     self.D_env_weight_u[:,-1] = 0
+            #     self.D_env_weight_u[0,:] = 0
+            #     self.D_env_weight_u[-1,:] = 0
+            #
+            #     self.D_env_weight_v[:,0] = 0
+            #     self.D_env_weight_v[:,-1] = 0
+            #     self.D_env_weight_v[0,:] = 0
+            #     self.D_env_weight_v[-1,:] = 0
+            #
+            # else:
+            #
+            #     self.D_env_weight_u[:,0] = self.D_env_weight_u[:,1]
+            #     self.D_env_weight_u[:,-1] =  self.D_env_weight_u[:,-2]
+            #     self.D_env_weight_u[0,:] =  self.D_env_weight_u[1,:]
+            #     self.D_env_weight_u[-1,:] =  self.D_env_weight_u[-2,:]
+            #
+            #     self.D_env_weight_v[:,0] =  self.D_env_weight_v[:,1]
+            #     self.D_env_weight_v[:,-1] = self.D_env_weight_v[:,-2]
+            #     self.D_env_weight_v[0,:] = self.D_env_weight_v[1,:]
+            #     self.D_env_weight_v[-1,:] = self.D_env_weight_v[-2,:]
 
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
@@ -2662,10 +2668,10 @@ class Simulator(object):
             rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
             # map the charge density to the grid
-            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/self.ff
+            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/100
             rho_env_x[:,0] = rho_env_x[:,1]
 
-            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/self.ff
+            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/100
             rho_env_y[0,:] = rho_env_y[1,:]
 
             # these are negative because the gradient of the voltage is the electric field and we just took the grad
@@ -2918,6 +2924,88 @@ class Simulator(object):
             ion = []
 
         return ion
+
+    def initDenv(self,cells,p):
+
+        for i, dmat in enumerate(self.D_env):
+
+            if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
+                self.D_env[i][:] = 0
+            # for all cells and mems in the cluster, set the internal diffusion constant for adherens junctions:
+            dummyMems = np.ones(len(cells.mem_i))*self.D_free[i]*p.D_adh
+
+            # get a list of all membranes for boundary cells:
+            neigh_to_bcells,_,_ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+
+            all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
+            interior_bound_mem_inds = cells.cell_to_mems[neigh_to_bcells]
+            interior_bound_mem_inds,_,_ = tb.flatten(interior_bound_mem_inds)
+            all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
+
+            # set external membrane of boundary cells to the diffusion constant of tight junctions:
+            dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
+            dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj
+            dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
+
+            # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
+            if p.env_type == True:
+                Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                    (cells.X,cells.Y),method='linear',fill_value=self.D_free[i])
+
+                Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=self.D_free[i])
+
+                Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
+
+            else:
+                Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                    (cells.X,cells.Y),method='linear',fill_value=0)
+
+                Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=0)
+
+                Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=0)
+
+            # smooth things out a bit:
+            # Denv_o = fd.integrator(Denv_o)
+
+            # create an ecm diffusion grid filled with the environmental values
+            self.D_env[i] = Denv_o.ravel()
+
+        # create a matrix that weights the relative transport efficiency in the world space:
+        D_env_weight = self.D_env[0]/self.D_env[0].max()
+        self.D_env_weight = D_env_weight.reshape(cells.X.shape)
+        self.D_env_weight_base = np.copy(self.D_env_weight)
+
+        self.D_env_weight_u = Denv_u/Denv_u.max()
+
+        self.D_env_weight_v = Denv_v/Denv_v.max()
+
+        if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+
+            self.D_env_weight_u[:,0] = 0
+            self.D_env_weight_u[:,-1] = 0
+            self.D_env_weight_u[0,:] = 0
+            self.D_env_weight_u[-1,:] = 0
+
+            self.D_env_weight_v[:,0] = 0
+            self.D_env_weight_v[:,-1] = 0
+            self.D_env_weight_v[0,:] = 0
+            self.D_env_weight_v[-1,:] = 0
+
+        else:
+
+            self.D_env_weight_u[:,0] = self.D_env_weight_u[:,1]
+            self.D_env_weight_u[:,-1] =  self.D_env_weight_u[:,-2]
+            self.D_env_weight_u[0,:] =  self.D_env_weight_u[1,:]
+            self.D_env_weight_u[-1,:] =  self.D_env_weight_u[-2,:]
+
+            self.D_env_weight_v[:,0] =  self.D_env_weight_v[:,1]
+            self.D_env_weight_v[:,-1] = self.D_env_weight_v[:,-2]
+            self.D_env_weight_v[0,:] = self.D_env_weight_v[1,:]
+            self.D_env_weight_v[-1,:] = self.D_env_weight_v[-2,:]
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 

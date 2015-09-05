@@ -39,22 +39,23 @@
 
 init file saving:
 
-    directory: init_run_13b/sim_run_13b         # name of the directory to save the initialization
+    directory: init_run_12         # name of the directory to save the initialization
 
-    file: sim_run_13b.betse        # Specify the filename saving the initialization run.
+    file: init_run_12.betse        # Specify the filename saving the initialization run.
 
-    worldfile: world_13b.betse      # Specify the filename saving the cell cluster geometry object
+    worldfile: world_12.betse      # Specify the filename saving the cell cluster geometry object
 
 
 sim file saving:
 
-    directory: init_run_13b/sim_run_13b    # Specify a directory to hold the sim and its results
+    directory: init_run_12/sim_run_12    # Specify a directory to hold the sim and its results
 
-    file: sim_run_13b_cuts.betse    # Specify the file name saving the results of the simulation run.
+    file: sim_run_12.betse    # Specify the file name saving the results of the simulation run.
 
 results file saving:
 
-    directory: init_run_13b/sim_run_13b/results_13b_cuts  # Name of directory to save plots and animations.
+    directory: init_run_12/sim_run_12/results_12  # Name of directory to save plots and animations.
+
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -79,7 +80,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3               # Simulation step-size [s] (recommended range see table)
-    total time: 2                 # time to end the initialization run [s] (recommended range 10 to 60 s)
+    total time: 5.0                 # time to end the initialization run [s] (recommended range 10 to 60 s)
     sampling rate: 0.1            # time period to sample data from init run [s] (recommended range see table)
 
 
@@ -151,7 +152,7 @@ sim time settings:
 
 general options:
 
-  grid size: 40                # size of the square grid used in computation of spatial gradients and laplacians
+  grid size: 60                # size of the square grid used in computation of spatial gradients and laplacians
 
   simulate ECM: True           # include extracellular spaces and heterogeneous cell Vmem?
 
@@ -188,13 +189,13 @@ general options:
 
   morphogen properties:  # specify the properties of the morphogen (if it's included in the sim)
 
-    include morphogen: True     # include electrodiffusion of a morphogenic chemical substance?
+    include morphogen: False     # include electrodiffusion of a morphogenic chemical substance?
     Dm: 1.0e-18        # morphogen membrane diffusion coefficient [m2/s]
     Do: 1.0e-9         # morphogen free diffusion constant [m2/s]
     z: 1               # charge of morphogen (oxidation state)
     env conc: 1.0e-3        # initial concentration of morphogen in the environment [mmol/L]
     cell conc: 1.0e-3    # initial concentration of morphogen in the cell network [mmol/L]
-    ion channel target: None     # does the morphogen open an ion channel ('None', 'Na', 'K', 'Cl','Ca','CaER')
+    ion channel target: Na     # does the morphogen open an ion channel ('None', 'Na', 'K', 'Cl','Ca','CaER')
     target Hill coefficient: 1.5e-3   # half max value for channel opening with respect to concentration
     target Hill exponent: 10.0           # the Hill exponent, affects shape of opening-vs-concentration curve
     peak channel opening: 1e-16        # maximum diffusion constant of membrane to target ion when channel fully open
@@ -245,7 +246,7 @@ general options:
 
 world variables:
 
-  world x: 500e-6         # the x-dimension of the world space [m]
+  world x: 250e-6         # the x-dimension of the world space [m]
                           # at present the world is square with x = y.
                           # recommended range 50e-6 to 1000e-6 m
 
@@ -276,7 +277,7 @@ world variables:
 
   channel electroosmosis:  # pump and channel movement via electro-phoresis/osmosis? (works for simulate ECM: True)
 
-    turn on: True              # turn on electroosmosis of pumps and channels via full Nernst-Planck equation?
+    turn on: False              # turn on electroosmosis of pumps and channels via full Nernst-Planck equation?
 
     channel charge: -1         # charge of protein membrane pumps and channels.
 
@@ -291,11 +292,11 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-    gap junction surface area: 1.0e-3   # surface area of gap junctions as fraction of cell area (recommended range see table)
+    gap junction surface area: 5.0e-4   # surface area of gap junctions as fraction of cell area (recommended range see table)
 
     voltage sensitive gj: True    # do the gj close with voltage difference between cells?
 
-    gj voltage threshold: 20e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 15e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 20 to 80e-3 V
 
     gj voltage window: 10e-3        # the range over which gj goes from open to shut
@@ -306,9 +307,9 @@ world variables:
 
 
 
-  tight junction scaling: 1.0e-7   # degree to which tight junctions scale free-diffusion in water
+  tight junction scaling: 1.0e-9   # degree to which tight junctions scale free-diffusion in water
 
-  adherens junction scaling: 1.0e-2   # degree to which cell-cell junctions scale free-diffusion in water
+  adherens junction scaling: 1.0e-5   # degree to which cell-cell junctions scale free-diffusion in water
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -323,7 +324,7 @@ world variables:
 
 change K env:       # Change the environmental concentration of K+
 
-  event happens: False      # turn the event on (True) or off (False)
+  event happens: False      # turn the even on (True) or off (False)
   change start: 1.0           # sim time to start change [s]
   change finish: 10.0         # sim time to end change and return to original [s]
   change rate: 1.0            # rate of change [s]
@@ -365,7 +366,7 @@ block gap junctions:     # block the gap junctions between cells
 
   event happens: False      # turn the even on (True) or off (False)
   change start: 2        # sim time to start change [s]
-  change finish: 12       # sim time to end change and return to original [s]
+  change finish: 9       # sim time to end change and return to original [s]
   change rate: 1.0         # rate of change [s]
   random fraction: 100     # percentage of gap junctions randomly targeted
 
@@ -398,21 +399,42 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True     # use bitmaps to control cluster geometry and tissue/boundary profiles?
 
-    directory: geo/ellipse              # directory where geometry-defining bitmaps can be found
+    directory: geo/circle              # directory where geometry-defining bitmaps can be found
 
-    number of bitmaps: 2          # total number of bitmaps to load
+    number of bitmaps: 6          # total number of bitmaps to load
 
     bitmap 1:
 
-        file: ellipse_base.png        # name of the first bitmap defining geometry
+        file: circle_base.png        # name of the first bitmap defining geometry
 
         designation: clipping   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
 
     bitmap 2:
 
-        file: cut_block.png        # name of the first bitmap defining geometry
+        file: cut_hole.png        # name of the first bitmap defining geometry
 
-        designation: cuts   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+        designation: hole   # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+
+    bitmap 3:
+
+        file: tissue.png        # name of the first bitmap defining geometry
+
+        designation: tissue  # 'clipping' for geometry mask, or name of an existing tissue or boundary profile
+
+    bitmap 4:
+
+        file: spot.png
+        designation: spot
+
+    bitmap 5:
+
+        file: wedge.png
+        designation: wedge
+
+    bitmap 6:
+
+        file: ring.png
+        designation: ring
 
 
 
@@ -429,27 +451,13 @@ base tissue properties:    # specify the base membrane diffusion constants below
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-number of tissue profiles: 2     # specify any number of profiles, which are given in the formats below
+number of tissue profiles: 1     # specify any number of profiles, which are given in the formats below
 
 tissue profile 1:
-    name: cuts       # give your profile a name that will be used to apply the profile
+    name: wedge       # give your profile a name that will be used to apply the profile
     cell targets: 'bitmap'      #  'random##', 'boundary', 'all', 'bitmap', or list of inds
     designation: cuts    # special instructions for making the profile:'cavity' or 'cuts' (cavity specified in makeWorld)
     insular: False        # make tissue have gap junctions connecting within tissue and not between tissues
-
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
-tissue profile 2:
-    name: tissue
-    cell targets: all
-    designation: None
-    insular: False
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
     Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -471,8 +479,6 @@ boundary profile 2:
     name: applied neg voltage
     boundary targets: B
 
-closed boundary: False   # are the global environmental boundaries closed (True) or open (False)?
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -485,12 +491,12 @@ closed boundary: False   # are the global environmental boundaries closed (True)
 change Na mem:       # Change the membrane permeability to Na+
 
   event happens: False              # turn the even on (True) or off (False)
-  change start: 0.0                # sim time to start change [s]
-  change finish: 12.0               # sim time to end change and return to original [s]
-  change rate: 0.1                 # rate of change [s]
-  multiplier: 10.0                  # factor to multiply base level
-  function: gradient_x               # a spatial function to shape event:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['tissue']        # name(s) of the tissue profile(s) to apply it to
+  change start: 5.0e-3                # sim time to start change [s]
+  change finish: 100.0e-3               # sim time to end change and return to original [s]
+  change rate: 0.5e-3                 # rate of change [s]
+  multiplier: 1000.0                  # factor to multiply base level
+  function: None               # a spatial function to shape event:'gradient_x','gradient_y', 'gradient_r' or 'None'
+  apply to: ['hole']        # name(s) of the tissue profile(s) to apply it to
 
 change K mem:       # Change the membrane permeability to K+
 
@@ -551,9 +557,9 @@ break ecm junctions:     # break the ecm junctions between cells by setting thei
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a simulation run
     event happens: True
-    apply to: cuts    # tissue profile to apply this to -- can only be one profile; no profile lists
+    apply to: 'wedge'    # tissue profile to apply this to -- can only be one profile, no lists
     dangling gap junctions: True
-    hurt level: 200     # amount by which cell membranes adjacent to the cut lines are damaged and become leaky
+    hurt level: 100     # amount by which cell membranes adjacent to the cut lines are damaged and become leaky
 
 function properties:        # set properties of functions defined in above
 
@@ -636,7 +642,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: False     # use this setting to quickly toggle creation of all
+  create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -678,7 +684,7 @@ results options:
 
   plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
-  plot masked geometry: True      # plot the geometry using the overall shape as a mask
+  plot masked geometry: False      # plot the geometry using the overall shape as a mask
 
   Vmem 2D:
 

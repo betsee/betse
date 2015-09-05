@@ -116,8 +116,9 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-            plt.show(block=False)
+            # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+            # plt.show(block=False)
+            self.plotWorld()
 
 
         plt.show()
@@ -332,8 +333,25 @@ class SimRunner(object):
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
-
         fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+
+        plt.show(block = False)
+
+        if p.sim_ECM == True:
+
+            plt.figure()
+            ax99 = plt.subplot(111)
+            plt.imshow(np.log10(sim.D_env_weight_u.reshape(cells.grid_obj.u_shape)),origin='lower',
+                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
+            plt.colorbar()
+
+            cell_edges_flat = cells.um*cells.mem_edges_flat
+            coll = LineCollection(cell_edges_flat,colors='k')
+            coll.set_alpha(1.0)
+            ax99.add_collection(coll)
+
+            plt.title('Logarithm of Environmental Diffusion Weight Matrix')
+            plt.show(block =False)
 
         plt.show()
 
