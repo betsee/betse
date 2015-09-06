@@ -1988,7 +1988,7 @@ class Simulator(object):
             btag = 'open'
         # make v_env and cc_env into 2d matrices
         cenv = self.cc_env[i][:]
-        denv = self.D_env[i][:]
+        # denv = self.D_env[i][:]
 
         v_env = self.v_env[:].reshape(cells.X.shape)
 
@@ -2034,38 +2034,38 @@ class Simulator(object):
             cenv_y[:,-1] =  self.c_env_bound[i]
 
 
-        denv = denv.reshape(cells.X.shape)
-
-        denv_x = np.zeros(cells.grid_obj.u_shape)
-        denv_y = np.zeros(cells.grid_obj.v_shape)
-
-        # create the proper shape for the diffusion constants and state boundaries:
-        denv_x[:,1:] = denv
-
-        denv_y[1:,:] = denv
-
-        if p.closed_bound == False: # open boundary conditions
-            denv_x[:,0] = denv_x[:,1]
-            denv_x[:,-1] = denv_x[:,-2]
-            denv_x[0,:] = denv_x[1,:]
-            denv_x[-1,:] = denv_x[-2,:]
-
-            denv_y[0,:] = denv_y[1,:]
-            denv_y[-1,:] = denv_y[-2,:]
-            denv_y[:,0] = denv_y[:,1]
-            denv_y[:,-1] = denv_y[:,-2]
-
-
-        else:   # closed grounded boundary conditions
-            denv_x[:,0] =  0
-            denv_x[:,-1] =  0
-            denv_x[0,:] =  0
-            denv_x[-1,:] =  0
-
-            denv_y[0,:] =  0
-            denv_y[-1,:] =  0
-            denv_y[:,0] =  0
-            denv_y[:,-1] =  0
+        # denv = denv.reshape(cells.X.shape)
+        #
+        # denv_x = np.zeros(cells.grid_obj.u_shape)
+        # denv_y = np.zeros(cells.grid_obj.v_shape)
+        #
+        # # create the proper shape for the diffusion constants and state boundaries:
+        # denv_x[:,1:] = denv
+        #
+        # denv_y[1:,:] = denv
+        #
+        # if p.closed_bound == False: # open boundary conditions
+        #     denv_x[:,0] = denv_x[:,1]
+        #     denv_x[:,-1] = denv_x[:,-2]
+        #     denv_x[0,:] = denv_x[1,:]
+        #     denv_x[-1,:] = denv_x[-2,:]
+        #
+        #     denv_y[0,:] = denv_y[1,:]
+        #     denv_y[-1,:] = denv_y[-2,:]
+        #     denv_y[:,0] = denv_y[:,1]
+        #     denv_y[:,-1] = denv_y[:,-2]
+        #
+        #
+        # else:   # closed grounded boundary conditions
+        #     denv_x[:,0] =  0
+        #     denv_x[:,-1] =  0
+        #     denv_x[0,:] =  0
+        #     denv_x[-1,:] =  0
+        #
+        #     denv_y[0,:] =  0
+        #     denv_y[-1,:] =  0
+        #     denv_y[:,0] =  0
+        #     denv_y[:,-1] =  0
 
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
@@ -2082,7 +2082,8 @@ class Simulator(object):
             uenvy = 0
 
         f_env_x, f_env_y = np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-            grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,self.zs[i],self.T,p)
+            grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
+            self.zs[i],self.T,p)
 
         if p.closed_bound == False:
             f_env_x[:,0] = f_env_x[:,1]
@@ -2584,10 +2585,12 @@ class Simulator(object):
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid), fill_value=0)
+        self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
+                                      method='nearest',fill_value=0)
         self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
-        self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),fill_value=0)
+        self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
+                                      method='nearest',fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
 
         # calculate current across cell membranes:
@@ -2776,15 +2779,11 @@ class Simulator(object):
             # resample alpha:
             alpha = (alpha_x[:,0:-1] + alpha_x[:,1:]+alpha_y[0:-1,:] + alpha_y[1:,:])/4
 
-            alpha_zero = (alpha == 0).nonzero()
+            alpha_zero = list(*(alpha.ravel() == 0).nonzero())
 
             if len(alpha_zero) == 0:
 
                 self.P_env = P[:]*(1/alpha)
-
-            else:
-
-                self.P_env = P[:]
 
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
@@ -2843,6 +2842,11 @@ class Simulator(object):
         # resample alpha to the cell centres:
         alpha_ave = np.dot(cells.gj2cellMatrix,alpha_gj)
 
+        alpha_zero = list(*(alpha_ave == 0).nonzero())
+
+        alpha_ave[alpha_zero] = 1
+
+        # if len(alpha_zero) == 0:
         self.P_cells = self.P_cells*(1/alpha_ave)
 
     def eosmosis(self,cells,p):
@@ -2927,6 +2931,9 @@ class Simulator(object):
 
     def initDenv(self,cells,p):
 
+        self.D_env_u = np.zeros((self.D_env.shape[0],cells.grid_obj.u_shape[0],cells.grid_obj.u_shape[1]))
+        self.D_env_v = np.zeros((self.D_env.shape[0],cells.grid_obj.v_shape[0],cells.grid_obj.v_shape[1]))
+
         for i, dmat in enumerate(self.D_env):
 
             if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
@@ -2944,44 +2951,49 @@ class Simulator(object):
 
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
-            dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj
+            # dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj
             dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type == True:
                 Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.X,cells.Y),method='linear',fill_value=self.D_free[i])
-
-                Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=self.D_free[i])
-
-                Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
+                    (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
 
             else:
                 Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.X,cells.Y),method='linear',fill_value=0)
+                    (cells.X,cells.Y),method='nearest',fill_value=0)
 
-                Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=0)
-
-                Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=0)
-
-            # smooth things out a bit:
-            # Denv_o = fd.integrator(Denv_o)
+            Denv_o = Denv_o.ravel()
+            Denv_o[cells.inds_env] = self.D_free[i]
 
             # create an ecm diffusion grid filled with the environmental values
-            self.D_env[i] = Denv_o.ravel()
+            self.D_env[i] = Denv_o
 
         # create a matrix that weights the relative transport efficiency in the world space:
         D_env_weight = self.D_env[0]/self.D_env[0].max()
         self.D_env_weight = D_env_weight.reshape(cells.X.shape)
         self.D_env_weight_base = np.copy(self.D_env_weight)
 
-        self.D_env_weight_u = Denv_u/Denv_u.max()
+        for i, dmat in enumerate(self.D_env):
 
-        self.D_env_weight_v = Denv_v/Denv_v.max()
+            if p.env_type == True:
+
+                self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = self.D_free[i])
+
+                self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=self.D_free[i])
+
+            else:
+                self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+
+                self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
+
+        self.D_env_weight_u = self.D_env_u[0]/self.D_env_u[0].max()
+
+        self.D_env_weight_v = self.D_env_v[0]/self.D_env_v[0].max()
 
         if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
 
@@ -2994,18 +3006,6 @@ class Simulator(object):
             self.D_env_weight_v[:,-1] = 0
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
-
-        else:
-
-            self.D_env_weight_u[:,0] = self.D_env_weight_u[:,1]
-            self.D_env_weight_u[:,-1] =  self.D_env_weight_u[:,-2]
-            self.D_env_weight_u[0,:] =  self.D_env_weight_u[1,:]
-            self.D_env_weight_u[-1,:] =  self.D_env_weight_u[-2,:]
-
-            self.D_env_weight_v[:,0] =  self.D_env_weight_v[:,1]
-            self.D_env_weight_v[:,-1] = self.D_env_weight_v[:,-2]
-            self.D_env_weight_v[0,:] = self.D_env_weight_v[1,:]
-            self.D_env_weight_v[-1,:] = self.D_env_weight_v[-2,:]
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -3508,9 +3508,10 @@ def vertData(data, cells, p):
     verts_data = np.dot(data,cells.matrixMap2Verts)
     plot_data = np.hstack((data,verts_data))
 
-    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), fill_value=0)
+    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), method='nearest',
+                               fill_value=0)
     #
-    # dat_grid = np.multiply(dat_grid,cells.maskM)
+    dat_grid = np.multiply(dat_grid,cells.maskM)
 
     return dat_grid
 

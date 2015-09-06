@@ -832,13 +832,38 @@ class World(object):
         self.bL_k = list(points_tree.query(bL_pts))[1]
         self.bR_k = list(points_tree.query(bR_pts))[1]
 
-        # # Create a matrix to update ecm from mem fluxes
-        self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
+        #-----------------------------------------------------------
+        # create structures for plotting interpolated data on cell centres:
+        xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
+        ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
 
-        for i, ecm_index in enumerate(self.map_mem2ecm):
-            self.ecm_UpdateMatrix[i,ecm_index] = 1
+        xv = np.linspace(self.xmin,self.xmax,self.msize)
+        yv = np.linspace(self.ymin,self.ymax,self.msize)
 
+        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+
+        mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
+
+        # interpolate the cluster mask -- this is intentionally x-y opposite because
+        # the rectbivariatespline is reflecting things along the diagonal!
+        self.maskM = mask_interp.ev(self.xypts[:,1],self.xypts[:,0])
+
+        self.maskM = self.maskM.reshape(self.Xgrid.shape)
+
+        self.maskM = np.round(self.maskM,0)
+        self.maskM = self.maskM.astype(int)
+
+        self.inds_env = list(*(self.maskM.ravel() == 0).nonzero())
+
+        #-------------------------------------------------------------------------
         if p.sim_ECM == True:
+
+            # Create a matrix to update ecm from mem fluxes
+
+            self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
+
+            for i, ecm_index in enumerate(self.map_mem2ecm):
+                self.ecm_UpdateMatrix[i,ecm_index] = 1
 
             loggers.log_info('Creating environmental Poisson solver for voltage...')
             self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
@@ -977,22 +1002,7 @@ class World(object):
 
         self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
-        # xv = np.linspace(self.xmin,self.xmax,self.msize)
-        # yv = np.linspace(self.ymin,self.ymax,self.msize)
-        # Xv, Yv = np.meshgrid(xv,yv)
-        #
-        # xyv_pts = np.column_stack((Xv.ravel(),Yv.ravel()))
 
-
-
-
-
-        # mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
-        #
-        # # interpret the value of extracellular electric field components at the centre of each membrane:
-        # self.maskM = mask_interp.ev(self.Xgrid.ravel(),self.Ygrid.ravel())
-        #
-        # self.maskM = self.maskM.reshape(self.Xgrid.shape)
 
         # do gj stuff as we need it for later:
         self.gj_stuff(p)
@@ -1111,9 +1121,8 @@ class World(object):
 
         # profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
         profile_names = dyna.tissue_profile_names
-        new_nn_i = []
-        new_nn_vects = []
-        removal_flags = np.zeros(len(self.nn_index))
+
+        flag_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
         for name in profile_names:
 
@@ -1123,44 +1132,69 @@ class World(object):
             # step through gj's and find cases where connection is split between cells in different tissues:
             if insular_flag == True:
 
-                for i, ind_pair in enumerate(self.gap_jun_i):
+                for i, inds in enumerate(self.cell_nn):
 
-                    ind_a = ind_pair[0]
-                    ind_b = ind_pair[1]
-                    check_a = len(list(*(cell_targets == ind_a).nonzero()))
-                    check_b = len(list(*(cell_targets == ind_b).nonzero()))
+                    # see if the cell is in the tissue region:
+                    check_a = int(i in cell_targets)
 
-                    if check_a != check_b:
-                        removal_flags[i] = 1.0
+                    # check and see if the cell's neighbours are in the tissue region:
+                    for ind_b in inds:
 
-        for i, (flag, ind_pair) in enumerate(zip(removal_flags,self.nn_i)):
+                        check_b = int(ind_b in cell_targets)
 
-            nn_vects = self.nn_vects[i,:]
+                        if check_a != check_b: # if both cells are not in or out of the region:
+                            flag_cell_nn[i].append(ind_b)
 
-            if flag == 0:
-                new_nn_i.append(ind_pair)
-                new_nn_vects.append(nn_vects)
+        new_cell_nn = [ [] for x in range(0,len(self.cell_i))]
 
-        self.nn_i = np.asarray(new_nn_i)
-        self.nn_vects = np.asarray(new_nn_vects)
+        for i, flags in enumerate(flag_cell_nn):
 
+            neighs = self.cell_nn[i]  # get a list of all current neighbours to this cell
 
+            for cell in neighs:
+
+                if cell not in flags:  # if the cell is not in the removal list
+
+                    new_cell_nn[i].append(cell)
+
+        self.cell_nn = np.asarray(new_cell_nn)
+        # next, re-calc list of non-unique nn pairs for each cell
+        self.nn_i = []
+
+        nn_x = []
+        nn_y = []
+        nn_tx = []
+        nn_ty = []
+
+        self.nn_len = []
+
+        for i, inds in enumerate(self.cell_nn):
+
+            for j in inds:
+
+                pt1 = self.cell_centres[i]
+                pt2 = self.cell_centres[j]
+
+                mid = (pt1 + pt2)/2       # midpoint calculation
+                tang_a = pt2 - pt1       # tangent
+                tang = tang_a/np.linalg.norm(tang_a)
+                nn_x.append(mid[0])
+                nn_y.append(mid[1])
+                nn_tx.append(tang[0])
+                nn_ty.append(tang[1])
+
+                length = np.sqrt(tang_a[0]**2 + tang_a[1]**2)
+
+                self.nn_len.append(length)
+
+                self.nn_i.append([i,j])
+
+        self.nn_i = np.asarray(self.nn_i)
+
+        self.nn_vects = np.array([nn_x,nn_y,nn_tx,nn_ty]).T
+
+        # now that basics are done, do the remaining calculations for gap junctions:
         self.gj_stuff(p)
-
-        # create structures for plotting interpolated data on cell centres:
-        xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
-        ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
-        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-
-        mask_interp = np.ones(len(self.mem_i))
-        # mask_interp[self.map_cell2ecm] = 1
-        # mask_interp[self.map_mem2ecm] = 1
-
-        # self.maskM = mask_interp.reshape(self.Xgrid.shape)
-
-        self.maskM = interp.griddata((self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),
-                                     mask_interp,(self.Xgrid,self.Ygrid),fill_value=0)
-
 
     def gj_stuff(self,p):
 

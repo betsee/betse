@@ -574,6 +574,7 @@ class Dynamics(object):
             cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
             cells.maskM = cells.maskM_temp[:]
+            cells.inds_env = cells.inds_env_temp[:]
 
         if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
 
@@ -818,7 +819,7 @@ class Dynamics(object):
 
                 if designation == 'cavity':
 
-                    removeCells(name,target_method,sim,cells,p,cavity_volume=True)
+                    removeCells(name,target_method,sim,cells,p)
                     cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
@@ -1101,13 +1102,24 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     # recreate structures for plotting interpolated data on cell centres:
     xgrid = np.linspace(cells.xmin,cells.xmax,p.grid_size)
     ygrid = np.linspace(cells.ymin,cells.ymax,p.grid_size)
+
+    xv = np.linspace(cells.xmin,cells.xmax,cells.msize)
+    yv = np.linspace(cells.ymin,cells.ymax,cells.msize)
+
     cells.Xgrid, cells.Ygrid = np.meshgrid(xgrid,ygrid)
 
-    mask_interp = np.ones(len(cells.mem_i))
-    mask_interp[target_inds_mem] = 0
+    mask_interp = interp.RectBivariateSpline(xv,yv,cells.cluster_mask)
 
-    cells.maskM_temp = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
-                                 mask_interp,(cells.Xgrid,cells.Ygrid),fill_value=0)
+    # interpolate the cluster mask -- this is intentionally x-y opposite because
+    # the rectbivariatespline is reflecting things along the diagonal!
+    cells.maskM = mask_interp.ev(cells.xypts[:,1],cells.xypts[:,0])
+
+    cells.maskM = cells.maskM.reshape(cells.Xgrid.shape)
+
+    cells.maskM = np.round(cells.maskM,0)
+    cells.maskM_temp = cells.maskM.astype(int)
+
+    cells.inds_env_temp = list(*(cells.maskM.ravel() == 0).nonzero())
 
 
     if p.sim_ECM == True:
@@ -1133,8 +1145,24 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         sim.D_env_weight = D_env_weight.reshape(cells.X.shape)
         sim.D_env_weight_base = np.copy(sim.D_env_weight)
 
-        sim.D_env_weight_u[:,0:-1] = sim.D_env_weight[:,:]
-        sim.D_env_weight_v[0:-1,:] = sim.D_env_weight[:,:]
+        if p.env_type == True:
+
+            sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+                (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 1)
+
+            sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+                (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=1)
+
+        else:
+
+            sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+                (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+
+            sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+                (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=0)
+
+        # sim.D_env_weight_u[:,0:-1] = sim.D_env_weight[:,:]
+        # sim.D_env_weight_v[0:-1,:] = sim.D_env_weight[:,:]
 
         if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
 
@@ -1147,19 +1175,6 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
             sim.D_env_weight_v[:,-1] = 0
             sim.D_env_weight_v[0,:] = 0
             sim.D_env_weight_v[-1,:] = 0
-
-        else:
-
-            sim.D_env_weight_u[:,0] = sim.D_env_weight_u[:,1]
-            sim.D_env_weight_u[:,-1] =  sim.D_env_weight_u[:,-2]
-            sim.D_env_weight_u[0,:] =  sim.D_env_weight_u[1,:]
-            sim.D_env_weight_u[-1,:] =  sim.D_env_weight_u[-2,:]
-
-            sim.D_env_weight_v[:,0] =  sim.D_env_weight_v[:,1]
-            sim.D_env_weight_v[:,-1] = sim.D_env_weight_v[:,-2]
-            sim.D_env_weight_v[0,:] = sim.D_env_weight_v[1,:]
-            sim.D_env_weight_v[-1,:] = sim.D_env_weight_v[-2,:]
-
 
     # set up the situation to make cells joined to cut cells have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))

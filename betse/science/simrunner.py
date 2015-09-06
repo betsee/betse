@@ -341,7 +341,7 @@ class SimRunner(object):
 
             plt.figure()
             ax99 = plt.subplot(111)
-            plt.imshow(np.log10(sim.D_env_weight_u.reshape(cells.grid_obj.u_shape)),origin='lower',
+            plt.imshow(np.log10(sim.D_env_weight.reshape(cells.X.shape)),origin='lower',
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
 
@@ -352,6 +352,14 @@ class SimRunner(object):
 
             plt.title('Logarithm of Environmental Diffusion Weight Matrix')
             plt.show(block =False)
+
+            plt.figure()
+            plt.imshow(cells.maskM,origin='lower',
+                       extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+            plt.colorbar()
+            plt.title('Cluster Masking Matrix')
+            plt.show(block=False)
+
 
         plt.show()
 
@@ -809,9 +817,15 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         ucellso = sim.u_cells_x_time[-1]
         vcellso = sim.u_cells_y_time[-1]
 
-        ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ucellso,(cells.X,cells.Y), fill_value=0)
+        ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                                 ucellso,(cells.X,cells.Y), fill_value=0)
 
-        vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),vcellso,(cells.X,cells.Y), fill_value=0)
+        ucells = ucells*cells.maskM
+
+        vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                                 vcellso,(cells.X,cells.Y), fill_value=0)
+
+        vcells = vcells*cells.maskM
 
         Ucells = np.sqrt(ucells**2 + vcells**2)*1e9
 

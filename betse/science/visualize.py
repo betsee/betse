@@ -343,7 +343,8 @@ class AnimateCellData_smoothed(object):
             self.cmin = clrMin
             self.cmax = clrMax
 
-        dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),zdata_t[0],(cells.Xgrid,cells.Ygrid))
+        dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),zdata_t[0],
+                                        (cells.Xgrid,cells.Ygrid),method='nearest')
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -410,7 +411,7 @@ class AnimateCellData_smoothed(object):
     def aniFunc(self,i):
 
         dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),self.zdata_t[i],
-            (self.cells.Xgrid,self.cells.Ygrid))
+            (self.cells.Xgrid,self.cells.Ygrid),method='nearest')
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
@@ -666,7 +667,8 @@ class AnimateGJData_smoothed(object):
         self.collection.set_clim(0.0,1.0)
         self.ax.add_collection(self.collection)
 
-        dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.vdata_t[0],(cells.Xgrid,cells.Ygrid))
+        dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.vdata_t[0],
+                                        (cells.Xgrid,cells.Ygrid), method='nearest')
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -750,7 +752,7 @@ class AnimateGJData_smoothed(object):
         self.collection.set_array(zz)
 
         dat_grid = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),zv,
-            (self.cells.Xgrid,self.cells.Ygrid))
+            (self.cells.Xgrid,self.cells.Ygrid),method='nearest')
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
@@ -830,7 +832,7 @@ class PlotWhileSolving(object):
             else:
 
                 dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
-                    (cells.Xgrid,cells.Ygrid),fill_value=0)
+                    (cells.Xgrid,cells.Ygrid),fill_value=0,method='nearest')
 
                 dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -888,7 +890,7 @@ class PlotWhileSolving(object):
                 self.coll2.set_array(zv)
             else:
                 dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),
-                    sim.vm_time[-1]*1000,(self.cells.Xgrid,self.cells.Ygrid),fill_value=0)
+                    sim.vm_time[-1]*1000,(self.cells.Xgrid,self.cells.Ygrid),fill_value=0,method='nearest')
                 dat_grid = np.multiply(dat_grid,self.cells.maskM)
                 self.coll2.set_array(dat_grid.ravel())
 
@@ -965,7 +967,7 @@ class PlotWhileSolving(object):
             else:
 
                 dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
-                    (cells.Xgrid,cells.Ygrid),fill_value=0)
+                    (cells.Xgrid,cells.Ygrid),fill_value=0,method='nearest')
 
                 # dat_grid = np.multiply(dat_grid,cells.maskM)
                 #
@@ -1217,10 +1219,10 @@ class AnimateEfield(object):
         elif p.ani_Efield_type == 'GJ' or p.sim_ECM == False:
 
             E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0)
+            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0,method='nearest')
 
             E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0)
+                sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0,method='nearest')
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
             self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
@@ -1280,10 +1282,10 @@ class AnimateEfield(object):
         elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM == False:
 
             E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-            self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0)
+            self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
 
             E_gj_y = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                self.sim.efield_gj_y_time[i],(self.cells.X,self.cells.Y), fill_value=0)
+                self.sim.efield_gj_y_time[i],(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 
@@ -1342,9 +1344,15 @@ class AnimateVelocity(object):
             ugjx = sim.u_cells_x_time[0]
             ugjy = sim.u_cells_y_time[0]
 
-            v_gj_x = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjx,(cells.X,cells.Y), fill_value=0)
+            v_gj_x = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjx,(cells.X,cells.Y),
+                                          fill_value=0,method='nearest')
 
-            v_gj_y = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjy,(cells.X,cells.Y), fill_value=0)
+            v_gj_x = v_gj_x*cells.maskM
+
+            v_gj_y = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjy,(cells.X,cells.Y),
+                                          fill_value=0,method='nearest')
+
+            v_gj_y = v_gj_y*cells.maskM
 
             vfield = np.sqrt(v_gj_x**2 + v_gj_y**2)*1e9
 
@@ -1410,10 +1418,14 @@ class AnimateVelocity(object):
             ugjy = self.sim.u_cells_y_time[i]
 
             u_gj_x = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
-            ugjx,(self.cells.X,self.cells.Y), fill_value=0)
+            ugjx,(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
+
+            u_gj_x = u_gj_x*self.cells.maskM
 
             u_gj_y = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
-                ugjy,(self.cells.X,self.cells.Y), fill_value=0)
+                ugjy,(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
+
+            u_gj_y = u_gj_y*self.cells.maskM
 
             vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
 
@@ -1505,10 +1517,10 @@ class AnimateDyeData(object):
             if p.IecmPlot == False:
 
                 dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                    sim.Dye_flux_x_gj_time[0],(self.cells.X,self.cells.Y),fill_value=0)
+                    sim.Dye_flux_x_gj_time[0],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
 
                 dye_fy = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                    sim.Dye_flux_y_gj_time[0],(self.cells.X,self.cells.Y),fill_value=0)
+                    sim.Dye_flux_y_gj_time[0],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
 
                 Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
 
@@ -1615,10 +1627,10 @@ class AnimateDyeData(object):
             if self.IecmPlot == False:
 
                 dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                    self.sim.Dye_flux_x_gj_time[i],(self.cells.X,self.cells.Y),fill_value=0)
+                    self.sim.Dye_flux_x_gj_time[i],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
 
                 dye_fy = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                    self.sim.Dye_flux_y_gj_time[i],(self.cells.X,self.cells.Y),fill_value=0)
+                    self.sim.Dye_flux_y_gj_time[i],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
 
                 Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
 
@@ -2017,7 +2029,8 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
 
         ax.axis([xmin,xmax,ymin,ymax])
 
-        dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),z,(cells.Xgrid,cells.Ygrid))
+        dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),z,
+                                        (cells.Xgrid,cells.Ygrid),method='nearest')
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -2088,10 +2101,10 @@ def plotEfield(sim,cells,p):
     elif p.plot_Efield_type == 'GJ' or p.sim_ECM == False:
 
         E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0)
+            sim.efield_gj_x_time[-1],(cells.X,cells.Y), method='nearest',fill_value=0)
 
         E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0)
+            sim.efield_gj_y_time[-1],(cells.X,cells.Y), method='nearest',fill_value=0)
 
         efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 

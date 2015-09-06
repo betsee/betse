@@ -17,6 +17,7 @@ import numpy as np
 import math
 import matplotlib.cm as cm
 import os
+from collections import OrderedDict
 
 # Parses the configuration file to define basic class holding all simulation variables
 class Parameters(object):
@@ -302,8 +303,8 @@ class Parameters(object):
         self.boundary_profile_number = int(self.config['number of boundary profiles'])
         self.default_tissue_name = self.config['default tissue name']
 
-        self.tissue_profiles = {}
-        self.boundary_profiles = {}
+        self.tissue_profiles = OrderedDict()
+        self.boundary_profiles = OrderedDict()
 
         self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
 
@@ -1079,7 +1080,7 @@ class Parameters(object):
 
             if self.sim_ECM == False:
 
-                self.dt = 5e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 1e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 
@@ -1090,7 +1091,7 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 5.0e-4    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 1.0e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 
@@ -1133,9 +1134,9 @@ class Parameters(object):
 
             if self.sim_ECM == False:
 
-                self.dt = 5.0e-2    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
-                self.resamp = 1.0         # time to resample in world time
+                self.resamp = 0.1         # time to resample in world time
 
                 self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
@@ -1146,9 +1147,9 @@ class Parameters(object):
 
             elif self.sim_ECM == True:
 
-                self.dt = 5.0e-4    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
-                self.resamp = 1.0         # time to resample in world time
+                self.resamp = 0.1         # time to resample in world time
 
                 self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
