@@ -360,6 +360,20 @@ class SimRunner(object):
             plt.title('Cluster Masking Matrix')
             plt.show(block=False)
 
+        # plot gj
+        fig_x = plt.figure()
+        ax_x = plt.subplot(111)
+        con_segs = cells.cell_centres[cells.nn_i]
+        connects = p.um*np.asarray(con_segs)
+        collection = LineCollection(connects)
+        ax_x.add_collection(collection)
+        plt.axis('equal')
+        plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
+
+        ax_x.set_xlabel('Spatial x [um]')
+        ax_x.set_ylabel('Spatial y [um')
+        ax_x.set_title('Cell Connectivity Network')
+
 
         plt.show()
 

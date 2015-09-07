@@ -540,11 +540,44 @@ class Dynamics(object):
                 sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
                 sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
-                sim.D_env_weight_u[:,1:] = sim.D_env_weight[:]
-                sim.D_env_weight_u[:,0] = sim.D_env_weight_u[:,1]
+            for i, dmat in enumerate(sim.D_env):
 
-                sim.D_env_weight_v[1:,:] = sim.D_env_weight[:]
-                sim.D_env_weight_v[0,:] = sim.D_env_weight_v[1,:]
+                if p.env_type == True:
+
+                    sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                        (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
+
+                    sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                        (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
+
+                else:
+                    sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                        (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+
+                    sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                        (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
+
+            sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
+
+            sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
+
+            if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+
+                sim.D_env_weight_u[:,0] = 0
+                sim.D_env_weight_u[:,-1] = 0
+                sim.D_env_weight_u[0,:] = 0
+                sim.D_env_weight_u[-1,:] = 0
+
+                sim.D_env_weight_v[:,0] = 0
+                sim.D_env_weight_v[:,-1] = 0
+                sim.D_env_weight_v[0,:] = 0
+                sim.D_env_weight_v[-1,:] = 0
+
+                # sim.D_env_weight_u[:,1:] = sim.D_env_weight[:]
+                # sim.D_env_weight_u[:,0] = sim.D_env_weight_u[:,1]
+                #
+                # sim.D_env_weight_v[1:,:] = sim.D_env_weight[:]
+                # sim.D_env_weight_v[0,:] = sim.D_env_weight_v[1,:]
 
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:
 
@@ -837,77 +870,79 @@ class Dynamics(object):
                 self.tissue_target_inds[name] = getCellTargets(name,target_method, cells, p)
                 self.cell_target_inds[name] = getCellTargets(name,target_method, cells, p, ignoreECM=True)
 
-                if p.sim_ECM == True:
-                    #get ecm targets
+                if len(self.cell_target_inds[name]):
 
-                    ecm_targs_cell = list(cells.map_cell2ecm[self.cell_target_inds[name]])
-                    ecm_targs_mem = list(cells.map_mem2ecm[self.tissue_target_inds[name]])
+                    if p.sim_ECM == True:
+                        #get ecm targets
 
-                    ecm_targs = []
+                        ecm_targs_cell = list(cells.map_cell2ecm[self.cell_target_inds[name]])
+                        ecm_targs_mem = list(cells.map_mem2ecm[self.tissue_target_inds[name]])
 
-                    for v in ecm_targs_cell:
-                        ecm_targs.append(v)
+                        ecm_targs = []
 
-                    for v in ecm_targs_mem:
-                        ecm_targs.append(v)
+                        for v in ecm_targs_cell:
+                            ecm_targs.append(v)
 
-                    self.env_target_inds[name] = ecm_targs
+                        for v in ecm_targs_mem:
+                            ecm_targs.append(v)
 
-                # set the values of Dmems and ecm diffusion based on the identified target indices
-                if p.ions_dict['Na'] == 1:
-                    dNa = dmem_list['Dm_Na']
-                    sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
+                        self.env_target_inds[name] = ecm_targs
 
-                    # if p.sim_ECM == True:
-                    #     sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
+                    # set the values of Dmems and ecm diffusion based on the identified target indices
+                    if p.ions_dict['Na'] == 1:
+                        dNa = dmem_list['Dm_Na']
+                        sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
-                if p.ions_dict['K'] == 1:
-                    dK = dmem_list['Dm_K']
-                    sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
+                        # if p.sim_ECM == True:
+                        #     sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
 
-                    # if p.sim_ECM == True:
-                    #     sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
+                    if p.ions_dict['K'] == 1:
+                        dK = dmem_list['Dm_K']
+                        sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
 
-                if p.ions_dict['Cl'] == 1:
-                    dCl = dmem_list['Dm_Cl']
-                    sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
+                        # if p.sim_ECM == True:
+                        #     sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
 
-                    # if p.sim_ECM == True:
-                    #     sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
+                    if p.ions_dict['Cl'] == 1:
+                        dCl = dmem_list['Dm_Cl']
+                        sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
-                if p.ions_dict['Ca'] == 1:
-                    dCa = dmem_list['Dm_Ca']
-                    sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
+                        # if p.sim_ECM == True:
+                        #     sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
 
-                    # if p.sim_ECM == True:
-                    #
-                    #     sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
+                    if p.ions_dict['Ca'] == 1:
+                        dCa = dmem_list['Dm_Ca']
+                        sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
-                if p.ions_dict['H'] == 1:
-                    dH = dmem_list['Dm_H']
-                    sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
+                        # if p.sim_ECM == True:
+                        #
+                        #     sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
 
-                    # if p.sim_ECM == True:
-                    #
-                    #     sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
+                    if p.ions_dict['H'] == 1:
+                        dH = dmem_list['Dm_H']
+                        sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
-                if p.ions_dict['M'] == 1:
-                    dM = dmem_list['Dm_M']
-                    sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
+                        # if p.sim_ECM == True:
+                        #
+                        #     sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
 
-                    # if p.sim_ECM == True:
-                    #
-                    #     sim.D_env[sim.iM][self.env_target_inds[name]] = p.Do_M*ecm_val
+                    if p.ions_dict['M'] == 1:
+                        dM = dmem_list['Dm_M']
+                        sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
 
-                if p.ions_dict['P'] == 1:
-                    dP = dmem_list['Dm_P']
-                    sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+                        # if p.sim_ECM == True:
+                        #
+                        #     sim.D_env[sim.iM][self.env_target_inds[name]] = p.Do_M*ecm_val
 
-                    # if p.sim_ECM == True:
-                    #
-                    #     sim.D_env[sim.iP][self.env_target_inds[name]] = p.Do_P*ecm_val
-                    #     # sim.D_env[sim.iP][ecm_targs_mem] = p.Do_P*ecm_val
-                    #     # sim.D_env[sim.iP][ecm_targs_cell] = p.Do_P*ecm_val
+                    if p.ions_dict['P'] == 1:
+                        dP = dmem_list['Dm_P']
+                        sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+
+                        # if p.sim_ECM == True:
+                        #
+                        #     sim.D_env[sim.iP][self.env_target_inds[name]] = p.Do_P*ecm_val
+                        #     # sim.D_env[sim.iP][ecm_targs_mem] = p.Do_P*ecm_val
+                        #     # sim.D_env[sim.iP][ecm_targs_cell] = p.Do_P*ecm_val
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
@@ -956,7 +991,7 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
                     bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
                     target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
 
-                    if p.sim_ECM == True and ignoreECM == False:
+                    if p.sim_ECM == True and ignoreECM == False and len(target_inds):
 
                         target_inds = cells.cell_to_mems[target_inds]
                         target_inds,_,_ = tb.flatten(target_inds)
@@ -1100,21 +1135,22 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
     # recreate structures for plotting interpolated data on cell centres:
-    xgrid = np.linspace(cells.xmin,cells.xmax,p.grid_size)
-    ygrid = np.linspace(cells.ymin,cells.ymax,p.grid_size)
+    # xgrid = np.linspace(cells.xmin,cells.xmax,p.grid_size)
+    # ygrid = np.linspace(cells.ymin,cells.ymax,p.grid_size)
 
     xv = np.linspace(cells.xmin,cells.xmax,cells.msize)
     yv = np.linspace(cells.ymin,cells.ymax,cells.msize)
 
-    cells.Xgrid, cells.Ygrid = np.meshgrid(xgrid,ygrid)
+    cells.Xgrid = cells.X
+    cells.Ygrid = cells.Y
 
     mask_interp = interp.RectBivariateSpline(xv,yv,cells.cluster_mask)
 
     # interpolate the cluster mask -- this is intentionally x-y opposite because
-    # the rectbivariatespline is reflecting things along the diagonal!
+    # FIXME the rectbivariatespline is reflecting things along the diagonal!
     cells.maskM = mask_interp.ev(cells.xypts[:,1],cells.xypts[:,0])
 
-    cells.maskM = cells.maskM.reshape(cells.Xgrid.shape)
+    cells.maskM = cells.maskM.reshape(cells.X.shape)
 
     cells.maskM = np.round(cells.maskM,0)
     cells.maskM_temp = cells.maskM.astype(int)
@@ -1141,28 +1177,30 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         for i in range(0,len(sim.D_env)):
             sim.D_env[i][ecm_targs] = sim.D_free[i]
 
-        D_env_weight = sim.D_env[0]/sim.D_env[0].max()
+        D_env_weight = sim.D_env[sim.iP]/sim.D_env[sim.iP].max()
         sim.D_env_weight = D_env_weight.reshape(cells.X.shape)
         sim.D_env_weight_base = np.copy(sim.D_env_weight)
 
-        if p.env_type == True:
+        for i, dmat in enumerate(sim.D_env):  # redo the MACs grid diffusion matrices:
 
-            sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-                (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 1)
+            if p.env_type == True:
 
-            sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-                (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=1)
+                sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
 
-        else:
+                sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
 
-            sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-                (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+            else:
+                sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
 
-            sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-                (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=0)
+                sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
 
-        # sim.D_env_weight_u[:,0:-1] = sim.D_env_weight[:,:]
-        # sim.D_env_weight_v[0:-1,:] = sim.D_env_weight[:,:]
+        sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
+
+        sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
 
         if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
 
@@ -1175,6 +1213,38 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
             sim.D_env_weight_v[:,-1] = 0
             sim.D_env_weight_v[0,:] = 0
             sim.D_env_weight_v[-1,:] = 0
+
+
+        # if p.env_type == True:
+        #
+        #     sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+        #         (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 1)
+        #
+        #     sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+        #         (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=1)
+        #
+        # else:
+        #
+        #     sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+        #         (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+        #
+        #     sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
+        #         (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=0)
+        #
+        # # sim.D_env_weight_u[:,0:-1] = sim.D_env_weight[:,:]
+        # # sim.D_env_weight_v[0:-1,:] = sim.D_env_weight[:,:]
+        #
+        # if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+        #
+        #     sim.D_env_weight_u[:,0] = 0
+        #     sim.D_env_weight_u[:,-1] = 0
+        #     sim.D_env_weight_u[0,:] = 0
+        #     sim.D_env_weight_u[-1,:] = 0
+        #
+        #     sim.D_env_weight_v[:,0] = 0
+        #     sim.D_env_weight_v[:,-1] = 0
+        #     sim.D_env_weight_v[0,:] = 0
+        #     sim.D_env_weight_v[-1,:] = 0
 
     # set up the situation to make cells joined to cut cells have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
@@ -1202,13 +1272,13 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
             for i,dmat_a in enumerate(sim.Dm_cells):
 
-                sim.Dm_cells[i][mem_flags] = hurt_level*dmat_a[mem_flags]
+                sim.Dm_cells[i][mem_flags] = hurt_level*sim.D_free[i]
 
         else:
 
             for i, dmat_a in enumerate(sim.Dm_cells):
 
-                sim.Dm_cells[i][hurt_inds] = hurt_level*dmat_a[hurt_inds]
+                sim.Dm_cells[i][hurt_inds] = hurt_level*sim.D_free[i]
 
         # copy the Dm to the base:
 

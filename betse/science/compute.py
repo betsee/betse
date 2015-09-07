@@ -372,6 +372,7 @@ class Simulator(object):
         self.movingIons = []            # moving ions indices
         self.ionlabel = {}              # dictionary to hold ion label names
         self.c_env_bound = []           # moving ion concentration at global boundary
+        self.Dtj_rel = []               # relative diffusion constants for ions across tight junctions
 
         self.T = p.T                # set the base temperature for the simulation
 
@@ -491,6 +492,7 @@ class Simulator(object):
                     self.D_env.append(vars(self)[str_Denv])
                     self.D_gj.append(vars(self)[str_Dgj])
                     self.D_free.append(p.free_diff[name])
+                    self.Dtj_rel.append(p.Dtj_rel[name])
 
                     self.fluxes_gj_x.append(self.flx_gj_i)
                     self.fluxes_gj_y.append(self.flx_gj_i)
@@ -568,6 +570,7 @@ class Simulator(object):
             DgjH = np.zeros(len(cells.nn_i))
             DgjH[:] = p.free_diff['H']
 
+
             self.c_env_bound.append(p.env_concs['H'])
 
             self.cc_cells.append(self.cH_cells)
@@ -580,6 +583,7 @@ class Simulator(object):
             self.D_env.append(DenvH)
             self.D_gj.append(DgjH)
             self.D_free.append(p.Do_H)
+            self.Dtj_rel.append(p.Dtj_rel['H'])
 
             self.fluxes_gj_x.append(self.flx_gj_i)
             self.fluxes_gj_y.append(self.flx_gj_i)
@@ -1939,7 +1943,7 @@ class Simulator(object):
             self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
         else:
-            self.gjopen = 1 + self.gj_rho
+            self.gjopen = (1 + self.gj_rho)*self.gj_block
 
 
         # voltage gradient:
@@ -2781,9 +2785,11 @@ class Simulator(object):
 
             alpha_zero = list(*(alpha.ravel() == 0).nonzero())
 
-            if len(alpha_zero) == 0:
+            # if len(alpha_zero) == 0:
+            #
+            #     self.P_env = P[:]*(1/alpha)
 
-                self.P_env = P[:]*(1/alpha)
+            self.P_env = P[:]
 
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
@@ -2846,7 +2852,6 @@ class Simulator(object):
 
         alpha_ave[alpha_zero] = 1
 
-        # if len(alpha_zero) == 0:
         self.P_cells = self.P_cells*(1/alpha_ave)
 
     def eosmosis(self,cells,p):
@@ -2950,9 +2955,9 @@ class Simulator(object):
             all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
 
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
-            dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
-            # dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj
-            dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
+            dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type == True:
@@ -2970,7 +2975,7 @@ class Simulator(object):
             self.D_env[i] = Denv_o
 
         # create a matrix that weights the relative transport efficiency in the world space:
-        D_env_weight = self.D_env[0]/self.D_env[0].max()
+        D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
         self.D_env_weight = D_env_weight.reshape(cells.X.shape)
         self.D_env_weight_base = np.copy(self.D_env_weight)
 
@@ -2991,9 +2996,9 @@ class Simulator(object):
                 self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                     (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
 
-        self.D_env_weight_u = self.D_env_u[0]/self.D_env_u[0].max()
+        self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
 
-        self.D_env_weight_v = self.D_env_v[0]/self.D_env_v[0].max()
+        self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
 
         if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
 

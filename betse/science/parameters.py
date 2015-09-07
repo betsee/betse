@@ -147,6 +147,18 @@ class Parameters(object):
 
         self.D_adh = float(self.config['world variables']['adherens junction scaling'])
 
+        # tight junction relative ion movement properties:
+        self.Dtj_rel = {}  # use a dictionary to hold the tj values:
+
+        self.Dtj_rel['Na']=float(self.config['world variables']['tight junction relative diffusion']['Na'])
+        self.Dtj_rel['K']=float(self.config['world variables']['tight junction relative diffusion']['K'])
+        self.Dtj_rel['Cl']=float(self.config['world variables']['tight junction relative diffusion']['Cl'])
+        self.Dtj_rel['Ca']=float(self.config['world variables']['tight junction relative diffusion']['Ca'])
+        self.Dtj_rel['M']=float(self.config['world variables']['tight junction relative diffusion']['M'])
+        self.Dtj_rel['P']=float(self.config['world variables']['tight junction relative diffusion']['P'])
+        self.Dtj_rel['H']=float(self.config['world variables']['tight junction relative diffusion']['H'])
+
+
         # default membrane diffusion constants: easy control of cell's base resting potential
         self.Dm_Na = float(self.config['base tissue properties']['Dm_Na'])     # sodium [m2/s]
         self.Dm_K = float(self.config['base tissue properties']['Dm_K'])     #  potassium [m2/s]
@@ -187,6 +199,7 @@ class Parameters(object):
 
         self.dynamic_noise = self.config['general options']['dynamic noise']
         self.dynamic_noise_level = float(self.config['general options']['dynamic noise level'])
+
 
         #---------------------------------------------------------------------------------------------------------------
         # Global Interventions
@@ -448,8 +461,8 @@ class Parameters(object):
         else:
             cut_time = 0.0 # time event happens
             apply_to = self.config['cutting event']['apply to']    # tissue profile to apply this to
-            dangling_gj = self.config['cutting event']['dangling gap junctions']  # does the cut produce env open cells?
-            hurt_level = self.config['cutting event']['hurt level']
+            dangling_gj = self.config['cutting event']['damaged membranes']  # does the cut produce env open cells?
+            hurt_level = float(self.config['cutting event']['hurt level'])
             cuts_params = [cut_time, apply_to, dangling_gj,hurt_level]
             self.scheduled_options['cuts'] = cuts_params
 
@@ -538,7 +551,7 @@ class Parameters(object):
 
         bool_CICR = bool(self.config['Ca dynamics']['turn on'])
         bool_calReg = bool(self.config['Ca dynamics']['include']['calcium regulation'])
-        bool_frequMod = bool(self.config['Ca dynamics']['include']['frequency modulation by IP3'])
+        bool_frequMod = False  # FIXME temporarily disabled
 
         camid = float(cdp['CICR Ca peak'])
         cawidth = float(cdp['CICR Ca width'])

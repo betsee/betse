@@ -834,13 +834,15 @@ class World(object):
 
         #-----------------------------------------------------------
         # create structures for plotting interpolated data on cell centres:
-        xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
-        ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
+        # xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
+        # ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
 
         xv = np.linspace(self.xmin,self.xmax,self.msize)
         yv = np.linspace(self.ymin,self.ymax,self.msize)
 
-        self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+        # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
+        self.Xgrid = self.X
+        self.Ygrid = self.Y
 
         mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
 
@@ -848,7 +850,7 @@ class World(object):
         # the rectbivariatespline is reflecting things along the diagonal!
         self.maskM = mask_interp.ev(self.xypts[:,1],self.xypts[:,0])
 
-        self.maskM = self.maskM.reshape(self.Xgrid.shape)
+        self.maskM = self.maskM.reshape(self.X.shape)
 
         self.maskM = np.round(self.maskM,0)
         self.maskM = self.maskM.astype(int)
