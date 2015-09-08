@@ -666,80 +666,6 @@ class Simulator(object):
         if p.sim_ECM == True:
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
-            # for i, dmat in enumerate(self.D_env):
-            #
-            #     if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
-            #         self.D_env[i][:] = 0
-            #     # for all cells and mems in the cluster, set the internal diffusion constant for adherens junctions:
-            #     dummyMems = np.ones(len(cells.mem_i))*self.D_free[i]*p.D_adh
-            #
-            #     # get a list of all membranes for boundary cells:
-            #     all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
-            #     all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
-            #
-            #     # set external membrane of boundary cells to the diffusion constant of tight junctions:
-            #     dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj
-            #     dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj
-            #
-            #     # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-            #     if p.env_type == True:
-            #         Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-            #             (cells.X,cells.Y),method='linear',fill_value=self.D_free[i])
-            #
-            #         Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-            #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=self.D_free[i])
-            #
-            #         Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-            #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
-            #
-            #     else:
-            #         Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-            #             (cells.X,cells.Y),method='linear',fill_value=0)
-            #
-            #         Denv_u = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-            #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value=0)
-            #
-            #         Denv_v = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-            #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=0)
-            #
-            #     #smooth things out a bit:
-            #     # Denv_o = fd.integrator(Denv_o)
-            #
-            #     # create an ecm diffusion grid filled with the environmental values
-            #     self.D_env[i] = Denv_o.ravel()
-            #
-            # # create a matrix that weights the relative transport efficiency in the world space:
-            # D_env_weight = self.D_env[0]/self.D_env[0].max()
-            # self.D_env_weight = D_env_weight.reshape(cells.X.shape)
-            # self.D_env_weight_base = np.copy(self.D_env_weight)
-            #
-            # self.D_env_weight_u = Denv_u/Denv_u.max()
-            #
-            # self.D_env_weight_v = Denv_v/Denv_v.max()
-            #
-            # if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
-            #
-            #     self.D_env_weight_u[:,0] = 0
-            #     self.D_env_weight_u[:,-1] = 0
-            #     self.D_env_weight_u[0,:] = 0
-            #     self.D_env_weight_u[-1,:] = 0
-            #
-            #     self.D_env_weight_v[:,0] = 0
-            #     self.D_env_weight_v[:,-1] = 0
-            #     self.D_env_weight_v[0,:] = 0
-            #     self.D_env_weight_v[-1,:] = 0
-            #
-            # else:
-            #
-            #     self.D_env_weight_u[:,0] = self.D_env_weight_u[:,1]
-            #     self.D_env_weight_u[:,-1] =  self.D_env_weight_u[:,-2]
-            #     self.D_env_weight_u[0,:] =  self.D_env_weight_u[1,:]
-            #     self.D_env_weight_u[-1,:] =  self.D_env_weight_u[-2,:]
-            #
-            #     self.D_env_weight_v[:,0] =  self.D_env_weight_v[:,1]
-            #     self.D_env_weight_v[:,-1] = self.D_env_weight_v[:,-2]
-            #     self.D_env_weight_v[0,:] = self.D_env_weight_v[1,:]
-            #     self.D_env_weight_v[-1,:] = self.D_env_weight_v[-2,:]
 
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
@@ -768,7 +694,7 @@ class Simulator(object):
         self.Dm_vg[:] = 0
 
         # if p.Ca_dyn == True:
-            # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
+        # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
 
@@ -778,6 +704,9 @@ class Simulator(object):
         self.Dm_er_CICR[:] = 0
 
         self.dcc_ER = []
+
+        self.Dm_morpho = np.copy(Dm_cellsA)
+        self.Dm_morpho[:] = 0
 
         if p.global_options['gj_block'] != 0:
 
@@ -976,17 +905,6 @@ class Simulator(object):
             # self.allDynamics(t,p)  # user-scheduled (forced) interventions
             if p.run_sim == True:
                 self.dyna.runAllDynamics(self,cells,p,t)
-
-             # update membrane permeability if dye targets an ion channel:
-            if p.voltage_dye == True and self.dye_target is not None and p.run_sim ==True:
-
-                if p.Dye_acts_extracell == False:
-
-                    self.Dm_mod_dye = p.Dye_peak_channel*tb.hill(self.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
-
-                    self.Dm_cells[self.dye_target] = self.Dm_mod_dye + self.Dm_base[self.dye_target]
-
-
 
             # run the Na-K-ATPase pump:
             fNa_NaK, fK_NaK = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],
@@ -1452,22 +1370,6 @@ class Simulator(object):
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
             if p.run_sim == True:
                 self.dyna.runAllDynamics(self,cells,p,t)
-
-            # update membrane permeability if dye targets an ion channel:
-            if p.voltage_dye == True and self.dye_target is not None:
-
-                if p.Dye_acts_extracell == False:
-
-                    self.Dm_mod_dye = p.Dye_peak_channel*tb.hill(self.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
-
-                    self.Dm_cells[self.dye_target] = self.Dm_mod_dye[cells.mem_to_cells] + self.Dm_base[self.dye_target]
-
-                elif p.Dye_acts_extracell == True:
-
-                    self.Dm_mod_dye = p.Dye_peak_channel*tb.hill(self.cDye_env,p.Dye_Hill_K,p.Dye_Hill_exp)
-
-                    self.Dm_cells[self.dye_target] = self.Dm_mod_dye[cells.map_mem2ecm] + self.Dm_base[self.dye_target]
-
 
             #-----------------PUMPS-------------------------------------------------------------------------------------
 
@@ -2289,15 +2191,21 @@ class Simulator(object):
 
             denv = denv.reshape(cells.X.shape)
 
-            denv_x = np.zeros(cells.grid_obj.u_shape)
-            denv_y = np.zeros(cells.grid_obj.v_shape)
+            denv_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
+                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = p.Do_Dye)
 
-            # create the proper shape for the diffusion constants and state continuous boundaries:
-            denv_x[:,1:] = denv
-            denv_x[:,0] = denv_x[:,1]
+            denv_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
+                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=p.Do_Dye)
 
-            denv_y[1:,:] = denv
-            denv_y[0,:] = denv_y[1,:]
+            # denv_x = np.zeros(cells.grid_obj.u_shape)
+            # denv_y = np.zeros(cells.grid_obj.v_shape)
+            #
+            # # create the proper shape for the diffusion constants and state continuous boundaries:
+            # denv_x[:,1:] = denv
+            # denv_x[:,0] = denv_x[:,1]
+            #
+            # denv_y[1:,:] = denv
+            # denv_y[0,:] = denv_y[1,:]
 
             # calculate gradients in the environment
             grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')

@@ -640,6 +640,25 @@ class Dynamics(object):
 
             self.calciumDynamics(sim,cells,p)
 
+        # update membrane permeability if dye targets an ion channel:
+        if p.voltage_dye == True and sim.dye_target is not None:
+
+            if p.Dye_acts_extracell == False:
+
+                sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
+
+                if p.sim_ECM == True:
+                    sim.Dm_morpho[self.dye_target] = sim.Dm_mod_dye[cells.mem_to_cells]
+
+                else:
+                    sim.Dm_morpho[self.dye_target] = sim.Dm_mod_dye
+
+            elif p.Dye_acts_extracell == True and p.sim_ECM == True:
+
+                sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_env,p.Dye_Hill_K,p.Dye_Hill_exp)
+
+                sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.map_mem2ecm]
+
     def vgSodium(self,sim,cells,p,t):
 
         # Logic phase 1: find out which cells have activated their vgNa channels
@@ -950,7 +969,7 @@ class Dynamics(object):
 
     def makeAllChanges(self,sim):
         # Add together all effects to make change on the cell membrane permeabilities:
-        sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_base
+        sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_morpho + sim.Dm_base
 
 def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
@@ -1288,7 +1307,8 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
         sim_names = list(sim.__dict__.keys())
         specials_list = ['cc_cells','cc_env','z_array','z_array_er','Dm_cells','fluxes_gj_x','fluxes_gj_y',
-            'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_er_base','Dm_er_CICR','D_gj','cc_er']
+            'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_morpho','Dm_er_base','Dm_er_CICR',
+            'D_gj','cc_er']
 
         if p.sim_ECM == True:
             specials_list.remove('cc_env')

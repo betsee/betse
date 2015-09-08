@@ -333,7 +333,18 @@ class SimRunner(object):
             dyna = Dynamics(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
+        if p.autosave == True:
+
+            images_path = p.sim_results
+            image_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(image_cache_dir, exist_ok=True)
+            savedImg = os.path.join(image_cache_dir, 'fig_')
+
         fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+
+        if p.autosave == True:
+            savename10 = savedImg + 'cluster_mosaic' + '.png'
+            plt.savefig(savename10,format='png')
 
         plt.show(block = False)
 
@@ -351,6 +362,11 @@ class SimRunner(object):
             ax99.add_collection(coll)
 
             plt.title('Logarithm of Environmental Diffusion Weight Matrix')
+
+            if p.autosave == True:
+                savename10 = savedImg + 'env_diffusion_weights' + '.png'
+                plt.savefig(savename10,format='png')
+
             plt.show(block =False)
 
             plt.figure()
@@ -373,6 +389,10 @@ class SimRunner(object):
         ax_x.set_xlabel('Spatial x [um]')
         ax_x.set_ylabel('Spatial y [um')
         ax_x.set_title('Cell Connectivity Network')
+
+        if p.autosave == True:
+            savename10 = savedImg + 'gj_connectivity_network' + '.png'
+            plt.savefig(savename10,format='png')
 
 
         plt.show()
@@ -481,6 +501,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
             plt.colorbar()
             plt.title('Environmental Voltage [mV]')
+
+            if saveImages == True:
+                savename10 = savedImg + 'Final_environmental_V' + '.png'
+                plt.savefig(savename10,format='png')
+
             plt.show(block=False)
 
             plt.figure()
@@ -488,6 +513,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
             plt.colorbar()
             plt.title('Environmental Charge Density [C/m3]')
+
+            if saveImages == True:
+                savename10 = savedImg + 'Final_environmental_charge' + '.png'
+                plt.savefig(savename10,format='png')
+
             plt.show(block =False)
 
             plt.figure()
@@ -502,6 +532,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             ax99.add_collection(coll)
 
             plt.title('Logarithm of Environmental Diffusion Weight Matrix')
+            if saveImages == True:
+                savename10 = savedImg + 'Final_environmental_Diffusion_Weighting (log)' + '.png'
+                plt.savefig(savename10,format='png')
+
             plt.show(block =False)
 
         if p.showCells == True:
@@ -624,15 +658,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             ymax = cells.ymax*p.um
 
             axIP3.axis([xmin,xmax,ymin,ymax])
-
-            # if p.showCells == True:
-            #     figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,
-            #         number_cells=p.enumerate_cells,fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
-            #         clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
-            # else:
-            #      figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,
-            #          number_cells=p.enumerate_cells, fig = figIP3, ax = axIP3, clrAutoscale = p.autoscale_IP3,
-            #          clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
 
 
         axIP3.set_title('Final IP3 concentration')

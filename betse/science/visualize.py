@@ -144,7 +144,7 @@ class AnimateCellData(object):
                 self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
-                self.tit_extra = 'Gap junction and trans-membrane current'
+                self.tit_extra = 'Gap junction current'
 
             elif p.IecmPlot == True:
 
@@ -380,7 +380,7 @@ class AnimateCellData_smoothed(object):
                 self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
-                self.tit_extra = 'Gap junction and trans-membrane current'
+                self.tit_extra = 'Gap junction current'
 
             elif p.IecmPlot == True:
 
@@ -1073,12 +1073,12 @@ class AnimateCurrent(object):
 
             self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-            if p.I_overlay == True:
+            # if p.I_overlay == True:
 
-                self.streamplot = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
-                    linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+            self.streamplot = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
+                linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
-            self.tit = 'Gap junction and trans-membrane current'
+            self.tit = 'Gap junction current'
 
             # set range of the colormap
             if clrAutoscale == True:
@@ -1097,10 +1097,10 @@ class AnimateCurrent(object):
 
             self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-            if p.I_overlay == True:
+            # if p.I_overlay == True:
 
-                self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
-                    linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+            self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
+                linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
             self.tit = 'Extracellular current'
 
@@ -1146,13 +1146,13 @@ class AnimateCurrent(object):
 
             self.meshplot.set_data(Jmag_M)
 
-            if self.p.I_overlay == True:
+            # if self.p.I_overlay == True:
 
-                self.streamplot.lines.remove()
-                self.ax.patches = []
+            self.streamplot.lines.remove()
+            self.ax.patches = []
 
-                self.streamplot = self.ax.streamplot(self.cells.Xgrid*self.p.um,self.cells.Ygrid*self.p.um,J_x,J_y,
-                    density=self.p.stream_density, linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
+            self.streamplot = self.ax.streamplot(self.cells.Xgrid*self.p.um,self.cells.Ygrid*self.p.um,J_x,J_y,
+                density=self.p.stream_density, linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
 
         else:
 
@@ -1165,13 +1165,13 @@ class AnimateCurrent(object):
 
             self.meshplot.set_data(Jmag_M)
 
-            if self.p.I_overlay == True:
+            # if self.p.I_overlay == True:
 
-                self.streamplot.lines.remove()
-                self.ax.patches = []
+            self.streamplot.lines.remove()
+            self.ax.patches = []
 
-                self.streamplot = self.ax.streamplot(self.cells.X*self.p.um,self.cells.Y*self.p.um,J_x,J_y,
-                    density=self.p.stream_density,linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
+            self.streamplot = self.ax.streamplot(self.cells.X*self.p.um,self.cells.Y*self.p.um,J_x,J_y,
+                density=self.p.stream_density,linewidth=lw,color='k',cmap=self.clrmap,arrowsize=1.5)
 
         cmax = np.max(Jmag_M)
 
@@ -2537,7 +2537,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         streamplot = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
-        ax.set_title('Final gap junction and trans-membrane currents')
+        ax.set_title('Final gap junction currents')
 
     elif plot_Iecm == True:
 
@@ -2836,7 +2836,7 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
-        ax.set_title('(gap junction and trans-membrane current overlay)')
+        ax.set_title('(gap junction current overlay)')
 
     elif plotIecm == True:
 
