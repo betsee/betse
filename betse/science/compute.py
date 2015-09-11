@@ -134,7 +134,7 @@ class Simulator(object):
 
         else:
 
-            self.gj_rho = 1
+            self.gj_rho = 0
 
 
         ion_names = list(p.ions_dict.keys())
@@ -412,7 +412,7 @@ class Simulator(object):
 
         else:
 
-            self.gj_rho = 1
+            self.gj_rho = 0
 
         if p.sim_eosmosis == True:
             self.rho_channel = np.ones(len(cells.mem_i))

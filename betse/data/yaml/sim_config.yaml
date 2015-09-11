@@ -39,22 +39,22 @@
 
 init file saving:
 
-    directory: init_test         # directory to load/save init run
+    directory: init_superDemo_X         # directory to load/save init run
 
-    file: init.betse        # filename to load/save init run
+    file: init_superDemo_X.betse        # filename to load/save init run
 
-    worldfile: world.betse      # filename to load/save cell cluster
+    worldfile: world_superDemo_X.betse      # filename to load/save cell cluster
 
 
 sim file saving:
 
-    directory: init/sim    # directory to load/save sim run
+    directory: init_superDemo_X/excSim_X    # directory to load/save sim run
 
-    file: sim.betse    # filename to load/save sim run
+    file: excSim_X.betse    # filename to load/save sim run
 
 results file saving:
 
-    directory: init_test/results  # directory to load/save data, plots, and animations
+    directory: init_superDemo_X/init_results_X  # directory to load/save data, plots, and animations
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 2.0             # end time [s]
+    total time: 3.0             # end time [s]
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-4       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 0.4         # time to end sim run [s]
+    total time: 0.1         # time to end sim run [s]
 
     sampling rate: 5.0e-4      # period to sample data [s] (at least time step or larger)
 
@@ -119,7 +119,7 @@ general options:
 
   grid size: 50         # grid used in computation of environmental params and data interpolation
 
-  simulate ECM: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate ECM: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: 'basic'   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -148,7 +148,7 @@ general options:
     z: -1               # charge of morphogen (oxidation state)
     env conc: 1.0e-6        # initial concentration of morphogen in the environment [mmol/L]
     cell conc: 1.0e-6    # initial concentration of morphogen in the cell network [mmol/L]
-    ion channel target: K     # morphogen ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+    ion channel target: None     # morphogen ion channel target ('None', 'Na', 'K', 'Cl','Ca')
     target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
     target Hill exponent: 3.5         # Hill exponent; affects shape of opening-vs-concentration curve
     peak channel opening: 5e-16        # max mem diffusion constant for target ion when channel fully open
@@ -199,7 +199,7 @@ general options:
 
 world variables:
 
-  world x: 500e-6         # dimension of the world space [m]
+  world x: 750e-6         # dimension of the world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -224,7 +224,7 @@ world variables:
 
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
-  electroosmosis: False         # electroosmosis in the intra and extracellular spaces?
+  electroosmosis:  False         # electroosmosis in the intra and extracellular spaces?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -243,14 +243,14 @@ world variables:
                               # warning high search distances can produce
                               # extremely long simulation time
 
-    gap junction surface area: 1.0e-2 # surface area of gj as fraction of cell area (5.0e-3 or smaller)
+    gap junction surface area: 1.0e-3 # surface area of gj as fraction of cell area (5.0e-3 or smaller)
 
-    voltage sensitive gj: False    # gj close with voltage difference between cells?
+    voltage sensitive gj: True    # gj close with voltage difference between cells?
 
-    gj voltage threshold: 40e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 20e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 10e-3 to 80e-3 V
 
-    gj voltage window: 20e-3      # range over which gj goes from open to shut
+    gj voltage window: 60e-3      # range over which gj goes from open to shut
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
@@ -306,7 +306,7 @@ change Na env:       # Change the environmental concentration of K+
 
 change morphogen:       # Change the environmental concentration of morphogen (if morphogen is activated)
 
-  event happens: True     # turn the event on (True) or off (False)
+  event happens: False     # turn the event on (True) or off (False)
   change start: 0.30          # time to start change [s]
   change finish: 0.50        # time to end change and return to original [s]
   change rate: 1.0e-4           # rate of change [s]
@@ -322,7 +322,7 @@ change temperature:
 
 block gap junctions:     # block the gap junctions between cells
 
-  event happens: True      # turn the event on (True) or off (False)
+  event happens: False      # turn the event on (True) or off (False)
   change start: 0.20        # time to start change [s]
   change finish: 0.25       # time to end change and return to original [s]
   change rate: 1.0e-4         # rate of change [s]
@@ -362,7 +362,7 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True   # bitmaps can control cluster and tissue geometry (True)?
 
-    directory: geo/planaria2             # directory where geometry-defining bitmaps are loaded
+    directory: geo/planaria             # directory where geometry-defining bitmaps are loaded
 
     number of bitmaps: 6          # total number of bitmaps to load
 
@@ -374,33 +374,33 @@ geometry defining bitmaps:
 
     bitmap 2:
 
-        file: Wound.png      # filename of bitmap
+        file: Thought.png      # filename of bitmap
 
-        designation: wound   # 'clipping' for geometry mask, or name of a defined tissue profile
+        designation: depolarization   # 'clipping' for geometry mask, or name of a defined tissue profile
 
     bitmap 3:
 
-        file: CutLines.png       # filename of bitmap
+        file: GutCavity.png       # filename of bitmap
 
-        designation: cuts   # 'clipping' for geometry mask, or name of a defined tissue profile
+        designation: gut   # 'clipping' for geometry mask, or name of a defined tissue profile
 
     bitmap 4:
 
-        file: NervesCircuitMask.png     # filename of bitmap
+        file: NervesMask.png     # filename of bitmap
 
         designation: nerves   # 'clipping' for geometry mask, or name of a defined tissue profile
 
     bitmap 5:
 
-        file: NerveConnections.png      # filename of bitmap
+        file: CutLines.png      # filename of bitmap
 
-        designation: connects   # 'clipping' for geometry mask, or name of a defined tissue profile
+        designation: cuts   # 'clipping' for geometry mask, or name of a defined tissue profile
 
     bitmap 6:
 
-        file: Thought.png         # filename of bitmap
+        file: Wound.png         # filename of bitmap
 
-        designation: depolarization  # 'clipping' for geometry mask, or name of a defined tissue profile
+        designation: wound  # 'clipping' for geometry mask, or name of a defined tissue profile
 
 default tissue name: base   # name of cells to which no profile is applied
 
@@ -434,7 +434,7 @@ tissue profile 1:
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
 tissue profile 2:
-    name: wound
+    name: gut
     cell targets: bitmap
     designation: None
     insular: False
@@ -448,6 +448,20 @@ tissue profile 2:
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
 tissue profile 3:
+    name: wound
+    cell targets: bitmap
+    designation: None
+    insular: False
+
+    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+    Dm_K: 10.0e-18       # K+ membrane diffusion constant [m2/s]
+    Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
+    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+tissue profile 4:
     name: cuts
     cell targets: bitmap
     designation: cuts
@@ -461,22 +475,8 @@ tissue profile 3:
     Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
     Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-tissue profile 4:
-    name: nerves
-    cell targets: bitmap
-    designation: None
-    insular: True
-
-    Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-    Dm_K: 100.0e-18       # K+ membrane diffusion constant [m2/s]
-    Dm_Cl: 20.0e-18       # Cl- membrane diffusion constant [m2/s]
-    Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-    Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-    Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-    Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
 tissue profile 5:
-    name: connects
+    name: nerves
     cell targets: bitmap
     designation: None
     insular: False
@@ -526,13 +526,13 @@ closed boundary: False   # are the global environmental boundaries closed (True)
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False        # turn the event on (True) or off (False)
+  event happens: True        # turn the event on (True) or off (False)
   change start: 2.0e-4                # time to start change [s]
-  change finish: 0.15               # time to end change and return to original [s]
+  change finish: 0.50               # time to end change and return to original [s]
   change rate: 1.0e-4                 # rate of change [s]
-  multiplier: 200.0                # factor to multiply base level
+  multiplier: 2000.0                # factor to multiply base level
   function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
+  apply to: ['depolarization']          # name(s) of the tissue profile(s) to apply intervention to
 
 change K mem:       # Change the membrane permeability to K+
 
@@ -623,11 +623,11 @@ function properties:   # set properties of spatial functions which may be used i
 # Dynamic ion channels only appear in sim runs (not in init).
 
 voltage gated Na+:
-    turn on: False             # voltage gated sodium channel?
+    turn on: True             # voltage gated sodium channel?
     apply to: ['nerves']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated K+:              # voltage gated potassium channel?
-    turn on: False
+    turn on: True
     apply to: ['nerves']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated Ca2+:            # voltage gated calcium channel?
