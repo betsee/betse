@@ -205,6 +205,8 @@ class World(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
+            self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+            self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid

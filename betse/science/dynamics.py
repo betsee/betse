@@ -648,10 +648,10 @@ class Dynamics(object):
                 sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
 
                 if p.sim_ECM == True:
-                    sim.Dm_morpho[self.dye_target] = sim.Dm_mod_dye[cells.mem_to_cells]
+                    sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.mem_to_cells]
 
                 else:
-                    sim.Dm_morpho[self.dye_target] = sim.Dm_mod_dye
+                    sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye
 
             elif p.Dye_acts_extracell == True and p.sim_ECM == True:
 
@@ -1441,6 +1441,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     else:
 
         cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
+        cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
         cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=0.8)
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)      # Free up memory...

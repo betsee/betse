@@ -89,8 +89,10 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-            plt.show(block=False)
+            self.plotWorld()
+
+            # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+            # plt.show(block=False)
 
         else:
 
@@ -722,7 +724,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 bkgPlot.set_clim(minval,maxval)
                 cbVdye = figVdye.colorbar(coll)
 
-            else:
+            elif p.autoscale_Dye is False:
 
                 coll.set_clim(p.Dye_min_clr,p.Dye_max_clr)
                 bkgPlot.set_clim(p.Dye_min_clr,p.Dye_max_clr)
@@ -738,7 +740,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         axVdye.set_title('Final Morphogen Concentration')
         axVdye.set_xlabel('Spatial distance [um]')
         axVdye.set_ylabel('Spatial distance [um]')
-        cbVdye.set_label('Concentration umol/L')
+        # cbVdye.set_label('Concentration umol/L')
 
         if saveImages == True:
             savename7 = savedImg + 'final_morphogen_2D' + '.png'

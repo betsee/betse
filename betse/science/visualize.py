@@ -506,7 +506,7 @@ class AnimateGJData(object):
 
         con_segs = cells.cell_centres[cells.nn_i]
         connects = p.um*np.asarray(con_segs)
-        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=5)
+        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=10)
         self.collection.set_clim(0.0,max_zdata)
         self.ax.add_collection(self.collection)
 
@@ -2204,6 +2204,7 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
 
         # Add a colorbar for the Line Collection
         if zdata is not None:
+            # coll.set_clim(0,1)
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.axis('equal')
@@ -2658,7 +2659,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     if p.enumerate_cells == True:
 
         for i,cll in enumerate(cells.cell_centres):
-            ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
+            ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center',zorder = 20)
 
 
     ax.set_xlabel('Spatial Distance [um]')

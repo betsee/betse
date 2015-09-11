@@ -2,10 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME manage the H+ stuff...
-# FIXME straighten out the ER dynamics...
-
-
 import numpy as np
 import math
 import numpy.ma as ma
@@ -2196,6 +2192,9 @@ class Simulator(object):
 
             denv_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
                     (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=p.Do_Dye)
+
+            denv_x = denv_x*self.D_env_weight_u
+            denv_y = denv_y*self.D_env_weight_v
 
             # denv_x = np.zeros(cells.grid_obj.u_shape)
             # denv_y = np.zeros(cells.grid_obj.v_shape)
