@@ -836,8 +836,6 @@ class World(object):
 
         #-----------------------------------------------------------
         # create structures for plotting interpolated data on cell centres:
-        # xgrid = np.linspace(self.xmin,self.xmax,p.grid_size)
-        # ygrid = np.linspace(self.ymin,self.ymax,p.grid_size)
 
         xv = np.linspace(self.xmin,self.xmax,self.msize)
         yv = np.linspace(self.ymin,self.ymax,self.msize)
@@ -935,19 +933,6 @@ class World(object):
 
         self.mem_to_cells = self.indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
-        # # compute mapping between cell and nn with outwards vectors:
-        # self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
-        #
-        # nn_inds = self.nn_i.tolist()
-        #
-        # for i, inds in enumerate(self.cell_nn):
-        #
-        #     for j in inds:
-        #         nn_index = nn_inds.index([i,j])
-        #         self.cell_to_nn[i].append(nn_index)
-        #
-        # self.cell_to_nn = np.asarray(self.cell_to_nn)
-
         self.cell_to_mems = []   # construct a mapping giving membrane index for each cell_i
 
         for cell_index in self.cell_i:
@@ -970,32 +955,6 @@ class World(object):
 
         self.ave_sa_all = np.mean(self.cell_sa)/np.mean(self.num_nn)
 
-        #--------------------------------------------------------------------------------------------------------------
-
-        # calculating matrix for gj divergence of the flux calculation:
-        # self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
-        #
-        # for i, inds in enumerate(self.cell_to_nn):
-        #
-        #     sa_i = self.av_mem_sa[i]
-        #
-        #     vol_i = self.cell_vol[i]
-        #
-        #     for j in inds:
-        #
-        #         self.gjMatrix[i,j] = 1*(sa_i/vol_i)
-
-        # matrix for averaging values on gap junctions to each cell:
-
-        # self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
-        #
-        # for i, inds in enumerate(self.cell_to_nn):
-        #     ave_fact = len(inds)
-        #     for j in inds:
-        #         self.gj2cellMatrix[i,j] = 1/ave_fact
-
-        #--------------------------------------------------------------------------------------------------------------
-
         self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
         self.mem_edges_flat = np.asarray(self.mem_edges_flat)
 
@@ -1005,8 +964,6 @@ class World(object):
         self.mem_verts = np.asarray(self.mem_verts)
 
         self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
-
-
 
         # do gj stuff as we need it for later:
         self.gj_stuff(p)
@@ -1032,33 +989,9 @@ class World(object):
                 self.matrixMap2Verts[i,indices[0]]=1/2
                 self.matrixMap2Verts[i,indices[1]]=1/2
 
-            # create a mapping from each vert to each membrane segment, mem_seg_i:
-            # self.mem_seg_i = []
 
             self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
             self.mem_edges_flat = np.asarray(self.mem_edges_flat)
-
-            # vertTree = sps.KDTree(self.mem_verts)
-            #
-            # for seg in self.mem_edges_flat:
-            #     pt1 = seg[0]
-            #     pt2 = seg[1]
-            #     seg_ind1 = vertTree.query(pt1)[1]
-            #     seg_ind2 = vertTree.query(pt2)[1]
-            #     self.mem_seg_i.append([seg_ind1,seg_ind2])
-            #
-            # self.mem_seg_i = np.asarray(self.mem_seg_i)  # pairs two indices to mem_verts defining line segment
-
-            # now to go from membrane vert data to mid data by calculating the pseudo-inverse:
-            # self.matrixMap2Mids = np.linalg.pinv(self.matrixMap2Verts)
-
-            # # calculating matrix for membrane flux calculation between connected vertices:
-            # self.memMatrix = np.zeros((len(self.mem_seg_i),len(self.mem_i)))
-            # for imem, pair in enumerate(self.mem_seg_i):
-            #     ci = pair[0]
-            #     cj = pair[1]
-            #     self.memMatrix[imem,ci] = -1
-            #     self.memMatrix[imem,cj] = 1
 
 
             self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
@@ -1098,19 +1031,8 @@ class World(object):
             tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
             tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
 
-            # len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-            #
             self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
             self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
-            # self.gradMem[inds_o,inds_p1] = 1 + 1
-            # self.gradMem[inds_o,inds_n1] = -1 - 1
-
-            # self.gradMem[inds_o[0],inds_1[0]] = -1/len_mem[0]
-            # self.gradMem[inds_o[-1],inds_1[-1]] = -1/len_mem[-1]
-
-            # for j, indy in enumerate(inds):
-            #     self.gradMem[inds_o[j],inds_1[j]] = -1/len_mem[j]
-
 
         #---------------------------------------------------------------------------
 
@@ -1119,7 +1041,6 @@ class World(object):
 
         self.mem_mids = np.asarray(self.mem_mids)
 
-        # loggers.log_info('Cell cluster creation complete!')
 
     def redo_gj(self,dyna,p,savecells =True):
 
