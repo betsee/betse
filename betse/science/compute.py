@@ -835,8 +835,6 @@ class Simulator(object):
         self.rho_channel = np.ones(len(cells.mem_i))
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
-        # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-        # self.vm = get_volt(q_cells,cells.cell_sa,p)
         self.update_V_ecm(cells,p,0)
 
         # vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
@@ -888,7 +886,7 @@ class Simulator(object):
             self.fluxes_mem.fill(0)  # reinitialize flux storage device
 
             self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
-            # self.vm_to = copy.deepcopy(self.vm)       # reassign the history-saving vm
+                 # reassign the history-saving vm
             self.vm_to = self.vm[:]
 
             if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
@@ -898,7 +896,6 @@ class Simulator(object):
                 self.cc_er_to = self.cc_er[:]
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
-            # self.allDynamics(t,p)  # user-scheduled (forced) interventions
             if p.run_sim == True:
                 self.dyna.runAllDynamics(self,cells,p,t)
 
@@ -915,8 +912,6 @@ class Simulator(object):
             self.fluxes_mem[self.iK] = fK_NaK[cells.mem_to_cells]
 
             # recalculate the net, unbalanced charge and voltage in each cell:
-            # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-            # self.vm = get_volt(q_cells,cells.cell_sa,p)
             self.update_V_ecm(cells,p,t)
 
             if p.ions_dict['Ca'] == 1:
@@ -930,8 +925,6 @@ class Simulator(object):
                 self.fluxes_mem[self.iCa] = fCaATP[cells.mem_to_cells]
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
                 self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
@@ -946,8 +939,6 @@ class Simulator(object):
                     self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fCaATP_ER*(cells.cell_sa/cells.cell_vol)*p.dt
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
                     self.update_V_ecm(cells,p,t)
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
@@ -971,8 +962,6 @@ class Simulator(object):
                 self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
                 self.update_V_ecm(cells,p,t)
 
                 if p.HKATPase_dyn == 1:
@@ -994,8 +983,6 @@ class Simulator(object):
                     self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
                     self.update_V_ecm(cells,p,t)
 
                 if p.VATPase_dyn == 1:
@@ -1012,8 +999,6 @@ class Simulator(object):
                     self.cc_cells[self.iH] = 10**(-self.pH_cell)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                    # self.vm = get_volt(q_cells,cells.cell_sa,p)
                     self.update_V_ecm(cells,p,t)
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
@@ -1031,8 +1016,6 @@ class Simulator(object):
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED[cells.mem_to_cells]
 
                 # # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
                 self.update_V_ecm(cells,p,t)
 
                 self.update_gj(cells,p,t,i)
@@ -1068,8 +1051,6 @@ class Simulator(object):
                 self.cc_er[1] = self.cc_er[1] + fER_m*(cells.cell_sa/(cells.cell_vol*p.ER_vol))*p.dt
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
-                # q_cells = get_charge(self.cc_cells,self.z_array,cells.cell_vol,p)
-                # self.vm = get_volt(q_cells,cells.cell_sa,p)
                 self.update_V_ecm(cells,p,t)
 
                 q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
@@ -1129,7 +1110,6 @@ class Simulator(object):
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
 
                     self.cIP3_time.append(self.cIP3[:])
-                    # self.cIP3_env_time.append(self.cIP3_env[:])
 
                     self.IP3_flux_x_gj_time.append(self.IP3_flux_x_gj[:])
                     self.IP3_flux_y_gj_time.append(self.IP3_flux_y_gj[:])
@@ -1171,8 +1151,6 @@ class Simulator(object):
         self.checkPlot = None
 
         if p.run_sim == False:
-
-            # celf = copy.deepcopy(self)
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
@@ -1935,40 +1913,6 @@ class Simulator(object):
             cenv_y[:,0] =  self.c_env_bound[i]
             cenv_y[:,-1] =  self.c_env_bound[i]
 
-
-        # denv = denv.reshape(cells.X.shape)
-        #
-        # denv_x = np.zeros(cells.grid_obj.u_shape)
-        # denv_y = np.zeros(cells.grid_obj.v_shape)
-        #
-        # # create the proper shape for the diffusion constants and state boundaries:
-        # denv_x[:,1:] = denv
-        #
-        # denv_y[1:,:] = denv
-        #
-        # if p.closed_bound == False: # open boundary conditions
-        #     denv_x[:,0] = denv_x[:,1]
-        #     denv_x[:,-1] = denv_x[:,-2]
-        #     denv_x[0,:] = denv_x[1,:]
-        #     denv_x[-1,:] = denv_x[-2,:]
-        #
-        #     denv_y[0,:] = denv_y[1,:]
-        #     denv_y[-1,:] = denv_y[-2,:]
-        #     denv_y[:,0] = denv_y[:,1]
-        #     denv_y[:,-1] = denv_y[:,-2]
-        #
-        #
-        # else:   # closed grounded boundary conditions
-        #     denv_x[:,0] =  0
-        #     denv_x[:,-1] =  0
-        #     denv_x[0,:] =  0
-        #     denv_x[-1,:] =  0
-        #
-        #     denv_y[0,:] =  0
-        #     denv_y[-1,:] =  0
-        #     denv_y[:,0] =  0
-        #     denv_y[:,-1] =  0
-
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
 
@@ -2195,16 +2139,6 @@ class Simulator(object):
 
             denv_x = denv_x*self.D_env_weight_u
             denv_y = denv_y*self.D_env_weight_v
-
-            # denv_x = np.zeros(cells.grid_obj.u_shape)
-            # denv_y = np.zeros(cells.grid_obj.v_shape)
-            #
-            # # create the proper shape for the diffusion constants and state continuous boundaries:
-            # denv_x[:,1:] = denv
-            # denv_x[:,0] = denv_x[:,1]
-            #
-            # denv_y[1:,:] = denv
-            # denv_y[0,:] = denv_y[1,:]
 
             # calculate gradients in the environment
             grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
@@ -3004,28 +2938,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-
-    # if p.backward_pumps == False:
-
     alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
     f_Na  = -alpha*(cNai)*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
-
-    # elif p.backward_pumps == True:
-    #
-    #     alpha = signG*block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
-    #
-    #     truth_forwards = signG == 1    # boolean array tagging forward-running pump cells
-    #     truth_backwards = signG == -1  # boolean array tagging backwards-running pump cells
-    #
-    #     inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
-    #     inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
-    #
-    #     f_Na = np.zeros(len(cNai))
-    #
-    #     f_Na[inds_forwards]  = -alpha*cNai*(cKo)      #flux as [mol/s]   scaled to concentrations Na in and K out
-    #
-    #     f_Na[inds_backwards]  = -alpha*cNao*(cKi)      #flux as [mol/s]   scaled to concentrations K in and Na out
 
     f_K = -(2/3)*f_Na          # flux as [mol/s]
 
@@ -3307,8 +3222,6 @@ def get_Venv(self,cells,p):
     fxy = -self.rho_env/(80*self.ff*p.eo)
     # fxy = -self.rho_env/(100*p.eo)
 
-    # if p.closed_bound == False:
-
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
     fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
     fxy[cells.bTop_k] = (self.bound_V['T']/cells.delta**2)
@@ -3327,21 +3240,6 @@ def get_Venv(self,cells,p):
     V = V.reshape(cells.X.shape)
     V = fd.integrator(V)
     V = V.ravel()
-
-    # if p.closed_bound == True:
-    #
-    #     # Solve Poisson's electrostatic equation:
-    #     V = np.dot(cells.lapENV_P_inv,fxy)
-    #
-    #     V = V.reshape(cells.X.shape)
-    #
-    #     # esnure the electric field at the boundary is zero:
-    #     V[:,0] = V[:,1]
-    #     V[:,-1] = V[:,-2]
-    #     V[0,:] = V[1,:]
-    #     V[-1,:] = V[-2,:]
-    #
-    #     V = V.ravel()
 
     return V
 
@@ -3461,10 +3359,6 @@ def rk4(c,deltac,p):
 
 
     return c2
-
-
-
-
 
 
 

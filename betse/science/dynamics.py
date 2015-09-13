@@ -95,12 +95,6 @@ class Dynamics(object):
 
             self.targets_gj_block = [cells.nn_index[x] for x in range(0,data_fraction)]
 
-        # if p.global_options['ecm_change'] != 0:
-        #
-        #     self.t_on_ecm = p.global_options['ecm_change'][0]
-        #     self.t_off_ecm = p.global_options['ecm_change'][1]
-        #     self.t_change_ecm = p.global_options['ecm_change'][2]
-        #     self.mult_ecm = p.global_options['ecm_change'][3]
 
         if p.global_options['NaKATP_block'] != 0:
 
@@ -573,12 +567,6 @@ class Dynamics(object):
                 sim.D_env_weight_v[0,:] = 0
                 sim.D_env_weight_v[-1,:] = 0
 
-                # sim.D_env_weight_u[:,1:] = sim.D_env_weight[:]
-                # sim.D_env_weight_u[:,0] = sim.D_env_weight_u[:,1]
-                #
-                # sim.D_env_weight_v[1:,:] = sim.D_env_weight[:]
-                # sim.D_env_weight_v[0,:] = sim.D_env_weight_v[1,:]
-
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:
 
             target_method = p.tissue_profiles[self.apply_cuts]['target method']
@@ -787,10 +775,6 @@ class Dynamics(object):
 
     def cagPotassium(self,sim,cells,p,t):
 
-        # inds_cagK_targets = (self.targets_cagK).nonzero()
-        #
-        # self.active_cagK[inds_cagK_targets] = tb.hill(sim.cc_cells[sim.iCa][inds_cagK_targets],
-        #     self.Kcag_halfmax,self.Kcag_n)
         if p.sim_ECM is False:
 
             self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][self.targets_cagK],
@@ -819,26 +803,6 @@ class Dynamics(object):
 
             else:
                 term_IP3_reg = tb.hill(sim.cIP3,self.KhmIP3,self.n_IP3)
-
-            # if p.FMmod == 1:
-            #     span = self.topCa - self.bottomCa
-            #     FMmod = p.ip3FM*span
-            #     topCa = self.topCa - FMmod*term_IP3_reg
-            # else:
-            #     topCa = self.topCa
-
-            # truth_overHighCa = sim.cc_er[0] >=  topCa
-            # truth_increasingCa = dcc_CaER_sign == 1
-            # truth_alreadyClosed = self.stateER == 0.0
-            # inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
-            #
-            # truth_underBottomCa = sim.cc_er[0]< self.bottomCa
-            # truth_decreasingCa = dcc_CaER_sign == -1
-            # truth_alreadyOpen = self.stateER == 1.0
-            # inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
-            #
-            # self.stateER[inds_open_ER] = 1.0
-            # self.stateER[inds_close_ER] = 0.0
 
             sim.Dm_er_CICR[0] = self.maxDmCaER*term_IP3_reg*term_Ca_reg
 
@@ -912,56 +876,34 @@ class Dynamics(object):
                         dNa = dmem_list['Dm_Na']
                         sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
 
-                        # if p.sim_ECM == True:
-                        #     sim.D_env[sim.iNa][self.env_target_inds[name]] = p.Do_Na*ecm_val
-
                     if p.ions_dict['K'] == 1:
                         dK = dmem_list['Dm_K']
                         sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
-
-                        # if p.sim_ECM == True:
-                        #     sim.D_env[sim.iK][self.env_target_inds[name]] = p.Do_K*ecm_val
 
                     if p.ions_dict['Cl'] == 1:
                         dCl = dmem_list['Dm_Cl']
                         sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
 
-                        # if p.sim_ECM == True:
-                        #     sim.D_env[sim.iCl][self.env_target_inds[name]] = p.Do_Cl*ecm_val
 
                     if p.ions_dict['Ca'] == 1:
                         dCa = dmem_list['Dm_Ca']
                         sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
 
-                        # if p.sim_ECM == True:
-                        #
-                        #     sim.D_env[sim.iCa][self.env_target_inds[name]] = p.Do_Ca*ecm_val
 
                     if p.ions_dict['H'] == 1:
                         dH = dmem_list['Dm_H']
                         sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
 
-                        # if p.sim_ECM == True:
-                        #
-                        #     sim.D_env[sim.iH][self.env_target_inds[name]] = p.Do_H*ecm_val
 
                     if p.ions_dict['M'] == 1:
                         dM = dmem_list['Dm_M']
                         sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
 
-                        # if p.sim_ECM == True:
-                        #
-                        #     sim.D_env[sim.iM][self.env_target_inds[name]] = p.Do_M*ecm_val
 
                     if p.ions_dict['P'] == 1:
                         dP = dmem_list['Dm_P']
                         sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
 
-                        # if p.sim_ECM == True:
-                        #
-                        #     sim.D_env[sim.iP][self.env_target_inds[name]] = p.Do_P*ecm_val
-                        #     # sim.D_env[sim.iP][ecm_targs_mem] = p.Do_P*ecm_val
-                        #     # sim.D_env[sim.iP][ecm_targs_cell] = p.Do_P*ecm_val
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
@@ -1154,8 +1096,6 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
     # recreate structures for plotting interpolated data on cell centres:
-    # xgrid = np.linspace(cells.xmin,cells.xmax,p.grid_size)
-    # ygrid = np.linspace(cells.ymin,cells.ymax,p.grid_size)
 
     xv = np.linspace(cells.xmin,cells.xmax,cells.msize)
     yv = np.linspace(cells.ymin,cells.ymax,cells.msize)
@@ -1232,38 +1172,6 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
             sim.D_env_weight_v[:,-1] = 0
             sim.D_env_weight_v[0,:] = 0
             sim.D_env_weight_v[-1,:] = 0
-
-
-        # if p.env_type == True:
-        #
-        #     sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-        #         (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 1)
-        #
-        #     sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-        #         (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=1)
-        #
-        # else:
-        #
-        #     sim.D_env_weight_u = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-        #         (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
-        #
-        #     sim.D_env_weight_v = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),sim.D_env_weight.ravel(),
-        #         (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=0)
-        #
-        # # sim.D_env_weight_u[:,0:-1] = sim.D_env_weight[:,:]
-        # # sim.D_env_weight_v[0:-1,:] = sim.D_env_weight[:,:]
-        #
-        # if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
-        #
-        #     sim.D_env_weight_u[:,0] = 0
-        #     sim.D_env_weight_u[:,-1] = 0
-        #     sim.D_env_weight_u[0,:] = 0
-        #     sim.D_env_weight_u[-1,:] = 0
-        #
-        #     sim.D_env_weight_v[:,0] = 0
-        #     sim.D_env_weight_v[:,-1] = 0
-        #     sim.D_env_weight_v[0,:] = 0
-        #     sim.D_env_weight_v[-1,:] = 0
 
     # set up the situation to make cells joined to cut cells have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
@@ -1450,54 +1358,6 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
-
-
-
-
-
-
-#--------------------------WASTELANDS----------------------------------------------------------------------------------
-
-        # if p.Ca_dyn_options['CICR'] != 0:
-        #
-        #     dcc_CaER_sign = np.sign(sim.dcc_ER[0])
-        #
-        #     if len(p.Ca_dyn_options['CICR'][1])==0:
-        #         term_Ca_reg = 1.0
-        #
-        #     else:
-        #         term_Ca_reg = (np.exp(-((sim.cc_cells[sim.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
-        #
-        #     # if len(p.Ca_dyn_options['CICR'][2]) == 0:
-        #     #     term_IP3_reg = 1.0
-        #     #
-        #     # else:
-        #     term_IP3_reg = tb.hill(sim.cIP3,self.KhmIP3,self.n_IP3)
-        #
-        #     if p.FMmod == 1:
-        #         span = self.topCa - self.bottomCa
-        #         FMmod = p.ip3FM*span
-        #         topCa = self.topCa - FMmod*term_IP3_reg
-        #     else:
-        #         topCa = self.topCa
-        #
-        #     truth_overHighCa = sim.cc_er[0] >=  topCa
-        #     truth_increasingCa = dcc_CaER_sign == 1
-        #     truth_alreadyClosed = self.stateER == 0.0
-        #     inds_open_ER = (truth_overHighCa*truth_increasingCa*truth_alreadyClosed).nonzero()
-        #
-        #     truth_underBottomCa = sim.cc_er[0]< self.bottomCa
-        #     truth_decreasingCa = dcc_CaER_sign == -1
-        #     truth_alreadyOpen = self.stateER == 1.0
-        #     inds_close_ER = (truth_underBottomCa*truth_alreadyOpen).nonzero()
-        #
-        #     self.stateER[inds_open_ER] = 1.0
-        #     self.stateER[inds_close_ER] = 0.0
-        #
-        #     sim.Dm_er_CICR[0] = self.maxDmCaER*self.stateER*term_IP3_reg*term_Ca_reg
-        #
-        #     sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
-
 
 
 
