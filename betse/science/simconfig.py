@@ -73,10 +73,9 @@ def write_default(filename: str) -> None:
     # If such filename is *NOT* suffixed by ".yaml", log a warning.
     if filetype != 'yaml':
         loggers.log_warning(
-            'File "{}" filetype "{}" not "yaml".'.format(
-                basename, filetype))
+            'File "{}" filetype "{}" not "yaml".'.format(basename, filetype))
 
-    # Create such file's parent directory, if needed.
+    # Create such file's parent directory if needed.
     dirs.make_unless_dir(dirname)
 
     #FIXME: Ideally, we should be using ruamel.yaml to munge YAML data in a
@@ -91,7 +90,7 @@ def write_default(filename: str) -> None:
     files.substitute_substrings(
         filename_source = pathtree.CONFIG_DEFAULT_FILENAME,
         filename_target = filename,
-        regex_substitution_pairs = (
+        substitutions = (
             # Prevent static plots from being displayed by default.
             (r'^(\s*turn all plots off:\s+)False\b(.*)$', r'\1True\2'),
         ),
@@ -244,4 +243,3 @@ def write_default(filename: str) -> None:
 #         '"{}" not a string.'.format(run_pickled_filename)
 #     assert isinstance(run_pickled_filename, str),\
 #         '"{}" not a string.'.format(run_pickled_filename)
-

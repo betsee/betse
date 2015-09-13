@@ -253,6 +253,11 @@ class CLICLI(CLI):
         self._args.config_filename = paths.join(
             'sample_sim', config_basename)
 
+        #FIXME: Insufficient. We only want to reuse such file if such file's
+        #version is identical to that of the default YAML configuration file's
+        #version. Hence, this logic should (arguably) be shifted elsewhere --
+        #probably to "betse.science.simconfig".
+
         # If such file already exists, reuse such file.
         if files.is_file(self._args.config_filename):
             loggers.log_info(
@@ -270,18 +275,6 @@ class CLICLI(CLI):
         self._do_seed()
         self._do_prep()
         self._do_run()
-
-    #FIXME: It's no longer enough to simply copy the configuration file; we
-    #also need to copy all data on which such file depends. We'll need to
-    #manually inspect such file to see which data that is. We should *NOT*,
-    #however, simply copy the entirety of the "geo" subdirectory. Or should we?
-    #It *IS* quite small and hence innocuous. For simplicity, perhaps copying
-    #such subdirectory would be the wisest approach. Contemplate.
-    #FIXME: O.K.; we'll want to improve the simconfig.write_default() method
-    #called below to *ALSO* copy all ancillary files required by the copied
-    #YAML file -- which, at the moment, means "geo/". This shouldn't be
-    #terribly arduous given our new dirs.copy() method. And, yes:
-    #simconfig.write_default() is indeed the appropriate place to do this.
 
     def _do_config(self) -> None:
         '''
@@ -350,6 +343,18 @@ class CLICLI(CLI):
         return SimRunner(config_filename = self._args.config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+    #FUXME: It's no longer enough to simply copy the configuration file; we
+    #also need to copy all data on which such file depends. We'll need to
+    #manually inspect such file to see which data that is. We should *NOT*,
+    #however, simply copy the entirety of the "geo" subdirectory. Or should we?
+    #It *IS* quite small and hence innocuous. For simplicity, perhaps copying
+    #such subdirectory would be the wisest approach. Contemplate.
+    #FUXME: O.K.; we'll want to improve the simconfig.write_default() method
+    #called below to *ALSO* copy all ancillary files required by the copied
+    #YAML file -- which, at the moment, means "geo/". This shouldn't be
+    #terribly arduous given our new dirs.copy() method. And, yes:
+    #simconfig.write_default() is indeed the appropriate place to do this.
+
 #FUXME: Refactor according to the example given by TEMPLATE_SUBCOMMAND_TRY.
 
         # Import from "betse.science" in a just-in-time manner, as such

@@ -234,11 +234,8 @@ def open_for_byte_writing_temporary():
     return tempfile.NamedTemporaryFile(delete=False)
 
 # ....................{ OPENERS ~ temporary                }....................
-#FIXME: Correct documentation here and below to reflect the passing of multiple
-#regexes and substitutions.
-
 def substitute_substrings_inplace(
-    filename: str, regex_substitution_pairs, **kwargs) -> None:
+    filename: str, substitutions, **kwargs) -> None:
     '''
     Replace all substrings in the passed non-directory file matching the passed
     regular expressions with the corresponding passed substitutions.
@@ -249,12 +246,12 @@ def substitute_substrings_inplace(
         For further details.
     '''
     substitute_substrings(
-        filename, filename, regex_substitution_pairs, **kwargs)
+        filename, filename, substitutions, **kwargs)
 
 def substitute_substrings(
     filename_source: str,
     filename_target: str,
-    regex_substitution_pairs,
+    substitutions,
     **kwargs
 ) -> None:
     '''
@@ -285,7 +282,7 @@ def substitute_substrings(
         Absolute path of the source filename to be read.
     filename_target : str
         Absolute path of the target filename to be written.
-    regex_substitution_pairs : sequence_nonstring
+    substitutions : sequence_nonstring
         Non-string sequence (e.g., list, tuple) of non-string sequences of
         length 2 (i.e., pairs), whose first element is a regular expression and
         whose second element is the substitution to be performed for all
@@ -295,9 +292,9 @@ def substitute_substrings(
         types.assert_is_not_string_nonempty(filename_source, 'source filename')
     assert types.is_string_nonempty(filename_target),\
         types.assert_is_not_string_nonempty(filename_target, 'target filename')
-    assert types.is_sequence_nonstring_nonempty(regex_substitution_pairs),\
+    assert types.is_sequence_nonstring_nonempty(substitutions),\
         types.assert_is_not_sequence_nonstring_nonempty(
-            regex_substitution_pairs, 'regular expression substitution pairs')
+            substitutions, 'regular expression substitution pairs')
 
     # Log such substitution.
     if filename_source == filename_target:
@@ -315,9 +312,9 @@ def substitute_substrings(
 
     # For efficiency, replace all passed uncompiled with compiled regular
     # expressions via a tuple comprehension.
-    regex_substitution_pairs = tuple(
+    substitutions = tuple(
         (re.compile(regex), substitution)
-        for (regex, substitution) in regex_substitution_pairs
+        for (regex, substitution) in substitutions
     )
 
     #FIXME: Such functionality is probably quite useful, where at least one
@@ -336,7 +333,7 @@ def substitute_substrings(
                 # For each passed regular expression and corresponding
                 # substitution, replace all substrings in this line matching
                 # that regular expression with that substitution.
-                for (regex, substitution) in regex_substitution_pairs:
+                for (regex, substitution) in substitutions:
                     # if regex.search(line, **kwargs) is not None:
                     #     is_line_matches = True
                     #     loggers.log_info('Line "%s" matches!', line)
@@ -348,15 +345,18 @@ def substitute_substrings(
             # if not is_line_matches:
             #     raise BetseExceptionFile('No line matches!')
 
-        # Copy all metadata (e.g., permissions) from the source to temporary
-        # file *BEFORE* moving the latter, avoiding potential race conditions
-        # and security vulnerabilities elsewhere.
-        shutil.copystat(filename_source, file_target_temp.name)
+    # Copy all metadata (e.g., permissions) from the source to temporary
+    # file *BEFORE* moving the latter, avoiding potential race conditions
+    # and security vulnerabilities elsewhere.
+    shutil.copystat(filename_source, file_target_temp.name)
 
-        # Move the temporary to the target file.
-        shutil.move(file_target_temp.name, filename_target)
+    # Move the temporary to the target file.
+    shutil.move(file_target_temp.name, filename_target)
 
 # --------------------( WASTELANDS                         )--------------------
+#FUXME: Correct documentation here and below to reflect the passing of multiple
+#regexes and substitutions.
+
                     # print('Yay!')
                     # print('Line: {}'.format(line))
                     # if re.search(regex, line, **kwargs) is not None:
@@ -370,8 +370,8 @@ def substitute_substrings(
                     # line = re.sub(regex, substitution, line, **kwargs)
 
         # (regex, substitution)
-        # for regex_substitution_pair in regex_substitution_pairs
-        # for regex, substitution in regex_substitution_pair
+        # for substitution_pair in substitutions
+        # for regex, substitution in substitution_pair
 
 #     assert types.is_sequence_nonstring_nonempty(regexes),\
 #         types.assert_is_not_sequence_nonstring_nonempty(
