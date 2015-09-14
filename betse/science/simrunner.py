@@ -89,7 +89,8 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-            self.plotWorld()
+            if p.turn_all_plots_off == False:
+                self.plotWorld()
 
             # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
             # plt.show(block=False)
@@ -120,7 +121,8 @@ class SimRunner(object):
 
             # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
             # plt.show(block=False)
-            self.plotWorld()
+            if p.turn_all_plots_off == False:
+                self.plotWorld()
 
 
         plt.show()
