@@ -167,7 +167,8 @@ DEPENDENCIES_RUNTIME = [
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, such dependencies are
     # explicitly listed as well.
-    'six >= 1.7.3',
+    'six >= 1.7.3',   # required by everything
+    'Pillow >= 2.6.1',   # required by the "scipy.misc.imread" module
 ]
 '''
 Set of all mandatory runtime dependencies for `betse`.

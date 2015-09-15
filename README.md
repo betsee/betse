@@ -16,6 +16,9 @@ with a focus on spatio-temporal pattern formation.
   most existing 32-bit systems -- including *all* non-server 32-bit editions of
   Microsoft Windows. Such barrier prevents usage of more than 3 to 4GB of
   available RAM, which rarely suffices for even small-scale tissue simulations.
+* **Python 3.3 and 3.4**. While Python 3.5 is currently unsupported, `betse`
+  _should_ run under Python 3.5 without issue. Since PyInstaller currently does
+  _not_ support Python 3.5, however, `betse` will _not_ be freezable.
 * Operating systems matching either:
   * **Microsoft Windows XP** or newer.
   * **Apple OS X 10.6** (Snow Leopard) or newer.
@@ -46,6 +49,7 @@ manually via the package manager specific to your current operating system:
 * Python >= 3.3.
 * Matplotlib >= 1.3.0.
 * NumPy >= 1.8.0.
+* Pillow >= 2.6.1.
 * PySide >= 1.1.0.
 * PyYaml >= 3.10.
 * SciPy >= 0.12.0.
@@ -61,8 +65,6 @@ dependencies are installable in a system-wide manner as follows:
 
 #### Apple OS X
 
-!!!! FIXME: Push OS X instruction changes from our virtual machine.
-
 Under Apple OS X, such dependencies are installable in a system-wide manner as
 follows:
 
@@ -71,32 +73,38 @@ follows:
 1. Download [XCode](https://developer.apple.com/xcode). While free, such
    download requires an [Apple Developer] login.
 1. Install XCode, ensuring the "UNIX Development Support" checkbox is checked.
-1. Download and install [MacPorts](https://www.macports.org).
+1. Download and install [Homebrew](http://brew.sh). While such dependencies are
+   also technically installable via [MacPorts](https://www.macports.org),
+   Homebrew provides significantly more robust support for features of interest
+   to `betse` users. Saliently, this includes the capacity to install
+   alternative versions of dependencies rather than merely the newest.
 1. Open a terminal window (e.g., by running the pre-bundled
    `Applications/Utilities/Terminal.app` application).
 1. Install dependencies:
 
-        >>> sudo port install py34-matplotlib py34-numpy py34-pyside py34-scipy py34-setuptools py34-yaml
-
-1. Activate the version of Python required by `betse`:
-
-        >>> sudo port select --set python python34
+        # FIXME: Python 3.5 is now the default. Since we want Python 3.4,
+        # we may need to use "pyenv" to manage versions. *shrug*
+        >>> brew install python3
+        >>> brew install matplotlib --with-python3 --with-tcl-tk
+        >>> brew install numpy --with-python3
+        >>> brew install pillow --with-python3
+        >>> brew install pyside --with-python3
+        >>> brew install scipy --with-python3
+        >>> brew install libyaml
 
 1. Close the terminal, if you like:
 
         >>> exit
 
-1. Manually add the
-   `/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin` directory
-   to the current ${PATH}. To do so permanently, edit the `.profile` file in your
-   home directory and change the line beginning with `export PATH` to resemble
-   the following:
+1. Manually add the directory containing the installed version of Python to the
+   current ${PATH}. To do so permanently, edit the `.profile` file in your home
+   directory and change the line beginning with `export PATH` to resemble the
+   following (replacing the versions listed below as needed):
 
-        export PATH="/opt/local/bin:/opt/local/sbin:/opt/local/Library/Frameworks/Python.framework/Versions/3.4/bin:${PATH}"
+        export PATH="/usr/local/bin:/usr/local/Cellar/python3/3.4.3/Frameworks/Python.framework/Versions/3.4/bin:${PATH}"
 
-Note that MacPorts is a source-based package manager and hence extremely slow.
-Expect the installation of dependencies to take several hours to several days.
-(We're not kidding.)
+Note that Homebrew is a source-based package manager and hence extremely slow.
+Expect the installation to take several hours. We're not kidding.
 
 #### Microsoft Windows
 
