@@ -84,13 +84,14 @@ follows:
 
         # FIXME: Python 3.5 is now the default. Since we want Python 3.4,
         # we may need to use "pyenv" to manage versions. *shrug*
-        >>> brew install python3
-        >>> brew install matplotlib --with-python3 --with-tcl-tk
-        >>> brew install numpy --with-python3
-        >>> brew install pillow --with-python3
-        >>> brew install pyside --with-python3
-        >>> brew install scipy --with-python3
+        >>> brew install python3 --with-tcl-tk
+        >>> brew install matplotlib --with-python3 --without-python --with-tcl-tk
+        >>> brew install numpy --with-python3 --without-python
+        >>> brew install pillow --with-python3 --without-python
+        >>> brew install pyside --with-python3 --without-python
+        >>> brew install scipy --with-python3 --without-python
         >>> brew install libyaml
+        >>> sudo pip3 install yaml
 
 1. Close the terminal, if you like:
 
@@ -98,13 +99,12 @@ follows:
 
 1. Manually add the directory containing the installed version of Python to the
    current ${PATH}. To do so permanently, edit the `.profile` file in your home
-   directory and change the line beginning with `export PATH` to resemble the
-   following (replacing the versions listed below as needed):
+   directory and change the line beginning with `export PATH` to resemble:
 
-        export PATH="/usr/local/bin:/usr/local/Cellar/python3/3.4.3/Frameworks/Python.framework/Versions/3.4/bin:${PATH}"
+        export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
 
 Note that Homebrew is a source-based package manager and hence extremely slow.
-Expect the installation to take several hours. We're not kidding.
+Expect installation to require several hours to days. (We're not kidding.)
 
 #### Microsoft Windows
 
