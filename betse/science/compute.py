@@ -25,34 +25,73 @@ class Simulator(object):
     Contains the main routines used in the simulation of networked cell bioelectrical activity.
     All methods are based on matrix mathematics and are implemented in Numpy for speed.
 
-    Fields
-    ------
-    self.savedInit      path and filename for saving an initialization sim
-    self.savedSim       path and filename for saving a sim
-
-    self.cc_cells       nested list of each sim ion concentration for each cell
-    self.cc_env         nested list of each sim ion concentration in the environment
-    self.zs             list of valence state of each sim ion
-    self.Dm_cells       list of membrane diffusion constant of each ion
-    self.movingIons     list of electro-diffusing ions in sim
-    self.ionlabel       label of electro-diffusing ions in sim
-    self.gjopen_time    nested list of gap junction open state for each cell for each sampled time in sim
-    self.cc_time        nested list of each sim ion concentration for each cell at each sampled time in sim
-    self.vm_time        nested list of voltage for each cell at each sampled time in sim
-    self.vm_to          initial voltage of cells in simulation (typically values returned from an initialization run)
-    self.fgj_time       nested list of ion fluxes through gap junctions at each sampled time in sim
-    self.time           sampled time for sim
-
     Methods
     -------
-    fileInit(p)                 Prepares save paths for initialization and simulation runs.
+    fileInit(p)                 Prepares save paths for initialization and simulation runs
 
-    baseInit(cells,p)           Prepares zeroed or base-initialized data structures for a full init or sim run.
+    baseInit(cells,p)           Prepares data structures for a cell-only simulation
 
-    runInit(cells,p)            Runs and saves an initialization for world specified by cells and parameters in p.
+    baseInit_ECM(cells,p)      Prepares data structures for a simulation with extracellular spaces
 
-    runSim(cells,p,save=True)   Runs a simulation for world specified by cells and parameters in p.
-                                Optional save for save=True (default).
+    tissueInit(cells,p)         Prepares data structures pertaining to tissue profiles and dynamic activity
+
+    runSim(cells,p)            Runs and saves a simulation (init or sim) for world with cells only
+
+    runSim_ECM(cells, p)        Runs and saves a simulation (init or sim) for world with cells and full environment
+
+    update_V_ecm(cells,p,t)    For sims with environmental spaces, gets charge densities in cells and environment
+                                and calculates respective voltages.
+
+    update_C_ecm(ion_i,flux, cells, p)     For sims with full environment, updates concentration of ion with index
+                                            ion_i in cell and environment for a flux leaving the cell.
+
+    Hplus_electrofuse_ecm(cells,p,t)        For sims with full environment, updates H+ concentrations in cell and
+                                            environment, which are further influenced by the bicarbonate buffer action.
+
+    Hplus_HKATP_ecm(cells,p,t)              For sims with full environment, runs the HKATPase pump and updates H+ and K+
+                                            concentrations under the action of the bicarbonate buffer system.
+
+    Hplus_VATP_ecm(cells,p,t)               For sims with full environment, runs the VATPase pump and updates H+
+                                            concentrations in cell and environment, which are further influenced by the
+                                            bicarbonate buffer action.
+
+    update_gj(cells,p,t,i)                  Calculates the voltage gradient between two cells, the gating character of
+                                            gap junctions, and updates concentration for ion 'i' and voltage of each
+                                            cell after electrodiffusion of ion 'i' between gap junction connected cells.
+
+    update_ecm(cells,p,t,i)                 Updates the environmental spaces by calculating electrodiffusive transport
+                                            of ion 'i'.
+
+    update_er(cells,p,t)                    Updates concentrations in the endoplasmic reticulum.
+
+    update_dye(cells,p,t)                   Updates concentration of morphogen in cells and environment by calculating
+                                            electrodiffusive transport across membranes, between gj connected cells, and
+                                            through environmental spaces.
+
+    update_IP3(cells,p,t)                   Updates concentration of IP3 in cells and environment by calculating
+                                            electrodiffusive transport across membranes, between gj connected cells, and
+                                            through environmental spaces.
+
+    get_Efield(cells,p)                     Calculates electric fields in cells and environment.
+
+    get_Bfield(cells,p)                     Calculates magnetic fields in cells and environment.
+
+    get_current(cells,p)                    Calculates currents in cells and environment.
+
+    getFlow(cells,p)                        Calculates electroosmotic flows in cells and environment.
+
+    eosmosis(cells,p)                       Calculates lateral movement of membrane pumps and channels via tangential
+                                            forces exerted by endogenous electric fields and electroosmotic flows.
+
+    get_ion(label)                          Supply the ion name as a string input ('Na', 'K', 'Ca', etc) and it outputs
+                                            the sim index of that ion type.
+
+    initDenv(cells,p)                       Initializes the environmental diffusion matrix and corresponding weight
+                                            matrices, including tight and adherin junctions.
+
+
+
+
 
     """
 
