@@ -1025,7 +1025,7 @@ class Simulator(object):
             self.get_Efield(cells, p)
 
             # calculate electroosmotic flow:
-            if p.base_eosmo == True:
+            if p.base_eosmo == True and cells.lapGJinv != 0:
                 self.getFlow(cells,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
@@ -1465,7 +1465,7 @@ class Simulator(object):
             check_v(self.vm)
 
             # if desired, electroosmosis of membrane channels
-            if p.sim_eosmosis == True:
+            if p.sim_eosmosis == True and cells.gradMem != None:
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
@@ -1747,7 +1747,7 @@ class Simulator(object):
             self.vgj = self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0]
 
 
-        if p.gj_flux_sensitive == True:
+        if p.gj_flux_sensitive == True and cells.nnAveMatrix != None:
 
             if p.gj_respond_flow == True:
 

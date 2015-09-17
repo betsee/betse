@@ -2497,11 +2497,6 @@ def plotVects(cells, p, fig=None, ax=None):
         ymin = cells.ymin*p.um
         ymax = cells.ymax*p.um
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
         ax.axis([xmin,xmax,ymin,ymax])
         plt.legend()
 

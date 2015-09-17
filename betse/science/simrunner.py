@@ -81,9 +81,11 @@ class SimRunner(object):
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
-            # make a laplacian and solver for discrete transfers on closed, irregular cell network
-            loggers.log_info('Creating cell network Poisson solver...')
-            cells.graphLaplacian(p)
+            if p.base_eosmo == True: # if user desires electroosmosis:
+
+                # make a laplacian and solver for discrete transfers on closed, irregular cell network
+                loggers.log_info('Creating cell network Poisson solver...')
+                cells.graphLaplacian(p)
 
             cells.save_cluster(p)
 
@@ -819,7 +821,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P == True and p.base_eosmo == True:
+    if p.plot_P == True and p.base_eosmo == True and cells.lapGJinv is not None:
 
         if p.showCells == True:
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
@@ -1046,7 +1048,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         viz.exportData(cells, sim, p)
 
 
-    if p.sim_eosmosis == True and p.sim_ECM == True:
+    if p.sim_eosmosis == True and p.sim_ECM == True and cells.gradMem is not None:
 
         viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')

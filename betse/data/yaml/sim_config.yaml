@@ -199,7 +199,7 @@ general options:
 
 world variables:
 
-  world x: 200e-6         # dimension of the world space [m]
+  world x: 500e-6         # dimension of the world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -224,11 +224,11 @@ world variables:
 
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
-  electroosmosis: False         # electroosmosis in the intra and extracellular spaces?
+  electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
-    turn on: False         # turn on electroosmosis of pumps and channels (True)
+    turn on: False         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
     channel charge: 1         # charge of membrane pumps and channels
 
@@ -254,7 +254,7 @@ world variables:
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
-    gj flux sensitive: False      # gj conductivity increases with increasing current
+    gj flux sensitive: False      # gj conductivity increases with increasing current (Note: memory intensive!)
 
 
   tight junction scaling: 1.0e-5   # factor by which tight junctions scale free-diffusion
@@ -681,7 +681,7 @@ results options:
   Vmem 2D:
 
     plot Vmem: True              # 2d plot of final vmem ?
-    autoscale colorbar: False    # autoscale colorbar to min max of data set?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 

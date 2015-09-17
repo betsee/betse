@@ -38,86 +38,19 @@ from betse.util.io import loggers
 class World(object):
     """
     The World object creates and stores data structures relating to
-    the geometric properties of the environmental grid and cell
-    centre points and provides functions to facilitate data plotting on
+    the geometric properties of the environmental grid and cell cluster, constructs
+    matrices allowing for direct computation of gradients and laplacians on
+    cell and environmental points, and provides functions to facilitate data plotting on
     the geometric structures (cell areas, membranes, ect)
 
     Parameters
     ----------
     constants                           World requires an instance of NumVars, see the Parameters module.
 
-    vorclose (default = None)           a set of counter-clockwise arranged points defining a closed
-                                        polygon to clip the cluster of cells.
-
-    worldtype (default = None)          'full' creates a complex world with individual membrane domains, extracellular
-                                        matrix points, boundary flags, and normal and tangent vectors to each membrane
-                                        domain and ecm edge, in addition to cell-cell GJ connections.
+    worldtype (default = None)          'full' creates a complex world with extracellular
+                                        matrix points, in addition to cell-cell GJ connections.
 
                                         'basic' creates a simple world with cell-cell GJ connections.
-
-    Fields
-    -------
-    self.xmin, self.xmax      dimensions of world grid (after noise, before cropping)
-    self.ymin, self.ymax
-
-    self.centre     [x,y] coordinate of world lattice co-ords (after noise, before cropping)
-
-    self.xypts      numpy array holding unravelled [x,y] centre points of 2d regular world grid
-
-    self.ecm_vol     volume of ecm spaces
-
-    self.cell_UpdateMatrix   a matrix updating cell space concentrations for cell <----> ecm fluxes
-
-    self.bflags_ecm     a python list of indices to ecm vertices on the env bound (ordered to ecm_verts_unique)
-
-    self.bmask_ecm      a python list of boolean flags to ecm verts on the env bound = 1 (ordered to ecm_verts_unique)
-
-    self.cell_verts     a nested python list specifying [x,y] of verts for each unique cell (arranged to cell_i)
-
-    self.cell_vol     a list of volumes of each cell (arranged to cell_i)  [m3]
-
-    self.cell_sa     a list of total surface area of each cell (arranged to cell_i) [m2]
-
-    self.cell_centres    a numpy array of [x,y] points defining the cell centre (arranged to cell_i)
-
-    self.cell_nn         a nested array of integer indices of each nearest neighbour for a particular cell (arranged
-                        to cell_i)
-
-    self.cell_number    a single value reporting the total number of cells in the cluster
-
-    self.average_nn     a single value reporting the average number of nearest neighbour connections per cell
-
-    self.gap_jun_i      a list of index pairs [a,b] to self.cell_i points defining unique cell-cell GJ connections
-                        arranged to gap junction index: gj_i
-
-    self.gj_vects       a numpy array of [x,y,tx,ty] defining tangent vectors to each unique gj (arranged to gj_i)
-
-    self.cell2GJ_map    a nested list of indices to gj_i given a particular cell_i
-
-    self.mem_to_cells   a numpy array allowing cell data to be mapped to respective membrane domains
-
-    self.mem_edges     nested python list of segments defining each membrane domain of a cell (arranged cc to cell_i)
-
-    self.mem_length       the length of each membrane domain
-
-    self.mem_sa         the surface area of each membrane domain (pseudo 3D)
-
-    self.mem_mids       nested python list of [x,y] coordinates defining midpoint of each membrane (arranged to cell_i)
-
-    self.mem_mids_flat  numpy array of [x,y] coordinates as flattened version of mem_mids
-
-    self.mem_vects_flat     a numpy array specifying [x,y,nx,ny,tx,ty] specifying the normal and tangent to each membrane
-                        domain of a cell. Normals point into the cell when positive.
-
-    self.cell_i         a python list of indices to cell data arrays (cell_i)
-
-    self.gj_i           a python list of indices to gj data arrays (gj_i)
-
-    self.mem_i          a python list of indices to membrane data arrays (mem_i)
-
-    self.gjMatrix       a matrix allowing a quantity, such as flux, to be properly distributed to cells in network
-
-
 
     Methods
     -------
@@ -134,14 +67,13 @@ class World(object):
     environment()                     Calculate details for the extracellular calculations, including mappings
     graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
 
-
-
-
     Notes
     -------
     Uses Numpy
     Uses Scipy spatial
-    Uses BETSE-specific toolbox
+    Uses BETSE-specific Toolbox module
+    Uses BETSE-specific FiniteDiff module
+    Uses BETSE-specific Bitmapper module
 
     """
 
@@ -162,10 +94,8 @@ class World(object):
     def fileInit(self,p):
 
         """
-        Initializes file saving and loading directory as the betse cach.
-        For now, automatically assigns file names, but later, will allow
-        user-specified file names.
-
+        Initializes file saving and loading directory as the BETSE cache, which is
+        automatically assigned from the user-specified path in the configuration file.
         """
 
         # Make the BETSE-specific cache directory if not found.
@@ -178,7 +108,7 @@ class World(object):
     def makeWorld(self,p):
 
         """
-        Call internal methods to set up the cell cluster.
+        Calls internal methods to set up the cell cluster.
 
         """
 
@@ -195,10 +125,6 @@ class World(object):
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
 
-            # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-            # loggers.log_info('Creating cell network Poisson solver...')
-            # self.graphLaplacian(p)
-
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
@@ -211,19 +137,27 @@ class World(object):
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
-            #
-            # loggers.log_info('Completed major world-building computations.')
 
     def makeSeeds(self,p):
 
         """
-        makeSeeds returns an irregular scatter
+        Returns an irregular scatter
         of points defined on a world space
-        with dimensions wsx, wsy in [m].
+        with dimensions supplied by p.wsx in [m].
 
         The amount of deviation from a square
-        grid is specified by nl, defined from
+        grid is specified by p.nl, defined from
         0 (perfect square grid) to 1 (full noise).
+
+        Parameters
+        -----------
+        p                   An instance of the Parameters object.
+
+        Creates
+        -----------
+        self.xmin, self.xmax, self.ymin, self.ymax      Min/max points of global world space
+        self.centre                                     Centre of global world space
+        self.clust_xy                                   List of x,y coordinates of seed points
 
         Notes
         -------
@@ -262,23 +196,25 @@ class World(object):
     def makeVoronoi(self, p):
 
         """
-        Calculates, closes and clips the Voronoi diagram to cell seed points.
+        Calculates the Voronoi diagram from cell seed points.
 
-        The option vorclose specifies the Voronoi diagram to be clipped (closed)
-        to a polygon (circle) corresponding to the seed cluster maximum breadth.
-        If vorclose=None, there is no cropping, while vorclose = 'circle' crops
-        to a 15 point polygon (circle).
+        The Voronoi diagram is then closed at the global (square) boundaries of the world.
+
+        Finally, cells of the Voronoi diagram are removed to define a cluster shape.
 
         Parameters
         ----------
-        vorclose            None = no cropping, 'circle'= crop to circle
+        p                   An instance of the Parameters object.
 
         Creates
-        -------
-        self.ecm_verts      nested python list specifying polygonal region
-                            and vertices as [x,y] for each Voronoi cell in the
-                            clipped/closed Voronoi diagram. Arranged as: [ [ [a,b],[c,d],[e,f]],[[g,h],[i,j],[k,l] ] ]
-                            These represent the vertices of the extracellular space around each cell.
+        ---------
+        self.ecm_verts              x,y points of Voronoi cell vertices (nulled at world creation endpoint)
+        self.ecm_verts_unique       x,y points of unique Voronoi cell vertices (nulled at world creation endpoint)
+        self.ecm_polyinds           indices into self.ecm_verts_unique list defining each Voronoi polygon
+                                    (nulled at world creation endpoint)
+        self.cluster_mask           Matrix of booleans defining masked shape of cell cluster
+        self.msize                  Size of bitmap (side pixel number)
+
 
         Notes
         -------
@@ -288,6 +224,8 @@ class World(object):
         """
 
         loggers.log_info('Creating Voronoi geometry... ')
+
+        # define the Voronoi diagram from the seed points:
         vor = sps.Voronoi(self.clust_xy)
 
         cluster_center = vor.points.mean(axis=0)
@@ -342,9 +280,9 @@ class World(object):
 
         self.ecm_verts = []
 
-        # finally, clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
+        # Clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
 
-        # load the bitmap used to clip the cell cluster and create a clipping function
+        # Load the bitmap used to clip the cell cluster and create a clipping function:
         loggers.log_info('Clipping Voronoi geometry to cluster shape... ')
         self.bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
 
@@ -371,7 +309,7 @@ class World(object):
         self.cluster_mask = self.bitmasker.clippingMatrix
         self.msize = self.bitmasker.msize
 
-        # next redefine the set of unique vertex points from ecm_verts arrangement
+        # next redefine the set of unique vertex points from ecm_verts arrangement:
         ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
 
         ecm_verts_set = set()
@@ -385,7 +323,6 @@ class World(object):
 
         # Finally, re-do indicies for ecm polygons in terms of unique vertices list
         # self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function
-
         self.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
 
         for poly in self.ecm_verts:
@@ -445,9 +382,7 @@ class World(object):
 
         self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
 
-        # Finally, re-do indicies for ecm polygons in terms of unique vertices list
-        # self.ecm_verts_unique = self.ecm_verts_unique.tolist()   # first convert to list to use indexing function
-
+        # Finally, re-do indicies for ecm polygons in terms of unique vertices list:
         self.ecm_polyinds = []    # define a new field to hold the indices of polygons in terms of unique vertices
 
         for poly in self.ecm_verts:
@@ -462,7 +397,6 @@ class World(object):
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
         # ensure every point in the regions are in order:
-
         for j, region in enumerate(self.ecm_polyinds):    # step through each polygon region
 
             verts = self.ecm_verts_unique[region]   # get the vertices for this region
@@ -482,14 +416,13 @@ class World(object):
 
         #-----------------------------------------------------------------------------------------
 
-        # now find the unique vertices used in the cell structure
-
+        # Convert ecm_polyinds into a Numpy ndarray:
         self.ecm_polyinds = np.asarray(self.ecm_polyinds)
 
     def cell_index(self,p):
 
         """
-        Calculate the cell centre for each voronoi polygon and return a list
+        Calculate the cell centre for each Voronoi polygon and return a list
         with an index consistent with all other data lists for the cell cluster.
 
 
@@ -523,9 +456,12 @@ class World(object):
 
         Creates
         -------
-        self.cell_nn            A nested list defining the indices of all nearest neighbours to each cell
-        self.gap_jun_i          A list of index pairs to self.cell_centres, each pair defining a unique cell-cell GJ
-        self.cell2GJ_map        Returns a list of indices to gap junctions for each cell index
+        self.cell_nn            Indices of all nearest neighbours to each cell (ordered to self.cell_i)
+        self.num_nn             Number of nearest neighbours for each cell (ordered to self.cell_i)
+        self.average_nn         Average number of nearest neighbours for entire cluster
+        self.nn_i               Non-unique list of index pairs to cells, each pair defining a cell-cell GJ
+        self.nn_len             Length of each GJ [m]
+        self.nn_vects           Normal and tangent vectors to each gj
 
         Notes
         -------
@@ -645,10 +581,21 @@ class World(object):
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
         of the closed & clipped Voronoi diagram.
 
+        The BETSE cell grid has each cell defined by unique vertices, which are scaled in from the ecm points.
+
         Creates
         -------
         self.cell_verts      A nested python list of the [x,y] point pairs defining vertices of each individual cell
                             polygon. The points of each polygon are arranged in a counterclockwise manner.
+        self.cell_vol       Volume of each cell [m3]
+        self.cell_sa        Whole cell surface area
+
+        self.mem_edges          membrane edge points [x,y] coordinates
+        self.mem_length         membrane surface area values [m2]
+        self.mem_mids           membrane edge midpoints [x,y] coordinates nested to self.cell_i
+        self.mem_mids_flat      unraveled list of membrane edge midpoints [x,y] arranged to self.mem_i
+        self.mem_vects_flat     list of normal and tangent vectors (non nested) arranged to self.mem_i
+
 
         Notes
         -------
@@ -741,7 +688,15 @@ class World(object):
 
         Creates
         -------
-        self.xypts      numpy array listing [x,y] of world seed points
+        self.delta          spacing between points of square environmental grid
+        self.grid_obj       an instance of FiniteDiffSolver, with MACs grid defined within
+        self.X, self.Y      major X and Y grid (cell centre points) of MACs grid
+        self.map_ij2k       mapping between (i,j) indices of 2D grids and the k indice of the unravelled grid
+                            (for grid-cell centres)
+        self.index_k        unravelled grid k-index
+        self.ecm_sa         surface area of the extracellular space grid-cell face
+        self.ecm_vol        volume of the extracellular space grid-cell
+        self.xypts          numpy array listing [x,y] of world seed points
 
         self.xmin, self.xmax      dimensions of world grid
         self.ymin, self.ymax
@@ -781,7 +736,10 @@ class World(object):
         Defines conditions for points in contact with the global environment at the outer boundary
         of the square world.
 
-        Note: this is how to access all elements in a main-grid format from the k-vector:
+        Notes
+        -------
+
+        This is how to access all elements in a main-grid format from the k-vector:
         Z[cells.map_ij2k[:,0],cells.map_ij2k[:,1]]
 
         or access elements in a main-grid format to a subset of the k-vector:
@@ -836,7 +794,6 @@ class World(object):
 
         #-----------------------------------------------------------
         # create structures for plotting interpolated data on cell centres:
-
         xv = np.linspace(self.xmin,self.xmax,self.msize)
         yv = np.linspace(self.ymin,self.ymax,self.msize)
 
@@ -861,7 +818,6 @@ class World(object):
         if p.sim_ECM == True:
 
             # Create a matrix to update ecm from mem fluxes
-
             self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
 
             for i, ecm_index in enumerate(self.map_mem2ecm):
@@ -869,12 +825,27 @@ class World(object):
 
             loggers.log_info('Creating environmental Poisson solver for voltage...')
             self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
+            self.lapENV = None   # get rid of the non-inverse matrix as it only hogs memory...
 
             loggers.log_info('Creating environmental Poisson solver for pressure...')
             bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
             self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+            self.lapENV_P = None # get rid of the non-inverse matrix as it only hogs memory...
 
     def graphLaplacian(self,p):
+        '''
+        Defines an abstract Laplacian that is used to solve Poisson's equation on the
+        irregular grid of the cell cluster.
+
+        Parameters
+        ----------
+        p               An instance of the Parameters object
+
+        Creates
+        ----------
+        self.lapGJ, self.lapGJ
+
+        '''
 
         # now define a Laplacian matrix for this cell collection
         self.lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
@@ -900,6 +871,9 @@ class World(object):
             self.lapGJ[i,i] = idiag
 
         self.lapGJinv = np.linalg.pinv(self.lapGJ)
+
+        # null out the original matrix to save memory:
+        self.lapGJ = None
 
     def cleanUp(self,p):
 
@@ -993,7 +967,6 @@ class World(object):
             self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
             self.mem_edges_flat = np.asarray(self.mem_edges_flat)
 
-
             self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
 
             for i, cell_index in enumerate(self.mem_to_cells):
@@ -1013,26 +986,28 @@ class World(object):
 
         self.num_mems = np.asarray(self.num_mems)
 
-        # create a matrix that will take a continuous gradient for a value on a cell membrane
-        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+        # if studying lateral movement of pumps and channels in membrane,
+        # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        if p.sim_eosmosis == True:
+            self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
-        for i, inds in enumerate(self.cell_to_mems):
+            for i, inds in enumerate(self.cell_to_mems):
 
-            inds = np.asarray(inds)
+                inds = np.asarray(inds)
 
-            inds_p1 = np.roll(inds,1)
-            inds_n1 = np.roll(inds,-1)
-            inds_o = np.roll(inds,0)
+                inds_p1 = np.roll(inds,1)
+                inds_n1 = np.roll(inds,-1)
+                inds_o = np.roll(inds,0)
 
-            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
-            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-            dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
+                dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
+                len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+                dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
 
-            tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
-            tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
+                tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
+                tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
 
-            self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
-            self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+                self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
+                self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
 
         #---------------------------------------------------------------------------
 
@@ -1041,6 +1016,11 @@ class World(object):
 
         self.mem_mids = np.asarray(self.mem_mids)
 
+        # get rid of fields that aren't required any more:
+        self.clust_xy = None
+        self.ecm_verts = None
+        self.ecm_verts_unique = None
+        self.ecm_polyinds = None
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1180,19 +1160,31 @@ class World(object):
 
 
         # the nnAveMatrix will take a property defined from two cells onto a single gap junction and average
-        # the property to provide one unique result.
-        self.nnAveMatrix = np.zeros((len(self.nn_i),len(self.nn_i)))
+        # the property to provide one unique result:
 
-        nn_list = self.nn_i.tolist()
+        if p.gj_flux_sensitive == True:# if the user desires flux sensitive gj, construct the very large nnAveMatrix:
+            self.nnAveMatrix = np.zeros((len(self.nn_i),len(self.nn_i)))
 
-        for i, (pt1, pt2) in enumerate(self.nn_i):
-            # find the index of the duplicate point in the gj matrix:
-            nn_dupe = nn_list.index([pt2,pt1])
+            nn_list = self.nn_i.tolist()
 
-            self.nnAveMatrix[i,i] = 1/2
-            self.nnAveMatrix[i,nn_dupe] = 1/2
+            for i, (pt1, pt2) in enumerate(self.nn_i):
+                # find the index of the duplicate point in the gj matrix:
+                nn_dupe = nn_list.index([pt2,pt1])
+
+                self.nnAveMatrix[i,i] = 1/2
+                self.nnAveMatrix[i,nn_dupe] = 1/2
 
     def save_cluster(self,p,savecells = True):
+        '''
+        Saves the cell cluster using a python pickle.
+
+        Parameters
+        ----------
+        p               Instance of the Parameters object
+        savecells       Boolean indicating whether the cluster should be saved (that's kind of dumb if you're calling
+                        the function anyway!)
+
+        '''
 
         if savecells == True:
 
@@ -1204,6 +1196,8 @@ class World(object):
             fh.saveSim(self.savedWorld,datadump)
             message = 'Cell cluster saved to' + ' ' + self.savedWorld
             loggers.log_info(message)
+
+
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
 
