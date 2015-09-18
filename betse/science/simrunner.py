@@ -92,7 +92,9 @@ class SimRunner(object):
             loggers.log_info('Cell cluster creation complete!')
 
             if p.turn_all_plots_off == False:
+                loggers.log_info('Close all plot windows to continue...')
                 self.plotWorld()
+
 
             # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
             # plt.show(block=False)
@@ -124,6 +126,7 @@ class SimRunner(object):
             # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
             # plt.show(block=False)
             if p.turn_all_plots_off == False:
+                loggers.log_info('Close all plot windows to continue...')
                 self.plotWorld()
 
 
@@ -197,6 +200,7 @@ class SimRunner(object):
                 round(time.time() - start_time, 2)))
 
         if p.turn_all_plots_off == False:
+            loggers.log_info('When ready, close all of the figure windows to proceed with scheduled simulation runs.')
             plots4Sim(
                 p.plot_cell,cells,sim,p,
                 saveImages = p.autosave,
@@ -204,7 +208,7 @@ class SimRunner(object):
                 saveAni=p.saveAnimations)
             plt.show()
 
-        loggers.log_info('When ready, close all of the figure windows to proceed with scheduled simulation runs.')
+
 
         # if p.turn_all_plots_off == False:
         #     plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)

@@ -54,7 +54,7 @@ sim file saving:
 
 results file saving:
 
-    directory: init/results_a  # directory to load/save data, plots, and animations
+    directory: init/results  # directory to load/save data, plots, and animations
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 1.0             # end time [s] (recommend 3 seconds or more)
+    total time: 5.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -117,9 +117,9 @@ sim time settings:
 
 general options:
 
-  grid size: 40         # grid used in computation of environmental params and data interpolation
+  grid size: 50         # grid used in computation of environmental params and data interpolation
 
-  simulate ECM: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate ECM: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: 'basic'   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -199,7 +199,7 @@ general options:
 
 world variables:
 
-  world x: 500e-6         # dimension of the world space [m]
+  world x: 150e-6         # dimension of the world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -708,7 +708,7 @@ results options:
 
   Vcell 2D:
 
-    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
     plot Venv: True                 # plot the environmental spaces volage (if p.sim_ECM = True)?
     autoscale colorbar: False       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
@@ -716,7 +716,7 @@ results options:
 
   Efield 2D:
 
-    plot Efield: True              # 2d plot of electric field
+    plot Efield: False              # 2d plot of electric field
     data type: ECM                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
@@ -725,7 +725,7 @@ results options:
 
   Currents 2D:
 
-    plot Currents: False               # 2d plot of net current flow in the collective?
+    plot Currents: True               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -733,14 +733,14 @@ results options:
 
   Pressure 2D:                      # 2D plot of pressure in the cluster
 
-    plot Pressure: True
+    plot Pressure: False
     autoscale colorbar: True
     max val: 15
     min val: -15
 
   Velocity 2D:                      # 2D plot of electroosmotic fluid velocity in the cluster
 
-    plot Velocity: True
+    plot Velocity: False
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -778,27 +778,27 @@ results options:
 
   Vmem GJ Ani:
 
-    animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+    animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
 
-    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Current Ani:
 
-    animate current: True       # 2d animation of current in individual cells of the collective?
+    animate current: False       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
   Efield Ani:
-    animate Efield: True        # 2d animation of electric field in extracellullar matrix
+    animate Efield: False        # 2d animation of electric field in extracellullar matrix
     data type: ECM                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
@@ -806,7 +806,7 @@ results options:
     min val: 0                  # min colorbar value [V/m]
 
   Velocity Ani:
-    animate Velocity: True        # 2d animation of electric field in extracellullar matrix
+    animate Velocity: False        # 2d animation of electric field in extracellullar matrix
     data type: GJ                  # data type can be 'ECM' or 'GJ'
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 500               # max colorbar value [V/m]
