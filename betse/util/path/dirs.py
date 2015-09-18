@@ -52,6 +52,17 @@ def is_dir(dirname: str) -> bool:
     assert len(dirname), 'Dirname empty.'
     return path.isdir(dirname)
 
+# ....................{ GETTERS                            }....................
+def get_current_dirname() -> str:
+    '''
+    Get the **current working dirname** (i.e., absolute path of the current
+    working directory (CWD)).
+
+    Unless subsequently changed, this is the absolute path of the directory from
+    which `betse` was first run.
+    '''
+    return os.getcwd()
+
 # ....................{ LISTERS                            }....................
 def list_basenames(dirname: str) -> list:
     '''

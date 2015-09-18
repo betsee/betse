@@ -60,25 +60,25 @@ class CLICLI(CLI):
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
 
-        self._add_arg_subparser_top(
+        self._add_arg_subparser_top_configured(
             name = 'config',
             help = 'create a new tissue simulation configuration',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_CONFIG),
         )
-        self._add_arg_subparser_top(
+        self._add_arg_subparser_top_configured(
             name = 'seed',
             help = 'make the cell cluster given by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_SEED),
         )
-        self._add_arg_subparser_top(
+        self._add_arg_subparser_top_configured(
             name = 'prep',
             help = 'prep the created cluster given by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PREP),
         )
-        self._add_arg_subparser_top(
+        self._add_arg_subparser_top_configured(
             name = 'run',
             help = 'run the prepped cluster given by a configuration file',
             description = self._format_help_template(
@@ -148,26 +148,36 @@ class CLICLI(CLI):
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
-        self._add_arg_subparser_plot(
+        self._add_arg_subparser_plot_configured(
             name = 'seed',
             help = 'plot the created cluster defined by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_SEED),
         )
-        self._add_arg_subparser_plot(
+        self._add_arg_subparser_plot_configured(
             name = 'prep',
             help = 'plot the prepped simulation defined by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_PREP),
         )
-        self._add_arg_subparser_plot(
+        self._add_arg_subparser_plot_configured(
             name = 'run',
             help = 'plot the run simulation defined by a configuration file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_RUN),
         )
 
-    # ..................{ SUBPARSER                          }..................
+    # ..................{ SUBPARSER ~ top                    }..................
+    def _add_arg_subparser_top_configured(
+        self, *args, **kwargs) -> ArgumentParser:
+        '''
+        Create a new argument subparser requiring a configuration filename, add
+        such subparser to the collection of top-level argument subparsers, and
+        return such subparser.
+        '''
+        return self._add_arg_subparser_configured(
+            self._arg_subparsers_top, *args, **kwargs)
+
     def _add_arg_subparser_top(self, *args, **kwargs) -> ArgumentParser:
         '''
         Create a new argument subparser, add such subparser to the collection of
@@ -176,16 +186,18 @@ class CLICLI(CLI):
         return self._add_arg_subparser(
             self._arg_subparsers_top, *args, **kwargs)
 
-    def _add_arg_subparser_plot(self, *args, **kwargs) -> ArgumentParser:
+    # ..................{ SUBPARSER ~ plot                   }..................
+    def _add_arg_subparser_plot_configured(self, *args, **kwargs) -> ArgumentParser:
         '''
         Create a new argument subparser requiring a configuration filename, add
         such subparser to the subparser corresponding to the `plot` subcommand,
         and return such subparser.
         '''
-        return self._add_arg_subparser_subcommand(
+        return self._add_arg_subparser_configured(
             self._arg_subparsers_plot, *args, **kwargs)
 
-    def _add_arg_subparser_subcommand(
+    # ..................{ SUBPARSER                          }..................
+    def _add_arg_subparser_configured(
         self, arg_subparsers: ArgumentParser, *args, **kwargs) -> ArgumentParser:
         '''
         Create a new argument subparser requiring a configuration filename, add
@@ -195,7 +207,7 @@ class CLICLI(CLI):
         Parameters
         ----------
         arg_subparsers : ArgumentParser
-            Set of argument subparsers, typically corresponding to a top- level
+            Set of argument subparsers, typically corresponding to a top-level
             subcommand (e.g., `plot`).
         '''
         # Create such subparser.
