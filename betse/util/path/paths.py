@@ -88,7 +88,7 @@ def is_dirname_empty(pathname: str) -> bool:
     `True` if the passed pathname is a *pure basename* (i.e., contains no
     directory separators and hence no directory components).
     '''
-    return path.sep in pathname
+    return path.sep not in pathname
 
 def is_filetype(pathname: str, filetype: str) -> bool:
     '''

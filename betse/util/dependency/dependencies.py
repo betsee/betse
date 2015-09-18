@@ -19,9 +19,6 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
-from betse.util.dependency import matplotlibs
-from betse.util.python import modules
-from betse.util.type import containers
 from collections import OrderedDict
 
 # ....................{ INITIALIZERS                       }....................
@@ -35,6 +32,9 @@ def init() -> None:
     . Reconfigure `matplotlib` with sane defaults specific to the current
       platform.
     '''
+    # Avoid circular import dependencies.
+    from betse.util.dependency import matplotlibs
+
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.
     die_unless_satisfiable_all()
@@ -56,6 +56,9 @@ def die_unless_satisfiable_all() -> None:
     additionally validates the versions of such dependencies to satisfy `betse`
     requirements.
     '''
+    # Avoid circular import dependencies.
+    from betse.util.python import modules
+
     # If the "pkg_resources" setuptools dependency is missing, raise an
     # exception *BEFORE* importing such dependency below.
     modules.die_unless(
@@ -73,32 +76,68 @@ def get_metadata() -> OrderedDict:
     Get an ordered dictionary synopsizing all currently installed dependencies.
     '''
     # Imports deferred to their point of use, as documented above.
+    from betse.util.python import modules, pythons
+    from betse.util.type import containers
     import pkg_resources
 
-    # Such dictionary.
+    # Dependency metadata to be collected and returned.
     dependency_metadata = OrderedDict()
 
-    # Set of all BETSE-specific dependencies as instances of the "Requirements"
-    # class. For readibility, lexicographically sort such dependencies.
-    requirements = pkg_resources.parse_requirements(
-        containers.sort_as_lexicographic_ascending(
-            metadata.DEPENDENCIES_RUNTIME))
+    # If the active Python interpreter is frozen, query dependency versions
+    # manually rather than via setuptools machinery. See the
+    # setuptool.die_unless_requirement_satisfiable() function for related logic
+    # and further commentary.
+    if pythons.is_frozen():
+    # if True:
+        # List of the setuptools-specific project names of all BETSE
+        # dependencies, lexicographically sorted for readability.
+        project_names = containers.sort_as_lexicographic_ascending(
+            metadata.DEPENDENCY_TO_MODULE_NAME.keys())
 
-    # For each such dependency...
-    for requirement in requirements:
-        # Setuptools distribution describing such dependency. Since the
-        # previously called dependencies.init() function presumably succeeded,
-        # such distribution is guaranteed to exist.
-        distribution = pkg_resources.get_distribution(requirement)
+        # For each such name...
+        for project_name in project_names:
+            # Fully-qualified name of the top-level module or package providing
+            # this project.
+            module_name = metadata.DEPENDENCY_TO_MODULE_NAME[project_name]
 
-        # Append metadata describing such dependency.
-        dependency_metadata[distribution.project_name + ' version'] =\
-            distribution.version
+            # Version specifier provided by that module or package.
+            module_version = modules.get_version(module_name)
+
+            # Append metadata describing such dependency.
+            dependency_metadata[project_name + ' version'] = module_version
+    # Else, the active Python interpreter is *NOT* frozen. In such case, query
+    # dependency versions via the more reliable setuptools machinery.
+    else:
+        # List of all BETSE dependencies as setuptools-specific requirements,
+        # lexicographically sorted for readability.
+        requirements = pkg_resources.parse_requirements(
+            containers.sort_as_lexicographic_ascending(
+                metadata.DEPENDENCIES_RUNTIME))
+
+        # For each such dependency...
+        for requirement in requirements:
+            # Setuptools distribution describing such dependency. Since the
+            # previously called dependencies.init() function presumably
+            # succeeded, such distribution is guaranteed to exist.
+            distribution = pkg_resources.get_distribution(requirement)
+
+            # Append metadata describing such dependency.
+            dependency_metadata[distribution.project_name + ' version'] =\
+                distribution.version
 
     # Get such dictionary.
     return dependency_metadata
 
 # --------------------( WASTELANDS                         )--------------------
+        # Human-readable exception to be raised below if any.
+        # exception = None
+
+        # List of the fully-qualified names of the top-level modules and
+        # packages specific to all BETSE dependencies, lexicographically sorted
+        # for readability.
+        # module_names = containers.sort_as_lexicographic_ascending(
+        #     metadata.DEPENDENCY_TO_MODULE_NAME.values()
+
         # If the current dependency is setuptools *AND* the active Python
         # interpreter is frozen, avoid attempting to validate this dependency.
         # Since the BETSE codebase imports the setuptools-provided

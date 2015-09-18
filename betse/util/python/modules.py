@@ -15,7 +15,24 @@ Low-level module facilities.
 # stock Python packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from betse.exceptions import BetseExceptionModule
-import importlib, sys
+import collections, importlib, sys
+
+# ....................{ VERSIONS                           }....................
+MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(
+    # Default attribute name to be returned for all unmapped modules.
+    lambda: '__version__',
+
+    # Module-specific attribute names.
+    PIL = 'PILLOW_VERSION',
+)
+'''
+Dictionary mapping the fully-qualified name of a module or package (e.g., `PIL`)
+to the name of the attribute (e.g., `PILLOW_VERSION`) declared by that
+module or package, providing that module or package's version specifier.
+
+All modules and packages unmapped by this dictionary default to the canonical
+`__version__` attribute name.
+'''
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless(
@@ -54,9 +71,9 @@ def is_module(module_name: str) -> bool:
     '''
     assert isinstance(module_name, str),\
         '"{}" not a string.'.format(module_name)
+    assert len(module_name), 'Module name empty.'
 
-    # Depending on context,  behaves in one of three
-    # distinct ways:
+    # Depending on context, this function behaves in one of three distinct ways:
     #
     # * If this module's name is a key in the canonical dictionary "sys.modules"
     #   and has thus already been imported at least once under the current
@@ -99,8 +116,11 @@ def is_imported(*module_names) -> bool:
     for module_name in module_names:
         assert isinstance(module_name, str),\
             '"{}" not a string.'.format(module_name)
+        assert len(module_name), 'Module name empty.'
+
         if module_name not in sys.modules:
             return False
+
     return True
 
 # ....................{ GETTERS                            }....................
@@ -116,6 +136,50 @@ def get_dirname(mod) -> str:
 
     # Get such dirname.
     return paths.get_dirname(mod.__file__)
+
+# ....................{ GETTERS ~ version                  }....................
+def get_version(mod) -> str:
+    '''
+    Get the version specifier of the passed module.
+
+    If that module provides no version specifier, an exception is raised.
+
+    See Also
+    ----------
+    `get_version_or_none`
+        For further details on the passed parameter.
+    '''
+    module_version = get_version_or_none(mod)
+
+    # If such version does *NOT* exist, raise an exception.
+    if module_version is None:
+        raise BetseExceptionModule(
+            'Module "%s" version not found.', str(mod))
+
+    return module_version
+
+def get_version_or_none(mod) -> str:
+    '''
+    Get the version specifier of the passed module if that module provides a
+    version specifier or `None` otherwise.
+
+    For convenience, the passed module may be either:
+
+    * The fully-qualified name of such module, in which case such module will be
+      dynamically imported.
+    * A previously imported module instance.
+    '''
+    # If a module name was passed, dynamically import such module.
+    if isinstance(mod, str):
+        assert len(mod), 'Module name empty.'
+        mod = import_module(mod)
+
+    # Name of the version specifier attribute defined by that module. For sane
+    # modules, this is "__version__". Insane modules, however, exist.
+    version_attr_name = MODULE_TO_VERSION_ATTR_NAME[mod.__name__]
+
+    # Get such attribute from such module if defined or None otherwise.
+    return getattr(mod, version_attr_name, None)
 
 # ....................{ IMPORTERS                          }....................
 def import_module(module_name: str) -> type(sys):

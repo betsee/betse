@@ -144,10 +144,11 @@ appears to exist no means of asserting a dependency on only `pkg_resources`,
 we pretend to require `setuptools` itself. This is non-ideal, of course.
 '''
 
-#FIXME: Reenable commented dependencies when actually imported by the codebase.
-
-# Such dependencies are also checked for importability as modules at runtime and
-# hence case-sensitive (e.g., "PySide" is importable but "pyside" is *NOT*).
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# NOTE: Changes to dependency names declared by this set *MUST* be synchronized
+# with the corresponding keys of the "DEPENDENCY_TO_MODULE_NAME" dictionary,
+# declared below.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME = [
     # setuptools is currently required at both install and runtime. At runtime,
     # setuptools is used to validate that required dependencies are available.
@@ -167,14 +168,23 @@ DEPENDENCIES_RUNTIME = [
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, such dependencies are
     # explicitly listed as well.
-    'six >= 1.7.3',   # required by everything
+    'six >= 1.7.3',      # required by everything that should not be
     'Pillow >= 2.6.1',   # required by the "scipy.misc.imread" module
 ]
 '''
 Set of all mandatory runtime dependencies for `betse`.
 
-For simplicity, such set is formatted as a list of `setuptools`-specific
-requirements strings.
+For simplicity, this set is formatted as a list of `setuptools`-specific
+requirements strings whose:
+
+* First word is the name of the `setuptools`-specific project being required,
+  which may have no relation to the name of that project's top-level module or
+  package (e.g., the `PyYAML` project's top-level package is `yaml`). For human
+  readability in error messages, this name should typically be case-sensitively
+  capitalized -- despite being parsed case-insensitively by `setuptools`.
+* Second word is a numeric comparison operator.
+* Third word is the version specifier of that project required by that
+  comparison.
 
 See Also
 ----------
@@ -182,7 +192,47 @@ README.md
     Human-readable list of such dependencies.
 '''
 
+DEPENDENCY_TO_MODULE_NAME = {
+    'setuptools': 'setuptools',
+    'six': 'six',
+    'Matplotlib': 'matplotlib',
+    'Numpy': 'numpy',
+    'Pillow': 'PIL',
+    'PyYAML': 'yaml',
+    'SciPy': 'numpy',
+}
+'''
+Dictionary mapping the `setuptools`-specific name of each dependency declared by
+the `DEPENDENCIES_RUNTIME` set (e.g., `PyYAML`) to the fully-qualified name of
+that dependency's top-level module or package (e.g., `yaml`).
+
+For consistency, the size of this dictionary is necessarily the same as the size
+of the `DEPENDENCIES_RUNTIME` set.
+'''
+
 # --------------------( WASTELANDS                         )--------------------
+# DEPENDENCY_TO_MODULE_VERSION_ATTR_NAME = collections.defaultdict(
+#     # Default attribute name to be returned for all unmapped dependencies.
+#     lambda: '__version__',
+#
+#     # Dependency-specific attribute names.
+#     Pillow = 'PILLOW_VERSION',
+# )
+# '''
+# Dictionary mapping the `setuptools`-specific name of each dependency declared by
+# the `DEPENDENCIES_RUNTIME` set (e.g., `Pillow`) to the name of the attribute
+# (e.g., `PILLOW_VERSION`) declared by that dependency's top-level module or
+# package (e.g., `PIL`).
+#
+# For convenience, the size of this dictionary is _not_ necessarily the same as
+# the size of the `DEPENDENCIES_RUNTIME` set. All dependencies unmapped by this
+# dictionary default to the canonical `__version__` attribute name.
+# '''
+
+# Such dependencies are also checked for importability as modules at runtime and
+# hence case-sensitive (e.g., "PySide" is importable but "pyside" is *NOT*).
+#FUXME: Reenable commented dependencies when actually imported by the codebase.
+
     # 'simpo >= 3.10',
     # 'PyYAML < 3.10',
     #FUXME: Terrible. Should be "pyyaml", but that currently breaks "betse"!

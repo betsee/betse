@@ -72,7 +72,7 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
-from betse.util.python import modules
+from betse.util.python import modules, pythons
 from betse.util.system import oses
 from betse.util.type import containers, strs
 from collections import OrderedDict
@@ -105,11 +105,12 @@ _sys_argv_old = sys.argv[:]
 del(sys.argv[1:])
 
 # Import matplotlib safely.
-import matplotlib
-
+try:
+    import matplotlib
 # Restore the prior argument list from such temporary list.
-sys.argv = _sys_argv_old
-del(_sys_argv_old)
+finally:
+    sys.argv = _sys_argv_old
+    del(_sys_argv_old)
 
 # ....................{ CONSTANTS                          }....................
 RCPARAMS = {
@@ -391,12 +392,17 @@ class MatplotlibConfig(object):
                         backend_basename, BACKEND_BASENAME_PREFIX) and
                         paths.is_filetype(backend_basename, 'py')
                 ])
-            # Else, such directory does *NOT* exist. Log a non-fatal warning and
-            # clear such list.
+            # Else, such directory does *NOT* exist.
             else:
-                loggers.log_warning(
-                    'Directory "{}" not found. Matplotlib backends not inspectable.'.format(
-                        backends_dir))
+                # If the active Python interpreter is frozen, this is expected
+                # and hence ignorable; else, this is unexpected, in which case a
+                # non-fatal warning is logged and such list is cleared.
+                if not pythons.is_frozen():
+                    loggers.log_warning(
+                        'Directory "{}" not found. Matplotlib backends not queryable.'.format(
+                            backends_dir))
+
+                # In either case, clear such list.
                 self._backend_names = []
 
         # Get the cached list.

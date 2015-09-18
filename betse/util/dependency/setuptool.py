@@ -12,21 +12,8 @@ dependency simplifying inspection of `betse` dependencies.
 from betse import metadata
 from betse.exceptions import BetseExceptionModule
 from betse.util.io import loggers
-from betse.util.python import modules, pythons
 from pkg_resources import DistributionNotFound, Requirement, VersionConflict
 import pkg_resources
-
-# ....................{ GLOBALS                            }....................
-DISTRIBUTION_TO_MODULE_NAME = {
-    'Matplotlib': 'matplotlib',
-    'Numpy': 'numpy',
-    'SciPy': 'numpy',
-    'PyYAML': 'yaml',
-}
-'''
-Dictionary mapping from setuptools-specific distribution names (e.g., `PyYAML`)
-to standard fully-qualified module names (e.g., `yaml`).
-'''
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_requirements_satisfiable_all() -> None:
@@ -64,6 +51,9 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
     assert isinstance(requirement, Requirement),\
         '"{}" not a setuptools-specific requirement.'.format(requirement)
 
+    # Avoid circular import dependencies.
+    from betse.util.python import modules, pythons
+
     # Human-readable exception to be raised below if any.
     exception = None
 
@@ -82,11 +72,17 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
     # non-frozen Python interpreters.
     # print('Validating dependency: ' + requirement.project_name)
     if pythons.is_frozen():
-        # Fully-qualified name of the corresponding module. If this
-        # requirement's setuptools-specific distribution name maps to an actual
-        # module name, prefer the latter; else, fallback to the former.
-        module_name = DISTRIBUTION_TO_MODULE_NAME.get(
-            requirement.project_name, requirement.project_name)
+    # if True:
+        # If this requirement's setuptools-specific distribution name has *NOT*
+        # been mapped to a module name, raise an exception.
+        if requirement.project_name not in metadata.DEPENDENCY_TO_MODULE_NAME:
+            raise BetseExceptionModule(
+                'Mandatory dependency "{}" mapped to no module name.'.format(
+                    requirement))
+
+        # Fully-qualified name of the corresponding module.
+        module_name = metadata.DEPENDENCY_TO_MODULE_NAME[
+            requirement.project_name]
 
         # Such module if found or a raised exception otherwise.
         try:
@@ -102,7 +98,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
             raise exception
 
         # Module version if any or None otherwise.
-        module_version = getattr(module, '__version__', None)
+        module_version = modules.get_version_or_none(module)
 
         # If such version does *NOT* exist, log a non-fatal warning.
         if module_version is None:
@@ -147,3 +143,20 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
             raise exception
 
 # --------------------( WASTELANDS                         )--------------------
+# ....................{ GLOBALS                            }....................
+# DISTRIBUTION_TO_MODULE_NAME = {
+#     'Matplotlib': 'matplotlib',
+#     'Numpy': 'numpy',
+#     'SciPy': 'numpy',
+#     'PyYAML': 'yaml',
+# }
+# '''
+# Dictionary mapping from setuptools-specific distribution names (e.g., `PyYAML`)
+# to standard fully-qualified module names (e.g., `yaml`).
+# '''
+
+        # # Fully-qualified name of the corresponding module. If this
+        # # requirement's setuptools-specific distribution name maps to an actual
+        # # module name, prefer the latter; else, fallback to the former.
+        # module_name = DISTRIBUTION_TO_MODULE_NAME.get(
+        #     requirement.project_name, requirement.project_name)
