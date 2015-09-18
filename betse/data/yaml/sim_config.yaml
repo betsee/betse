@@ -117,7 +117,7 @@ sim time settings:
 
 general options:
 
-  grid size: 50         # grid used in computation of environmental params and data interpolation
+  grid size: 40         # grid used in computation of environmental params and data interpolation
 
   simulate ECM: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
