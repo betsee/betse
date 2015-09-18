@@ -58,8 +58,10 @@ def write_default(filename: str) -> None:
       drowning under an intimidating deluge of static plot windows irrelevant to
       general-purpose usage.
     '''
-    # Dirname, basename, and filetype of such file.
-    dirname = paths.get_dirname(filename)
+    # Dirname, basename, and filetype of such file. If such file has no dirname
+    # and hence is a pure basename, such dirname is that of the current working
+    # directory (CWD).
+    dirname  = paths.get_dirname_or_current_dirname(filename)
     basename = paths.get_basename(filename)
     filetype = paths.get_filetype(basename)
 
@@ -100,6 +102,13 @@ def write_default(filename: str) -> None:
     dirs.copy_into_target_dir(pathtree.DATA_GEOMETRY_DIRNAME, dirname)
 
 # --------------------( WASTELANDS                         )--------------------
+    # # If such filename contains a dirname and hence is *NOT* a pure basename,
+    # # create such file's parent directory if needed.
+    # if dirname:
+    #     dirs.make_unless_dir(dirname)
+    # # Else, default such dirname to the current directory.
+    # else:
+
     # loggers.log_info(
     #     'Copying file "%s" to "%s".',
     #     pathtree.CONFIG_DEFAULT_FILENAME, filename)

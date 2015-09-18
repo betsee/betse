@@ -27,18 +27,19 @@ def die_unless_path(*pathnames) -> None:
             raise BetseExceptionPath(
                 'Path "{}" not found or unreadable.'.format(pathname))
 
-def die_unless_dirname_empty(pathname: str) -> None:
+def die_if_dirname_empty(pathname: str) -> None:
     '''
-    Raise an exception unless the passed pathname is a pure basename.
+    Raise an exception if the passed path has no dirname and hence contains no
+    directory separators.
 
     See Also
     ----------
     `is_dirname_empty()`
         For further details.
     '''
-    if not is_dirname_empty(pathname):
+    if is_dirname_empty(pathname):
         raise BetseExceptionPath(
-            'Path "{}" contains directory separators.'.format(pathname))
+            'Path "{}" contains no directory separators.'.format(pathname))
 
 # ....................{ EXCEPTIONS ~ if                    }....................
 def die_if_path(*pathnames) -> None:
@@ -153,7 +154,7 @@ def get_dirname(pathname: str) -> str:
     has a dirname or raise an exception otherwise.
     '''
     # Raise an exception unless such path has a dirname.
-    die_unless_dirname_empty(pathname)
+    die_if_dirname_empty(pathname)
 
     # Get such dirname. Technically, the above call *SHOULD* have ensured such
     # dirname to exist. This is a sufficiently critical function, however, to
@@ -161,6 +162,17 @@ def get_dirname(pathname: str) -> str:
     dirname = get_dirname_or_empty(pathname)
     assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
     return dirname
+
+def get_dirname_or_current_dirname(pathname: str) -> str:
+    '''
+    Get the **dirname** (i.e., parent directory) of the passed path if such path
+    has a dirname or the current working directory otherwise.
+    '''
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs
+
+    dirname = get_dirname_or_empty(pathname)
+    return dirname if dirname else dirs.get_current_dirname()
 
 def get_dirname_or_empty(pathname: str) -> str:
     '''
@@ -289,6 +301,19 @@ def move(pathname_source: str, pathname_target: str) -> None:
     shutil.move(pathname_source, pathname_target)
 
 # --------------------( WASTELANDS                         )--------------------
+# def die_unless_dirname_empty(pathname: str) -> None:
+#     '''
+#     Raise an exception unless the passed pathname is a pure basename.
+#
+#     See Also
+#     ----------
+#     `is_dirname_empty()`
+#         For further details.
+#     '''
+#     if not is_dirname_empty(pathname):
+#         raise BetseExceptionPath(
+#             'Path "{}" contains directory separators.'.format(pathname))
+
 # def get_dirname_or_none(pathname: str) -> str:
 #     '''
 #     Get the *dirname* (i.e., parent directory) of the passed path if such path
