@@ -646,10 +646,10 @@ class Parameters(object):
         self.IP3_min_clr = float(ro['IP3 2D']['min val'])
         self.IP3_max_clr = float(ro['IP3 2D']['max val'])
 
-        self.plot_dye2d = ro['Dye 2D']['plot Dye']               # 2d plot of voltage sensitive dye in cell collective?
-        self.autoscale_Dye = ro['Dye 2D']['autoscale colorbar']
-        self.Dye_min_clr = float(ro['Dye 2D']['min val'])
-        self.Dye_max_clr = float(ro['Dye 2D']['max val'])
+        self.plot_dye2d = ro['Morpho 2D']['plot Morpho']               # 2d plot of voltage sensitive dye in cell collective?
+        self.autoscale_Dye = ro['Morpho 2D']['autoscale colorbar']
+        self.Dye_min_clr = float(ro['Morpho 2D']['min val'])
+        self.Dye_max_clr = float(ro['Morpho 2D']['max val'])
 
         self.plot_vcell2d = ro['Vcell 2D']['plot Vcell']
         self.plot_venv = ro['Vcell 2D']['plot Venv']
@@ -697,10 +697,10 @@ class Parameters(object):
         self.IP3_ani_min_clr = float(ro['IP3 Ani']['min val'])
         self.IP3_ani_max_clr = float(ro['IP3 Ani']['max val'])
 
-        self.ani_dye2d = ro['Dye Ani']['animate Dye']               # 2d animation of voltage sensitive dye with time?
-        self.autoscale_Dye_ani = ro['Dye Ani']['autoscale colorbar']
-        self.Dye_ani_min_clr = float(ro['Dye Ani']['min val'])
-        self.Dye_ani_max_clr = float(ro['Dye Ani']['max val'])
+        self.ani_dye2d = ro['Morpho Ani']['animate Morpho']               # 2d animation of voltage sensitive dye with time?
+        self.autoscale_Dye_ani = ro['Morpho Ani']['autoscale colorbar']
+        self.Dye_ani_min_clr = float(ro['Morpho Ani']['min val'])
+        self.Dye_ani_max_clr = float(ro['Morpho Ani']['max val'])
 
         self.ani_vmgj2d = ro['Vmem GJ Ani']['animate Vmem with gj']     # 2d animation of vmem with superimposed gj network
         self.autoscale_Vgj_ani = ro['Vmem GJ Ani']['autoscale colorbar']

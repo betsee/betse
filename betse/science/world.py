@@ -1191,7 +1191,6 @@ class World(object):
             # save the cell cluster
             loggers.log_info('Saving the cell cluster... ')
 
-            # celf = copy.deepcopy(self)
             datadump = [self,p]
             fh.saveSim(self.savedWorld,datadump)
             message = 'Cell cluster saved to' + ' ' + self.savedWorld

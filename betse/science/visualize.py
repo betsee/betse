@@ -34,10 +34,7 @@
 #
 # Loves you: Sessum!
 
-# FIXME saving animations doesn't work
-# FIXME Need a time check in animations to deal with changing cell structure
-# FIXME need to have cells.old and cells.new saved in the simulation for dealing with changing cell structure
-# FIXME need to put the flattened data stuff into all animations to deal with chanigng cell structure
+# FIXME saving animations as video files directly doesn't work
 
 import warnings
 import numpy as np

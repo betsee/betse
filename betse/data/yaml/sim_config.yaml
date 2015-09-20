@@ -699,9 +699,9 @@ results options:
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
 
-  Dye 2D:
+  Morpho 2D:
 
-    plot Dye: True               # 2d plot of voltage sensitive dye in cell collective?
+    plot Morpho: True               # 2d plot of voltage sensitive dye in cell collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.0e-4                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
@@ -769,9 +769,9 @@ results options:
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
-  Dye Ani:
+  Morpho Ani:
 
-    animate Dye: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Morpho: True            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L

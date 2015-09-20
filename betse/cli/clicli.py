@@ -173,7 +173,7 @@ class CLICLI(CLI):
         '''
         Create a new argument subparser requiring a configuration filename, add
         such subparser to the collection of top-level argument subparsers, and
-        return such subparser.
+        return such subparser.b
         '''
         return self._add_arg_subparser_configured(
             self._arg_subparsers_top, *args, **kwargs)
