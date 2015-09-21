@@ -62,39 +62,40 @@ class CLICLI(CLI):
 
         self._add_arg_subparser_top_configured(
             name = 'config',
-            help = 'create a new tissue simulation configuration',
+            help = 'create a new {} simulation configuration'.format(
+                metadata.NAME),
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_CONFIG),
         )
         self._add_arg_subparser_top_configured(
             name = 'seed',
-            help = 'make the cell cluster given by a configuration file',
+            help = 'create the cell cluster defined by a config file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_SEED),
         )
         self._add_arg_subparser_top_configured(
-            name = 'prep',
-            help = 'prep the created cluster given by a configuration file',
+            name = 'init',
+            help = 'init the created cell cluster defined by a config file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PREP),
+                help.TEMPLATE_SUBCOMMAND_INIT),
         )
         self._add_arg_subparser_top_configured(
-            name = 'run',
-            help = 'run the prepped cluster given by a configuration file',
+            name = 'sim',
+            help = 'simulate the initted cell cluster defined by a config file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_RUN),
+                help.TEMPLATE_SUBCOMMAND_SIM),
         )
         self._configure_arg_parsing_plot()
         self._add_arg_subparser_top(
             name = 'info',
-            help = 'show metadata about {} and the current system'.format(
+            help = 'show information about {} and the current system'.format(
                 metadata.NAME),
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_INFO),
         )
         self._add_arg_subparser_top(
             name = 'try',
-            help = 'create, prep, run, and plot a sample tissue simulation',
+            help = 'create, init, simulate, and plot a sample simulation',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_TRY),
         )
@@ -131,7 +132,7 @@ class CLICLI(CLI):
         # Such subcommand.
         self._arg_parser_plot = self._add_arg_subparser_top(
             name = 'plot',
-            help = 'plot previously created, prepped, or run simulations',
+            help = 'plot previously created, initted, or simulated simulations',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT),
         )
@@ -150,21 +151,21 @@ class CLICLI(CLI):
         )
         self._add_arg_subparser_plot_configured(
             name = 'seed',
-            help = 'plot the created cluster defined by a configuration file',
+            help = 'plot the created cell cluster defined by a config file',
             description = self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_SEED),
         )
         self._add_arg_subparser_plot_configured(
-            name = 'prep',
-            help = 'plot the prepped simulation defined by a configuration file',
+            name = 'init',
+            help = 'plot the initted cell cluster defined by a config file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT_PREP),
+                help.TEMPLATE_SUBCOMMAND_PLOT_INIT),
         )
         self._add_arg_subparser_plot_configured(
-            name = 'run',
-            help = 'plot the run simulation defined by a configuration file',
+            name = 'sim',
+            help = 'plot the simulated cell cluster defined by a config file',
             description = self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT_RUN),
+                help.TEMPLATE_SUBCOMMAND_PLOT_SIM),
         )
 
     # ..................{ SUBPARSER ~ top                    }..................
@@ -279,14 +280,10 @@ class CLICLI(CLI):
         else:
             self._do_config()
 
-        #FIXME: Do we need to explicitly call _do_plot_run() here? If not, why
-        #not? Does the default configuration file already ensure this when
-        #_do_run() is called?
-
         # Initialize and run such simulation.
         self._do_seed()
-        self._do_prep()
-        self._do_run()
+        self._do_init()
+        self._do_sim()
 
     def _do_config(self) -> None:
         '''
@@ -303,15 +300,15 @@ class CLICLI(CLI):
         '''
         self._get_sim_runner().makeWorld()
 
-    def _do_prep(self) -> None:
+    def _do_init(self) -> None:
         '''
-        Run the `prep` subcommand.
+        Run the `init` subcommand.
         '''
         self._get_sim_runner().initialize()
 
-    def _do_run(self) -> None:
+    def _do_sim(self) -> None:
         '''
-        Run the `run` subcommand.
+        Run the `sim` subcommand.
         '''
         self._get_sim_runner().simulate()
 
@@ -330,15 +327,15 @@ class CLICLI(CLI):
         '''
         self._get_sim_runner().plotWorld()
 
-    def _do_plot_prep(self) -> None:
+    def _do_plot_init(self) -> None:
         '''
-        Run the `plot` subcommand's `prep` subcommand.
+        Run the `plot` subcommand's `init` subcommand.
         '''
         self._get_sim_runner().plotInit()
 
-    def _do_plot_run(self) -> None:
+    def _do_plot_sim(self) -> None:
         '''
-        Run the `plot` subcommand's `run` subcommand.
+        Run the `plot` subcommand's `sim` subcommand.
         '''
         self._get_sim_runner().plotSim()
 
@@ -347,7 +344,7 @@ class CLICLI(CLI):
         '''
         Get a new simulation runner configured with sane defaults.
         '''
-        # Import from "betse.science" in a just-in-time manner, as such
+        # Import from "betse.science" in a just-in-time manner. Why? This
         # importation imports heavy-weight dependencies and hence is slow.
         from betse.science.simrunner import SimRunner
 
@@ -355,6 +352,10 @@ class CLICLI(CLI):
         return SimRunner(config_filename = self._args.config_filename)
 
 # --------------------( WASTELANDS                         )--------------------
+        #FUXME: Do we need to explicitly call _do_plot_run() here? If not, why
+        #not? Does the default configuration file already ensure this when
+        #_do_sim() is called?
+
     #FUXME: It's no longer enough to simply copy the configuration file; we
     #also need to copy all data on which such file depends. We'll need to
     #manually inspect such file to see which data that is. We should *NOT*,

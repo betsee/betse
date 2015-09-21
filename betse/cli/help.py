@@ -56,15 +56,16 @@ Help string template for the `info` subcommand.
 TEMPLATE_SUBCOMMAND_TRY = '''
 Run a sample tissue simulation. This subcommand (A) creates a default YAML
 configuration file, (B) creates the cell cluster defined by that file, and
-(C) initializes, (D) runs, and (E) plots the tissue simulation defined by that
-file within that cluster. For safety, this subcommand preserves (i.e., does not
-delete on completion) files and directories created by these operations.
+(C) initializes, (D) simulates, and (E) plots the tissue simulation defined by
+that file given that cluster. All files and directories created by these
+operations will be preserved (rather than deleted on subcommand completion).
 
-Equivalently, this is shorthand for the following:
+Equivalently, this subcommand is shorthand for the following:
 
+;    mkdir          sample_sim
 ;    betse config   sample_sim/sample_sim.yaml
 ;    betse seed     sample_sim/sample_sim.yaml
-;    betse prep     sample_sim/sample_sim.yaml
+;    betse init     sample_sim/sample_sim.yaml
 ;    betse run      sample_sim/sample_sim.yaml
 ;    betse plot run sample_sim/sample_sim.yaml
 '''
@@ -74,12 +75,12 @@ Help string template for the `try` subcommand.
 
 TEMPLATE_SUBCOMMAND_CONFIG = '''
 Write a default tissue simulation configuration to the passed output file. While
-not strictly necessary, such file should have filetype ".yaml" . If such file
+not strictly necessary, this file should have filetype ".yaml" . If this file
 already exists, an error will be printed.
 
-You may freely edit this file at any time. Note that the default configuration
-instructs {program_name} to save simulation output (e.g., plots) into the
-directory in which this file resides.
+You may edit this file at any time. By default, this file instructs
+{program_name} to save simulation results (e.g., plots) to the directory
+containing this file.
 '''
 '''
 Help string template for the `config` subcommand.
@@ -87,41 +88,36 @@ Help string template for the `config` subcommand.
 
 TEMPLATE_SUBCOMMAND_SEED = '''
 Create the cell cluster defined by the passed configuration file. The results
-will be saved to output files defined by such configuration.
-
-If this configuration file does not exist, an error will be printed.
+will be saved to output files defined by this configuration.
 '''
 '''
 Help string template for the `seed` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PREP = '''
-Prep (i.e., calculate steady-state concentrations for) the previously created
-cell cluster defined by the passed configuration file. Prep results will be
-saved to output files defined by such configuration. Likewise, the previously
-created cluster will be loaded from input files defined by this configuration.
+TEMPLATE_SUBCOMMAND_INIT = '''
+Initialize (i.e., calculate steady-state concentrations for) the previously
+created cell cluster defined by the passed configuration file. Initialization
+results will be saved to output files defined by this configuration, while the
+previously created cell cluster will be loaded from input files defined by this
+configuration.
+'''
+'''
+Help string template for the `init` subcommand.
+'''
 
-If this configuration file does not exist, an error will be printed.
+TEMPLATE_SUBCOMMAND_SIM = '''
+Simulate the previously initialized cell cluster defined by the passed
+configuration file. Simulation results will be saved to output files defined by
+this configuration, while the previously initialized cell cluster will be loaded
+from input files defined by this configuration.
 '''
 '''
-Help string template for the `prep` subcommand.
-'''
-
-TEMPLATE_SUBCOMMAND_RUN = '''
-Run the previously prepped tissue simulation defined by the passed configuration
-file. Simulation results will be saved to output files defined by this
-configuration. Likewise, the previously prepped simulation will be loaded from
-input files defined by this configuration.
-
-If this configuration file does not exist, an error will be printed.
-'''
-'''
-Help string template for the `run` subcommand.
+Help string template for the `sim` subcommand.
 '''
 
 # ....................{ TEMPLATES ~ subcommand : plot      }....................
 TEMPLATE_SUBCOMMAND_PLOT = '''
-Run the passed plotting subcommand. For example, to plot the previously run
+Run the passed plotting subcommand. For example, to plot the previous
 simulation defined by a configuration file "my_sim.yaml" in the current
 directory:
 
@@ -133,41 +129,39 @@ Help string template for the `plot` subcommand.
 
 TEMPLATE_SUBCOMMAND_PLOT_SEED = '''
 Plot the previously created cell cluster defined by the passed configuration
-file. Plot results will be saved to output files defined by this configuration.
-Likewise, the previously created cluster will be loaded from input files defined
-by this configuration.
-
-If this configuration file does not exist, an error will be printed.
+file. Plot results will be saved to output files defined by this configuration,
+while the previously created cell cluster will be loaded from input files
+defined by this configuration.
 '''
 '''
 Help string template for the `plot` subcommand's `seed` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PLOT_PREP = '''
-Plot the previously prepped tissue simulation defined by the passed
-configuration file. Plot results will be saved to output files defined by this
-configuration. Likewise, the previously prepped simulation will be loaded from
-input files defined by this configuration.
-
-If this configuration file does not exist, an error will be printed.
+TEMPLATE_SUBCOMMAND_PLOT_INIT = '''
+Plot the previously initialized cell cluster defined by the passed configuration
+file. Plot results will be saved to output files defined by this configuration,
+while the previously initialized cell cluster will be loaded from input files
+defined by this configuration.
 '''
 '''
-Help string template for the `plot` subcommand's `prep` subcommand.
+Help string template for the `plot` subcommand's `init` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PLOT_RUN = '''
-Plot the previously run tissue simulation defined by the passed configuration
-file. Plot results will be saved to output files defined by this configuration.
-Likewise, the previously run simulation will be loaded from input files defined
-by this configuration.
-
-If this configuration file does not exist, an error will be printed.
+TEMPLATE_SUBCOMMAND_PLOT_SIM = '''
+Plot the previously simulated cell cluster defined by the passed configuration
+file. Plot results will be saved to output files defined by this configuration,
+while the previously simulated cell cluster will be loaded from input files
+defined by this configuration.
 '''
 '''
-Help string template for the `plot` subcommand's `run` subcommand.
+Help string template for the `plot` subcommand's `sim` subcommand.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+# If this configuration file does not exist, an error will be printed.
+# If this configuration file does not exist, an error will be printed.
+# If this configuration file does not exist, an error will be printed.
+
 # TEMPLATE_SUBCOMMAND_SIM = '''
 # Run the passed tissue simulation subcommand. For example, to initialize the
 # simulation defined by an existing configuration file "my_sim.yaml" in the
