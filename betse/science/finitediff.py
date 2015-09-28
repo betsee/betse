@@ -2,8 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME Stokes solver also needs to be able to work with general (masked) geometries -- to do this we'll calculate
-# FIXME a graph-based laplacian, similar to the discrete transfers I've done with GJs
 
 import numpy as np
 import math

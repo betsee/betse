@@ -2837,7 +2837,7 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            dummyMems[cells.bflags_mems] = self.D_free[i]     # FIXME note that this has been "opened up" since v0.2
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type == True:
@@ -3227,8 +3227,8 @@ def get_Vcell(self,cells,p):
         cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
 
         # calculate the voltage in each cell:
-        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
+        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
     return v_cell
 
