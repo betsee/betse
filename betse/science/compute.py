@@ -1699,7 +1699,7 @@ class Simulator(object):
         c_env = self.cc_env[ion_i][:]
 
         d_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-        d_c_env = -flux*(cells.mem_sa/cells.ecm_vol)
+        d_c_env = -flux*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
 
         delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
         delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
@@ -3281,6 +3281,18 @@ def get_Venv(self,cells,p):
     V = V.ravel()
 
     return V
+
+def get_Vall(self,cells,p):
+
+    rho_stack = np.hstack((self.rho_cells,self.rho_env[cells.map_mem2ecm]))
+    V_stack = np.dot(rho_stack,cells.VMatrix_inv)
+    v_cells = V_stack[cells.a:cells.b]
+    v_ecms = V_stack[cells.c:cells.d]
+
+    vm = v_cells[cells.mem_to_cells] - v_ecms
+    print(vm)
+
+
 
 def get_molarity(concentrations,p):
 

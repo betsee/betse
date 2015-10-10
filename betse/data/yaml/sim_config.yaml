@@ -117,7 +117,7 @@ sim time settings:
 
 general options:
 
-  grid size: 40         # grid used in computation of environmental params and data interpolation
+  grid size: 25         # grid used in computation of environmental params and data interpolation
 
   simulate ECM: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
@@ -199,7 +199,7 @@ general options:
 
 world variables:
 
-  world x: 300e-6         # dimension of the world space [m]
+  world x: 100e-6         # dimension of the world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 

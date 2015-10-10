@@ -124,6 +124,7 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
+            self.gaussMatrix(p)    # Create an alternative solver for cell and ecm voltage calculations
 
 
         elif self.worldtype == 'basic':
@@ -728,7 +729,7 @@ class World(object):
 
         # properties of ecm spaces:
         self.ecm_sa = self.delta*p.cell_height
-        self.ecm_vol = p.cell_height*self.delta**2
+        self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))
 
     def environment(self,p):
 
@@ -813,6 +814,8 @@ class World(object):
         self.maskM = self.maskM.astype(int)
 
         self.inds_env = list(*(self.maskM.ravel() == 0).nonzero())
+
+        # self.ecm_vol[self.map_mem2ecm] = p.cell_height*p.cell_space*np.mean(self.mem_sa)  # FIXME uncomment to shrink ecm volume
 
         #-------------------------------------------------------------------------
         if p.sim_ECM == True:
@@ -1195,6 +1198,62 @@ class World(object):
             fh.saveSim(self.savedWorld,datadump)
             message = 'Cell cluster saved to' + ' ' + self.savedWorld
             loggers.log_info(message)
+
+    def gaussMatrix(self,p):
+        """
+        Defines a matrix that can calculate voltages within cells and the extracellular spaces
+        with each precisely defined using the Voronoi-based cluster lattice.
+
+        The construction of this matrix is based on Gauss' law for the electric flux in both the
+        enclosed cell or extracellular space.
+
+        """
+
+        cell_stack = np.hstack((self.cell_i,self.mem_i))
+        self.a = 0
+        self.b = len(self.cell_i) +1
+        self.c = self.b -1
+        self.d = len(self.mem_i) + self.b
+
+        VMatrix = np.zeros((len(cell_stack),len(cell_stack)))
+
+        ave_mem = np.mean(self.mem_sa)
+        ave_vol = np.mean(self.cell_vol)
+
+        ecm_vol = p.cell_space*ave_mem*p.cell_height
+
+        term_cell = ave_mem*(1/(p.tm*ave_vol))*80*p.eo
+        term_ecm = ave_mem*(1/(p.tm*ecm_vol))*80*p.eo
+
+        for cell_i in self.cell_i:
+
+            mem_i_set = self.cell_to_mems[cell_i]
+            mem_sum = len(mem_i_set)
+
+            VMatrix[cell_i,cell_i] = mem_sum*term_cell
+
+            for mem_i in mem_i_set:
+
+                flags = list((cell_stack == mem_i).nonzero())[0]
+
+                if len(flags) == 2:
+
+                    stack_ind = flags[1]
+
+                else:
+
+                    stack_ind = flags[0]
+
+                VMatrix[cell_i,stack_ind] = -1*term_cell
+
+        for j, mem_i in enumerate(cell_stack[self.c:self.d]):
+
+            cell_i = self.mem_to_cells[mem_i]
+
+            VMatrix[j,cell_i] = VMatrix[j,cell_i] -1*term_ecm
+            VMatrix[j,j] = 2*term_ecm
+
+        self.VMatrix_inv = np.linalg.pinv(VMatrix)
 
 
 
