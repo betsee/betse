@@ -836,6 +836,7 @@ class Simulator(object):
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
+        self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
 
         self.I_mem_time = []    # initialize membrane current time vector
 
@@ -850,6 +851,8 @@ class Simulator(object):
         self.P_cells_time = []
         self.u_cells_x_time = []
         self.u_cells_y_time = []
+
+        self.rho_cells_time = []
 
         if p.voltage_dye == True:
 
@@ -1107,6 +1110,7 @@ class Simulator(object):
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
                 self.update_V_ecm(cells,p,t)
 
+            self.osmotic_P(cells,p)
             check_v(self.vm)
 
 
@@ -1135,6 +1139,10 @@ class Simulator(object):
                 self.vm_time.append(self.vm[:])
 
                 self.dvm_time.append(self.dvm[:])
+
+                self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+
+                self.rho_cells_time.append(self.rho_cells[:])
 
                 if p.base_eosmo == True:
 
@@ -1302,6 +1310,10 @@ class Simulator(object):
         self.u_cells_y_time = []
         self.P_cells_time = []
 
+        self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
+
+        self.rho_cells_time = []
+
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
@@ -1393,8 +1405,8 @@ class Simulator(object):
                     self.vm,self.T,p,self.NaKATP_block)
 
             # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
-            fNa_NaK = self.rho_channel*fNa_NaK
-            fK_NaK = self.rho_channel*fK_NaK
+            fNa_NaK = -self.rho_channel*fNa_NaK
+            fK_NaK = -self.rho_channel*fK_NaK
 
             self.fluxes_mem[self.iNa] = fNa_NaK
             self.fluxes_mem[self.iK] = fK_NaK
@@ -1501,6 +1513,8 @@ class Simulator(object):
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
 
+            self.osmotic_P(cells,p)
+
             check_v(self.vm)
 
             # if desired, electroosmosis of membrane channels
@@ -1550,6 +1564,10 @@ class Simulator(object):
                 self.I_env_y_time.append(self.I_env_y[:])
 
                 self.I_mem_time.append(self.I_mem[:])
+
+                self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+
+                self.rho_cells_time.append(self.rho_cells[:])
 
                 if p.base_eosmo == True:
 
@@ -1687,6 +1705,8 @@ class Simulator(object):
             self.v_cell = get_Vcell(self,cells,p)
 
             self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
+
+            # self.v_cell, self.v_env, self.vm = get_Vall(self,cells,p)
 
         else:
 
@@ -2534,8 +2554,8 @@ class Simulator(object):
             r_env_y = np.sqrt(sa_env_y/math.pi)          # average env radius, v grid
 
             # fluid "conductivity" coefficient:
-            alpha_x = (r_env_x**2)/(8*p.mu_water)
-            alpha_y = (r_env_y**2)/(8*p.mu_water)
+            alpha_x = (r_env_x**2)/(p.mu_water)
+            alpha_y = (r_env_y**2)/(p.mu_water)
 
             if p.gravity == True:
                 F_gravity_x = np.zeros(cells.grid_obj.u_shape)
@@ -2555,10 +2575,10 @@ class Simulator(object):
             rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
             # map the charge density to the grid
-            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/100
+            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)
             rho_env_x[:,0] = rho_env_x[:,1]
 
-            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/100
+            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)
             rho_env_y[0,:] = rho_env_y[1,:]
 
             # these are negative because the gradient of the voltage is the electric field and we just took the grad
@@ -2669,7 +2689,9 @@ class Simulator(object):
             #
             #     self.P_env = P[:]*(1/alpha)
 
-            self.P_env = P[:]
+            alpha[alpha_zero] = 1
+
+            self.P_env = P[:]*(1/alpha)
 
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
@@ -2891,6 +2913,30 @@ class Simulator(object):
             self.D_env_weight_v[:,-1] = 0
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
+
+    def osmotic_P(self,cells,p):
+
+        # initialize osmotic pressures in cells and env
+
+        self.osmo_P_cell = np.zeros(len(self.cc_cells[0]))
+        self.osmo_P_env = np.zeros(len(self.cc_env[0]))
+
+        # calculate osmotic pressure in cells based on total molarity:
+        for c_ion in self.cc_cells:
+
+            self.osmo_P_cell = c_ion*p.R*self.T + self.osmo_P_cell
+
+        # calculate osmotic pressure in environment based on total molarity:
+
+        for c_ion_env in self.cc_env:
+            self.osmo_P_env = c_ion_env*p.R*self.T + self.osmo_P_env
+
+
+        if p.sim_ECM == False:
+            self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env
+
+        else:
+            self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env[cells.map_cell2ecm]
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -3251,9 +3297,10 @@ def get_Venv(self,cells,p):
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is increased from 80*p.eo by self.ff
-    self.ff = 1e6
+    self.ff = 5e5
 
     # smooth out the charge density:
+
     self.rho_env = self.rho_env.reshape(cells.X.shape)
     self.rho_env = fd.integrator(self.rho_env)
     self.rho_env = self.rho_env.ravel()
@@ -3284,15 +3331,31 @@ def get_Venv(self,cells,p):
 
 def get_Vall(self,cells,p):
 
+    self.ff = 1
+
     rho_stack = np.hstack((self.rho_cells,self.rho_env[cells.map_mem2ecm]))
-    V_stack = np.dot(rho_stack,cells.VMatrix_inv)
+    vol_stack = np.hstack((cells.cell_vol,cells.ecm_vol[cells.map_mem2ecm]))
+
+    f_stack = (rho_stack*vol_stack)/(p.eo*80*self.ff)
+
+    V_stack = np.dot(f_stack,cells.VMatrix_inv)
     v_cells = V_stack[cells.a:cells.b]
     v_ecms = V_stack[cells.c:cells.d]
 
-    vm = v_cells[cells.mem_to_cells] - v_ecms
-    print(vm)
+    v_env = get_Venv(self, cells, p)
 
+    vm = v_cells[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
 
+    # v_env[cells.map_mem2ecm] = v_ecms
+
+    # print('******')
+    # print(v_cells)
+    # print('---')
+    # print(v_ecms)
+    # print('----')
+    # print(vm)
+
+    return v_cells, v_env, vm
 
 def get_molarity(concentrations,p):
 

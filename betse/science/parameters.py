@@ -61,7 +61,7 @@ class Parameters(object):
         # charge of membrane pumps and channels:
         self.z_channel = float(self.config['world variables']['channel electroosmosis']['channel charge'])
 
-        self.mu_water = 1e-3   # viscocity of water [Pa.s]
+        self.mu_water = float(self.config['world variables']['water viscocity'])   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
@@ -652,10 +652,26 @@ class Parameters(object):
         self.Dye_max_clr = float(ro['Morpho 2D']['max val'])
 
         self.plot_vcell2d = ro['Vcell 2D']['plot Vcell']
-        self.plot_venv = ro['Vcell 2D']['plot Venv']
         self.autoscale_vcell = ro['Vcell 2D']['autoscale colorbar']
         self.vcell_min_clr = float(ro['Vcell 2D']['min val'])
         self.vcell_max_clr = float(ro['Vcell 2D']['max val'])
+
+        self.plot_rho2d = ro['Charge 2D']['plot Charge']
+        self.data_type_rho = ro['Charge 2D']['data type']
+        self.autoscale_rho = ro['Charge 2D']['autoscale colorbar']
+        self.rho_min_clr = float(ro['Charge 2D']['min val'])
+        self.rho_max_clr = float(ro['Charge 2D']['max val'])
+
+        self.plot_force2d = ro['Force 2D']['plot Force']
+        self.data_type_force = ro['Force 2D']['data type']
+        self.autoscale_force = ro['Force 2D']['autoscale colorbar']
+        self.force_min_clr = float(ro['Force 2D']['min val'])
+        self.force_max_clr = float(ro['Force 2D']['max val'])
+
+        self.plot_venv = ro['Venv 2D']['plot Venv']
+        self.autoscale_venv = ro['Venv 2D']['autoscale colorbar']
+        self.venv_min_clr = float(ro['Venv 2D']['min val'])
+        self.venv_max_clr = float(ro['Venv 2D']['max val'])
 
         self.plot_I2d = ro['Currents 2D']['plot Currents']
         self.autoscale_I2d = ro['Currents 2D']['autoscale colorbar']
@@ -673,6 +689,11 @@ class Parameters(object):
         self.autoscale_P = ro['Pressure 2D']['autoscale colorbar']
         self.P_min_clr = float(ro['Pressure 2D']['min val'])
         self.P_max_clr = float(ro['Pressure 2D']['max val'])
+
+        self.plot_osmoP = ro['Osmotic Pressure 2D']['plot Osmotic Pressure']
+        self.autoscale_osmoP = ro['Osmotic Pressure 2D']['autoscale colorbar']
+        self.osmoP_min_clr = float(ro['Osmotic Pressure 2D']['min val'])
+        self.osmoP_max_clr = float(ro['Osmotic Pressure 2D']['max val'])
 
         self.plot_Vel = ro['Velocity 2D']['plot Velocity']
         self.autoscale_Vel = ro['Velocity 2D']['autoscale colorbar']
@@ -711,6 +732,21 @@ class Parameters(object):
         self.autoscale_vcell_ani = ro['Vcell Ani']['autoscale colorbar']
         self.vcell_ani_min_clr = float(ro['Vcell Ani']['min val'])
         self.vcell_ani_max_clr = float(ro['Vcell Ani']['max val'])
+
+        self.ani_Pcell = ro['P cell Ani']['animate P cell']
+        self.autoscale_Pcell_ani = ro['P cell Ani']['autoscale colorbar']
+        self.Pcell_ani_min_clr = float(ro['P cell Ani']['min val'])
+        self.Pcell_ani_max_clr = float(ro['P cell Ani']['max val'])
+
+        self.ani_osmoP = ro['Osmotic P Ani']['animate Osmotic P']
+        self.autoscale_osmoP_ani = ro['Osmotic P Ani']['autoscale colorbar']
+        self.osmoP_ani_min_clr = float(ro['Osmotic P Ani']['min val'])
+        self.osmoP_ani_max_clr = float(ro['Osmotic P Ani']['max val'])
+
+        self.ani_force = ro['Force Ani']['animate Force']
+        self.autoscale_force_ani = ro['Force Ani']['autoscale colorbar']
+        self.force_ani_min_clr = float(ro['Force Ani']['min val'])
+        self.force_ani_max_clr = float(ro['Force Ani']['max val'])
 
         self.ani_I = ro['Current Ani']['animate current']
         self.autoscale_I_ani = ro['Current Ani']['autoscale colorbar']

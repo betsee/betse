@@ -117,7 +117,7 @@ sim time settings:
 
 general options:
 
-  grid size: 25         # grid used in computation of environmental params and data interpolation
+  grid size: 40         # grid used in computation of environmental params and data interpolation
 
   simulate ECM: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
@@ -199,7 +199,7 @@ general options:
 
 world variables:
 
-  world x: 100e-6         # dimension of the world space [m]
+  world x: 150e-6         # dimension of the world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -224,15 +224,17 @@ world variables:
 
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
-  electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
+  electroosmosis: True       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
+
+  water viscocity: 1e-1      # viscocity of medium [Pa s]
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
     turn on: False         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
-    channel charge: 1         # charge of membrane pumps and channels
+    channel charge: -1         # charge of membrane pumps (-channel charge) and channels
 
-    membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+    membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
 
   gap junctions:
@@ -257,7 +259,7 @@ world variables:
     gj flux sensitive: False      # gj conductivity increases with increasing current (Note: memory intensive!)
 
 
-  tight junction scaling: 1.0e-3   # factor by which tight junctions scale free-diffusion
+  tight junction scaling: 1.0e-5   # factor by which tight junctions scale free-diffusion
 
   tight junction relative diffusion:  # relative values for tight junction ion permeability:
 
@@ -269,7 +271,7 @@ world variables:
     M: 1
     P: 1
 
-  adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale free-diffusion
+  adherens junction scaling: 1.0e-5   # factor by which cell-cell junctions scale free-diffusion
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -656,7 +658,7 @@ results options:
   plot cell index: 0              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
   show cells: True                # if True, plots and animations show individual cells,
@@ -680,28 +682,28 @@ results options:
 
   Vmem 2D:
 
-    plot Vmem: True              # 2d plot of final vmem ?
+    plot Vmem: False              # 2d plot of final vmem ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Ca 2D:
 
-    plot Ca: True                # 2d plot of final cell calcium ?
+    plot Ca: False                # 2d plot of final cell calcium ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
 
   IP3 2D:
 
-    plot IP3: True               # 2d plot of final cIP3 ?
+    plot IP3: False               # 2d plot of final cIP3 ?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
 
   Morpho 2D:
 
-    plot Morpho: True               # 2d plot of voltage sensitive dye in cell collective?
+    plot Morpho: False               # 2d plot of voltage sensitive dye in cell collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.0e-4                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
@@ -709,15 +711,29 @@ results options:
   Vcell 2D:
 
     plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
-    plot Venv: True                 # plot the environmental spaces volage (if p.sim_ECM = True)?
-    autoscale colorbar: False       # autoscale colorbar to min max of data set?
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
+    max val: 10                    # maximum colorbar value in mV
+    min val: -70                   # minimum colorbar value in mV
+
+  Venv 2D:
+
+    plot Venv: False                # 2d plot of voltage in environmental spaces of the collective?
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
+    max val: 10                    # maximum colorbar value in mV
+    min val: -70                   # minimum colorbar value in mV
+
+  Charge 2D:
+
+    plot Charge: False                # 2d plot of net ionic charge in collective?
+    data type: ECM                 # data type can be 'GJ' or 'ECM' for intra or extracellular net charge
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
 
   Efield 2D:
 
     plot Efield: False              # 2d plot of electric field
-    data type: ECM                   # data type can be 'ECM' or 'GJ'
+    data type: GJ                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
     max val: 900                   # maximum colorbar value in V/m
@@ -725,7 +741,7 @@ results options:
 
   Currents 2D:
 
-    plot Currents: True               # 2d plot of net current flow in the collective?
+    plot Currents: False               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
     min val: 0                        # minimum colorbar value [A]
@@ -738,9 +754,24 @@ results options:
     max val: 15
     min val: -15
 
+  Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
+
+    plot Osmotic Pressure: False
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+
   Velocity 2D:                      # 2D plot of electroosmotic fluid velocity in the cluster
 
     plot Velocity: False
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+
+  Force 2D:                      # 2D plot of electroosmotic body force in the cluster
+
+    plot Force: True
+    data type: GJ               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -750,28 +781,28 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
+    animate Vmem: False           # 2d animation of vmem with time?
     autoscale colorbar: False    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # maximum colorbar value in mV
 
   Ca Ani:
 
-    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    animate Ca2+: False           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: True            # 2d animation of cIP3 with time?
+    animate IP3: False            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Morpho Ani:
 
-    animate Morpho: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Morpho: False            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
@@ -789,6 +820,27 @@ results options:
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
+
+  P cell Ani:
+
+    animate P cell: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
+    max val: 10                  # maximum colorbar value in mV
+    min val: -70                 # minimum colorbar value in mV
+
+  Osmotic P Ani:
+
+    animate Osmotic P: False         # 2d animation of osmotic pressure difference in individual cells of the collective?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
+    max val: 10                  # maximum colorbar value in mV
+    min val: -70                 # minimum colorbar value in mV
+
+  Force Ani:
+
+    animate Force: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    max val: 100000                  # maximum colorbar value in N/m3
+    min val: 0                 # minimum colorbar value in N/m3
 
   Current Ani:
 

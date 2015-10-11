@@ -124,7 +124,7 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
-            self.gaussMatrix(p)    # Create an alternative solver for cell and ecm voltage calculations
+            # self.gaussMatrix(p)    # Create an alternative solver for cell and ecm voltage calculations
 
 
         elif self.worldtype == 'basic':
@@ -1222,8 +1222,8 @@ class World(object):
 
         ecm_vol = p.cell_space*ave_mem*p.cell_height
 
-        term_cell = ave_mem*(1/(p.tm*ave_vol))*80*p.eo
-        term_ecm = ave_mem*(1/(p.tm*ecm_vol))*80*p.eo
+        term_cell = ave_mem*(1/(p.tm))
+        term_ecm = ave_mem*(1/(p.tm))
 
         for cell_i in self.cell_i:
 
@@ -1254,6 +1254,8 @@ class World(object):
             VMatrix[j,j] = 2*term_ecm
 
         self.VMatrix_inv = np.linalg.pinv(VMatrix)
+
+        print(self.VMatrix_inv)
 
 
 

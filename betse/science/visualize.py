@@ -1450,6 +1450,113 @@ class AnimateVelocity(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
+class AnimateForce(object):
+
+    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = '/animation/Force',saveFile = 'force_'):
+
+            self.fig = plt.figure()
+            self.ax = plt.subplot(111)
+            self.p = p
+            self.sim = sim
+            self.cells = cells
+            self.save = save
+
+            if self.save == True:
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+                betse_cache_dir = os.path.expanduser(images_path)
+                os.makedirs(betse_cache_dir, exist_ok=True)
+                self.savedAni = os.path.join(betse_cache_dir, saveFile)
+                ani_repeat = False
+
+            fcells_x = (sim.rho_cells_time[0][cells.nn_i][:,0]+sim.rho_cells_time[0][cells.nn_i][:,0])*(1/2)*sim.efield_gj_x_time[0]
+            fcells_y = (sim.rho_cells_time[0][cells.nn_i][:,0]+sim.rho_cells_time[0][cells.nn_i][:,0])*(1/2)*sim.efield_gj_y_time[0]
+
+            # average components back to cell centres:
+            fx = np.dot(cells.gj2cellMatrix,fcells_x)
+            fy = np.dot(cells.gj2cellMatrix,fcells_y)
+
+            # calculate magnitude at cell centre:
+            ff = np.sqrt(fx**2 + fy**2)
+
+            ffmax = np.max(ff)
+            ffmin = np.min(ff)
+
+            # define a polygon collection based on individual cell polygons
+            self.points = np.multiply(cells.cell_verts, p.um)
+            self.collection =  PolyCollection(self.points, cmap=p.default_cm, edgecolors='none')
+            self.collection.set_array(ff)
+            self.ax.add_collection(self.collection)
+
+            self.streamE = self.ax.quiver(p.um*cells.cell_centres[:,0], p.um*cells.cell_centres[:,1],fx/ffmax,fy/ffmax)
+
+            if p.autoscale_force_ani == True:
+                self.collection.set_clim(ffmin,ffmax)
+
+            else:
+                self.collection.set_clim(p.force_ani_min_clr,p.force_ani_max_clr)
+
+            self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
+
+            tit_extra = 'Intracellular'
+
+            self.ax.axis('equal')
+
+            xmin = cells.xmin*p.um
+            xmax = cells.xmax*p.um
+            ymin = cells.ymin*p.um
+            ymax = cells.ymax*p.um
+
+            self.ax.axis([xmin,xmax,ymin,ymax])
+
+            self.tit = "Final Electroosmotic Body Force in " + tit_extra + ' Spaces'
+            self.ax.set_title(self.tit)
+            self.ax.set_xlabel('Spatial distance [um]')
+            self.ax.set_ylabel('Spatial distance [um]')
+            self.cb.set_label('Body Force [N/m3]')
+
+            self.frames = len(sim.time)
+
+            ani = animation.FuncAnimation(self.fig, self.aniFunc,
+                frames=self.frames, interval=100, repeat=ani_repeat)
+
+            plt.show()
+
+    def aniFunc(self,i):
+
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        fcells_x = (self.sim.rho_cells_time[i][self.cells.nn_i][:,0]+
+                    self.sim.rho_cells_time[i][self.cells.nn_i][:,0])*(1/2)*self.sim.efield_gj_x_time[i]
+
+        fcells_y = (self.sim.rho_cells_time[i][self.cells.nn_i][:,0]+
+                    self.sim.rho_cells_time[i][self.cells.nn_i][:,0])*(1/2)*self.sim.efield_gj_y_time[i]
+
+        # average components back to cell centres:
+        fx = np.dot(self.cells.gj2cellMatrix,fcells_x)
+        fy = np.dot(self.cells.gj2cellMatrix,fcells_y)
+
+        # calculate magnitude at cell centre:
+        ff = np.sqrt(fx**2 + fy**2)
+
+        ffmax = np.max(ff)
+        ffmin = np.min(ff)
+
+        self.collection.set_array(ff)
+
+        if self.p.autoscale_force_ani == True:
+            self.collection.set_clim(ffmin,ffmax)
+
+
+        self.streamE.set_UVC(fx/ffmax,fy/ffmax)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
+
 class AnimateDyeData(object):
     """
     Animate morphogen concentration data in cell and environment as a function of time.

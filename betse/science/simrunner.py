@@ -503,25 +503,31 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     #-----2D data graphs-----------------------------------------------------------------------------------------------
 
-    if p.plot_vcell2d == True and p.sim_ECM == True:
+    if p.plot_venv == True and p.sim_ECM == True:
 
-        if p.plot_venv == True:
+        plt.figure()
+        venv_plt = plt.imshow(1000*sim.v_env.reshape(cells.X.shape),origin='lower',
+            extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
+        if p.autoscale_venv == False:
 
-            plt.figure()
-            plt.imshow(1000*sim.v_env.reshape(cells.X.shape),origin='lower',
-                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
-            plt.colorbar()
-            plt.title('Environmental Voltage [mV]')
+            venv_plt.set_clim(p.venv_min_clr, p.venv_max_clr)
 
-            if saveImages == True:
-                savename10 = savedImg + 'Final_environmental_V' + '.png'
-                plt.savefig(savename10,format='png')
+        plt.colorbar()
+        plt.title('Environmental Voltage [mV]')
 
-            plt.show(block=False)
+        if saveImages == True:
+            savename10 = savedImg + 'Final_environmental_V' + '.png'
+            plt.savefig(savename10,format='png')
+
+        plt.show(block=False)
+
+    if p.plot_rho2d == True:
+
+        if p.data_type_rho == 'ECM' and p.sim_ECM == True:
 
             plt.figure()
             plt.imshow(sim.rho_env.reshape(cells.X.shape),origin='lower',
-                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
             plt.title('Environmental Charge Density [C/m3]')
 
@@ -531,23 +537,32 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block =False)
 
-            plt.figure()
-            ax99 = plt.subplot(111)
-            plt.imshow(np.log10(sim.D_env_weight_u.reshape(cells.grid_obj.u_shape)),origin='lower',
-                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
-            plt.colorbar()
+        elif p.data_type_rho == 'GJ':
 
-            cell_edges_flat = cells.um*cells.mem_edges_flat
-            coll = LineCollection(cell_edges_flat,colors='k')
-            coll.set_alpha(1.0)
-            ax99.add_collection(coll)
+            if p.showCells == True:
 
-            plt.title('Logarithm of Environmental Diffusion Weight Matrix')
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.rho_cells,number_cells=p.enumerate_cells,
+                    clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
+                    clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+
+            else:
+
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells,clrAutoscale = p.autoscale_rho,
+                        clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
+                        number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+
+            figX.suptitle('Final Cell Net Charge Density',fontsize=14, fontweight='bold')
+            axX.set_xlabel('Spatial distance [um]')
+            axX.set_ylabel('Spatial distance [um]')
+            cbX.set_label('Net Charge Density [C/m3]')
+
             if saveImages == True:
-                savename10 = savedImg + 'Final_environmental_Diffusion_Weighting (log)' + '.png'
-                plt.savefig(savename10,format='png')
+                savename9 = savedImg + 'final_cellCharge' + '.png'
+                plt.savefig(savename9,format='png')
 
-            plt.show(block =False)
+            plt.show(block=False)
+
+    if p.plot_vcell2d == True:
 
         if p.showCells == True:
 
@@ -846,6 +861,27 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+    #------------------------------------------------------------------------------------------------------------------
+    if p.plot_osmoP == True:
+
+        if p.showCells == True:
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta_time[-1]/101325,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta_time[-1]/101325,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        axP.set_title('Final Osmotic Pressure Differential in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure Difference Cell Interior vs Exterior [atm]')
+
+        if saveImages == True:
+            savename13 = savedImg + 'final_osmoP_2D' + '.png'
+            plt.savefig(savename13,format='png')
+
+        plt.show(block=False)
+
         if p.sim_ECM == True:
 
             plt.figure()
@@ -899,7 +935,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             u = sim.u_at_c
             v = sim.v_at_c
-            U = np.sqrt(u**2 + v**2)*1e6
+            U = np.sqrt(u**2 + v**2)*1e9
 
             plt.figure()
             plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
@@ -907,13 +943,98 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.streamplot(cells.X,cells.Y,u,v,density=p.stream_density,color='k')
             plt.axis('equal')
             plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Final Extracellular Fluid Velocity [um/s]')
+            plt.title('Final Extracellular Fluid Velocity [nm/s]')
 
             if saveImages == True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
+
+    #------------------------------------------------------------------------------------------------------------------
+    if p.plot_force2d == True:
+
+        if p.data_type_force == 'ECM' and p.sim_ECM == True:
+
+            force_x = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x
+            force_y = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y
+
+            force_mag = np.sqrt(force_x**2 + force_y**2)
+
+            fig_f = plt.figure()
+            ax_f = plt.subplot(111)
+
+            magPlot = ax_f.imshow(force_mag,origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,
+                    p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
+
+            if p.autoscale_force == False:
+                magPlot.set_clim(p.force_min_clr,p.force_max_clr)
+
+            else:
+
+                minv = np.min(force_mag)
+                maxv = np.max(force_mag)
+
+                magPlot.set_clim(minv,maxv)
+
+            cb_f = fig_f.colorbar(magPlot,ax=ax_f)
+
+            quivPlot = ax_f.quiver(p.um*cells.X,p.um*cells.Y,force_x,force_y)
+
+            plt.axis('equal')
+            plt.axis([p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
+            plt.title('Final Extracellular Electroosmotic Body Force [N/m3]')
+
+            ax_f.set_xlabel('Spatial distance [um]')
+            ax_f.set_ylabel('Spatial distance [um]')
+            cb_f.set_label('Body Force [N/m3]')
+
+            if saveImages == True:
+                savename13 = savedImg + 'final_F_2D_env' + '.png'
+                plt.savefig(savename13,format='png')
+
+            plt.show(block=False)
+
+
+        elif p.data_type_force == 'GJ':
+
+            fcells_x = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/2)*sim.E_gj_x.ravel()
+            fcells_y = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/2)*sim.E_gj_y.ravel()
+
+            # average components back to cell centres:
+            fx = np.dot(cells.gj2cellMatrix,fcells_x)
+            fy = np.dot(cells.gj2cellMatrix,fcells_y)
+
+            # calculate magnitude at cell centre:
+            ff = np.sqrt(fx**2 + fy**2)
+
+            if p.showCells == True:
+
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=ff,
+                    number_cells=p.enumerate_cells,
+                    clrAutoscale = p.autoscale_force, clrMin = p.force_min_clr, clrMax = p.force_max_clr,
+                    clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+
+            else:
+
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = ff,clrAutoscale = p.autoscale_force,
+                        clrMin = p.force_min_clr, clrMax = p.force_max_clr, clrmap = p.default_cm,
+                        number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+
+            axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx,fy)
+
+            figX.suptitle('Final Cell Body Force',fontsize=14, fontweight='bold')
+            axX.set_xlabel('Spatial distance [um]')
+            axX.set_ylabel('Spatial distance [um]')
+            cbX.set_label('Body Force [N/m3]')
+
+            if saveImages == True:
+                savename9 = savedImg + 'final_Force_cells' + '.png'
+                plt.savefig(savename9,format='png')
+
+            plt.show(block=False)
+
+
 
     #------------------------------------------------------------------------------------------------------------------
 
@@ -1083,6 +1204,45 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         ax_x.set_title('Gap Junction Relative Permeability')
 
         plt.show(block=False)
+
+    if p.ani_Pcell == True and animate == 1 and p.base_eosmo == True:
+
+        if p.showCells == True:
+
+            viz.AnimateCellData(sim,cells,sim.P_cells_time,sim.time,p,tit='P in cell', cbtit = 'Pressure [Pa]',
+                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+                clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Pcell',
+                saveFile = 'Pcell_', ignore_simECM =True, current_overlay=p.I_overlay)
+        else:
+            viz.AnimateCellData_smoothed(sim,cells,sim.P_cells_time,sim.time,p,tit='P in cell', cbtit = 'Pressure [Pa]',
+                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+                clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
+                current_overlay=p.I_overlay)
+
+    if p.ani_osmoP == True and animate == 1:
+
+        osmo_P_atm = [arr/101325 for arr in sim.osmo_P_delta_time]
+
+        if p.showCells == True:
+
+            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential', cbtit = 'Pressure [atm]',
+                clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
+                clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/osmoP',
+                saveFile = 'osmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
+        else:
+            viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential',
+                cbtit = 'Pressure [atm]',
+                clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
+                clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
+                current_overlay=p.I_overlay)
+
+    if p.ani_force == True and animate == 1 and p.base_eosmo == True:
+
+        viz.AnimateForce(sim,cells,p)
 
 
     plt.show()
