@@ -865,16 +865,16 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if p.plot_osmoP == True:
 
         if p.showCells == True:
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta_time[-1]/101325,number_cells=p.enumerate_cells,
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta_time[-1],number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
         else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta_time[-1]/101325,number_cells=p.enumerate_cells,
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta_time[-1],number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
         axP.set_title('Final Osmotic Pressure Differential in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
         axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure Difference Cell Interior vs Exterior [atm]')
+        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
         if saveImages == True:
             savename13 = savedImg + 'final_osmoP_2D' + '.png'
@@ -1176,10 +1176,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.sim_eosmosis == True and p.sim_ECM == True and cells.gradMem is not None:
 
+        viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
+        plt.xlabel('Spatial Dimension [um]')
+        plt.ylabel('Spatial Dimention [um]')
+        plt.title('Membrane ion pump density factor')
+
+        plt.show(block=False)
+
         viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimention [um]')
-        plt.title('Membrane ion pump and channel density factor')
+        plt.title('Membrane ion channel density factor')
 
         plt.show(block=False)
 
@@ -1223,18 +1230,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.ani_osmoP == True and animate == 1:
 
-        osmo_P_atm = [arr/101325 for arr in sim.osmo_P_delta_time]
+        osmo_P_atm = [arr*1 for arr in sim.osmo_P_delta_time]
 
         if p.showCells == True:
 
-            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential', cbtit = 'Pressure [atm]',
+            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential', cbtit = 'Pressure [Pa]',
                 clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/osmoP',
                 saveFile = 'osmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
         else:
             viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential',
-                cbtit = 'Pressure [atm]',
+                cbtit = 'Pressure [Pa]',
                 clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
@@ -1248,6 +1255,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
                        clrMax=p.venv_max_clr, save = saveAni)
+
+    if p.ani_mem == True and p.sim_eosmosis == True and p.sim_ECM == True:
+
+        viz.AnimateMem(sim,cells,sim.time,p,clrAutoscale=p.autoscale_mem_ani,clrMin= p.mem_ani_min_clr,
+                       clrMax=p.mem_ani_max_clr,save = saveAni,current_overlay=p.I_overlay)
 
 
     plt.show()

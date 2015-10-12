@@ -61,6 +61,8 @@ class Parameters(object):
         # charge of membrane pumps and channels:
         self.z_channel = float(self.config['world variables']['channel electroosmosis']['channel charge'])
 
+        self.z_pump = float(self.config['world variables']['channel electroosmosis']['pump charge'])
+
         self.mu_water = float(self.config['world variables']['water viscocity'])   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
@@ -758,6 +760,11 @@ class Parameters(object):
         self.I_ani_min_clr = float(ro['Current Ani']['min val'])
         self.I_ani_max_clr = float(ro['Current Ani']['max val'])
 
+        self.ani_mem = ro['Membrane Ani']['animate Membrane']
+        self.autoscale_mem_ani = ro['Membrane Ani']['autoscale colorbar']
+        self.mem_ani_min_clr = float(ro['Membrane Ani']['min val'])
+        self.mem_ani_max_clr = float(ro['Membrane Ani']['max val'])
+
         self.ani_Efield = ro['Efield Ani']['animate Efield']   # 2d animation of electric field
         self.ani_Efield_type =ro['Efield Ani']['data type']   # data type can be 'ECM' or 'GJ'
         self.ani_Efield_vector =ro['Efield Ani']['overlay vector'] # overlay a streamline plot of field direction?
@@ -781,6 +788,8 @@ class Parameters(object):
         #........................INTERNAL USE ONLY.....................................................................
 
         iu = self.config['internal parameters']
+
+        self.interp_type = iu['interpolation method']
 
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]

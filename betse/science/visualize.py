@@ -341,7 +341,7 @@ class AnimateCellData_smoothed(object):
             self.cmax = clrMax
 
         dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),zdata_t[0],
-                                        (cells.Xgrid,cells.Ygrid),method='nearest')
+                                        (cells.Xgrid,cells.Ygrid),method=p.interp_type)
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -408,7 +408,7 @@ class AnimateCellData_smoothed(object):
     def aniFunc(self,i):
 
         dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),self.zdata_t[i],
-            (self.cells.Xgrid,self.cells.Ygrid),method='nearest')
+            (self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type)
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
@@ -665,7 +665,7 @@ class AnimateGJData_smoothed(object):
         self.ax.add_collection(self.collection)
 
         dat_grid = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.vdata_t[0],
-                                        (cells.Xgrid,cells.Ygrid), method='nearest')
+                                        (cells.Xgrid,cells.Ygrid), method=p.interp_type)
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -749,7 +749,7 @@ class AnimateGJData_smoothed(object):
         self.collection.set_array(zz)
 
         dat_grid = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),zv,
-            (self.cells.Xgrid,self.cells.Ygrid),method='nearest')
+            (self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type)
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
@@ -829,7 +829,7 @@ class PlotWhileSolving(object):
             else:
 
                 dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
-                    (cells.Xgrid,cells.Ygrid),fill_value=0,method='nearest')
+                    (cells.Xgrid,cells.Ygrid),fill_value=0,method=p.interp_type)
 
                 dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -887,7 +887,7 @@ class PlotWhileSolving(object):
                 self.coll2.set_array(zv)
             else:
                 dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),
-                    sim.vm_time[-1]*1000,(self.cells.Xgrid,self.cells.Ygrid),fill_value=0,method='nearest')
+                    sim.vm_time[-1]*1000,(self.cells.Xgrid,self.cells.Ygrid),fill_value=0,method=self.p.interp_type)
                 dat_grid = np.multiply(dat_grid,self.cells.maskM)
                 self.coll2.set_array(dat_grid.ravel())
 
@@ -964,7 +964,7 @@ class PlotWhileSolving(object):
             else:
 
                 dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
-                    (cells.Xgrid,cells.Ygrid),fill_value=0,method='nearest')
+                    (cells.Xgrid,cells.Ygrid),fill_value=0,method=p.interp_type)
 
                 # dat_grid = np.multiply(dat_grid,cells.maskM)
                 #
@@ -1216,10 +1216,10 @@ class AnimateEfield(object):
         elif p.ani_Efield_type == 'GJ' or p.sim_ECM == False:
 
             E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0,method='nearest')
+            sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0,method=p.interp_type)
 
             E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0,method='nearest')
+                sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0,method=p.interp_type)
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
             self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
@@ -1279,10 +1279,10 @@ class AnimateEfield(object):
         elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM == False:
 
             E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-            self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
+            self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
 
             E_gj_y = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                self.sim.efield_gj_y_time[i],(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
+                self.sim.efield_gj_y_time[i],(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 
@@ -1342,12 +1342,12 @@ class AnimateVelocity(object):
             ugjy = sim.u_cells_y_time[0]
 
             v_gj_x = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjx,(cells.X,cells.Y),
-                                          fill_value=0,method='nearest')
+                                          fill_value=0,method=p.interp_type)
 
             v_gj_x = v_gj_x*cells.maskM
 
             v_gj_y = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),ugjy,(cells.X,cells.Y),
-                                          fill_value=0,method='nearest')
+                                          fill_value=0,method=p.interp_type)
 
             v_gj_y = v_gj_y*cells.maskM
 
@@ -1415,12 +1415,12 @@ class AnimateVelocity(object):
             ugjy = self.sim.u_cells_y_time[i]
 
             u_gj_x = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
-            ugjx,(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
+            ugjx,(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
 
             u_gj_x = u_gj_x*self.cells.maskM
 
             u_gj_y = interpolate.griddata((self.cells.cell_centres[:,0],self.cells.cell_centres[:,1]),
-                ugjy,(self.cells.X,self.cells.Y), fill_value=0,method='nearest')
+                ugjy,(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
 
             u_gj_y = u_gj_y*self.cells.maskM
 
@@ -1632,6 +1632,207 @@ class AnimateEnv(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
+class AnimateMem(object):
+    """
+    Animates the channel or pump density factor (sim.rho_channel or sim.rho_pump) which changes due to
+    electroosmotic/electrophoretic movements due to self-generated fields and flows in the cluster.
+
+    """
+
+    def __init__(self,sim,cells,time,p,save=False,ani_repeat=False,current_overlay=False,
+        clrAutoscale = True, clrMin = None, clrMax = None,
+        number_cells = False, saveFolder = '/animation/pump_electroosmo', saveFile = 'rhoPump_'):
+
+        self.colormap = p.default_cm
+        self.time = time
+        self.save = save
+
+        self.cbtit = 'mol fraction/m2'
+
+        self.cells = cells
+
+        self.p = p
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
+        self.sim = sim
+
+        self.current_overlay = current_overlay
+
+        self.clrmap = p.default_cm
+
+        self.sim_ECM = p.sim_ECM
+        self.IecmPlot = p.IecmPlot
+        self.density = p.stream_density
+
+        self.ax.axis('equal')
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+        self.bkgBool = False
+
+        cell_edges_flat = cells.um*cells.mem_edges_flat
+
+        self.coll = LineCollection(cell_edges_flat, array=sim.rho_pump_time[0], cmap=self.clrmap,linewidths=4.0)
+        self.ax.add_collection(self.coll)
+
+        self.ax.axis('equal')
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+
+        if self.current_overlay == True:
+
+            if p.sim_ECM == False or p.IecmPlot == False:
+
+                Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
+
+                J_x = sim.I_gj_x_time[0]/Jmag_M
+                J_y = sim.I_gj_y_time[0]/Jmag_M
+
+                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
+
+                self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                    cmap=self.clrmap,arrowsize=1.5)
+
+                self.tit_extra = 'Gap junction current'
+
+            elif p.IecmPlot == True:
+
+                Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
+
+                J_x = sim.I_env_x_time[0]/Jmag_M
+                J_y = sim.I_env_y_time[0]/Jmag_M
+
+                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
+
+                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
+                    cmap=self.clrmap,arrowsize=1.5)
+
+                self.tit_extra = 'Extracellular current overlay'
+
+        else:
+
+            self.tit_extra = ' '
+
+        # set range of the colormap
+
+        if clrAutoscale == True:
+            # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in sim.rho_pump_time:
+                for val in zarray:
+                    all_z.append(val)
+
+            self.cmean = np.mean(all_z)
+            self.cmin = round(np.min(all_z))
+            self.cmax = round(np.max(all_z))
+            clrCheck = self.cmax - self.cmin
+
+            if clrCheck == 0:
+                self.cmin = self.cmin - 1
+                self.cmax = self.cmax + 1
+
+        elif clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
+
+
+        self.coll.set_clim(self.cmin,self.cmax)
+
+        self.cb = self.fig.colorbar(self.coll)   # define colorbar for figure
+        self.cb.set_label(self.cbtit)
+
+        self.tit = 'Pump Density Factor'
+
+        if number_cells == True:
+            for i,cll in enumerate(cells.cell_centres):
+                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
+
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+        self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
+        self.ax.set_title(self.tit_extra)
+
+        self.frames = len(sim.rho_pump_time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        #FIXME: If issues persist, bloggers recommend increasing the above "interval".
+        try:
+            plt.show()
+        # plt.show() unreliably raises exceptions on window close resembling:
+        #     AttributeError: 'NoneType' object has no attribute 'tk'
+        # This error appears to ignorable and hence is caught and squelched.
+        except AttributeError as exception:
+            # If this is such exception, mercilessly squelch it.
+            if str(exception) == "'NoneType' object has no attribute 'tk'":
+                pass
+            # Else, reraise such exception.
+            else:
+                raise
+
+    def aniFunc(self,i):
+
+        zz = self.sim.rho_pump_time[i]
+
+        self.coll.set_array(zz)
+
+        if self.current_overlay == True:
+
+            if self.sim_ECM == False or self.IecmPlot == False:
+
+                Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
+
+                J_x = self.sim.I_gj_x_time[i]/Jmag_M
+                J_y = self.sim.I_gj_y_time[i]/Jmag_M
+
+                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
+
+                self.streams.lines.remove()
+                self.ax.patches = []
+
+                self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
+                    density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
+
+            elif self.IecmPlot == True:
+
+                Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
+
+                J_x = self.sim.I_env_x_time[i]/Jmag_M
+                J_y = self.sim.I_env_y_time[i]/Jmag_M
+
+                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
+
+                self.streams.lines.remove()
+                self.ax.patches = []
+
+                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,
+                    J_x,J_y,density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
+
+        titani = self.tit_extra + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
 
 
 class AnimateDyeData(object):
@@ -1698,10 +1899,10 @@ class AnimateDyeData(object):
             if p.IecmPlot == False:
 
                 dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                    sim.Dye_flux_x_gj_time[0],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
+                    sim.Dye_flux_x_gj_time[0],(self.cells.X,self.cells.Y),method=p.interp_type,fill_value=0)
 
                 dye_fy = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                    sim.Dye_flux_y_gj_time[0],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
+                    sim.Dye_flux_y_gj_time[0],(self.cells.X,self.cells.Y),method=p.interp_type,fill_value=0)
 
                 Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
 
@@ -1808,10 +2009,10 @@ class AnimateDyeData(object):
             if self.IecmPlot == False:
 
                 dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                    self.sim.Dye_flux_x_gj_time[i],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
+                    self.sim.Dye_flux_x_gj_time[i],(self.cells.X,self.cells.Y),method=self.p.interp_type,fill_value=0)
 
                 dye_fy = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                    self.sim.Dye_flux_y_gj_time[i],(self.cells.X,self.cells.Y),method='nearest',fill_value=0)
+                    self.sim.Dye_flux_y_gj_time[i],(self.cells.X,self.cells.Y),method=self.p.interp_type,fill_value=0)
 
                 Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
 
@@ -2211,7 +2412,7 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
         ax.axis([xmin,xmax,ymin,ymax])
 
         dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),z,
-                                        (cells.Xgrid,cells.Ygrid),method='nearest')
+                                        (cells.Xgrid,cells.Ygrid),method=p.interp_type)
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
@@ -2282,10 +2483,12 @@ def plotEfield(sim,cells,p):
     elif p.plot_Efield_type == 'GJ' or p.sim_ECM == False:
 
         E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            sim.efield_gj_x_time[-1],(cells.X,cells.Y), method='nearest',fill_value=0)
+            sim.efield_gj_x_time[-1],(cells.X,cells.Y), method=p.interp_type,fill_value=0)
 
         E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-            sim.efield_gj_y_time[-1],(cells.X,cells.Y), method='nearest',fill_value=0)
+            sim.efield_gj_y_time[-1],(cells.X,cells.Y), method=p.interp_type,fill_value=0)
+
+        # FIXME multiply by the cluster mask...
 
         efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 
@@ -2362,9 +2565,6 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
             fig = plt.figure()# define the figure and axes instances
         if ax is None:
             ax = plt.subplot(111)
-            #ax = plt.axes()
-
-        # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
 
         cell_edges_flat = cells.um*cells.mem_edges_flat
 
@@ -2385,15 +2585,9 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
 
         # Add a colorbar for the Line Collection
         if zdata is not None:
-            # coll.set_clim(0,1)
             ax_cb = fig.colorbar(coll, ax=ax)
 
         ax.axis('equal')
-
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um

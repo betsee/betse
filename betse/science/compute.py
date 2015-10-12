@@ -454,9 +454,11 @@ class Simulator(object):
             self.gj_rho = 0
 
         if p.sim_eosmosis == True:
+            self.rho_pump = np.ones(len(cells.mem_i))
             self.rho_channel = np.ones(len(cells.mem_i))
         else:
-            self.rho_channel = 1  # else just define it as identity.
+            self.rho_pump = 1  # else just define it as identity.
+            self.rho_channel = 1
 
         ion_names = list(p.ions_dict.keys())
 
@@ -874,7 +876,7 @@ class Simulator(object):
         self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
         self.gjl[:] = cells.nn_len
 
-        self.rho_channel = np.ones(len(cells.mem_i))
+        self.rho_pump = np.ones(len(cells.mem_i))
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
         self.update_V_ecm(cells,p,0)
@@ -1314,6 +1316,9 @@ class Simulator(object):
 
         self.rho_cells_time = []
 
+        self.rho_pump_time = []    # store pump and channel states as function of time...
+        self.rho_channel_time = []
+
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
@@ -1405,8 +1410,8 @@ class Simulator(object):
                     self.vm,self.T,p,self.NaKATP_block)
 
             # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
-            fNa_NaK = self.rho_channel*fNa_NaK
-            fK_NaK = self.rho_channel*fK_NaK
+            fNa_NaK = self.rho_pump*fNa_NaK
+            fK_NaK = self.rho_pump*fK_NaK
 
             self.fluxes_mem[self.iNa] = fNa_NaK
             self.fluxes_mem[self.iK] = fK_NaK
@@ -1470,7 +1475,7 @@ class Simulator(object):
 
                 f_ED = electroflux(self.cc_env[i][cells.map_mem2ecm],self.cc_cells[i][cells.mem_to_cells],
                          self.Dm_cells[i], self.tm, self.zs[i], self.vm, self.T, p,
-                         rho=1)
+                         rho=self.rho_channel)
 
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
@@ -1607,6 +1612,10 @@ class Simulator(object):
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
 
+                if p.sim_eosmosis == True:
+
+                    self.rho_channel_time.append(self.rho_channel[:])
+                    self.rho_pump_time.append(self.rho_pump[:])
 
                 if p.plot_while_solving == True:
                     self.checkPlot.updatePlot(self,p)
@@ -2490,11 +2499,11 @@ class Simulator(object):
 
         # interpolate the gj current components to the grid:
         self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
-                                      method='nearest',fill_value=0)
+                                      method=p.interp_type,fill_value=0)
         self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
         self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
-                                      method='nearest',fill_value=0)
+                                      method=p.interp_type,fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
 
         # calculate current across cell membranes:
@@ -2779,7 +2788,8 @@ class Simulator(object):
             uy_mem = 0
 
         # get the gradient of rho concentration around each membrane:
-        grad_c = np.dot(cells.gradMem,self.rho_channel)
+        grad_c = np.dot(cells.gradMem,self.rho_pump)
+        grad_c_ch = np.dot(cells.gradMem,self.rho_channel)
 
         # gcx = grad_c*cells.mem_vects_flat[:,4]   # FIXME no concentration gradient will be used for now
         # gcy = grad_c*cells.mem_vects_flat[:,5]
@@ -2793,7 +2803,7 @@ class Simulator(object):
 
         # calculate the total Nernst-Planck flux at each membrane:
 
-        fx, fy = nernst_planck_flux(self.rho_channel, gcx, gcy, gvx, gvy,ux_mem,uy_mem,p.D_membrane,p.z_channel,
+        fx, fy = nernst_planck_flux(self.rho_pump, gcx, gcy, gvx, gvy,ux_mem,uy_mem,p.D_membrane,p.z_pump,
             self.T,p)
 
         # component of total flux in direction of membrane
@@ -2802,12 +2812,31 @@ class Simulator(object):
         # calculate the membrane-specific divergence of the flux which will be the "delta rho" at each membrane:
         delta_rho = np.dot(cells.gradMem,ftot)
 
-        # update the channel property:
-        self.rho_channel = self.rho_channel + p.dt*delta_rho
+        #------------------------------------------------
+        # calculate the total Nernst-Planck flux at each membrane for rho_channel factor:
+
+        fx2, fy2 = nernst_planck_flux(self.rho_channel, gcx, gcy, gvx, gvy,ux_mem,uy_mem,p.D_membrane,p.z_channel,
+            self.T,p)
+
+        # component of total flux in direction of membrane
+        ftot2 = fx2*cells.mem_vects_flat[:,4] + fy2*cells.mem_vects_flat[:,5]
+
+        # calculate the membrane-specific divergence of the flux which will be the "delta rho" at each membrane:
+        delta_rho2 = np.dot(cells.gradMem,ftot2)
+
+        #------------------------------------------------
+
+        # update the pump and channel density properties:
+        self.rho_pump = self.rho_pump + p.dt*delta_rho
+
+        self.rho_channel = self.rho_channel + p.dt*delta_rho2
 
         # # make sure nothing is non-zero:
-        fix_inds = (self.rho_channel < 0).nonzero()
-        self.rho_channel[fix_inds] = 0
+        fix_inds = (self.rho_pump < 0).nonzero()
+        self.rho_pump[fix_inds] = 0
+
+        fix_inds2 = (self.rho_channel < 0).nonzero()
+        self.rho_channel[fix_inds2] = 0
 
     def get_ion(self,label):
         """
@@ -3432,7 +3461,8 @@ def vertData(data, cells, p):
     verts_data = np.dot(data,cells.matrixMap2Verts)
     plot_data = np.hstack((data,verts_data))
 
-    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), method='linear',
+    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid),
+                               method=p.interp_type,
                                fill_value=0)
     #
     dat_grid = np.multiply(dat_grid,cells.maskM)

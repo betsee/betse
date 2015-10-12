@@ -232,7 +232,9 @@ world variables:
 
     turn on: True         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
-    channel charge: 1         # charge of membrane pumps (-channel charge) and channels
+    channel charge: -1         # charge of membrane channels
+
+    pump charge: 1          # charge of pumps (controls direction they move in)
 
     membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
@@ -658,7 +660,7 @@ results options:
   plot cell index: 0              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
 
-  plot single cell graphs: False   # plot graphs of concentration and voltage for a single cell
+  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                   # (the plot cell) as a function of simulation time
 
   show cells: True                # if True, plots and animations show individual cells,
@@ -756,7 +758,7 @@ results options:
 
   Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
 
-    plot Osmotic Pressure: False
+    plot Osmotic Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -770,7 +772,7 @@ results options:
 
   Force 2D:                      # 2D plot of electroosmotic body force in the cluster
 
-    plot Force: True
+    plot Force: False
     data type: GJ               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
     autoscale colorbar: True
     max val: 15
@@ -781,7 +783,7 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: True           # 2d animation of vmem with time?
+    animate Vmem: False           # 2d animation of vmem with time?
     autoscale colorbar: False    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # maximum colorbar value in mV
@@ -823,21 +825,21 @@ results options:
 
   Venv Ani:
 
-    animate Venv: True           # 2d animation of voltage in individual cells of the collective?
+    animate Venv: False           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   P cell Ani:
 
-    animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate P cell: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Osmotic P Ani:
 
-    animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
+    animate Osmotic P: False         # 2d animation of osmotic pressure difference in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
@@ -851,13 +853,20 @@ results options:
 
   Current Ani:
 
-    animate current: False       # 2d animation of current in individual cells of the collective?
+    animate current: True       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
+  Membrane Ani:
+
+    animate Membrane: True       # 2d animation of membrane pump motion?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 1                # maximum colorbar value [pA]
+    min val: 0                  # minimum colorbar value [pA]
+
   Efield Ani:
-    animate Efield: False        # 2d animation of electric field in extracellullar matrix
+    animate Efield: True        # 2d animation of electric field in extracellullar matrix
     data type: ECM                  # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
@@ -865,7 +874,7 @@ results options:
     min val: 0                  # min colorbar value [V/m]
 
   Velocity Ani:
-    animate Velocity: False        # 2d animation of electric field in extracellullar matrix
+    animate Velocity: True        # 2d animation of electric field in extracellullar matrix
     data type: GJ                  # data type can be 'ECM' or 'GJ'
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 500               # max colorbar value [V/m]
@@ -982,7 +991,9 @@ internal parameters:
   u_decay_rate: 0.5
   alpha_rho_gj: 1.0e-3
 
+  interpolation method: linear  # interpolation method, choices are 'linear' or 'nearest'
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.2"
+version: "0.3"
