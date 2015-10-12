@@ -1498,7 +1498,7 @@ class AnimateForce(object):
 
             self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
 
-            tit_extra = 'Intracellular'
+            tit_extra = ''
 
             self.ax.axis('equal')
 
@@ -1509,7 +1509,7 @@ class AnimateForce(object):
 
             self.ax.axis([xmin,xmax,ymin,ymax])
 
-            self.tit = "Final Electroosmotic Body Force in " + tit_extra + ' Spaces'
+            self.tit = "Electroosmotic Body Force"
             self.ax.set_title(self.tit)
             self.ax.set_xlabel('Spatial distance [um]')
             self.ax.set_ylabel('Spatial distance [um]')
@@ -1555,6 +1555,83 @@ class AnimateForce(object):
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
+
+class AnimateEnv(object):
+
+    def __init__(self,sim,cells,time,p,save=True,ani_repeat=False,clrAutoscale=True,
+    clrMin = None,clrMax = None,clrmap = cm.rainbow, number_cells=False,saveFolder = '/animation/Venv',saveFile = 'venv_'):
+
+        self.clrmap = clrmap
+        self.time = time
+        self.save = save
+
+        self.sim = sim
+
+        self.sim_ECM = p.sim_ECM
+        self.IecmPlot = p.IecmPlot
+
+        self.cells = cells
+        self.p = p
+
+        self.fig = plt.figure()       # define figure
+        self.ax = plt.subplot(111)    # define axes
+
+        self.ax.axis('equal')
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if self.save == True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+        if clrAutoscale == False:
+            self.cmin = clrMin
+            self.cmax = clrMax
+
+        self.meshplot = plt.imshow(sim.venv_time[0].reshape(cells.X.shape)*1000,
+                                   origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=p.default_cm)
+
+
+        if clrAutoscale == False:
+
+            self.meshplot.set_clim(self.cmin,self.cmax)
+
+        self.cb = self.fig.colorbar(self.meshplot)   # define colorbar for figure
+        self.cb.set_label('Voltage [V]')
+
+        self.ax.set_xlabel('Spatial x [um]')
+        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_title('Environmental Voltage')
+
+        self.frames = len(sim.time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        plt.show()
+
+
+    def aniFunc(self,i):
+
+        titani = 'Environmental Voltage' + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        self.meshplot.set_data(self.sim.venv_time[i].reshape(self.cells.X.shape)*1000)
+
+        if self.save == True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
 
 
 class AnimateDyeData(object):

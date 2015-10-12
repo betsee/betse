@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 5.0         # time to end sim run [s]
+    total time: 7.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -121,7 +121,7 @@ general options:
 
   simulate ECM: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
-  ion profile: 'basic'   # ion profile options:
+  ion profile: 'animal'   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
@@ -132,7 +132,7 @@ general options:
                                 # M- represents HCO3- (bicarbonate).
 
 
-  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
+  HKATPase pump: True     # include the HK-ATPase pump in the simulation?
                            # only works for an ion profile with H+ ions (animal or invertebrate)
                            # options True or False (case sensitive)
 
@@ -224,9 +224,9 @@ world variables:
 
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
-  electroosmosis: True       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
+  electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
 
-  water viscocity: 1e-1      # viscocity of medium [Pa s]
+  water viscocity: 1      # viscocity of medium [Pa s]
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -339,10 +339,10 @@ block NaKATP pump:
 
 block HKATP pump:
 
-  event happens: False     # turn the event on (True) or off (False)
+  event happens: True     # turn the event on (True) or off (False)
   change start: -1          # time to start change [s]
-  change finish: 1         # time to end change and return to original [s]
-  change rate: 2.0         # rate of change [s]
+  change finish: 2         # time to end change and return to original [s]
+  change rate: 1.0         # rate of change [s]
 
 block VATP pump:
 
@@ -488,7 +488,7 @@ closed boundary: False   # are the global environmental boundaries closed (True)
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True        # turn the event on (True) or off (False)
+  event happens: False        # turn the event on (True) or off (False)
   change start: 1.0                # time to start change [s]
   change finish: 2.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
@@ -781,7 +781,7 @@ results options:
 
   Vmem Ani:
 
-    animate Vmem: False           # 2d animation of vmem with time?
+    animate Vmem: True           # 2d animation of vmem with time?
     autoscale colorbar: False    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # maximum colorbar value in mV
@@ -821,16 +821,23 @@ results options:
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
+  Venv Ani:
+
+    animate Venv: True           # 2d animation of voltage in individual cells of the collective?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
+    max val: 10                  # maximum colorbar value in mV
+    min val: -70                 # minimum colorbar value in mV
+
   P cell Ani:
 
-    animate P cell: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Osmotic P Ani:
 
-    animate Osmotic P: False         # 2d animation of osmotic pressure difference in individual cells of the collective?
+    animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
@@ -838,7 +845,7 @@ results options:
   Force Ani:
 
     animate Force: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
-    autoscale colorbar: False     # autoscale colorbar to min max of data set?
+    autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100000                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
 

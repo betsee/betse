@@ -733,6 +733,11 @@ class Parameters(object):
         self.vcell_ani_min_clr = float(ro['Vcell Ani']['min val'])
         self.vcell_ani_max_clr = float(ro['Vcell Ani']['max val'])
 
+        self.ani_venv = ro['Venv Ani']['animate Venv']
+        self.autoscale_venv_ani = ro['Venv Ani']['autoscale colorbar']
+        self.venv_ani_min_clr = float(ro['Venv Ani']['min val'])
+        self.venv_ani_max_clr = float(ro['Venv Ani']['max val'])
+
         self.ani_Pcell = ro['P cell Ani']['animate P cell']
         self.autoscale_Pcell_ani = ro['P cell Ani']['autoscale colorbar']
         self.Pcell_ani_min_clr = float(ro['P cell Ani']['min val'])

@@ -2576,10 +2576,10 @@ class Simulator(object):
 
             # map the charge density to the grid
             rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)
-            rho_env_x[:,0] = rho_env_x[:,1]
+            rho_env_x[:,0] = rho_env_x[:,1]/self.ff
 
             rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)
-            rho_env_y[0,:] = rho_env_y[1,:]
+            rho_env_y[0,:] = rho_env_y[1,:]/self.ff
 
             # these are negative because the gradient of the voltage is the electric field and we just took the grad
             # above but didn't carry through the negative sign.
@@ -3419,7 +3419,7 @@ def vertData(data, cells, p):
 
     Parameters
     -----------
-    data          A numpy vector of data points on cell mids
+    data          A numpy vector of data points on cell membrane mids
     cells         An instance of the World object
     p             An instance of the Parameters object
 
@@ -3432,7 +3432,7 @@ def vertData(data, cells, p):
     verts_data = np.dot(data,cells.matrixMap2Verts)
     plot_data = np.hstack((data,verts_data))
 
-    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), method='nearest',
+    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid), method='linear',
                                fill_value=0)
     #
     dat_grid = np.multiply(dat_grid,cells.maskM)

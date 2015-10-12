@@ -1240,9 +1240,14 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_force == True and animate == 1 and p.base_eosmo == True:
+    if p.ani_force == True and animate == 1:
 
         viz.AnimateForce(sim,cells,p)
+
+    if p.ani_venv == True and animate == 1 and p.sim_ECM == True:
+
+        viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
+                       clrMax=p.venv_max_clr, save = saveAni)
 
 
     plt.show()
