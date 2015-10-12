@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 7.0         # time to end sim run [s]
+    total time: 5.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -121,7 +121,7 @@ general options:
 
   simulate ECM: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
-  ion profile: 'animal'   # ion profile options:
+  ion profile: 'basic'   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
@@ -132,7 +132,7 @@ general options:
                                 # M- represents HCO3- (bicarbonate).
 
 
-  HKATPase pump: True     # include the HK-ATPase pump in the simulation?
+  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
                            # only works for an ion profile with H+ ions (animal or invertebrate)
                            # options True or False (case sensitive)
 
@@ -224,15 +224,15 @@ world variables:
 
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
-  electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
+  electroosmosis: True       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
 
   water viscocity: 1      # viscocity of medium [Pa s]
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
-    turn on: False         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
+    turn on: True         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
-    channel charge: -1         # charge of membrane pumps (-channel charge) and channels
+    channel charge: 1         # charge of membrane pumps (-channel charge) and channels
 
     membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
@@ -339,7 +339,7 @@ block NaKATP pump:
 
 block HKATP pump:
 
-  event happens: True     # turn the event on (True) or off (False)
+  event happens: False     # turn the event on (True) or off (False)
   change start: -1          # time to start change [s]
   change finish: 2         # time to end change and return to original [s]
   change rate: 1.0         # rate of change [s]

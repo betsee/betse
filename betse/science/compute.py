@@ -1405,8 +1405,8 @@ class Simulator(object):
                     self.vm,self.T,p,self.NaKATP_block)
 
             # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
-            fNa_NaK = -self.rho_channel*fNa_NaK
-            fK_NaK = -self.rho_channel*fK_NaK
+            fNa_NaK = self.rho_channel*fNa_NaK
+            fK_NaK = self.rho_channel*fK_NaK
 
             self.fluxes_mem[self.iNa] = fNa_NaK
             self.fluxes_mem[self.iK] = fK_NaK
@@ -1470,7 +1470,7 @@ class Simulator(object):
 
                 f_ED = electroflux(self.cc_env[i][cells.map_mem2ecm],self.cc_cells[i][cells.mem_to_cells],
                          self.Dm_cells[i], self.tm, self.zs[i], self.vm, self.T, p,
-                         rho=self.rho_channel)
+                         rho=1)
 
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
