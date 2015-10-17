@@ -1068,8 +1068,8 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
-            # calculate electroosmotic flow:
-            if p.base_eosmo == True and cells.lapGJinv != 0:
+            # calculate fluid flow:
+            if p.fluid_flow == True and cells.lapGJinv != 0:
                 self.getFlow(cells,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
@@ -1146,7 +1146,7 @@ class Simulator(object):
 
                 self.rho_cells_time.append(self.rho_cells[:])
 
-                if p.base_eosmo == True:
+                if p.fluid_flow == True:
 
                     self.P_cells_time.append(self.P_cells[:])
                     self.u_cells_x_time.append(self.u_cells_x[:])
@@ -1411,6 +1411,7 @@ class Simulator(object):
 
             # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
             fNa_NaK = self.rho_pump*fNa_NaK
+
             fK_NaK = self.rho_pump*fK_NaK
 
             self.fluxes_mem[self.iNa] = fNa_NaK
@@ -1493,7 +1494,7 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
-            if p.base_eosmo == True:
+            if p.fluid_flow == True:
 
                 self.getFlow(cells,p)
 
@@ -1574,7 +1575,7 @@ class Simulator(object):
 
                 self.rho_cells_time.append(self.rho_cells[:])
 
-                if p.base_eosmo == True:
+                if p.fluid_flow == True:
 
                     self.P_env_time.append(np.float64(self.P_env[:]))
                     self.u_env_x_time.append(self.u_at_c[:])
@@ -2135,8 +2136,8 @@ class Simulator(object):
                             np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
 
             # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-            d_c_cells = flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_c_env = flux_dye*(cells.mem_sa/cells.ecm_vol)
+            d_c_cells = self.rho_channel*flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+            d_c_env = self.rho_channel*flux_dye*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
 
             delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
             delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
@@ -2574,26 +2575,37 @@ class Simulator(object):
                 F_gravity_x = np.zeros(cells.grid_obj.u_shape)
                 F_gravity_y = np.zeros(cells.grid_obj.v_shape)
 
-            # calculate the electroosmotic force (shaped to the u and v grids):
-            # first calculate the electric field on the u and v junctions:
-            venv = self.v_env.reshape(cells.X.shape)
-            env_x, env_y = cells.grid_obj.grid_gradient(venv,bounds=btag)
 
-            # create u and v sized grids for the charge density:
-            rho_env_x = np.zeros(cells.grid_obj.u_shape)
-            rho_env_y = np.zeros(cells.grid_obj.v_shape)
+             # calculate the electroosmotic force (shaped to the u and v grids):
+            if p.base_eosmo == True:
 
-            # map the charge density to the grid
-            rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)
-            rho_env_x[:,0] = rho_env_x[:,1]/self.ff
+                # first calculate the electric field on the u and v junctions:
+                venv = self.v_env.reshape(cells.X.shape)
+                env_x, env_y = cells.grid_obj.grid_gradient(venv,bounds=btag)
 
-            rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)
-            rho_env_y[0,:] = rho_env_y[1,:]/self.ff
+                # create u and v sized grids for the charge density:
+                rho_env_x = np.zeros(cells.grid_obj.u_shape)
+                rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
-            # these are negative because the gradient of the voltage is the electric field and we just took the grad
-            # above but didn't carry through the negative sign.
-            Fe_x = -(rho_env_x)*env_x
-            Fe_y = -(rho_env_y)*env_y
+                # map the charge density to the grid
+                rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/self.ff
+                rho_env_x[:,0] = rho_env_x[:,1]
+
+                rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/self.ff
+                rho_env_y[0,:] = rho_env_y[1,:]
+
+                # these are negative because the gradient of the voltage is the electric field and we just took the grad
+                # above but didn't carry through the negative sign.
+                Fe_x = -(rho_env_x)*env_x
+                Fe_y = -(rho_env_y)*env_y
+
+            else:
+
+                Fe_x = np.zeros(cells.grid_obj.u_shape)
+                Fe_y = np.zeros(cells.grid_obj.v_shape)
+
+
+
 
             # sum the forces:
             Fx = Fe_x + F_gravity_x
@@ -2694,10 +2706,6 @@ class Simulator(object):
 
             alpha_zero = list(*(alpha.ravel() == 0).nonzero())
 
-            # if len(alpha_zero) == 0:
-            #
-            #     self.P_env = P[:]*(1/alpha)
-
             alpha[alpha_zero] = 1
 
             self.P_env = P[:]*(1/alpha)
@@ -2724,13 +2732,29 @@ class Simulator(object):
 
         alpha_gj = ((rgj**2)/(8*p.mu_water))
 
-        # to get the body force at each gap junction, first map the charge density from cell to gj:
-        rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
 
-        # body force is equal to the electric field at the gap junction multiplied by the charge density there.
-        F_gj = rho_gj*self.Egj
+        # Calculate electroosmotic body forces on flow field, if desired:
 
-        F_source = F_gj + Fgj_gravity
+        if p.base_eosmo == True:
+
+            # to get the eletroosmotic body force at each gap junction, first map the charge density from cell to gj:
+            rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
+
+            # body force is equal to the electric field at the gap junction multiplied by the charge density there.
+            F_gj = rho_gj*self.Egj
+
+        else:
+            F_gj = np.zeros(len(cells.nn_vects))
+
+
+        if p.osmosis_flow:
+
+            F_osmo = self.osmo_P_grad
+
+        else:
+            F_osmo = np.zeros(len(cells.nn_vects))
+
+        F_source = F_gj + Fgj_gravity + F_osmo
 
         # sum the tangential body force pressure at the gap junctions for each cell:
         # scale the forces to the alpha value as 'rgj' may vary over space:
@@ -2749,8 +2773,8 @@ class Simulator(object):
 
         u_cells = (alpha_gj)*(F_gj +Fgj_gravity) - gradP
 
-        u_cells_x = u_cells*cells.nn_vects[:,2]
-        u_cells_y = u_cells*cells.nn_vects[:,3]
+        u_cells_x = -u_cells*cells.nn_vects[:,2]
+        u_cells_y = -u_cells*cells.nn_vects[:,3]
 
         # average components to the cell centres:
         self.u_cells_x = np.dot(cells.gj2cellMatrix,u_cells_x)
@@ -2966,6 +2990,20 @@ class Simulator(object):
 
         else:
             self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env[cells.map_cell2ecm]
+
+        # calculate the negative gradient of the osmotic pressure between cells (body force):
+
+        self.osmo_P_grad =-(self.osmo_P_delta[cells.nn_i][:,1]- self.osmo_P_delta[cells.nn_i][:,0])/cells.nn_len
+
+        # get x and y components of the osmotic pressure gradient between cells (osmotic body force):
+        self.osmo_P_grad_xo = cells.nn_vects[:,2]*self.osmo_P_grad
+        self.osmo_P_grad_yo = cells.nn_vects[:,3]*self.osmo_P_grad
+
+        # average components back to cell centres:
+        self.osmo_P_grad_x = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_xo)
+        self.osmo_P_grad_y = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_yo)
+
+        self.osmo_P_grad_mag = np.sqrt(self.osmo_P_grad_x**2 + self.osmo_P_grad_y**2)
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 

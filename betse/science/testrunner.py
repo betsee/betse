@@ -16,7 +16,8 @@ if __name__ == '__main__':
         config_filename = pathtree.CONFIG_DEFAULT_FILENAME)
 
     # Run such simulation.
-    sim_runner.plotInit()
+    sim_runner.initialize()
+
 
 
 

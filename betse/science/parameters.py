@@ -50,7 +50,11 @@ class Parameters(object):
 
         self.sim_ECM = self.config['general options']['simulate ECM']    # boolean letting us know if extracellular spaces are included
 
-        self.base_eosmo = self.config['world variables']['electroosmosis']
+        self.fluid_flow = self.config['world variables']['Fluid Flow']['include fluid flow']
+
+        self.osmosis_flow = self.config['world variables']['Fluid Flow']['osmosis']
+
+        self.base_eosmo = self.config['world variables']['Fluid Flow']['electroosmosis']
 
         self.sim_eosmosis = self.config['world variables']['channel electroosmosis']['turn on']
 
@@ -63,7 +67,7 @@ class Parameters(object):
 
         self.z_pump = float(self.config['world variables']['channel electroosmosis']['pump charge'])
 
-        self.mu_water = float(self.config['world variables']['water viscocity'])   # viscocity of water [Pa.s]
+        self.mu_water = float(self.config['world variables']['Fluid Flow']['water viscocity'])   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
@@ -131,7 +135,7 @@ class Parameters(object):
 
         self.T = float(self.config['world variables']['temperature'])  # World temperature
 
-        self.gravity = self.config['world variables']['gravity']
+        self.gravity = self.config['world variables']['Fluid Flow']['gravity']
 
         # gap junction constants and network connectivity
         self.search_d = float(self.config['world variables']['gap junctions']['search distance']) # distance to search for nearest neighbours

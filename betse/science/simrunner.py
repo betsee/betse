@@ -81,7 +81,7 @@ class SimRunner(object):
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
-            if p.base_eosmo == True: # if user desires electroosmosis:
+            if p.fluid_flow == True: # if user desires fluid flow:
 
                 # make a laplacian and solver for discrete transfers on closed, irregular cell network
                 loggers.log_info('Creating cell network Poisson solver...')
@@ -116,7 +116,7 @@ class SimRunner(object):
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
             # make a laplacian and solver for discrete transfers on closed, irregular cell network
-            if p.base_eosmo == True:
+            if p.fluid_flow == True:
                 loggers.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
 
@@ -861,15 +861,36 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+
+        if p.sim_ECM == True:
+
+            plt.figure()
+            plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+            plt.colorbar()
+            plt.axis('equal')
+            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+            plt.title('Final Extracellular Pressure [Pa]')
+
+            if saveImages == True:
+                savename13 = savedImg + 'final_P_2D_env' + '.png'
+                plt.savefig(savename13,format='png')
+
+            plt.show(block=False)
+
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_osmoP == True:
 
         if p.showCells == True:
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta_time[-1],number_cells=p.enumerate_cells,
+            # figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta_time[-1],number_cells=p.enumerate_cells,
+            # clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
         else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta_time[-1],number_cells=p.enumerate_cells,
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],sim.osmo_P_grad_x,sim.osmo_P_grad_y)
 
         axP.set_title('Final Osmotic Pressure Differential in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
@@ -882,23 +903,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-        if p.sim_ECM == True:
-
-            plt.figure()
-            plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-            plt.colorbar()
-            plt.axis('equal')
-            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Extracellular Pressure [Pa]')
-
-            if saveImages == True:
-                savename13 = savedImg + 'final_P_2D_env' + '.png'
-                plt.savefig(savename13,format='png')
-
-            plt.show(block=False)
 
 
-    if p.plot_Vel == True and p.base_eosmo == True:
+    if p.plot_Vel == True and p.fluid_flow == True:
 
         ucellso = sim.u_cells_x_time[-1]
         vcellso = sim.u_cells_y_time[-1]
@@ -915,7 +922,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         Ucells = np.sqrt(ucells**2 + vcells**2)*1e9
 
-        lw = (Ucells/Ucells.max()) + 0.5
+        if Ucells.max() != 0.0:
+            lw = (Ucells/Ucells.max()) + 0.5
 
         plt.figure()
         plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
@@ -1023,7 +1031,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx,fy)
 
-            figX.suptitle('Final Cell Body Force',fontsize=14, fontweight='bold')
+            figX.suptitle('Electroosmotic Cell Body Force',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
             cbX.set_label('Body Force [N/m3]')
