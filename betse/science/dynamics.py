@@ -1333,6 +1333,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     if p.sim_ECM == True:
 
         cells.cellVerts(p)   # create individual cell polygon vertices
+        # print(cells.mem_mids_flat)
         cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=1.1)  # flag membranes on the cluster bound
         cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=1.1)  # flag membranes on the cluster bound
         cells.near_neigh(p)    # Calculate the nn array for each cell

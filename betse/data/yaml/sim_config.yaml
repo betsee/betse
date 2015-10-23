@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 10.0             # end time [s] (recommend 3 seconds or more)
+    total time: 1.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -462,7 +462,7 @@ tissue profile 3:
 tissue profile 4:
     name: wound
     cell targets: bitmap
-    designation: None
+    designation: cuts
     insular: False
 
     Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -562,7 +562,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: False
+    event happens: True
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants

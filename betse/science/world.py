@@ -1021,8 +1021,8 @@ class World(object):
 
         # get rid of fields that aren't required any more:
         self.clust_xy = None
-        self.ecm_verts = None
-        self.ecm_verts_unique = None
+        # self.ecm_verts = None
+        # self.ecm_verts_unique = None
         self.ecm_polyinds = None
 
     def redo_gj(self,dyna,p,savecells =True):
