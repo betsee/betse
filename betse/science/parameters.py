@@ -836,6 +836,8 @@ class Parameters(object):
         self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
         self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
 
+        self.ff = float(iu['env modification constant'])
+
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]
 
@@ -1058,7 +1060,7 @@ class Parameters(object):
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
-            self.cP_env = 9.0
+            self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_P]
 
@@ -1067,7 +1069,7 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 145.4
+            self.cNa_cell = 145.0
             self.cK_cell = 5.0
             self.cP_cell = 138.0
 

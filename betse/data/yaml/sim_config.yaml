@@ -999,6 +999,8 @@ internal parameters:
 
   interpolation method: linear  # interpolation method, choices are 'linear' or 'nearest'
 
+  env modification constant: 5e5    # scales field with respect to charge to provide stability
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

@@ -3364,7 +3364,7 @@ def get_Venv(self,cells,p):
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is increased from 80*p.eo by self.ff
-    self.ff = 5e5
+    self.ff = p.ff
 
     # smooth out the charge density:
 
