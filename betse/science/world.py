@@ -833,6 +833,7 @@ class World(object):
             loggers.log_info('Creating environmental Poisson solver for pressure...')
             bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
             self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+
             self.lapENV_P = None # get rid of the non-inverse matrix as it only hogs memory...
 
     def graphLaplacian(self,p):

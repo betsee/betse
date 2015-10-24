@@ -1312,6 +1312,9 @@ class Simulator(object):
         self.u_cells_y_time = []
         self.P_cells_time = []
 
+        self.I_tot_x_time = [0]
+        self.I_tot_y_time = [0]
+
         self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
 
         self.rho_cells_time = []
@@ -1336,6 +1339,13 @@ class Simulator(object):
             self.Dye_flux_mem_time = []
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
             self.cDye_env_time = []
+
+        if p.EM_waves == True:
+            self.Ax_time = [0.0]
+            self.Ay_time =[0.0]
+
+            self.dAx_time = []
+            self.dAy_time = []
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
@@ -1528,6 +1538,13 @@ class Simulator(object):
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
+            if p.EM_waves == True:
+
+                self.get_current(cells,p)
+                self.get_Bfield(cells,p)
+                self.get_special_E(cells,p)
+
+
             if t in tsamples:
 
                 # #
@@ -1570,6 +1587,9 @@ class Simulator(object):
                 self.I_env_y_time.append(self.I_env_y[:])
 
                 self.I_mem_time.append(self.I_mem[:])
+
+                self.I_tot_x_time.append(self.I_tot_x)
+                self.I_tot_y_time.append(self.I_tot_y)
 
                 self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
@@ -2456,30 +2476,48 @@ class Simulator(object):
 
     def get_Bfield(self,cells,p):
 
-         # calculate current across gap junctions in x an y directions:
-        I_gj_x = np.zeros(len(cells.nn_i))
+        axo = self.Ax_time[-1]
+        ayo = self.Ay_time[-1]
 
-        for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
+        sourceAx = -p.mu*self.I_tot_x.ravel()
+        sourceAy = -p.mu*self.I_tot_y.ravel()
 
-            I_i_x = flux_array*zi*p.F
+        self.Ax = np.dot(cells.lapENV_P_inv,sourceAx)
+        self.Ay = np.dot(cells.lapENV_P_inv,sourceAy)
 
-            I_gj_x = I_gj_x + I_i_x
+        self.Ax = self.Ax.reshape(cells.X.shape)
+        self.Ay = self.Ay.reshape(cells.X.shape)
 
-        I_gj_y = np.zeros(len(cells.nn_i))
+        # enforce zero normal gradient boundary conditions on A:
+        self.Ax[:,0] = self.Ax[:,1]
+        self.Ax[:,-1] = self.Ax[:,-2]
+        self.Ax[0,:] = self.Ax[1,:]
+        self.Ax[-1,:] = self.Ax[-2,:]
 
-        for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
+        self.Ay[:,0] = self.Ay[:,1]
+        self.Ay[:,-1] = self.Ay[:,-2]
+        self.Ay[0,:] = self.Ay[1,:]
+        self.Ay[-1,:] = self.Ay[-2,:]
 
-            I_i_y = flux_array*zi*p.F
+        self.Ax_time.append(self.Ax)
+        self.Ay_time.append(self.Ay)
 
-            I_gj_y = I_gj_y + I_i_y
+        self.dAx = (self.Ax - axo)/p.dt
+        self.dAy = (self.Ay - ayo)/p.dt
 
-        sourceBx = -p.mu*np.dot(cells.gj2cellMatrix,I_gj_x)
-        sourceBy = -p.mu*np.dot(cells.gj2cellMatrix,I_gj_y)
 
-        self.Bx = np.dot(cells.lapGJinv,sourceBx)
-        self.By = np.dot(cells.lapGJinv,sourceBy)
+
+        # print(np.max(self.dAx),np.max(self.dAy))
 
     def get_current(self,cells,p):
+
+        Ixo = self.I_tot_x_time[-1]
+        Iyo = self.I_tot_y_time[-1]
+
+        # zero components of total current vector:
+
+        self.I_tot_x = np.zeros(cells.X.shape)
+        self.I_tot_y = np.zeros(cells.X.shape)
 
         # calculate current across gap junctions in x direction:
         I_gj_x = np.zeros(len(cells.nn_i))
@@ -2507,6 +2545,9 @@ class Simulator(object):
                                       method=p.interp_type,fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
 
+        self.I_tot_x = self.I_tot_x + self.I_gj_x
+        self.I_tot_y = self.I_tot_y + self.I_gj_y
+
         # calculate current across cell membranes:
 
         self.I_mem = np.zeros(len(cells.mem_i))
@@ -2516,6 +2557,21 @@ class Simulator(object):
             I_i = flux_array*zi*p.F
 
             self.I_mem = self.I_mem + I_i
+
+            I_mem_x = self.I_mem*cells.mem_vects_flat[:,2]
+            I_mem_y = self.I_mem*cells.mem_vects_flat[:,3]
+
+         # interpolate the trans-membrane current components to the grid:
+        self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.Xgrid,cells.Ygrid),
+                                      method=p.interp_type,fill_value=0)
+        self.I_mem_x = np.multiply(self.I_mem_x,cells.maskM)
+
+        self.I_mem_y = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_y,(cells.Xgrid,cells.Ygrid),
+                                      method=p.interp_type,fill_value=0)
+        self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
+
+        self.I_tot_x = self.I_tot_x + self.I_mem_x
+        self.I_tot_y = self.I_tot_y + self.I_mem_y
 
         if p.sim_ECM == True:
 
@@ -2536,6 +2592,12 @@ class Simulator(object):
 
             self.I_env_x = self.I_env_x.reshape(cells.X.shape)
             self.I_env_y = self.I_env_y.reshape(cells.X.shape)
+
+            self.I_tot_x = self.I_tot_x + self.I_env_x
+            self.I_tot_y = self.I_tot_y + self.I_env_y
+
+        self.dIx = ((self.I_tot_x - Ixo)/p.dt)
+        self.dIy = ((self.I_tot_y - Iyo)/p.dt)
 
     def getFlow(self,cells,p):
         """

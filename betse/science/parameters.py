@@ -60,6 +60,8 @@ class Parameters(object):
 
         self.mu_membrane = 1.0 # membrane viscocity
 
+        self.EM_waves = True  # FIXME add to config file!
+
         # in-membrane diffusion coefficient
         self.D_membrane = float(self.config['world variables']['channel electroosmosis']['membrane mobility'])
         # charge of membrane pumps and channels:

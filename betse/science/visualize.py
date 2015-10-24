@@ -1085,10 +1085,10 @@ class AnimateCurrent(object):
 
         else:
 
-            Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
+            Jmag_M = np.sqrt(sim.I_tot_x_time[0]**2 + sim.I_tot_y_time[0]**2) + 1e-30
 
-            J_x = sim.I_env_x_time[0]/Jmag_M
-            J_y = sim.I_env_y_time[0]/Jmag_M
+            J_x = sim.I_tot_x_time[0]/Jmag_M
+            J_y = sim.I_tot_y_time[0]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
@@ -1099,7 +1099,7 @@ class AnimateCurrent(object):
             self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
                 linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
-            self.tit = 'Extracellular current'
+            self.tit = 'Total current'
 
             # # set range of the colormap
             if clrAutoscale == True:
@@ -1153,10 +1153,10 @@ class AnimateCurrent(object):
 
         else:
 
-            Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
+            Jmag_M = np.sqrt(self.sim.I_tot_x_time[i]**2 + self.sim.I_tot_y_time[i]**2) + 1e-30
 
-            J_x = self.sim.I_env_x_time[i]/Jmag_M
-            J_y = self.sim.I_env_y_time[i]/Jmag_M
+            J_x = self.sim.I_tot_x_time[i]/Jmag_M
+            J_y = self.sim.I_tot_y_time[i]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
@@ -1832,8 +1832,6 @@ class AnimateMem(object):
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
-
-
 
 class AnimateDyeData(object):
     """
@@ -2912,10 +2910,10 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     elif plot_Iecm == True:
 
-        Jmag_M = np.sqrt(sim.I_env_x_time[-1]**2 + sim.I_env_y_time[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
 
-        J_x = sim.I_env_x_time[-1]/Jmag_M
-        J_y = sim.I_env_y_time[-1]/Jmag_M
+        J_x = sim.I_tot_x_time[-1]/Jmag_M
+        J_y = sim.I_tot_y_time[-1]/Jmag_M
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
@@ -2924,7 +2922,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         streamplot = ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
-        ax.set_title('Final extracellular currents')
+        ax.set_title('Final total currents')
 
     if clrAutoscale == True:
         ax_cb = fig.colorbar(meshplot,ax=ax)
@@ -3211,16 +3209,16 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
     elif plotIecm == True:
 
-        Jmag_M = np.sqrt(sim.I_env_x_time[-1]**2 + sim.I_env_y_time[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
 
-        J_x = sim.I_env_x_time[-1]/Jmag_M
-        J_y = sim.I_env_y_time[-1]/Jmag_M
+        J_x = sim.I_tot_x_time[-1]/Jmag_M
+        J_y = sim.I_tot_y_time[-1]/Jmag_M
 
         lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
         ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
-        ax.set_title('(extracellular current overlay)')
+        ax.set_title('(total current overlay)')
 
 def cell_ave(cells,vm_at_mem):
 
