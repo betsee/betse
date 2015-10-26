@@ -1538,12 +1538,6 @@ class Simulator(object):
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
-            if p.EM_waves == True:
-
-                self.get_current(cells,p)
-                self.get_Bfield(cells,p)
-                self.get_special_E(cells,p)
-
 
             if t in tsamples:
 
