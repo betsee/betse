@@ -12,8 +12,8 @@
 #   bash- and zsh-style glob syntax.
 
 # ....................{ DIRECTORIES ~ top-level            }....................
-# Ignore the top-level "output" directory.
-/output/
+# Ignore the top-level BETSE-specific temporary directories.
+/sample_sim/
 
 # Ignore all top-level PyInstaller-specific temporary directories.
 /freeze/build/
