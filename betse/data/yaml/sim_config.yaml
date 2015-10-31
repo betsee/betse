@@ -54,7 +54,7 @@ sim file saving:
 
 results file saving:
 
-    directory: init/results_init  # directory to load/save data, plots, and animations
+    directory: init/results  # directory to load/save data, plots, and animations
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 1.0             # end time [s] (recommend 3 seconds or more)
+    total time: 5.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 1.0         # time to end sim run [s]
+    total time: 6.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -122,7 +122,7 @@ general options:
 
   simulate extracellular spaces: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
-  ion profile: 'animal'   # ion profile options:
+  ion profile: 'basic'   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
@@ -214,7 +214,7 @@ world options:
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
-    turn on: True         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
+    turn on: False         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
     channel charge: -1         # charge of membrane channels
 
@@ -283,18 +283,6 @@ geometry defining bitmaps:
 
 tissue profile definition:
 
-
-  default tissue name: base   # name of cells to which no profile is applied
-
-  base tissue properties:     # specify the base membrane diffusion constants below
-                              # (this is an easy way to control resting Vmem of cells)
-      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-      Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
 
   number of tissue profiles: 4     # specify number of tissue profiles to include
                                  # tissue profiles are applied in the order they are defined here.
@@ -382,11 +370,11 @@ tissue profile definition:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False        # turn the event on (True) or off (False)
+  event happens: True        # turn the event on (True) or off (False)
   change start: 2.0                # time to start change [s]
   change finish: 7.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
-  multiplier: 50.0                # factor to multiply base level
+  multiplier: 200.0                # factor to multiply base level
   function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
   apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
 
@@ -589,6 +577,19 @@ block VATP pump:
 
 variable settings:
 
+  default tissue name: base   # name of cells to which no profile is applied
+
+  default tissue properties:     # specify the base membrane diffusion constants below
+                              # (this is an easy way to control resting Vmem of cells)
+      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+      Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
+
+
   morphogen properties:  # specify the properties of an auxillary chemical
 
       include morphogen: False     # include electrodiffusion of an auxillary chemical substance?
@@ -620,17 +621,17 @@ variable settings:
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
-    gj voltage threshold: 15e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 10e-3 to 80e-3 V
 
-    gj voltage window: 15e-3      # range over which gj goes from open to shut
+    gj voltage window: 10e-3      # range over which gj goes from open to shut
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
     gj flux sensitive: False      # gj conductivity increases with increasing current (Note: memory intensive!)
 
 
-  tight junction scaling: 1.0e-1   # factor by which tight junctions scale free-diffusion
+  tight junction scaling: 1.0e-5   # factor by which tight junctions scale free-diffusion
 
   tight junction relative diffusion:  # relative values for tight junction ion permeability:
 
@@ -642,7 +643,9 @@ variable settings:
     M: 1
     P: 1
 
-  adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale free-diffusion
+  adherens junction scaling: 1.0e-5   # factor by which cell-cell junctions scale free-diffusion
+
+  use Goldman calculator: True    # calculate alternative Vmem using GHK equation for model params and plot results?
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -654,7 +657,7 @@ variable settings:
 results options:
 
 
-  turn all plots off: True      # This option allows you to turn all plots on/off
+  turn all plots off: False      # This option allows you to turn all plots on/off
                                  # note this doesn't turn plot while solving off.
                                  # options True or False (case sensitive)
 
@@ -712,7 +715,7 @@ results options:
   plot extracellular I: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
                                   # extracellular current if true, plot gap junction current if false
 
-  plot cutlines: False            # plot any scheduled cut-lines on the cell cluster plot as black regions
+  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
   plot masked geometry: False      # plot the geometry using the overall shape as a mask
 
@@ -746,7 +749,7 @@ results options:
 
   Vcell 2D:
 
-    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
@@ -785,14 +788,14 @@ results options:
 
   Pressure 2D:                      # 2D plot of pressure in the cluster
 
-    plot Pressure: True
+    plot Pressure: False
     autoscale colorbar: True
     max val: 15
     min val: -15
 
   Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
 
-    plot Osmotic Pressure: True
+    plot Osmotic Pressure: False
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -807,7 +810,7 @@ results options:
   Force 2D:                      # 2D plot of electroosmotic body force in the cluster
 
     plot Force: True
-    data type: GJ               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
+    data type: ECM               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -852,7 +855,7 @@ results options:
 
   Vcell Ani:
 
-    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
@@ -866,14 +869,14 @@ results options:
 
   P cell Ani:
 
-    animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate P cell: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Osmotic P Ani:
 
-    animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
+    animate Osmotic P: False         # 2d animation of osmotic pressure difference in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
@@ -882,7 +885,7 @@ results options:
 
     animate Force: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
-    max val: 100000                  # maximum colorbar value in N/m3
+    max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
 
   Current Ani:
@@ -1004,18 +1007,18 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_NaK:  5.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
+  slope_NaK:  12        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
-  halfmax_Ca:  6       # the free energy level at which pump activity is halved [kJ]
-  slope_Ca:  6         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_Ca:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_HK:  0.01    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  6       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  6         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_V:  1.5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
   halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
@@ -1028,6 +1031,8 @@ internal parameters:
   interpolation method: linear  # interpolation method, choices are 'linear' or 'nearest'
 
   env modification constant: 5e5    # scales field with respect to charge to provide stability
+
+  cell modification constant: 5e3    # scales charge density to provide stability
 
 
 # Configuration file version that this file conforms to. For reliable

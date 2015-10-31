@@ -1438,8 +1438,10 @@ class AnimateForce(object):
                 self.savedAni = os.path.join(betse_cache_dir, saveFile)
                 ani_repeat = False
 
-            fcells_x = (sim.rho_cells_time[0][cells.nn_i][:,0]+sim.rho_cells_time[0][cells.nn_i][:,0])*(1/2)*sim.efield_gj_x_time[0]
-            fcells_y = (sim.rho_cells_time[0][cells.nn_i][:,0]+sim.rho_cells_time[0][cells.nn_i][:,0])*(1/2)*sim.efield_gj_y_time[0]
+            fcells_x = (sim.rho_cells_time[0][cells.nn_i][:,0]+sim.rho_cells_time[0][cells.nn_i][:,0])*\
+                       (1/(2*p.ff_cell))*sim.efield_gj_x_time[0]
+            fcells_y = (sim.rho_cells_time[0][cells.nn_i][:,0]+sim.rho_cells_time[0][cells.nn_i][:,0])*\
+                       (1/(2*p.ff_cell))*sim.efield_gj_y_time[0]
 
             # average components back to cell centres:
             fx = np.dot(cells.gj2cellMatrix,fcells_x)
@@ -1497,10 +1499,10 @@ class AnimateForce(object):
         self.ax.set_title(titani)
 
         fcells_x = (self.sim.rho_cells_time[i][self.cells.nn_i][:,0]+
-                    self.sim.rho_cells_time[i][self.cells.nn_i][:,0])*(1/2)*self.sim.efield_gj_x_time[i]
+                    self.sim.rho_cells_time[i][self.cells.nn_i][:,0])*(1/(2*self.p.ff_cell))*self.sim.efield_gj_x_time[i]
 
         fcells_y = (self.sim.rho_cells_time[i][self.cells.nn_i][:,0]+
-                    self.sim.rho_cells_time[i][self.cells.nn_i][:,0])*(1/2)*self.sim.efield_gj_y_time[i]
+                    self.sim.rho_cells_time[i][self.cells.nn_i][:,0])*(1/(2*self.p.ff_cell))*self.sim.efield_gj_y_time[i]
 
         # average components back to cell centres:
         fx = np.dot(self.cells.gj2cellMatrix,fcells_x)

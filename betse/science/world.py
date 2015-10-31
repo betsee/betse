@@ -728,8 +728,9 @@ class World(object):
         self.index_k = [x for x in range(0,len(self.xypts))]
 
         # properties of ecm spaces:
-        self.ecm_sa = self.delta*p.cell_height
-        self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))
+        self.ecm_sa = self.delta*p.cell_height # surface area of ecm space in direction of cell flux
+        self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
+        self.ecm_r = ((3/4)*(self.ecm_vol/math.pi))**(1/3)  # virtual radius of ecm space
 
     def environment(self,p):
 
@@ -895,7 +896,7 @@ class World(object):
 
         self.cell_vol = np.asarray(self.cell_vol)
 
-        self.R = np.sqrt(self.cell_vol/(math.pi*p.cell_height))    # effective radius of each cell
+        self.R = ((3/4)*(self.cell_vol/math.pi))**(1/3)    # effective radius of each cell
 
         self.mem_length,_,_ = tb.flatten(self.mem_length)
 
@@ -1255,8 +1256,6 @@ class World(object):
             VMatrix[j,j] = 2*term_ecm
 
         self.VMatrix_inv = np.linalg.pinv(VMatrix)
-
-        print(self.VMatrix_inv)
 
 
 

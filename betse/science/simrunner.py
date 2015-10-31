@@ -159,7 +159,9 @@ class SimRunner(object):
             loggers.log_info('Cell cluster loaded.')
 
             if p_old.config['general options'] != p.config['general options'] or \
-                    p_old.config['world options'] != p.config['world options']:
+                    p_old.config['world options'] != p.config['world options'] or \
+                    p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
+                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
 
                 raise BetseExceptionParameters(
                     "Important config file options are out of sync between seed and this init attempt!\n" +
@@ -230,20 +232,13 @@ class SimRunner(object):
             p.sim_ECM = cells.sim_ECM
 
             if p_old.config['general options'] != p.config['general options'] or \
-                    p_old.config['world options'] != p.config['world options']:
+                    p_old.config['world options'] != p.config['world options'] or \
+                    p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
+                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
 
                 raise BetseExceptionParameters(
                     "Important config file options are out of sync between the seed and this sim attempt!\n" +
                     "Run 'betse seed' and 'betse init' again to match the current settings of this config file.")
-
-            elif p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
-                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
-
-                raise BetseExceptionParameters(
-                    "Important config file options are out of sync between the init and this sim attempt!\n" +
-                    "Run 'betse init' again to match the current settings of this config file.")
-
-
 
         else:
 
@@ -536,7 +531,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.data_type_rho == 'ECM' and p.sim_ECM is True:
 
             plt.figure()
-            plt.imshow(sim.rho_env.reshape(cells.X.shape),origin='lower',
+            plt.imshow(sim.rho_env.reshape(cells.X.shape)/p.ff_env,origin='lower',
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
             plt.title('Environmental Charge Density [C/m3]')
@@ -551,13 +546,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if p.showCells is True:
 
-                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.rho_cells,number_cells=p.enumerate_cells,
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.rho_cells/p.ff_cell,number_cells=p.enumerate_cells,
                     clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
                     clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
             else:
 
-                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells,clrAutoscale = p.autoscale_rho,
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells/p.ff_cell,clrAutoscale = p.autoscale_rho,
                         clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
                         number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 
@@ -974,8 +969,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.data_type_force == 'ECM' and p.sim_ECM is True:
 
-            force_x = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x
-            force_y = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y
+            force_x = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_x*(1/p.ff_env)
+            force_y = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_y*(1/p.ff_env)
 
             force_mag = np.sqrt(force_x**2 + force_y**2)
 
@@ -1016,8 +1011,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         elif p.data_type_force == 'GJ':
 
-            fcells_x = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/2)*sim.E_gj_x.ravel()
-            fcells_y = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/2)*sim.E_gj_y.ravel()
+            fcells_x = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/(2*p.ff_cell))*sim.E_gj_x.ravel()
+            fcells_y = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/(2*p.ff_cell))*sim.E_gj_y.ravel()
 
             # average components back to cell centres:
             fx = np.dot(cells.gj2cellMatrix,fcells_x)
@@ -1184,7 +1179,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    if p.ani_Velocity is True and p.base_eosmo is True and animate == 1:
+    if p.ani_Velocity is True and p.fluid_flow is True and animate == 1:
 
         viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
 

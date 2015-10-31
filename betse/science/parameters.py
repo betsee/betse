@@ -169,13 +169,13 @@ class Parameters(object):
         tpd = self.config['tissue profile definition']
 
         # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = float(tpd['base tissue properties']['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K = float(tpd['base tissue properties']['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(tpd['base tissue properties']['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(tpd['base tissue properties']['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H = float(tpd['base tissue properties']['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M = float(tpd['base tissue properties']['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P = float(tpd['base tissue properties']['Dm_P'])     #  proteins [m2/s]
+        self.Dm_Na = float(self.config['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K = float(self.config['variable settings']['default tissue properties']['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(self.config['variable settings']['default tissue properties']['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(self.config['variable settings']['default tissue properties']['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H = float(self.config['variable settings']['default tissue properties']['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M = float(self.config['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P = float(self.config['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = self.config['general options']['ion profile']
@@ -323,7 +323,7 @@ class Parameters(object):
 
         self.tissue_profile_number = int(tpd['number of tissue profiles'])
         self.boundary_profile_number = int(tpd['number of boundary profiles'])
-        self.default_tissue_name = tpd['default tissue name']
+        self.default_tissue_name = self.config['variable settings']['default tissue name']
 
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
@@ -603,6 +603,9 @@ class Parameters(object):
 
         #........................RESULTS OUPUT and PLOTTING............................................................
 
+        # use the GHK equation to calculate alt Vmem from params?
+        self.GHK_calc = self.config['variable settings']['use Goldman calculator']
+
         ro = self.config['results options']
 
         self.turn_all_plots_off = ro['turn all plots off']    # turn off all plots and animations for init and sim runs
@@ -839,7 +842,8 @@ class Parameters(object):
         self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
         self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
 
-        self.ff = float(iu['env modification constant'])
+        self.ff_env = float(iu['env modification constant'])
+        self.ff_cell = float(iu['cell modification constant'])
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]

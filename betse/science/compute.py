@@ -856,6 +856,9 @@ class Simulator(object):
 
         self.rho_cells_time = []
 
+        self.I_tot_x_time = [0]
+        self.I_tot_y_time = [0]
+
         if p.voltage_dye is True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
@@ -1069,7 +1072,7 @@ class Simulator(object):
             self.get_Efield(cells, p)
 
             # calculate fluid flow:
-            if p.fluid_flow is True and cells.lapGJinv != 0:
+            if p.fluid_flow is True and cells.lapGJinv is not 0:
                 self.getFlow(cells,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
@@ -1135,6 +1138,9 @@ class Simulator(object):
 
                 self.I_gj_x_time.append(self.I_gj_x[:])
                 self.I_gj_y_time.append(self.I_gj_y[:])
+
+                self.I_tot_x_time.append(self.I_tot_x)
+                self.I_tot_y_time.append(self.I_tot_y)
 
                 self.I_mem_time.append(self.I_mem[:])
 
@@ -2639,15 +2645,15 @@ class Simulator(object):
                 venv = self.v_env.reshape(cells.X.shape)
                 env_x, env_y = cells.grid_obj.grid_gradient(venv,bounds=btag)
 
-                # create u and v sized grids for the charge density:
+                # create u and v sized grids for the true charge density:
                 rho_env_x = np.zeros(cells.grid_obj.u_shape)
                 rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
-                # map the charge density to the grid
-                rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/self.ff
+                # map the charge density to the grid as a surface charge
+                rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/p.ff_env
                 rho_env_x[:,0] = rho_env_x[:,1]
 
-                rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/self.ff
+                rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/p.ff_env
                 rho_env_y[0,:] = rho_env_y[1,:]
 
                 # these are negative because the gradient of the voltage is the electric field and we just took the grad
@@ -2659,8 +2665,6 @@ class Simulator(object):
 
                 Fe_x = np.zeros(cells.grid_obj.u_shape)
                 Fe_y = np.zeros(cells.grid_obj.v_shape)
-
-
 
 
             # sum the forces:
@@ -2786,15 +2790,14 @@ class Simulator(object):
         sagj = sa_term*cells.ave_sa_all    # average total gj surface area
         rgj = np.sqrt(sagj/math.pi)          # average gj radius
 
-        alpha_gj = ((rgj**2)/(8*p.mu_water))
-
+        alpha_gj = ((rgj**2)/(p.mu_water))
 
         # Calculate electroosmotic body forces on flow field, if desired:
 
         if p.base_eosmo is True:
 
             # to get the eletroosmotic body force at each gap junction, first map the charge density from cell to gj:
-            rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
+            rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/(p.ff_cell)
 
             # body force is equal to the electric field at the gap junction multiplied by the charge density there.
             F_gj = rho_gj*self.Egj
@@ -3060,6 +3063,15 @@ class Simulator(object):
         self.osmo_P_grad_y = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_yo)
 
         self.osmo_P_grad_mag = np.sqrt(self.osmo_P_grad_x**2 + self.osmo_P_grad_y**2)
+
+    def ghk_calculator(self,cells,p):
+        """
+        Uses simulation parameters in the Goldman (GHK) equation
+        to calculate an alternative Vmem for validation purposes.
+
+        """
+
+        pass
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -3386,18 +3398,22 @@ def get_Vcell(self,cells,p):
     """
 
     if p.sim_ECM is False:
-        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+        v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
+
 
     else:
-        # get the value of the environmental voltage at each cell membrane:
-        venv_at_mem = self.v_env[cells.map_mem2ecm]
+        # # get the value of the environmental voltage at each cell membrane:
+        # venv_at_mem = self.v_env[cells.map_mem2ecm]
+        #
+        # # sum the environmental voltage at each mem for each cell and take the average:
+        # cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
+        #
+        # # calculate the voltage in each cell:
+        # # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
+        # # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
-        # sum the environmental voltage at each mem for each cell and take the average:
-        cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
-
-        # calculate the voltage in each cell:
-        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-        v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
+        v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
 
     return v_cell
 
@@ -3420,7 +3436,6 @@ def get_Venv(self,cells,p):
     # modify the source charge distribution in line with electrostatic Poisson equation:
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is increased from 80*p.eo by self.ff
-    self.ff = p.ff
 
     # smooth out the charge density:
 
@@ -3428,7 +3443,7 @@ def get_Venv(self,cells,p):
     self.rho_env = fd.integrator(self.rho_env)
     self.rho_env = self.rho_env.ravel()
 
-    fxy = -self.rho_env/(80*self.ff*p.eo)
+    fxy = -self.rho_env/(80*p.ff_env*p.eo)
     # fxy = -self.rho_env/(100*p.eo)
 
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
@@ -3449,6 +3464,10 @@ def get_Venv(self,cells,p):
     V = V.reshape(cells.X.shape)
     V = fd.integrator(V)
     V = V.ravel()
+
+    # V = (1/(4*math.pi*p.eo*80*cells.ecm_r*self.ff))*(self.rho_env*cells.ecm_vol)
+
+
 
     return V
 
@@ -3597,6 +3616,8 @@ def rk4(c,deltac,p):
 
 
     return c2
+
+
 
 
 
