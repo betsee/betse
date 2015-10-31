@@ -567,7 +567,7 @@ class GridWorld(object):
             insular_flag = p.tissue_profiles[name]['insular gj']
 
             # step through gj's and find cases where connection is split between cells in different tissues:
-            if insular_flag == True:
+            if insular_flag is True:
 
                 for i, ind_pair in enumerate(self.gap_jun_i):
 
@@ -611,7 +611,7 @@ class GridWorld(object):
 
         self.cell_to_gj = np.asarray(self.cell_to_gj)
 
-        if savecells == True:
+        if savecells is True:
 
             # save the cell cluster
             loggers.log_info('Saving the cell cluster... ')

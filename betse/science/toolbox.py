@@ -319,7 +319,7 @@ def emptyDict(dic):
     """
     # search_success = False
     #
-    # while search_success == False:
+    # while search_success is False:
     for entry in dic.values():
 
         if entry == 0:
@@ -463,7 +463,7 @@ def makegrid(xpts,ypts,gridsize,cells):
 
 def periodic(cells,sim,p):
 
-    if p.run_sim == True:
+    if p.run_sim is True:
             tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
     else:
         tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
@@ -480,7 +480,7 @@ def gradient_x(cells,sim,p):
 
     fx = (fx/fx.max())*p.gradient_x_properties['slope']
 
-    if p.sim_ECM == True:
+    if p.sim_ECM is True:
 
         fx = fx[cells.mem_to_cells]
 
@@ -492,7 +492,7 @@ def gradient_y(cells,sim,p):
 
     fy = (fy/fy.max())*p.gradient_y_properties['slope']
 
-    if p.sim_ECM == True:
+    if p.sim_ECM is True:
 
         fy = fy[cells.mem_to_cells]
 
@@ -509,7 +509,7 @@ def gradient_r(cells,sim,p):
 
     r = r*p.gradient_r_properties['slope']
 
-    if p.sim_ECM == True:
+    if p.sim_ECM is True:
 
         r = r[cells.mem_to_cells]
 

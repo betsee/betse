@@ -92,7 +92,7 @@ class Parameters(object):
 
         self.use_bitmaps = gdb['use bitmap geometry control']
 
-        if self.use_bitmaps == True:
+        if self.use_bitmaps is True:
 
             self.bitmap_path = paths.join(
                 config_dirname, gdb['directory'])  # world, inits, and sims are saved and read to/from this directory.
@@ -228,9 +228,9 @@ class Parameters(object):
         bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
         bool_Vblock = bool(self.config['block VATP pump']['event happens'])
 
-        if bool_Kenv == False:
+        if bool_Kenv is False:
             self.global_options['K_env'] = 0
-        elif bool_Kenv == True:
+        elif bool_Kenv is True:
             on_Kenv = float(self.config['change K env']['change start'])
             off_Kenv = float(self.config['change K env']['change finish'])
             rate_Kenv = float(self.config['change K env']['change rate'])
@@ -238,9 +238,9 @@ class Parameters(object):
             kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
             self.global_options['K_env'] = kenv
 
-        if bool_Clenv == False:
+        if bool_Clenv is False:
             self.global_options['Cl_env'] = 0
-        elif bool_Clenv == True:
+        elif bool_Clenv is True:
             on_Clenv = float(self.config['change Cl env']['change start'])
             off_Clenv = float(self.config['change Cl env']['change finish'])
             rate_Clenv = float(self.config['change Cl env']['change rate'])
@@ -248,9 +248,9 @@ class Parameters(object):
             Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
             self.global_options['Cl_env'] = Clenv
 
-        if bool_Naenv == False:
+        if bool_Naenv is False:
             self.global_options['Na_env'] = 0
-        elif bool_Naenv == True:
+        elif bool_Naenv is True:
             on_Naenv = float(self.config['change Na env']['change start'])
             off_Naenv = float(self.config['change Na env']['change finish'])
             rate_Naenv = float(self.config['change Na env']['change rate'])
@@ -258,9 +258,9 @@ class Parameters(object):
             Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
             self.global_options['Na_env'] = Naenv
 
-        if bool_MorphEnv == False:
+        if bool_MorphEnv is False:
             self.global_options['Morph_env'] = 0
-        elif bool_MorphEnv == True:
+        elif bool_MorphEnv is True:
             on_MorphEnv = float(self.config['change morphogen']['change start'])
             off_MorphEnv = float(self.config['change morphogen']['change finish'])
             rate_MorphEnv = float(self.config['change morphogen']['change rate'])
@@ -268,9 +268,9 @@ class Parameters(object):
             MorphEnv = [on_MorphEnv, off_MorphEnv, rate_MorphEnv, conc_MorphEnv]
             self.global_options['Morph_env'] = MorphEnv
 
-        if bool_gjblock == False:
+        if bool_gjblock is False:
             self.global_options['gj_block'] = 0
-        elif bool_gjblock == True:
+        elif bool_gjblock is True:
             on_gj = float(self.config['block gap junctions']['change start'])
             off_gj = float(self.config['block gap junctions']['change finish'])
             rate_gj = float(self.config['block gap junctions']['change rate'])
@@ -279,9 +279,9 @@ class Parameters(object):
             self.global_options['gj_block'] = gjb
 
 
-        if bool_temp == False:
+        if bool_temp is False:
             self.global_options['T_change'] = 0
-        elif bool_temp == True:
+        elif bool_temp is True:
             on_T = float(self.config['change temperature']['change start'])
             off_T = float(self.config['change temperature']['change finish'])
             rate_T = float(self.config['change temperature']['change rate'])
@@ -289,27 +289,27 @@ class Parameters(object):
             temper = [on_T, off_T, rate_T, multi_T]
             self.global_options['T_change'] = temper
 
-        if bool_NaKblock == False:
+        if bool_NaKblock is False:
             self.global_options['NaKATP_block'] = 0
-        elif bool_NaKblock == True:
+        elif bool_NaKblock is True:
             on_nak = float(self.config['block NaKATP pump']['change start'])
             off_nak = float(self.config['block NaKATP pump']['change finish'])
             rate_nak = float(self.config['block NaKATP pump']['change rate'])
             nak = [on_nak,off_nak,rate_nak]
             self.global_options['NaKATP_block'] = nak
 
-        if bool_HKblock == False:
+        if bool_HKblock is False:
             self.global_options['HKATP_block'] = 0
-        elif bool_HKblock == True:
+        elif bool_HKblock is True:
             on_hk = float(self.config['block HKATP pump']['change start'])
             off_hk = float(self.config['block HKATP pump']['change finish'])
             rate_hk = float(self.config['block HKATP pump']['change rate'])
             hk = [on_hk,off_hk,rate_hk]
             self.global_options['HKATP_block'] = hk
 
-        if bool_Vblock == False:
+        if bool_Vblock is False:
             self.global_options['VATP_block'] = 0
-        elif bool_Vblock == True:
+        elif bool_Vblock is True:
             on_v = float(self.config['block VATP pump']['change start'])
             off_v = float(self.config['block VATP pump']['change finish'])
             rate_v = float(self.config['block VATP pump']['change rate'])
@@ -380,9 +380,9 @@ class Parameters(object):
         bool_ecmj = bool(self.config['break ecm junctions']['event happens'])
         bool_cut = bool(self.config['cutting event']['event happens'])
 
-        if bool_Namem == False:
+        if bool_Namem is False:
             self.scheduled_options['Na_mem'] = 0
-        elif bool_Namem == True:
+        elif bool_Namem is True:
             on_Namem = float(self.config['change Na mem']['change start'])
             off_Namem = float(self.config['change Na mem']['change finish'])
             rate_Namem = float(self.config['change Na mem']['change rate'])
@@ -392,9 +392,9 @@ class Parameters(object):
             Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem,function]
             self.scheduled_options['Na_mem'] = Namem
 
-        if bool_Kmem == False:
+        if bool_Kmem is False:
             self.scheduled_options['K_mem'] = 0
-        elif bool_Kmem == True:
+        elif bool_Kmem is True:
             on_Kmem = float(self.config['change K mem']['change start'])
             off_Kmem = float(self.config['change K mem']['change finish'])
             rate_Kmem = float(self.config['change K mem']['change rate'])
@@ -404,9 +404,9 @@ class Parameters(object):
             Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem,function]
             self.scheduled_options['K_mem'] = Kmem
 
-        if bool_Clmem == False:
+        if bool_Clmem is False:
             self.scheduled_options['Cl_mem'] = 0
-        elif bool_Clmem == True:
+        elif bool_Clmem is True:
             on_Clmem = float(self.config['change Cl mem']['change start'])
             off_Clmem = float(self.config['change Cl mem']['change finish'])
             rate_Clmem = float(self.config['change Cl mem']['change rate'])
@@ -416,9 +416,9 @@ class Parameters(object):
             Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem, function]
             self.scheduled_options['Cl_mem'] = Clmem
 
-        if bool_Camem == False:
+        if bool_Camem is False:
             self.scheduled_options['Ca_mem'] = 0
-        elif bool_Camem == True:
+        elif bool_Camem is True:
             on_Camem = float(self.config['change Ca mem']['change start'])
             off_Camem = float(self.config['change Ca mem']['change finish'])
             rate_Camem = float(self.config['change Ca mem']['change rate'])
@@ -428,9 +428,9 @@ class Parameters(object):
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
 
-        if bool_ip3 == False:
+        if bool_ip3 is False:
             self.scheduled_options['IP3'] = 0
-        elif bool_ip3 == True:
+        elif bool_ip3 is True:
             on_ip3 = float(self.config['produce IP3']['change start'])
             off_ip3 = float(self.config['produce IP3']['change finish'])
             rate_ip3 = float(self.config['produce IP3']['change rate'])
@@ -441,9 +441,9 @@ class Parameters(object):
 
             self.scheduled_options['IP3'] = ip3
 
-        if bool_extV == False:
+        if bool_extV is False:
             self.scheduled_options['extV'] = 0
-        elif bool_extV == True:
+        elif bool_extV is True:
             on_extV = float(self.config['apply external voltage']['change start'])
             off_extV = float(self.config['apply external voltage']['change finish'])
             rate_extV = float(self.config['apply external voltage']['change rate'])
@@ -452,9 +452,9 @@ class Parameters(object):
             extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV]
             self.scheduled_options['extV'] = extV
 
-        if bool_ecmj == False:
+        if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0
-        elif bool_ecmj == True:
+        elif bool_ecmj is True:
             on_ecmj = float(self.config['break ecm junctions']['change start'])
             off_ecmj = float(self.config['break ecm junctions']['change finish'])
             rate_ecmj = float(self.config['break ecm junctions']['change rate'])
@@ -464,7 +464,7 @@ class Parameters(object):
             self.scheduled_options['ecmJ'] = ecmj
 
 
-        if bool_cut == False:
+        if bool_cut is False:
             self.scheduled_options['cuts'] = 0
 
         else:
@@ -534,24 +534,24 @@ class Parameters(object):
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
 
-        if bool_vgNa == False:
+        if bool_vgNa is False:
             self.vg_options['Na_vg'] = 0
-        elif bool_vgNa == True:
+        elif bool_vgNa is True:
             self.vg_options['Na_vg'] = vgNa
 
-        if bool_vgK == False:
+        if bool_vgK is False:
             self.vg_options['K_vg'] = 0
-        elif bool_vgK == True:
+        elif bool_vgK is True:
             self.vg_options['K_vg'] = vgK
 
-        if bool_vgCa == False:
+        if bool_vgCa is False:
             self.vg_options['Ca_vg'] = 0
-        elif bool_vgCa == True:
+        elif bool_vgCa is True:
             self.vg_options['Ca_vg'] = vgCa
 
-        if bool_cagK == False:
+        if bool_cagK is False:
             self.vg_options['K_cag'] = 0
-        elif bool_cagK == True:
+        elif bool_cagK is True:
             self.vg_options['K_cag'] = cagK
 
         # Calcium Dynamics: Calcium Induced Calcium Release (CICR).....................................................
@@ -567,11 +567,11 @@ class Parameters(object):
 
         self.Ca_dyn_options = {}
 
-        if bool_CICR == False:
+        if bool_CICR is False:
 
             self.Ca_dyn_options['CICR'] = 0
 
-        elif bool_CICR == True:
+        elif bool_CICR is True:
 
             ERmax = float(cdp['ER max'])
             ERburst = float(cdp['ER burst'])
@@ -584,14 +584,14 @@ class Parameters(object):
 
             ip3_reg = [IP3_Khalf,IP3_hilln]   #  IP3 half-max, Hill coefficient
 
-            if bool_calReg == False:
+            if bool_calReg is False:
                 ca_reg = []   # central concentration for Ca-act-Ca release [Ca mid, Ca width]
-            elif bool_calReg == True:
+            elif bool_calReg is True:
                 ca_reg = [camid, cawidth]
 
-            if bool_frequMod == False:
+            if bool_frequMod is False:
                 self.FMmod = 0              # frequency modulate ER response to IP3? 1 = yes, 0 = no
-            elif bool_frequMod == True:
+            elif bool_frequMod is True:
                 self.FMmod = 1
                 self.ip3FM = float(cdp['IP3 frequency modulation level'])
 
@@ -1150,7 +1150,7 @@ class Parameters(object):
 
         if time_profile == 'simulate somatic':
 
-            if self.sim_ECM == False:
+            if self.sim_ECM is False:
 
                 self.dt = 1e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
@@ -1161,7 +1161,7 @@ class Parameters(object):
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
 
-            elif self.sim_ECM == True:
+            elif self.sim_ECM is True:
 
                 self.dt = 1.0e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
@@ -1175,7 +1175,7 @@ class Parameters(object):
 
         elif time_profile == 'simulate excitable':
 
-            if self.sim_ECM == False:
+            if self.sim_ECM is False:
 
                 self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
@@ -1188,7 +1188,7 @@ class Parameters(object):
                 # self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
-            elif self.sim_ECM == True:
+            elif self.sim_ECM is True:
 
                 self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
@@ -1204,7 +1204,7 @@ class Parameters(object):
 
         elif time_profile == 'initialize':
 
-            if self.sim_ECM == False:
+            if self.sim_ECM is False:
 
                 self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
@@ -1217,7 +1217,7 @@ class Parameters(object):
                 # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
-            elif self.sim_ECM == True:
+            elif self.sim_ECM is True:
 
                 self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]

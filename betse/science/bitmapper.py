@@ -94,7 +94,7 @@ class Bitmapper(object):
 
         """
 
-        if p.use_bitmaps == True:
+        if p.use_bitmaps is True:
 
             # Make a call to the BETSE-specific cache directory indicated in the params file:
             bitmap_cache_dir = os.path.expanduser(p.bitmap_path)
@@ -124,7 +124,7 @@ class Bitmapper(object):
             self.clippingMatrix[point_inds]= 1.0
             self.clippingMatrix = np.flipud(self.clippingMatrix)
 
-        elif p.use_bitmaps == False:
+        elif p.use_bitmaps is False:
 
             # for default geometry, create a circular mask instead of a bitmap
 

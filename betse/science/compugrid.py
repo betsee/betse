@@ -329,7 +329,7 @@ class SimGrid(object):
         else:
             self.NaKATP_block = 1
 
-        if p.HKATPase_dyn == True and p.global_options['HKATP_block'] != 0:
+        if p.HKATPase_dyn is True and p.global_options['HKATP_block'] != 0:
             self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
         else:
             self.HKATP_block = 1
@@ -338,7 +338,7 @@ class SimGrid(object):
         self.channel_noise_factor = np.random.random(len(cells.cell_i))
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
 
-        if p.dynamic_noise == True:
+        if p.dynamic_noise is True:
             # add a random walk on protein concentration to generate dynamic noise:
             self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
 
@@ -382,10 +382,10 @@ class SimGrid(object):
         Dm_cellsA = np.asarray(self.Dm_cells)
         Dm_cellsER = np.asarray(self.Dm_er)
 
-        # if tb.emptyDict(p.scheduled_options) == False or tb.emptyDict(p.vg_options) == False or p.Ca_dyn == True:
+        # if tb.emptyDict(p.scheduled_options) is False or tb.emptyDict(p.vg_options) is False or p.Ca_dyn is True:
         self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
-        # if tb.emptyDict(p.scheduled_options) == False:
+        # if tb.emptyDict(p.scheduled_options) is False:
         self.Dm_scheduled = np.copy(Dm_cellsA)
         self.Dm_scheduled[:] = 0
 
@@ -410,7 +410,7 @@ class SimGrid(object):
 
             self.gj_block = 1
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
             self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
@@ -424,7 +424,7 @@ class SimGrid(object):
             self.cIP3_env = np.zeros(len(cells.xypts))     # initialize IP3 concentration of the environment
             self.cIP3_env[:] = p.cIP3_to_env
 
-        if p.voltage_dye == True:
+        if p.voltage_dye is True:
 
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
@@ -489,7 +489,7 @@ class SimGrid(object):
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
 
-        if p.voltage_dye == True:
+        if p.voltage_dye is True:
 
             self.cDye_flux_env_x_time = []
             self.cDye_flux_env_y_time = []
@@ -499,7 +499,7 @@ class SimGrid(object):
             self.cDye_cell_time = []
             self.cDye_env_time = []
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3_flux_env_x_time = []
             self.cIP3_flux_env_y_time = []
@@ -519,7 +519,7 @@ class SimGrid(object):
         self.vm_to = self.vm[:]   # create a copy of the original voltage
 
          # create a time-steps vector appropriate for simulation type:
-        if p.run_sim == True:
+        if p.run_sim is True:
             tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
         else:
             tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
@@ -533,7 +533,7 @@ class SimGrid(object):
         tsamples = set(tsamples)
 
         # report
-        if p.run_sim == True:
+        if p.run_sim is True:
 
             loggers.log_info('Your simulation (quasi-continuous) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
                          + ' s of in-world time.')
@@ -543,7 +543,7 @@ class SimGrid(object):
                          + ' s of in-world time.')
 
 
-        if p.plot_while_solving == True:
+        if p.plot_while_solving is True:
 
             self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
                 clrMax = p.Vmem_max_clr)
@@ -552,7 +552,7 @@ class SimGrid(object):
 
         for t in tt:   # run through the loop
 
-            if do_once == True:
+            if do_once is True:
                 loop_measure = time.time()
 
             self.fluxes_mem.fill(0)  # reinitialize flux storage device
@@ -566,7 +566,7 @@ class SimGrid(object):
                 self.cc_er_to = self.cc_er[:]
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
-            if p.run_sim == True:
+            if p.run_sim is True:
                 self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
@@ -656,7 +656,7 @@ class SimGrid(object):
             self.get_Efield(cells,p)    # get the electric field in cell network and extracellular env
             self.get_Ufield(cells,p)    # get the electroosmotic velocity in network and extracellular env
 
-            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
                 self.update_IP3(cells,p)
 
@@ -754,7 +754,7 @@ class SimGrid(object):
 
                 self.time.append(t)
 
-                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                     ccIP3 = self.cIP3[:]
                     self.cIP3_time.append(ccIP3)
                     ccIP3 = None
@@ -769,14 +769,14 @@ class SimGrid(object):
                     self.cc_er_time.append(ccer)
                     ccer = None
 
-                if p.plot_while_solving == True:
+                if p.plot_while_solving is True:
                     self.checkPlot.updatePlot(cells,self,p)
 
                         # get time for loop and estimate total time for simulation
-            if do_once == True:
+            if do_once is True:
                 loop_time = time.time() - loop_measure
 
-                if p.run_sim == True:
+                if p.run_sim is True:
                     time_estimate = round(loop_time*p.sim_tsteps,2)
                 else:
                     time_estimate = round(loop_time*p.init_tsteps,2)
@@ -791,14 +791,14 @@ class SimGrid(object):
 
         self.checkPlot = None
 
-        if p.run_sim == False:
+        if p.run_sim is False:
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
             loggers.log_info(message_1)
 
-        elif p.run_sim == True:
+        elif p.run_sim is True:
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedSim,datadump)
@@ -829,7 +829,7 @@ class SimGrid(object):
             loggers.log_info('Final extracellular pH '+ str(np.round(final_pH_ecm,2)))
 
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             IP3_ecm_final = np.mean(self.cIP3_ecm)
             IP3_cell_final = np.mean(self.cIP3)
@@ -889,7 +889,7 @@ class SimGrid(object):
         #
         # self.vgj = vmB - vmA
         #
-        # if p.v_sensitive_gj == True:
+        # if p.v_sensitive_gj is True:
         #     # determine the open state of gap junctions:
         #     self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
         #
@@ -932,7 +932,7 @@ class SimGrid(object):
 
         cell_v_grad = gv_long
 
-        if p.v_sensitive_gj == True:
+        if p.v_sensitive_gj is True:
 
             # determine the open state of gap junctions:
             self.gjopen = self.gj_block*((1.0 - tb.step(abs(cell_v_grad),p.gj_vthresh,p.gj_vgrad) + 0.1))
@@ -1565,13 +1565,13 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,sa,Vm,T,p,block):
     signG = np.sign(delG)
 
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
         f_Na  = -alpha*cNai*cKo      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = signG*block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
 
@@ -1619,13 +1619,13 @@ def pumpCaATP(cCai,cCao,sa,Vm,T,p):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG_pump)
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = sa*p.alpha_Ca*tb.step(delG,p.halfmax_Ca,p.slope_Ca)
 
         f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = sa*signG*p.alpha_Ca*tb.step(delG,p.halfmax_Ca,p.slope_Ca)
 
@@ -1681,12 +1681,12 @@ def pumpHKATP(cHi,cHo,cKi,cKo,sa,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = sa*block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
         f_H  = -alpha*cHi*cKo      #flux as [mol/s], scaled by concentrations in and out
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = sa*signG*block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
 
@@ -1717,12 +1717,12 @@ def pumpVATP(cHi,cHo,sa,Vm,T,p):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = sa*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
         f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = sa*signG*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
 

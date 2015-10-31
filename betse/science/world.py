@@ -818,7 +818,7 @@ class World(object):
         # self.ecm_vol[self.map_mem2ecm] = p.cell_height*p.cell_space*np.mean(self.mem_sa)  # FIXME uncomment to shrink ecm volume
 
         #-------------------------------------------------------------------------
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
 
             # Create a matrix to update ecm from mem fluxes
             self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
@@ -992,7 +992,7 @@ class World(object):
 
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        if p.sim_eosmosis == True:
+        if p.sim_eosmosis is True:
             self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
             for i, inds in enumerate(self.cell_to_mems):
@@ -1039,7 +1039,7 @@ class World(object):
             insular_flag = p.tissue_profiles[name]['insular gj']
 
             # step through gj's and find cases where connection is split between cells in different tissues:
-            if insular_flag == True:
+            if insular_flag is True:
 
                 for i, inds in enumerate(self.cell_nn):
 
@@ -1166,7 +1166,7 @@ class World(object):
         # the nnAveMatrix will take a property defined from two cells onto a single gap junction and average
         # the property to provide one unique result:
 
-        if p.gj_flux_sensitive == True:# if the user desires flux sensitive gj, construct the very large nnAveMatrix:
+        if p.gj_flux_sensitive is True:# if the user desires flux sensitive gj, construct the very large nnAveMatrix:
             self.nnAveMatrix = np.zeros((len(self.nn_i),len(self.nn_i)))
 
             nn_list = self.nn_i.tolist()
@@ -1190,7 +1190,7 @@ class World(object):
 
         '''
 
-        if savecells == True:
+        if savecells is True:
 
             # save the cell cluster
             loggers.log_info('Saving the cell cluster... ')

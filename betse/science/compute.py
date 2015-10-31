@@ -167,7 +167,7 @@ class Simulator(object):
         self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
 
-        if p.gj_flux_sensitive == True:
+        if p.gj_flux_sensitive is True:
 
             self.gj_rho = np.zeros(len(cells.nn_i))
 
@@ -335,12 +335,12 @@ class Simulator(object):
         else:
             self.NaKATP_block = 1
 
-        if p.HKATPase_dyn == True and p.global_options['HKATP_block'] != 0:
+        if p.HKATPase_dyn is True and p.global_options['HKATP_block'] != 0:
             self.HKATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
         else:
             self.HKATP_block = 1
 
-        if p.VATPase_dyn == True and p.global_options['VATP_block'] != 0:
+        if p.VATPase_dyn is True and p.global_options['VATP_block'] != 0:
             self.VATP_block = np.ones(len(cells.cell_i))  # initialize HKATP blocking vector
         else:
             self.VATP_block = 1
@@ -349,7 +349,7 @@ class Simulator(object):
         self.channel_noise_factor = np.random.random(len(cells.cell_i))
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
 
-        if p.dynamic_noise == True:
+        if p.dynamic_noise is True:
             # add a random walk on protein concentration to generate dynamic noise:
             self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
 
@@ -360,7 +360,7 @@ class Simulator(object):
 
         # Initialize Dye and IP3
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
             self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
@@ -371,7 +371,7 @@ class Simulator(object):
             self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
             self.cIP3_env[:] = p.cIP3_to_env
 
-        if p.voltage_dye == True:
+        if p.voltage_dye is True:
 
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
@@ -445,7 +445,7 @@ class Simulator(object):
         self.P_cells = np.zeros(len(cells.cell_i))
 
 
-        if p.gj_flux_sensitive == True:
+        if p.gj_flux_sensitive is True:
 
             self.gj_rho = np.zeros(len(cells.nn_i))
 
@@ -453,7 +453,7 @@ class Simulator(object):
 
             self.gj_rho = 0
 
-        if p.sim_eosmosis == True:
+        if p.sim_eosmosis is True:
             self.rho_pump = np.ones(len(cells.mem_i))
             self.rho_channel = np.ones(len(cells.mem_i))
         else:
@@ -645,12 +645,12 @@ class Simulator(object):
         else:
             self.NaKATP_block = 1
 
-        if p.HKATPase_dyn == True and p.global_options['HKATP_block'] != 0:
+        if p.HKATPase_dyn is True and p.global_options['HKATP_block'] != 0:
             self.HKATP_block = np.ones(len(cells.mem_i))  # initialize HKATP blocking vector
         else:
             self.HKATP_block = 1
 
-        if p.VATPase_dyn == True and p.global_options['VATP_block'] != 0:
+        if p.VATPase_dyn is True and p.global_options['VATP_block'] != 0:
             self.VATP_block = np.ones(len(cells.mem_i))  # initialize HKATP blocking vector
         else:
             self.VATP_block = 1
@@ -659,7 +659,7 @@ class Simulator(object):
         self.channel_noise_factor = np.random.random(len(cells.mem_i))
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
 
-        if p.dynamic_noise == True:
+        if p.dynamic_noise is True:
             # add a random walk on protein concentration to generate dynamic noise:
             self.protein_noise_factor = p.dynamic_noise_level*(np.random.random(len(cells.cell_i)) - 0.5)
 
@@ -700,14 +700,14 @@ class Simulator(object):
 
     def tissueInit(self,cells,p):
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
 
         self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
             # create a copy-base of the environmental junctions diffusion constants:
             self.D_env_base = copy.copy(self.D_env)
 
@@ -718,19 +718,19 @@ class Simulator(object):
         Dm_cellsA = np.asarray(self.Dm_cells)
         Dm_cellsER = np.copy(self.Dm_er)
 
-        # if tb.emptyDict(p.scheduled_options) == False or tb.emptyDict(p.vg_options) == False or p.Ca_dyn == True:
+        # if tb.emptyDict(p.scheduled_options) is False or tb.emptyDict(p.vg_options) is False or p.Ca_dyn is True:
         self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
-        # if tb.emptyDict(p.scheduled_options) == False:
+        # if tb.emptyDict(p.scheduled_options) is False:
         self.Dm_scheduled = np.copy(Dm_cellsA)
         self.Dm_scheduled[:] = 0
 
-        # if tb.emptyDict(p.vg_options) == False:
+        # if tb.emptyDict(p.vg_options) is False:
             # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
         self.Dm_vg = np.copy(Dm_cellsA)
         self.Dm_vg[:] = 0
 
-        # if p.Ca_dyn == True:
+        # if p.Ca_dyn is True:
         # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
@@ -753,7 +753,7 @@ class Simulator(object):
 
             self.gj_block = 1
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3 = np.zeros(len(cells.cell_i))  # initialize a vector to hold IP3 concentrations
             self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
@@ -762,7 +762,7 @@ class Simulator(object):
             self.IP3_flux_y_gj = np.zeros(len(cells.nn_i))
             self.IP3_flux_mem = np.zeros(len(cells.mem_i))
 
-            if p.sim_ECM == True:
+            if p.sim_ECM is True:
                 # self.cIP3_ecm = np.zeros(len(cells.ecm_i))     # initialize IP3 concentration of the environment
                 # self.cIP3_ecm[:] = p.cIP3_to_env
                 self.cIP3_env = np.zeros(len(cells.xypts))
@@ -771,11 +771,11 @@ class Simulator(object):
                 self.cIP3_flux_env_x = np.zeros(len(cells.xypts))
                 self.cIP3_flux_env_y = np.zeros(len(cells.xypts))
 
-            elif p.sim_ECM == False:
+            elif p.sim_ECM is False:
                 self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
                 self.cIP3_env[:] = p.cIP3_to_env
 
-        if p.voltage_dye == True:
+        if p.voltage_dye is True:
 
             self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
             self.cDye_cell[:] = p.cDye_to_cell
@@ -798,7 +798,7 @@ class Simulator(object):
 
                 self.dye_target = None
 
-            if p.sim_ECM == True:
+            if p.sim_ECM is True:
 
                 self.cDye_env = np.zeros(len(cells.xypts))
                 self.cDye_env[:] = p.cDye_to
@@ -856,14 +856,14 @@ class Simulator(object):
 
         self.rho_cells_time = []
 
-        if p.voltage_dye == True:
+        if p.voltage_dye is True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
             self.Dye_flux_x_gj_time = []
             self.Dye_flux_y_gj_time = []
             self.Dye_flux_mem_time = []
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3_time = []    # retains IP3 concentration as a function of time
             self.IP3_flux_x_gj_time = []
@@ -884,12 +884,12 @@ class Simulator(object):
         # vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
         self.vm_to = self.vm[:]
 
-        if p.Ca_dyn == True:
+        if p.Ca_dyn is True:
             self.cc_er = np.asarray(self.cc_er)
             self.cc_er_to = self.cc_er[:]
 
         # create a time-steps vector appropriate for the simulation type:
-        if p.run_sim == True:
+        if p.run_sim is True:
             tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
         else:
             tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
@@ -904,7 +904,7 @@ class Simulator(object):
 
         # report
 
-        if p.run_sim == True:
+        if p.run_sim is True:
 
 
             loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
@@ -915,7 +915,7 @@ class Simulator(object):
                          + ' seconds of in-world time.')
 
 
-        if p.plot_while_solving == True:
+        if p.plot_while_solving is True:
 
             self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
                 clrMax = p.Vmem_max_clr)
@@ -924,7 +924,7 @@ class Simulator(object):
 
         for t in tt:   # run through the loop
 
-            if do_once == True:
+            if do_once is True:
                 loop_measure = time.time()
 
             self.fluxes_mem.fill(0)  # reinitialize flux storage device
@@ -940,7 +940,7 @@ class Simulator(object):
                 self.cc_er_to = self.cc_er[:]
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
-            if p.run_sim == True:
+            if p.run_sim is True:
                 self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
@@ -1069,10 +1069,10 @@ class Simulator(object):
             self.get_Efield(cells, p)
 
             # calculate fluid flow:
-            if p.fluid_flow == True and cells.lapGJinv != 0:
+            if p.fluid_flow is True and cells.lapGJinv != 0:
                 self.getFlow(cells,p)
 
-            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                 # determine flux through gap junctions for IP3:
 
                 self.update_IP3(cells,p,t)
@@ -1146,7 +1146,7 @@ class Simulator(object):
 
                 self.rho_cells_time.append(self.rho_cells[:])
 
-                if p.fluid_flow == True:
+                if p.fluid_flow is True:
 
                     self.P_cells_time.append(self.P_cells[:])
                     self.u_cells_x_time.append(self.u_cells_x[:])
@@ -1156,7 +1156,7 @@ class Simulator(object):
 
                 self.time.append(t)
 
-                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
                     self.cIP3_time.append(self.cIP3[:])
 
@@ -1179,13 +1179,13 @@ class Simulator(object):
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
 
 
-                if p.plot_while_solving == True:
+                if p.plot_while_solving is True:
                     self.checkPlot.updatePlot(self,p)
 
                         # get time for loop and estimate total time for simulation
-            if do_once == True:
+            if do_once is True:
                 loop_time = time.time() - loop_measure
-                if p.run_sim == True:
+                if p.run_sim is True:
                     time_estimate = round(loop_time*p.sim_tsteps,2)
                 else:
                     time_estimate = round(loop_time*p.init_tsteps,2)
@@ -1199,14 +1199,14 @@ class Simulator(object):
 
         self.checkPlot = None
 
-        if p.run_sim == False:
+        if p.run_sim is False:
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
             loggers.log_info(message_1)
 
-        elif p.run_sim == True:
+        elif p.run_sim is True:
 
 
             datadump = [self,cells,p]
@@ -1239,7 +1239,7 @@ class Simulator(object):
             loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
 
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             IP3_env_final = np.mean(self.cIP3_env)
             IP3_cell_final = np.mean(self.cIP3)
             loggers.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final,6)) + ' mmol/L')
@@ -1327,10 +1327,10 @@ class Simulator(object):
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
 
-        if p.Ca_dyn == True:
+        if p.Ca_dyn is True:
             self.cc_er_to = np.copy(self.cc_er[:])
 
-        if p.voltage_dye == True:
+        if p.voltage_dye is True:
 
             self.Dye_flux_env_x_time = []
             self.Dye_flux_env_y_time = []
@@ -1340,7 +1340,7 @@ class Simulator(object):
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
             self.cDye_env_time = []
 
-        if p.EM_waves == True:
+        if p.EM_waves is True:
             self.Ax_time = [0.0]
             self.Ay_time =[0.0]
 
@@ -1359,7 +1359,7 @@ class Simulator(object):
         self.vm_to = self.vm[:]   # create a copy of the original voltage
 
          # create a time-steps vector appropriate for simulation type:
-        if p.run_sim == True:
+        if p.run_sim is True:
             tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
         else:
             tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
@@ -1373,7 +1373,7 @@ class Simulator(object):
         tsamples = set(tsamples)
 
         # report
-        if p.run_sim == True:
+        if p.run_sim is True:
 
             loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) +
                              ' to '+ str(round(p.sim_tsteps*p.dt,3))
@@ -1385,7 +1385,7 @@ class Simulator(object):
                          + ' seconds of in-world time.')
 
 
-        if p.plot_while_solving == True:
+        if p.plot_while_solving is True:
 
             self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
                 clrMax = p.Vmem_max_clr)
@@ -1394,7 +1394,7 @@ class Simulator(object):
 
         for t in tt:   # run through the loop
 
-            if do_once == True:
+            if do_once is True:
                 loop_measure = time.time()
 
             self.fluxes_mem.fill(0)  # reinitialize flux storage device
@@ -1408,7 +1408,7 @@ class Simulator(object):
                 self.cc_er_to = self.cc_er[:]
 
             # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
-            if p.run_sim == True:
+            if p.run_sim is True:
                 self.dyna.runAllDynamics(self,cells,p,t)
 
             #-----------------PUMPS-------------------------------------------------------------------------------------
@@ -1504,11 +1504,11 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
-            if p.fluid_flow == True:
+            if p.fluid_flow is True:
 
                 self.getFlow(cells,p)
 
-            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
                 self.update_IP3(cells,p,t)
 
@@ -1534,7 +1534,7 @@ class Simulator(object):
             check_v(self.vm)
 
             # if desired, electroosmosis of membrane channels
-            if p.sim_eosmosis == True and cells.gradMem != None:
+            if p.sim_eosmosis is True and cells.gradMem is not None:
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
@@ -1589,7 +1589,7 @@ class Simulator(object):
 
                 self.rho_cells_time.append(self.rho_cells[:])
 
-                if p.fluid_flow == True:
+                if p.fluid_flow is True:
 
                     self.P_env_time.append(np.float64(self.P_env[:]))
                     self.u_env_x_time.append(self.u_at_c[:])
@@ -1606,7 +1606,7 @@ class Simulator(object):
 
                 self.time.append(t)
 
-                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                     ccIP3 = self.cIP3[:]
                     self.cIP3_time.append(ccIP3)
                     ccIP3 = None
@@ -1627,19 +1627,19 @@ class Simulator(object):
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
 
-                if p.sim_eosmosis == True:
+                if p.sim_eosmosis is True:
 
                     self.rho_channel_time.append(self.rho_channel[:])
                     self.rho_pump_time.append(self.rho_pump[:])
 
-                if p.plot_while_solving == True:
+                if p.plot_while_solving is True:
                     self.checkPlot.updatePlot(self,p)
 
                         # get time for loop and estimate total time for simulation
-            if do_once == True:
+            if do_once is True:
                 loop_time = time.time() - loop_measure
 
-                if p.run_sim == True:
+                if p.run_sim is True:
                     time_estimate = round(loop_time*p.sim_tsteps,2)
                 else:
                     time_estimate = round(loop_time*p.init_tsteps,2)
@@ -1656,14 +1656,14 @@ class Simulator(object):
 
         self.checkPlot = None
 
-        if p.run_sim == False:
+        if p.run_sim is False:
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
             loggers.log_info(message_1)
 
-        elif p.run_sim == True:
+        elif p.run_sim is True:
             # celf = copy.deepcopy(self)
             datadump = [self,cells,p]
             fh.saveSim(self.savedSim,datadump)
@@ -1693,7 +1693,7 @@ class Simulator(object):
             final_pH_ecm = -np.log10(np.mean((self.cc_env_time[-1][self.iH])))
             loggers.log_info('Final extracellular pH '+ str(np.round(final_pH_ecm,2)))
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             IP3_env_final = np.mean(self.cIP3_env)
             IP3_cell_final = np.mean(self.cIP3)
@@ -1721,7 +1721,7 @@ class Simulator(object):
     def update_V_ecm(self,cells,p,t):
 
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
 
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
@@ -1822,7 +1822,7 @@ class Simulator(object):
     def update_gj(self,cells,p,t,i):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
 
             self.vgj = self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0]
 
@@ -1830,9 +1830,9 @@ class Simulator(object):
             self.vgj = self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0]
 
 
-        if p.gj_flux_sensitive == True and cells.nnAveMatrix != None:
+        if p.gj_flux_sensitive is True and cells.nnAveMatrix is not None:
 
-            if p.gj_respond_flow == True:
+            if p.gj_respond_flow is True:
 
                 # map intracellular flow velocity to gap junctions:
                 ux_gj = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
@@ -1897,7 +1897,7 @@ class Simulator(object):
             self.gj_rho = np.zeros(len(cells.nn_i))
 
 
-        if p.v_sensitive_gj == True:
+        if p.v_sensitive_gj is True:
             # determine the open state of gap junctions:
             self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
@@ -1921,7 +1921,7 @@ class Simulator(object):
         c = (self.cc_cells[i][cells.nn_i][:,1] + self.cc_cells[i][cells.nn_i][:,0])/2
 
         # electroosmotic fluid velocity -- averaged at gap junctions:
-        if p.base_eosmo == True:
+        if p.base_eosmo is True:
             ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
             uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
 
@@ -1944,7 +1944,7 @@ class Simulator(object):
 
     def update_ecm(self,cells,p,t,i):
 
-        if p.closed_bound == True:
+        if p.closed_bound is True:
             btag = 'closed'
 
         else:
@@ -1973,7 +1973,7 @@ class Simulator(object):
 
         cenv_y[1:,:] = cenv
 
-        if p.closed_bound == True: # insulation boundary conditions
+        if p.closed_bound is True: # insulation boundary conditions
             cenv_x[:,0] = cenv_x[:,1]
             cenv_x[:,-1] = cenv_x[:,-2]
             cenv_x[0,:] = cenv_x[1,:]
@@ -2002,7 +2002,7 @@ class Simulator(object):
         grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
 
         # calculate fluxes for electrodiffusive transport:
-        if p.base_eosmo == True:
+        if p.base_eosmo is True:
             uenvx = self.u_env_x[:]
             uenvy = self.u_env_y[:]
 
@@ -2014,7 +2014,7 @@ class Simulator(object):
             grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
-        if p.closed_bound == False:
+        if p.closed_bound is False:
             f_env_x[:,0] = f_env_x[:,1]
             f_env_x[:,-1]= f_env_x[:,-2]
             f_env_x[0,:] = f_env_x[1,:]
@@ -2048,7 +2048,7 @@ class Simulator(object):
         #-----------------------
         cenv = cenv + delta_c*p.dt
 
-        if p.closed_bound == True:
+        if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
             # zero flux boundaries for concentration:
             cenv[:,-1] = cenv[:,-2]
@@ -2056,7 +2056,7 @@ class Simulator(object):
             cenv[0,:] = cenv[1,:]
             cenv[-1,:] = cenv[-2,:]
 
-        elif p.closed_bound == False:
+        elif p.closed_bound is False:
             # if the boundary is open, set the concentration at the boundary
             # open boundary
             cenv[:,-1] = self.c_env_bound[i]
@@ -2117,7 +2117,7 @@ class Simulator(object):
         cdye = (self.cDye_cell[cells.nn_i][:,1] + self.cDye_cell[cells.nn_i][:,0])/2
 
         # electroosmotic fluid velocity:
-        if p.base_eosmo == True:
+        if p.base_eosmo is True:
             ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
             uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
 
@@ -2137,14 +2137,14 @@ class Simulator(object):
         self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
         self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
 
             fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
 
             # update dye concentration
             self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
 
-        elif p.sim_ECM == True:
+        elif p.sim_ECM is True:
 
             flux_dye = electroflux(self.cDye_env[cells.map_mem2ecm],self.cDye_cell[cells.mem_to_cells],
                             np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
@@ -2161,7 +2161,7 @@ class Simulator(object):
             self.cDye_env = rk4(self.cDye_env,-delta_env,p)
 
             # transport dye through environment: _________________________________________________________
-            if p.closed_bound == True:
+            if p.closed_bound is True:
                 btag = 'closed'
 
             else:
@@ -2190,7 +2190,7 @@ class Simulator(object):
             cenv_y[1:,:] = cenv[:]
             cenv_y[0,:] = cenv_y[1,:]
 
-            if p.closed_bound == True: # insulation boundary conditions
+            if p.closed_bound is True: # insulation boundary conditions
                 cenv_x[:,0] = cenv_x[:,1]
                 cenv_x[:,-1] = cenv_x[:,-2]
                 cenv_x[0,:] = cenv_x[1,:]
@@ -2230,7 +2230,7 @@ class Simulator(object):
 
             # calculate fluxes for electrodiffusive transport:
 
-            if p.base_eosmo == True:
+            if p.base_eosmo is True:
                 uenvx = self.u_env_x[:]
                 uenvy = self.u_env_y[:]
 
@@ -2246,7 +2246,7 @@ class Simulator(object):
 
             cenv = cenv + delta_c*p.dt
 
-            if p.closed_bound == True:
+            if p.closed_bound is True:
                 # Neumann boundary condition (flux at boundary)
                 # zero flux boundaries for concentration:
                 cenv[:,-1] = cenv[:,-2]
@@ -2254,7 +2254,7 @@ class Simulator(object):
                 cenv[0,:] = cenv[1,:]
                 cenv[-1,:] = cenv[-2,:]
 
-            elif p.closed_bound == False:
+            elif p.closed_bound is False:
                 # if the boundary is open, set the concentration at the boundary
                 # open boundary
                 cenv[:,-1] =  self.c_dye_bound
@@ -2291,7 +2291,7 @@ class Simulator(object):
         cip3 = (self.cIP3[cells.nn_i][:,1] + self.cIP3[cells.nn_i][:,0])/2
 
         # electroosmotic fluid velocity:
-        if p.base_eosmo == True:
+        if p.base_eosmo is True:
             ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
             uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
 
@@ -2311,14 +2311,14 @@ class Simulator(object):
         self.IP3_flux_x_gj = fgj_x_ip3[:]  # store gap junction flux for this ion
         self.IP3_flux_y_gj = fgj_y_ip3[:]  # store gap junction flux for this ion
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
 
             fip3_ED = electroflux(self.cIP3_env,self.cIP3,self.id_cells*p.Dm_IP3,self.tm,p.z_IP3,self.vm,self.T,p)
 
             # update dye concentration
             self.cIP3 = self.cIP3 + fip3_ED*(cells.cell_sa/cells.cell_vol)*p.dt
 
-        elif p.sim_ECM == True:
+        elif p.sim_ECM is True:
 
             flux_ip3 = electroflux(self.cIP3_env[cells.map_mem2ecm],self.cIP3[cells.mem_to_cells],
                             np.ones(len(cells.mem_i))*p.Dm_IP3,self.tm,p.z_IP3,self.vm,self.T,p)
@@ -2335,7 +2335,7 @@ class Simulator(object):
             self.cIP3_env = rk4(self.cIP3_env,-delta_env,p)
 
             # transport dye through environment: _________________________________________________________
-            if p.closed_bound == True:
+            if p.closed_bound is True:
                 btag = 'closed'
 
             else:
@@ -2364,7 +2364,7 @@ class Simulator(object):
             cenv_y[1:,:] = cenv[:]
             cenv_y[0,:] = cenv_y[1,:]
 
-            if p.closed_bound == True: # insulation boundary conditions
+            if p.closed_bound is True: # insulation boundary conditions
                 cenv_x[:,0] = cenv_x[:,1]
                 cenv_x[:,-1] = cenv_x[:,-2]
                 cenv_x[0,:] = cenv_x[1,:]
@@ -2405,7 +2405,7 @@ class Simulator(object):
 
             # calculate fluxes for electrodiffusive transport:
 
-            if p.base_eosmo == True:
+            if p.base_eosmo is True:
                 uenvx = self.u_env_x[:]
                 uenvy = self.u_env_y[:]
 
@@ -2421,7 +2421,7 @@ class Simulator(object):
 
             cenv = cenv + delta_c*p.dt
 
-            if p.closed_bound == True:
+            if p.closed_bound is True:
                 # Neumann boundary condition (flux at boundary)
                 # zero flux boundaries for concentration:
                 cenv[:,-1] = cenv[:,-2]
@@ -2429,7 +2429,7 @@ class Simulator(object):
                 cenv[0,:] = cenv[1,:]
                 cenv[-1,:] = cenv[-2,:]
 
-            elif p.closed_bound == False:
+            elif p.closed_bound is False:
                 # if the boundary is open, set the concentration at the boundary
                 # open boundary
                 cenv[:,-1] = p.cIP3_to_env
@@ -2450,7 +2450,7 @@ class Simulator(object):
     def get_Efield(self,cells,p):
 
          # calculate voltage difference (gradient*len_gj) between gj-connected cells:
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
 
             self.Egj = - (self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0])/cells.nn_len
 
@@ -2567,7 +2567,7 @@ class Simulator(object):
         self.I_tot_x = self.I_tot_x + self.I_mem_x
         self.I_tot_y = self.I_tot_y + self.I_mem_y
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
 
             self.I_env_x = np.zeros(len(cells.xypts))
             self.I_env_y = np.zeros(len(cells.xypts))
@@ -2600,11 +2600,11 @@ class Simulator(object):
 
         """
 
-        if p.sim_ECM== True:
+        if p.sim_ECM is True:
 
             # method 1-------------------------------------------------------------------------------------------------
             # force of gravity:
-            if p.closed_bound == True:
+            if p.closed_bound is True:
 
                 btag = 'closed'
 
@@ -2623,7 +2623,7 @@ class Simulator(object):
             alpha_x = (r_env_x**2)/(p.mu_water)
             alpha_y = (r_env_y**2)/(p.mu_water)
 
-            if p.gravity == True:
+            if p.gravity is True:
                 F_gravity_x = np.zeros(cells.grid_obj.u_shape)
                 F_gravity_y = -np.ones(cells.grid_obj.v_shape)*9.81*1000
 
@@ -2633,7 +2633,7 @@ class Simulator(object):
 
 
              # calculate the electroosmotic force (shaped to the u and v grids):
-            if p.base_eosmo == True:
+            if p.base_eosmo is True:
 
                 # first calculate the electric field on the u and v junctions:
                 venv = self.v_env.reshape(cells.X.shape)
@@ -2680,7 +2680,7 @@ class Simulator(object):
             source = div_S.ravel()
 
             # calculate the alpha-scaled pressure from the divergence of the force:
-            if p.closed_bound == True:
+            if p.closed_bound is True:
 
                 P = np.dot(cells.lapENV_P_inv, source)
                 P = P.reshape(cells.grid_obj.cents_shape)
@@ -2713,7 +2713,7 @@ class Simulator(object):
             self.u_env_y = fd.integrator(alpha_y*Fy) - fd.integrator(gPy)
 
             # reinforce boundary conditions
-            if p.closed_bound == True:
+            if p.closed_bound is True:
                 #left
                 self.u_env_x[:,0] = 0
                 # right
@@ -2771,7 +2771,7 @@ class Simulator(object):
 
         # gravity force:
 
-        if p.gravity == True:
+        if p.gravity is True:
             Fgx = np.zeros(len(cells.nn_i))
             Fgy = np.zeros(len(cells.nn_i))
             Fgy[:] = -9.81*1000
@@ -2791,7 +2791,7 @@ class Simulator(object):
 
         # Calculate electroosmotic body forces on flow field, if desired:
 
-        if p.base_eosmo == True:
+        if p.base_eosmo is True:
 
             # to get the eletroosmotic body force at each gap junction, first map the charge density from cell to gj:
             rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])/2
@@ -2859,7 +2859,7 @@ class Simulator(object):
         vmem = self.v_env[cells.map_mem2ecm]
 
         # components of fluid flow velocity at the membrane:
-        if p.base_eosmo == True:
+        if p.base_eosmo is True:
             ux_mem = self.u_at_c.ravel()[cells.map_mem2ecm]
             uy_mem = self.v_at_c.ravel()[cells.map_mem2ecm]
 
@@ -2952,7 +2952,7 @@ class Simulator(object):
 
         for i, dmat in enumerate(self.D_env):
 
-            if p.env_type == False: # if air surrounds, first set everything to zero and add in cluster data...
+            if p.env_type is False: # if air surrounds, first set everything to zero and add in cluster data...
                 self.D_env[i][:] = 0
             # for all cells and mems in the cluster, set the internal diffusion constant for adherens junctions:
             dummyMems = np.ones(len(cells.mem_i))*self.D_free[i]*p.D_adh
@@ -2971,7 +2971,7 @@ class Simulator(object):
             dummyMems[cells.bflags_mems] = self.D_free[i]     # FIXME note that this has been "opened up" since v0.2
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-            if p.env_type == True:
+            if p.env_type is True:
                 Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
                     (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
 
@@ -2992,7 +2992,7 @@ class Simulator(object):
 
         for i, dmat in enumerate(self.D_env):
 
-            if p.env_type == True:
+            if p.env_type is True:
 
                 self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                     (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = self.D_free[i])
@@ -3011,7 +3011,7 @@ class Simulator(object):
 
         self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
 
-        if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+        if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
 
             self.D_env_weight_u[:,0] = 0
             self.D_env_weight_u[:,-1] = 0
@@ -3041,7 +3041,7 @@ class Simulator(object):
             self.osmo_P_env = c_ion_env*p.R*self.T + self.osmo_P_env
 
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
             self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env
 
         else:
@@ -3183,13 +3183,13 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG_pump)
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = p.alpha_Ca*tb.step(delG,p.halfmax_Ca,p.slope_Ca)
 
         f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = signG*p.alpha_Ca*tb.step(delG,p.halfmax_Ca,p.slope_Ca)
 
@@ -3249,12 +3249,12 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
         f_H  = -alpha*np.sqrt(cHi)*np.sqrt(cKo)      #flux as [mol/s], scaled by concentrations in and out
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = signG*block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
 
@@ -3284,12 +3284,12 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
     delG = np.absolute(delG_pump)
     signG = np.sign(delG)
 
-    if p.backward_pumps == False:
+    if p.backward_pumps is False:
 
         alpha = block*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
         f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
 
-    elif p.backward_pumps == True:
+    elif p.backward_pumps is True:
 
         alpha = block*signG*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
 
@@ -3385,7 +3385,7 @@ def get_Vcell(self,cells,p):
 
     """
 
-    if p.sim_ECM == False:
+    if p.sim_ECM is False:
         v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
     else:
@@ -3629,7 +3629,7 @@ def rk4(c,deltac,p):
             #
             # # reinforce boundary conditions -- closed boundary
             #
-            # if p.closed_bound == True:
+            # if p.closed_bound is True:
             #     #left
             #     u[:,0] = 0
             #     # right
@@ -3727,7 +3727,7 @@ def rk4(c,deltac,p):
             #
             # # reinforce boundary conditions
             #
-            # if p.closed_bound == True:
+            # if p.closed_bound is True:
             #     #left
             #     self.u_at_c[:,0] = 0
             #     # right

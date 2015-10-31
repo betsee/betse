@@ -2,37 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# TODO SESS: Just a friendly reminder from your hooded neighbourhood pedanto:
-# test for None-ness via "is None" rather than "== None". The latter results in
-# BETSE barfing up the following concerning warning on every such test:
-#
-#     /home/leycec/py/betse/betse/science/visualize.py:1275: FutureWarning: comparison to `None` will result in an elementwise object comparison in the future.
-#       if zdata == None:
-#
-# That's bad. The fix is trivial, so I've gone ahead and patched everything up.
-# That's good. For similar reasons, True-ness and False-ness should also be
-# tested for via "is True" and "is False" rather than "== True" and "== False".
-# That's a much larger fix, however, so I haven't touched any existing tests
-# for True-ness or False-ness. No sense in kurmuffling us up, right?
-#
-# This is one reason why True and False are almost always tested for implicitly
-# rather than explicitly: e.g.,
-#
-#     # Rather than this...
-#     if p.sim_ECM == True and ignore_simECM == False:
-#
-#     # ...consider doing either this...
-#     if p.sim_ECM is True and ignore_simECM is False:
-#
-#     # ...or preferably this, which circumvents this loathsome issue entirely.
-#     if p.sim_ECM and not ignore_simECM:
-#
-# The reason why is that Python objects are free to override the "==" operator
-# in unexpected and therefore buggy ways -- which is exactly what numpy arrays,
-# among other nice objects, do. But anyways! This is nothing too
-# mission-critical. Just a happy heads up for my golden girl.
-#
-# Loves you: Sessum!
 
 # FIXME saving animations as video files directly doesn't work
 
@@ -91,7 +60,7 @@ class AnimateCellData(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -101,17 +70,17 @@ class AnimateCellData(object):
 
         self.bkgBool = False
 
-        if p.sim_ECM == True and ignore_simECM == False:
+        if p.sim_ECM is True and ignore_simECM is False:
 
             dat_grid = sim.vm_Matrix[0]
 
-            if p.plotMask == True:
+            if p.plotMask is True:
                 dat_grid = ma.masked_array(sim.vm_Matrix[0], np.logical_not(cells.maskM))
 
             self.collection = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
 
 
-            if p.showCells == True:
+            if p.showCells is True:
 
                 # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
                 cell_edges_flat = cells.um*cells.mem_edges_flat
@@ -119,7 +88,7 @@ class AnimateCellData(object):
                 coll.set_alpha(0.5)
                 self.ax.add_collection(coll)
 
-        elif p.sim_ECM == False or ignore_simECM == True:
+        elif p.sim_ECM is False or ignore_simECM is True:
 
             # define a polygon collection based on individual cell polygons
             self.points = np.multiply(cells.cell_verts, p.um)
@@ -127,9 +96,9 @@ class AnimateCellData(object):
             self.collection.set_array(self.zdata_t[0])
             self.ax.add_collection(self.collection)
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if p.sim_ECM == False or p.IecmPlot == False:
+            if p.sim_ECM is False or p.IecmPlot is False:
 
                 Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
@@ -143,7 +112,7 @@ class AnimateCellData(object):
 
                 self.tit_extra = 'Gap junction current'
 
-            elif p.IecmPlot == True:
+            elif p.IecmPlot is True:
 
                 Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
 
@@ -163,7 +132,7 @@ class AnimateCellData(object):
 
         # set range of the colormap
 
-        if clrAutoscale == True:
+        if clrAutoscale is True:
             # first flatten the data (needed in case cells were cut)
             all_z = []
             for zarray in zdata_t:
@@ -179,7 +148,7 @@ class AnimateCellData(object):
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -191,7 +160,7 @@ class AnimateCellData(object):
 
         self.tit = tit
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
@@ -223,11 +192,11 @@ class AnimateCellData(object):
 
         zz = self.zdata_t[i]
 
-        if self.p.sim_ECM == True and self.ignore_simECm == False:
+        if self.p.sim_ECM is True and self.ignore_simECm is False:
 
             dat_grid = 1e3*self.sim.vm_Matrix[i]
 
-            if self.p.plotMask == True:
+            if self.p.plotMask is True:
                 dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.maskM))
 
             # self.collection.set_array(dat_grid.ravel())
@@ -237,9 +206,9 @@ class AnimateCellData(object):
         else:
             self.collection.set_array(zz)
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if self.sim_ECM == False or self.IecmPlot == False:
+            if self.sim_ECM is False or self.IecmPlot is False:
 
                 Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
@@ -254,7 +223,7 @@ class AnimateCellData(object):
                 self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
-            elif self.IecmPlot == True:
+            elif self.IecmPlot is True:
 
                 Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
 
@@ -272,7 +241,7 @@ class AnimateCellData(object):
         titani = self.tit_extra + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -312,7 +281,7 @@ class AnimateCellData_smoothed(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -320,7 +289,7 @@ class AnimateCellData_smoothed(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
 
         # set range of the colormap
-        if clrAutoscale == True:
+        if clrAutoscale is True:
             # first flatten the data (needed in case cells were cut)
             all_z = []
             for zarray in zdata_t:
@@ -336,7 +305,7 @@ class AnimateCellData_smoothed(object):
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -345,7 +314,7 @@ class AnimateCellData_smoothed(object):
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
-        if p.plotMask == True:
+        if p.plotMask is True:
             dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
         self.triplt = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
@@ -359,13 +328,13 @@ class AnimateCellData_smoothed(object):
 
         self.tit_extra = ''
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if p.sim_ECM == False or p.IecmPlot == False:
+            if p.sim_ECM is False or p.IecmPlot is False:
 
                 Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
@@ -379,7 +348,7 @@ class AnimateCellData_smoothed(object):
 
                 self.tit_extra = 'Gap junction current'
 
-            elif p.IecmPlot == True:
+            elif p.IecmPlot is True:
 
                 Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
 
@@ -412,14 +381,14 @@ class AnimateCellData_smoothed(object):
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
-        if self.p.plotMask == True:
+        if self.p.plotMask is True:
             dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.maskM))
 
         self.triplt.set_data(dat_grid)
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if self.sim_ECM == False or self.IecmPlot == False:
+            if self.sim_ECM is False or self.IecmPlot is False:
 
                 Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
@@ -434,7 +403,7 @@ class AnimateCellData_smoothed(object):
                 self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
-            elif self.IecmPlot == True:
+            elif self.IecmPlot is True:
 
                 Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
 
@@ -452,7 +421,7 @@ class AnimateCellData_smoothed(object):
         titani = self.tit_extra + ' (simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -468,7 +437,7 @@ class AnimateGJData(object):
 
         self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
 
-        if p.gj_flux_sensitive == True:
+        if p.gj_flux_sensitive is True:
             max_zdata = p.max_gj_enhancement
 
         else:
@@ -493,7 +462,7 @@ class AnimateGJData(object):
 
         self.save = save
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -509,13 +478,13 @@ class AnimateGJData(object):
 
         # Next add a collection of cell polygons, with animated voltage data
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
             points = np.multiply(cells.cell_verts, p.um)
             self.coll2 =  PolyCollection(points, array=self.vdata_t[0], edgecolors='none', cmap=self.colormap)
             self.coll2.set_alpha(1.0)
             self.ax.add_collection(self.coll2)
 
-        elif p.sim_ECM == True:
+        elif p.sim_ECM is True:
 
             points = np.multiply(cells.cell_verts, p.um)
             self.coll2 =  PolyCollection(points, cmap=self.colormap, edgecolors='none')
@@ -523,7 +492,7 @@ class AnimateGJData(object):
             self.ax.add_collection(self.coll2)
 
 
-            if p.showCells == True:
+            if p.showCells is True:
 
                 # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
                 cell_edges_flat = cells.um*cells.mem_edges_flat
@@ -532,7 +501,7 @@ class AnimateGJData(object):
                 self.ax.add_collection(coll_mems)
 
         # set range of the colormap
-        if clrAutoscale == True:
+        if clrAutoscale is True:
 
              # first flatten the data (needed in case cells were cut)
             all_z = []
@@ -553,7 +522,7 @@ class AnimateGJData(object):
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -567,7 +536,7 @@ class AnimateGJData(object):
         # self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
         #     vx,vy,self.zdata_t[0],zorder=0, cmap=p.gj_cm,clim=[0,1])
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i, va='center',ha='center')
 
@@ -603,7 +572,7 @@ class AnimateGJData(object):
 
         self.collection.set_array(zz)
 
-        if self.p.sim_ECM == True:
+        if self.p.sim_ECM is True:
 
             self.coll2.set_array(self.sim.vcell_time[i]*1000)
 
@@ -618,7 +587,7 @@ class AnimateGJData(object):
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
         self.ax.set_title(titani)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
@@ -650,7 +619,7 @@ class AnimateGJData_smoothed(object):
 
         self.save = save
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -669,7 +638,7 @@ class AnimateGJData_smoothed(object):
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
-        if p.plotMask == True:
+        if p.plotMask is True:
             dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
         self.triplt = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud', cmap=clrmap)
@@ -679,7 +648,7 @@ class AnimateGJData_smoothed(object):
         #     self.vdata_t[0],shading='gouraud', cmap=self.colormap)
 
          # set range of the colormap
-        if clrAutoscale == True:
+        if clrAutoscale is True:
              # first flatten the data (needed in case cells were cut)
             all_z = []
             for zarray in self.vdata_t:
@@ -699,7 +668,7 @@ class AnimateGJData_smoothed(object):
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -713,7 +682,7 @@ class AnimateGJData_smoothed(object):
         # self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
         #     vx,vy,self.zdata_t[0],zorder=10, cmap=p.gj_cm,clim=[0,1])
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
@@ -753,7 +722,7 @@ class AnimateGJData_smoothed(object):
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,self.cells.maskM)
 
-        if self.p.plotMask == True:
+        if self.p.plotMask is True:
             dat_grid = ma.masked_array(dat_grid, np.logical_not(self.cells.maskM))
 
         self.triplt.set_array(dat_grid.ravel())
@@ -764,7 +733,7 @@ class AnimateGJData_smoothed(object):
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
         self.ax.set_title(titani)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
@@ -801,7 +770,7 @@ class PlotWhileSolving(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if clrAutoscale == True:
+        if clrAutoscale is True:
 
             self.cmean = np.mean(vdata)
             self.cmin = round(np.min(vdata),1)
@@ -812,14 +781,14 @@ class PlotWhileSolving(object):
                 self.cmin = self.cmin - 0.1
                 self.cmax = self.cmax + 0.1
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
 
             self.cmin = clrMin
             self.cmax = clrMax
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
 
-            if p.showCells == True:
+            if p.showCells is True:
                 # Add a collection of cell polygons, with animated voltage data
                 points = np.multiply(cells.cell_verts, p.um)
                 self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
@@ -836,16 +805,16 @@ class PlotWhileSolving(object):
                 self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
                     cmap=self.colormap)
 
-        elif p.sim_ECM == True:
+        elif p.sim_ECM is True:
 
             dat_grid = sim.vm_Matrix[0]*1000
 
-            if p.plotMask == True:
+            if p.plotMask is True:
                 dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
-            if p.showCells == True:
+            if p.showCells is True:
 
                 # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
                 cell_edges_flat = cells.um*cells.mem_edges_flat
@@ -858,7 +827,7 @@ class PlotWhileSolving(object):
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
 
-        if number_cells == True and p.showCells == True:
+        if number_cells is True and p.showCells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
@@ -867,7 +836,7 @@ class PlotWhileSolving(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        if p.save_solving_plot == True:
+        if p.save_solving_plot is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + '/plotWhileSolving'
             betse_cache_dir = os.path.expanduser(images_path)
@@ -880,9 +849,9 @@ class PlotWhileSolving(object):
 
     def updatePlot(self,sim,p):
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
 
-            if p.showCells == True:
+            if p.showCells is True:
                 zv = sim.vm_time[-1]*1000
                 self.coll2.set_array(zv)
             else:
@@ -892,14 +861,14 @@ class PlotWhileSolving(object):
                 self.coll2.set_array(dat_grid.ravel())
 
         else:
-            if p.plotMask == False:
+            if p.plotMask is False:
                 zv = sim.vm_Matrix[-1]*1000
             else:
                 zv = ma.masked_array(sim.vm_Matrix[-1]*1000, np.logical_not(self.cells.maskM))
 
             self.coll2.set_data(zv)
 
-        if self.clrAutoscale == True:
+        if self.clrAutoscale is True:
 
             cmin = 1000*np.min(sim.vm_time[-1])
             cmax = 1000*np.max(sim.vm_time[-1])
@@ -913,7 +882,7 @@ class PlotWhileSolving(object):
 
         self.fig.canvas.draw()
 
-        if p.save_solving_plot == True:
+        if p.save_solving_plot is True:
             self.i = self.i + 1
             savename = self.savedAni + str(self.i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
@@ -936,7 +905,7 @@ class PlotWhileSolving(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.clrAutoscale == True:
+        if self.clrAutoscale is True:
 
             self.cmean = np.mean(vdata)
             self.cmin = round(np.min(vdata),1)
@@ -947,14 +916,14 @@ class PlotWhileSolving(object):
                 self.cmin = self.cmin - 0.1
                 self.cmax = self.cmax + 0.1
 
-        elif self.clrAutoscale == False:
+        elif self.clrAutoscale is False:
 
             self.cmin = self.clrMin
             self.cmax = self.clrMax
 
-        if p.sim_ECM == False:
+        if p.sim_ECM is False:
 
-            if p.showCells == True:
+            if p.showCells is True:
                 # Add a collection of cell polygons, with animated voltage data
                 points = np.multiply(cells.cell_verts, p.um)
                 self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
@@ -968,22 +937,22 @@ class PlotWhileSolving(object):
 
                 # dat_grid = np.multiply(dat_grid,cells.maskM)
                 #
-                if p.plotMask == True:
+                if p.plotMask is True:
                     dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
                 #
                 self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
                     cmap=self.colormap)
 
-        elif p.sim_ECM == True:
+        elif p.sim_ECM is True:
 
             dat_grid = sim.vm_Matrix[0]*1000
 
-            if p.plotMask == True:
+            if p.plotMask is True:
                 dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
-            if p.scheduled_options['extV'] != 0 and p.sim_ECM == True and p.extVPlot == True:
+            if p.scheduled_options['extV'] != 0 and p.sim_ECM is True and p.extVPlot is True:
 
                 boundv = sim.v_env*1e3
 
@@ -992,7 +961,7 @@ class PlotWhileSolving(object):
 
                 self.vext_plot.set_clim(self.cmin,self.cmax)
 
-            if p.showCells == True:
+            if p.showCells is True:
 
                 # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
                 cell_edges_flat = cells.um*cells.mem_edges_flat
@@ -1005,7 +974,7 @@ class PlotWhileSolving(object):
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
 
-        if self.number_cells == True and p.showCells == True:
+        if self.number_cells is True and p.showCells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
@@ -1047,7 +1016,7 @@ class AnimateCurrent(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -1055,11 +1024,11 @@ class AnimateCurrent(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        if clrAutoscale == False:
+        if clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
-        if gj_current == True:
+        if gj_current is True:
 
             Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
@@ -1070,7 +1039,7 @@ class AnimateCurrent(object):
 
             self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-            # if p.I_overlay == True:
+            # if p.I_overlay is True:
 
             self.streamplot = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
                 linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
@@ -1078,7 +1047,7 @@ class AnimateCurrent(object):
             self.tit = 'Gap junction current'
 
             # set range of the colormap
-            if clrAutoscale == True:
+            if clrAutoscale is True:
 
                 self.cmin = np.min(Jmag_M)
                 self.cmax = np.max(Jmag_M)
@@ -1094,7 +1063,7 @@ class AnimateCurrent(object):
 
             self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-            # if p.I_overlay == True:
+            # if p.I_overlay is True:
 
             self.streamplot = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
                 linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
@@ -1102,13 +1071,13 @@ class AnimateCurrent(object):
             self.tit = 'Total current'
 
             # # set range of the colormap
-            if clrAutoscale == True:
+            if clrAutoscale is True:
 
                 self.cmin = np.min(Jmag_M)
                 self.cmax = np.max(Jmag_M)
 
 
-        if clrAutoscale == False:
+        if clrAutoscale is False:
 
             self.meshplot.set_clim(self.cmin,self.cmax)
 
@@ -1132,7 +1101,7 @@ class AnimateCurrent(object):
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.gj_current == True:
+        if self.gj_current is True:
 
             Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
@@ -1143,7 +1112,7 @@ class AnimateCurrent(object):
 
             self.meshplot.set_data(Jmag_M)
 
-            # if self.p.I_overlay == True:
+            # if self.p.I_overlay is True:
 
             self.streamplot.lines.remove()
             self.ax.patches = []
@@ -1162,7 +1131,7 @@ class AnimateCurrent(object):
 
             self.meshplot.set_data(Jmag_M)
 
-            # if self.p.I_overlay == True:
+            # if self.p.I_overlay is True:
 
             self.streamplot.lines.remove()
             self.ax.patches = []
@@ -1174,7 +1143,7 @@ class AnimateCurrent(object):
 
         self.meshplot.set_clim(0,cmax)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -1190,7 +1159,7 @@ class AnimateEfield(object):
         self.cells = cells
         self.save = save
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -1198,14 +1167,14 @@ class AnimateEfield(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        if p.sim_ECM == True and p.ani_Efield_type == 'ECM':
+        if p.sim_ECM is True and p.ani_Efield_type == 'ECM':
 
             efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
 
             self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
                 cells.ymin*p.um, cells.ymax*p.um], cmap=p.default_cm)
 
-            if p.plot_Efield_vector == True:
+            if p.plot_Efield_vector is True:
                 enorm = np.max(np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2))
 
                 self.streamE = self.ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1],
@@ -1213,7 +1182,7 @@ class AnimateEfield(object):
 
             tit_extra = 'Extracellular'
 
-        elif p.ani_Efield_type == 'GJ' or p.sim_ECM == False:
+        elif p.ani_Efield_type == 'GJ' or p.sim_ECM is False:
 
             E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
             sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0,method=p.interp_type)
@@ -1225,7 +1194,7 @@ class AnimateEfield(object):
             self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
                 cells.ymin*p.um, cells.ymax*p.um],cmap=p.default_cm)
 
-            if p.ani_Efield_vector == True:
+            if p.ani_Efield_vector is True:
 
                 enorm = np.max(efield)
 
@@ -1243,7 +1212,7 @@ class AnimateEfield(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autoscale_Efield_ani == False:
+        if p.autoscale_Efield_ani is False:
             self.msh.set_clim(p.Efield_ani_min_clr,p.Efield_ani_max_clr)
 
         cb = self.fig.colorbar(self.msh)
@@ -1266,17 +1235,17 @@ class AnimateEfield(object):
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.p.sim_ECM == True and self.p.ani_Efield_type == 'ECM':
+        if self.p.sim_ECM is True and self.p.ani_Efield_type == 'ECM':
 
             efield = np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2)
             self.msh.set_data(efield)
 
-            if self.p.ani_Efield_vector == True:
+            if self.p.ani_Efield_vector is True:
 
                 enorm = np.max(np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2))
                 self.streamE.set_UVC(self.sim.efield_ecm_x_time[i]/enorm,self.sim.efield_ecm_y_time[i]/enorm)
 
-        elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM == False:
+        elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM is False:
 
             E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
             self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
@@ -1288,17 +1257,17 @@ class AnimateEfield(object):
 
             self.msh.set_data(efield)
 
-            if self.p.ani_Efield_vector == True:
+            if self.p.ani_Efield_vector is True:
 
                 enorm = np.max(efield)
                 self.streamE.set_UVC(E_gj_x/enorm,E_gj_y/enorm)
 
         cmax = np.max(efield)
 
-        if self.p.autoscale_Efield_ani == True:
+        if self.p.autoscale_Efield_ani is True:
             self.msh.set_clim(0,cmax)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -1314,7 +1283,7 @@ class AnimateVelocity(object):
         self.cells = cells
         self.save = save
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -1322,7 +1291,7 @@ class AnimateVelocity(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        if p.sim_ECM == True and p.ani_Velocity_type == 'ECM':
+        if p.sim_ECM is True and p.ani_Velocity_type == 'ECM':
 
             vfield = np.sqrt(sim.u_env_x_time[0]**2 + sim.u_env_y_time[0]**2)*1e9
 
@@ -1336,7 +1305,7 @@ class AnimateVelocity(object):
 
             tit_extra = 'Extracellular'
 
-        elif p.ani_Velocity_type == 'GJ' or p.sim_ECM == True:
+        elif p.ani_Velocity_type == 'GJ' or p.sim_ECM is True:
 
             ugjx = sim.u_cells_x_time[0]
             ugjy = sim.u_cells_y_time[0]
@@ -1376,7 +1345,7 @@ class AnimateVelocity(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autoscale_Velocity_ani == False:
+        if p.autoscale_Velocity_ani is False:
             self.msh.set_clim(p.Velocity_ani_min_clr,p.Velocity_ani_max_clr)
 
         cb = self.fig.colorbar(self.msh)
@@ -1399,7 +1368,7 @@ class AnimateVelocity(object):
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.p.sim_ECM == True and self.p.ani_Velocity_type == 'ECM':
+        if self.p.sim_ECM is True and self.p.ani_Velocity_type == 'ECM':
 
             vfield = np.sqrt(self.sim.u_env_x_time[i]**2 + self.sim.u_env_y_time[i]**2)*1e9
 
@@ -1409,7 +1378,7 @@ class AnimateVelocity(object):
 
             self.streamV.set_UVC(self.sim.u_env_x_time[i]/vnorm,self.sim.u_env_y_time[i]/vnorm)
 
-        elif self.p.ani_Velocity_type == 'GJ' or self.p.sim_ECM == False:
+        elif self.p.ani_Velocity_type == 'GJ' or self.p.sim_ECM is False:
 
             ugjx = self.sim.u_cells_x_time[i]
             ugjy = self.sim.u_cells_y_time[i]
@@ -1442,10 +1411,10 @@ class AnimateVelocity(object):
 
         cmax = np.max(vfield)
 
-        if self.p.autoscale_Velocity_ani == True:
+        if self.p.autoscale_Velocity_ani is True:
             self.msh.set_clim(0,cmax)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -1461,7 +1430,7 @@ class AnimateForce(object):
             self.cells = cells
             self.save = save
 
-            if self.save == True:
+            if self.save is True:
                 # Make the BETSE-specific cache directory if not found.
                 images_path = p.sim_results + saveFolder
                 betse_cache_dir = os.path.expanduser(images_path)
@@ -1490,7 +1459,7 @@ class AnimateForce(object):
 
             self.streamE = self.ax.quiver(p.um*cells.cell_centres[:,0], p.um*cells.cell_centres[:,1],fx/ffmax,fy/ffmax)
 
-            if p.autoscale_force_ani == True:
+            if p.autoscale_force_ani is True:
                 self.collection.set_clim(ffmin,ffmax)
 
             else:
@@ -1545,13 +1514,13 @@ class AnimateForce(object):
 
         self.collection.set_array(ff)
 
-        if self.p.autoscale_force_ani == True:
+        if self.p.autoscale_force_ani is True:
             self.collection.set_clim(ffmin,ffmax)
 
 
         self.streamE.set_UVC(fx/ffmax,fy/ffmax)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -1585,7 +1554,7 @@ class AnimateEnv(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -1593,7 +1562,7 @@ class AnimateEnv(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        if clrAutoscale == False:
+        if clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -1601,7 +1570,7 @@ class AnimateEnv(object):
                                    origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=p.default_cm)
 
 
-        if clrAutoscale == False:
+        if clrAutoscale is False:
 
             self.meshplot.set_clim(self.cmin,self.cmax)
 
@@ -1627,7 +1596,7 @@ class AnimateEnv(object):
 
         self.meshplot.set_data(self.sim.venv_time[i].reshape(self.cells.X.shape)*1000)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -1675,7 +1644,7 @@ class AnimateMem(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -1695,9 +1664,9 @@ class AnimateMem(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if p.sim_ECM == False or p.IecmPlot == False:
+            if p.sim_ECM is False or p.IecmPlot is False:
 
                 Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
@@ -1711,7 +1680,7 @@ class AnimateMem(object):
 
                 self.tit_extra = 'Gap junction current'
 
-            elif p.IecmPlot == True:
+            elif p.IecmPlot is True:
 
                 Jmag_M = np.sqrt(sim.I_env_x_time[0]**2 + sim.I_env_y_time[0]**2) + 1e-30
 
@@ -1731,7 +1700,7 @@ class AnimateMem(object):
 
         # set range of the colormap
 
-        if clrAutoscale == True:
+        if clrAutoscale is True:
             # first flatten the data (needed in case cells were cut)
             all_z = []
             for zarray in sim.rho_pump_time:
@@ -1747,7 +1716,7 @@ class AnimateMem(object):
                 self.cmin = self.cmin - 1
                 self.cmax = self.cmax + 1
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -1759,7 +1728,7 @@ class AnimateMem(object):
 
         self.tit = 'Pump Density Factor'
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
@@ -1793,9 +1762,9 @@ class AnimateMem(object):
 
         self.coll.set_array(zz)
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if self.sim_ECM == False or self.IecmPlot == False:
+            if self.sim_ECM is False or self.IecmPlot is False:
 
                 Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
 
@@ -1810,7 +1779,7 @@ class AnimateMem(object):
                 self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
-            elif self.IecmPlot == True:
+            elif self.IecmPlot is True:
 
                 Jmag_M = np.sqrt(self.sim.I_env_x_time[i]**2 + self.sim.I_env_y_time[i]**2) + 1e-30
 
@@ -1828,7 +1797,7 @@ class AnimateMem(object):
         titani = self.tit_extra + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -1875,7 +1844,7 @@ class AnimateDyeData(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.save == True:
+        if self.save is True:
             # Make the BETSE-specific cache directory if not found.
             images_path = p.sim_results + saveFolder
             betse_cache_dir = os.path.expanduser(images_path)
@@ -1892,9 +1861,9 @@ class AnimateDyeData(object):
         self.collection.set_array(self.zdata_t[0])
         self.ax.add_collection(self.collection)
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if p.IecmPlot == False:
+            if p.IecmPlot is False:
 
                 dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
                     sim.Dye_flux_x_gj_time[0],(self.cells.X,self.cells.Y),method=p.interp_type,fill_value=0)
@@ -1915,7 +1884,7 @@ class AnimateDyeData(object):
                     F_y.reshape(cells.X.shape),density=self.density,linewidth=lw,color='k',
                     cmap=clrmap,arrowsize=1.5)
 
-            elif p.IecmPlot == True:
+            elif p.IecmPlot is True:
 
                 Fmag_M = np.sqrt(sim.Dye_flux_env_x_time[0]**2 + sim.Dye_flux_env_y_time[0]**2) + 1e-30
 
@@ -1932,7 +1901,7 @@ class AnimateDyeData(object):
 
         # set range of the colormap
 
-        if clrAutoscale == True:
+        if clrAutoscale is True:
             # first flatten the data (needed in case cells were cut)
             all_z = []
             for zarray in self.zdata_t:
@@ -1955,7 +1924,7 @@ class AnimateDyeData(object):
             else:
                 self.cmin = cminb
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
@@ -1967,7 +1936,7 @@ class AnimateDyeData(object):
 
         self.tit = 'Morphogen concentration in cell and environment'
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
@@ -2002,9 +1971,9 @@ class AnimateDyeData(object):
         self.collection.set_array(zz)
         self.bkgPlot.set_data(zenv.reshape(self.cells.X.shape))
 
-        if self.current_overlay == True:
+        if self.current_overlay is True:
 
-            if self.IecmPlot == False:
+            if self.IecmPlot is False:
 
                 dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
                     self.sim.Dye_flux_x_gj_time[i],(self.cells.X,self.cells.Y),method=self.p.interp_type,fill_value=0)
@@ -2025,7 +1994,7 @@ class AnimateDyeData(object):
                 self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,F_x,F_y,
                     density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
 
-            elif self.IecmPlot == True:
+            elif self.IecmPlot is True:
 
                 Fmag_M = np.sqrt(self.sim.Dye_flux_env_x_time[i]**2 + self.sim.Dye_flux_env_y_time[i]**2) + 1e-30
 
@@ -2045,7 +2014,7 @@ class AnimateDyeData(object):
         titani = 'sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s'
         self.ax.set_title(titani)
 
-        if self.save == True:
+        if self.save is True:
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
@@ -2184,15 +2153,15 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.plotMask == True:
+        if p.plotMask is True:
             zdata = ma.masked_array(zdata, np.logical_not(cells.maskM))
 
         meshplt = plt.imshow(zdata,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
 
-        if pointOverlay == True:
+        if pointOverlay is True:
             scat = ax.scatter(p.um*cells.mem_mids_flat[:,0],p.um*cells.mem_mids_flat[:,1], c='k')
 
-        if edgeOverlay == True:
+        if edgeOverlay is True:
             # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
             cell_edges_flat = cells.um*cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat,colors='k')
@@ -2211,11 +2180,11 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
                 minval = minval - 0.1
                 maxval = maxval + 0.1
 
-        if zdata is not None and clrAutoscale == True:
+        if zdata is not None and clrAutoscale is True:
             meshplt.set_clim(minval,maxval)
             ax_cb = fig.colorbar(meshplt,ax=ax)
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
 
             meshplt.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(meshplt,ax=ax)
@@ -2223,17 +2192,17 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         else:
             ax_cb = None
 
-        if number_cells == True:
+        if number_cells is True:
 
             for i,cll in enumerate(cells.cell_centres):
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
-        if number_mems == True:
+        if number_mems is True:
 
             for i,mem in enumerate(cells.mem_mids_flat):
                 ax.text(p.um*mem[0],p.um*mem[1],i,ha='center',va='center')
 
-        if current_overlay == True:
+        if current_overlay is True:
 
             I_overlay(sim,cells,p,ax,clrmap,plotIecm)
 
@@ -2309,11 +2278,11 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
                 minval = minval - 0.1
                 maxval = maxval + 0.1
 
-        if zdata is not None and clrAutoscale == True:
+        if zdata is not None and clrAutoscale is True:
             coll.set_clim(minval,maxval)
             ax_cb = fig.colorbar(coll,ax=ax)
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
 
             coll.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(coll,ax=ax)
@@ -2321,11 +2290,11 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
         elif zdata is None:
             ax_cb = None
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
-        if current_overlay == True:
+        if current_overlay is True:
 
             I_overlay(sim,cells,p,ax,clrmap,plotIecm)
 
@@ -2414,7 +2383,7 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
         dat_grid = np.nan_to_num(dat_grid)
         dat_grid = np.multiply(dat_grid,cells.maskM)
 
-        if p.plotMask == True:
+        if p.plotMask is True:
             dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
         triplt = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
@@ -2431,30 +2400,30 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
             minval = minval - 0.1
             maxval = maxval + 0.1
 
-        if zdata is not None and clrAutoscale == True:
+        if zdata is not None and clrAutoscale is True:
             triplt.set_clim(minval,maxval)
             ax_cb = fig.colorbar(triplt,ax=ax)
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
             triplt.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(triplt,ax=ax)
         elif zdata is None:
             ax_cb = None
 
-        if pointOverlay == True:
+        if pointOverlay is True:
             ax.scatter(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1], c=z,cmap=clrmap)
 
-        if edgeOverlay == True:
+        if edgeOverlay is True:
             # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
             cell_edges_flat = cells.um*cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
 
-        if current_overlay == True:
+        if current_overlay is True:
 
             I_overlay(sim,cells,p,ax,clrmap,plotIecm)
 
-        if number_cells == True:
+        if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
@@ -2465,20 +2434,20 @@ def plotEfield(sim,cells,p):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    if p.sim_ECM == True and p.plot_Efield_type == 'ECM':
+    if p.sim_ECM is True and p.plot_Efield_type == 'ECM':
 
         efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
         msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
             cells.ymax*p.um],cmap=p.default_cm)
 
-        if p.plot_Efield_vector == True:
+        if p.plot_Efield_vector is True:
 
             ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], sim.efield_ecm_x_time[-1].ravel(),
                 sim.efield_ecm_y_time[-1].ravel())
 
         tit_extra = 'Extracellular'
 
-    elif p.plot_Efield_type == 'GJ' or p.sim_ECM == False:
+    elif p.plot_Efield_type == 'GJ' or p.sim_ECM is False:
 
         E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
             sim.efield_gj_x_time[-1],(cells.X,cells.Y), method=p.interp_type,fill_value=0)
@@ -2493,7 +2462,7 @@ def plotEfield(sim,cells,p):
         msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
             cells.ymax*p.um],cmap=p.default_cm)
 
-        if p.plot_Efield_vector == True:
+        if p.plot_Efield_vector is True:
 
             lw = (3.0*efield/efield.max()) + 0.5
 
@@ -2502,7 +2471,7 @@ def plotEfield(sim,cells,p):
 
         tit_extra = 'Intracellular'
 
-    if p.showCells == True:
+    if p.showCells is True:
         # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
         cell_edges_flat = cells.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
@@ -2518,7 +2487,7 @@ def plotEfield(sim,cells,p):
 
     ax.axis([xmin,xmax,ymin,ymax])
 
-    if p.autoscale_Efield == False:
+    if p.autoscale_Efield is False:
         msh.set_clim(p.Efield_min_clr,p.Efield_max_clr)
 
     cb = fig.colorbar(msh)
@@ -2806,12 +2775,12 @@ def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = Tr
             minval_ecm = minval_ecm - 0.1
             maxval_ecm = maxval_ecm + 0.1
 
-        if zdata is not None and clrAutoscale == True:
+        if zdata is not None and clrAutoscale is True:
             coll.set_clim(minval_cells,maxval_cells)
             scat.set_clim(minval_ecm,maxval_ecm)
             ax_cb = fig.colorbar(scat,ax=ax)
 
-        elif clrAutoscale == False:
+        elif clrAutoscale is False:
 
             coll.set_clim(clrMin,clrMax)
             scat.set_clim(clrMin,clrMax)
@@ -2892,7 +2861,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     ax.axis([xmin,xmax,ymin,ymax])
 
-    if p.sim_ECM == False or plot_Iecm == False:
+    if p.sim_ECM is False or plot_Iecm is False:
 
         Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
 
@@ -2908,7 +2877,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         ax.set_title('Final gap junction currents')
 
-    elif plot_Iecm == True:
+    elif plot_Iecm is True:
 
         Jmag_M = np.sqrt(sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
 
@@ -2924,22 +2893,22 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         ax.set_title('Final total currents')
 
-    if clrAutoscale == True:
+    if clrAutoscale is True:
         ax_cb = fig.colorbar(meshplot,ax=ax)
 
-    elif clrAutoscale == False:
+    elif clrAutoscale is False:
 
         meshplot.set_clim(clrMin,clrMax)
         ax_cb = fig.colorbar(meshplot,ax=ax)
 
-    if p.showCells == True:
+    if p.showCells is True:
         # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
         cell_edges_flat = cells.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.2)
         ax.add_collection(coll)
 
-    if number_cells == True:
+    if number_cells is True:
 
         for i,cll in enumerate(cells.cell_centres):
             ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
@@ -2990,7 +2959,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
             cb_ticks.append(i+1)
             cb_tick_labels.append(name)
 
-    if p.plot_cutlines == True:
+    if p.plot_cutlines is True:
 
         if len(dyna.cuts_target_inds):
 
@@ -3024,7 +2993,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     else:
         ax_cb = None
 
-    if p.enumerate_cells == True:
+    if p.enumerate_cells is True:
 
         for i,cll in enumerate(cells.cell_centres):
             ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center',zorder = 20)
@@ -3076,7 +3045,7 @@ def clusterPlotMesh(p,dyna,cells,clrmap=cm.jet):
             cb_ticks.append(i+2)
             cb_tick_labels.append(name)
 
-    if p.plot_cutlines == True:
+    if p.plot_cutlines is True:
 
         if len(dyna.cuts_target_inds):
 
@@ -3138,7 +3107,7 @@ def exportData(cells,sim,p):
         cc_m = np.asarray(cc_m)
         cc_cell.append(cc_m)
 
-    if p.sim_ECM == False:
+    if p.sim_ECM is False:
         vm = [arr[ci]*1000 for arr in sim.vm_time]
 
     else:
@@ -3152,7 +3121,7 @@ def exportData(cells,sim,p):
     t = np.asarray(sim.time)
     cc_cell = np.asarray(cc_cell)
 
-    if p.scheduled_options['IP3'] != 0 or p.Ca_dyn == True:
+    if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
         IP3_time = [arr[ci] for arr in sim.cIP3_time]
         IP3_time = np.asarray(IP3_time)
@@ -3194,7 +3163,7 @@ def export2dData(simdata,cells,p):
 
 def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
-    if p.sim_ECM == False or plotIecm == False:
+    if p.sim_ECM is False or plotIecm is False:
 
         Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
 
@@ -3207,7 +3176,7 @@ def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
 
         ax.set_title('(gap junction current overlay)')
 
-    elif plotIecm == True:
+    elif plotIecm is True:
 
         Jmag_M = np.sqrt(sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
 

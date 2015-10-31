@@ -19,10 +19,10 @@ class Dynamics(object):
 
     def __init__(self, sim, cells, p):
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
 
-        elif p.sim_ECM == False:
+        elif p.sim_ECM is False:
             self.data_length = len(cells.cell_i)
 
     def runAllInit(self,sim,cells,p):
@@ -226,7 +226,7 @@ class Dynamics(object):
 
                 self.scalar_IP3 = getattr(tb,self.function_IP3)(cells,sim,p)
 
-        if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
+        if p.scheduled_options['extV'] != 0 and p.sim_ECM is True:
 
             self.t_on_extV = p.scheduled_options['extV'][0]
             self.t_off_extV = p.scheduled_options['extV'][1]
@@ -240,7 +240,7 @@ class Dynamics(object):
             self.targets_extV_positive = p.boundary_profiles[name_positive]
             self.targets_extV_negative = p.boundary_profiles[name_negative]
 
-        if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM == True:
+        if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
 
             self.t_on_ecmJ = p.scheduled_options['ecmJ'][0]
             self.t_off_ecmJ= p.scheduled_options['ecmJ'][1]
@@ -255,7 +255,7 @@ class Dynamics(object):
             self.targets_ecmJ = [item for sublist in self.targets_ecmJ for item in sublist]
 
 
-        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True:
+        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True:
 
             self.t_cuts = p.scheduled_options['cuts'][0]
             self.apply_cuts = p.scheduled_options['cuts'][1]
@@ -417,11 +417,11 @@ class Dynamics(object):
 
             effector_Kenv = tb.pulse(t,self.t_on_Kenv,self.t_off_Kenv,self.t_change_Kenv)
 
-            if p.sim_ECM == False:
+            if p.sim_ECM is False:
 
                 sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
-            elif p.sim_ECM == True: # simulate addition of potassium salt to remain charge neutral
+            elif p.sim_ECM is True: # simulate addition of potassium salt to remain charge neutral
 
                 sim.c_env_bound[sim.iK] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['K']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['M']
@@ -430,11 +430,11 @@ class Dynamics(object):
 
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
-            if p.sim_ECM == False:
+            if p.sim_ECM is False:
 
                 sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
 
-            elif p.sim_ECM == True:  # simulate addition of sodium chloride to remain charge neutral
+            elif p.sim_ECM is True:  # simulate addition of sodium chloride to remain charge neutral
 
                 sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Na']
@@ -443,11 +443,11 @@ class Dynamics(object):
 
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
 
-            if p.sim_ECM == False:
+            if p.sim_ECM is False:
 
                 sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
-            elif p.sim_ECM == True: # simulate addition of sodium salt to remain charge neutral
+            elif p.sim_ECM is True: # simulate addition of sodium salt to remain charge neutral
 
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
@@ -456,11 +456,11 @@ class Dynamics(object):
 
             effector_MorphEnv = tb.pulse(t,self.t_on_MorphEnv,self.t_off_MorphEnv,self.t_change_MorphEnv)
 
-            if p.sim_ECM == False:
+            if p.sim_ECM is False:
 
                 sim.cDye_env[:] = self.conc_MorphEnv*effector_MorphEnv + sim.cDye_env*(1-effector_MorphEnv)
 
-            elif p.sim_ECM == True: # simulate addition of counter salt to maintain charge neutrality:
+            elif p.sim_ECM is True: # simulate addition of counter salt to maintain charge neutrality:
 
                 sim.c_dye_bound = self.conc_MorphEnv*effector_MorphEnv + p.cDye_to*(1-effector_MorphEnv)
 
@@ -536,7 +536,7 @@ class Dynamics(object):
 
             for i, dmat in enumerate(sim.D_env):
 
-                if p.env_type == True:
+                if p.env_type is True:
 
                     sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                         (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
@@ -555,7 +555,7 @@ class Dynamics(object):
 
             sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
 
-            if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+            if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
 
                 sim.D_env_weight_u[:,0] = 0
                 sim.D_env_weight_u[:,-1] = 0
@@ -567,18 +567,18 @@ class Dynamics(object):
                 sim.D_env_weight_v[0,:] = 0
                 sim.D_env_weight_v[-1,:] = 0
 
-        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts == True and t>self.t_cuts:
+        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True and t>self.t_cuts:
 
             target_method = p.tissue_profiles[self.apply_cuts]['target method']
 
             removeCells(self.apply_cuts,target_method,sim,cells,p,simMod = True, dangling_gj = self.dangling_gj)
 
             # redo main data length variable for this dynamics module with updated world:
-            if p.sim_ECM == True:
+            if p.sim_ECM is True:
 
                 self.data_length = len(cells.mem_i)
 
-            elif p.sim_ECM == False:
+            elif p.sim_ECM is False:
 
                 self.data_length = len(cells.cell_i)
 
@@ -588,7 +588,7 @@ class Dynamics(object):
 
             self.runAllInit(sim,cells,p)
 
-            if p.plot_while_solving == True:
+            if p.plot_while_solving is True:
 
                 sim.checkPlot.resetData(cells,sim,p)
 
@@ -597,7 +597,7 @@ class Dynamics(object):
             cells.maskM = cells.maskM_temp[:]
             cells.inds_env = cells.inds_env_temp[:]
 
-        if p.scheduled_options['extV'] != 0 and p.sim_ECM == True:
+        if p.scheduled_options['extV'] != 0 and p.sim_ECM is True:
 
             effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
 
@@ -629,19 +629,19 @@ class Dynamics(object):
             self.calciumDynamics(sim,cells,p)
 
         # update membrane permeability if dye targets an ion channel:
-        if p.voltage_dye == True and sim.dye_target is not None:
+        if p.voltage_dye is True and sim.dye_target is not None:
 
-            if p.Dye_acts_extracell == False:
+            if p.Dye_acts_extracell is False:
 
                 sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
 
-                if p.sim_ECM == True:
+                if p.sim_ECM is True:
                     sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.mem_to_cells]
 
                 else:
                     sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye
 
-            elif p.Dye_acts_extracell == True and p.sim_ECM == True:
+            elif p.Dye_acts_extracell is True and p.sim_ECM is True:
 
                 sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_env,p.Dye_Hill_K,p.Dye_Hill_exp)
 
@@ -811,7 +811,7 @@ class Dynamics(object):
     def tissueProfiles(self,sim,cells,p):
 
         """
-        Reads in parameters data to build cell and membrane specific (if p.sim_ECM == True) index
+        Reads in parameters data to build cell and membrane specific (if p.sim_ECM is True) index
         sets for each user-defined tissue profile.
 
         """
@@ -825,7 +825,7 @@ class Dynamics(object):
 
         # Do a first search to find requests for any cavities as they modify the world structure:
 
-        if cells.do_once_cavity == True:  # if we haven't done this already...
+        if cells.do_once_cavity is True:  # if we haven't done this already...
             for name in profile_names:
 
                 data_stream = p.tissue_profiles[name]
@@ -855,7 +855,7 @@ class Dynamics(object):
 
                 if len(self.cell_target_inds[name]):
 
-                    if p.sim_ECM == True:
+                    if p.sim_ECM is True:
                         #get ecm targets
 
                         ecm_targs_cell = list(cells.map_cell2ecm[self.cell_target_inds[name]])
@@ -946,13 +946,13 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
             if chaff == 'bitmap':
 
-                if p.use_bitmaps == True:
+                if p.use_bitmaps is True:
 
                     bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
                     bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
                     target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
 
-                    if p.sim_ECM == True and ignoreECM == False and len(target_inds):
+                    if p.sim_ECM is True and ignoreECM is False and len(target_inds):
 
                         target_inds = cells.cell_to_mems[target_inds]
                         target_inds,_,_ = tb.flatten(target_inds)
@@ -963,10 +963,10 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
             elif chaff == 'bounda':
 
-                if p.sim_ECM == False or ignoreECM == True:
+                if p.sim_ECM is False or ignoreECM is True:
                     target_inds = cells.bflags_cells
 
-                elif p.sim_ECM == True and ignoreECM == False:
+                elif p.sim_ECM is True and ignoreECM is False:
                     target_inds = cells.cell_to_mems[cells.bflags_cells]
                     target_inds,_,_ = tb.flatten(target_inds)
 
@@ -987,19 +987,19 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
                 target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
 
-                if p.sim_ECM == False or ignoreECM == True:
+                if p.sim_ECM is False or ignoreECM is True:
                     target_inds = target_inds_cell
 
-                elif p.sim_ECM == True and ignoreECM == False:
+                elif p.sim_ECM is True and ignoreECM is False:
                     target_inds = cells.cell_to_mems[target_inds_cell]
                     target_inds,_,_ = tb.flatten(target_inds)
 
         elif targets_description == 'all':
 
-            if p.sim_ECM == False or ignoreECM == True:
+            if p.sim_ECM is False or ignoreECM is True:
                 target_inds = cells.cell_i
 
-            elif p.sim_ECM == True and ignoreECM == False:
+            elif p.sim_ECM is True and ignoreECM is False:
                 target_inds = cells.cell_to_mems[cells.cell_i]
                 target_inds,_,_ = tb.flatten(target_inds)
 
@@ -1012,10 +1012,10 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
         target_inds_cell = targets_description
 
-        if p.sim_ECM == False or ignoreECM == True:
+        if p.sim_ECM is False or ignoreECM is True:
             target_inds = target_inds_cell
 
-        elif p.sim_ECM == True and ignoreECM == False:
+        elif p.sim_ECM is True and ignoreECM is False:
             target_inds = cells.cell_to_mems[target_inds_cell]
             target_inds,_,_ = tb.flatten(target_inds)
 
@@ -1051,7 +1051,7 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
         if targets_description == 'bitmap':
 
-            if p.use_bitmaps == True:
+            if p.use_bitmaps is True:
                 bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
                 bitmask.clipPoints(cells.xypts[:,0],cells.xypts[:,1])
                 target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
@@ -1078,7 +1078,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
     if isinstance(targets_description,str):
 
-        if p.use_bitmaps == True and targets_description == 'bitmap':
+        if p.use_bitmaps is True and targets_description == 'bitmap':
 
             bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
             bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
@@ -1117,7 +1117,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     cells.inds_env_temp = list(*(cells.maskM.ravel() == 0).nonzero())
 
 
-    if p.sim_ECM == True:
+    if p.sim_ECM is True:
 
         # get environmental targets around each removed cell:
         ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
@@ -1142,7 +1142,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
         for i, dmat in enumerate(sim.D_env):  # redo the MACs grid diffusion matrices:
 
-            if p.env_type == True:
+            if p.env_type is True:
 
                 sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                     (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
@@ -1161,7 +1161,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
         sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
 
-        if p.closed_bound == True:  # set full no slip boundary condition at exterior bounds
+        if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
 
             sim.D_env_weight_u[:,0] = 0
             sim.D_env_weight_u[:,-1] = 0
@@ -1176,7 +1176,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     # set up the situation to make cells joined to cut cells have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
 
-    if dangling_gj == True: # if we're creating a dangling gap junction situation
+    if dangling_gj is True: # if we're creating a dangling gap junction situation
 
         hurt_level = p.hurt_level  # amount by which membrane permeability increases for all ions
 
@@ -1193,7 +1193,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
         hurt_inds = (hurt_cells == 1).nonzero()
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
 
             mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
 
@@ -1211,14 +1211,14 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
         sim.Dm_base = np.copy(sim.Dm_cells)
 
-    if simMod == True:
+    if simMod is True:
 
         sim_names = list(sim.__dict__.keys())
         specials_list = ['cc_cells','cc_env','z_array','z_array_er','Dm_cells','fluxes_gj_x','fluxes_gj_y',
             'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_morpho','Dm_er_base','Dm_er_CICR',
             'D_gj','cc_er']
 
-        if p.sim_ECM == True:
+        if p.sim_ECM is True:
             specials_list.remove('cc_env')
             extra = ['z_array_cells']
             for ent in extra:
@@ -1330,7 +1330,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
     loggers.log_info('Recalculating cluster variables for new configuration...')
 
-    if p.sim_ECM == True:
+    if p.sim_ECM is True:
 
         cells.cellVerts(p)   # create individual cell polygon vertices
         # print(cells.mem_mids_flat)

@@ -430,7 +430,7 @@ produce IP3:        # Schedule cell production of IP3
   function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
   apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
-apply external voltage:   # apply external voltage to global boundary (needs simulate ECM == True)
+apply external voltage:   # apply external voltage to global boundary (needs simulate ECM is True)
 
     event happens: False            # turn the event on (True) or off (False)
     change start: 1.0                 # time event starts [s]
