@@ -1480,7 +1480,7 @@ class AnimateForce(object):
 
             self.ax.axis([xmin,xmax,ymin,ymax])
 
-            self.tit = "Electroosmotic Body Force"
+            self.tit = "Electric Field Induced Body Force"
             self.ax.set_title(self.tit)
             self.ax.set_xlabel('Spatial distance [um]')
             self.ax.set_ylabel('Spatial distance [um]')

@@ -1121,6 +1121,10 @@ class Simulator(object):
 
             if t in tsamples:
 
+                if p.GHK_calc is True:
+
+                    self.ghk_calculator(cells,p)
+
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
 
                 # add the new concentration and voltage data to the time-storage matrices:
@@ -1546,6 +1550,10 @@ class Simulator(object):
 
 
             if t in tsamples:
+
+                if p.GHK_calc is True:
+
+                    self.ghk_calculator(cells,p)
 
                 # #
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
@@ -3071,7 +3079,47 @@ class Simulator(object):
 
         """
 
-        pass
+        # begin by initializing all summation arrays for the cell network:
+        sum_PmAnion_out = np.zeros(len(cells.cell_i))
+        sum_PmAnion_in = np.zeros(len(cells.cell_i))
+        sum_PmCation_out = np.zeros(len(cells.cell_i))
+        sum_PmCation_in = np.zeros(len(cells.cell_i))
+
+        for i, z in enumerate(self.zs):
+
+            ion_type = np.sign(z)
+
+            if ion_type == -1:
+
+                if p.sim_ECM is True:
+
+                    Dm = np.dot(cells.M_sum_mems,self.Dm_cells[i])/cells.num_mems
+
+                    sum_PmAnion_in = sum_PmAnion_in + Dm*self.cc_cells[i]*(1/p.tm)
+                    sum_PmAnion_out = sum_PmAnion_out + Dm*self.cc_env[i][cells.map_cell2ecm]*(1/p.tm)
+
+                else:
+                    sum_PmAnion_in = sum_PmAnion_in + self.Dm_cells[i]*self.cc_cells[i]*(1/p.tm)
+                    sum_PmAnion_out = sum_PmAnion_out + self.Dm_cells[i]*self.cc_env[i]*(1/p.tm)
+
+            if ion_type == 1:
+
+                if p.sim_ECM is True:
+
+                    Dm = np.dot(cells.M_sum_mems,self.Dm_cells[i])/cells.num_mems
+
+                    sum_PmCation_in = sum_PmCation_in + Dm*self.cc_cells[i]*(1/p.tm)
+                    sum_PmCation_out = sum_PmCation_out + Dm*self.cc_env[i][cells.map_cell2ecm]*(1/p.tm)
+
+                else:
+                    sum_PmCation_in = sum_PmCation_in + self.Dm_cells[i]*self.cc_cells[i]*(1/p.tm)
+                    sum_PmCation_out = sum_PmCation_out + self.Dm_cells[i]*self.cc_env[i]*(1/p.tm)
+
+            self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
+
+            
+
+
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 

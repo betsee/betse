@@ -11,6 +11,7 @@ from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science.world import World
 from betse.science.dynamics import Dynamics
+import betse.science.finitediff as fd
 from betse.util.io import loggers
 from betse.util.path import files, paths
 import matplotlib.pyplot as plt
@@ -969,8 +970,14 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.data_type_force == 'ECM' and p.sim_ECM is True:
 
+
             force_x = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_x*(1/p.ff_env)
+
+            force_x = fd.integrator(force_x)  # smooth things out a bit...
+
             force_y = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_y*(1/p.ff_env)
+
+            force_y = fd.integrator(force_y) # smooth things out a bit...
 
             force_mag = np.sqrt(force_x**2 + force_y**2)
 
@@ -996,7 +1003,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.axis('equal')
             plt.axis([p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
-            plt.title('Final Extracellular Electroosmotic Body Force [N/m3]')
+            plt.title('Electric Field Induced Body Force [N/m3]')
 
             ax_f.set_xlabel('Spatial distance [um]')
             ax_f.set_ylabel('Spatial distance [um]')
@@ -1034,9 +1041,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                         clrMin = p.force_min_clr, clrMax = p.force_max_clr, clrmap = p.default_cm,
                         number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 
-            axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx,fy)
+            axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx/ff.max(),fy/ff.max(),scale=10)
 
-            figX.suptitle('Electroosmotic Cell Body Force',fontsize=14, fontweight='bold')
+            figX.suptitle('Electric Field Induced Body Force',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
             cbX.set_label('Body Force [N/m3]')

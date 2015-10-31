@@ -930,6 +930,10 @@ class World(object):
         self.cell_sa = np.asarray(self.cell_sa)
 
         # get an average cell_sa for each membrane domain (used in graph Laplacian calculation):
+        self.num_nn = np.asarray(self.num_nn)
+        nn_zero = (self.num_nn == 0).nonzero()
+        self.num_nn[nn_zero] = 1
+
         self.av_mem_sa = self.cell_sa/self.num_nn
 
         self.ave_sa_all = np.mean(self.cell_sa)/np.mean(self.num_nn)

@@ -374,7 +374,7 @@ change Na mem:       # Change the membrane permeability to Na+
   change start: 2.0                # time to start change [s]
   change finish: 7.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
-  multiplier: 200.0                # factor to multiply base level
+  multiplier: 50.0                # factor to multiply base level
   function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
   apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
 
@@ -617,7 +617,7 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 1.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
+    gap junction surface area: 5.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
