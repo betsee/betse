@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os, os.path
 import time
-from betse.exceptions import BetseExceptionSimulation
+from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 from matplotlib.collections import LineCollection, PolyCollection
 
 class SimRunner(object):
@@ -155,31 +155,30 @@ class SimRunner(object):
 
 
         if files.is_file(cells.savedWorld):
-            cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             loggers.log_info('Cell cluster loaded.')
 
-            if p.sim_ECM != cells.sim_ECM:
-                loggers.log_info("Ooops! Cell cluster and config settings don't match!")
-                loggers.log_info("Automatically creating cell cluster from current config file settings...")
-                loggers.log_info("Warning: specified tissue profiles may no longer be correctly assigned.")
-                self.makeWorld()  # create an instance of world
-                loggers.log_info('Now using cell cluster to run initialization.')
-                cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+            if p_old.config['general options'] != p.config['general options'] or \
+                    p_old.config['world options'] != p.config['world options']:
+
+                raise BetseExceptionParameters(
+                    "Important config file options are out of sync between seed and this init attempt!\n" +
+                    "Run 'betse seed' again to match the current settings of this config file.")
 
 
         else:
             loggers.log_info("Ooops! No such cell cluster file found to load!")
 
             if p.autoInit == True:
-                loggers.log_info("Automatically creating cell cluster from config file settings...")
+                loggers.log_info("Automatically seeding cell cluster from config file settings...")
                 self.makeWorld()  # create an instance of world
                 loggers.log_info('Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
 
             elif p.autoInit == False:
-                raise BetseExceptionSimulation("Simulation terminated due to missing initialization. Please run"
-                                               "an initialization and try again.")
+                raise BetseExceptionSimulation("Run terminated due to missing seed.\n "
+                                               "Please run 'betse seed' to try again.")
 
         sim = Simulator(p)   # create an instance of Simulator
 
@@ -210,11 +209,6 @@ class SimRunner(object):
             plt.show()
 
 
-
-        # if p.turn_all_plots_off == False:
-        #     plots4Init(p.plot_cell,cells,sim,p,saveImages=p.autosave)
-        #     plt.show()
-
     def simulate(self):
         '''
         Run simulation from a previously saved initialization.
@@ -232,8 +226,24 @@ class SimRunner(object):
 
 
         if files.is_file(sim.savedInit):
-            sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+            sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
             p.sim_ECM = cells.sim_ECM
+
+            if p_old.config['general options'] != p.config['general options'] or \
+                    p_old.config['world options'] != p.config['world options']:
+
+                raise BetseExceptionParameters(
+                    "Important config file options are out of sync between the seed and this sim attempt!\n" +
+                    "Run 'betse seed' and 'betse init' again to match the current settings of this config file.")
+
+            elif p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
+                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+
+                raise BetseExceptionParameters(
+                    "Important config file options are out of sync between the init and this sim attempt!\n" +
+                    "Run 'betse init' again to match the current settings of this config file.")
+
+
 
         else:
 

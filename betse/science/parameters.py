@@ -48,34 +48,34 @@ class Parameters(object):
 
         self.grid_size = int(self.config['general options']['grid size'])
 
-        self.sim_ECM = self.config['general options']['simulate ECM']    # boolean letting us know if extracellular spaces are included
+        self.sim_ECM = self.config['general options']['simulate extracellular spaces']    # boolean letting us know if extracellular spaces are included
 
-        self.fluid_flow = self.config['world variables']['Fluid Flow']['include fluid flow']
+        self.fluid_flow = self.config['world options']['Fluid Flow']['include fluid flow']
 
-        self.osmosis_flow = self.config['world variables']['Fluid Flow']['osmosis']
+        self.osmosis_flow = self.config['world options']['Fluid Flow']['osmosis']
 
-        self.base_eosmo = self.config['world variables']['Fluid Flow']['electroosmosis']
+        self.base_eosmo = self.config['world options']['Fluid Flow']['electroosmosis']
 
-        self.sim_eosmosis = self.config['world variables']['channel electroosmosis']['turn on']
+        self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
 
         self.mu_membrane = 1.0 # membrane viscocity
 
         self.EM_waves = True  # FIXME add to config file!
 
         # in-membrane diffusion coefficient
-        self.D_membrane = float(self.config['world variables']['channel electroosmosis']['membrane mobility'])
+        self.D_membrane = float(self.config['world options']['channel electroosmosis']['membrane mobility'])
         # charge of membrane pumps and channels:
-        self.z_channel = float(self.config['world variables']['channel electroosmosis']['channel charge'])
+        self.z_channel = float(self.config['world options']['channel electroosmosis']['channel charge'])
 
-        self.z_pump = float(self.config['world variables']['channel electroosmosis']['pump charge'])
+        self.z_pump = float(self.config['world options']['channel electroosmosis']['pump charge'])
 
-        self.mu_water = float(self.config['world variables']['Fluid Flow']['water viscocity'])   # viscocity of water [Pa.s]
+        self.mu_water = float(self.config['world options']['Fluid Flow']['water viscocity'])   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
-        self.gj_surface = float(self.config['world variables']['gap junctions']['gap junction surface area'])
+        self.gj_surface = float(self.config['variable settings']['gap junctions']['gap junction surface area'])
 
-        self.gj_flux_sensitive = self.config['world variables']['gap junctions']['gj flux sensitive']
+        self.gj_flux_sensitive = self.config['variable settings']['gap junctions']['gj flux sensitive']
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -104,7 +104,7 @@ class Parameters(object):
             for bm in range(1,self.bitmap_number + 1):
 
                 bitmap_string = 'bitmap ' + str(bm)
-                bitmap_designation = gdb[bitmap_string]['designation']
+                bitmap_designation = gdb[bitmap_string]['link to profile']
                 bitmap_filename = gdb[bitmap_string]['file']
 
                 self.bitmap_profiles[bitmap_designation] = bitmap_filename
@@ -124,57 +124,58 @@ class Parameters(object):
         self.backward_pumps = False   # boolean letting us know if pumps can run backwards
 
          # Geometric constants and factors
-        self.wsx = float(self.config['world variables']['world x'])  # the x-dimension of the world space
+        self.wsx = float(self.config['world options']['world size'])  # the x-dimension of the world space
         self.wsy = self.wsx  # the y-dimension of the world space [m]
-        self.rc = float(self.config['world variables']['cell radius'])  # radius of single cell
-        self.cell_height = float(self.config['world variables']['cell height'])  # the height of a cell in the z-direction
-        self.cell_space = float(self.config['world variables']['cell spacing'])  # the true cell-cell spacing
-        self.nl = float(self.config['world variables']['lattice disorder'])  # noise level for the lattice
+        self.rc = float(self.config['world options']['cell radius'])  # radius of single cell
+        self.cell_height = float(self.config['world options']['cell height'])  # the height of a cell in the z-direction
+        self.cell_space = float(self.config['world options']['cell spacing'])  # the true cell-cell spacing
+        self.nl = float(self.config['world options']['lattice disorder'])  # noise level for the lattice
 
         volmult = 1
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
 
-        self.T = float(self.config['world variables']['temperature'])  # World temperature
+        self.T = float(self.config['world options']['temperature'])  # World temperature
 
-        self.gravity = self.config['world variables']['Fluid Flow']['gravity']
+        self.gravity = self.config['world options']['Fluid Flow']['gravity']
 
         # gap junction constants and network connectivity
-        self.search_d = float(self.config['world variables']['gap junctions']['search distance']) # distance to search for nearest neighbours
+        self.search_d = float(self.config['world options']['gap junctions']['search distance']) # distance to search for nearest neighbours
 
-        self.gj_vthresh = float(self.config['world variables']['gap junctions']['gj voltage threshold'])
-        self.gj_vgrad  = float(self.config['world variables']['gap junctions']['gj voltage window'])
+        self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
+        self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
 
         self.gj_respond_flow = False
 
-        self.v_sensitive_gj = self.config['world variables']['gap junctions']['voltage sensitive gj']
+        self.v_sensitive_gj = self.config['variable settings']['gap junctions']['voltage sensitive gj']
 
         self.env_type = True # for now, can't handle air boundaries
 
-        self.D_tj = float(self.config['world variables']['tight junction scaling'])
+        self.D_tj = float(self.config['variable settings']['tight junction scaling'])
 
-        self.D_adh = float(self.config['world variables']['adherens junction scaling'])
+        self.D_adh = float(self.config['variable settings']['adherens junction scaling'])
 
         # tight junction relative ion movement properties:
         self.Dtj_rel = {}  # use a dictionary to hold the tj values:
 
-        self.Dtj_rel['Na']=float(self.config['world variables']['tight junction relative diffusion']['Na'])
-        self.Dtj_rel['K']=float(self.config['world variables']['tight junction relative diffusion']['K'])
-        self.Dtj_rel['Cl']=float(self.config['world variables']['tight junction relative diffusion']['Cl'])
-        self.Dtj_rel['Ca']=float(self.config['world variables']['tight junction relative diffusion']['Ca'])
-        self.Dtj_rel['M']=float(self.config['world variables']['tight junction relative diffusion']['M'])
-        self.Dtj_rel['P']=float(self.config['world variables']['tight junction relative diffusion']['P'])
-        self.Dtj_rel['H']=float(self.config['world variables']['tight junction relative diffusion']['H'])
+        self.Dtj_rel['Na']=float(self.config['variable settings']['tight junction relative diffusion']['Na'])
+        self.Dtj_rel['K']=float(self.config['variable settings']['tight junction relative diffusion']['K'])
+        self.Dtj_rel['Cl']=float(self.config['variable settings']['tight junction relative diffusion']['Cl'])
+        self.Dtj_rel['Ca']=float(self.config['variable settings']['tight junction relative diffusion']['Ca'])
+        self.Dtj_rel['M']=float(self.config['variable settings']['tight junction relative diffusion']['M'])
+        self.Dtj_rel['P']=float(self.config['variable settings']['tight junction relative diffusion']['P'])
+        self.Dtj_rel['H']=float(self.config['variable settings']['tight junction relative diffusion']['H'])
 
+        tpd = self.config['tissue profile definition']
 
         # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = float(self.config['base tissue properties']['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K = float(self.config['base tissue properties']['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(self.config['base tissue properties']['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(self.config['base tissue properties']['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H = float(self.config['base tissue properties']['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M = float(self.config['base tissue properties']['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P = float(self.config['base tissue properties']['Dm_P'])     #  proteins [m2/s]
+        self.Dm_Na = float(tpd['base tissue properties']['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K = float(tpd['base tissue properties']['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(tpd['base tissue properties']['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(tpd['base tissue properties']['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H = float(tpd['base tissue properties']['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M = float(tpd['base tissue properties']['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P = float(tpd['base tissue properties']['Dm_P'])     #  proteins [m2/s]
 
         # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
         self.ion_profile = self.config['general options']['ion profile']
@@ -189,24 +190,24 @@ class Parameters(object):
         self.VATPase_dyn = self.config['general options']['VATPase pump']
 
         # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
-        self.voltage_dye = self.config['general options']['morphogen properties']['include morphogen']
+        self.voltage_dye = self.config['variable settings']['morphogen properties']['include morphogen']
 
-        self.Dm_Dye = float(self.config['general options']['morphogen properties']['Dm'])
-        self.Do_Dye = float(self.config['general options']['morphogen properties']['Do'])
-        self.z_Dye = float(self.config['general options']['morphogen properties']['z'])
-        self.cDye_to = float(self.config['general options']['morphogen properties']['env conc'])
-        self.cDye_to_cell = float(self.config['general options']['morphogen properties']['cell conc'])
-        self.Dye_target_channel = self.config['general options']['morphogen properties']['ion channel target']
-        self.Dye_Hill_K = float(self.config['general options']['morphogen properties']['target Hill coefficient'])
-        self.Dye_Hill_exp = float(self.config['general options']['morphogen properties']['target Hill exponent'])
-        self.Dye_peak_channel = float(self.config['general options']['morphogen properties']['peak channel opening'])
-        self.Dye_acts_extracell = bool(self.config['general options']['morphogen properties']['acts extracellularly'])
+        self.Dm_Dye = float(self.config['variable settings']['morphogen properties']['Dm'])
+        self.Do_Dye = float(self.config['variable settings']['morphogen properties']['Do'])
+        self.z_Dye = float(self.config['variable settings']['morphogen properties']['z'])
+        self.cDye_to = float(self.config['variable settings']['morphogen properties']['env conc'])
+        self.cDye_to_cell = float(self.config['variable settings']['morphogen properties']['cell conc'])
+        self.Dye_target_channel = self.config['variable settings']['morphogen properties']['ion channel target']
+        self.Dye_Hill_K = float(self.config['variable settings']['morphogen properties']['target Hill coefficient'])
+        self.Dye_Hill_exp = float(self.config['variable settings']['morphogen properties']['target Hill exponent'])
+        self.Dye_peak_channel = float(self.config['variable settings']['morphogen properties']['peak channel opening'])
+        self.Dye_acts_extracell = bool(self.config['variable settings']['morphogen properties']['acts extracellularly'])
 
         # include noise in the simulation?
-        self.channel_noise_level = float(self.config['general options']['static noise level'])
+        self.channel_noise_level = float(self.config['variable settings']['static noise level'])
 
-        self.dynamic_noise = self.config['general options']['dynamic noise']
-        self.dynamic_noise_level = float(self.config['general options']['dynamic noise level'])
+        self.dynamic_noise = self.config['variable settings']['dynamic noise']
+        self.dynamic_noise_level = float(self.config['variable settings']['dynamic noise level'])
 
 
         #---------------------------------------------------------------------------------------------------------------
@@ -320,9 +321,9 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         # Import information used for defining tissues and boundary properties in the collective:
 
-        self.tissue_profile_number = int(self.config['number of tissue profiles'])
-        self.boundary_profile_number = int(self.config['number of boundary profiles'])
-        self.default_tissue_name = self.config['default tissue name']
+        self.tissue_profile_number = int(tpd['number of tissue profiles'])
+        self.boundary_profile_number = int(tpd['number of boundary profiles'])
+        self.default_tissue_name = tpd['default tissue name']
 
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
@@ -337,15 +338,15 @@ class Parameters(object):
 
             profile_string = 'tissue profile ' + str(pn)
 
-            profile_name = self.config[profile_string]['name']
-            profile_features['target method'] = self.config[profile_string]['cell targets']
-            profile_features['designation'] = self.config[profile_string]['designation']
+            profile_name = tpd[profile_string]['name']
+            profile_features['target method'] = tpd[profile_string]['cell targets']
+            profile_features['designation'] = tpd[profile_string]['designation']
             profile_features['z order'] = pn
-            profile_features['insular gj'] = self.config[profile_string]['insular']
+            profile_features['insular gj'] = tpd[profile_string]['insular']
 
             for label in self.mem_labels:
 
-                diffusion_constants[label] = float(self.config[profile_string][label])
+                diffusion_constants[label] = float(tpd[profile_string][label])
 
             profile_features['diffusion constants'] = diffusion_constants
 
@@ -354,15 +355,15 @@ class Parameters(object):
         for bn in range(1,self.boundary_profile_number+1):
 
             profile_string_b = 'boundary profile ' + str(bn)
-            profile_name_b = self.config[profile_string_b]['name']
-            profile_target_method_b = self.config[profile_string_b]['boundary targets']
+            profile_name_b = tpd[profile_string_b]['name']
+            profile_target_method_b = tpd[profile_string_b]['boundary targets']
 
             self.boundary_profiles[profile_name_b] = profile_target_method_b
 
 
         # boundary properties:
 
-        self.closed_bound = bool(self.config['closed boundary'])
+        self.closed_bound = bool(tpd['closed boundary'])
 
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions

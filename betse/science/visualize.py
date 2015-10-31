@@ -1085,10 +1085,10 @@ class AnimateCurrent(object):
 
         else:
 
-            Jmag_M = np.sqrt(sim.I_tot_x_time[0]**2 + sim.I_tot_y_time[0]**2) + 1e-30
+            Jmag_M = np.sqrt(sim.I_tot_x_time[1]**2 + sim.I_tot_y_time[1]**2) + 1e-30
 
-            J_x = sim.I_tot_x_time[0]/Jmag_M
-            J_y = sim.I_tot_y_time[0]/Jmag_M
+            J_x = sim.I_tot_x_time[1]/Jmag_M
+            J_y = sim.I_tot_y_time[1]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
@@ -1119,7 +1119,7 @@ class AnimateCurrent(object):
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)
 
-        self.frames = len(sim.time)
+        self.frames = len(sim.time) -1
 
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
@@ -1153,10 +1153,10 @@ class AnimateCurrent(object):
 
         else:
 
-            Jmag_M = np.sqrt(self.sim.I_tot_x_time[i]**2 + self.sim.I_tot_y_time[i]**2) + 1e-30
+            Jmag_M = np.sqrt(self.sim.I_tot_x_time[i+1]**2 + self.sim.I_tot_y_time[i+1]**2) + 1e-30
 
-            J_x = self.sim.I_tot_x_time[i]/Jmag_M
-            J_y = self.sim.I_tot_y_time[i]/Jmag_M
+            J_x = self.sim.I_tot_x_time[i+1]/Jmag_M
+            J_y = self.sim.I_tot_y_time[i+1]/Jmag_M
 
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
