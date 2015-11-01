@@ -463,7 +463,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-        figVt, axVt = viz.plotSingleCellVData(sim.vm_time,sim.time,plot_cell,fig=None,ax=None,lncolor='b')
+        figVt, axVt = viz.plotSingleCellVData(sim,plot_cell,p,fig=None,ax=None,lncolor='k')
         titV = 'Voltage (Vmem) in cell ' + str(plot_cell)
         axVt.set_title(titV)
 
@@ -603,6 +603,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
                 edgeOverlay = p.showCells,  number_ecm = p.enumerate_cells,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
+
         elif p.sim_ECM is False:
 
             if p.showCells is True:
@@ -626,6 +627,32 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename5,format='png')
 
         plt.show(block=False)
+
+    if p.GHK_calc is True:
+
+        if p.showCells is True:
+            figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_GHK_time[-1],
+                clrAutoscale = p.autoscale_Vmem,
+                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
+                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+        else:
+
+            figV_ghk, axV_ghk, cbV_ghk = viz.plotCellData(sim,cells,p,zdata=1000*sim.vm_GHK_time[-1],
+                clrAutoscale = p.autoscale_Vmem,
+                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
+                number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+
+        figV_ghk.suptitle('Final Vmem using Goldman Equation',fontsize=14, fontweight='bold')
+        axV_ghk.set_xlabel('Spatial distance [um]')
+        axV_ghk.set_ylabel('Spatial distance [um]')
+        cbV_ghk.set_label('Voltage [mV]')
+
+        if saveImages is True:
+            savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
+            plt.savefig(savename5,format='png')
+
+        plt.show(block=False)
+
 
     #-------------------------------------------------------------------------------------------------------------------
 

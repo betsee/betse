@@ -2021,16 +2021,23 @@ class AnimateDyeData(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-def plotSingleCellVData(simdata_time,simtime,celli,fig=None,ax=None, lncolor='b'):
+def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
 
-    tvect_data=[x[celli]*1000 for x in simdata_time]
+    tvect_data=[x[celli]*1000 for x in sim.vm_time]
 
     if fig is None:
         fig = plt.figure()# define the figure and axes instances
     if ax is None:
         ax = plt.subplot(111)
 
-    ax.plot(simtime, tvect_data,lncolor)
+    ax.plot(sim.time, tvect_data,lncolor,linewidth=2.0)
+
+    if p.GHK_calc is True:
+
+        tvect_data_ghk = [x[celli]*1000 for x in sim.vm_GHK_time]
+        ax.plot(sim.time, tvect_data_ghk,'r',linewidth=2.0)
+
+
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('Voltage [mV]')
 
@@ -2172,7 +2179,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         if zdata is not None:
 
-             # Add a colorbar for the triplot:
+             # Add a colorbar for the mesh plot:
 
             maxval = round(np.max(1000*sim.vm_time[-1]),1)
             minval = round(np.min(1000*sim.vm_time[-1]),1)
@@ -2877,7 +2884,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         streamplot = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
         cmap=clrmap,arrowsize=1.5)
 
-        ax.set_title('Final gap junction currents')
+        ax.set_title('Final gap junction current density')
 
     elif plot_Iecm is True:
 

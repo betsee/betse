@@ -43,7 +43,7 @@ init file saving:
 
     file: init.betse        # filename to load/save init run
 
-    worldfile: world_circle.betse      # filename to load/save cell cluster
+    worldfile: world.betse      # filename to load/save cell cluster
 
 
 sim file saving:
@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 6.0         # time to end sim run [s]
+    total time: 5.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -120,7 +120,7 @@ general options:
 
   grid size: 40         # grid used in computation of environmental params and data interpolation
 
-  simulate extracellular spaces: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: 'basic'   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -202,7 +202,7 @@ world options:
 
   Fluid Flow:
 
-    include fluid flow: True     # calculate fluid flow between cells and in extracellular environment?
+    include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
     gravity: False               # apply a global force of gravity acting in the -y direction?
 
@@ -371,8 +371,8 @@ tissue profile definition:
 change Na mem:       # Change the membrane permeability to Na+
 
   event happens: True        # turn the event on (True) or off (False)
-  change start: 2.0                # time to start change [s]
-  change finish: 7.0               # time to end change and return to original [s]
+  change start: 1.0                # time to start change [s]
+  change finish: 4.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
   multiplier: 50.0                # factor to multiply base level
   function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
@@ -617,14 +617,14 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 5.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
+    gap junction surface area: 1.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
-    gj voltage threshold: 10e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 15e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 10e-3 to 80e-3 V
 
-    gj voltage window: 10e-3      # range over which gj goes from open to shut
+    gj voltage window: 15e-3      # range over which gj goes from open to shut
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
 
@@ -643,9 +643,9 @@ variable settings:
     M: 1
     P: 1
 
-  adherens junction scaling: 1.0e-5   # factor by which cell-cell junctions scale free-diffusion
+  adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale free-diffusion
 
-  use Goldman calculator: True    # calculate alternative Vmem using GHK equation for model params and plot results?
+  use Goldman calculator: False    # calculate alternative Vmem using GHK equation for model params and plot results?
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -728,21 +728,21 @@ results options:
 
   Ca 2D:
 
-    plot Ca: True                # 2d plot of final cell calcium ?
+    plot Ca: False                # 2d plot of final cell calcium ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
 
   IP3 2D:
 
-    plot IP3: True               # 2d plot of final cIP3 ?
+    plot IP3: False               # 2d plot of final cIP3 ?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
 
   Morpho 2D:
 
-    plot Morpho: True               # 2d plot of voltage sensitive dye in cell collective?
+    plot Morpho: False               # 2d plot of voltage sensitive dye in cell collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.0e-4                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
@@ -763,7 +763,7 @@ results options:
 
   Charge 2D:
 
-    plot Charge: True                # 2d plot of net ionic charge in collective?
+    plot Charge: False                # 2d plot of net ionic charge in collective?
     data type: ECM                 # data type can be 'GJ' or 'ECM' for intra or extracellular net charge
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
@@ -809,8 +809,8 @@ results options:
 
   Force 2D:                      # 2D plot of electroosmotic body force in the cluster
 
-    plot Force: True
-    data type: ECM               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
+    plot Force: False
+    data type: GJ               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -827,21 +827,21 @@ results options:
 
   Ca Ani:
 
-    animate Ca2+: True           # 2d animation of cell calcium with time ?
+    animate Ca2+: False           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: True            # 2d animation of cIP3 with time?
+    animate IP3: False            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Morpho Ani:
 
-    animate Morpho: True            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Morpho: False            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
@@ -883,7 +883,7 @@ results options:
 
   Force Ani:
 
-    animate Force: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate Force: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
@@ -1007,9 +1007,9 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  5.0e-8   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  12      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  12        # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_NaK:  5.0e-7   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  halfmax_NaK:  20      # the free energy level at which pump activity is halved [kJ]
+  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
@@ -1032,7 +1032,7 @@ internal parameters:
 
   env modification constant: 5e5    # scales field with respect to charge to provide stability
 
-  cell modification constant: 5e3    # scales charge density to provide stability
+  cell modification constant: 1.5e3    # scales charge density to provide stability
 
 
 # Configuration file version that this file conforms to. For reliable

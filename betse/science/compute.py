@@ -833,6 +833,7 @@ class Simulator(object):
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding environmental concentrations at time points
         self.vm_time = []  # data array holding voltage at time points
+        self.vm_GHK_time = [] # data array holding GHK vm estimates
         self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
@@ -1124,6 +1125,7 @@ class Simulator(object):
                 if p.GHK_calc is True:
 
                     self.ghk_calculator(cells,p)
+                    self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
 
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
 
@@ -1237,9 +1239,15 @@ class Simulator(object):
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
 
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
+        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
         vmess = 'Final average cell Vmem of ' + ': '
         loggers.log_info(vmess + str(final_vmean) + ' mV')
+
+        if p.GHK_calc is True:
+            final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
+            vmess = 'Final average cell Vmem calculated using GHK: ' + ': '
+            loggers.log_info(vmess + str(final_vmean_GHK) + ' mV')
+
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])))
@@ -1287,6 +1295,8 @@ class Simulator(object):
         self.vm_time = []  # data array holding voltage at time points
         self.vcell_time = []
         self.venv_time = []
+
+        self.vm_GHK_time = [] # data array holding GHK vm estimate
 
         self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
@@ -1554,6 +1564,7 @@ class Simulator(object):
                 if p.GHK_calc is True:
 
                     self.ghk_calculator(cells,p)
+                    self.vm_GHK_time.append(self.vm_GHK)
 
                 # #
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
@@ -1696,9 +1707,15 @@ class Simulator(object):
             concmess = 'Final extracellular concentration of'+ ' '+ label + ': '
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
+        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
         vmess = 'Final average cell Vmem of ' + ': '
         loggers.log_info(vmess + str(final_vmean) + ' mV')
+
+        if p.GHK_calc is True:
+
+            final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
+            vmess = 'Final average cell Vmem of ' + ': '
+            loggers.log_info(vmess + str(final_vmean_GHK) + ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])))
@@ -3115,11 +3132,7 @@ class Simulator(object):
                     sum_PmCation_in = sum_PmCation_in + self.Dm_cells[i]*self.cc_cells[i]*(1/p.tm)
                     sum_PmCation_out = sum_PmCation_out + self.Dm_cells[i]*self.cc_env[i]*(1/p.tm)
 
-            self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
-
-            
-
-
+        self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
