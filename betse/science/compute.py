@@ -1952,7 +1952,7 @@ class Simulator(object):
         c = (self.cc_cells[i][cells.nn_i][:,1] + self.cc_cells[i][cells.nn_i][:,0])/2
 
         # electroosmotic fluid velocity -- averaged at gap junctions:
-        if p.base_eosmo is True:
+        if p.fluid_flow is True:
             ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
             uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
 
@@ -1961,12 +1961,12 @@ class Simulator(object):
             uy =0
 
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
-            self.D_gj[i],self.zs[i],self.T,p)
+            p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
 
 
         fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj)
+        delta_cc = np.dot(cells.gjMatrix,fgj)
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
