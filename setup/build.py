@@ -20,8 +20,10 @@ maintaining backward compatibility with older `setuptools` versions.
 '''
 
 # ....................{ IMPORTS                            }....................
+from distutils.errors import DistutilsClassError
 from pkg_resources import Distribution
 from setup import util
+from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter, WindowsScriptWriter
 
 # ....................{ CONSTANTS                          }....................
@@ -116,14 +118,34 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     assert isinstance(setup_options, dict),\
         '"{}" not a dictionary.'.format(setup_options)
 
-    # If the ScriptWriter.get_args() method exists, this is a recent version of
-    # setuptools. In such case, monkey-patch such method.
-    if hasattr(ScriptWriter, 'get_args'):
-        ScriptWriter.get_args = _get_args
-    # Else, this is an older version of setuptools. In such case, monkey-patch
-    # the deprecated ScriptWriter.get_script_args() method.
-    else:
+    # If neither of the class functions monkey-patched below exist, setuptools
+    # is either broken or an unsupported newer version. In either case, an
+    # exception is raised.
+    if not hasattr(ScriptWriter, 'get_args') and\
+       not hasattr(ScriptWriter, 'get_script_args'):
+        raise DistutilsClassError('Class "setuptools.command.easy_install.ScriptWriter" functions get_args() and get_script_args() not found. The current version of setuptools is either broken (unlikely) or unsupported (likely).')
+
+    # Monkey-patch the following class functions:
+    #
+    # * ScriptWriter.get_args(), defined by recent versions of setuptools.
+    # * ScriptWriter.get_script_args(), defined by obsolete versions of
+    #   setuptools.
+    #
+    # For convenience, our implementation of the latter is implemented in terms
+    # of the former. Hence, the former is *ALWAYS* monkey-patched.
+    ScriptWriter.get_args = _get_args
+
+    # If the ScriptWriter.get_script_args() class function exists, monkey-patch
+    # both that *AND* the setuptools.command.easy_install.get_script_args()
+    # alias referring to that function as well.
+    if hasattr(ScriptWriter, 'get_script_args'):
         ScriptWriter.get_script_args = _get_script_args
+        easy_install.get_script_args = ScriptWriter.get_script_args
+
+        # If the ScriptWriter.get_script_header() class function does *NOT*
+        # exist, monkey-patch that function as well.
+        if not hasattr(ScriptWriter, 'get_script_header'):
+            ScriptWriter.get_script_header = _get_script_header
 
 # ....................{ PATCHES                            }....................
 # Functions monkey-patching existing methods of the "ScriptWriter" class above
@@ -150,6 +172,7 @@ def _get_args(
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
     assert isinstance(script_shebang, str),\
         '"{}" not a string.'.format(script_shebang)
+    print('In BETSE ScriptWriter.get_args()!')
 
     # For each entry point...
     for script_basename, script_type, entry_point in\
@@ -199,10 +222,20 @@ def _get_script_args(
     `ScriptWriter.get_script_args()` class function.
     '''
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
+    print('In BETSE ScriptWriter.get_script_args()!')
 
     # Platform-specific entry point writer.
-    script_writer = (
-        WindowsScriptWriter if is_windows_vanilla else ScriptWriter).best()
+    #
+    # If the newer ScriptWriter.best() class function exists, obtain such
+    # writer by calling this function. 
+    script_writer = None
+    if hasattr(ScriptWriter, 'best'):
+        script_writer = (
+            WindowsScriptWriter if is_windows_vanilla else ScriptWriter).best()
+    # Else, obtain such writer by calling the older ScriptWriter.get_writer()
+    # class function.
+    else:
+        script_writer = cls.get_writer(is_windows_vanilla)
 
     # Shebang line prefixing the contents of all such scripts.
     script_shebang = cls.get_script_header(
@@ -211,7 +244,32 @@ def _get_script_args(
     # Defer to the newer _get_args() function.
     return script_writer.get_args(distribution, script_shebang)
 
+@classmethod
+def _get_script_header(cls: type, *args, **kwargs):
+    '''
+    Defer to the deprecated
+    `setuptools.command.easy_install.get_script_header()` function under older
+    versions of setuptools.
+    '''
+    from setuptools.command.easy_install import get_script_header
+    return get_script_header(*args, **kwargs)
+
 # --------------------( WASTELANDS                         )--------------------
+    # Platform-specific entry point writer.
+#    script_writer = (
+#        WindowsScriptWriter if is_windows_vanilla else ScriptWriter).best()
+
+#    # If the ScriptWriter.get_args() method exists, this is a recent version of
+#    # setuptools. In such case, monkey-patch such method.
+#    if hasattr(ScriptWriter, 'get_args'):
+#        ScriptWriter.get_args = _get_args
+#    # Else if the ScriptWriter.get_script_args() method exists, this is an
+#    # older version of setuptools. In such case, monkey-patch such method.
+#    elif hasattr(ScriptWriter, 'get_script_args'):
+#        ScriptWriter.get_script_args = _get_script_args
+#    # Else, "setuptools" appears to be broken. Raise an exception.
+#    else:
+
             # Name of the main function in this entry module to be called if
             # any or the empty string otherwise.
             # entry_func = script_entry_func_text\

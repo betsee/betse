@@ -164,7 +164,10 @@ class symlink_scripts(install_scripts):
         '''
         # Copy attributes from a temporarily instantiated "symlink" object into
         # the current object under different attribute names.
-        self.set_undefined_options('build', ('build_scripts', 'build_dir'))
+        self.set_undefined_options(
+            'build',
+            ('build_scripts', 'build_dir'),
+        )
         self.set_undefined_options(
             'symlink',
             ('install_scripts', 'install_dir'),
