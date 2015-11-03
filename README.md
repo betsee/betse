@@ -49,19 +49,20 @@ manually via the package manager specific to your current operating system:
 * Python >= 3.3.
 * Matplotlib >= 1.3.0.
 * NumPy >= 1.8.0.
-* Pillow >= 2.6.1.
+* Pillow >= 2.3.0.
 * PySide >= 1.1.0.
 * PyYaml >= 3.10.
 * SciPy >= 0.12.0.
 * Voluptuous >= 0.8.7.
-* setuptools >= 7.0.
+* setuptools >= 3.3.
+* six >= 1.5.2.
 
 #### Linux Debian
 
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), such
 dependencies are installable in a system-wide manner as follows:
 
-    >>> sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pyside python3-scipy python3-setuptools python3-yaml
+    >>> sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pyside python3-scipy python3-setuptools python3-six python3-yaml
 
 #### Apple OS X
 
