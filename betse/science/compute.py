@@ -144,6 +144,8 @@ class Simulator(object):
         self.movingIons = []            # moving ions indices
         self.ionlabel = {}              # dictionary to hold ion label names
 
+
+
         self.T = p.T                # set the base temperature for the simulation
 
         i = -1                           # an index to track place in ion list
@@ -1072,6 +1074,8 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
+            self.osmotic_P(cells,p)
+
             # calculate fluid flow:
             if p.fluid_flow is True and cells.lapGJinv is not 0:
                 self.getFlow(cells,p)
@@ -1116,7 +1120,7 @@ class Simulator(object):
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
                 self.update_V_ecm(cells,p,t)
 
-            self.osmotic_P(cells,p)
+
             check_v(self.vm)
 
 
@@ -1524,6 +1528,8 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
+            self.osmotic_P(cells,p)
+
             if p.fluid_flow is True:
 
                 self.getFlow(cells,p)
@@ -1549,7 +1555,7 @@ class Simulator(object):
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
 
-            self.osmotic_P(cells,p)
+
 
             check_v(self.vm)
 
@@ -1708,13 +1714,13 @@ class Simulator(object):
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
-        vmess = 'Final average cell Vmem of ' + ': '
+        vmess = 'Final average cell Vmem: ' + ': '
         loggers.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.GHK_calc is True:
 
             final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
-            vmess = 'Final average cell Vmem of ' + ': '
+            vmess = 'Final average cell Vmem calculated using GHK equation: ' + ': '
             loggers.log_info(vmess + str(final_vmean_GHK) + ' mV')
 
         if p.ions_dict['H'] == 1:
@@ -2736,7 +2742,7 @@ class Simulator(object):
             # Take the grid gradient of the scaled internal pressure:
             gPx, gPy = cells.grid_obj.grid_gradient(P,bounds=btag)
 
-             # subtract the correction pressure term from the solution to yield a divergence-free flow field
+             # subtract the pressure term from the solution to yield a divergence-free flow field
 
             self.u_env_x = fd.integrator(alpha_x*Fx) - fd.integrator(gPx)
             self.u_env_y = fd.integrator(alpha_y*Fy) - fd.integrator(gPy)

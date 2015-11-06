@@ -933,7 +933,7 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
 
 
-        if self.ion_profile == 'basic_Ca':
+        elif self.ion_profile == 'basic_Ca':
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
@@ -970,7 +970,7 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','P':'proteins','M':'anion'}
 
         # default environmental and cytoplasmic initial values mammalian cells
-        if self.ion_profile == 'animal':
+        elif self.ion_profile == 'animal':
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
@@ -1010,7 +1010,7 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
          # default environmental and cytoplasm values invertebrate cells
-        if self.ion_profile == 'invertebrate':
+        elif self.ion_profile == 'invertebrate':
             # self.cNa_env = 440.0
             # self.cK_env = 20.0
             # self.cCl_env = 460.0
@@ -1063,7 +1063,7 @@ class Parameters(object):
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
-        if self.ion_profile == 'scratch':
+        elif self.ion_profile == 'scratch':
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
@@ -1095,7 +1095,7 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
-        if self.ion_profile == 'customized':
+        elif self.ion_profile == 'customized':
 
             self.cCa_er = 0.5
             self.cM_er = -self.cCa_er
@@ -1149,6 +1149,12 @@ class Parameters(object):
                 'P':self.Do_P,'M':self.Do_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
                 'P':'proteins','M':'anion'}
+
+        else:
+
+            raise BetseExceptionParameters("Oops! Looks like you've supplied an unavailable name for the ion profile "
+                                               "under General Options of the config file. Please try again.")
+
 
     def set_time_profile(self,time_profile):
 

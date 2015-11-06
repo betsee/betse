@@ -122,7 +122,7 @@ general options:
 
   simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
-  ion profile: 'basic'   # ion profile options:
+  ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
@@ -1032,7 +1032,7 @@ internal parameters:
 
   env modification constant: 5e5    # scales field with respect to charge to provide stability
 
-  cell modification constant: 1.5e3    # scales charge density to provide stability
+  cell modification constant: 5e3    # scales charge density to provide stability
 
 
 # Configuration file version that this file conforms to. For reliable

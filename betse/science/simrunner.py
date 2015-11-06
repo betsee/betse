@@ -532,10 +532,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.data_type_rho == 'ECM' and p.sim_ECM is True:
 
             plt.figure()
-            plt.imshow(sim.rho_env.reshape(cells.X.shape)/p.ff_env,origin='lower',
+            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(cells.ecm_vol.reshape(cells.X.shape)/cells.ecm_sa),origin='lower',
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
-            plt.title('Environmental Charge Density [C/m3]')
+            plt.title('Environmental Surface Charge Density [C/m2]')
 
             if saveImages is True:
                 savename10 = savedImg + 'Final_environmental_charge' + '.png'
@@ -547,20 +547,21 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if p.showCells is True:
 
-                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.rho_cells/p.ff_cell,number_cells=p.enumerate_cells,
+
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(cells.cell_vol/cells.cell_sa),number_cells=p.enumerate_cells,
                     clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
                     clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
             else:
 
-                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells/p.ff_cell,clrAutoscale = p.autoscale_rho,
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(cells.cell_vol/cells.cell_sa),clrAutoscale = p.autoscale_rho,
                         clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
                         number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 
-            figX.suptitle('Final Cell Net Charge Density',fontsize=14, fontweight='bold')
+            figX.suptitle('Final Cell Net Surface Charge Density',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
-            cbX.set_label('Net Charge Density [C/m3]')
+            cbX.set_label('Net Charge Density [C/m2]')
 
             if saveImages is True:
                 savename9 = savedImg + 'final_cellCharge' + '.png'
@@ -568,7 +569,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
-    if p.plot_vcell2d is True:
+    if p.plot_vcell2d is True and p.sim_ECM is True:
 
         if p.showCells is True:
 
@@ -914,11 +915,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if p.plot_osmoP is True:
 
         if p.showCells is True:
-            # figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta_time[-1],number_cells=p.enumerate_cells,
-            # clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+            # figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=estat_P,number_cells=p.enumerate_cells,
+            #     clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
         else:
              figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
@@ -1030,7 +1032,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.axis('equal')
             plt.axis([p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
-            plt.title('Electric Field Induced Body Force [N/m3]')
+            plt.title('Electrostatic Pressure Induced Body Force [N/m3]')
 
             ax_f.set_xlabel('Spatial distance [um]')
             ax_f.set_ylabel('Spatial distance [um]')
@@ -1070,7 +1072,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx/ff.max(),fy/ff.max(),scale=10)
 
-            figX.suptitle('Electric Field Induced Body Force',fontsize=14, fontweight='bold')
+            figX.suptitle('Electrostatic Pressure Induced Body Force',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
             cbX.set_label('Body Force [N/m3]')
