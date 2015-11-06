@@ -919,13 +919,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-            # figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=estat_P,number_cells=p.enumerate_cells,
-            #     clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
         else:
              figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],sim.osmo_P_grad_x,sim.osmo_P_grad_y)
+        # axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],sim.osmo_P_grad_x,sim.osmo_P_grad_y)
 
         axP.set_title('Final Osmotic Pressure Differential in Cell Network')
         axP.set_xlabel('Spatial distance [um]')

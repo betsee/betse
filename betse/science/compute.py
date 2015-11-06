@@ -2684,8 +2684,6 @@ class Simulator(object):
                 rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/p.ff_env
                 rho_env_x[:,0] = rho_env_x[:,1]
 
-                rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)/p.ff_env
-                rho_env_y[0,:] = rho_env_y[1,:]
 
                 # these are negative because the gradient of the voltage is the electric field and we just took the grad
                 # above but didn't carry through the negative sign.
@@ -3079,6 +3077,11 @@ class Simulator(object):
             self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env
 
         else:
+            # smooth out the environmental osmotic pressure:
+            self.osmo_P_env = self.osmo_P_env.reshape(cells.X.shape)
+            self.osmo_P_env = fd.integrator(self.osmo_P_env)
+            self.osmo_P_env = self.osmo_P_env.ravel()
+
             self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env[cells.map_cell2ecm]
 
         # calculate the negative gradient of the osmotic pressure between cells (body force):
