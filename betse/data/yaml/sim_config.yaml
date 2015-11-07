@@ -206,9 +206,7 @@ world options:
 
     gravity: False               # apply a global force of gravity acting in the -y direction?
 
-    osmosis: False               # calculate osmotic pressures and corresponding volume forces from standard osmosis?
-
-    electroosmosis: True       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
+    electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
 
     water viscocity: 1e-3      # viscocity of medium [Pa s]
 
@@ -645,7 +643,7 @@ variable settings:
 
   adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale free-diffusion
 
-  use Goldman calculator: False    # calculate alternative Vmem using GHK equation for model params and plot results?
+  use Goldman calculator: True    # calculate alternative Vmem using GHK equation for model params and plot results?
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -742,14 +740,14 @@ results options:
 
   Morpho 2D:
 
-    plot Morpho: False               # 2d plot of voltage sensitive dye in cell collective?
+    plot Morpho: True               # 2d plot of voltage sensitive dye in cell collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.0e-4                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
 
   Vcell 2D:
 
-    plot Vcell: False                # 2d plot of voltage in individual cells of the collective?
+    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
@@ -763,8 +761,8 @@ results options:
 
   Charge 2D:
 
-    plot Charge: False                # 2d plot of net ionic charge in collective?
-    data type: ECM                 # data type can be 'GJ' or 'ECM' for intra or extracellular net charge
+    plot Charge: True                # 2d plot of net ionic charge in collective?
+    data type: GJ                 # data type can be 'GJ' or 'ECM' for intra or extracellular net charge
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
@@ -788,14 +786,14 @@ results options:
 
   Pressure 2D:                      # 2D plot of pressure in the cluster
 
-    plot Pressure: False
+    plot Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
 
   Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
 
-    plot Osmotic Pressure: False
+    plot Osmotic Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -809,7 +807,7 @@ results options:
 
   Force 2D:                      # 2D plot of electroosmotic body force in the cluster
 
-    plot Force: False
+    plot Force: True
     data type: GJ               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
     autoscale colorbar: True
     max val: 15
@@ -869,21 +867,21 @@ results options:
 
   P cell Ani:
 
-    animate P cell: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Osmotic P Ani:
 
-    animate Osmotic P: False         # 2d animation of osmotic pressure difference in individual cells of the collective?
+    animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Force Ani:
 
-    animate Force: False         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate Force: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
@@ -937,19 +935,19 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 2.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
+        max Dmem Na: 1.0e-16        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
         activation v: -55e-3      # voltage threshold above which vgNa is activated [V]
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V]
-        deactivation v: -50e-3    # voltage threshold below which vgNa is deactivated [V]
-        live time: 5e-3           # time activated state can exist (trans to inactivated) [s]
+        deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V]
+        live time: 2e-3           # time activated state can exist (trans to inactivated) [s]
         dead time: 10e-3          # refractory time vgNa remains inactivated [s]
 
     voltage gated K:
 
-        max Dmem K: 2.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
-        activation v: -20e-3        # voltage threshold above which vgK is activated [V]
+        max Dmem K: 5.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
+        activation v: 10e-3        # voltage threshold above which vgK is activated [V]
         deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V]
-        live time: 20e-3            # time activated state can exist [s]
+        live time: 10e-3            # time activated state can exist [s]
 
     voltage gated Ca:
 
@@ -1008,7 +1006,7 @@ internal parameters:
   # pump parameters
 
   alpha_NaK:  5.0e-7   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  20      # the free energy level at which pump activity is halved [kJ]
+  halfmax_NaK:  8      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
@@ -1030,9 +1028,9 @@ internal parameters:
 
   interpolation method: linear  # interpolation method, choices are 'linear' or 'nearest'
 
-  env modification constant: 5e5    # scales field with respect to charge to provide stability
+  env modification constant: 5e5    # Asymetrical capacitance coefficient for environment
 
-  cell modification constant: 5e3    # scales charge density to provide stability
+  cell modification constant: 1.5e3    # Asymetrical capacitance coefficient for cell
 
 
 # Configuration file version that this file conforms to. For reliable

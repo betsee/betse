@@ -140,13 +140,8 @@ class AnimateCellData(object):
                     all_z.append(val)
 
             self.cmean = np.mean(all_z)
-            self.cmin = round(np.min(all_z))
-            self.cmax = round(np.max(all_z))
-            clrCheck = self.cmax - self.cmin
-
-            if clrCheck == 0:
-                self.cmin = self.cmin - 1
-                self.cmax = self.cmax + 1
+            self.cmin = np.min(all_z)
+            self.cmax = np.max(all_z)
 
         elif clrAutoscale is False:
             self.cmin = clrMin
@@ -1480,11 +1475,11 @@ class AnimateForce(object):
 
             self.ax.axis([xmin,xmax,ymin,ymax])
 
-            self.tit = "Electric Field Induced Body Force"
+            self.tit = "Electroosmotic Volume Force"
             self.ax.set_title(self.tit)
             self.ax.set_xlabel('Spatial distance [um]')
             self.ax.set_ylabel('Spatial distance [um]')
-            self.cb.set_label('Body Force [N/m3]')
+            self.cb.set_label('Volume Force [N/m3]')
 
             self.frames = len(sim.time)
 
@@ -2279,13 +2274,13 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
 
         # Add a colorbar for the PolyCollection
         if zdata is not None:
-            maxval = round(np.max(zdata,axis=0),1)
-            minval = round(np.min(zdata,axis=0),1)
-            checkval = maxval - minval
-
-            if checkval == 0:
-                minval = minval - 0.1
-                maxval = maxval + 0.1
+            maxval = np.max(zdata,axis=0)
+            minval = np.min(zdata,axis=0)
+            # checkval = maxval - minval
+            #
+            # if checkval == 0:
+            #     minval = minval - 0.1
+            #     maxval = maxval + 0.1
 
         if zdata is not None and clrAutoscale is True:
             coll.set_clim(minval,maxval)
@@ -2401,13 +2396,8 @@ def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True
 
          # Add a colorbar for the triplot:
 
-        maxval = round(np.max(z,axis=0),1)
-        minval = round(np.min(z,axis=0),1)
-        checkval = maxval - minval
-
-        if checkval == 0:
-            minval = minval - 0.1
-            maxval = maxval + 0.1
+        maxval = np.max(z,axis=0)
+        minval = np.min(z,axis=0)
 
         if zdata is not None and clrAutoscale is True:
             triplt.set_clim(minval,maxval)

@@ -2672,6 +2672,9 @@ class Simulator(object):
              # calculate the electroosmotic force (shaped to the u and v grids):
             if p.base_eosmo is True:
 
+
+                #*************************************************************
+
                 # first calculate the electric field on the u and v junctions:
                 venv = self.v_env.reshape(cells.X.shape)
                 env_x, env_y = cells.grid_obj.grid_gradient(venv,bounds=btag)
@@ -2680,7 +2683,7 @@ class Simulator(object):
                 rho_env_x = np.zeros(cells.grid_obj.u_shape)
                 rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
-                # map the charge density to the grid as a surface charge
+                # map the charge density to the grid
                 rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)/p.ff_env
                 rho_env_x[:,0] = rho_env_x[:,1]
 
@@ -2689,6 +2692,8 @@ class Simulator(object):
                 # above but didn't carry through the negative sign.
                 Fe_x = -(rho_env_x)*env_x
                 Fe_y = -(rho_env_y)*env_y
+
+                #**************************************************************
 
             else:
 
@@ -2735,7 +2740,7 @@ class Simulator(object):
                 P[-1,:] = 0
 
             # smooth out the pressure
-            # P = fd.integrator(P)
+            P = fd.integrator(P)
 
             # Take the grid gradient of the scaled internal pressure:
             gPx, gPy = cells.grid_obj.grid_gradient(P,bounds=btag)
@@ -2797,6 +2802,8 @@ class Simulator(object):
 
             alpha[alpha_zero] = 1
 
+            # rescale pressure to proper values of [Pa]
+
             self.P_env = P[:]*(1/alpha)
 
 
@@ -2835,14 +2842,7 @@ class Simulator(object):
             F_gj = np.zeros(len(cells.nn_vects))
 
 
-        if p.osmosis_flow:
-
-            F_osmo = self.osmo_P_grad
-
-        else:
-            F_osmo = np.zeros(len(cells.nn_vects))
-
-        F_source = F_gj + Fgj_gravity + F_osmo
+        F_source = F_gj + Fgj_gravity
 
         # sum the tangential body force pressure at the gap junctions for each cell:
         # scale the forces to the alpha value as 'rgj' may vary over space:

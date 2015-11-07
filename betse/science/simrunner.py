@@ -884,7 +884,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
              figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-        axP.set_title('Final Pressure in Cell Network')
+        axP.set_title('Final Hydrostatic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
         axP.set_ylabel('Spatial distance [um]')
         cbP.set_label('Pressure [Pa]')
@@ -916,26 +916,28 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.showCells is True:
 
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta/101325,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
         else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta/101325,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        # axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],sim.osmo_P_grad_x,sim.osmo_P_grad_y)
+        axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],
+         sim.osmo_P_grad_x/sim.osmo_P_grad.max(),sim.osmo_P_grad_y/sim.osmo_P_grad.max(),scale=5.0)
 
-        axP.set_title('Final Osmotic Pressure Differential in Cell Network')
+
+        axP.set_title('Final Osmotic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
         axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
+        cbP.set_label('Pressure Difference Cell Interior vs Exterior [atm]')
+
 
         if saveImages is True:
             savename13 = savedImg + 'final_osmoP_2D' + '.png'
             plt.savefig(savename13,format='png')
 
         plt.show(block=False)
-
 
 
     if p.plot_Vel is True and p.fluid_flow is True:
@@ -1030,11 +1032,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.axis('equal')
             plt.axis([p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
-            plt.title('Electrostatic Pressure Induced Body Force [N/m3]')
+            plt.title('Electroosmotic Volume Force [N/m3]')
 
             ax_f.set_xlabel('Spatial distance [um]')
             ax_f.set_ylabel('Spatial distance [um]')
-            cb_f.set_label('Body Force [N/m3]')
+            cb_f.set_label('Volume Force [N/m3]')
 
             if saveImages is True:
                 savename13 = savedImg + 'final_F_2D_env' + '.png'
@@ -1070,10 +1072,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx/ff.max(),fy/ff.max(),scale=10)
 
-            figX.suptitle('Electrostatic Pressure Induced Body Force',fontsize=14, fontweight='bold')
+            figX.suptitle('Electroosmotic Volume Force',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
-            cbX.set_label('Body Force [N/m3]')
+            cbX.set_label('Volume Force [N/m3]')
 
             if saveImages is True:
                 savename9 = savedImg + 'final_Force_cells' + '.png'
@@ -1263,13 +1265,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.showCells is True:
 
-            viz.AnimateCellData(sim,cells,sim.P_cells_time,sim.time,p,tit='P in cell', cbtit = 'Pressure [Pa]',
+            viz.AnimateCellData(sim,cells,sim.P_cells_time,sim.time,p,tit='Hydrostatic Pressure in Cells', cbtit = 'Pressure [Pa]',
                 clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Pcell',
                 saveFile = 'Pcell_', ignore_simECM =True, current_overlay=p.I_overlay)
         else:
-            viz.AnimateCellData_smoothed(sim,cells,sim.P_cells_time,sim.time,p,tit='P in cell', cbtit = 'Pressure [Pa]',
+            viz.AnimateCellData_smoothed(sim,cells,sim.P_cells_time,sim.time,p,tit='Hydrostatic Pressure in Cells', cbtit = 'Pressure [Pa]',
                 clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
@@ -1277,18 +1279,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.ani_osmoP is True and animate == 1:
 
-        osmo_P_atm = [arr*1 for arr in sim.osmo_P_delta_time]
+        osmo_P_atm = [arr*(1/101325) for arr in sim.osmo_P_delta_time]
 
         if p.showCells is True:
 
-            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential', cbtit = 'Pressure [Pa]',
+            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells', cbtit = 'Pressure [atm]',
                 clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/osmoP',
                 saveFile = 'osmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
         else:
-            viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic P Differential',
-                cbtit = 'Pressure [Pa]',
+            viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells',
+                cbtit = 'Pressure [atm]',
                 clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',

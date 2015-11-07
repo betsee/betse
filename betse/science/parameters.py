@@ -52,8 +52,6 @@ class Parameters(object):
 
         self.fluid_flow = self.config['world options']['Fluid Flow']['include fluid flow']
 
-        self.osmosis_flow = self.config['world options']['Fluid Flow']['osmosis']
-
         self.base_eosmo = self.config['world options']['Fluid Flow']['electroosmosis']
 
         self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
@@ -901,7 +899,7 @@ class Parameters(object):
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
-            self.cP_env = 9.0
+            self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_P]
 
@@ -910,13 +908,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 7.6
-            self.cK_cell = 139.0
+            self.cNa_cell = 13.0
+            self.cK_cell = 200.0
             self.cP_cell = 138.0
-
-            # self.cNa_cell = 12.0
-            # self.cK_cell = 130.0
-            # self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
@@ -938,7 +932,7 @@ class Parameters(object):
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cCa_env = 1.0
-            self.cP_env = 9.0
+            self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Ca, self.z_P]
 
@@ -947,8 +941,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 7.6
-            self.cK_cell = 139.0
+            self.cNa_cell = 13.0
+            self.cK_cell = 200.0
             self.cCa_cell = 1.0e-3
             self.cP_cell = 138.0
 
@@ -977,7 +971,7 @@ class Parameters(object):
             self.cCl_env = 105.0
             self.cCa_env = 1.0
             self.cH_env = 6.98e-8
-            self.cP_env = 9.0
+            self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
 
@@ -986,9 +980,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 7.8
-            self.cK_cell = 148.0
-            self.cCl_cell = 10.0
+            self.cNa_cell = 11.8
+            self.cK_cell = 173.2
+            self.cCl_cell = 35.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 6.31e-8
             self.cP_cell = 138.0
@@ -1067,32 +1061,34 @@ class Parameters(object):
 
             self.cNa_env = 145.0
             self.cK_env = 5.0
+            self.cCl_env = 105.0
             self.cP_env = 10.0
 
-            zs = [self.z_Na, self.z_K, self.z_P]
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_P]
 
-            conc_env = [self.cNa_env,self.cK_env, self.cP_env]
+            conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cP_env]
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
 
             assert self.z_M_env == -1
 
             self.cNa_cell = 145.0
-            self.cK_cell = 5.0
+            self.cCl_cell = 80.0
+            self.cK_cell = 85.0
             self.cP_cell = 138.0
 
-            conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
+            conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell,self.cP_cell]
 
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'P':self.cP_cell,'M':self.cM_cell}
-            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'P':self.cP_env,'M':self.cM_env}
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'P':self.Dm_P,'M':self.Dm_M}
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'P':self.z_P,'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'P':self.Do_P,'M':self.Do_M}
-            self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':0,'H':0,'P':1,'M':1}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Cl':self.cCl_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Cl':self.cCl_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Cl':self.Dm_Cl ,'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Cl':self.z_Cl,'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Cl':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Cl':'chloride','P':'proteins','M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
         elif self.ion_profile == 'customized':
@@ -1216,7 +1212,7 @@ class Parameters(object):
 
             if self.sim_ECM is False:
 
-                self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.dt = 5.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
                 self.resamp = 0.1         # time to resample in world time
 
