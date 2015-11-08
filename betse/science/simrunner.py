@@ -532,10 +532,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.data_type_rho == 'ECM' and p.sim_ECM is True:
 
             plt.figure()
-            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(cells.ecm_vol.reshape(cells.X.shape)/cells.ecm_sa),origin='lower',
+            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(1/p.ff_env),origin='lower',
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
-            plt.title('Environmental Surface Charge Density [C/m2]')
+            plt.title('Environmental Charge Density [C/m2]')
 
             if saveImages is True:
                 savename10 = savedImg + 'Final_environmental_charge' + '.png'
@@ -548,17 +548,17 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             if p.showCells is True:
 
 
-                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(cells.cell_vol/cells.cell_sa),number_cells=p.enumerate_cells,
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(1/p.ff_cell),number_cells=p.enumerate_cells,
                     clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
                     clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
             else:
 
-                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(cells.cell_vol/cells.cell_sa),clrAutoscale = p.autoscale_rho,
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(1/p.ff_cell),clrAutoscale = p.autoscale_rho,
                         clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
                         number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 
-            figX.suptitle('Final Cell Net Surface Charge Density',fontsize=14, fontweight='bold')
+            figX.suptitle('Final Cell Charge Density',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
             cbX.set_label('Net Charge Density [C/m2]')
@@ -923,9 +923,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
              figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta/101325,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],
-         sim.osmo_P_grad_x/sim.osmo_P_grad.max(),sim.osmo_P_grad_y/sim.osmo_P_grad.max(),scale=5.0)
-
 
         axP.set_title('Final Osmotic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
@@ -938,6 +935,49 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename13,format='png')
 
         plt.show(block=False)
+
+        # Gradient between cells -- relation to force
+
+        if p.showCells is True:
+
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_grad_mag,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_grad_mag,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],
+            sim.osmo_P_grad_x/sim.osmo_P_grad.max(),sim.osmo_P_grad_y/sim.osmo_P_grad.max(),scale=5.0)
+
+
+        axP.set_title('Final Osmotic Pressure Gradient in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Volume Force [N/m3]')
+
+
+        if saveImages is True:
+            savename13 = savedImg + 'final_osmoGrad_2D' + '.png'
+            plt.savefig(savename13,format='png')
+
+        plt.show(block=False)
+
+        # plot the osmotic pressure in the environment:
+        if p.sim_ECM is True:
+
+            plt.figure()
+            plt.imshow(sim.osmo_P_env.reshape(cells.X.shape)/101325,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+            plt.colorbar()
+            plt.axis('equal')
+            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+            plt.title('Final Extracellular Osmotic Pressure [atm]')
+
+            if saveImages is True:
+                savename13 = savedImg + 'final_osmoP_2D_env' + '.png'
+                plt.savefig(savename13,format='png')
+
+            plt.show(block=False)
 
 
     if p.plot_Vel is True and p.fluid_flow is True:

@@ -980,9 +980,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 11.8
-            self.cK_cell = 173.2
-            self.cCl_cell = 35.0
+            self.cNa_cell = 11.0
+            self.cK_cell = 172.2
+            self.cCl_cell = 33.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 6.31e-8
             self.cP_cell = 138.0

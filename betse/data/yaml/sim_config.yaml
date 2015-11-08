@@ -78,8 +78,8 @@ init time settings:
                                 # To use these over defaults call 'custom init' in time profile
                                 # setting above.
 
-    time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 5.0             # end time [s] (recommend 3 seconds or more)
+    time step: 5.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
+    total time: 100.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 5.0         # time to end sim run [s]
+    total time: 10.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -122,7 +122,7 @@ general options:
 
   simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
-  ion profile: basic   # ion profile options:
+  ion profile: animal   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
@@ -177,7 +177,7 @@ general options:
 
 world options:
 
-  world size: 200e-6      # dimension of the square world space [m]
+  world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -370,7 +370,7 @@ change Na mem:       # Change the membrane permeability to Na+
 
   event happens: True        # turn the event on (True) or off (False)
   change start: 1.0                # time to start change [s]
-  change finish: 4.0               # time to end change and return to original [s]
+  change finish: 5.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
   multiplier: 50.0                # factor to multiply base level
   function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
@@ -590,13 +590,13 @@ variable settings:
 
   morphogen properties:  # specify the properties of an auxillary chemical
 
-      include morphogen: False     # include electrodiffusion of an auxillary chemical substance?
+      include morphogen: True     # include electrodiffusion of an auxillary chemical substance?
       Dm: 1.0e-12        # morphogen membrane diffusion coefficient [m2/s]
       Do: 1.0e-9         # morphogen free diffusion constant [m2/s]
       z: -1               # charge of morphogen (oxidation state)
       env conc: 1.0e-3        # initial concentration of morphogen in the environment [mmol/L]
       cell conc: 1.0e-3    # initial concentration of morphogen in the cell network [mmol/L]
-      ion channel target: Na    # morphogen ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      ion channel target: None    # morphogen ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
       target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
       peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
@@ -615,7 +615,7 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 1.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
+    gap junction surface area: 5.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
@@ -715,7 +715,7 @@ results options:
 
   plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
-  plot masked geometry: False      # plot the geometry using the overall shape as a mask
+  plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
   Vmem 2D:
 
@@ -726,14 +726,14 @@ results options:
 
   Ca 2D:
 
-    plot Ca: False                # 2d plot of final cell calcium ?
+    plot Ca: True                # 2d plot of final cell calcium ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
 
   IP3 2D:
 
-    plot IP3: False               # 2d plot of final cIP3 ?
+    plot IP3: True               # 2d plot of final cIP3 ?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
@@ -825,21 +825,21 @@ results options:
 
   Ca Ani:
 
-    animate Ca2+: False           # 2d animation of cell calcium with time ?
+    animate Ca2+: True           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
 
-    animate IP3: False            # 2d animation of cIP3 with time?
+    animate IP3: True            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Morpho Ani:
 
-    animate Morpho: False            # 2d animation of voltage sensitive dye in cell collective with time?
+    animate Morpho: True            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
@@ -935,7 +935,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 1.0e-16        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
+        max Dmem Na: 5.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
         activation v: -55e-3      # voltage threshold above which vgNa is activated [V]
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V]
         deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V]
@@ -944,7 +944,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated K:
 
-        max Dmem K: 5.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
+        max Dmem K: 1.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
         activation v: 10e-3        # voltage threshold above which vgK is activated [V]
         deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V]
         live time: 10e-3            # time activated state can exist [s]
@@ -1014,13 +1014,13 @@ internal parameters:
   halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
   slope_Ca:  12         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  0.01    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  12         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_HK:  0.1    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  halfmax_HK:  8       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  1.5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  12         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_V:  10.0     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  halfmax_V:  8       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  6         # the energy window width of the NaK-ATPase pump [kJ]
 
   max_gj_enhancement: 10   # parameters relating to flow sensitivity of gap junctions
   u_decay_rate: 0.5
@@ -1028,9 +1028,9 @@ internal parameters:
 
   interpolation method: linear  # interpolation method, choices are 'linear' or 'nearest'
 
-  env modification constant: 5e5    # Asymetrical capacitance coefficient for environment
+  env modification constant: 5.0e5    # Asymetrical capacitance coefficient for environment
 
-  cell modification constant: 1.5e3    # Asymetrical capacitance coefficient for cell
+  cell modification constant: 1.5e3    # Asymetrical capacitance coefficient for cell 1.5e3 to 5e5
 
 
 # Configuration file version that this file conforms to. For reliable
