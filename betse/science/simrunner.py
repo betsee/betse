@@ -875,7 +875,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and p.base_eosmo is True and cells.lapGJinv is not None:
+    if p.plot_P is True and p.fluid_flow is True and cells.lapGJinv is not None:
 
         if p.showCells is True:
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,

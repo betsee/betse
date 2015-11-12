@@ -1862,6 +1862,9 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             self.vgj = self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0]
+            # self.vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
+            #
+            # self.vgj = self.vm_ave[cells.nn_i][:,1] - self.vm_ave[cells.nn_i][:,0]
 
         else:
             self.vgj = self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0]
@@ -1937,6 +1940,7 @@ class Simulator(object):
         if p.v_sensitive_gj is True:
             # determine the open state of gap junctions:
             self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+            # self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.hill(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
         else:
             self.gjopen = (1 + self.gj_rho)*self.gj_block

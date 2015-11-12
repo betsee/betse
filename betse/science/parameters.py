@@ -908,8 +908,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 13.0
-            self.cK_cell = 200.0
+            self.cNa_cell = 9.0
+            self.cK_cell = 150.0
             self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
@@ -941,8 +941,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 13.0
-            self.cK_cell = 200.0
+            self.cNa_cell = 9.0
+            self.cK_cell = 150.0
             self.cCa_cell = 1.0e-3
             self.cP_cell = 138.0
 
@@ -980,9 +980,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 11.0
-            self.cK_cell = 172.2
-            self.cCl_cell = 33.0
+            self.cNa_cell = 9.0
+            self.cK_cell = 150.2
+            self.cCl_cell = 15.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 6.31e-8
             self.cP_cell = 138.0
@@ -1141,7 +1141,7 @@ class Parameters(object):
                 'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,
                 'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_Cl,
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,
                 'P':self.Do_P,'M':self.Do_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
                 'P':'proteins','M':'anion'}
