@@ -154,13 +154,10 @@ DEPENDENCIES_RUNTIME = [
     # setuptools is used to validate that required dependencies are available.
     DEPENDENCY_SETUPTOOLS,
 
-    # matplotlib 1.4.0 switched Python compatability layers from "2to3" to
-    # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
-    # and hence end-user use of such version of matplotlib.
-    'Matplotlib >= 1.3.0',
-
     # Dependencies directly required by BETSE.
     # 'PySide >= 1.2.0',
+    # 'yamale >= 1.5.3',
+    'Matplotlib >= 1.3.0',
     'Numpy >= 1.8.0',
     'SciPy >= 0.12.0',
     'PyYAML >= 3.10',
@@ -195,6 +192,7 @@ README.md
 DEPENDENCY_TO_MODULE_NAME = {
     'setuptools': 'setuptools',
     'six': 'six',
+    'yamale': 'yamale',
     'Matplotlib': 'matplotlib',
     'Numpy': 'numpy',
     'Pillow': 'PIL',
@@ -211,6 +209,10 @@ of the `DEPENDENCIES_RUNTIME` set.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+    # matplotlib 1.4.0 switched Python compatability layers from "2to3" to
+    # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
+    # and hence end-user use of such version of matplotlib.
+
 # DEPENDENCY_TO_MODULE_VERSION_ATTR_NAME = collections.defaultdict(
 #     # Default attribute name to be returned for all unmapped dependencies.
 #     lambda: '__version__',

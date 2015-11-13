@@ -21,7 +21,7 @@ with a focus on spatio-temporal pattern formation.
   _not_ support Python 3.5, however, `betse` will _not_ be freezable.
 * Operating systems matching either:
   * **Microsoft Windows XP** or newer.
-  * **Apple OS X 10.6** (Snow Leopard) or newer.
+  * **Apple OS X 10.8.3** (Mountain Lion) or newer.
   * **Linux distributions providing at least `glibc` 2.19** or newer. (The
     currently installed version of `glibc` is printable by running the following
     command at the command line: `ldd --version`.) This includes but is *not*
@@ -31,7 +31,7 @@ with a focus on spatio-temporal pattern formation.
 
 `betse` currently recommends but does *not* require:
 
-* **At least 16GB RAM**. Again, this is due to the memory intensiveness of
+* **At least 8GB RAM**. Again, this is due to the memory intensiveness of
   even small-scale tissue simulations.
 
 ## Program Dependencies
@@ -44,7 +44,7 @@ installing `betse`. Let's begin!
 
 `betse` requires the following non-pure-Python packages – which themselves
 require non-Python libraries (e.g., C, Fortran) and hence are best installed
-manually via the package manager specific to your current operating system:
+manually via the system-wide package manager for your current operating system:
 
 * Python >= 3.3.
 * Matplotlib >= 1.3.0.
@@ -53,50 +53,86 @@ manually via the package manager specific to your current operating system:
 * PySide >= 1.1.0.
 * PyYaml >= 3.10.
 * SciPy >= 0.12.0.
-* Voluptuous >= 0.8.7.
+* Yamale >= 1.5.3.
 * setuptools >= 3.3.
 * six >= 1.5.2.
 
+We also strongly recommend that a reasonably recent version of `pip3`, the
+Python 3-specific release of the popular Python package manager `pip`, be
+installed. While `betse` does _not_ require `pip3`, the installation
+instructions below install and run `pip3` to install dependencies not that
+`betse` _does_ require and that are _not_ installable via the system-wide
+package manager for your current operating system. As of this writing, this
+only includes Yamale.
+
 #### Linux Debian
 
-Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), such
+Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), these
 dependencies are installable in a system-wide manner as follows:
 
-    >>> sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pyside python3-scipy python3-setuptools python3-six python3-yaml
+    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyside python3-scipy python3-setuptools python3-six python3-yaml
+    $ sudo pip3 install yamale
 
 #### Apple OS X
 
-Under Apple OS X, such dependencies are installable in a system-wide manner as
+Under Apple OS X, these dependencies are installable in a system-wide manner as
 follows:
 
 1. Register as an [Apple Developer](https://developer.apple.com). While free,
-   such registration requires an existing Apple ID.
-1. Download [XCode](https://developer.apple.com/xcode). While free, such
-   download requires an [Apple Developer] login.
-1. Install XCode, ensuring the "UNIX Development Support" checkbox is checked.
-1. Download and install [Homebrew](http://brew.sh). While such dependencies are
-   also technically installable via [MacPorts](https://www.macports.org),
-   Homebrew provides significantly more robust support for features of interest
-   to `betse` users. Saliently, this includes the capacity to install
-   alternative versions of dependencies rather than merely the newest.
+   registration requires an existing Apple ID and hence ownership of an existing
+   Apple product. (We don't make the awful rules. We only complain about them.)
+1. Download and install the most recent version of
+   [XCode](https://developer.apple.com/downloads) available for your version of
+   OS X. While free, this download requires an [Apple Developer] login.
 1. Open a terminal window (e.g., by running the pre-bundled
    `Applications/Utilities/Terminal.app` application).
-1. Install dependencies:
+1. Download and install the **exact same version** of the [XCode Command Line
+   Tools](https://developer.apple.com/downloads) (CLT) as the installed version
+   of XCode. Attempting to install an older or newer version of the CLT will
+   typically superficially succeed but result in obscure and difficult-to-debug
+   issues on attempting to install dependencies with Homebrew. Naturally, there
+   are numerous approaches to installing the correct version of the CLT:
+   1. **(Recommended)** We strongly recommend manually downloading and
+      installing the CLT rather than relying on Apple-based automation to do so:
+      1. Browse to the [Apple Developer
+         Downloads](https://developer.apple.com/downloads) site.
+      1. Enter `xcode` into the search bar.
+      1. Manually search the resulting hits for the installed version of XCode.
+      1. Note the official date of this version's release (e.g., June 12, 2013 for
+         XCode 4.6.3).
+      1. Manually search the resulting hits for the most recent version of the CLT
+         _preceding_ this date (e.g., April 11, 2013 for the CLT corresponding to
+         XCode 4.6.3).
+      1. Download and install this version.
+   1. **(Not recommended)** If your system has been recently upgraded to the
+      most recently released minor version of your currently installed major
+      version of OS X, the CLT is also automatically downloadable and
+      installable via the following command:
 
-        # FIXME: Python 3.5 is now the default. Since we want Python 3.4,
-        # we may need to use "pyenv" to manage versions. *shrug*
-        >>> brew install python3 --with-tcl-tk
-        >>> brew install matplotlib --with-python3 --without-python --with-tcl-tk
-        >>> brew install numpy --with-python3 --without-python
-        >>> brew install pillow --with-python3 --without-python
-        >>> brew install pyside --with-python3 --without-python
-        >>> brew install scipy --with-python3 --without-python
-        >>> brew install libyaml
-        >>> sudo pip3 install yaml
+            $ xcode-select –install
+
+1. Download and install [Homebrew](http://brew.sh). While these dependencies are
+   also technically installable via [MacPorts](https://www.macports.org),
+   Homebrew provides significantly more robust support for features of interest
+   to `betse` users. Critically, this includes the capacity to install
+   alternative versions of dependencies rather than merely the newest. To do so:
+
+        $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+1. Install all dependencies:
+
+        $ brew install python3 --with-tcl-tk
+        $ brew install matplotlib --with-python3 --without-python --with-tcl-tk
+        $ brew install numpy --with-python3 --without-python
+        $ brew install pillow --with-python3 --without-python
+        $ brew install pyside --with-python3 --without-python
+        $ brew install scipy --with-python3 --without-python
+        $ brew install libyaml
+        $ sudo pip3 install yaml yamale
 
 1. Close the terminal, if you like:
 
-        >>> exit
+        $ exit
 
 1. Manually add the directory containing the installed version of Python to the
    current ${PATH}. To do so permanently, edit the `.profile` file in your home
@@ -146,11 +182,11 @@ For simplicity, the following instructions assume use of the
 
 1. Apply such changes to the current shell session. 
 
-        >>> source ~/.zshrc
+        $ source ~/.zshrc
 
 1. Install Python dependencies via `conda`, Miniconda's package manager:
 
-        >>> conda install numpy matplotlib pyside pyyaml pywin32 scipy
+        $ conda install numpy matplotlib pyside pyyaml pywin32 scipy
 
 1. Symbolically link the Python 3 executable `python.exe` installed by Miniconda
    to `python3`. For disambiguity, numerous core scripts including `betse`'s
@@ -158,7 +194,7 @@ For simplicity, the following instructions assume use of the
    unknown reasons, the Python 3-specific version of Miniconda under Windows
    does *not* appear to provide a `python3` executable. To fix this:
 
-        >>> ln -s /c/Miniconda3/python.exe /c/Miniconda3/python3
+        $ ln -s /c/Miniconda3/python.exe /c/Miniconda3/python3
 
 ##### Wine
 
@@ -186,7 +222,7 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
    installable package for Wine Staging, consider installing Wine Staging.
 1. Install PlayOnLinux, an open-source Wine manager simplifying Wine usage.
 
-        >>> sudo apt-get install playonlinux
+        $ sudo apt-get install playonlinux
 
 1. Install the newest 64-bit version of Wine via PlayOnLinux.
   1. Run PlayOnLinux.
@@ -209,38 +245,40 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 1. Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
    be replaced by the installed version number (e.g., `1.7.40`).
 
-        >>> export WINEDEBUG='-all'
-        >>> export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
-        >>> export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
+        $ export WINEDEBUG='-all'
+        $ export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
+        $ export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
 
 1. Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
   by the path to the previously downloaded Miniconda installer (e.g.,
   `~/Downloads/Miniconda3-latest-Windows-x86\_64.exe`).
 
-        >>> wine "${MINICONDA_INSTALLER}"
+        $ wine "${MINICONDA_INSTALLER}"
 
 1. Active Miniconda.
 
-        >>> export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
-        >>> export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
+        $ export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
+        $ export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
 
 1. Install dependencies via `conda`, Miniconda's package manager:
 
-        >>> wine conda install numpy matplotlib pyside pyyaml pywin32 scipy
+        $ wine conda install numpy matplotlib pyside pyyaml pywin32 scipy
 
 ### Optional
 
 `betse` optionally benefits from the following mostly pure-Python packages –
-which Python-specific package managers (e.g., `pip`, `setuptools`) install for
-you and hence require no manual installation:
+which Python-specific package managers (e.g., `pip3`, `setuptools`) install for
+you and hence require no manual installation. Assuming `pip3` to already be
+installed (as recommended above), these packages are installable in a
+system-wide manner as follows:
 
 * nose >= 1.3.0, for optionally running unit tests. (See below.)
-* PyInstaller `python3` branch, for optionally freezing `betse`. (See below.)
 
-Assuming the common `git` and `pip3` commands to already be installed, such
-dependencies are installable in a system-wide manner as follows:
+        $ sudo pip3 install nose
 
-    >>> sudo pip3 install nose
+* PyInstaller >= 3.0, for optionally freezing `betse`. (See below.)
+
+        $ sudo pip3 install pyinstaller
 
 ## Program Installation
 
@@ -265,12 +303,12 @@ absolute path of the top-level directory containing the source for `betse`.
 
 * Compile `betse`.
 
-        >>> cd "${BETSE_DIR}"
-        >>> python3 setup.py build
+        $ cd "${BETSE_DIR}"
+        $ python3 setup.py build
 
 * Install `betse`.
 
-        >>> sudo python3 setup.py easy_install --no-deps .
+        $ sudo python3 setup.py easy_install --no-deps .
 
 Curiously, although the `develop` command for `setuptools` provides a
 `--no-deps` option, the `install` command does not. Hence, the `easy\_install`
@@ -278,15 +316,15 @@ command is called above instead.
 
 `betse` is subsequently uninstallable via `pip` as follows:
 
-    >>> sudo pip uninstall betse
+    $ sudo pip uninstall betse
 
 ### User-specific
 
 `betse` is installable into a user-specific venv by running the following
 command **from within such venv**:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py install
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py install
 
 This command should *not* be run outside of a venv. Doing so will reinstall all
 dependencies of `betse` already installed by the system-wide package manager
@@ -296,7 +334,7 @@ by `setuptools` and dependencies already installed by such package maneger.
 
 `betse` is subsequently uninstallable via `pip` as follows:
 
-    >>> pip uninstall betse
+    $ pip uninstall betse
 
 ## Program Usage
 
@@ -308,13 +346,13 @@ run by executing Python wrapper scripts installed to the current `${PATH}`.
 
 `betse` installs a low-level command line interface (CLI), runnable as follows:
 
-    >>> betse
+    $ betse
 
 Such CLI is also runnable by invoking the main CLI module under the active
 Python 3 interpreter as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> python3 -m betse.cli
+    $ cd "${BETSE_DIR}"
+    $ python3 -m betse.cli
 
 This has the minor advantage of working regardless of whether `betse` has been
 installed or not, but the corresponding disadvantage of requiring more typing.
@@ -324,13 +362,13 @@ installed or not, but the corresponding disadvantage of requiring more typing.
 `betse` also installs a high-level graphical user interface (GUI) implemented in
 the popular cross-platform windowing toolkit Qt4, runnable as follows:
 
-    >>> betse-qt &
+    $ betse-qt &
 
 Such GUI is also runnable by invoking the main GUI module under the active
 Python 3 interpreter as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> python3 -m betse.gui
+    $ cd "${BETSE_DIR}"
+    $ python3 -m betse.gui
 
 ## Program Development
 
@@ -346,10 +384,10 @@ installation.
 `betse` is installable into a system-wide directory as follows:
 
 * **(Optional).** Set the current umask to "002" as above.
-    >>> umask 002
+    $ umask 002
 * Editably install `betse`.
-    >>> cd "${BETSE_DIR}"
-    >>> sudo python3 setup.py symlink
+    $ cd "${BETSE_DIR}"
+    $ sudo python3 setup.py symlink
 
 The `symlink` command is a `betse`-specific `setuptools` command inspired by the
 IPython `setuptools` command of the same name, generalizing the behaviour of the
@@ -379,39 +417,39 @@ also be installed and usable in the expected manner.
 
 `betse` is editably installable into a user-specific venv via `pip` as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> pip3 install --no-deps --editable .
+    $ cd "${BETSE_DIR}"
+    $ pip3 install --no-deps --editable .
 
 Such installation is uninstallable as follows:
 
-    >>> pip3 uninstall betse
+    $ pip3 uninstall betse
 
 #### setuptools
 
 `betse` is editably installable into a user-specific venv via `setuptools` as
 follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py develop --no-deps
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py develop --no-deps
 
 Such installation is uninstallable as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py develop --uninstall
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py develop --uninstall
 
 ## Program Testing
 
 `betse` is testable via `nose` as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py test
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py test
 
 If `nose` is already installed under the active Python 3 interpreter, improved
 unit test output is available by either of the following two (effectively)
 equivalent commands:
 
-    >>> nosetests             # this works...
-    >>> ./setup.py nosetest   # ...as does this.
+    $ nosetests             # this works...
+    $ ./setup.py nosetest   # ...as does this.
 
 ## Program Freezing
 
@@ -447,20 +485,20 @@ follows:
 * Make a local directory to which the PyInstaller codebase will be downloaded
   and change to such directory: e.g.,
 
-        >>> mkdir ~/py
-        >>> cd ~/py
+        $ mkdir ~/py
+        $ cd ~/py
 
 * Download the PyInstaller codebase.
 
-        >>> git clone --branch scipy https://github.com/leycec/pyinstaller.git
+        $ git clone --branch scipy https://github.com/leycec/pyinstaller.git
 
 * Change to the downloaded directory.
 
-        >>> cd pyinstaller
+        $ cd pyinstaller
 
 * Install PyInstaller.
 
-        >>> sudo python3 setup.py install
+        $ sudo python3 setup.py install
 
 This branch provides critical patches submitted to but *not* yet accepted into
 PyInstaller's [official Python 3
@@ -470,12 +508,12 @@ as follows:
 
 * Change to the PyInstaller codebase: e.g.,
 
-        >>> cd ~/py/pyinstaller
+        $ cd ~/py/pyinstaller
 
 * Update the PyInstaller codebase.
 * Reinstall PyInstaller.
 
-        >>> sudo python3 setup.py install
+        $ sudo python3 setup.py install
 
 #### UPX
 
@@ -493,7 +531,7 @@ UPX does *not* appear to be readily available under Microsoft Windows. Next!
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), UPX is
 installable in a system-wide manner as follows:
 
-    >>> sudo apt-get install upx-ucl
+    $ sudo apt-get install upx-ucl
 
 ### Usage
 
@@ -507,13 +545,13 @@ installable in a system-wide manner as follows:
 
 `betse` is freezable in one-file mode as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py freeze_file
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py freeze_file
 
 `betse` is freezable in one-directory mode as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py freeze_dir
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py freeze_dir
 
 ### Paths
 
@@ -551,10 +589,10 @@ directory *or* passing option `--clean` to the desired `freeze_file` or
 example, `betse` is switchable from one-directory to one-file mode and then back
 again as follows:
 
-    >>> cd "${BETSE_DIR}"
-    >>> ./setup.py freeze_dir
-    >>> ./setup.py freeze_file --clean
-    >>> ./setup.py freeze_dir --clean
+    $ cd "${BETSE_DIR}"
+    $ ./setup.py freeze_dir
+    $ ./setup.py freeze_file --clean
+    $ ./setup.py freeze_dir --clean
 
 #### Forwards Incompatibilities
 
