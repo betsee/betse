@@ -119,26 +119,34 @@ follows:
 
         $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-1. Install all dependencies:
+1. Manually add all directories to which Homebrew installs packages to the
+   current `${PATH}`. To do so permanently, edit the `.profile` file in your
+   home directory and change the line beginning with `export PATH` to resemble:
 
+        export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
+
+1. Install Python 3:
+
+        $ brew tap homebrew/dupes
         $ brew install python3 --with-tcl-tk
+
+1. Upgrade Python package managers:
+
+        $ pip3 install --upgrade pip setuptools
+
+1. Install remaining dependencies:
+
         $ brew install matplotlib --with-python3 --without-python --with-tcl-tk
         $ brew install numpy --with-python3 --without-python
         $ brew install pillow --with-python3 --without-python
         $ brew install pyside --with-python3 --without-python
         $ brew install scipy --with-python3 --without-python
         $ brew install libyaml
-        $ sudo pip3 install yaml yamale
+        $ pip3 install yaml yamale
 
 1. Close the terminal, if you like:
 
         $ exit
-
-1. Manually add the directory containing the installed version of Python to the
-   current ${PATH}. To do so permanently, edit the `.profile` file in your home
-   directory and change the line beginning with `export PATH` to resemble:
-
-        export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
 
 Note that Homebrew is a source-based package manager and hence extremely slow.
 Expect installation to require several hours to days. (We're not kidding.)
