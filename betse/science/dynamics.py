@@ -3,6 +3,7 @@
 # See "LICENSE" for further details.
 
 # FIXME cut out all the grey areas -- don't need 'em anymore
+# FIXME include other channels in morphogen (dye) dynamics
 
 
 import numpy as np

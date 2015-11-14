@@ -159,14 +159,16 @@ class SimRunner(object):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             loggers.log_info('Cell cluster loaded.')
 
-            if p_old.config['general options'] != p.config['general options'] or \
-                    p_old.config['world options'] != p.config['world options'] or \
-                    p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
-                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+            # FIXME temporarily disbled!
 
-                raise BetseExceptionParameters(
-                    "Important config file options are out of sync between seed and this init attempt!\n" +
-                    "Run 'betse seed' again to match the current settings of this config file.")
+            # if p_old.config['general options'] != p.config['general options'] or \
+            #         p_old.config['world options'] != p.config['world options'] or \
+            #         p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
+            #         p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+            #
+            #     raise BetseExceptionParameters(
+            #         "Important config file options are out of sync between seed and this init attempt!\n" +
+            #         "Run 'betse seed' again to match the current settings of this config file.")
 
 
         else:
@@ -232,14 +234,18 @@ class SimRunner(object):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
             p.sim_ECM = cells.sim_ECM
 
-            if p_old.config['general options'] != p.config['general options'] or \
-                    p_old.config['world options'] != p.config['world options'] or \
-                    p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
-                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+            pass
 
-                raise BetseExceptionParameters(
-                    "Important config file options are out of sync between the seed and this sim attempt!\n" +
-                    "Run 'betse seed' and 'betse init' again to match the current settings of this config file.")
+            # FIXME temporarily disabled
+
+            # if p_old.config['general options'] != p.config['general options'] or \
+            #         p_old.config['world options'] != p.config['world options'] or \
+            #         p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
+            #         p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+            #
+            #     raise BetseExceptionParameters(
+            #         "Important config file options are out of sync between the seed and this sim attempt!\n" +
+            #         "Run 'betse seed' and 'betse init' again to match the current settings of this config file.")
 
         else:
 
@@ -532,10 +538,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.data_type_rho == 'ECM' and p.sim_ECM is True:
 
             plt.figure()
-            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(1/p.ff_env),origin='lower',
+            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(100/p.ff_env),origin='lower',
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
-            plt.title('Environmental Charge Density [C/m2]')
+            plt.title('Environmental Charge Density [C/m3]')
 
             if saveImages is True:
                 savename10 = savedImg + 'Final_environmental_charge' + '.png'
@@ -548,20 +554,20 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             if p.showCells is True:
 
 
-                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(1/p.ff_cell),number_cells=p.enumerate_cells,
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(100/p.ff_cell),number_cells=p.enumerate_cells,
                     clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
                     clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
             else:
 
-                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(1/p.ff_cell),clrAutoscale = p.autoscale_rho,
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(100/p.ff_cell),clrAutoscale = p.autoscale_rho,
                         clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
                         number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 
             figX.suptitle('Final Cell Charge Density',fontsize=14, fontweight='bold')
             axX.set_xlabel('Spatial distance [um]')
             axX.set_ylabel('Spatial distance [um]')
-            cbX.set_label('Net Charge Density [C/m2]')
+            cbX.set_label('Net Charge Density [C/m3]')
 
             if saveImages is True:
                 savename9 = savedImg + 'final_cellCharge' + '.png'
@@ -964,20 +970,20 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
         # plot the osmotic pressure in the environment:
-        if p.sim_ECM is True:
-
-            plt.figure()
-            plt.imshow(sim.osmo_P_env.reshape(cells.X.shape)/101325,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-            plt.colorbar()
-            plt.axis('equal')
-            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Final Extracellular Osmotic Pressure [atm]')
-
-            if saveImages is True:
-                savename13 = savedImg + 'final_osmoP_2D_env' + '.png'
-                plt.savefig(savename13,format='png')
-
-            plt.show(block=False)
+        # if p.sim_ECM is True:
+        #
+        #     plt.figure()
+        #     plt.imshow(sim.osmo_P_env.reshape(cells.X.shape)/101325,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+        #     plt.colorbar()
+        #     plt.axis('equal')
+        #     plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+        #     plt.title('Final Extracellular Osmotic Pressure [atm]')
+        #
+        #     if saveImages is True:
+        #         savename13 = savedImg + 'final_osmoP_2D_env' + '.png'
+        #         plt.savefig(savename13,format='png')
+        #
+        #     plt.show(block=False)
 
 
     if p.plot_Vel is True and p.fluid_flow is True:
@@ -1040,11 +1046,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.data_type_force == 'ECM' and p.sim_ECM is True:
 
 
-            force_x = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_x*(1/p.ff_env)
+            force_x = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_x*(100/p.ff_env)
 
             force_x = fd.integrator(force_x)  # smooth things out a bit...
 
-            force_y = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_y*(1/p.ff_env)
+            force_y = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_y*(100/p.ff_env)
 
             force_y = fd.integrator(force_y) # smooth things out a bit...
 
@@ -1087,8 +1093,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         elif p.data_type_force == 'GJ':
 
-            fcells_x = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/(2*p.ff_cell))*sim.E_gj_x.ravel()
-            fcells_y = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(1/(2*p.ff_cell))*sim.E_gj_y.ravel()
+            fcells_x = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(100/(2*p.ff_cell))*sim.E_gj_x.ravel()
+            fcells_y = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(100/(2*p.ff_cell))*sim.E_gj_y.ravel()
 
             # average components back to cell centres:
             fx = np.dot(cells.gj2cellMatrix,fcells_x)

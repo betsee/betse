@@ -2547,7 +2547,7 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         coll = LineCollection(cell_edges_flat, array=z, cmap=clrmap,linewidths=4.0)
         ax.add_collection(coll)
 
-        coll.set_clim(0,3)
+        # coll.set_clim(0,3)
 
         ax.axis('equal')
 
