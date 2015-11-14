@@ -21,7 +21,7 @@ with a focus on spatio-temporal pattern formation.
   _not_ support Python 3.5, however, `betse` will _not_ be freezable.
 * Operating systems matching either:
   * **Microsoft Windows XP** or newer.
-  * **Apple OS X 10.8.3** (Mountain Lion) or newer.
+  * **Apple OS X 10.8.5** (Mountain Lion) or newer.
   * **Linux distributions providing at least `glibc` 2.19** or newer. (The
     currently installed version of `glibc` is printable by running the following
     command at the command line: `ldd --version`.) This includes but is *not*
@@ -75,12 +75,40 @@ dependencies are installable in a system-wide manner as follows:
 
 #### Apple OS X
 
-Under Apple OS X, these dependencies are installable in a system-wide manner as
-follows:
+Under Apple OS X, these dependencies are installable in a system-wide manner
+via either:
 
+* **(Recommended)** [Homebrew](http://brew.sh), an unofficial OS X package
+  manager. Homebrew provides robust support for features commonly required by
+  `betse` developers, including the capacity to install older rather than
+  merely the newest versions of packages.
+* **(Not recommended)** [MacPorts](https://www.macports.org), an alternative
+  unofficial OS X package manager. MacPorts lacks robust support for features
+  commonly required by `betse` developers, as described above. Since
+  Homebrew and MacPorts install packages into different system directories
+  (i.e., `/usr/local` for Homebrew and `/opt` for MacPorts), the two _can_
+  technically be used on the same system. However, this is generally
+  discouraged. If you currently use and prefer MacPorts, we recommend adopting
+  the following instructions to use MacPorts rather than Homebrew.
+
+For simplicity, the following instructions assume use of Homebrew:
+
+1. Upgrade your system to the most recently released minor version for your
+   currently installed major version of OS X. For example, if your system is
+   OS X **10.8.3** (Mountain Lion), upgrade to **10.8.5** (Mountain Lion).
+   Homebrew requires recent command-line tools (e.g., `clang`, `gcc`),
+   requiring requires recent XCode Command Line Tools (CLT), requiring a recent
+   version of XCode, requiring a recent version of OS X. Provided your system
+   meets the minimum requirements noted above, it should _not_ be necessary to
+   upgrade your system to a newer major version of OS X (e.g., from 10.8.5 to
+   10.9.5).
 1. Register as an [Apple Developer](https://developer.apple.com). While free,
    registration requires an existing Apple ID and hence ownership of an existing
    Apple product. (We don't make the awful rules. We only complain about them.)
+1. If an older version of the XCode Command Line Tools (CLT) has already been
+   installed, manually uninstall it _before_ proceeding. While XCode itself is
+   safely upgradable merely by installing a new version, the CLT is generally
+   _not_. (You can thank Apple for that.)
 1. Download and install the most recent version of
    [XCode](https://developer.apple.com/downloads) available for your version of
    OS X. While free, this download requires an [Apple Developer] login.
@@ -104,10 +132,12 @@ follows:
          _preceding_ this date (e.g., April 11, 2013 for the CLT corresponding to
          XCode 4.6.3).
       1. Download and install this version.
-   1. **(Not recommended)** If your system has been recently upgraded to the
-      most recently released minor version of your currently installed major
-      version of OS X, the CLT is also automatically downloadable and
-      installable via the following command:
+   1. **(Not recommended)** The CLT is also automatically downloadable and
+      installable via Apple-based automation. If your system has been upgraded to
+      both the most recently released minor version of your currently installed
+      major version of OS X _and_ to the most recently released version of
+      XCode for that version of OS X, the following command _should_ suffice to do
+      so. If in doubt, consider the manual approach above instead:
 
             $ xcode-select –install
 
