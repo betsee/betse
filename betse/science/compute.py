@@ -982,8 +982,6 @@ class Simulator(object):
                     # run the calcium ATPase endoplasmic reticulum pump:
                     fCaATP_ER = pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],self.v_er,self.T,p)
 
-
-
                     # update calcium concentrations in the ER and cell:
                     self.cc_er[0] = self.cc_er[0] + fCaATP_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
                     self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fCaATP_ER*(cells.cell_sa/cells.cell_vol)*p.dt
@@ -993,6 +991,7 @@ class Simulator(object):
 
                     q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
                     v_er_o = get_volt(q_er,p.ER_sa*cells.cell_sa,p)
+
                     self.v_er = v_er_o - self.vm
 
             if p.ions_dict['H'] == 1:
@@ -1445,7 +1444,6 @@ class Simulator(object):
 
             # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
             fNa_NaK = self.rho_pump*fNa_NaK
-
             fK_NaK = self.rho_pump*fK_NaK
 
             self.fluxes_mem[self.iNa] = fNa_NaK
@@ -2139,6 +2137,37 @@ class Simulator(object):
         self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p) - self.v_cell
 
     def update_dye(self,cells,p,t):
+
+        #------------------------------------------------------------
+        # pump dye and update result
+
+        if p.sim_ECM is True:
+
+            # active pumping of dye from environment and into cell
+            deltaGATP = 20*p.R*self.T
+
+            delG_dye = p.R*p.T*np.log(self.cDye_cell[cells.mem_to_cells]/self.cDye_env[cells.map_mem2ecm]) \
+                       + p.z_Dye*p.F*self.vm
+
+            delG_dyeATP = deltaGATP - delG_dye
+            delG_pump = (delG_dyeATP/1000)
+
+            alpha = 1.0e-5*tb.step(delG_pump,12,12)
+
+            f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
+
+            d_dye_cells = f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+            d_dye_env = -f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+
+            delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+            delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
+
+            self.cDye_cell = self.cDye_cell + delta_cells*p.dt
+
+            self.cDye_env = self.cDye_env + delta_env*p.dt
+
+
+        #------------------------------------------------------------
 
         # Update dye concentration in the gj connected cell network:
 
@@ -2898,7 +2927,7 @@ class Simulator(object):
         vmem = self.v_env[cells.map_mem2ecm]
 
         # components of fluid flow velocity at the membrane:
-        if p.base_eosmo is True:
+        if p.fluid_flow is True:
             ux_mem = self.u_at_c.ravel()[cells.map_mem2ecm]
             uy_mem = self.v_at_c.ravel()[cells.map_mem2ecm]
 
@@ -3233,10 +3262,10 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
     delG_NaKATP = deltaGATP - (3*delG_Na + 2*delG_K)
     delG_pump = (delG_NaKATP/1000)
-    delG = np.absolute(delG_pump)
-    signG = np.sign(delG)
+    # delG = np.absolute(delG_pump)
+    # signG = np.sign(delG)
 
-    alpha = block*p.alpha_NaK*tb.step(delG,p.halfmax_NaK,p.slope_NaK)
+    alpha = block*p.alpha_NaK*tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK)
 
     f_Na  = -alpha*(cNai)*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
@@ -3270,37 +3299,31 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     delG_Ca = p.R*T*np.log(cCao/cCai) - 2*p.F*Vm
     delG_CaATP = deltaGATP - (delG_Ca)
     delG_pump = (delG_CaATP/1000)
-    delG = np.absolute(delG_pump)
-    signG = np.sign(delG_pump)
+    # delG = np.absolute(delG_pump)
+    # signG = np.sign(delG_pump)
 
-    if p.backward_pumps is False:
+    alpha = p.alpha_Ca*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
 
-        alpha = p.alpha_Ca*tb.step(delG,p.halfmax_Ca,p.slope_Ca)
-
-        f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
-
-    elif p.backward_pumps is True:
-
-        alpha = signG*p.alpha_Ca*tb.step(delG,p.halfmax_Ca,p.slope_Ca)
-
-        truth_forwards = signG == 1
-        truth_backwards = signG == -1
-
-        inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
-        inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
-
-        f_Ca = np.zeros(len(cCai))
-
-        f_Ca[inds_forwards]  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
-        f_Ca[inds_backwards]  = -alpha*(cCao)      #flux as [mol/s], scaled to concentration out of cell
+    f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
 
     return f_Ca
 
 def pumpCaER(cCai,cCao,Vm,T,p):
+    """
+    Pumps calcium out of the cell and into the endoplasmic reticulum.
+    Vm is the voltage across the endoplasmic reticulum membrane.
 
-    alpha = p.alpha_CaER
+    """
 
-    f_Ca  = alpha*(cCao**(1/2))*(1.0 - cCai)**(1/2)      #flux as [mol/s]
+    deltaGATP = 20*p.R*T
+
+    delG_Ca = p.R*T*np.log(cCai/cCao) + 2*p.F*Vm
+    delG_CaATP = deltaGATP - (delG_Ca)
+    delG_pump = (delG_CaATP/1000)
+
+    alpha = p.alpha_CaER*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
+
+    f_Ca  = alpha*(cCao**(1/2))*(cCai**(1/2))      #flux as [mol/s]
 
     return f_Ca
 
@@ -3336,28 +3359,11 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     delG_HKATP = deltaGATP - (delG_H + delG_K)
     delG_pump = (delG_HKATP/1000)
-    delG = np.absolute(delG_pump)
-    signG = np.sign(delG)
+    # delG = np.absolute(delG_pump)
+    # signG = np.sign(delG)
 
-    if p.backward_pumps is False:
-
-        alpha = block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
-        f_H  = -alpha*np.sqrt(cHi)*np.sqrt(cKo)      #flux as [mol/s], scaled by concentrations in and out
-
-    elif p.backward_pumps is True:
-
-        alpha = signG*block*p.alpha_HK*tb.step(delG,p.halfmax_HK,p.slope_HK)
-
-        truth_forwards = signG == 1
-        truth_backwards = signG == -1
-
-        inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
-        inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
-
-        f_H = np.zeros(len(cHi))
-
-        f_H[inds_forwards]  = -alpha*np.sqrt(cHi)*np.sqrt(cKo)      #flux as [mol/s], scaled by concentrations in and out
-        f_H[inds_backwards]  = -alpha*np.sqrt(cHo)*np.sqrt(cKi)
+    alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
+    f_H  = -alpha*(cHi**(1/2))*(cKo**(1/2))      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
 
@@ -3371,28 +3377,11 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
 
     delG_VATP = deltaGATP - delG_H   # free energy available to move H+ out of cell
     delG_pump = (delG_VATP/1000)
-    delG = np.absolute(delG_pump)
-    signG = np.sign(delG)
+    # delG = np.absolute(delG_pump)
+    # signG = np.sign(delG)
 
-    if p.backward_pumps is False:
-
-        alpha = block*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
-        f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
-
-    elif p.backward_pumps is True:
-
-        alpha = block*signG*p.alpha_V*tb.step(delG,p.halfmax_V,p.slope_V)
-
-        truth_forwards = signG == 1
-        truth_backwards = signG == -1
-
-        inds_forwards = (truth_forwards).nonzero()  # indices of forward-running cells
-        inds_backwards = (truth_backwards).nonzero() # indices of backward-running cells
-
-        f_H = np.zeros(len(cHi))
-
-        f_H[inds_forwards]  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
-        f_H[inds_backwards]  = -alpha*cHo
+    alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
+    f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
 
     return f_H
 

@@ -802,12 +802,22 @@ class PlotWhileSolving(object):
 
         elif p.sim_ECM is True:
 
-            dat_grid = sim.vm_Matrix[0]*1000
+            zambie = 'nulled'
 
-            if p.plotMask is True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
+            if zambie == 'tri':
 
-            self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
+                self.coll2 = plt.tripcolor(cells.mem_mids_flat[:,0]*p.um,cells.mem_mids_flat[:,1]*p.um,
+                    1000*sim.vm,shading='gouraud',cmap =self.colormap)
+
+
+            else:
+
+                dat_grid = sim.vm_Matrix[0]*1000
+
+                if p.plotMask is True:
+                    dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
+
+                self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
             if p.showCells is True:
 
@@ -856,12 +866,20 @@ class PlotWhileSolving(object):
                 self.coll2.set_array(dat_grid.ravel())
 
         else:
-            if p.plotMask is False:
-                zv = sim.vm_Matrix[-1]*1000
-            else:
-                zv = ma.masked_array(sim.vm_Matrix[-1]*1000, np.logical_not(self.cells.maskM))
 
-            self.coll2.set_data(zv)
+            zambie = 'nulled'
+
+            if zambie == 'tri':
+
+                self.coll2.set_array(sim.vm*1000)
+
+            else:
+                if p.plotMask is False:
+                    zv = sim.vm_Matrix[-1]*1000
+                else:
+                    zv = ma.masked_array(sim.vm_Matrix[-1]*1000, np.logical_not(self.cells.maskM))
+
+                self.coll2.set_data(zv)
 
         if self.clrAutoscale is True:
 
@@ -1182,8 +1200,12 @@ class AnimateEfield(object):
             E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
             sim.efield_gj_x_time[-1],(cells.X,cells.Y), fill_value=0,method=p.interp_type)
 
+            E_gj_x = np.multiply(E_gj_x,cells.maskM)
+
             E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
                 sim.efield_gj_y_time[-1],(cells.X,cells.Y), fill_value=0,method=p.interp_type)
+
+            E_gj_y = np.multiply(E_gj_y, cells.maskM)
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
             self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
@@ -1245,8 +1267,12 @@ class AnimateEfield(object):
             E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
             self.sim.efield_gj_x_time[i],(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
 
+            E_gj_x = np.multiply(E_gj_x,self.cells.maskM)
+
             E_gj_y = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
                 self.sim.efield_gj_y_time[i],(self.cells.X,self.cells.Y), fill_value=0,method=self.p.interp_type)
+
+            E_gj_y = np.multiply(E_gj_y,self.cells.maskM)
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 
@@ -2454,7 +2480,8 @@ def plotEfield(sim,cells,p):
         E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
             sim.efield_gj_y_time[-1],(cells.X,cells.Y), method=p.interp_type,fill_value=0)
 
-        # FIXME multiply by the cluster mask...
+        E_gj_x = np.multiply(E_gj_x,cells.maskM)
+        E_gj_y = np.multiply(E_gj_y,cells.maskM)
 
         efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 

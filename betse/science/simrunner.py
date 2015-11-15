@@ -159,7 +159,7 @@ class SimRunner(object):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             loggers.log_info('Cell cluster loaded.')
 
-            # FIXME temporarily disbled!
+             # FIXME item below is disabled for testing sanity!
 
             # if p_old.config['general options'] != p.config['general options'] or \
             #         p_old.config['world options'] != p.config['world options'] or \
@@ -234,9 +234,7 @@ class SimRunner(object):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
             p.sim_ECM = cells.sim_ECM
 
-            pass
-
-            # FIXME temporarily disabled
+            # FIXME item below is disabled for testing sanity!
 
             # if p_old.config['general options'] != p.config['general options'] or \
             #         p_old.config['world options'] != p.config['world options'] or \
@@ -478,6 +476,40 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename2,dpi=300,format='png')
 
         plt.show(block=False)
+
+        #-----plot single cell transmembrane current-------------
+        figI = plt.figure()
+        axI = plt.subplot(111)
+
+        if p.sim_ECM is False:
+
+            Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
+
+        else:
+            Imem = []  # initialize a total cell current storage vector
+            mems_for_plotcell = cells.cell_to_mems[p.plot_cell]  # get membranes for the plot cell
+
+
+            for t in range(len(sim.time)):
+                memArray = sim.I_mem_time[t]
+                # get the current components at each membrane (net current, not density)
+                Ixo = memArray[mems_for_plotcell]*cells.mem_vects_flat[mems_for_plotcell,2]*cells.mem_sa[mems_for_plotcell]
+                Iyo = memArray[mems_for_plotcell]*cells.mem_vects_flat[mems_for_plotcell,3]*cells.mem_sa[mems_for_plotcell]
+                # add components of current at each membrane (this takes account for in-out directionality)
+                Ix = np.sum(Ixo)
+                Iy = np.sum(Iyo)
+
+                # get the total magnitude of net current and divide by cell surface area to return to density:
+                Io = np.sqrt(Ix**2 + Iy**2)/cells.cell_sa[p.plot_cell]
+                Imem.append(Io)
+
+        axI.plot(sim.time,Imem)
+        axI.set_title('Transmembrane current density for cell ' + str(plot_cell) )
+        axI.set_xlabel('Time [s]')
+        axI.set_ylabel('Current density [A/m2]')
+
+
+        #---------------------------------------------------------
 
         if p.ions_dict['Ca'] ==1:
             figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
@@ -968,22 +1000,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename13,format='png')
 
         plt.show(block=False)
-
-        # plot the osmotic pressure in the environment:
-        # if p.sim_ECM is True:
-        #
-        #     plt.figure()
-        #     plt.imshow(sim.osmo_P_env.reshape(cells.X.shape)/101325,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-        #     plt.colorbar()
-        #     plt.axis('equal')
-        #     plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-        #     plt.title('Final Extracellular Osmotic Pressure [atm]')
-        #
-        #     if saveImages is True:
-        #         savename13 = savedImg + 'final_osmoP_2D_env' + '.png'
-        #         plt.savefig(savename13,format='png')
-        #
-        #     plt.show(block=False)
 
 
     if p.plot_Vel is True and p.fluid_flow is True:

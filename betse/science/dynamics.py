@@ -836,7 +836,8 @@ class Dynamics(object):
 
                 if designation == 'cavity':
 
-                    removeCells(name,target_method,sim,cells,p)
+                    removeCells(name,target_method,sim,cells,p,open_TJ=p.cavity_state)
+                    sim.make_cavity = True
                     cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
@@ -1057,23 +1058,10 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
                 bitmask.clipPoints(cells.xypts[:,0],cells.xypts[:,1])
                 target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
 
-    #     elif targets_description == 'all':
-    #
-    #         target_inds = inds_env
-    #
-    # if isinstance(targets_description, list):
-    #
-    #     inds_cell = cells.map_cell2ecm[targets_description]
-    #     inds_mem = cells.map_mem2ecm[targets_description]
-    #
-    #     target_inds = []
-    #
-    #     target_inds.append(inds_cell)
-    #     target_inds.append(inds_mem)
 
     return target_inds
 
-def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, dangling_gj = False):
+def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, dangling_gj = False, open_TJ = True):
 
     loggers.log_info('Cutting hole in cell cluster! Removing cells...')
 
@@ -1107,7 +1095,6 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     mask_interp = interp.RectBivariateSpline(xv,yv,cells.cluster_mask)
 
     # interpolate the cluster mask -- this is intentionally x-y opposite because
-    # FIXME the rectbivariatespline is reflecting things along the diagonal!
     cells.maskM = mask_interp.ev(cells.xypts[:,1],cells.xypts[:,0])
 
     cells.maskM = cells.maskM.reshape(cells.X.shape)
@@ -1133,46 +1120,54 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
             ecm_targs.append(v)
 
         # # redo environmental diffusion matrices by
-        # # setting the environmental spaces around cut cells to the free value:
-        for i in range(0,len(sim.D_env)):
-            sim.D_env[i][ecm_targs] = sim.D_free[i]
+        # # setting the environmental spaces around cut cells to the free value -- if desired!:
 
-        D_env_weight = sim.D_env[sim.iP]/sim.D_env[sim.iP].max()
-        sim.D_env_weight = D_env_weight.reshape(cells.X.shape)
-        sim.D_env_weight_base = np.copy(sim.D_env_weight)
+        if open_TJ is True:
 
-        for i, dmat in enumerate(sim.D_env):  # redo the MACs grid diffusion matrices:
+            # save the x,y coordinates of the original boundary cell and membrane points:
 
-            if p.env_type is True:
-
-                sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
-
-                sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
-
-            else:
-                sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
-
-                sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
-
-        sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
-
-        sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
-
-        if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-
-            sim.D_env_weight_u[:,0] = 0
-            sim.D_env_weight_u[:,-1] = 0
-            sim.D_env_weight_u[0,:] = 0
-            sim.D_env_weight_u[-1,:] = 0
-
-            sim.D_env_weight_v[:,0] = 0
-            sim.D_env_weight_v[:,-1] = 0
-            sim.D_env_weight_v[0,:] = 0
-            sim.D_env_weight_v[-1,:] = 0
+            old_bflag_cellxy = cells.cell_centres[cells.bflags_cells]
+            old_bglag_memxy = cells.mem_mids_flat[cells.bflags_mems]
+        #
+        #     for i in range(0,len(sim.D_env)):
+        #         sim.D_env[i][ecm_targs] = sim.D_free[i]
+        #
+        #     D_env_weight = sim.D_env[sim.iP]/sim.D_env[sim.iP].max()
+        #     sim.D_env_weight = D_env_weight.reshape(cells.X.shape)
+        #     sim.D_env_weight_base = np.copy(sim.D_env_weight)
+        #
+        #     for i, dmat in enumerate(sim.D_env):  # redo the MACs grid diffusion matrices:
+        #
+        #         if p.env_type is True:
+        #
+        #             sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
+        #
+        #             sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
+        #
+        #         else:
+        #             sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+        #
+        #             sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
+        #
+        #     sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
+        #
+        #     sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
+        #
+        #     if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
+        #
+        #         sim.D_env_weight_u[:,0] = 0
+        #         sim.D_env_weight_u[:,-1] = 0
+        #         sim.D_env_weight_u[0,:] = 0
+        #         sim.D_env_weight_u[-1,:] = 0
+        #
+        #         sim.D_env_weight_v[:,0] = 0
+        #         sim.D_env_weight_v[:,-1] = 0
+        #         sim.D_env_weight_v[0,:] = 0
+        #         sim.D_env_weight_v[-1,:] = 0
 
     # set up the situation to make cells joined to cut cells have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
@@ -1335,8 +1330,16 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
         cells.cellVerts(p)   # create individual cell polygon vertices
         # print(cells.mem_mids_flat)
-        cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=1.1)  # flag membranes on the cluster bound
-        cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=1.1)  # flag membranes on the cluster bound
+        cells.bflags_mems,_ = cells.boundTag(cells.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+        cells.bflags_cells,_ = cells.boundTag(cells.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
+
+        if open_TJ is True:
+            # if desire for cut away space to lack tight junctions, remove new bflags from set:
+            searchTree = sps.KDTree(cells.cell_centres)
+            original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
+            cells.bflags_cells = original_pt_inds[:]
+
+
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)       # Free up memory...
         # cells.makeECM(p)       # create the ecm grid

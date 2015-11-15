@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 5.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 100.0             # end time [s] (recommend 3 seconds or more)
+    total time: 5.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ general options:
 
   simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
-  ion profile: animal   # ion profile options:
+  ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
@@ -177,7 +177,7 @@ general options:
 
 world options:
 
-  world size: 250e-6      # dimension of the square world space [m]
+  world size: 200e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -643,6 +643,8 @@ variable settings:
 
   adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale free-diffusion
 
+  cavity open: False  # do internally cut cavities have free env boundaries (True) or sealed by TJ (False)?
+
   use Goldman calculator: True    # calculate alternative Vmem using GHK equation for model params and plot results?
 
 
@@ -935,17 +937,17 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 5.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
+        max Dmem Na: 5.0e-14        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
         activation v: -55e-3      # voltage threshold above which vgNa is activated [V]
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V]
         deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V]
         live time: 2e-3           # time activated state can exist (trans to inactivated) [s]
-        dead time: 10e-3          # refractory time vgNa remains inactivated [s]
+        dead time: 5e-3          # refractory time vgNa remains inactivated [s]
 
     voltage gated K:
 
-        max Dmem K: 1.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
-        activation v: 10e-3        # voltage threshold above which vgK is activated [V]
+        max Dmem K: 7.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
+        activation v: 5e-3        # voltage threshold above which vgK is activated [V]
         deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V]
         live time: 10e-3            # time activated state can exist [s]
 
@@ -959,7 +961,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     calcium gated K:
 
-        max Dmem K: 1.0e-16         # maximum K+ membrane diffusion coefficient open channel [m2/s]
+        max Dmem K: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
         hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
         hill n: 3                   # Hill function coefficient
 
@@ -1005,28 +1007,28 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  5.0e-7   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
-  halfmax_NaK:  8      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  6        # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_NaK:  1.0e-9   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  halfmax_NaK:  5      # the free energy level at which pump activity is halved [kJ]
+  slope_NaK:  3        # the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
-  halfmax_Ca:  12       # the free energy level at which pump activity is halved [kJ]
-  slope_Ca:  12         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_Ca:  5       # the free energy level at which pump activity is halved [kJ]
+  slope_Ca:  3         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_HK:  0.1    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  8       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  6         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_HK:  0.025    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  halfmax_HK:  5       # the free energy level at which pump activity is halved [kJ]
+  slope_HK:  3         # the energy window width of the NaK-ATPase pump [kJ]
 
-  alpha_V:  10.0     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  8       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  6         # the energy window width of the NaK-ATPase pump [kJ]
+  alpha_V:  1.0     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  halfmax_V:  5       # the free energy level at which pump activity is halved [kJ]
+  slope_V:  3         # the energy window width of the NaK-ATPase pump [kJ]
 
   max_gj_enhancement: 10   # parameters relating to flow sensitivity of gap junctions
   u_decay_rate: 0.5
   alpha_rho_gj: 1.0e-3
 
-  interpolation method: linear  # interpolation method, choices are 'linear' or 'nearest'
+  interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest' or 'tri'
 
   env modification constant: 5.0e5    # Asymetrical capacitance coefficient for environment
 
@@ -1035,4 +1037,4 @@ internal parameters:
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.3"
+version: "0.4"

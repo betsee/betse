@@ -75,6 +75,8 @@ class Parameters(object):
 
         self.gj_flux_sensitive = self.config['variable settings']['gap junctions']['gj flux sensitive']
 
+        self.cavity_state = bool(self.config['variable settings']['cavity open'])
+
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
         self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
@@ -794,6 +796,8 @@ class Parameters(object):
         self.clip = 20e-6
 
         #........................INTERNAL USE ONLY.....................................................................
+
+        # self.interp_type_2 ='tri'
 
         iu = self.config['internal parameters']
 
