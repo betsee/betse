@@ -126,18 +126,18 @@ For simplicity, the following instructions assume use of Homebrew:
          Downloads](https://developer.apple.com/downloads) site.
       1. Enter `xcode` into the search bar.
       1. Manually search the resulting hits for the installed version of XCode.
-      1. Note the official date of this version's release (e.g., June 12, 2013 for
-         XCode 4.6.3).
-      1. Manually search the resulting hits for the most recent version of the CLT
-         _preceding_ this date (e.g., April 11, 2013 for the CLT corresponding to
-         XCode 4.6.3).
+      1. Note the official date of this version's release (e.g., June 12, 2013
+         for XCode 4.6.3).
+      1. Manually search the resulting hits for the most recent version of the
+	 CLT _preceding_ this date (e.g., April 11, 2013 for the CLT
+         corresponding to XCode 4.6.3).
       1. Download and install this version.
    1. **(Not recommended)** The CLT is also automatically downloadable and
-      installable via Apple-based automation. If your system has been upgraded to
-      both the most recently released minor version of your currently installed
-      major version of OS X _and_ to the most recently released version of
-      XCode for that version of OS X, the following command _should_ suffice to do
-      so. If in doubt, consider the manual approach above instead:
+      installable via Apple-based automation. If your system has been upgraded
+      to both the most recently released minor version of your currently
+      installed major version of OS X _and_ to the most recently released
+      version of XCode for that version of OS X, the following command _should_
+      suffice to do so. If in doubt, consider the manual approach above instead:
 
             $ xcode-select –install
 
@@ -149,37 +149,37 @@ For simplicity, the following instructions assume use of Homebrew:
 
         $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-1. Manually add all directories to which Homebrew installs packages to the
-   current `${PATH}`. To do so permanently, edit the `.profile` file in your
-   home directory and change the line beginning with `export PATH` to resemble:
+1. Manually prepend the current `${PATH}` by the absoute paths of all
+   directories to which Homebrew installs packages. To do so permanently, append
+   the following line to the appropriate startup dotfile in your home directory
+   for your preferred shell (e.g., `.bashrc` for Bash, the default OS X shell):
 
         export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
 
-1. Install Python 3:
+1. Activate this `${PATH}` change. Specifically, either:
+   * **(Recommended)** Close the current terminal window and open a new terminal
+     window.
+   * **(Not recommended)** Manually source the modified dotfile: e.g.,
 
-        $ brew tap homebrew/dupes
-        $ brew install python3 --with-tcl-tk
+            $ source ~/.bashrc
 
-1. Upgrade Python package managers:
+1. Install Python 3, update Python package managers, and install all remaining
+   dependencies:
 
-        $ pip3 install --upgrade pip setuptools
+        $ brew tap homebrew/dupes &&
+          brew install python3 --with-tcl-tk &&
+          pip3 install --upgrade pip setuptools &&
+          brew install matplotlib --with-python3 --without-python --with-tcl-tk &&
+          brew install numpy --with-python3 --without-python &&
+          brew install pillow --with-python3 --without-python &&
+          brew install pyside --with-python3 --without-python &&
+          brew install scipy --with-python3 --without-python &&
+          brew install libyaml &&
+          pip3 install yaml yamale
 
-1. Install remaining dependencies:
-
-        $ brew install matplotlib --with-python3 --without-python --with-tcl-tk
-        $ brew install numpy --with-python3 --without-python
-        $ brew install pillow --with-python3 --without-python
-        $ brew install pyside --with-python3 --without-python
-        $ brew install scipy --with-python3 --without-python
-        $ brew install libyaml
-        $ pip3 install yaml yamale
-
-1. Close the terminal, if you like:
-
-        $ exit
-
-Note that Homebrew is a source-based package manager and hence extremely slow.
-Expect installation to require several hours to days. (We're not kidding.)
+Note that Homebrew is a source-based package manager and hence relatively slow.
+Expect the installation process to require anywhere from several hours to
+several days, depending on hardware performance. We wish we were kidding.
 
 #### Microsoft Windows
 
