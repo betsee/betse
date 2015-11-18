@@ -166,7 +166,7 @@ For simplicity, the following instructions assume use of Homebrew:
 1. Install Python 3, update Python package managers, and install all remaining
    dependencies:
 
-        $ brew tap homebrew/dupes &&
+        $ brew tap homebrew/dupes homebrew/python &&
           brew install python3 --with-tcl-tk &&
           pip3 install --upgrade pip setuptools &&
           brew install matplotlib --with-python3 --without-python --with-tcl-tk &&
