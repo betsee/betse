@@ -9,7 +9,7 @@
 from distutils.errors import DistutilsExecError, DistutilsFileError
 from os import path
 from setuptools import Command
-import importlib, os, pkg_resources, shutil, subprocess, sys, time
+import importlib, os, platform, pkg_resources, shutil, subprocess, sys, time
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_command_succeeds(*command_words) -> None:
@@ -76,7 +76,7 @@ def die_unless_pathable(command_basename: str, exception_message: str = None):
         # If no such message was passed, default such message.
         if not exception_message:
              exception_message =\
-                 'Command "{}" not found in the current PATH or found but not an executable file.'.format(
+                 'Command "{}" not found in the current ${{PATH}} or found but not an executable file.'.format(
                     command_basename)
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
@@ -89,7 +89,7 @@ def die_unless_dir_or_not_found(
     pathname: str, exception_message: str = None) -> None:
     '''
     Raise an exception unless the passed path is either an existing directory
-    *or* does not exist (i.e., if such path is an existing non- directory).
+    *or* does not exist (i.e., if this path is an existing non-directory).
     '''
     # If such path is an existing non-directory, fail.
     if is_path(pathname) and not is_dir(pathname):
@@ -194,15 +194,27 @@ def die_unless_symlink(filename: str) -> None:
             'Symbolic link "{}" not found.'.format(filename))
 
 # ....................{ TESTERS ~ os                       }....................
+def is_os_linux() -> bool:
+    '''
+    `True` if the current operating system is Linux.
+    '''
+    return platform.system() == 'Linux'
+
 def is_os_posix() -> bool:
     '''
-    `True` if the current operating system does _not_ complies with POSIX
-    standards (e.g., as required by symbolic link manipulation).
+    `True` if the current operating system does _not_ comply with POSIX
+    standards (e.g., as required for POSIX-style symbolic link support).
 
-    Typically, this implies such system to _not_ be vanilla Microsoft Windows.
+    Typically, this implies this system to _not_ be vanilla Microsoft Windows.
     '''
     return os.name == 'posix'
     # return False
+
+def is_os_os_x() -> bool:
+    '''
+    `True` if the current operating system is Apple OS X.
+    '''
+    return platform.system() == 'Darwin'
 
 # ....................{ TESTERS ~ os : windows             }....................
 def is_os_windows() -> bool:
@@ -331,6 +343,42 @@ def get_project_dirname():
     # "sys.path" list, you know what they say about assumptions.
     return get_path_dirname(get_path_dirname(__file__))
 
+# ....................{ GETTERS ~ io                       }....................
+#FIXME: Sufficiently useful that we should probably copy this, once complete,
+#to a new betse.util.io.commands.get_output() function.
+
+def get_command_output(*args) -> str:
+    '''
+    Get all standard output and error captured by running the external shell
+    command signified by the passed list if this command succeeds or raise an
+    exception detailing this command's failure otherwise.
+
+    Parameters
+    ----------
+    *args : list
+        List of shell words comprising this command. The first item of this list
+        should be the pathname for this command; all remaining items should be
+        the arguments to pass this command.
+
+    Returns
+    ----------
+    str
+        All standard output and error captured by running this command,
+	interleaved together in output order, stripped of all trailing
+	newlines (as under most POSIX shells), _and_ decoded via the current
+        locale's preferred encoding (e.g., UTF-8).
+    '''
+    command_output = subprocess.check_output(args,
+        # Redirect standard error to output.
+        stderr = subprocess.STDOUT,
+
+        # Decode such output via the current locale's preferred encoding.
+        universal_newlines = True,
+    )
+
+    # Get such output, stripped of all trailing newlines.
+    return command_output.rstrip('\n')
+
 # ....................{ GETTERS ~ path                     }....................
 def get_path_canonicalized(pathname: str) -> str:
     '''
@@ -433,7 +481,6 @@ def shell_quote(text: str) -> str:
     # `'`. This is circumventable by calling an officially undocumented
     # Windows-specific Python function. (Awesome.)
     if is_os_windows_vanilla():
-        import subprocess
         return subprocess.list2cmdline([text])
     # Else, perform POSIX-compatible quoting.
     else:

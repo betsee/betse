@@ -44,8 +44,8 @@
 '''
 
 # ....................{ IMPORTS                            }....................
-from distutils.errors import DistutilsExecError
 from abc import ABCMeta, abstractmethod
+from distutils.errors import DistutilsExecError
 from os import path
 from pkg_resources import EntryPoint
 from setup import util
@@ -84,8 +84,8 @@ class freeze(Command, metaclass = ABCMeta):
     clean : bool
         True if the user passed the `--clean` option to the current `setuptools`
         command.
-    install_scripts_dir : str
-        Absolute path of the directory to which all wrapper scripts were
+    install_dir : str
+        Absolute path of the directory to which our wrapper scripts were
         previously installed.
     _pyinstaller_command : list
         List of all shell words of the PyInstaller command to be run.
@@ -145,7 +145,7 @@ class freeze(Command, metaclass = ABCMeta):
         self.debug = False
 
         # setuptools-specific public attributes.
-        self.install_scripts_dir = None
+        self.install_dir = None
 
         # Custom private attributes.
         self._pyinstaller_command = None
@@ -161,7 +161,7 @@ class freeze(Command, metaclass = ABCMeta):
         # Copy attributes from a temporarily instantiated "symlink" object into
         # the current object under different attribute names.
         self.set_undefined_options(
-            'symlink', ('install_scripts', 'install_scripts_dir'))
+            'symlink', ('install_scripts', 'install_dir'))
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
@@ -371,7 +371,7 @@ class freeze(Command, metaclass = ABCMeta):
 
             # Absolute path of the current script wrapper.
             script_filename = path.join(
-                self.install_scripts_dir, script_basename)
+                self.install_dir, script_basename)
             util.die_unless_file(
                 script_filename, 'File "{}" not found. {}'.format(
                     script_filename, freeze.EXCEPTION_ADVICE))

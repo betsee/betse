@@ -172,7 +172,7 @@ def _get_args(
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
     assert isinstance(script_shebang, str),\
         '"{}" not a string.'.format(script_shebang)
-    print('In BETSE ScriptWriter.get_args()!')
+    #print('In BETSE ScriptWriter.get_args()!')
 
     # For each entry point...
     for script_basename, script_type, entry_point in\

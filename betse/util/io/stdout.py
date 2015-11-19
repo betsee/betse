@@ -7,6 +7,8 @@
 Low-level standard output facilities.
 '''
 
+#FIXME: Copy setup.util.get_command_output() here after completion.
+
 # ....................{ IMPORTS                            }....................
 
 # ....................{ OUTPUTTERS                         }....................

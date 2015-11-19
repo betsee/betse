@@ -14,8 +14,8 @@ generally support symbolic links.
 While post-Vista versions of Microsoft Windows _do_ purport to support symbolic
 links, the Windows version of the (Ana|Mini)conda Python distribution does _not_
 appear to (at least, not reliably). Since this renders symbolic links useless
-for common Windows use, this module assumes Windows to _never_ support symbolic
-links regardless of version.
+for standard Windows use, this module assumes Windows to _never_ support
+symbolic links regardless of version.
 
 Under Microsoft Windows, this module "fakes" symbolic link-based installation by
 artifically prepending the Python-specific `sys.path` list of search dirnames
@@ -69,9 +69,49 @@ class symlink(install):
     * `None` signifying that such command should always be run.
     '''
 
+    def finalize_options(self):
+        '''
+        Default undefined command-specific options to the options passed to the
+        current parent command if any (e.g., `install`).
+        '''
+        super().finalize_options()
+
+        #FIXME: Replicate this functionality for the "install" command as well.
+
+        # If the current system is OS X *AND* the OS X-specific Homebrew package
+        # manager is installed...
+        if util.is_os_os_x() and util.is_pathable('brew'):
+	     # Absolute path of Homebrew's top-level system-wide cellar
+	     # directory (e.g., "/usr/local/Cellar").
+             brew_cellar_dir = util.get_command_output('brew', '--cellar')
+             #print('Here!')
+             
+	     # Absolute path of Homebrew's top-level system-wide directory
+	     # (e.g., "/usr/local").
+             brew_dir = util.get_command_output('brew', '--prefix')
+
+	     # Absolute path of Homebrew's top-level system-wide binary
+	     # directory (e.g., "/usr/local/bin").
+             brew_binary_dir = path.join(brew_dir, 'bin')
+
+             # If this directory does not exist, raise an exception.
+             util.die_unless_dir(brew_binary_dir)             
+
+             # If the directory to which wrappers will be installed is a Python-
+             # specific subdirectory of this cellar directory (e.g.,
+             # "/usr/local/Cellar/python3/3.5.0/Frameworks/Python.framework/Versions/3.5/bin"),
+             # that subdirectory is unlikely to reside in the current ${PATH},
+             # in which case wrappers installed to that subdirectory will remain
+             # inaccessible. Correct this by forcing wrappers to be installed
+             # to the Homebrew's conventional binary directory instead.
+             if self.install_scripts.startswith(brew_cellar_dir):
+                 self.install_scripts = brew_binary_dir
+                 print('Detected Homebrew installation directory "{}".'.format(
+                     brew_binary_dir))
+
     def run(self):
         '''Run the current command and all subcommands thereof.'''
-        # If the current operating system is POSIX-incompatible, such system
+        # If the current operating system is POSIX-incompatible, this system
         # does *NOT* support conventional symbolic links. See details above.
         if not util.is_os_posix():
             # Avoid circular import dependencies.
@@ -127,6 +167,9 @@ class symlink_lib(install_lib):
         self.set_undefined_options(
             'symlink', ('install_lib', 'install_dir'))
 
+        # Default all remaining options.
+        super().finalize_options()
+
     def run(self):
         # If the current operating system is POSIX-incompatible, such system
         # does *NOT* support conventional symbolic links. Return immediately.
@@ -175,11 +218,23 @@ class symlink_scripts(install_scripts):
             ('skip_build', 'skip_build'),
         )
 
+        # Default all remaining options.
+        super().finalize_options()
+
 # ....................{ UNINSTALLERS                       }....................
 class unsymlink(install):
     '''
     Editably uninstall (e.g., in a symbolically linked manner) `betse` from
     the active Python 3 interpreter.
+
+    Attributes
+    ----------
+    install_package_dirname : str
+        Absolute path of the directory to which our Python codebase was
+        previously installed.
+    install_wrapper_dirname : str
+        Absolute path of the directory to which our wrapper scripts were
+        previously installed.
     '''
 
     description =\
@@ -199,8 +254,9 @@ class unsymlink(install):
         `self.set_undefined_options()` raises an inscrutable `setuptools`
         exception. (This is terrible. So much hate.)
         '''
-        self.install_lib_dir = None
-        self.install_scripts_dir = None
+        super().initialize_options()
+        self.install_package_dirname = None
+        self.install_wrapper_dirname = None
 
     def finalize_options(self):
         '''
@@ -211,9 +267,12 @@ class unsymlink(install):
         # the current object under different attribute names.
         self.set_undefined_options(
             'symlink',
-            ('install_lib',     'install_lib_dir'),
-            ('install_scripts', 'install_scripts_dir'),
+            ('install_lib',     'install_package_dirname'),
+            ('install_scripts', 'install_wrapper_dirname'),
         )
+
+        # Default all remaining options.
+        super().finalize_options()
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
@@ -222,14 +281,14 @@ class unsymlink(install):
         # symbolic link.
         if util.is_os_posix():
             util.remove_symlink(path.join(
-                self.install_lib_dir,
+                self.install_package_dirname,
                 self._setup_options['name'],
             ))
 
         # Remove all installed scripts.
         for script_basename, _, _ in util.command_entry_points(self):
             util.remove_file(path.join(
-                self.install_scripts_dir, script_basename))
+                self.install_wrapper_dirname, script_basename))
 
 # --------------------( WASTELANDS                         )--------------------
             # Absolute path of the parent directory containing the top-level
@@ -301,7 +360,7 @@ class unsymlink(install):
 
         # Absolute path of the library-specific symbolic link.
         # symlink_filename = path.join(
-        #     self.install_lib_dir,
+        #     self.install_package_dirname,
         #     self._setup_options['name'])
         #
         # # Remove such link.
@@ -311,14 +370,14 @@ class unsymlink(install):
     #     Default undefined command-specific options to the options passed to the
     #     current parent command if any (e.g., `symlink`).
     #     '''
-    #     # Copy the "install_dir" attribute from the existing "install_lib"
+    #     # Copy the "install_dirname" attribute from the existing "install_lib"
     #     # attribute of a temporarily instantiated "symlink" object.
     #     #
     #     # Welcome to setuptools hell.
     #     self.set_undefined_options(
     #         'symlink',
-    #         ('install_lib', 'install_lib_dir'),
-    #         ('install_scripts', 'install_scripts_dir'),
+    #         ('install_lib', 'install_package_dirname'),
+    #         ('install_scripts', 'install_wrapper_dirname'),
     #     )
 
     #FUXME: Insufficient. This obviously needs to uninstall *ALL* previously
@@ -350,7 +409,7 @@ class unsymlink(install):
     #     '''
     #     Initialize command-specific options.
     #     '''
-    #     self.install_dir = None
+    #     self.install_dirname = None
 # ....................{ GETTERS                            }....................
 # def get_command_symlink_filename(setuptools_command):
 #     '''

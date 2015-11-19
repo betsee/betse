@@ -70,8 +70,8 @@ only includes Yamale.
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), these
 dependencies are installable in a system-wide manner as follows:
 
-    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyside python3-scipy python3-setuptools python3-six python3-yaml
-    $ sudo pip3 install yamale
+    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyside python3-scipy python3-setuptools python3-six python3-yaml &&
+      sudo pip3 install yamale
 
 #### Apple OS X
 
@@ -175,7 +175,7 @@ For simplicity, the following instructions assume use of Homebrew:
           brew install pyside --with-python3 --without-python &&
           brew install scipy --with-python3 --without-python &&
           brew install libyaml &&
-          pip3 install yaml yamale
+          pip3 install pyyaml yamale
 
 Note that Homebrew is a source-based package manager and hence relatively slow.
 Expect the installation process to require anywhere from several hours to
@@ -235,6 +235,11 @@ For simplicity, the following instructions assume use of the
         $ ln -s /c/Miniconda3/python.exe /c/Miniconda3/python3
 
 ##### Wine
+
+**FIXME:** While `betse` may indeed be installable _and_ runnable under Wine,
+there's little point in doing so, as the resulting PyInstaller-frozen binaries
+are likely to embed link Wine-specific shared libraries unlikely to behave as
+expected under actual Windows systems. Excise this entire subsection, please.
 
 Under non-Windows systems, such dependencies are installable in a system-wide
 manner via Wine emulation. Such emulation requires the following packages:
@@ -349,7 +354,7 @@ absolute path of the top-level directory containing the source for `betse`.
         $ sudo python3 setup.py easy_install --no-deps .
 
 Curiously, although the `develop` command for `setuptools` provides a
-`--no-deps` option, the `install` command does not. Hence, the `easy\_install`
+`--no-deps` option, the `install` command does not. Hence, the `easy_install`
 command is called above instead.
 
 `betse` is subsequently uninstallable via `pip` as follows:
