@@ -78,8 +78,8 @@ init time settings:
                                 # To use these over defaults call 'custom init' in time profile
                                 # setting above.
 
-    time step: 5.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 5.0             # end time [s] (recommend 3 seconds or more)
+    time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
+    total time: 2.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -118,9 +118,9 @@ sim time settings:
 
 general options:
 
-  grid size: 40         # grid used in computation of environmental params and data interpolation
+  grid size: 30         # grid used in computation of environmental params and data interpolation
 
-  simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -133,13 +133,7 @@ general options:
                                 # M- represents HCO3- (bicarbonate).
 
 
-  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
-                           # only works for an ion profile with H+ ions (animal or invertebrate)
-                           # options True or False (case sensitive)
 
-  VATPase pump: False    # include the plasma membrane V-ATPase pump?
-                            # only works for an ion profile with H+ ions (animal or invertebrate)
-                            # options True or False (case sensitive)
 
 
   customized ion profile:      # set user-defined initial values of ion concentrations
@@ -177,7 +171,7 @@ general options:
 
 world options:
 
-  world size: 200e-6      # dimension of the square world space [m]
+  world size: 100e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -200,25 +194,23 @@ world options:
 
   temperature: 310            # World temperature [K]
 
-  Fluid Flow:
+  fluid flow:
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
-    gravity: False               # apply a global force of gravity acting in the -y direction?
-
     electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
 
-    water viscocity: 1e-3      # viscocity of medium [Pa s]
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
-    turn on: False         # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
+    turn on: False        # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
-    channel charge: -1         # charge of membrane channels
+  deformation:
 
-    pump charge: 1          # charge of pumps (controls direction they move in)
-
-    membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+    turn on: True       # deformation of the structure under the action of osmotic and electrostatic pressure
+    include osmosic pressure: True    # include osmotic pressure?
+    include electrostatic pressure: True   # include electrostatic pressure?
+    elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
 
 
   gap junctions:
@@ -228,8 +220,6 @@ world options:
                               # min 1.1 max 3.5
                               # warning high search distances can produce
                               # extremely long simulation time
-
-
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -601,6 +591,30 @@ variable settings:
       target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
       peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
       acts extracellularly: False         # acts via extracellular (True) or intracellular (False) concentration?
+      active pumping:                     # use ATP driven pumps to actively move morphogen?
+        turn on: True                     # turn pumping on?
+        pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+        maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
+
+
+  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
+                           # only works for an ion profile with H+ ions (animal or invertebrate)
+                           # options True or False (case sensitive)
+
+  VATPase pump: False    # include the plasma membrane V-ATPase pump?
+                            # only works for an ion profile with H+ ions (animal or invertebrate)
+                            # options True or False (case sensitive)
+
+  gravity: False               # apply a global force of gravity acting in the -y direction?
+
+  water viscocity: 1e-3      # viscocity of medium [Pa s]
+
+
+  channel charge: -1         # charge of membrane channels
+
+  pump charge: 1          # charge of pumps (controls direction they move in)
+
+  membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
 
   static noise level: 0    # level of variance in K+ leaks on cell membranes

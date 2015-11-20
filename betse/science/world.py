@@ -124,7 +124,9 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
-            # self.gaussMatrix(p)    # Create an alternative solver for cell and ecm voltage calculations
+
+            if p.deformation is True:
+                self.memWork(p)
 
 
         elif self.worldtype == 'basic':
@@ -138,6 +140,9 @@ class World(object):
             self.cleanUp(p)      # Free up memory...
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
+
+            if p.deformation is True:
+                self.memWork(p)
 
     def makeSeeds(self,p):
 
@@ -607,7 +612,9 @@ class World(object):
         """
         self.cell_verts = []
 
-        loggers.log_info('Creating cell vertices and membrane transit vectors... ')
+        if p.deform is False:
+
+            loggers.log_info('Creating cell vertices and membrane transit vectors... ')
 
         for centre,poly in zip(self.cell_centres,self.ecm_verts):
             pt_scale = []
@@ -757,11 +764,11 @@ class World(object):
         loggers.log_info('Setting global environmental conditions... ')
 
         # first obtain a structure to map to total xypts vector index:
-        points_tree = sps.KDTree(self.xypts)
+        self.points_tree = sps.KDTree(self.xypts)
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-        self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
+        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -789,13 +796,14 @@ class World(object):
         bL_pts = np.column_stack((bL_x, bL_y))
         bR_pts = np.column_stack((bR_x, bR_y))
 
-        self.bBot_k = list(points_tree.query(bBot_pts))[1]
-        self.bTop_k = list(points_tree.query(bTop_pts))[1]
-        self.bL_k = list(points_tree.query(bL_pts))[1]
-        self.bR_k = list(points_tree.query(bR_pts))[1]
+        self.bBot_k = list(self.points_tree.query(bBot_pts))[1]
+        self.bTop_k = list(self.points_tree.query(bTop_pts))[1]
+        self.bL_k = list(self.points_tree.query(bL_pts))[1]
+        self.bR_k = list(self.points_tree.query(bR_pts))[1]
 
         #-----------------------------------------------------------
-        # create structures for plotting interpolated data on cell centres:
+        # create structures for plotting interpolated data on cell centres: # FIXME this looks terrible, and
+        # FIXME we'll need to alter how things are plotted with moving membranes and cell centres (masking won't work)
         xv = np.linspace(self.xmin,self.xmax,self.msize)
         yv = np.linspace(self.ymin,self.ymax,self.msize)
 
@@ -836,6 +844,23 @@ class World(object):
             self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
             self.lapENV_P = None # get rid of the non-inverse matrix as it only hogs memory...
+
+    def short_environment(self,p):
+
+        # define a mapping between a cell and its ecm space in the full list of xy points for the world:
+        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
+
+        # get a list of all membranes for boundary cells:
+        all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
+        all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
+
+        self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
+
+        self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
+
+        self.all_clust_pts = np.vstack((self.cell_centres,self.mem_mids_flat))
+
 
     def graphLaplacian(self,p):
         '''
@@ -904,8 +929,8 @@ class World(object):
 
         self.mem_sa = self.mem_length*p.cell_height
 
-
-        loggers.log_info('Creating computational matrices for discrete transfers... ')
+        if p.deform is False:
+            loggers.log_info('Creating computational matrices for discrete transfers... ')
 
         # define map allowing a dispatch from cell index to each respective membrane
         self.indmap_mem = np.asarray(self.indmap_mem)
@@ -1027,8 +1052,6 @@ class World(object):
 
         # get rid of fields that aren't required any more:
         self.clust_xy = None
-        # self.ecm_verts = None
-        # self.ecm_verts_unique = None
         self.ecm_polyinds = None
 
     def redo_gj(self,dyna,p,savecells =True):
@@ -1260,6 +1283,49 @@ class World(object):
             VMatrix[j,j] = 2*term_ecm
 
         self.VMatrix_inv = np.linalg.pinv(VMatrix)
+
+    def memWork(self,p):
+        """
+        Find opposing membranes and those on the boundary.
+        For use in deformation calculations.
+
+        """
+
+        sc = (p.rc/2.5)*(p.scale_cell)
+        memTree = sps.KDTree(self.mem_mids_flat)
+
+        mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
+        mem_nn = np.zeros((len(self.mem_i),2),dtype=np.int16)
+        mem_bound = []
+
+        for i, ind_pair in enumerate(mem_nn_o):
+
+
+            if len(ind_pair) == 1:
+
+                mem_bound.append(*ind_pair)
+
+                mem_nn[i,:] = [i, ind_pair[0]]
+
+            elif len(ind_pair) == 2:
+
+                mem_nn[i,:] = ind_pair
+
+            elif len(ind_pair) > 2:
+
+        #         index_of_i = ind_pair.index(i)
+                i_n = [self.mem_vects_flat[i,2],self.mem_vects_flat[i,3]]
+
+                for j in ind_pair:
+                    a = [self.mem_vects_flat[j,2],self.mem_vects_flat[j,3]]
+                    ia = round(np.dot(i_n,a),1)
+
+                    if ia == -1.0:
+
+                        mem_nn[i,:] = [i,j]
+
+        self.mem_nn = np.asarray(mem_nn)
+        self.mem_bound = np.asarray(mem_bound)
 
 
 

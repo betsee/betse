@@ -50,24 +50,32 @@ class Parameters(object):
 
         self.sim_ECM = self.config['general options']['simulate extracellular spaces']    # boolean letting us know if extracellular spaces are included
 
-        self.fluid_flow = self.config['world options']['Fluid Flow']['include fluid flow']
+        self.fluid_flow = self.config['world options']['fluid flow']['include fluid flow']
 
-        self.base_eosmo = self.config['world options']['Fluid Flow']['electroosmosis']
+        self.base_eosmo = self.config['world options']['fluid flow']['electroosmosis']
 
         self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
+
+        self.deformation = self.config['world options']['deformation']['turn on']
+
+        self.deform_osmo = self.config['world options']['deformation']['include osmotic pressure']
+        self.deform_electro = self.config['world options']['deformation']['include electrostatic pressure']
+
+
+        self.youngMod = float(self.config['world options']['deformation']['elastic modulus'])
 
         self.mu_membrane = 1.0 # membrane viscocity
 
         self.EM_waves = True  # FIXME add to config file!
 
         # in-membrane diffusion coefficient
-        self.D_membrane = float(self.config['world options']['channel electroosmosis']['membrane mobility'])
+        self.D_membrane = float(self.config['variable settings']['membrane mobility'])
         # charge of membrane pumps and channels:
-        self.z_channel = float(self.config['world options']['channel electroosmosis']['channel charge'])
+        self.z_channel = float(self.config['variable settings']['channel charge'])
 
-        self.z_pump = float(self.config['world options']['channel electroosmosis']['pump charge'])
+        self.z_pump = float(self.config['variable settings']['pump charge'])
 
-        self.mu_water = float(self.config['world options']['Fluid Flow']['water viscocity'])   # viscocity of water [Pa.s]
+        self.mu_water = float(self.config['variable settings']['water viscocity'])   # viscocity of water [Pa.s]
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
@@ -137,7 +145,7 @@ class Parameters(object):
 
         self.T = float(self.config['world options']['temperature'])  # World temperature
 
-        self.gravity = self.config['world options']['Fluid Flow']['gravity']
+        self.gravity = self.config['variable settings']['gravity']
 
         # gap junction constants and network connectivity
         self.search_d = float(self.config['world options']['gap junctions']['search distance']) # distance to search for nearest neighbours
@@ -184,10 +192,10 @@ class Parameters(object):
         self.Ca_dyn = self.config['Ca dynamics']['turn on']
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = self.config['general options']['HKATPase pump']
+        self.HKATPase_dyn = self.config['variable settings']['HKATPase pump']
 
         # include V-ATPase in the simulation? Yes =1, No = 0
-        self.VATPase_dyn = self.config['general options']['VATPase pump']
+        self.VATPase_dyn = self.config['variable settings']['VATPase pump']
 
         # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
         self.voltage_dye = self.config['variable settings']['morphogen properties']['include morphogen']
@@ -202,6 +210,12 @@ class Parameters(object):
         self.Dye_Hill_exp = float(self.config['variable settings']['morphogen properties']['target Hill exponent'])
         self.Dye_peak_channel = float(self.config['variable settings']['morphogen properties']['peak channel opening'])
         self.Dye_acts_extracell = bool(self.config['variable settings']['morphogen properties']['acts extracellularly'])
+
+        self.pump_Dye = bool(self.config['variable settings']['morphogen properties']['active pumping']['turn on'])
+        self.pump_Dye_out = bool(self.config['variable settings']['morphogen properties']
+                                ['active pumping']['pump to cell'])
+        self.pump_Dye_alpha = float(self.config['variable settings']['morphogen properties']
+                                ['active pumping']['maximum rate'])
 
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['static noise level'])
@@ -869,8 +883,8 @@ class Parameters(object):
 
         self.deltaGATP = 20*self.R*self.T    # free energy released in ATP hydrolysis [J/mol]
 
-        self.ac = 1e-6  # cell-cell separation for drawing
-        self.scale_cell = 0.9          # the amount to scale cell membranes in from ecm edges (only affects drawing)
+        self.ac = 1.0e-6  # cell-cell separation for drawing
+        self.scale_cell = 0.90          # the amount to scale cell membranes in from ecm edges (only affects drawing)
         self.cm = 0.022            # patch capacitance of cell membrane up to 0.022 [F/m2]
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)

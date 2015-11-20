@@ -2143,28 +2143,100 @@ class Simulator(object):
 
         if p.sim_ECM is True:
 
-            # active pumping of dye from environment and into cell
-            deltaGATP = 20*p.R*self.T
+            if p.pump_Dye is True:
 
-            delG_dye = p.R*p.T*np.log(self.cDye_cell[cells.mem_to_cells]/self.cDye_env[cells.map_mem2ecm]) \
-                       + p.z_Dye*p.F*self.vm
+                if p.pump_Dye_out is True:
 
-            delG_dyeATP = deltaGATP - delG_dye
-            delG_pump = (delG_dyeATP/1000)
+                    # active pumping of dye from environment and into cell
+                    deltaGATP = 20*p.R*self.T
 
-            alpha = 1.0e-5*tb.step(delG_pump,12,12)
+                    delG_dye = p.R*p.T*np.log(self.cDye_cell[cells.mem_to_cells]/self.cDye_env[cells.map_mem2ecm]) \
+                               + p.z_Dye*p.F*self.vm
 
-            f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
+                    delG_dyeATP = deltaGATP - delG_dye
+                    delG_pump = (delG_dyeATP/1000)
 
-            d_dye_cells = f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_dye_env = -f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
 
-            delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
+                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
 
-            self.cDye_cell = self.cDye_cell + delta_cells*p.dt
+                    d_dye_cells = f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+                    d_dye_env = -f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
 
-            self.cDye_env = self.cDye_env + delta_env*p.dt
+                    delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+                    delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
+
+                else:
+
+                     # active pumping of dye from environment and into cell
+                    deltaGATP = 20*p.R*self.T
+
+                    delG_dye = p.R*p.T*np.log(self.cDye_env[cells.map_mem2ecm]/self.cDye_cell[cells.mem_to_cells]) \
+                               - p.z_Dye*p.F*self.vm
+
+                    delG_dyeATP = deltaGATP - delG_dye
+                    delG_pump = (delG_dyeATP/1000)
+
+                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+
+                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell[cells.mem_to_cells])
+
+                    d_dye_cells = -f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+                    d_dye_env = f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+
+                    delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+                    delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
+
+                self.cDye_cell = self.cDye_cell + delta_cells*p.dt
+
+                self.cDye_env = self.cDye_env + delta_env*p.dt
+
+
+        elif p.sim_ECM is False:
+
+            if p.pump_Dye is True:
+
+                if p.pump_Dye_out is True:
+
+                    # active pumping of dye from environment and into cell
+                    deltaGATP = 20*p.R*self.T
+
+                    delG_dye = p.R*p.T*np.log(self.cDye_cell/self.cDye_env) \
+                               + p.z_Dye*p.F*self.vm
+
+                    delG_dyeATP = deltaGATP - delG_dye
+                    delG_pump = (delG_dyeATP/1000)
+
+                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+
+                    f_Dye_pump  = alpha*(self.cDye_env)
+
+                    d_dye_cells = f_Dye_pump*(cells.cell_sa/cells.cell_vol)
+
+                    # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+
+
+                else:
+
+                     # active pumping of dye from cell and into environment
+                    deltaGATP = 20*p.R*self.T
+
+                    delG_dye = p.R*p.T*np.log(self.cDye_env/self.cDye_cell) \
+                               - p.z_Dye*p.F*self.vm
+
+                    delG_dyeATP = deltaGATP - delG_dye
+                    delG_pump = (delG_dyeATP/1000)
+
+                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+
+                    f_Dye_pump  = alpha*(self.cDye_cell)
+
+                    d_dye_cells = -f_Dye_pump*(cells.cell_sa/cells.cell_vol)
+
+                    # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+
+                self.cDye_cell = self.cDye_cell + d_dye_cells*p.dt
+
 
 
         #------------------------------------------------------------
@@ -3179,6 +3251,76 @@ class Simulator(object):
                     sum_PmCation_out = sum_PmCation_out + self.Dm_cells[i]*self.cc_env[i]*(1/p.tm)
 
         self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
+
+    def getDeformation(self,cells,p):
+        """
+        Calculates the deformation of the cell cluster under the action
+        of intracellular pressure.
+
+        """
+
+        # determine net pressure in individual cells:
+
+        P_cell = np.zeros(len(cells.cell_i))   # FIXME this needs to be completed with osmotic and electric pressure!!!
+
+        # calculate net outward stress at boundary:
+        S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
+        S_cell_y = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
+
+        # deal with environmental values:
+        # env_P = np.mean(P_cell)
+        # env_P = np.max(P_cell)
+        env_P = P_cell[cells.mem_to_cells][cells.mem_bound]  # FIXME this needs to be done propperly!!!
+
+        S_cell_x[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
+                                     env_P)*cells.mem_vects_flat[cells.mem_bound,2]
+        S_cell_y[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
+                                     env_P)*cells.mem_vects_flat[cells.mem_bound,3]
+
+        # balance the stress at the (assumed-to-be) shared boundary:
+        S_mem_x = (S_cell_x[cells.mem_nn[:,1]] + S_cell_x[cells.mem_nn[:,0]])
+        S_mem_y = (S_cell_y[cells.mem_nn[:,1]] + S_cell_y[cells.mem_nn[:,0]])
+
+        # define the strain-stress matrix at the cell membrane midpoints:
+        Y = 1000   # FIXME -- do this once at the beginning, or in cells
+        poi = 0.5
+
+        eta_M = (1/Y)*np.array([[1,-poi],[-poi,1]])
+
+        eta_x = (1/Y)*(S_mem_x - poi*S_mem_y)
+        eta_y = (1/Y)*(S_mem_y - poi*S_mem_x)
+
+        for cell_i in cells.cell_i:
+
+            # get indices of membranes for this specific cell:
+            mem_i = cells.cell_to_mems[cell_i]
+
+            eta_x_at_mems = eta_x[mem_i]
+            eta_y_at_mems = eta_y[mem_i]
+
+            # interpolate the result out to the ecm_verts:
+            eta_x_ecm = interp.griddata((cells.mem_mids_flat[mem_i,0],cells.mem_mids_flat[mem_i,1]),eta_x_at_mems,
+                                    (cells.ecm_verts[cell_i][:,0],cells.ecm_verts[cell_i][:,1]),method ='nearest',fill_value=0)
+
+            eta_y_ecm = interp.griddata((cells.mem_mids_flat[mem_i,0],cells.mem_mids_flat[mem_i,1]),eta_y_at_mems,
+                                    (cells.ecm_verts[cell_i][:,0],cells.ecm_verts[cell_i][:,1]),method ='nearest',fill_value=0)
+
+            # re-do the ecm verts for the cell using the calculated strain:
+            cells.ecm_verts[cell_i][:,0] = (1 + eta_x_ecm)*cells.ecm_verts[cell_i][:,0]
+            cells.ecm_verts[cell_i][:,1] = (1 + eta_y_ecm)*cells.ecm_verts[cell_i][:,1]
+
+        # FIXME must also time track positional coords for mem_edges, mem_mids, cell verts and cell centres !
+
+        # redo cell centres:
+        cells.cell_index(p)
+
+        # redo other geometric properties:
+        cells.cellVerts(p)
+
+        cells.cleanUp(p)
+
+        cells.short_environment(p)
+
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
