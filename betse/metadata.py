@@ -109,7 +109,7 @@ installation.
 '''
 
 # ....................{ METADATA ~ versions                }....................
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 '''
 Version specifier.
 
@@ -189,26 +189,26 @@ README.md
     Human-readable list of such dependencies.
 '''
 
-DEPENDENCY_TO_MODULE_NAME = {
-    'setuptools': 'setuptools',
-    'six': 'six',
-    'yamale': 'yamale',
-    'Matplotlib': 'matplotlib',
-    'Numpy': 'numpy',
-    'Pillow': 'PIL',
-    'PyYAML': 'yaml',
-    'SciPy': 'numpy',
-}
-'''
-Dictionary mapping the `setuptools`-specific name of each dependency declared by
-the `DEPENDENCIES_RUNTIME` set (e.g., `PyYAML`) to the fully-qualified name of
-that dependency's top-level module or package (e.g., `yaml`).
-
-For consistency, the size of this dictionary is necessarily the same as the size
-of the `DEPENDENCIES_RUNTIME` set.
-'''
-
 # --------------------( WASTELANDS                         )--------------------
+#DEPENDENCY_TO_MODULE_NAME = {
+#    'setuptools': 'setuptools',
+#    'six': 'six',
+#    'yamale': 'yamale',
+#    'Matplotlib': 'matplotlib',
+#    'Numpy': 'numpy',
+#    'Pillow': 'PIL',
+#    'PyYAML': 'yaml',
+#    'SciPy': 'numpy',
+#}
+#'''
+#Dictionary mapping the `setuptools`-specific name of each dependency declared by
+#the `DEPENDENCIES_RUNTIME` set (e.g., `PyYAML`) to the fully-qualified name of
+#that dependency's top-level module or package (e.g., `yaml`).
+#
+#For consistency, the size of this dictionary is necessarily the same as the size
+#of the `DEPENDENCIES_RUNTIME` set.
+#'''
+
     # matplotlib 1.4.0 switched Python compatability layers from "2to3" to
     # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
     # and hence end-user use of such version of matplotlib.

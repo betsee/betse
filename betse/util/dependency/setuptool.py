@@ -15,6 +15,26 @@ from betse.util.io import loggers
 from pkg_resources import DistributionNotFound, Requirement, VersionConflict
 import pkg_resources
 
+# ....................{ GLOBALS ~ dict                     }....................
+SETUPTOOLS_TO_MODULE_NAME = {
+    'Matplotlib': 'matplotlib',
+    'Numpy': 'numpy',
+    'Pillow': 'PIL',
+    'PyYAML': 'yaml',
+    'SciPy': 'numpy',
+    'setuptools': 'setuptools',
+    'six': 'six',
+    'yamale': 'yamale',
+}
+'''
+Dictionary mapping each relevant `setuptools`-specific project name (e.g.,
+`PyYAML`) to the fully-qualified name of the corresponding top-level module or
+package providing that project (e.g., `yaml`).
+
+For consistency, the size of this dictionary should be greater than or equal to
+the size of the `betse.metadata.DEPENDENCIES_RUNTIME` unordered set.
+'''
+
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_requirements_satisfiable_all() -> None:
     '''
@@ -75,14 +95,13 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
     # if True:
         # If this requirement's setuptools-specific distribution name has *NOT*
         # been mapped to a module name, raise an exception.
-        if requirement.project_name not in metadata.DEPENDENCY_TO_MODULE_NAME:
+        if requirement.project_name not in SETUPTOOLS_TO_MODULE_NAME:
             raise BetseExceptionModule(
                 'Mandatory dependency "{}" mapped to no module name.'.format(
                     requirement))
 
         # Fully-qualified name of the corresponding module.
-        module_name = metadata.DEPENDENCY_TO_MODULE_NAME[
-            requirement.project_name]
+        module_name = SETUPTOOLS_TO_MODULE_NAME[requirement.project_name]
 
         # Such module if found or a raised exception otherwise.
         try:

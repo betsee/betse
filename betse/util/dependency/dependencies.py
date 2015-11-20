@@ -76,6 +76,7 @@ def get_metadata() -> OrderedDict:
     Get an ordered dictionary synopsizing all currently installed dependencies.
     '''
     # Imports deferred to their point of use, as documented above.
+    from betse.util.dependency import setuptool
     from betse.util.python import modules, pythons
     from betse.util.type import containers
     import pkg_resources
@@ -92,19 +93,22 @@ def get_metadata() -> OrderedDict:
         # List of the setuptools-specific project names of all BETSE
         # dependencies, lexicographically sorted for readability.
         project_names = containers.sort_as_lexicographic_ascending(
-            metadata.DEPENDENCY_TO_MODULE_NAME.keys())
+            setuptool.SETUPTOOLS_TO_MODULE_NAME.keys())
 
         # For each such name...
         for project_name in project_names:
-            # Fully-qualified name of the top-level module or package providing
-            # this project.
-            module_name = metadata.DEPENDENCY_TO_MODULE_NAME[project_name]
+            # Fully-qualified name of this project's root module or package.
+            module_name =\
+                setuptool.SETUPTOOLS_TO_MODULE_NAME[project_name]
+            
+	    # If this module is importable and hence frozen with this
+	    # executable, this module is a describable dependency.
+            if modules.is_module(module_name):
+                # Version specifier provided by that module or package.
+                module_version = modules.get_version(module_name)
 
-            # Version specifier provided by that module or package.
-            module_version = modules.get_version(module_name)
-
-            # Append metadata describing such dependency.
-            dependency_metadata[project_name + ' version'] = module_version
+                # Append metadata describing such dependency.
+                dependency_metadata[project_name + ' version'] = module_version
     # Else, the active Python interpreter is *NOT* frozen. In such case, query
     # dependency versions via the more reliable setuptools machinery.
     else:

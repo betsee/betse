@@ -34,36 +34,33 @@ with a focus on spatio-temporal pattern formation.
 * **At least 8GB RAM**. Again, this is due to the memory intensiveness of
   even small-scale tissue simulations.
 
-## Program Dependencies
+## Dependencies
 
-`betse` has both mandatory dependencies that must be installed *before*
-installing `betse` and optional dependencies that may be installed *after*
-installing `betse`. Let's begin!
+`betse` has both mandatory dependencies that must be installed before `betse`
+itself is installed _and_ optional dependencies that may be installed at the
+user's discretion at any time. The uncomputable fun begins now!
 
 ### Mandatory
 
 `betse` requires the following non-pure-Python packages – which themselves
-require non-Python libraries (e.g., C, Fortran) and hence are best installed
-manually via the system-wide package manager for your current operating system:
+require non-Python precompiled libraries (e.g., C, Fortran) and hence are best
+installed manually via the system-wide package manager for your current
+operating system:
 
 * Python >= 3.3.
-* Matplotlib >= 1.3.0.
-* NumPy >= 1.8.0.
-* Pillow >= 2.3.0.
+* [Matplotlib](http://matplotlib.org) >= 1.3.0.
+* [NumPy](http://www.numpy.org) >= 1.8.0.
+* [Pillow](https://python-pillow.github.io) >= 2.3.0.
 * PySide >= 1.1.0.
-* PyYaml >= 3.10.
-* SciPy >= 0.12.0.
-* Yamale >= 1.5.3.
-* setuptools >= 3.3.
-* six >= 1.5.2.
+* [PyYaml](http://pyyaml.org) >= 3.10.
+* [SciPy](http://www.scipy.org) >= 0.12.0.
+* [Yamale](https://github.com/23andMe/Yamale) >= 1.5.3.
+* [setuptools](https://pythonhosted.org/setuptools) >= 3.3.
+* [six](https://pythonhosted.org/six) >= 1.5.2.
 
-We also strongly recommend that a reasonably recent version of `pip3`, the
-Python 3-specific release of the popular Python package manager `pip`, be
-installed. While `betse` does _not_ require `pip3`, the installation
-instructions below install and run `pip3` to install dependencies not that
-`betse` _does_ require and that are _not_ installable via the system-wide
-package manager for your current operating system. As of this writing, this
-only includes Yamale.
+To install these dependencies, the following instructions also install `pip3`,
+the Python 3-specific release of the popular Python package manager `pip`.
+That said, `betse` itself does _not_ require `pip3` at runtime.
 
 #### Linux Debian
 
@@ -167,9 +164,9 @@ For simplicity, the following instructions assume use of Homebrew:
    dependencies:
 
         $ brew tap homebrew/dupes homebrew/python &&
-          brew install python3 --with-tcl-tk &&
+          brew install python3 &&
           pip3 install --upgrade pip setuptools &&
-          brew install matplotlib --with-python3 --without-python --with-tcl-tk &&
+          brew install matplotlib --with-python3 --without-python &&
           brew install numpy --with-python3 --without-python &&
           brew install pillow --with-python3 --without-python &&
           brew install pyside --with-python3 --without-python &&
@@ -238,7 +235,7 @@ For simplicity, the following instructions assume use of the
 
 **FIXME:** While `betse` may indeed be installable _and_ runnable under Wine,
 there's little point in doing so, as the resulting PyInstaller-frozen binaries
-are likely to embed link Wine-specific shared libraries unlikely to behave as
+are likely to embed Wine-specific shared libraries unlikely to behave as
 expected under actual Windows systems. Excise this entire subsection, please.
 
 Under non-Windows systems, such dependencies are installable in a system-wide
@@ -309,25 +306,65 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 
 ### Optional
 
-`betse` optionally benefits from the following mostly pure-Python packages –
-which Python-specific package managers (e.g., `pip3`, `setuptools`) install for
-you and hence require no manual installation. Assuming `pip3` to already be
-installed (as recommended above), these packages are installable in a
-system-wide manner as follows:
+`betse` optionally leverages (but does _not_ strictly require) the following
+dependencies where available at runtime:
 
-* nose >= 1.3.0, for optionally running unit tests. (See below.)
+* [py.test](http://pytest.org) >= 2.3, for optionally running unit tests.
+* [PyInstaller](http://www.pyinstaller.org) >= 3.0, for optionally freezing
+  `betse`.
+* [UPX](http://upx.sourceforge.net) (any version), for optionally compressing
+  frozen `betse` executables.
 
-        $ sudo pip3 install nose
+These dependencies are installable as follows.
 
-* PyInstaller >= 3.0, for optionally freezing `betse`. (See below.)
+#### `py.test`
+
+To optionally [run tests](#testing), `betse` requires `py.test`, a pure-Python 
+test harness. This dependency is installable in a system-wide manner as follows:
+
+* Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):
+
+        $ sudo apt-get install python3-pytest
+
+* Under Apple OS X:
+
+        $ pip3 install pytest
+
+#### PyInstaller
+
+To optionally [freeze `betse`](#freezing), `betse` requires PyInstaller, a
+non-pure-Python cross-platform command-line utility for freezing Python
+applications. This dependency is installable in a system-wide manner as
+follows:
+
+* Under any Linux distribution:
 
         $ sudo pip3 install pyinstaller
 
-## Program Installation
+* Under Apple OS X:
 
-`betse` is installable into either:
+        $ pip3 install pyinstaller
 
-* A system-wide directory accessible to all users of such system.
+#### UPX (Ultimate Packer for eXecutables)
+
+To optionally compress executables while [freezing `betse`](#freezing), `betse`
+requires UPX, a non-Python cross-platform command-line utility for compressing
+arbitrary executables. This dependency is installable in a system-wide manner
+as follows:
+
+* Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):
+
+        $ sudo apt-get install upx-ucl
+
+* Under Apple OS X:
+
+        $ brew install upx
+
+## Installation
+
+`betse` itself is installable into either:
+
+* A system-wide directory accessible to all users of the current system.
 * A venv (i.e., virtual environment) isolated to the current user.
 
 The latter has the advantage of avoiding conflicts with already installed
@@ -379,7 +416,7 @@ by `setuptools` and dependencies already installed by such package maneger.
 
     $ pip uninstall betse
 
-## Program Usage
+## Usage
 
 `betse` is a front-facing application rather than backend framework. While
 `betse`'s Python packages are importable by other packages, `betse` is typically
@@ -413,7 +450,7 @@ Python 3 interpreter as follows:
     $ cd "${BETSE_DIR}"
     $ python3 -m betse.gui
 
-## Program Development
+## Development
 
 For development purposes, `betse` is *editably installable* (i.e., as a symbolic
 link rather than physical copy). As the name implies, editable installations are
@@ -480,7 +517,7 @@ Such installation is uninstallable as follows:
     $ cd "${BETSE_DIR}"
     $ ./setup.py develop --uninstall
 
-## Program Testing
+## Testing
 
 `betse` is testable via `nose` as follows:
 
@@ -494,7 +531,7 @@ equivalent commands:
     $ nosetests             # this works...
     $ ./setup.py nosetest   # ...as does this.
 
-## Program Freezing
+## Freezing
 
 `betse` is **freezable** (i.e., convertable to platform-specific executable
 binaries distributable to end users) via PyInstaller, a cross-platform open-

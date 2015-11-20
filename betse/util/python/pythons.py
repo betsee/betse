@@ -32,13 +32,8 @@ def init() -> None:
 
     . Logs a non-fatal warning if such interpreter is _not_ 64-bit.
     '''
-    #FIXME: Undo the terrible OS X-specific hack conditional below. Due to time
-    #constraints, we're currently unable to freeze a 64-bit version of BETSE
-    #under OS X. To avoid spamming OS X users with this warning, we currently
-    #squelch it entirely under OS X. (This is terrible, but so are unwitting
-    #time constraints.)
     from betse.util.system import oses
-    if is_wordsize_32() and not oses.is_os_x():
+    if is_wordsize_32():
         loggers.log_warning(
             '32-bit Python interpreter detected. '
             '{name} will be confined to low-precision datatypes and '
@@ -81,7 +76,7 @@ def is_wordsize_64():
     #
     #     return 'PROCESSOR_ARCHITEW6432' in os.environ
     #
-    # The current approach, however, is more portable and hence ideal.
+    # The current approach, however, is the most portable and hence ideal.
     return sys.maxsize > ints.INT_VALUE_MAX_32_BIT
 
 # ....................{ GETTERS                            }....................
@@ -112,6 +107,13 @@ def get_metadata() -> OrderedDict:
     return metadata
 
 # --------------------( WASTELANDS                         )--------------------
+    #FIXME: Undo the terrible OS X-specific hack conditional below. Due to time
+    #constraints, we're currently unable to freeze a 64-bit version of BETSE
+    #under OS X. To avoid spamming OS X users with this warning, we currently
+    #squelch it entirely under OS X. (This is terrible, but so are unwitting
+    #time constraints.)
+    #if is_wordsize_32() and not oses.is_os_x():
+
         # Avoid circular import dependencies.
     #FUXME: Not terribly human-readable and hence hardly ideal.
     # ordered_dict[' platform.platform(aliased = True)

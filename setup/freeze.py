@@ -138,10 +138,15 @@ class freeze(Command, metaclass = ABCMeta):
         `self.set_undefined_options()` raises an inscrutable `setuptools`
         exception. (This is terrible. So much hate.)
         '''
+        #FIXME: To circumvent PyInstaller caching issues, we currently force
+        #"self.clean = True". Once PyInstaller caching is sufficiently reliable
+        #to reasonably permit reuse of cached metadata, revert this back to
+        #"self.clean = False".
+
         # Option-specific public attributes. For each option declared by the
         # "user_options" list above, a public attribute of the same name as such
         # option's long form *MUST* be initialized here to its default value.
-        self.clean = False
+        self.clean = True
         self.debug = False
 
         # setuptools-specific public attributes.
@@ -187,9 +192,9 @@ class freeze(Command, metaclass = ABCMeta):
                 util.get_path_sans_filetype(script_basename))
 
             # If cleaning and such path exists, remove such path *BEFORE*
-            # validating such path. Why? Because such path could be an existing
-            # file and the current command freezing to a directory (or vice
-            # versa), in which case such validation would raise an exception.
+	    # validating such path. Why? Such path could be an existing file
+	    # and the current command freezing to a directory (or vice versa),
+	    # in which case subsequent validation would raise an exception.
             if self.clean and util.is_path(frozen_pathname):
                 util.remove_path(frozen_pathname)
 
