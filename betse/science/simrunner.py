@@ -571,7 +571,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.data_type_rho == 'ECM' and p.sim_ECM is True:
 
             plt.figure()
-            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(100/p.ff_env),origin='lower',
+            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(1/p.ff_env),origin='lower',
                 extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
             plt.colorbar()
             plt.title('Environmental Charge Density [C/m3]')
@@ -587,13 +587,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             if p.showCells is True:
 
 
-                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(100/p.ff_cell),number_cells=p.enumerate_cells,
+                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(1/p.ff_cell),number_cells=p.enumerate_cells,
                     clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
                     clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
             else:
 
-                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(100/p.ff_cell),clrAutoscale = p.autoscale_rho,
+                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(1/p.ff_cell),clrAutoscale = p.autoscale_rho,
                         clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
                         number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
 

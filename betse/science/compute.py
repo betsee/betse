@@ -2796,10 +2796,10 @@ class Simulator(object):
                 rho_env_y = np.zeros(cells.grid_obj.v_shape)
 
                 # map the charge density to the grid
-                rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)*(100/p.ff_env)
+                rho_env_x[:,1:] = self.rho_env.reshape(cells.X.shape)*(1/p.ff_env)
                 rho_env_x[:,0] = rho_env_x[:,1]
 
-                rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)*(100/p.ff_env)
+                rho_env_y[1:,:] = self.rho_env.reshape(cells.X.shape)*(1/p.ff_env)
                 rho_env_y[0,:] = rho_env_y[1,:]
 
 
@@ -2948,7 +2948,7 @@ class Simulator(object):
         if p.base_eosmo is True:
 
             # to get the eletroosmotic body force at each gap junction, first map the charge density from cell to gj:
-            rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])*(100/p.ff_cell)
+            rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])*(1/p.ff_cell)
 
             # body force is equal to the electric field at the gap junction multiplied by the charge density there.
             F_gj = rho_gj*self.Egj
