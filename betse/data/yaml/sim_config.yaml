@@ -208,7 +208,7 @@ world options:
 
   deformation:
 
-    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+    turn on: True       # deformation of the structure under the action of osmotic and electrostatic pressure
     include osmotic pressure: True    # include osmotic pressure?
     include electrostatic pressure: False   # include electrostatic pressure?
 

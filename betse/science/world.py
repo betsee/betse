@@ -129,6 +129,7 @@ class World(object):
 
             if p.deformation is True:
                 self.memWork(p)
+                self.deformationMatrix(p)
 
 
         elif self.worldtype == 'basic':
@@ -144,9 +145,9 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
 
-
             if p.deformation is True:
                 self.memWork(p)
+                self.deformationMatrix(p)
 
     def makeSeeds(self,p):
 
@@ -685,7 +686,7 @@ class World(object):
                 pt2 = np.asarray(pt2)
                 edge.append([pt1,pt2])
                 mid = (pt1 + pt2)/2       # midpoint calculation
-                mps.append(mid)
+                mps.append(mid.tolist())
 
                 lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
                 sa = lgth*p.cell_height    # surface area of membrane
@@ -710,6 +711,31 @@ class World(object):
 
         self.mem_mids_flat, self.indmap_mem, _ = tb.flatten(self.mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+
+        if p.deformation is True:
+            # calculate some quantities used only in deformation sequences:
+            # calculate the chords from cell centre to membrane midpoint
+            chord_mag = []
+            for i, mids in enumerate(self.mem_mids):
+                cent = self.cell_centres[i]
+
+                chords = mids - cent
+                chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
+                chord_mag.append(chord_m)
+
+            self.chord_mag, _ , _ = tb.flatten(chord_mag)
+            self.chord_mag = np.asarray(self.chord_mag)
+
+            # create a set of unique, flattened points to the cell vertices:
+            cell_verts_unique = set()
+
+            for verts in self.cell_verts:
+                for v in verts:
+                    cell_verts_unique.add((v[0],v[1]))
+
+            cell_verts_unique = [list(x) for x in cell_verts_unique]
+            self.cell_verts_unique = np.asarray(cell_verts_unique)
+
 
         # run a similar (but simplified) protocol with the full voronoi verts structure:
         self.voronoi_mids = []   # storage for membrane midpoints
@@ -1137,6 +1163,74 @@ class World(object):
         self.clust_xy = None
         self.ecm_polyinds = None
 
+    def short_cleanUp(self,p):
+
+        self.mem_length,_,_ = tb.flatten(self.mem_length)
+
+        self.mem_length = np.asarray(self.mem_length)
+
+        self.mem_sa = self.mem_length*p.cell_height
+
+        # cell surface area:
+        self.cell_sa = []
+        for grp in self.cell_to_mems:
+            cell_sa = sum(self.mem_sa[grp])
+            self.cell_sa.append(cell_sa)
+
+        self.cell_sa = np.asarray(self.cell_sa)
+
+        # get an average cell_sa for each membrane domain (used in graph Laplacian calculation):
+        self.num_nn = np.asarray(self.num_nn)
+        nn_zero = (self.num_nn == 0).nonzero()
+        self.num_nn[nn_zero] = 1
+
+        self.av_mem_sa = self.cell_sa/self.num_nn
+
+        self.ave_sa_all = np.mean(self.cell_sa)/np.mean(self.num_nn)
+
+        self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
+        # structures for plotting interpolated data and streamlines:
+        # create a flattened version of cell_verts that will serve as membrane verts:
+        self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+        self.mem_verts = np.asarray(self.mem_verts)
+
+        self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+
+        # define matrix for updating cells with fluxes from membranes:
+        if self.worldtype == 'full':
+
+            self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+            self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
+        # if studying lateral movement of pumps and channels in membrane,
+        # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        if p.sim_eosmosis is True:
+            self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+
+            for i, inds in enumerate(self.cell_to_mems):
+
+                inds = np.asarray(inds)
+
+                inds_p1 = np.roll(inds,1)
+                inds_n1 = np.roll(inds,-1)
+                inds_o = np.roll(inds,0)
+
+                dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
+                len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+                dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
+
+                tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
+                tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
+
+                self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
+                self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+
+        #---------------------------------------------------------------------------
+
+        self.mem_mids = np.asarray(self.mem_mids)
+
     def redo_gj(self,dyna,p,savecells =True):
 
         # profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
@@ -1288,6 +1382,48 @@ class World(object):
 
                 self.nnAveMatrix[i,i] = 1/2
                 self.nnAveMatrix[i,nn_dupe] = 1/2
+
+    def recalc_gj_vects(self,p):
+        """
+        Recalculate nearest neighbour (gap junction)
+        vectors.
+
+        Used in deformation sequence.
+        """
+
+        self.nn_i = []
+
+        nn_x = []
+        nn_y = []
+        nn_tx = []
+        nn_ty = []
+
+        self.nn_len = []
+
+        for i, inds in enumerate(self.cell_nn):
+
+            for j in inds:
+
+                pt1 = self.cell_centres[i]
+                pt2 = self.cell_centres[j]
+
+                mid = (pt1 + pt2)/2       # midpoint calculation
+                tang_a = pt2 - pt1       # tangent
+                tang = tang_a/np.linalg.norm(tang_a)
+                nn_x.append(mid[0])
+                nn_y.append(mid[1])
+                nn_tx.append(tang[0])
+                nn_ty.append(tang[1])
+
+                length = np.sqrt(tang_a[0]**2 + tang_a[1]**2)
+
+                self.nn_len.append(length)
+
+                self.nn_i.append([i,j])
+
+        self.nn_i = np.asarray(self.nn_i)
+
+        self.nn_vects = np.array([nn_x,nn_y,nn_tx,nn_ty]).T
 
     def save_cluster(self,p,savecells = True):
         '''
@@ -1452,6 +1588,45 @@ class World(object):
         # self.voronoi_verts = None
         # self.voronoi_mids = None
         # self.all_voronoi_verts = None
+
+    def deformationMatrix(self,p):
+        """
+        Calculate a matrix used to map strain deformation
+        from membrane midpoints to the cell vertices.
+
+        """
+
+        # build search trees for the flattened cell verts and mem mids:
+        memTree = sps.KDTree(self.mem_mids_flat)
+        vertTree = sps.KDTree(self.cell_verts_unique)
+
+        # create the deformation matrix, which will apply strain at mem mids to the vertices
+        # (np.dot(cell_verts_unique,strain)):
+        self.deforM = np.zeros((len(self.cell_verts_unique),len(self.mem_mids_flat)))
+
+        for i_cell, cell_verts in enumerate(self.cell_verts):
+
+            mem_mids = self.mem_mids[i_cell]
+
+            if len(mem_mids) == len(cell_verts):
+
+                seq_i_verts = np.arange(0,len(mem_mids))
+                seq_ip_mem = np.roll(seq_i_verts,0)
+                seq_im_mem = np.roll(seq_i_verts,-1)
+
+                mem_mids = np.asarray(mem_mids)
+
+                vert_points = cell_verts[seq_i_verts]
+                mem_points_p = mem_mids[seq_ip_mem]
+                mem_points_m = mem_mids[seq_im_mem]
+
+                # find these points in the flattened vectors:
+                vert_inds = list(vertTree.query(vert_points))[1]
+                mem_inds_p = list(memTree.query(mem_points_p))[1]
+                mem_inds_m = list(memTree.query(mem_points_m))[1]
+
+                self.deforM[vert_inds,mem_inds_p] = 1
+                self.deforM[vert_inds,mem_inds_m] = 1
 
 
 

@@ -851,10 +851,23 @@ class PlotWhileSolving(object):
 
         if p.sim_ECM is False:
 
-            if p.showCells is True:
+            if p.showCells is True and p.deformation is False:
                 zv = sim.vm_time[-1]*1000
                 self.coll2.set_array(zv)
-            else:
+
+            elif p.showCells is True and p.deformation is True:
+
+                 # Add a collection of cell polygons, with animated voltage data
+
+                zv = sim.vm_time[-1]*1000
+
+                points = np.multiply(sim.cell_verts_time[-1], p.um)
+                self.coll2 =  PolyCollection(points, array=zv, edgecolors='none', cmap=self.colormap)
+                self.coll2.set_alpha(1.0)
+                self.ax.add_collection(self.coll2)
+
+
+            elif p.showCells is False:
                 dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),
                     sim.vm_time[-1]*1000,(self.cells.Xgrid,self.cells.Ygrid),fill_value=0,method=self.p.interp_type)
                 dat_grid = np.multiply(dat_grid,self.cells.maskM)
@@ -1766,47 +1779,47 @@ class AnimateDyeData(object):
         self.collection.set_array(self.zdata_t[0])
         self.ax.add_collection(self.collection)
 
-        if self.current_overlay is True:
-
-            if p.IecmPlot is False:
-
-                dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                    sim.Dye_flux_x_gj_time[0],(self.cells.Xgrid,self.cells.Ygrid),method=p.interp_type,fill_value=0)
-
-                dye_fx = dye_fx*cells.maskM
-
-                dye_fy = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-                    sim.Dye_flux_y_gj_time[0],(self.cells.Xgrid,self.cells.Ygrid),method=p.interp_type,fill_value=0)
-
-                dye_fy = dye_fy*cells.maskM
-
-                Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
-
-                F_x = np.asarray(dye_fx/Fmag_M)
-                F_y = np.asarray(dye_fy/Fmag_M)
-
-                lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
-
-                lw = lw.reshape(cells.Xgrid.shape)
-
-                self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,F_x.reshape(cells.Xgrid.shape),
-                    F_y.reshape(cells.Xgrid.shape),density=self.density,linewidth=lw,color='k',
-                    cmap=clrmap,arrowsize=1.5)
-
-            elif p.IecmPlot is True:
-
-                Fmag_M = np.sqrt(sim.Dye_flux_env_x_time[0]**2 + sim.Dye_flux_env_y_time[0]**2) + 1e-30
-
-                F_x = np.asarray(sim.Dye_flux_env_x_time[0]/Fmag_M)
-                F_y = np.asarray(sim.Dye_flux_env_y_time[0]/Fmag_M)
-
-                lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
-
-                lw = lw.reshape(cells.X.shape)
-
-                self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,F_x.reshape(cells.X.shape),
-                    F_y.reshape(cells.X.shape),density=self.density,linewidth=lw,color='k',
-                    cmap=clrmap,arrowsize=1.5)
+        # if self.current_overlay is True:
+        #
+        #     if p.IecmPlot is False:
+        #
+        #         dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+        #             sim.Dye_flux_x_gj_time[0],(self.cells.Xgrid,self.cells.Ygrid),method=p.interp_type,fill_value=0)
+        #
+        #         dye_fx = dye_fx*cells.maskM
+        #
+        #         dye_fy = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+        #             sim.Dye_flux_y_gj_time[0],(self.cells.Xgrid,self.cells.Ygrid),method=p.interp_type,fill_value=0)
+        #
+        #         dye_fy = dye_fy*cells.maskM
+        #
+        #         Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
+        #
+        #         F_x = np.asarray(dye_fx/Fmag_M)
+        #         F_y = np.asarray(dye_fy/Fmag_M)
+        #
+        #         lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
+        #
+        #         lw = lw.reshape(cells.Xgrid.shape)
+        #
+        #         self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,F_x.reshape(cells.Xgrid.shape),
+        #             F_y.reshape(cells.Xgrid.shape),density=self.density,linewidth=lw,color='k',
+        #             cmap=clrmap,arrowsize=1.5)
+        #
+        #     elif p.IecmPlot is True:
+        #
+        #         Fmag_M = np.sqrt(sim.Dye_flux_env_x_time[0]**2 + sim.Dye_flux_env_y_time[0]**2) + 1e-30
+        #
+        #         F_x = np.asarray(sim.Dye_flux_env_x_time[0]/Fmag_M)
+        #         F_y = np.asarray(sim.Dye_flux_env_y_time[0]/Fmag_M)
+        #
+        #         lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
+        #
+        #         lw = lw.reshape(cells.X.shape)
+        #
+        #         self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,F_x.reshape(cells.X.shape),
+        #             F_y.reshape(cells.X.shape),density=self.density,linewidth=lw,color='k',
+        #             cmap=clrmap,arrowsize=1.5)
 
         # set range of the colormap
 
@@ -1880,49 +1893,49 @@ class AnimateDyeData(object):
         self.collection.set_array(zz)
         self.bkgPlot.set_data(zenv.reshape(self.cells.X.shape))
 
-        if self.current_overlay is True:
-
-            if self.IecmPlot is False:
-
-                dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                    self.sim.Dye_flux_x_gj_time[i],(self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type,fill_value=0)
-
-                dye_fx = dye_fx*self.cells.maskM
-
-                dye_fy = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-                    self.sim.Dye_flux_y_gj_time[i],(self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type,fill_value=0)
-
-                dye_fy = dye_fy*self.cells.maskM
-
-                Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
-
-                F_x = dye_fx/Fmag_M
-                F_y = dye_fy/Fmag_M
-
-                lw = (3.0*Fmag_M/Fmag_M.max()) + 0.5
-
-                self.streams.lines.remove()
-                self.ax.patches = []
-
-                self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,F_x,F_y,
-                    density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
-
-            elif self.IecmPlot is True:
-
-                Fmag_M = np.sqrt(self.sim.Dye_flux_env_x_time[i]**2 + self.sim.Dye_flux_env_y_time[i]**2) + 1e-30
-
-                F_x = np.asarray(self.sim.Dye_flux_env_x_time[i]/Fmag_M)
-                F_y = np.asarray(self.sim.Dye_flux_env_y_time[i]/Fmag_M)
-
-                lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
-                lw = lw.reshape(self.cells.X.shape)
-
-                self.streams.lines.remove()
-                self.ax.patches = []
-
-                self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,F_x.reshape(self.cells.X.shape),
-                    F_y.reshape(self.cells.X.shape),density=self.density,linewidth=lw,color='k',
-                    cmap=self.colormap,arrowsize=1.5)
+        # if self.current_overlay is True:
+        #
+        #     if self.IecmPlot is False:
+        #
+        #         dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+        #             self.sim.Dye_flux_x_gj_time[i],(self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type,fill_value=0)
+        #
+        #         dye_fx = dye_fx*self.cells.maskM
+        #
+        #         dye_fy = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+        #             self.sim.Dye_flux_y_gj_time[i],(self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type,fill_value=0)
+        #
+        #         dye_fy = dye_fy*self.cells.maskM
+        #
+        #         Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
+        #
+        #         F_x = dye_fx/Fmag_M
+        #         F_y = dye_fy/Fmag_M
+        #
+        #         lw = (3.0*Fmag_M/Fmag_M.max()) + 0.5
+        #
+        #         self.streams.lines.remove()
+        #         self.ax.patches = []
+        #
+        #         self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,F_x,F_y,
+        #             density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
+        #
+        #     elif self.IecmPlot is True:
+        #
+        #         Fmag_M = np.sqrt(self.sim.Dye_flux_env_x_time[i]**2 + self.sim.Dye_flux_env_y_time[i]**2) + 1e-30
+        #
+        #         F_x = np.asarray(self.sim.Dye_flux_env_x_time[i]/Fmag_M)
+        #         F_y = np.asarray(self.sim.Dye_flux_env_y_time[i]/Fmag_M)
+        #
+        #         lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
+        #         lw = lw.reshape(self.cells.X.shape)
+        #
+        #         self.streams.lines.remove()
+        #         self.ax.patches = []
+        #
+        #         self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,F_x.reshape(self.cells.X.shape),
+        #             F_y.reshape(self.cells.X.shape),density=self.density,linewidth=lw,color='k',
+        #             cmap=self.colormap,arrowsize=1.5)
 
         titani = 'sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s'
         self.ax.set_title(titani)
@@ -2062,7 +2075,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
             clrmap = p.default_cm
 
         if zdata is None:
-            zdata = np.ones((cells.msize,cells.msize))
+            zdata = np.ones((p.plot_grid_size,p.plot_grid_size))
 
         ax.axis('equal')
 
@@ -2611,114 +2624,101 @@ def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
         ymin = cells.ymin*p.um
         ymax = cells.ymax*p.um
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
         ax.axis([xmin,xmax,ymin,ymax])
 
         return fig, ax
 
-def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
-    clrmap=None):
-
-        """
-        This plotting function plots data on both cell centres and ecm midpoints, as patch objects.
-
-
-        Parameters
-        ----------------
-
-        cells                   Data structure created by World module
-        p                       Parameters data structure created by Parameters module
-        fig, ax                 Figure and axes instances
-        zdata                   Contains data array matching cell and ecm indices, e.g. zdata = [Vcell, Vecm]
-        clrAutoscale            True or False
-        clrMin, clrMax          Minimum, maximum colorbar values (for zdata)
-        clrmap                  Colormap for the plot
-
-
-        Returns
-        -----------
-        fig, ax, ax_cb          Figure, axes, and colorbar instances
-        """
-
-        if fig is None:
-            fig = plt.figure()# define the figure and axes instances
-        if ax is None:
-            ax = plt.subplot(111)
-            #ax = plt.axes()
-
-        data_length = len(cells.cell_i) + len(cells.ecm_i)
-
-        if zdata is None:  # if user doesn't supply data
-            z = np.ones(data_length) # create flat data for plotting
-
-        # elif zdata == 'random':  # if user doesn't supply data
-        #     z = np.random.random(data_length) # create some random data for plotting
-
-        else:
-            zCells = zdata[0]
-            zEcm = zdata[1]
-
-        if clrmap is None:
-            clrmap = p.default_cm
-
-        points = np.multiply(cells.cell_verts, p.um)
-
-        coll = PolyCollection(points, array = zCells, cmap = clrmap, edgecolors='k',zorder=1)
-
-        ax.add_collection(coll)
-
-        scat = ax.scatter(p.um*cells.ecm_mids[:,0],p.um*cells.ecm_mids[:,1],c=zEcm,cmap=clrmap)
-
-        ax.axis('equal')
-
-         # Add a colorbar for the plot:
-
-        maxval_cells = round(np.max(zCells,axis=0),1)
-        minval_cells = round(np.min(zCells,axis=0),1)
-        checkval_cells = maxval_cells - minval_cells
-
-        maxval_ecm = round(np.max(zEcm,axis=0),1)
-        minval_ecm = round(np.min(zEcm,axis=0),1)
-        checkval_ecm = maxval_ecm - minval_ecm
-
-        if checkval_cells == 0:
-            minval_cells = minval_cells - 0.1
-            maxval_cells = maxval_cells + 0.1
-
-        if checkval_ecm == 0:
-            minval_ecm = minval_ecm - 0.1
-            maxval_ecm = maxval_ecm + 0.1
-
-        if zdata is not None and clrAutoscale is True:
-            coll.set_clim(minval_cells,maxval_cells)
-            scat.set_clim(minval_ecm,maxval_ecm)
-            ax_cb = fig.colorbar(scat,ax=ax)
-
-        elif clrAutoscale is False:
-
-            coll.set_clim(clrMin,clrMax)
-            scat.set_clim(clrMin,clrMax)
-            ax_cb = fig.colorbar(scat,ax=ax)
-
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
-
-        ax.axis([xmin,xmax,ymin,ymax])
-
-
-        return fig, ax, ax_cb
+# def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
+#     clrmap=None):
+#
+#         """
+#         This plotting function plots data on both cell centres and ecm midpoints, as patch objects.
+#
+#
+#         Parameters
+#         ----------------
+#
+#         cells                   Data structure created by World module
+#         p                       Parameters data structure created by Parameters module
+#         fig, ax                 Figure and axes instances
+#         zdata                   Contains data array matching cell and ecm indices, e.g. zdata = [Vcell, Vecm]
+#         clrAutoscale            True or False
+#         clrMin, clrMax          Minimum, maximum colorbar values (for zdata)
+#         clrmap                  Colormap for the plot
+#
+#
+#         Returns
+#         -----------
+#         fig, ax, ax_cb          Figure, axes, and colorbar instances
+#         """
+#
+#         if fig is None:
+#             fig = plt.figure()# define the figure and axes instances
+#         if ax is None:
+#             ax = plt.subplot(111)
+#             #ax = plt.axes()
+#
+#         data_length = len(cells.cell_i) + len(cells.ecm_i)
+#
+#         if zdata is None:  # if user doesn't supply data
+#             z = np.ones(data_length) # create flat data for plotting
+#
+#         else:
+#             zCells = zdata[0]
+#             zEcm = zdata[1]
+#
+#         if clrmap is None:
+#             clrmap = p.default_cm
+#
+#         points = np.multiply(cells.cell_verts, p.um)
+#
+#         coll = PolyCollection(points, array = zCells, cmap = clrmap, edgecolors='k',zorder=1)
+#
+#         ax.add_collection(coll)
+#
+#         scat = ax.scatter(p.um*cells.ecm_mids[:,0],p.um*cells.ecm_mids[:,1],c=zEcm,cmap=clrmap)
+#
+#         ax.axis('equal')
+#
+#          # Add a colorbar for the plot:
+#
+#         maxval_cells = round(np.max(zCells,axis=0),1)
+#         minval_cells = round(np.min(zCells,axis=0),1)
+#         checkval_cells = maxval_cells - minval_cells
+#
+#         maxval_ecm = round(np.max(zEcm,axis=0),1)
+#         minval_ecm = round(np.min(zEcm,axis=0),1)
+#         checkval_ecm = maxval_ecm - minval_ecm
+#
+#         if checkval_cells == 0:
+#             minval_cells = minval_cells - 0.1
+#             maxval_cells = maxval_cells + 0.1
+#
+#         if checkval_ecm == 0:
+#             minval_ecm = minval_ecm - 0.1
+#             maxval_ecm = maxval_ecm + 0.1
+#
+#         if zdata is not None and clrAutoscale is True:
+#             coll.set_clim(minval_cells,maxval_cells)
+#             scat.set_clim(minval_ecm,maxval_ecm)
+#             ax_cb = fig.colorbar(scat,ax=ax)
+#
+#         elif clrAutoscale is False:
+#
+#             coll.set_clim(clrMin,clrMax)
+#             scat.set_clim(clrMin,clrMax)
+#             ax_cb = fig.colorbar(scat,ax=ax)
+#
+#
+#         xmin = cells.xmin*p.um
+#         xmax = cells.xmax*p.um
+#         ymin = cells.ymin*p.um
+#         ymax = cells.ymax*p.um
+#
+#         ax.axis([xmin,xmax,ymin,ymax])
+#
+#
+#         return fig, ax, ax_cb
 
 def plotVects(cells, p, fig=None, ax=None):
         """
@@ -2932,74 +2932,74 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
     return fig, ax, ax_cb
 
-def clusterPlotMesh(p,dyna,cells,clrmap=cm.jet):
-
-    fig = plt.figure()
-    ax = plt.subplot(111)
-
-    cb_ticks = []
-    cb_tick_labels = []
-
-    Z = np.zeros(cells.X.shape)
-
-    cb_ticks.append(0)
-    cb_tick_labels.append('environment')
-
-    Z[cells.map_ij2k[cells.map_cell2ecm][:,0],cells.map_ij2k[cells.map_cell2ecm][:,1]] = 1
-
-    cb_ticks.append(1)
-    cb_tick_labels.append(p.default_tissue_name)
-
-
-    if len(dyna.tissue_profile_names):
-
-        for i, name in enumerate(dyna.tissue_profile_names):
-
-            cell_inds = dyna.cell_target_inds[name]
-
-            Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
-              cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = i+2
-
-            cb_ticks.append(i+2)
-            cb_tick_labels.append(name)
-
-    if p.plot_cutlines is True:
-
-        if len(dyna.cuts_target_inds):
-
-            names = dyna.cuts_target_inds.keys()
-
-            for name in names:
-
-                cell_inds = dyna.cuts_target_inds[name]
-
-                Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
-                  cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = -1
-
-    xmin = cells.xmin*p.um
-    xmax = cells.xmax*p.um
-    ymin = cells.ymin*p.um
-    ymax = cells.ymax*p.um
-
-    clust_plot = ax.imshow(Z,origin = 'lower', extent=[xmin, xmax, ymin,ymax])
-
-    if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
-
-        ax_cb = fig.colorbar(clust_plot,ax=ax, ticks=cb_ticks)
-        ax_cb.ax.set_yticklabels(cb_tick_labels)
-
-    else:
-        ax_cb = None
-
-    ax.set_xlabel('Spatial Distance [um]')
-    ax.set_ylabel('Spatial Distance [um]')
-    ax.set_title('Cell Cluster')
-
-    ax.axis('equal')
-
-    ax.axis([xmin,xmax,ymin,ymax])
-
-    return fig, ax, ax_cb
+# def clusterPlotMesh(p,dyna,cells,clrmap=cm.jet):
+#
+#     fig = plt.figure()
+#     ax = plt.subplot(111)
+#
+#     cb_ticks = []
+#     cb_tick_labels = []
+#
+#     Z = np.zeros(cells.X.shape)
+#
+#     cb_ticks.append(0)
+#     cb_tick_labels.append('environment')
+#
+#     Z[cells.map_ij2k[cells.map_cell2ecm][:,0],cells.map_ij2k[cells.map_cell2ecm][:,1]] = 1
+#
+#     cb_ticks.append(1)
+#     cb_tick_labels.append(p.default_tissue_name)
+#
+#
+#     if len(dyna.tissue_profile_names):
+#
+#         for i, name in enumerate(dyna.tissue_profile_names):
+#
+#             cell_inds = dyna.cell_target_inds[name]
+#
+#             Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
+#               cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = i+2
+#
+#             cb_ticks.append(i+2)
+#             cb_tick_labels.append(name)
+#
+#     if p.plot_cutlines is True:
+#
+#         if len(dyna.cuts_target_inds):
+#
+#             names = dyna.cuts_target_inds.keys()
+#
+#             for name in names:
+#
+#                 cell_inds = dyna.cuts_target_inds[name]
+#
+#                 Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
+#                   cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = -1
+#
+#     xmin = cells.xmin*p.um
+#     xmax = cells.xmax*p.um
+#     ymin = cells.ymin*p.um
+#     ymax = cells.ymax*p.um
+#
+#     clust_plot = ax.imshow(Z,origin = 'lower', extent=[xmin, xmax, ymin,ymax])
+#
+#     if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
+#
+#         ax_cb = fig.colorbar(clust_plot,ax=ax, ticks=cb_ticks)
+#         ax_cb.ax.set_yticklabels(cb_tick_labels)
+#
+#     else:
+#         ax_cb = None
+#
+#     ax.set_xlabel('Spatial Distance [um]')
+#     ax.set_ylabel('Spatial Distance [um]')
+#     ax.set_title('Cell Cluster')
+#
+#     ax.axis('equal')
+#
+#     ax.axis([xmin,xmax,ymin,ymax])
+#
+#     return fig, ax, ax_cb
 
 def exportData(cells,sim,p):
 

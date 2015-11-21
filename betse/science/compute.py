@@ -837,7 +837,7 @@ class Simulator(object):
         self.cc_env_time = [] # data array holding environmental concentrations at time points
         self.vm_time = []  # data array holding voltage at time points
         self.vm_GHK_time = [] # data array holding GHK vm estimates
-        self.dvm_time = []  # data array holding derivative of voltage at time points
+        # self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
         self.cc_er_time = []   # retains er concentrations as a function of time
@@ -863,19 +863,21 @@ class Simulator(object):
         self.I_tot_x_time = [0]
         self.I_tot_y_time = [0]
 
+        if p.deformation is True:
+            self.cell_centres_time = []
+            self.mem_mids_time = []
+            self.maskM_time = []
+            self.mem_edges_time = []
+            self.cell_verts_time = []
+
+
         if p.voltage_dye is True:
 
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
-            self.Dye_flux_x_gj_time = []
-            self.Dye_flux_y_gj_time = []
-            self.Dye_flux_mem_time = []
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3_time = []    # retains IP3 concentration as a function of time
-            self.IP3_flux_x_gj_time = []
-            self.IP3_flux_y_gj_time = []
-            self.IP3_flux_mem_time = []
 
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
@@ -1080,6 +1082,9 @@ class Simulator(object):
             if p.fluid_flow is True and cells.lapGJinv is not 0:
                 self.getFlow(cells,p)
 
+            if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
+                self.getDeformation(cells,p)
+
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                 # determine flux through gap junctions for IP3:
 
@@ -1123,7 +1128,6 @@ class Simulator(object):
 
             check_v(self.vm)
 
-
             if t in tsamples:
 
                 if p.GHK_calc is True:
@@ -1156,11 +1160,16 @@ class Simulator(object):
 
                 self.vm_time.append(self.vm[:])
 
-                self.dvm_time.append(self.dvm[:])
-
                 self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
                 self.rho_cells_time.append(self.rho_cells[:])
+
+                if p.deformation is True:
+                    self.cell_centres_time.append(cells.cell_centres[:])
+                    self.mem_mids_time.append(cells.mem_mids_flat[:])
+                    self.maskM_time.append(cells.maskM[:])
+                    self.mem_edges_time.append(cells.mem_edges_flat[:])
+                    self.cell_verts_time.append(cells.cell_verts[:])
 
                 if p.fluid_flow is True:
 
@@ -1176,24 +1185,13 @@ class Simulator(object):
 
                     self.cIP3_time.append(self.cIP3[:])
 
-                    self.IP3_flux_x_gj_time.append(self.IP3_flux_x_gj[:])
-                    self.IP3_flux_y_gj_time.append(self.IP3_flux_y_gj[:])
-
-                    self.IP3_flux_mem_time.append(self.IP3_flux_mem[:])
-
                 if p.voltage_dye ==1:
 
                     self.cDye_time.append(self.cDye_cell[:])
 
-                    self.Dye_flux_x_gj_time.append(self.Dye_flux_x_gj[:])
-                    self.Dye_flux_y_gj_time.append(self.Dye_flux_y_gj[:])
-
-                    self.Dye_flux_mem_time.append(self.Dye_flux_mem[:])
-
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
-
 
                 if p.plot_while_solving is True:
                     self.checkPlot.updatePlot(self,p)
@@ -1223,7 +1221,6 @@ class Simulator(object):
             loggers.log_info(message_1)
 
         elif p.run_sim is True:
-
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedSim,datadump)
@@ -1302,19 +1299,16 @@ class Simulator(object):
 
         self.vm_GHK_time = [] # data array holding GHK vm estimate
 
-        self.dvm_time = []  # data array holding derivative of voltage at time points
+        # self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
 
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
 
-        self.f_gj_x_time = []      # stores the gj fluxes for each ion at each time
-
-        self.Igj_time = []      # current for each gj at each time
-
         self.I_gj_x_time = []    # initialize gap junction current data storage
         self.I_gj_y_time = []    # initialize gap junction current data storage
-        self.I_env_x_time = []   # initialize environmental matrix data storage
-        self.I_env_y_time = []   # initialize environmental matrix data storage
+        self.I_tot_x_time = []
+        self.I_tot_y_time = []
+
         self.I_mem_time = []   # initialize membrane matrix data storage
 
         self.cc_er_time = []   # retains er concentrations as a function of time
@@ -1336,9 +1330,6 @@ class Simulator(object):
         self.u_cells_y_time = []
         self.P_cells_time = []
 
-        self.I_tot_x_time = []
-        self.I_tot_y_time = []
-
         self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
 
         self.rho_cells_time = []
@@ -1351,16 +1342,17 @@ class Simulator(object):
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
 
+        if p.deformation is True:
+            self.cell_centres_time = []
+            self.mem_mids_time = []
+            self.maskM_time = []
+            self.mem_edges_time = []
+            self.cell_verts_time = []
+
         if p.Ca_dyn is True:
             self.cc_er_to = np.copy(self.cc_er[:])
 
         if p.voltage_dye is True:
-
-            self.Dye_flux_env_x_time = []
-            self.Dye_flux_env_y_time = []
-            self.Dye_flux_x_gj_time = []
-            self.Dye_flux_y_gj_time = []
-            self.Dye_flux_mem_time = []
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
             self.cDye_env_time = []
 
@@ -1533,6 +1525,15 @@ class Simulator(object):
 
                 self.getFlow(cells,p)
 
+            # if desired, electroosmosis of membrane channels
+            if p.sim_eosmosis is True and cells.gradMem is not None:
+
+                self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
+
+            if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
+
+                self.getDeformation(cells,p)
+
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
                 self.update_IP3(cells,p,t)
@@ -1554,14 +1555,9 @@ class Simulator(object):
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
 
-
-
             check_v(self.vm)
 
-            # if desired, electroosmosis of membrane channels
-            if p.sim_eosmosis is True and cells.gradMem is not None:
 
-                self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
 
             if t in tsamples:
@@ -1596,7 +1592,7 @@ class Simulator(object):
 
                 self.vm_time.append(self.vm[:])
 
-                self.dvm_time.append(self.dvm[:])
+                # self.dvm_time.append(self.dvm[:])
 
                 self.gjopen_time.append(self.gjopen[:])
 
@@ -1606,9 +1602,6 @@ class Simulator(object):
 
                 self.I_gj_x_time.append(self.I_gj_x[:])
                 self.I_gj_y_time.append(self.I_gj_y[:])
-
-                self.I_env_x_time.append(self.I_env_x[:])
-                self.I_env_y_time.append(self.I_env_y[:])
 
                 self.I_mem_time.append(self.I_mem[:])
 
@@ -1621,13 +1614,13 @@ class Simulator(object):
 
                 if p.fluid_flow is True:
 
-                    self.P_env_time.append(np.float64(self.P_env[:]))
+                    self.P_env_time.append(self.P_env[:])
                     self.u_env_x_time.append(self.u_at_c[:])
                     self.u_env_y_time.append(self.v_at_c[:])
 
-                    self.P_cells_time.append(np.float64(self.P_cells[:]))
-                    self.u_cells_x_time.append(np.float64(self.u_cells_x))
-                    self.u_cells_y_time.append(np.float64(self.u_cells_y))
+                    self.P_cells_time.append(self.P_cells[:])
+                    self.u_cells_x_time.append(self.u_cells_x)
+                    self.u_cells_y_time.append(self.u_cells_y)
 
                 # calculate interpolated verts and midpoint data for Vmem:
                 dat_grid_vm = vertData(self.vm[:],cells,p)
@@ -1635,6 +1628,14 @@ class Simulator(object):
                 self.vm_Matrix.append(dat_grid_vm[:])
 
                 self.time.append(t)
+
+                if p.deformation is True:
+                    self.cell_centres_time.append(cells.cell_centres[:])
+                    self.mem_mids_time.append(cells.mem_mids_flat[:])
+                    self.maskM_time.append(cells.maskM[:])
+                    self.mem_edges_time.append(cells.mem_edges_flat[:])
+                    self.cell_verts_time.append(cells.cell_verts[:])
+
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                     ccIP3 = self.cIP3[:]
@@ -1647,12 +1648,6 @@ class Simulator(object):
                     ccDye_cells = None
 
                     self.cDye_env_time.append(self.cDye_env[:])
-
-                    self.Dye_flux_x_gj_time.append(self.Dye_flux_x_gj[:])
-                    self.Dye_flux_y_gj_time.append(self.Dye_flux_y_gj[:])
-
-                    self.Dye_flux_env_x_time.append(self.Dye_flux_env_x[:])
-                    self.Dye_flux_env_y_time.append(self.Dye_flux_env_y[:])
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
@@ -3146,7 +3141,6 @@ class Simulator(object):
         #     self.D_env_weight = D_env_weight.reshape(cells.X.shape)
         #     self.D_env_weight_base = np.copy(self.D_env_weight)
         #
-        #     # FIXME you are here!
         #
         #     for i, dmat in enumerate(self.D_env):
         #
@@ -3200,7 +3194,7 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.bflags_mems] = self.D_free[i]     # FIXME note that this has been "opened up" since v0.2
+            dummyMems[cells.bflags_mems] = self.D_free[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type is True:
@@ -3284,22 +3278,6 @@ class Simulator(object):
 
             self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env[cells.map_cell2ecm]
 
-        # calculate the negative gradient of the osmotic pressure between cells (body force):
-
-        # FIXME no longer need the osmotic p gradient...
-        #
-        # self.osmo_P_grad =-(self.osmo_P_delta[cells.nn_i][:,1]- self.osmo_P_delta[cells.nn_i][:,0])/cells.nn_len
-        #
-        # # get x and y components of the osmotic pressure gradient between cells (osmotic body force):
-        # self.osmo_P_grad_xo = cells.nn_vects[:,2]*self.osmo_P_grad
-        # self.osmo_P_grad_yo = cells.nn_vects[:,3]*self.osmo_P_grad
-        #
-        # # average components back to cell centres:
-        # self.osmo_P_grad_x = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_xo)
-        # self.osmo_P_grad_y = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_yo)
-        #
-        # self.osmo_P_grad_mag = np.sqrt(self.osmo_P_grad_x**2 + self.osmo_P_grad_y**2)
-
     def ghk_calculator(self,cells,p):
         """
         Uses simulation parameters in the Goldman (GHK) equation
@@ -3356,15 +3334,24 @@ class Simulator(object):
 
         P_cell = np.zeros(len(cells.cell_i))   # FIXME this needs to be completed with osmotic and electric pressure!!!
 
+        P_cell[57] = 100
+        # if p.deform_osmo is True:
+        #
+        #     P_cell = self.osmo_P_delta_time
+        #
+        # if p.deform_electro is True:
+        #
+        #     P_electro = np.zeros(len(cells.cell_i))   # FIXME this is just a placeholder
+        #
+        #     P_cell = P_cell + P_electro
+
 
         # calculate net outward stress at boundary:
         S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
         S_cell_y = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
         # deal with environmental values:
-        # env_P = np.mean(P_cell)
-        # env_P = np.max(P_cell)
-        env_P = P_cell[cells.mem_to_cells][cells.mem_bound]  # FIXME this needs to be done propperly!!!
+        env_P = 0  # FIXME this needs to be done properly!!!
 
         S_cell_x[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
                                      env_P)*cells.mem_vects_flat[cells.mem_bound,2]
@@ -3375,16 +3362,14 @@ class Simulator(object):
         S_mem_x = (S_cell_x[cells.mem_nn[:,1]] + S_cell_x[cells.mem_nn[:,0]])
         S_mem_y = (S_cell_y[cells.mem_nn[:,1]] + S_cell_y[cells.mem_nn[:,0]])
 
-        # define the strain-stress matrix at the cell membrane midpoints:
-        Y = 1000   # FIXME -- do this once at the beginning, or in cells
+        # define the strain-stress matrix at the cell membrane midpoints:  # FIXME this only works for N and E sides
+        Y = p.youngMod
         poi = 0.5
 
-        eta_M = (1/Y)*np.array([[1,-poi],[-poi,1]])
+        eta_x = (1/Y)*(S_mem_x - poi*S_mem_y)*cells.mem_vects_flat[:,2]**2
+        eta_y = (1/Y)*(S_mem_y - poi*S_mem_x)*cells.mem_vects_flat[:,3]**2
 
-        eta_x = (1/Y)*(S_mem_x - poi*S_mem_y)
-        eta_y = (1/Y)*(S_mem_y - poi*S_mem_x)
-
-        for cell_i in cells.cell_i:
+        for cell_i in cells.cell_i:  # FIXME this interpolation strategy WILL NOT WORK!
 
             # get indices of membranes for this specific cell:
             mem_i = cells.cell_to_mems[cell_i]
@@ -3400,20 +3385,28 @@ class Simulator(object):
                                     (cells.ecm_verts[cell_i][:,0],cells.ecm_verts[cell_i][:,1]),method ='nearest',fill_value=0)
 
             # re-do the ecm verts for the cell using the calculated strain:
-            cells.ecm_verts[cell_i][:,0] = (1 + eta_x_ecm)*cells.ecm_verts[cell_i][:,0]
-            cells.ecm_verts[cell_i][:,1] = (1 + eta_y_ecm)*cells.ecm_verts[cell_i][:,1]
+            chords = cells.ecm_verts[cell_i] - cells.cell_centres[cell_i]
+            chord_mag = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
 
-        # FIXME must also time track positional coords for mem_edges, mem_mids, cell verts and cell centres !
+            # re-do the ecm verts for the cell using the calculated strain, with the cell centre as the origin:
+            cells.ecm_verts[cell_i][:,0] = (chord_mag*eta_x_ecm) + cells.ecm_verts[cell_i][:,0]
+            cells.ecm_verts[cell_i][:,1] = (chord_mag*eta_y_ecm) + cells.ecm_verts[cell_i][:,1]
 
-        # redo cell centres:
+        #  redo cell centres:
         cells.cell_index(p)
 
         # redo other geometric properties:
-        cells.cellVerts(p)
+        cells.cellVerts(p)  # LONG
 
-        cells.cleanUp(p)
+        cells.short_cleanUp(p)
 
-        cells.short_environment(p)
+        if p.sim_ECM is True:
+
+            cells.voronoiGrid(p)
+
+            cells.short_environment(p)  #REALLY LONG
+
+        cells.recalc_gj_vects(p)  # LONGISH
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -3884,7 +3877,7 @@ def vertData(data, cells, p):
                                method=p.interp_type,
                                fill_value=0)
     # smooth out the data a bit:
-    dat_grid = fd.integrator(dat_grid)   # FIXME this might not be a good idea...
+    dat_grid = fd.integrator(dat_grid)
 
     # get rid of values that bleed into the environment:
     dat_grid = np.multiply(dat_grid,cells.maskM)
