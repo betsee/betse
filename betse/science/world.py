@@ -121,9 +121,11 @@ class World(object):
             self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)       # Free up memory...
+            self.voronoiGrid(p)
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
+
 
             if p.deformation is True:
                 self.memWork(p)
@@ -138,8 +140,10 @@ class World(object):
             self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
             self.cleanUp(p)      # Free up memory...
+            self.voronoiGrid(p)
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
+
 
             if p.deformation is True:
                 self.memWork(p)
@@ -284,7 +288,9 @@ class World(object):
                             vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
 
 
-        self.ecm_verts = []
+        self.ecm_verts = [] # voronoi verts of clipped cluster
+
+        self.voronoi_verts = []  # keeps track of all voronoi cells, even those not in cluster
 
         # Clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
 
@@ -307,9 +313,11 @@ class World(object):
 
                         point_check[i] = 1.0
 
-                if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
+                cell_polya = cell_poly.tolist()
 
-                    cell_polya = cell_poly.tolist()
+                self.voronoi_verts.append(cell_polya)
+
+                if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
                     self.ecm_verts.append(cell_polya)
 
         self.cluster_mask = self.bitmasker.clippingMatrix
@@ -446,6 +454,7 @@ class World(object):
         """
 
         self.cell_centres = np.array([0,0])
+        self.voronoi_centres = []
 
         for poly in self.ecm_verts:
             aa = np.asarray(poly)
@@ -453,6 +462,14 @@ class World(object):
             self.cell_centres = np.vstack((self.cell_centres,aa))
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
+
+        for poly in self.voronoi_verts:
+
+            poly = np.asarray(poly)
+            aa = np.mean(poly,axis=0)
+            self.voronoi_centres.append(aa)
+
+        self.voronoi_centres = np.asarray(self.voronoi_centres)
 
     def near_neigh(self,p):
 
@@ -611,8 +628,9 @@ class World(object):
 
         """
         self.cell_verts = []
+        self.all_voronoi_verts = []
 
-        if p.deform is False:
+        if p.deformation is False:
 
             loggers.log_info('Creating cell vertices and membrane transit vectors... ')
 
@@ -622,6 +640,13 @@ class World(object):
                 pt_zero = vert - centre
                 pt_scale.append(p.scale_cell*pt_zero + centre)
             self.cell_verts.append(np.asarray(pt_scale))
+
+        for centre,poly in zip(self.voronoi_centres,self.voronoi_verts):
+            pt_scale = []
+            for vert in poly:
+                pt_zero = vert - centre
+                pt_scale.append(p.scale_cell*pt_zero+centre)
+            self.all_voronoi_verts.append(pt_scale)
 
         self.cell_verts = np.asarray(self.cell_verts)
 
@@ -685,6 +710,24 @@ class World(object):
 
         self.mem_mids_flat, self.indmap_mem, _ = tb.flatten(self.mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+
+        # run a similar (but simplified) protocol with the full voronoi verts structure:
+        self.voronoi_mids = []   # storage for membrane midpoints
+
+        for polyc in self.voronoi_verts:
+
+            # Calculate individual membrane and ghost membrane midpoints:
+            mps = []
+
+            for i in range(0,len(polyc)):
+                pt1 = polyc[i-1]
+                pt2 = polyc[i]
+                pt1 = np.asarray(pt1)
+                pt2 = np.asarray(pt2)
+                mid = (pt1 + pt2)/2       # midpoint calculation
+                mps.append(mid)
+
+            self.voronoi_mids.append(mps)
 
     def makeECM(self,p):
 
@@ -764,11 +807,11 @@ class World(object):
         loggers.log_info('Setting global environmental conditions... ')
 
         # first obtain a structure to map to total xypts vector index:
-        self.points_tree = sps.KDTree(self.xypts)
+        points_tree = sps.KDTree(self.xypts)
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
+        self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -778,7 +821,7 @@ class World(object):
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 
-        self.all_clust_pts = np.vstack((self.cell_centres,self.mem_mids_flat))
+        # self.all_clust_pts = np.vstack((self.cell_centres,self.mem_mids_flat))
 
         # get a list of k indices to the four exterior (global) boundaries of the rectangular world:
         bBot_x = self.X[0,:]
@@ -796,33 +839,39 @@ class World(object):
         bL_pts = np.column_stack((bL_x, bL_y))
         bR_pts = np.column_stack((bR_x, bR_y))
 
-        self.bBot_k = list(self.points_tree.query(bBot_pts))[1]
-        self.bTop_k = list(self.points_tree.query(bTop_pts))[1]
-        self.bL_k = list(self.points_tree.query(bL_pts))[1]
-        self.bR_k = list(self.points_tree.query(bR_pts))[1]
+        self.bBot_k = list(points_tree.query(bBot_pts))[1]
+        self.bTop_k = list(points_tree.query(bTop_pts))[1]
+        self.bL_k = list(points_tree.query(bL_pts))[1]
+        self.bR_k = list(points_tree.query(bR_pts))[1]
 
         #-----------------------------------------------------------
-        # create structures for plotting interpolated data on cell centres: # FIXME this looks terrible, and
-        # FIXME we'll need to alter how things are plotted with moving membranes and cell centres (masking won't work)
-        xv = np.linspace(self.xmin,self.xmax,self.msize)
-        yv = np.linspace(self.ymin,self.ymax,self.msize)
+        # create structures for plotting interpolated data on cell centres:
 
-        # self.Xgrid, self.Ygrid = np.meshgrid(xgrid,ygrid)
-        self.Xgrid = self.X
-        self.Ygrid = self.Y
+        voronoiTree = sps.KDTree(self.voronoi_grid)
+        mem_inds = list(voronoiTree.query(self.plot_xy))[1]
+        cell_inds = list(voronoiTree.query(self.cell_centres))[1]
 
-        mask_interp = interp.RectBivariateSpline(xv,yv,self.cluster_mask)
+        voronoi_mask = np.zeros(len(self.voronoi_grid))
+        voronoi_mask[cell_inds]=1
+        voronoi_mask[mem_inds]=1
 
-        # interpolate the cluster mask -- this is intentionally x-y opposite because
-        # the rectbivariatespline is reflecting things along the diagonal!
-        self.maskM = mask_interp.ev(self.xypts[:,1],self.xypts[:,0])
+        xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+        yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
 
-        self.maskM = self.maskM.reshape(self.X.shape)
+        X,Y = np.meshgrid(xv,yv)
 
+        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
+                             method='linear',fill_value=0)
+
+        self.maskM = fd.integrator(self.maskM)
         self.maskM = np.round(self.maskM,0)
-        self.maskM = self.maskM.astype(int)
 
-        self.inds_env = list(*(self.maskM.ravel() == 0).nonzero())
+        self.Xgrid = X
+        self.Ygrid = Y
+
+        maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
+
+        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
 
         # self.ecm_vol[self.map_mem2ecm] = p.cell_height*p.cell_space*np.mean(self.mem_sa)  # FIXME uncomment to shrink ecm volume
 
@@ -847,9 +896,12 @@ class World(object):
 
     def short_environment(self,p):
 
+        # first obtain a structure to map to total xypts vector index:
+        points_tree = sps.KDTree(self.xypts)
+
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
+        self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -859,8 +911,39 @@ class World(object):
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 
-        self.all_clust_pts = np.vstack((self.cell_centres,self.mem_mids_flat))
+        voronoiTree = sps.KDTree(self.voronoi_grid)
+        mem_inds = list(voronoiTree.query(self.plot_xy))[1]
+        cell_inds = list(voronoiTree.query(self.cell_centres))[1]
 
+        voronoi_mask = np.zeros(len(self.voronoi_grid))
+        voronoi_mask[cell_inds]=1
+        voronoi_mask[mem_inds]=1
+
+        xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+        yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+
+        X,Y = np.meshgrid(xv,yv)
+
+        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
+                             method='linear',fill_value=0)
+
+        self.maskM = fd.integrator(self.maskM)
+        self.maskM = np.round(self.maskM,0)
+
+        self.Xgrid = X
+        self.Ygrid = Y
+
+        maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
+
+        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
+
+        if p.sim_ECM is True:
+
+            # Create a matrix to update ecm from mem fluxes
+            self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
+
+            for i, ecm_index in enumerate(self.map_mem2ecm):
+                self.ecm_UpdateMatrix[i,ecm_index] = 1
 
     def graphLaplacian(self,p):
         '''
@@ -929,7 +1012,7 @@ class World(object):
 
         self.mem_sa = self.mem_length*p.cell_height
 
-        if p.deform is False:
+        if p.deformation is False:
             loggers.log_info('Creating computational matrices for discrete transfers... ')
 
         # define map allowing a dispatch from cell index to each respective membrane
@@ -1326,6 +1409,49 @@ class World(object):
 
         self.mem_nn = np.asarray(mem_nn)
         self.mem_bound = np.asarray(mem_bound)
+
+    def voronoiGrid(self,p):
+
+        """
+        Creates a set of unique, flat points
+        corresponding to cluster and 'ghost' points
+        of cell centres, membrane mids, and ecm spaces.
+
+        """
+        voronoi_grid = set()
+
+        for verts in self.voronoi_verts:
+
+            for v in verts:
+                voronoi_grid.add((v[0],v[1]))
+
+        for verts in self.all_voronoi_verts:
+
+            for v in verts:
+
+                voronoi_grid.add((v[0],v[1]))
+
+        for verts in self.voronoi_mids:
+
+            for v in verts:
+
+                voronoi_grid.add((v[0],v[1]))
+
+        for v in self.voronoi_centres:
+
+            pt1 = v[0]
+            pt2 = v[1]
+
+            voronoi_grid.add((pt1,pt2))
+
+        voronoi_grid = [list(x) for x in voronoi_grid]
+        self.voronoi_grid = np.asarray(voronoi_grid)
+
+        # # null out the expensive data structures as we don't need them anymore:
+        # self.voronoi_centres = None
+        # self.voronoi_verts = None
+        # self.voronoi_mids = None
+        # self.all_voronoi_verts = None
 
 
 

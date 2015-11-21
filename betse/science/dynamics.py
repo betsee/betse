@@ -595,8 +595,8 @@ class Dynamics(object):
 
             cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
-            cells.maskM = cells.maskM_temp[:]
-            cells.inds_env = cells.inds_env_temp[:]
+            # cells.maskM = cells.maskM_temp[:]
+            # cells.inds_env = cells.inds_env_temp[:]
 
         if p.scheduled_options['extV'] != 0 and p.sim_ECM is True:
 
@@ -1085,24 +1085,24 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
     # recreate structures for plotting interpolated data on cell centres:
-
-    xv = np.linspace(cells.xmin,cells.xmax,cells.msize)
-    yv = np.linspace(cells.ymin,cells.ymax,cells.msize)
-
-    cells.Xgrid = cells.X
-    cells.Ygrid = cells.Y
-
-    mask_interp = interp.RectBivariateSpline(xv,yv,cells.cluster_mask)
-
-    # interpolate the cluster mask -- this is intentionally x-y opposite because
-    cells.maskM = mask_interp.ev(cells.xypts[:,1],cells.xypts[:,0])
-
-    cells.maskM = cells.maskM.reshape(cells.X.shape)
-
-    cells.maskM = np.round(cells.maskM,0)
-    cells.maskM_temp = cells.maskM.astype(int)
-
-    cells.inds_env_temp = list(*(cells.maskM.ravel() == 0).nonzero())
+    #
+    # xv = np.linspace(cells.xmin,cells.xmax,cells.msize)
+    # yv = np.linspace(cells.ymin,cells.ymax,cells.msize)
+    #
+    # cells.Xgrid = cells.X
+    # cells.Ygrid = cells.Y
+    #
+    # mask_interp = interp.RectBivariateSpline(xv,yv,cells.cluster_mask)
+    #
+    # # interpolate the cluster mask -- this is intentionally x-y opposite because
+    # cells.maskM = mask_interp.ev(cells.xypts[:,1],cells.xypts[:,0])
+    #
+    # cells.maskM = cells.maskM.reshape(cells.X.shape)
+    #
+    # cells.maskM = np.round(cells.maskM,0)
+    # cells.maskM_temp = cells.maskM.astype(int)
+    #
+    # cells.inds_env_temp = list(*(cells.maskM.ravel() == 0).nonzero())
 
 
     if p.sim_ECM is True:
@@ -1343,7 +1343,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.cleanUp(p)       # Free up memory...
         # cells.makeECM(p)       # create the ecm grid
-        cells.environment(p)   # define features of the ecm grid
+        cells.short_environment(p)   # define features of the ecm grid
         cells.grid_len =len(cells.xypts)
 
         # make a laplacian and solver for discrete transfers on closed, irregular cell network:

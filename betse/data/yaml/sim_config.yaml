@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 2.0             # end time [s] (recommend 3 seconds or more)
+    total time: 3.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 10.0         # time to end sim run [s]
+    total time: 2.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -118,9 +118,10 @@ sim time settings:
 
 general options:
 
-  grid size: 30         # grid used in computation of environmental params and data interpolation
+  comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
+  plot grid size: 60                 # grid used for interpolated data plotting (recommend 60 to 100)
 
-  simulate extracellular spaces: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -171,7 +172,7 @@ general options:
 
 world options:
 
-  world size: 100e-6      # dimension of the square world space [m]
+  world size: 200e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -207,11 +208,9 @@ world options:
 
   deformation:
 
-    turn on: True       # deformation of the structure under the action of osmotic and electrostatic pressure
-    include osmosic pressure: True    # include osmotic pressure?
-    include electrostatic pressure: True   # include electrostatic pressure?
-    elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
-
+    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+    include osmotic pressure: True    # include osmotic pressure?
+    include electrostatic pressure: False   # include electrostatic pressure?
 
   gap junctions:
 
@@ -322,7 +321,7 @@ tissue profile definition:
   tissue profile 4:
       name: wound
       cell targets: bitmap
-      designation: None
+      designation: cuts
       insular: False
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -358,9 +357,9 @@ tissue profile definition:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True        # turn the event on (True) or off (False)
+  event happens: False        # turn the event on (True) or off (False)
   change start: 1.0                # time to start change [s]
-  change finish: 5.0               # time to end change and return to original [s]
+  change finish: 4.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
   multiplier: 50.0                # factor to multiply base level
   function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
@@ -424,7 +423,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: False
+    event happens: True
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
@@ -616,6 +615,8 @@ variable settings:
 
   membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
+  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
+
 
   static noise level: 0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
@@ -726,8 +727,8 @@ results options:
 
   streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
 
-  plot extracellular I: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
-                                  # extracellular current if true, plot gap junction current if false
+  plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
+                                  # total current if true, plot gap junction current if false
 
   plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
 
@@ -821,10 +822,9 @@ results options:
     max val: 15
     min val: -15
 
-  Force 2D:                      # 2D plot of electroosmotic body force in the cluster
+  Electrostatic 2D:                      # 2D plot of electrostatic pressure in the cluster
 
-    plot Force: True
-    data type: GJ               # data type can be 'ECM' or 'GJ' for extra or intracellular forces
+    plot Electrostatic: True
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -869,7 +869,7 @@ results options:
 
   Vcell Ani:
 
-    animate Vcell: False           # 2d animation of voltage in individual cells of the collective?
+    animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
@@ -895,9 +895,9 @@ results options:
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
-  Force Ani:
+  Electrostatic P Ani:
 
-    animate Force: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate electrostatic P: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3

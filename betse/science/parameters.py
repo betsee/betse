@@ -46,7 +46,9 @@ class Parameters(object):
         # if such file has no dirname (e.g., "sim_config.yaml").
         config_dirname = paths.get_dirname_or_empty(config_filename)
 
-        self.grid_size = int(self.config['general options']['grid size'])
+        self.grid_size = int(self.config['general options']['comp grid size'])
+
+        self.plot_grid_size = int(self.config['general options']['plot grid size'])
 
         self.sim_ECM = self.config['general options']['simulate extracellular spaces']    # boolean letting us know if extracellular spaces are included
 
@@ -62,7 +64,7 @@ class Parameters(object):
         self.deform_electro = self.config['world options']['deformation']['include electrostatic pressure']
 
 
-        self.youngMod = float(self.config['world options']['deformation']['elastic modulus'])
+        self.youngMod = float(self.config['variable settings']['elastic modulus'])
 
         self.mu_membrane = 1.0 # membrane viscocity
 
@@ -650,7 +652,7 @@ class Parameters(object):
 
         self.stream_density = ro['streamline density']
 
-        self.IecmPlot = ro['plot extracellular I']    # True = plot extracellular currents, false plot gj
+        self.IecmPlot = ro['plot total current']    # True = plot extracellular currents, false plot gj
 
         self.extVPlot = False   # plot the environmental spaces -- no longer used
 
@@ -688,11 +690,10 @@ class Parameters(object):
         self.rho_min_clr = float(ro['Charge 2D']['min val'])
         self.rho_max_clr = float(ro['Charge 2D']['max val'])
 
-        self.plot_force2d = ro['Force 2D']['plot Force']
-        self.data_type_force = ro['Force 2D']['data type']
-        self.autoscale_force = ro['Force 2D']['autoscale colorbar']
-        self.force_min_clr = float(ro['Force 2D']['min val'])
-        self.force_max_clr = float(ro['Force 2D']['max val'])
+        self.plot_force2d = ro['Electrostatic 2D']['plot Electrostatic']
+        self.autoscale_force = ro['Electrostatic 2D']['autoscale colorbar']
+        self.force_min_clr = float(ro['Electrostatic 2D']['min val'])
+        self.force_max_clr = float(ro['Electrostatic 2D']['max val'])
 
         self.plot_venv = ro['Venv 2D']['plot Venv']
         self.autoscale_venv = ro['Venv 2D']['autoscale colorbar']
@@ -774,10 +775,10 @@ class Parameters(object):
         self.osmoP_ani_min_clr = float(ro['Osmotic P Ani']['min val'])
         self.osmoP_ani_max_clr = float(ro['Osmotic P Ani']['max val'])
 
-        self.ani_force = ro['Force Ani']['animate Force']
-        self.autoscale_force_ani = ro['Force Ani']['autoscale colorbar']
-        self.force_ani_min_clr = float(ro['Force Ani']['min val'])
-        self.force_ani_max_clr = float(ro['Force Ani']['max val'])
+        self.ani_force = ro['Electrostatic P Ani']['animate electrostatic P']
+        self.autoscale_force_ani = ro['Electrostatic P Ani']['autoscale colorbar']
+        self.force_ani_min_clr = float(ro['Electrostatic P Ani']['min val'])
+        self.force_ani_max_clr = float(ro['Electrostatic P Ani']['max val'])
 
         self.ani_I = ro['Current Ani']['animate current']
         self.autoscale_I_ani = ro['Current Ani']['autoscale colorbar']

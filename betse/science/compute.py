@@ -6,6 +6,7 @@ import numpy as np
 import math
 import numpy.ma as ma
 from scipy import interpolate as interp
+import scipy.spatial as sps
 from scipy import ndimage
 import os, os.path
 import copy
@@ -1148,8 +1149,8 @@ class Simulator(object):
                 self.I_gj_x_time.append(self.I_gj_x[:])
                 self.I_gj_y_time.append(self.I_gj_y[:])
 
-                self.I_tot_x_time.append(self.I_tot_x)
-                self.I_tot_y_time.append(self.I_tot_y)
+                self.I_tot_x_time.append(self.I_tot_x[:])
+                self.I_tot_y_time.append(self.I_tot_y[:])
 
                 self.I_mem_time.append(self.I_mem[:])
 
@@ -1335,8 +1336,8 @@ class Simulator(object):
         self.u_cells_y_time = []
         self.P_cells_time = []
 
-        self.I_tot_x_time = [0]
-        self.I_tot_y_time = [0]
+        self.I_tot_x_time = []
+        self.I_tot_y_time = []
 
         self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
 
@@ -2647,13 +2648,13 @@ class Simulator(object):
 
     def get_current(self,cells,p):
 
-        Ixo = self.I_tot_x_time[-1]
-        Iyo = self.I_tot_y_time[-1]
+        # Ixo = self.I_tot_x_time[-1]
+        # Iyo = self.I_tot_y_time[-1]
 
         # zero components of total current vector:
 
-        self.I_tot_x = np.zeros(cells.X.shape)
-        self.I_tot_y = np.zeros(cells.X.shape)
+        self.I_tot_x = np.zeros(cells.Xgrid.shape)
+        self.I_tot_y = np.zeros(cells.Xgrid.shape)
 
         # calculate current across gap junctions in x direction:
         I_gj_x = np.zeros(len(cells.nn_i))
@@ -2726,14 +2727,20 @@ class Simulator(object):
 
                 self.I_env_y = self.I_env_y + I_i
 
-            self.I_env_x = self.I_env_x.reshape(cells.X.shape)
-            self.I_env_y = self.I_env_y.reshape(cells.X.shape)
+            I_env_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_x,(cells.Xgrid,cells.Ygrid),
+                                      method=p.interp_type,fill_value=0)
 
-            self.I_tot_x = self.I_tot_x + self.I_env_x
-            self.I_tot_y = self.I_tot_y + self.I_env_y
+            I_env_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_y,(cells.Xgrid,cells.Ygrid),
+                                      method=p.interp_type,fill_value=0)
 
-        self.dIx = ((self.I_tot_x - Ixo)/p.dt)
-        self.dIy = ((self.I_tot_y - Iyo)/p.dt)
+            # self.I_env_x = self.I_env_x.reshape(cells.X.shape)
+            # self.I_env_y = self.I_env_y.reshape(cells.X.shape)
+
+            self.I_tot_x = self.I_tot_x + I_env_x
+            self.I_tot_y = self.I_tot_y + I_env_y
+
+        # self.dIx = ((self.I_tot_x - Ixo)/p.dt)
+        # self.dIy = ((self.I_tot_y - Iyo)/p.dt)
 
     def getFlow(self,cells,p):
         """
@@ -3090,6 +3097,90 @@ class Simulator(object):
 
         self.D_env_u = np.zeros((self.D_env.shape[0],cells.grid_obj.u_shape[0],cells.grid_obj.u_shape[1]))
         self.D_env_v = np.zeros((self.D_env.shape[0],cells.grid_obj.v_shape[0],cells.grid_obj.v_shape[1]))
+        #
+        # voronoiTree = sps.KDTree(cells.voronoi_grid)
+        # mem_inds = list(voronoiTree.query(cells.plot_xy))[1]
+        # cell_inds = list(voronoiTree.query(cells.cell_centres))[1]
+        #
+        #
+        #
+        # all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
+        # all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
+        #
+        # neigh_to_bcells,_,_ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+        # interior_bound_mem_inds = cells.cell_to_mems[neigh_to_bcells]
+        # interior_bound_mem_inds,_,_ = tb.flatten(interior_bound_mem_inds)
+        #
+        # bound_inds = list(voronoiTree.query(cells.mem_mids_flat[all_bound_mem_inds]))[1]
+        # neigh_inds = list(voronoiTree.query(cells.mem_mids_flat[interior_bound_mem_inds]))[1]
+        # open_inds = list(voronoiTree.query(cells.mem_mids_flat[cells.bflags_mems]))[1]
+        #
+        # for i, dmat in enumerate(self.D_env):
+        #
+        #     if p.env_type is False:
+        #         self.D_env[i][:] = 0
+        #
+        #     dummyMems = np.ones(len(cells.voronoi_grid))*self.D_free[i]
+        #     dummyMems[mem_inds] = 1*self.D_free[i]*p.D_adh
+        #     dummyMems[cell_inds] = 1*self.D_free[i]*p.D_adh
+        #
+        #     dummyMems[bound_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+        #     dummyMems[neigh_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+        #
+        #     dummyMems[open_inds] = self.D_free[i]
+        #
+        #     # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
+        #     if p.env_type is True:
+        #         Denv_o = interp.griddata((cells.voronoi_grid[:,0],cells.voronoi_grid[:,1]),dummyMems,
+        #             (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
+        #
+        #     else:
+        #         Denv_o = interp.griddata((cells.voronoi_grid[:,0],cells.voronoi_grid[:,1]),dummyMems,
+        #             (cells.X,cells.Y),method='nearest',fill_value=0)
+        #
+        #     Denv_o = Denv_o.ravel()
+        #     self.D_env[i] = Denv_o
+        #
+        #     D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
+        #
+        #     self.D_env_weight = D_env_weight.reshape(cells.X.shape)
+        #     self.D_env_weight_base = np.copy(self.D_env_weight)
+        #
+        #     # FIXME you are here!
+        #
+        #     for i, dmat in enumerate(self.D_env):
+        #
+        #         if p.env_type is True:
+        #
+        #             self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value = self.D_free[i])
+        #
+        #             self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
+        #
+        #         else:
+        #             self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value = 0)
+        #
+        #             self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value = 0)
+        #
+        #     self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
+        #
+        #     self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
+        #
+        #     if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
+        #
+        #         self.D_env_weight_u[:,0] = 0
+        #         self.D_env_weight_u[:,-1] = 0
+        #         self.D_env_weight_u[0,:] = 0
+        #         self.D_env_weight_u[-1,:] = 0
+        #
+        #         self.D_env_weight_v[:,0] = 0
+        #         self.D_env_weight_v[:,-1] = 0
+        #         self.D_env_weight_v[0,:] = 0
+        #         self.D_env_weight_v[-1,:] = 0
+
 
         for i, dmat in enumerate(self.D_env):
 
@@ -3195,17 +3286,19 @@ class Simulator(object):
 
         # calculate the negative gradient of the osmotic pressure between cells (body force):
 
-        self.osmo_P_grad =-(self.osmo_P_delta[cells.nn_i][:,1]- self.osmo_P_delta[cells.nn_i][:,0])/cells.nn_len
-
-        # get x and y components of the osmotic pressure gradient between cells (osmotic body force):
-        self.osmo_P_grad_xo = cells.nn_vects[:,2]*self.osmo_P_grad
-        self.osmo_P_grad_yo = cells.nn_vects[:,3]*self.osmo_P_grad
-
-        # average components back to cell centres:
-        self.osmo_P_grad_x = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_xo)
-        self.osmo_P_grad_y = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_yo)
-
-        self.osmo_P_grad_mag = np.sqrt(self.osmo_P_grad_x**2 + self.osmo_P_grad_y**2)
+        # FIXME no longer need the osmotic p gradient...
+        #
+        # self.osmo_P_grad =-(self.osmo_P_delta[cells.nn_i][:,1]- self.osmo_P_delta[cells.nn_i][:,0])/cells.nn_len
+        #
+        # # get x and y components of the osmotic pressure gradient between cells (osmotic body force):
+        # self.osmo_P_grad_xo = cells.nn_vects[:,2]*self.osmo_P_grad
+        # self.osmo_P_grad_yo = cells.nn_vects[:,3]*self.osmo_P_grad
+        #
+        # # average components back to cell centres:
+        # self.osmo_P_grad_x = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_xo)
+        # self.osmo_P_grad_y = np.dot(cells.gj2cellMatrix,self.osmo_P_grad_yo)
+        #
+        # self.osmo_P_grad_mag = np.sqrt(self.osmo_P_grad_x**2 + self.osmo_P_grad_y**2)
 
     def ghk_calculator(self,cells,p):
         """
@@ -3262,6 +3355,7 @@ class Simulator(object):
         # determine net pressure in individual cells:
 
         P_cell = np.zeros(len(cells.cell_i))   # FIXME this needs to be completed with osmotic and electric pressure!!!
+
 
         # calculate net outward stress at boundary:
         S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
@@ -3320,7 +3414,6 @@ class Simulator(object):
         cells.cleanUp(p)
 
         cells.short_environment(p)
-
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -3780,13 +3873,20 @@ def vertData(data, cells, p):
 
     """
 
+    # interpolate vmem defined on mem mids to cell vertices:
     verts_data = np.dot(data,cells.matrixMap2Verts)
+
+    # amalgamate both mem mids and verts data into one stack:
     plot_data = np.hstack((data,verts_data))
 
+    # interpolate the stack to the plotting grid:
     dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid),
                                method=p.interp_type,
                                fill_value=0)
-    #
+    # smooth out the data a bit:
+    dat_grid = fd.integrator(dat_grid)   # FIXME this might not be a good idea...
+
+    # get rid of values that bleed into the environment:
     dat_grid = np.multiply(dat_grid,cells.maskM)
 
     return dat_grid

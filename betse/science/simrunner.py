@@ -211,7 +211,6 @@ class SimRunner(object):
                 saveAni=p.saveAnimations)
             plt.show()
 
-
     def simulate(self):
         '''
         Run simulation from a previously saved initialization.
@@ -503,6 +502,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         axI.set_title('Transmembrane current density for cell ' + str(plot_cell) )
         axI.set_xlabel('Time [s]')
         axI.set_ylabel('Current density [A/m2]')
+
+        if saveImages is True:
+            savename = savedImg + 'Imem_time' + '.png'
+            plt.savefig(savename,dpi=300,format='png')
+
+        plt.show(block=False)
 
 
         #---------------------------------------------------------
@@ -970,33 +975,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-        # Gradient between cells -- relation to force
-
-        if p.showCells is True:
-
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_grad_mag,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_grad_mag,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-        axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],
-            sim.osmo_P_grad_x/sim.osmo_P_grad.max(),sim.osmo_P_grad_y/sim.osmo_P_grad.max(),scale=5.0)
-
-
-        axP.set_title('Final Osmotic Pressure Gradient in Cell Network')
-        axP.set_xlabel('Spatial distance [um]')
-        axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Volume Force [N/m3]')
-
-
-        if saveImages is True:
-            savename13 = savedImg + 'final_osmoGrad_2D' + '.png'
-            plt.savefig(savename13,format='png')
-
-        plt.show(block=False)
-
 
     if p.plot_Vel is True and p.fluid_flow is True:
 
@@ -1004,12 +982,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         vcellso = sim.u_cells_y_time[-1]
 
         ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                                 ucellso,(cells.X,cells.Y), fill_value=0)
+                                 ucellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
 
         ucells = ucells*cells.maskM
 
         vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                                 vcellso,(cells.X,cells.Y), fill_value=0)
+                                 vcellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
 
         vcells = vcells*cells.maskM
 
@@ -1021,7 +999,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.figure()
         plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
         plt.colorbar()
-        plt.streamplot(cells.X,cells.Y,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
+        plt.streamplot(cells.Xgrid,cells.Ygrid,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
         plt.axis('equal')
         plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
         plt.title('Final Fluid Velocity in Cell Collective [nm/s]')
@@ -1051,97 +1029,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
-
-    #------------------------------------------------------------------------------------------------------------------
-    if p.plot_force2d is True:
-
-        if p.data_type_force == 'ECM' and p.sim_ECM is True:
-
-
-            force_x = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_x*(100/p.ff_env)
-
-            force_x = fd.integrator(force_x)  # smooth things out a bit...
-
-            force_y = (sim.rho_env.reshape(cells.X.shape))*sim.E_env_y*(100/p.ff_env)
-
-            force_y = fd.integrator(force_y) # smooth things out a bit...
-
-            force_mag = np.sqrt(force_x**2 + force_y**2)
-
-            fig_f = plt.figure()
-            ax_f = plt.subplot(111)
-
-            magPlot = ax_f.imshow(force_mag,origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,
-                    p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
-
-            if p.autoscale_force is False:
-                magPlot.set_clim(p.force_min_clr,p.force_max_clr)
-
-            else:
-
-                minv = np.min(force_mag)
-                maxv = np.max(force_mag)
-
-                magPlot.set_clim(minv,maxv)
-
-            cb_f = fig_f.colorbar(magPlot,ax=ax_f)
-
-            quivPlot = ax_f.quiver(p.um*cells.X,p.um*cells.Y,force_x,force_y)
-
-            plt.axis('equal')
-            plt.axis([p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax])
-            plt.title('Electroosmotic Volume Force [N/m3]')
-
-            ax_f.set_xlabel('Spatial distance [um]')
-            ax_f.set_ylabel('Spatial distance [um]')
-            cb_f.set_label('Volume Force [N/m3]')
-
-            if saveImages is True:
-                savename13 = savedImg + 'final_F_2D_env' + '.png'
-                plt.savefig(savename13,format='png')
-
-            plt.show(block=False)
-
-
-        elif p.data_type_force == 'GJ':
-
-            fcells_x = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(100/(2*p.ff_cell))*sim.E_gj_x.ravel()
-            fcells_y = (sim.rho_cells[cells.nn_i][:,0]+sim.rho_cells[cells.nn_i][:,0])*(100/(2*p.ff_cell))*sim.E_gj_y.ravel()
-
-            # average components back to cell centres:
-            fx = np.dot(cells.gj2cellMatrix,fcells_x)
-            fy = np.dot(cells.gj2cellMatrix,fcells_y)
-
-            # calculate magnitude at cell centre:
-            ff = np.sqrt(fx**2 + fy**2)
-
-            if p.showCells is True:
-
-                figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=ff,
-                    number_cells=p.enumerate_cells,
-                    clrAutoscale = p.autoscale_force, clrMin = p.force_min_clr, clrMax = p.force_max_clr,
-                    clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-
-            else:
-
-                figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = ff,clrAutoscale = p.autoscale_force,
-                        clrMin = p.force_min_clr, clrMax = p.force_max_clr, clrmap = p.default_cm,
-                        number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
-
-            axX.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],fx/ff.max(),fy/ff.max(),scale=10)
-
-            figX.suptitle('Electroosmotic Volume Force',fontsize=14, fontweight='bold')
-            axX.set_xlabel('Spatial distance [um]')
-            axX.set_ylabel('Spatial distance [um]')
-            cbX.set_label('Volume Force [N/m3]')
-
-            if saveImages is True:
-                savename9 = savedImg + 'final_Force_cells' + '.png'
-                plt.savefig(savename9,format='png')
-
-            plt.show(block=False)
-
-
 
     #------------------------------------------------------------------------------------------------------------------
 
@@ -1353,10 +1240,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
                 current_overlay=p.I_overlay)
-
-    if p.ani_force is True and animate == 1:
-
-        viz.AnimateForce(sim,cells,p)
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
 
