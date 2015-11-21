@@ -727,14 +727,18 @@ class World(object):
             self.chord_mag = np.asarray(self.chord_mag)
 
             # create a set of unique, flattened points to the cell vertices:
-            cell_verts_unique = set()
+            # cell_verts_unique = set()
+            #
+            # for verts in self.cell_verts:
+            #     for v in verts:
+            #         cell_verts_unique.add((v[0],v[1]))
+            #
+            # cell_verts_unique = [list(x) for x in cell_verts_unique]
+            # self.cell_verts_unique = np.asarray(cell_verts_unique)
+            self.cell_verts_unique, _, _ = tb.flatten(self.cell_verts)
+            self.cell_verts_unique = np.asarray(self.cell_verts_unique)
 
-            for verts in self.cell_verts:
-                for v in verts:
-                    cell_verts_unique.add((v[0],v[1]))
 
-            cell_verts_unique = [list(x) for x in cell_verts_unique]
-            self.cell_verts_unique = np.asarray(cell_verts_unique)
 
 
         # run a similar (but simplified) protocol with the full voronoi verts structure:
@@ -1627,6 +1631,37 @@ class World(object):
 
                 self.deforM[vert_inds,mem_inds_p] = 1
                 self.deforM[vert_inds,mem_inds_m] = 1
+
+        # next build a matrix that will merge the right ecm verts to
+        # maintain the same number of unique ecm vertices:
+        ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
+        ecm_verts_flat = np.asarray(ecm_verts_flat)
+
+        # for a set of flattened ecm vertices, find the mapping that will keep originally unique verts merged
+        # also, know how to repackage the ecm verts
+
+        ecmTree = sps.KDTree(ecm_verts_flat)
+        dist_uniqueECM = list(ecmTree.query(self.ecm_verts_unique,k=2))[0]
+        inds_uniqueECM = list(ecmTree.query(self.ecm_verts_unique,k=2))[1]
+
+        # we are going to use these indices to build a matrix that will merge the right vertices of the ecm_verts_flat array,
+        # keeping the same number of unique ECM points as the original
+        # to use this the syntax is:  ecm_uniques = np.dot(ecm_unique_M,ecm_verts_flat)
+
+        self.ecm_unique_M = np.zeros((len(self.ecm_verts_unique),len(ecm_verts_flat)))
+
+        for i, ind_pair in enumerate(inds_uniqueECM):
+
+            # determine if the second find is a match or a neighbour:
+            dist = dist_uniqueECM[i][1]
+
+            if dist == 0.0:  # if distance is indeed zero, then this point has duplicates in the flat list:
+                # in the matrix math, the two points of the flat array will be averaged to give the unique list point:
+                self.ecm_unique_M[i,ind_pair[0]] = 0.5
+                self.ecm_unique_M[i,ind_pair[1]] = 0.5
+
+            else: # this point is unique in the flat and unique lists. Create an identity condition:
+                self.ecm_unique_M[i,ind_pair[0]] = 1.0
 
 
 
