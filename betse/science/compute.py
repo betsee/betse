@@ -3112,7 +3112,7 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.bflags_mems] = self.D_free[i]
+            dummyMems[cells.mem_bound] = self.D_free[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type is True:
@@ -3248,12 +3248,15 @@ class Simulator(object):
 
         """
 
-        # obtain the net moles in cells so that we can redo the concs with new volumes
-        net_moles = copy.copy(self.cc_cells)
+        if p.sim_ECM is False:  # FIXME this needs to be done only for osmosis, and it needs to apply to ecm too!
+                                # FIXME when doing changes via osmosis, change ecm volume and concentration too!
 
-        for i, concs in enumerate(self.cc_cells):
+            # obtain the net moles in cells so that we can redo the concs with new volumes
+            net_moles = copy.copy(self.cc_cells)
 
-            net_moles[i][:] = concs*cells.cell_vol
+            for i, concs in enumerate(self.cc_cells):
+
+                net_moles[i][:] = concs*cells.cell_vol
 
 
         # determine net pressure in individual cells:
@@ -3274,7 +3277,7 @@ class Simulator(object):
 
             else:
 
-                P_cell = self.osmo_P_delta[cells.mem_to_cells]/500
+                P_cell = self.osmo_P_delta[cells.mem_to_cells]/100
 
         if p.deform_electro is True and p.sim_ECM is True:
 
@@ -3287,14 +3290,12 @@ class Simulator(object):
 
             print(P_cell.max())
 
-
-
         if p.sim_ECM is False:
             # calculate net outward stress at boundary:
             S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
             S_cell_y = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
-            # deal with environmental values:
+            # environmental values assumed to be reference zero:
             env_P = 0
 
             S_cell_x[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
@@ -3308,7 +3309,7 @@ class Simulator(object):
             S_cell_x = P_cell*cells.mem_vects_flat[:,2]
             S_cell_y = P_cell*cells.mem_vects_flat[:,3]
 
-            # deal with environmental values:
+            # environmental values assumed to be reference zero:
             env_P = 0
 
             S_cell_x[cells.mem_bound] = (P_cell[cells.mem_bound] -
@@ -3344,6 +3345,21 @@ class Simulator(object):
         #Merge new ecm verts by averaging to equal the structure of the original Voronoi lattice:
         ecm_new = np.dot(cells.ecm_unique_M,ecm_temp)
 
+        # find a set of indicies that map between points of ecm_verts_unique and voronoi grid
+        # these are updated and used to recalculate the maskM in world module
+
+        vertTree = sps.KDTree(cells.voronoi_grid)
+        map_voronoi2ecm = list(vertTree.query(ecm_new))[1]
+        # set the voronoi points to the value of these new points
+        cells.voronoi_grid[map_voronoi2ecm] = ecm_new
+
+
+        #--------------------------------------------------------------------------
+        # FIXME in World, build a new cell_index and cellVerts methods that use matrices with flattened data
+        # arrays to recalculate the same phenomena. This will speed things up considerably by avoiding loops.
+        # may need to keep the loop here, which reorganizes the ecm verts and packages a nested version, but
+        # finalize things by flattening this and working with it in the new module?
+
         # Repackage ecm verts so that the World module can do its magic:
 
         ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
@@ -3367,6 +3383,9 @@ class Simulator(object):
 
         cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
 
+        # recreate ecm_verts_unique:
+
+
         #  redo cell centres:
         cells.cell_index(p)
 
@@ -3383,10 +3402,12 @@ class Simulator(object):
 
         cells.recalc_gj_vects(p)  # LONGISH
 
-        # scale concentrations by new cell volumes:   # FIXME should do this with dye and IP3 too
-        for i, moles in enumerate(net_moles):
+        if p.sim_ECM is False:  # FIXME also for ecm is true, only for osmosis...
 
-            self.cc_cells[i][:] = moles/cells.cell_vol
+            # scale concentrations by new cell volumes:   # FIXME should do this with dye and IP3 too
+            for i, moles in enumerate(net_moles):
+
+                self.cc_cells[i][:] = moles/cells.cell_vol
 
         if p.plot_while_solving is True and t > 0:
 

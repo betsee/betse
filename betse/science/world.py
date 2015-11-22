@@ -25,6 +25,7 @@ for each cell.
 import numpy as np
 import scipy.spatial as sps
 from scipy import interpolate as interp
+from scipy import ndimage
 import copy
 import math
 from betse.science import toolbox as tb
@@ -125,10 +126,11 @@ class World(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
+            self.memWork(p)
 
 
             if p.deformation is True:
-                self.memWork(p)
+
                 self.deformationMatrix(p)
 
 
@@ -455,7 +457,7 @@ class World(object):
         """
 
         self.cell_centres = np.array([0,0])
-        self.voronoi_centres = []
+        # self.voronoi_centres = []
 
         for poly in self.ecm_verts:
             aa = np.asarray(poly)
@@ -464,13 +466,13 @@ class World(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
-        for poly in self.voronoi_verts:
-
-            poly = np.asarray(poly)
-            aa = np.mean(poly,axis=0)
-            self.voronoi_centres.append(aa)
-
-        self.voronoi_centres = np.asarray(self.voronoi_centres)
+        # for poly in self.voronoi_verts:
+        #
+        #     poly = np.asarray(poly)
+        #     aa = np.mean(poly,axis=0)
+        #     self.voronoi_centres.append(aa)
+        #
+        # self.voronoi_centres = np.asarray(self.voronoi_centres)
 
     def near_neigh(self,p):
 
@@ -629,7 +631,7 @@ class World(object):
 
         """
         self.cell_verts = []
-        self.all_voronoi_verts = []
+        # self.all_voronoi_verts = []
 
         if p.deformation is False:
 
@@ -642,13 +644,13 @@ class World(object):
                 pt_scale.append(p.scale_cell*pt_zero + centre)
             self.cell_verts.append(np.asarray(pt_scale))
 
-        for centre,poly in zip(self.voronoi_centres,self.voronoi_verts):
-            pt_scale = []
-            for vert in poly:
-                pt_zero = vert - centre
-                pt_scale.append(p.scale_cell*pt_zero+centre)
-            self.all_voronoi_verts.append(pt_scale)
-
+        # for centre,poly in zip(self.voronoi_centres,self.voronoi_verts):
+        #     pt_scale = []
+        #     for vert in poly:
+        #         pt_zero = vert - centre
+        #         pt_scale.append(p.scale_cell*pt_zero+centre)
+        #     self.all_voronoi_verts.append(pt_scale)
+        #
         self.cell_verts = np.asarray(self.cell_verts)
 
         self.cell_vol = []   # storage for cell volumes
@@ -730,23 +732,23 @@ class World(object):
             self.cell_verts_unique = np.asarray(self.cell_verts_unique)
 
 
-        # run a similar (but simplified) protocol with the full voronoi verts structure:
-        self.voronoi_mids = []   # storage for membrane midpoints
-
-        for polyc in self.voronoi_verts:
-
-            # Calculate individual membrane and ghost membrane midpoints:
-            mps = []
-
-            for i in range(0,len(polyc)):
-                pt1 = polyc[i-1]
-                pt2 = polyc[i]
-                pt1 = np.asarray(pt1)
-                pt2 = np.asarray(pt2)
-                mid = (pt1 + pt2)/2       # midpoint calculation
-                mps.append(mid)
-
-            self.voronoi_mids.append(mps)
+        # # run a similar (but simplified) protocol with the full voronoi verts structure:
+        # self.voronoi_mids = []   # storage for membrane midpoints
+        #
+        # for polyc in self.voronoi_verts:
+        #
+        #     # Calculate individual membrane and ghost membrane midpoints:
+        #     mps = []
+        #
+        #     for i in range(0,len(polyc)):
+        #         pt1 = polyc[i-1]
+        #         pt2 = polyc[i]
+        #         pt1 = np.asarray(pt1)
+        #         pt2 = np.asarray(pt2)
+        #         mid = (pt1 + pt2)/2       # midpoint calculation
+        #         mps.append(mid)
+        #
+        #     self.voronoi_mids.append(mps)
 
     def makeECM(self,p):
 
@@ -864,36 +866,8 @@ class World(object):
         self.bR_k = list(points_tree.query(bR_pts))[1]
 
         #-----------------------------------------------------------
-        # create structures for plotting interpolated data on cell centres:
-
-        voronoiTree = sps.KDTree(self.voronoi_grid)
-        mem_inds = list(voronoiTree.query(self.plot_xy))[1]
-        cell_inds = list(voronoiTree.query(self.cell_centres))[1]
-
-        voronoi_mask = np.zeros(len(self.voronoi_grid))
-        voronoi_mask[cell_inds]=1
-        voronoi_mask[mem_inds]=1
-
-        xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
-        yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
-
-        X,Y = np.meshgrid(xv,yv)
-
-        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
-                             method='linear',fill_value=0)
-
-        self.maskM = fd.integrator(self.maskM)
-        self.maskM = np.round(self.maskM,0)
-
-        self.Xgrid = X
-        self.Ygrid = Y
-
-        maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
-
-        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
-
-        # self.ecm_vol[self.map_mem2ecm] = p.cell_height*p.cell_space*np.mean(self.mem_sa)  # FIXME uncomment to shrink ecm volume
-
+        # calculate the cluster masking matrix
+        self.make_maskM(p)
         #-------------------------------------------------------------------------
         if p.sim_ECM is True:
 
@@ -930,31 +904,33 @@ class World(object):
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 
-        voronoiTree = sps.KDTree(self.voronoi_grid)
-        mem_inds = list(voronoiTree.query(self.plot_xy))[1]
-        cell_inds = list(voronoiTree.query(self.cell_centres))[1]
+        self.make_maskM(p)
 
-        voronoi_mask = np.zeros(len(self.voronoi_grid))
-        voronoi_mask[cell_inds]=1
-        voronoi_mask[mem_inds]=1
-
-        xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
-        yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
-
-        X,Y = np.meshgrid(xv,yv)
-
-        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
-                             method='linear',fill_value=0)
-
-        self.maskM = fd.integrator(self.maskM)
-        self.maskM = np.round(self.maskM,0)
-
-        self.Xgrid = X
-        self.Ygrid = Y
-
-        maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
-
-        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
+        # voronoiTree = sps.KDTree(self.voronoi_grid)
+        # mem_inds = list(voronoiTree.query(self.plot_xy))[1]
+        # cell_inds = list(voronoiTree.query(self.cell_centres))[1]
+        #
+        # voronoi_mask = np.zeros(len(self.voronoi_grid))
+        # voronoi_mask[cell_inds]=1
+        # voronoi_mask[mem_inds]=1
+        #
+        # xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+        # yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+        #
+        # X,Y = np.meshgrid(xv,yv)
+        #
+        # self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
+        #                      method='linear',fill_value=0)
+        #
+        # self.maskM = fd.integrator(self.maskM)
+        # self.maskM = np.round(self.maskM,0)
+        #
+        # self.Xgrid = X
+        # self.Ygrid = Y
+        #
+        # maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
+        #
+        # self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
 
         if p.sim_ECM is True:
 
@@ -1562,6 +1538,7 @@ class World(object):
         of cell centres, membrane mids, and ecm spaces.
 
         """
+
         voronoi_grid = set()
 
         for verts in self.voronoi_verts:
@@ -1569,33 +1546,12 @@ class World(object):
             for v in verts:
                 voronoi_grid.add((v[0],v[1]))
 
-        for verts in self.all_voronoi_verts:
-
-            for v in verts:
-
-                voronoi_grid.add((v[0],v[1]))
-
-        for verts in self.voronoi_mids:
-
-            for v in verts:
-
-                voronoi_grid.add((v[0],v[1]))
-
-        for v in self.voronoi_centres:
-
-            pt1 = v[0]
-            pt2 = v[1]
-
-            voronoi_grid.add((pt1,pt2))
 
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
 
-        # # null out the expensive data structures as we don't need them anymore:
-        # self.voronoi_centres = None
-        # self.voronoi_verts = None
-        # self.voronoi_mids = None
-        # self.all_voronoi_verts = None
+
+
 
     def deformationMatrix(self,p):
         """
@@ -1643,7 +1599,6 @@ class World(object):
 
         # for a set of flattened ecm vertices, find the mapping that will keep originally unique verts merged
         # also, know how to repackage the ecm verts
-
         ecmTree = sps.KDTree(ecm_verts_flat)
         dist_uniqueECM = list(ecmTree.query(self.ecm_verts_unique,k=2))[0]
         inds_uniqueECM = list(ecmTree.query(self.ecm_verts_unique,k=2))[1]
@@ -1674,6 +1629,41 @@ class World(object):
         ecmTree = sps.KDTree(self.ecm_verts_unique)
 
         self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
+
+    def make_maskM(self,p):
+        """
+        Create structures for plotting interpolated data on cell centres
+        and differentiating between the cell cluster and environment.
+
+        """
+
+        voronoiTree = sps.KDTree(self.voronoi_grid)
+        ecm_inds = list(voronoiTree.query(self.ecm_verts_unique))[1]
+
+        voronoi_mask = np.zeros(len(self.voronoi_grid))
+        voronoi_mask[ecm_inds]=1
+
+        xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+        yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
+
+        X,Y = np.meshgrid(xv,yv)
+
+        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
+                             method='linear',fill_value=0)
+
+        self.maskM = ndimage.filters.gaussian_filter(self.maskM, 5, mode='nearest')
+        self.maskM = np.round(self.maskM,0)
+
+        self.Xgrid = X
+        self.Ygrid = Y
+
+        maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
+        maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
+        maskECM = np.round(maskECM,0)
+
+        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
+
+        # self.ecm_vol[self.map_mem2ecm] = p.cell_height*p.cell_space*np.mean(self.mem_sa)  # FIXME uncomment to shrink ecm volume
 
 
 
