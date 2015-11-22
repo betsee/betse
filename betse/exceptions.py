@@ -25,9 +25,16 @@ class BetseExceptionLog(BetseException):
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ util                 }....................
 class BetseExceptionModule(BetseException):
     '''
     Module-specific exception.
+    '''
+    pass
+
+class BetseExceptionRegex(BetseException):
+    '''
+    Regular exception-specific exception.
     '''
     pass
 
@@ -62,6 +69,5 @@ class BetseExceptionFile(BetseExceptionPath):
     File-specific exception.
     '''
     pass
-
 
 # --------------------( WASTELANDS                         )--------------------

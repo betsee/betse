@@ -8,6 +8,7 @@ Low-level regular expression (regex) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.exceptions import BetseExceptionRegex
 import re
 
 # ....................{ CONSTANTS ~ python                 }....................
@@ -54,6 +55,11 @@ def get_match_groups_named(text: str, regex, **kwargs) -> list:
     dict
         Dictionary mapping such groups.
 
+    Raises
+    ----------
+    BetseExceptionRegex
+        If this string does _not_ match this expression.
+
     See Also
     ----------
     https://docs.python.org/3/library/re.html#re.match
@@ -78,6 +84,11 @@ def get_match_groups_numeric(text: str, regex, **kwargs) -> list:
     list
         List of such groups.
 
+    Raises
+    ----------
+    BetseExceptionRegex
+        If this string does _not_ match this expression.
+
     See Also
     ----------
     https://docs.python.org/3/library/re.html#re.match
@@ -88,16 +99,28 @@ def get_match_groups_numeric(text: str, regex, **kwargs) -> list:
 def get_match(text: str, regex, **kwargs):
     '''
     Get the match object obtained by matching the passed string with the passed
-    regular expression.
+    regular expression if this string matches this expression or raise an
+    exception otherwise.
 
-    Such regular expression may be either a string *or* `Pattern` (i.e.,
-    compiled regular expression object). This function accepts the same optional
+    This expression may be either a string *or* `Pattern` (i.e., compiled
+    regular expression object). This function accepts the same optional
     keyword arguments as `re.match()`.
+
+    For convenience, the following match flags will be enabled by default:
+
+    * `re.DOTALL`, forcing the `.` special character to match any character
+      including newline. By default, this character matches any character
+      excluding newline. The former is almost always preferable, however.
 
     Returns
     ----------
     SRE_Match
         Such match object.
+
+    Raises
+    ----------
+    BetseExceptionRegex
+        If this string does _not_ match this expression.
 
     See Also
     ----------
@@ -105,7 +128,22 @@ def get_match(text: str, regex, **kwargs):
         Further details on regular expressions and keyword arguments.
     '''
     assert isinstance(text, str), '"{}" not a string.'.format(text)
-    return re.match(regex, text, **kwargs)
+
+    # Enable the following match flags by default.
+    kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL
+
+    # Match this string with this expression.
+    regex_match = re.match(regex, text, **kwargs)
+
+    # If no match was found, convert the non-fatal "None" returned by re.match()
+    # into a fatal exception. By design, no callables of the standard re module
+    # raise exceptions.
+    if regex_match is None:
+        raise BetseExceptionRegex(
+            'Subject string "{}" not matched by regular expression "{}".'.format(
+                text, regex))
+
+    return regex_match
 
 # ....................{ REPLACERS                          }....................
 def remove_substrings(text: str, regex, **kwargs) -> str:

@@ -232,6 +232,7 @@ class CLI(metaclass = ABCMeta):
                 # message to the standard error buffer. (The latter requires
                 # truncating such message for human-readability.)
                 log_buffer.write(strs.join(exception_message_lines))
+                #print('exception string: '+ exception_message_lines[-1])
 
                 # Split the the last line of such message into a non-human-
                 # readable exception class and an ideally human-readable
@@ -247,6 +248,7 @@ class CLI(metaclass = ABCMeta):
                         exception_message_lines[-1],
                         r'^({}):\s+(.*)$'.format(
                             regexes.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
+                #        r'^[^:]+:\s+(.*)$')
 
                 # If such class is "KeyError", such message is the single-quoted
                 # name of a non-existent key in a dictionary whose access raised

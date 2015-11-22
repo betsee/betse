@@ -3248,32 +3248,73 @@ class Simulator(object):
 
         """
 
+        # obtain the net moles in cells so that we can redo the concs with new volumes
+        net_moles = copy.copy(self.cc_cells)
+
+        for i, concs in enumerate(self.cc_cells):
+
+            net_moles[i][:] = concs*cells.cell_vol
+
+
         # determine net pressure in individual cells:
 
-        P_cell = np.zeros(len(cells.cell_i))
+        if p.sim_ECM is False:
+
+            P_cell = np.zeros(len(cells.cell_i))
+
+        else:
+
+            P_cell = np.zeros(len(cells.mem_i))
 
         if p.deform_osmo is True:
 
-            P_cell = self.osmo_P_delta/500
-        #
-        # if p.deform_electro is True:
-        #
-        #     P_electro = np.zeros(len(cells.cell_i))
-        #
-        #     P_cell = P_cell + P_electro
+            if p.sim_ECM is False:
+
+                P_cell = self.osmo_P_delta/100
+
+            else:
+
+                P_cell = self.osmo_P_delta[cells.mem_to_cells]/500
+
+        if p.deform_electro is True and p.sim_ECM is True:
+
+            Q_mem = self.rho_cells*cells.cell_vol
+            Q_ecm = self.rho_env*cells.ecm_vol
+
+            ave_rho = (Q_mem[cells.mem_to_cells] + Q_ecm[cells.map_mem2ecm])*cells.mem_sa
+            self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
+            P_cell = P_cell + self.P_electro
+
+            print(P_cell.max())
 
 
-        # calculate net outward stress at boundary:
-        S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
-        S_cell_y = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
-        # deal with environmental values:
-        env_P = 0  # FIXME this needs to be done properly!!!
+        if p.sim_ECM is False:
+            # calculate net outward stress at boundary:
+            S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
+            S_cell_y = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
-        S_cell_x[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
-                                     env_P)*cells.mem_vects_flat[cells.mem_bound,2]
-        S_cell_y[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
-                                     env_P)*cells.mem_vects_flat[cells.mem_bound,3]
+            # deal with environmental values:
+            env_P = 0
+
+            S_cell_x[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
+                                         env_P)*cells.mem_vects_flat[cells.mem_bound,2]
+            S_cell_y[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
+                                         env_P)*cells.mem_vects_flat[cells.mem_bound,3]
+
+        else:
+
+             # calculate net outward stress at boundary:
+            S_cell_x = P_cell*cells.mem_vects_flat[:,2]
+            S_cell_y = P_cell*cells.mem_vects_flat[:,3]
+
+            # deal with environmental values:
+            env_P = 0
+
+            S_cell_x[cells.mem_bound] = (P_cell[cells.mem_bound] -
+                                         env_P)*cells.mem_vects_flat[cells.mem_bound,2]
+            S_cell_y[cells.mem_bound] = (P_cell[cells.mem_bound] -
+                                         env_P)*cells.mem_vects_flat[cells.mem_bound,3]
 
         # balance the stress at the (assumed-to-be) shared boundary:
         S_mem_x = (S_cell_x[cells.mem_nn[:,1]] + S_cell_x[cells.mem_nn[:,0]])
@@ -3341,6 +3382,11 @@ class Simulator(object):
             cells.short_environment(p)  #REALLY LONG
 
         cells.recalc_gj_vects(p)  # LONGISH
+
+        # scale concentrations by new cell volumes:   # FIXME should do this with dye and IP3 too
+        for i, moles in enumerate(net_moles):
+
+            self.cc_cells[i][:] = moles/cells.cell_vol
 
         if p.plot_while_solving is True and t > 0:
 

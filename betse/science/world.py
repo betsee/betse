@@ -1164,6 +1164,8 @@ class World(object):
 
         self.mem_sa = self.mem_length*p.cell_height
 
+        self.cell_vol = np.asarray(self.cell_vol)
+
         # cell surface area:
         self.cell_sa = []
         for grp in self.cell_to_mems:
