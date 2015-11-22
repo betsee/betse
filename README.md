@@ -108,9 +108,27 @@ For simplicity, the following instructions assume use of Homebrew:
    _not_. (You can thank Apple for that.)
 1. Download and install the most recent version of
    [XCode](https://developer.apple.com/downloads) available for your version of
-   OS X. While free, this download requires an [Apple Developer] login.
+   OS X. While free, this download requires an [Apple Developer] login. After
+   installing Xcode, we recommend performing the following instructions _before_
+   attempting to open the installed Xcode application.
 1. Open a terminal window (e.g., by running the pre-bundled
    `Applications/Utilities/Terminal.app` application).
+1. **(Optional)** Instruct Gatekeeper, the OS X application security manager,
+   to implicitly trust without attempting to explicitly verify the installed
+   Xcode application. Verification uselessly consumes non-trivial time (in
+   upwards of ten minutes, on some systems) _and_ is safely skippable for the
+   specific case of Xcode. Note that verification is _not_ safely skippable for
+   arbitrary applications downloaded from non-Apple sites.
+
+        $ sudo xattr -d com.apple.quarantine /Applications/Xcode.app
+
+1. Open the installed Xcode application (e.g., by double-clicking
+   `Applications/Xcode` from the Finder). If you did _not_ instruct Gatekeeper
+   to implicitly trust this application as described above, we recommend a bag
+   of greasy popcorn and the "Blade Runner" director's cut. You'll need both.
+1. Agree to the Xcode license. This _must_ be done before attempting to run any
+   Xcode-provided commands from the terminal (e.g., `clang`, `gcc`, `git`).
+1. **(Optional)** Close Xcode.
 1. Download and install the **exact same version** of the [XCode Command Line
    Tools](https://developer.apple.com/downloads) (CLT) as the installed version
    of XCode. Attempting to install an older or newer version of the CLT will
@@ -134,7 +152,7 @@ For simplicity, the following instructions assume use of Homebrew:
       to both the most recently released minor version of your currently
       installed major version of OS X _and_ to the most recently released
       version of XCode for that version of OS X, the following command _should_
-      suffice to do so. If in doubt, consider the manual approach above instead:
+      suffice. When in doubt, prefer the manual approach above instead.
 
             $ xcode-select –install
 
@@ -142,14 +160,14 @@ For simplicity, the following instructions assume use of Homebrew:
    also technically installable via [MacPorts](https://www.macports.org),
    Homebrew provides significantly more robust support for features of interest
    to `betse` users. Critically, this includes the capacity to install
-   alternative versions of dependencies rather than merely the newest. To do so:
+   alternative versions of dependencies rather than merely the newest.
 
         $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 1. Manually prepend the current `${PATH}` by the absoute paths of all
    directories to which Homebrew installs packages. To do so permanently, append
    the following line to the appropriate startup dotfile in your home directory
-   for your preferred shell (e.g., `.bashrc` for Bash, the default OS X shell):
+   for your preferred shell (e.g., `.bashrc` for Bash, the default OS X shell).
 
         export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
 
@@ -160,10 +178,16 @@ For simplicity, the following instructions assume use of Homebrew:
 
             $ source ~/.bashrc
 
-1. Install Python 3, update Python package managers, and install all remaining
-   dependencies:
+1. **(Optional)** Inspect your Homebrew installation for potential issues.
+   The following command should report that `"Your system is ready to brew."`
+   If it does _not_, consider resolving all reported issues before continuing.
 
-        $ brew tap homebrew/dupes homebrew/python &&
+        $ brew doctor
+
+1. Install Python 3, update Python package managers, and install all remaining
+   dependencies.
+
+        $ brew tap homebrew/python &&
           brew install python3 &&
           pip3 install --upgrade pip setuptools &&
           brew install matplotlib --with-python3 --without-python &&
