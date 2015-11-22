@@ -797,22 +797,12 @@ class PlotWhileSolving(object):
 
         elif p.sim_ECM is True:
 
-            zambie = 'nulled'
+            dat_grid = sim.vm_Matrix[0]*1000
 
-            if zambie == 'tri':
+            if p.plotMask is True:
+                dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
 
-                self.coll2 = plt.tripcolor(cells.mem_mids_flat[:,0]*p.um,cells.mem_mids_flat[:,1]*p.um,
-                    1000*sim.vm,shading='gouraud',cmap =self.colormap)
-
-
-            else:
-
-                dat_grid = sim.vm_Matrix[0]*1000
-
-                if p.plotMask is True:
-                    dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
-
-                self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
+            self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
             if p.showCells is True:
 
@@ -897,7 +887,6 @@ class PlotWhileSolving(object):
 
         time = sim.time[-1]
 
-
         titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'
         self.ax.set_title(titani)
 
@@ -914,8 +903,7 @@ class PlotWhileSolving(object):
 
         self.cells = cells
         self.p = p
-        #
-        # self.ax.cla()
+
         self.fig.clf()
         self.ax = plt.subplot(111)
 
@@ -928,14 +916,8 @@ class PlotWhileSolving(object):
 
         if self.clrAutoscale is True:
 
-            self.cmean = np.mean(vdata)
-            self.cmin = round(np.min(vdata),1)
-            self.cmax = round(np.max(vdata),1)
-            clrCheck = self.cmax - self.cmin
-
-            if clrCheck == 0:
-                self.cmin = self.cmin - 0.1
-                self.cmax = self.cmax + 0.1
+            self.cmin = np.min(vdata)
+            self.cmax = np.max(vdata)
 
         elif self.clrAutoscale is False:
 
@@ -1000,6 +982,7 @@ class PlotWhileSolving(object):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
         # self.cb.set_label('Voltage [mV]')
+        self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um')
         self.ax.set_title(self.tit)

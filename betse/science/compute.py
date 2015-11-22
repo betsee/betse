@@ -1083,7 +1083,7 @@ class Simulator(object):
                 self.getFlow(cells,p)
 
             if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
-                self.getDeformation(cells,p)
+                self.getDeformation(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                 # determine flux through gap junctions for IP3:
@@ -1532,7 +1532,7 @@ class Simulator(object):
 
             if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
 
-                self.getDeformation(cells,p)
+                self.getDeformation(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
@@ -3092,88 +3092,6 @@ class Simulator(object):
 
         self.D_env_u = np.zeros((self.D_env.shape[0],cells.grid_obj.u_shape[0],cells.grid_obj.u_shape[1]))
         self.D_env_v = np.zeros((self.D_env.shape[0],cells.grid_obj.v_shape[0],cells.grid_obj.v_shape[1]))
-        #
-        # voronoiTree = sps.KDTree(cells.voronoi_grid)
-        # mem_inds = list(voronoiTree.query(cells.plot_xy))[1]
-        # cell_inds = list(voronoiTree.query(cells.cell_centres))[1]
-        #
-        #
-        #
-        # all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
-        # all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
-        #
-        # neigh_to_bcells,_,_ = tb.flatten(cells.cell_nn[cells.bflags_cells])
-        # interior_bound_mem_inds = cells.cell_to_mems[neigh_to_bcells]
-        # interior_bound_mem_inds,_,_ = tb.flatten(interior_bound_mem_inds)
-        #
-        # bound_inds = list(voronoiTree.query(cells.mem_mids_flat[all_bound_mem_inds]))[1]
-        # neigh_inds = list(voronoiTree.query(cells.mem_mids_flat[interior_bound_mem_inds]))[1]
-        # open_inds = list(voronoiTree.query(cells.mem_mids_flat[cells.bflags_mems]))[1]
-        #
-        # for i, dmat in enumerate(self.D_env):
-        #
-        #     if p.env_type is False:
-        #         self.D_env[i][:] = 0
-        #
-        #     dummyMems = np.ones(len(cells.voronoi_grid))*self.D_free[i]
-        #     dummyMems[mem_inds] = 1*self.D_free[i]*p.D_adh
-        #     dummyMems[cell_inds] = 1*self.D_free[i]*p.D_adh
-        #
-        #     dummyMems[bound_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-        #     dummyMems[neigh_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-        #
-        #     dummyMems[open_inds] = self.D_free[i]
-        #
-        #     # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-        #     if p.env_type is True:
-        #         Denv_o = interp.griddata((cells.voronoi_grid[:,0],cells.voronoi_grid[:,1]),dummyMems,
-        #             (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
-        #
-        #     else:
-        #         Denv_o = interp.griddata((cells.voronoi_grid[:,0],cells.voronoi_grid[:,1]),dummyMems,
-        #             (cells.X,cells.Y),method='nearest',fill_value=0)
-        #
-        #     Denv_o = Denv_o.ravel()
-        #     self.D_env[i] = Denv_o
-        #
-        #     D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
-        #
-        #     self.D_env_weight = D_env_weight.reshape(cells.X.shape)
-        #     self.D_env_weight_base = np.copy(self.D_env_weight)
-        #
-        #
-        #     for i, dmat in enumerate(self.D_env):
-        #
-        #         if p.env_type is True:
-        #
-        #             self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value = self.D_free[i])
-        #
-        #             self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value=self.D_free[i])
-        #
-        #         else:
-        #             self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='linear',fill_value = 0)
-        #
-        #             self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='linear',fill_value = 0)
-        #
-        #     self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
-        #
-        #     self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
-        #
-        #     if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-        #
-        #         self.D_env_weight_u[:,0] = 0
-        #         self.D_env_weight_u[:,-1] = 0
-        #         self.D_env_weight_u[0,:] = 0
-        #         self.D_env_weight_u[-1,:] = 0
-        #
-        #         self.D_env_weight_v[:,0] = 0
-        #         self.D_env_weight_v[:,-1] = 0
-        #         self.D_env_weight_v[0,:] = 0
-        #         self.D_env_weight_v[-1,:] = 0
 
 
         for i, dmat in enumerate(self.D_env):
@@ -3323,7 +3241,7 @@ class Simulator(object):
 
         self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
 
-    def getDeformation(self,cells,p):
+    def getDeformation(self,cells,t,p):
         """
         Calculates the deformation of the cell cluster under the action
         of intracellular pressure.
@@ -3332,16 +3250,15 @@ class Simulator(object):
 
         # determine net pressure in individual cells:
 
-        P_cell = np.zeros(len(cells.cell_i))   # FIXME this needs to be completed with osmotic and electric pressure!!!
+        P_cell = np.zeros(len(cells.cell_i))
 
-        P_cell[57] = 100
-        # if p.deform_osmo is True:
-        #
-        #     P_cell = self.osmo_P_delta_time
+        if p.deform_osmo is True:
+
+            P_cell = self.osmo_P_delta/500
         #
         # if p.deform_electro is True:
         #
-        #     P_electro = np.zeros(len(cells.cell_i))   # FIXME this is just a placeholder
+        #     P_electro = np.zeros(len(cells.cell_i))
         #
         #     P_cell = P_cell + P_electro
 
@@ -3362,35 +3279,52 @@ class Simulator(object):
         S_mem_x = (S_cell_x[cells.mem_nn[:,1]] + S_cell_x[cells.mem_nn[:,0]])
         S_mem_y = (S_cell_y[cells.mem_nn[:,1]] + S_cell_y[cells.mem_nn[:,0]])
 
-        # define the strain-stress matrix at the cell membrane midpoints:  # FIXME this only works for N and E sides
+        # define the strain-stress matrix at the cell membrane midpoints:
         Y = p.youngMod
         poi = 0.5
 
         eta_x = (1/Y)*(S_mem_x - poi*S_mem_y)*cells.mem_vects_flat[:,2]**2
         eta_y = (1/Y)*(S_mem_y - poi*S_mem_x)*cells.mem_vects_flat[:,3]**2
 
-        for cell_i in cells.cell_i:  # FIXME this interpolation strategy WILL NOT WORK!
+        d_x = eta_x*cells.chord_mag
+        d_y = eta_y*cells.chord_mag
 
-            # get indices of membranes for this specific cell:
-            mem_i = cells.cell_to_mems[cell_i]
+        # get new cell verts:
 
-            eta_x_at_mems = eta_x[mem_i]
-            eta_y_at_mems = eta_y[mem_i]
+        new_cell_verts_x = cells.cell_verts_unique[:,0] + np.dot(cells.deforM,d_x)
+        new_cell_verts_y = cells.cell_verts_unique[:,1] + np.dot(cells.deforM,d_y)
 
-            # interpolate the result out to the ecm_verts:
-            eta_x_ecm = interp.griddata((cells.mem_mids_flat[mem_i,0],cells.mem_mids_flat[mem_i,1]),eta_x_at_mems,
-                                    (cells.ecm_verts[cell_i][:,0],cells.ecm_verts[cell_i][:,1]),method ='nearest',fill_value=0)
+        cells.cell_verts_unique = np.column_stack((new_cell_verts_x,new_cell_verts_y))
 
-            eta_y_ecm = interp.griddata((cells.mem_mids_flat[mem_i,0],cells.mem_mids_flat[mem_i,1]),eta_y_at_mems,
-                                    (cells.ecm_verts[cell_i][:,0],cells.ecm_verts[cell_i][:,1]),method ='nearest',fill_value=0)
+        # Next, calculate the primitive ecm verts by reverse scaling the new cell verts:
+        ecm_temp = cells.cell_centres[cells.mem_to_cells] + ((cells.cell_verts_unique
+                                                              - cells.cell_centres[cells.mem_to_cells])/p.scale_cell)
 
-            # re-do the ecm verts for the cell using the calculated strain:
-            chords = cells.ecm_verts[cell_i] - cells.cell_centres[cell_i]
-            chord_mag = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
+        #Merge new ecm verts by averaging to equal the structure of the original Voronoi lattice:
+        ecm_new = np.dot(cells.ecm_unique_M,ecm_temp)
 
-            # re-do the ecm verts for the cell using the calculated strain, with the cell centre as the origin:
-            cells.ecm_verts[cell_i][:,0] = (chord_mag*eta_x_ecm) + cells.ecm_verts[cell_i][:,0]
-            cells.ecm_verts[cell_i][:,1] = (chord_mag*eta_y_ecm) + cells.ecm_verts[cell_i][:,1]
+        # Repackage ecm verts so that the World module can do its magic:
+
+        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
+
+        # next repackage the structure to include individual cell data
+
+        cells.ecm_verts = [] # null the original ecm verts data structure...
+
+        for i in range(0,len(cells.cell_to_mems)):
+
+            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
+
+            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
+            cent = ecm_nest.mean(axis=0)     # calculate the centre point
+            angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
+                    #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+            sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
+            sorted_region_b = sorted_region.tolist()
+
+            cells.ecm_verts.append(sorted_region_b)
+
+        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
 
         #  redo cell centres:
         cells.cell_index(p)
@@ -3407,6 +3341,10 @@ class Simulator(object):
             cells.short_environment(p)  #REALLY LONG
 
         cells.recalc_gj_vects(p)  # LONGISH
+
+        if p.plot_while_solving is True and t > 0:
+
+            self.checkPlot.resetData(cells,self,p)
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 

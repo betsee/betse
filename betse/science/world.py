@@ -726,19 +726,8 @@ class World(object):
             self.chord_mag, _ , _ = tb.flatten(chord_mag)
             self.chord_mag = np.asarray(self.chord_mag)
 
-            # create a set of unique, flattened points to the cell vertices:
-            # cell_verts_unique = set()
-            #
-            # for verts in self.cell_verts:
-            #     for v in verts:
-            #         cell_verts_unique.add((v[0],v[1]))
-            #
-            # cell_verts_unique = [list(x) for x in cell_verts_unique]
-            # self.cell_verts_unique = np.asarray(cell_verts_unique)
             self.cell_verts_unique, _, _ = tb.flatten(self.cell_verts)
             self.cell_verts_unique = np.asarray(self.cell_verts_unique)
-
-
 
 
         # run a similar (but simplified) protocol with the full voronoi verts structure:
@@ -1429,6 +1418,19 @@ class World(object):
 
         self.nn_vects = np.array([nn_x,nn_y,nn_tx,nn_ty]).T
 
+        # recalculate matrix for gj divergence of the flux calculation:
+        self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
+
+        for igj, pair in enumerate(self.nn_i):
+
+            ci = pair[0]
+
+            sa_i = self.av_mem_sa[ci]
+
+            vol_i = self.cell_vol[ci]
+
+            self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
+
     def save_cluster(self,p,savecells = True):
         '''
         Saves the cell cluster using a python pickle.
@@ -1662,6 +1664,14 @@ class World(object):
 
             else: # this point is unique in the flat and unique lists. Create an identity condition:
                 self.ecm_unique_M[i,ind_pair[0]] = 1.0
+
+        # Finally, build a list of inds (self.ecmInds) to map between unique and flattened ecm_verts vectors:
+        ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
+        ecm_verts_flat = np.asarray(ecm_verts_flat)
+
+        ecmTree = sps.KDTree(self.ecm_verts_unique)
+
+        self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
 
 
