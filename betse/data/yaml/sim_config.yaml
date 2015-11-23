@@ -227,7 +227,7 @@ world options:
 # Tissues are user-defined regions within the cluster to which specific base membrane diffusion profiles,
 # interventions, and individualized dynamics (e.g voltage gated channels) can be applied.
 # Tissues can be gap-junction connected or separated from other tissues.
-# Cluster chape and individual tissues can be defined by bitmaps, or specified manually by cell number.
+# Cluster shape and individual tissues can be defined by bitmaps, or specified manually by cell number.
 
 # File synch warning: Tissues must be designed at the time of the 'betse init' command. If bitmaps or tissue profiles
 # are changed in the config file after running an init, the init must be run over again with the new settings.
@@ -236,41 +236,28 @@ geometry defining bitmaps:
 
     use bitmap geometry control: True   # bitmaps can control cluster and tissue geometry (True)?
 
-    directory: geo/circle             # directory where geometry-defining bitmaps are loaded
+    directory: geo/circle            # directory containing geometry-defining
+                                     # bitmaps (relative to the directory
+                                     # containing this file)
 
-    number of bitmaps: 4          # total number of bitmaps to read in
+    bitmaps:
+        - &circle_base               # YAML anchor name of bitmap (referrable to
+                                     # elsewhere in this file as "*circle_base")
+          file: circle_base.png      # basename of bitmap in the above directory
+          link to profile: clipping  # use 'clipping' to use as geometry mask, or
+                                     # link to a defined tissue profile name
 
-#    bitmaps:
-#        - file: circle_base.png     # filename of bitmap
-#          link to profile: clipping   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
-#        - file: spot.png      # filename of bitmap
-#          link to profile: spot   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
+        - &spot
+          file: spot.png
+          link to profile: spot
 
-    bitmap 1:
+        - &ring
+          file: ring.png
+          link to profile: ring
 
-        file: circle_base.png     # filename of bitmap
-
-        link to profile: clipping   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
-
-
-    bitmap 2:
-
-        file: spot.png      # filename of bitmap
-
-        link to profile: spot   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
-
-
-    bitmap 3:
-
-        file: ring.png       # filename of bitmap
-
-        link to profile: ring   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
-
-    bitmap 4:
-
-        file: wedge.png     # filename of bitmap
-
-        link to profile: wound   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
+        - &wedge
+          file: wedge.png
+          link to profile: wound
 
 
 
@@ -281,8 +268,8 @@ tissue profile definition:
                                  # tissue profiles are applied in the order they are defined here.
 
   tissue profile 1:
-      name: tissue       # give your profile a name that will be used to apply the profile
-      cell targets: all      # 'bitmap' to link to image file or:
+      name: tissue         # give your profile a name that will be used to apply the profile
+      cell targets: all    # 'bitmap' to link to image file or:
                               #'random##', 'boundary', 'all', , or list of inds
       designation: None    # special instructions for making the profile:
                               #'cavity' or 'cuts' (cavity specified in makeWorld)
@@ -303,7 +290,7 @@ tissue profile definition:
       insular: False
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_K: 1.0e-18        # K+ membrane diffusion constant [m2/s]
       Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
@@ -331,7 +318,7 @@ tissue profile definition:
       insular: False
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 150.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_K: 150.0e-18      # K+ membrane diffusion constant [m2/s]
       Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]

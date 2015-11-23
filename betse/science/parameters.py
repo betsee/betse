@@ -12,12 +12,10 @@
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
 from betse.util.path import paths
+from collections import OrderedDict
 from matplotlib.colors import Colormap
 import numpy as np
-import math
 import matplotlib.cm as cm
-import os
-from collections import OrderedDict
 
 # Parses the configuration file to define basic class holding all simulation variables
 class Parameters(object):
@@ -96,29 +94,6 @@ class Parameters(object):
 
         self.autoInit = self.config['automatically run initialization']
 
-        # define paths for loading bitmaps:
-
-        gdb = self.config['geometry defining bitmaps']
-
-        self.use_bitmaps = gdb['use bitmap geometry control']
-
-        if self.use_bitmaps is True:
-
-            self.bitmap_path = paths.join(
-                config_dirname, gdb['directory'])  # world, inits, and sims are saved and read to/from this directory.
-
-            self.bitmap_number = int(gdb['number of bitmaps'])
-
-            self.bitmap_profiles = {}
-
-            for bm in range(1,self.bitmap_number + 1):
-
-                bitmap_string = 'bitmap ' + str(bm)
-                bitmap_designation = gdb[bitmap_string]['link to profile']
-                bitmap_filename = gdb[bitmap_string]['file']
-
-                self.bitmap_profiles[bitmap_designation] = bitmap_filename
-
         # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(
             config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
@@ -175,8 +150,6 @@ class Parameters(object):
         self.Dtj_rel['M']=float(self.config['variable settings']['tight junction relative diffusion']['M'])
         self.Dtj_rel['P']=float(self.config['variable settings']['tight junction relative diffusion']['P'])
         self.Dtj_rel['H']=float(self.config['variable settings']['tight junction relative diffusion']['H'])
-
-        tpd = self.config['tissue profile definition']
 
         # default membrane diffusion constants: easy control of cell's base resting potential
         self.Dm_Na = float(self.config['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
@@ -333,9 +306,27 @@ class Parameters(object):
             self.global_options['VATP_block'] = vk
 
         #--------------------------------------------------------------------------------------------------------------
+        # Geometry Bitmaps
+        #--------------------------------------------------------------------------------------------------------------
+        # Define paths for loading bitmaps.
+        gdb = self.config['geometry defining bitmaps']
+        self.use_bitmaps = gdb['use bitmap geometry control']
+
+        if self.use_bitmaps:
+            self.bitmap_path = paths.join(config_dirname, gdb['directory'])
+            self.bitmap_profiles = {}
+
+            for bitmap in gdb['bitmaps']:
+                bitmap_designation = bitmap['link to profile']
+                bitmap_filename = bitmap['file']
+                self.bitmap_profiles[bitmap_designation] = bitmap_filename
+                # print('mapped {} to {}'.format(bitmap_designation, bitmap_filename))
+
+        #--------------------------------------------------------------------------------------------------------------
         # Tissue Definition
         #--------------------------------------------------------------------------------------------------------------
         # Import information used for defining tissues and boundary properties in the collective:
+        tpd = self.config['tissue profile definition']
 
         self.tissue_profile_number = int(tpd['number of tissue profiles'])
         self.boundary_profile_number = int(tpd['number of boundary profiles'])
