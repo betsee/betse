@@ -2737,7 +2737,7 @@ class Simulator(object):
         # self.dIx = ((self.I_tot_x - Ixo)/p.dt)
         # self.dIy = ((self.I_tot_y - Iyo)/p.dt)
 
-    def getFlow(self,cells,p):
+    def getFlow(self,cells,p):  # reinstate the possibility of osmotic P --> hydrostatic P induced flow between cells
         """
         Calculate the electroosmotic-magneto-hydrodynamic fluid flow in the cell and extracellular
          networks.
@@ -2940,7 +2940,7 @@ class Simulator(object):
 
         # Calculate electroosmotic body forces on flow field, if desired:
 
-        if p.base_eosmo is True:
+        if p.base_eosmo is True:  # FIXME redo this as an electrostatic pressure
 
             # to get the eletroosmotic body force at each gap junction, first map the charge density from cell to gj:
             rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])*(1/p.ff_cell)
@@ -3248,15 +3248,15 @@ class Simulator(object):
 
         """
 
-        if p.sim_ECM is False:  # FIXME this needs to be done only for osmosis, and it needs to apply to ecm too!
+        # if p.sim_ECM is False:  # FIXME this needs to be done only for osmosis, and it needs to apply to ecm too!
                                 # FIXME when doing changes via osmosis, change ecm volume and concentration too!
 
-            # obtain the net moles in cells so that we can redo the concs with new volumes
-            net_moles = copy.copy(self.cc_cells)
+        # obtain the net moles in cells so that we can redo the concs with new volumes
+        net_moles = copy.copy(self.cc_cells)
 
-            for i, concs in enumerate(self.cc_cells):
+        for i, concs in enumerate(self.cc_cells):
 
-                net_moles[i][:] = concs*cells.cell_vol
+            net_moles[i][:] = concs*cells.cell_vol
 
 
         # determine net pressure in individual cells:
@@ -3277,18 +3277,22 @@ class Simulator(object):
 
             else:
 
-                P_cell = self.osmo_P_delta[cells.mem_to_cells]/100
+                P_cell = self.osmo_P_delta[cells.mem_to_cells]/500
 
         if p.deform_electro is True and p.sim_ECM is True:
 
-            Q_mem = self.rho_cells*cells.cell_vol
-            Q_ecm = self.rho_env*cells.ecm_vol
+            Q_mem = self.rho_cells*cells.cell_vol*(1/p.ff_cell)
+            Q_ecm = self.rho_env*cells.ecm_vol*(1/p.ff_env)
 
-            ave_rho = (Q_mem[cells.mem_to_cells] + Q_ecm[cells.map_mem2ecm])*cells.mem_sa
+            ave_rho = (Q_mem[cells.mem_to_cells] + Q_ecm[cells.map_mem2ecm])/(2*cells.mem_sa)
+
             self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
+
             P_cell = P_cell + self.P_electro
 
-            print(P_cell.max())
+            Peaso = np.abs(self.P_electro)
+
+            print(Peaso.max())
 
         if p.sim_ECM is False:
             # calculate net outward stress at boundary:
@@ -3402,12 +3406,12 @@ class Simulator(object):
 
         cells.recalc_gj_vects(p)  # LONGISH
 
-        if p.sim_ECM is False:  # FIXME also for ecm is true, only for osmosis...
+        # if p.sim_ECM is False:  # FIXME also for ecm is true, only for osmosis...
 
-            # scale concentrations by new cell volumes:   # FIXME should do this with dye and IP3 too
-            for i, moles in enumerate(net_moles):
+        # scale concentrations by new cell volumes:   # FIXME should do this with dye and IP3 too
+        for i, moles in enumerate(net_moles):
 
-                self.cc_cells[i][:] = moles/cells.cell_vol
+            self.cc_cells[i][:] = moles/cells.cell_vol
 
         if p.plot_while_solving is True and t > 0:
 

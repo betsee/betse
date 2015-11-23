@@ -119,7 +119,7 @@ sim time settings:
 general options:
 
   comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
-  plot grid size: 60                 # grid used for interpolated data plotting (recommend 60 to 100)
+  plot grid size: 50                 # grid used for interpolated data plotting (recommend 60 to 100)
 
   simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
@@ -208,8 +208,8 @@ world options:
 
   deformation:
 
-    turn on: True       # deformation of the structure under the action of osmotic and electrostatic pressure
-    include osmotic pressure: True    # include osmotic pressure?
+    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+    include osmotic pressure: False    # include osmotic pressure?
     include electrostatic pressure: False   # include electrostatic pressure?
 
   gap junctions:
@@ -239,6 +239,12 @@ geometry defining bitmaps:
     directory: geo/circle             # directory where geometry-defining bitmaps are loaded
 
     number of bitmaps: 4          # total number of bitmaps to read in
+
+#    bitmaps:
+#        - file: circle_base.png     # filename of bitmap
+#          link to profile: clipping   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
+#        - file: spot.png      # filename of bitmap
+#          link to profile: spot   # use 'clipping' to use as geometry mask, or link to a defined tissue profile name
 
     bitmap 1:
 
@@ -297,8 +303,8 @@ tissue profile definition:
       insular: False
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+      Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -325,7 +331,7 @@ tissue profile definition:
       insular: False
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_K: 150.0e-18       # K+ membrane diffusion constant [m2/s]
       Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
@@ -630,7 +636,7 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 5.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
+    gap junction surface area: 1.0e-4 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
@@ -660,7 +666,7 @@ variable settings:
 
   cavity open: False  # do internally cut cavities have free env boundaries (True) or sealed by TJ (False)?
 
-  use Goldman calculator: True    # calculate alternative Vmem using GHK equation for model params and plot results?
+  use Goldman calculator: False    # calculate alternative Vmem using GHK equation for model params and plot results?
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -690,7 +696,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: True     # use this setting to quickly toggle creation of all
+  create all animations: False     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
