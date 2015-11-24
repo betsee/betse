@@ -5,29 +5,29 @@ betse
 of dynamic electrochemical phenomena in gap junction networked cell collectives,
 with a focus on spatio-temporal pattern formation.
 
-## System Requirements
+## Requirements
 
 `betse` currently runs *only* on:
 
 * **64-bit systems**. This is principally due to the increasing obsolescence and
   hence irrelevance of 32-bit systems for scientific work. [Read: no clients or
-  developers use 32-bit systems.] To a lesser extent, this is due to the so-
-  called ["3GB barrier"](https://en.wikipedia.org/wiki/3_GB_barrier) imposed by
-  most existing 32-bit systems -- including *all* non-server 32-bit editions of
-  Microsoft Windows. Such barrier prevents usage of more than 3 to 4GB of
+  developers still use 32-bit systems.] To a lesser extent, this is due to the
+  so-called ["3GB barrier"](https://en.wikipedia.org/wiki/3_GB_barrier) imposed
+  by most existing 32-bit systems -- including *all* non-server 32-bit editions
+  of Microsoft Windows. This barrier prevents usage of more than 3 to 4GB of
   available RAM, which rarely suffices for even small-scale tissue simulations.
-* **Python 3.3 and 3.4**. While Python 3.5 is currently unsupported, `betse`
-  _should_ run under Python 3.5 without issue. Since PyInstaller currently does
-  _not_ support Python 3.5, however, `betse` will _not_ be freezable.
+* **Python 3.3** or newer (e.g., 3.4, 3.5, 3.6).
 * Operating systems matching either:
-  * **Microsoft Windows XP** or newer.
-  * **Apple OS X 10.8.5** (Mountain Lion) or newer.
+  * **Microsoft Windows XP** or newer (e.g., Vista, 7, 8, 10).
+  * **Apple OS X 10.8.5** (Mountain Lion) or newer (e.g., 10.9, 10.10, 10.11).
   * **Linux distributions providing at least `glibc` 2.19** or newer. (The
     currently installed version of `glibc` is printable by running the following
     command at the command line: `ldd --version`.) This includes but is *not*
     limited to the following Linux distributions:
     * **Linux Mint 17.1** (Rebecca) or newer.
     * **Ubuntu 14.10** (Utopic Unicorn) or newer.
+
+## Recommendations
 
 `betse` currently recommends but does *not* require:
 
