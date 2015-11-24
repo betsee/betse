@@ -14,12 +14,21 @@ from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
 from betse.science.bitmapper import Bitmapper
 from betse.util.io import loggers
-import matplotlib.pyplot as plt
 
-class Dynamics(object):
+class TissueHandler(object):
+    '''
+    A high-level handler for user-specified tissue-centric functionality,
+    including both tissue profiles _and_ scheduled interventions.
+
+    This handler governs all:
+
+    * Tissue profiles and objects required by these profiles, including all
+      geometry-specifying bitmaps.
+    * Scheduled interventions, even those _not_ pertaining to tissue profiles
+      (e.g., global scheduled interventions).
+    '''
 
     def __init__(self, sim, cells, p):
-
         if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
 
@@ -27,17 +36,34 @@ class Dynamics(object):
             self.data_length = len(cells.cell_i)
 
     def runAllInit(self,sim,cells,p):
-        self.globalInit(sim,cells,p)
-        self.scheduledInit(sim,cells,p)
-        self.dynamicInit(sim,cells,p)
+        '''
+        Initialize all tissue manipulations specified by the passed
+        user-specified parameters with the passed tissue simulation and cellular
+        world.
+        '''
+
+        self._initEventsGlobal(sim,cells,p)
+        self._initEventsTissue(sim,cells,p)
+        self._initChannelsTissue(sim,cells,p)
 
     def runAllDynamics(self,sim,cells,p,t):
-        self.globalDyn(sim,cells,p,t)
-        self.scheduledDyn(sim,cells,p,t)
-        self.dynamicDyn(sim,cells,p,t)
+        '''
+        Apply all tissue manipulations specified by the passed user-specified
+        parameters to the passed tissue simulation and cellular world for the
+        passed time step.
+        '''
+
+        self._simEventsGlobal(sim,cells,p,t)
+        self._simEventsTissue(sim,cells,p,t)
+        self._simChannelsTissue(sim,cells,p,t)
         self.makeAllChanges(sim)
 
-    def globalInit(self,sim,cells,p):
+    def _initEventsGlobal(self,sim,cells,p):
+        '''
+        Initialize all **global scheduled interventions** (i.e., events globally
+        applicable to all cells) specified by the passed user-specified
+        parameters with the passed tissue simulation and cellular world.
+        '''
 
         if p.global_options['K_env'] != 0:
 
@@ -115,7 +141,13 @@ class Dynamics(object):
             self.toffV = p.global_options['VATP_block'][1]
             self.trampV = p.global_options['VATP_block'][2]
 
-    def scheduledInit(self,sim,cells,p):
+    def _initEventsTissue(self,sim,cells,p):
+        '''
+        Initialize all **targeted scheduled interventions** (i.e., events only
+        applicable to specific tissue profiles) specified by the passed
+        user-specified parameters with the passed tissue simulation and cellular
+        world.
+        '''
 
         if p.scheduled_options['Na_mem'] != 0:
 
@@ -268,7 +300,13 @@ class Dynamics(object):
 
             self.targets_cuts = [item for sublist in self.targets_cuts for item in sublist]
 
-    def dynamicInit(self,sim,cells,p):
+    def _initChannelsTissue(self,sim,cells,p):
+        '''
+        Initialize all **targeted ion channels** (i.e., ion channels only
+        applicable to specific tissue profiles) specified by the passed
+        user-specified parameters with the passed tissue simulation and cellular
+        world.
+        '''
 
         if p.vg_options['Na_vg'] != 0:
 
@@ -412,7 +450,13 @@ class Dynamics(object):
             self.target_mask_Ca = np.zeros(len(cells.cell_i))
             self.target_mask_Ca[self.targets_Ca] = 1
 
-    def globalDyn(self,sim,cells,p,t):
+    def _simEventsGlobal(self,sim,cells,p,t):
+        '''
+        Apply all **global scheduled interventions** (i.e., events globally
+        applicable to all cells) specified by the passed user-specified
+        parameters to the passed tissue simulation and cellular world for the
+        passed time step.
+        '''
 
         if p.global_options['K_env'] != 0:
 
@@ -487,7 +531,13 @@ class Dynamics(object):
 
             sim.VATP_block = (1.0 - tb.pulse(t,self.tonV,self.toffV,self.trampV))
 
-    def scheduledDyn(self,sim,cells,p,t):
+    def _simEventsTissue(self,sim,cells,p,t):
+        '''
+        Apply all **targeted scheduled interventions** (i.e., events only
+        applicable to specific tissue profiles) specified by the passed
+        user-specified parameters to the passed tissue simulation and cellular
+        world for the passed time step.
+        '''
 
         if p.scheduled_options['Na_mem'] != 0:
 
@@ -605,7 +655,13 @@ class Dynamics(object):
             sim.bound_V[self.targets_extV_positive] = self.peak_val_extV*effector_extV
             sim.bound_V[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
 
-    def dynamicDyn(self,sim,cells,p,t):
+    def _simChannelsTissue(self,sim,cells,p,t):
+        '''
+        Handle all **targeted ion channels** (i.e., ion channels only applicable
+        to specific tissue profiles) specified by the passed user-specified
+        parameters to the passed tissue simulation and cellular world for the
+        passed time step.
+        '''
 
         self.dvsign = np.sign(sim.dvm)
 
@@ -649,6 +705,12 @@ class Dynamics(object):
                 sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.map_mem2ecm]
 
     def vgSodium(self,sim,cells,p,t):
+        '''
+        Handle all **targeted voltage-gated sodium channels** (i.e., only
+        applicable to specific tissue profiles) specified by the passed
+        user-specified parameters on the passed tissue simulation and cellular
+        world for the passed time step.
+        '''
 
         # Logic phase 1: find out which cells have activated their vgNa channels
         truth_vmGTvon_Na = sim.vm > self.v_activate_Na  # returns bools of vm that are bigger than threshhold
@@ -707,6 +769,12 @@ class Dynamics(object):
         sim.Dm_vg[sim.iNa] = self.maxDmNa*self.vgNa_state
 
     def vgPotassium(self,sim,cells,p,t):
+        '''
+        Handle all **targeted voltage-gated potassium channels** (i.e., only
+        applicable to specific tissue profiles) specified by the passed
+        user-specified parameters on the passed tissue simulation and cellular
+        world for the passed time step.
+        '''
          # detecting channels to turn on:
 
         truth_vmGTvon_K = sim.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
@@ -734,6 +802,13 @@ class Dynamics(object):
         sim.Dm_vg[sim.iK] = self.maxDmK*self.active_K
 
     def vgCalcium(self,sim,cells,p,t):
+        '''
+        Handle all **targeted voltage-gated calcium channels** (i.e., only
+        applicable to specific tissue profiles) specified by the passed
+        user-specified parameters on the passed tissue simulation and cellular
+        world for the passed time step.
+        '''
+
          # detect condition to turn vg_Ca channel on:
         truth_vmGTvon_Ca = sim.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
 

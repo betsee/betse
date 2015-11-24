@@ -14,7 +14,7 @@ from random import shuffle
 from betse.science import filehandling as fh
 from betse.science import visualize as viz
 from betse.science import toolbox as tb
-from betse.science.dynamics import Dynamics
+from betse.science.tissuehandler import TissueHandler
 from betse.science import finitediff as fd
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionSimulation
@@ -707,7 +707,7 @@ class Simulator(object):
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
 
-        self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
+        self.dyna = TissueHandler(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
 
         if p.sim_ECM is True:
@@ -813,9 +813,8 @@ class Simulator(object):
                 self.Dye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
                 self.Dye_env[:] = p.cDye_to
 
-        self.dyna.globalInit(self,cells,p)     # initialize any global interventions
-        self.dyna.scheduledInit(self,cells,p)  # initialize any scheduled interventions
-        self.dyna.dynamicInit(self,cells,p)    # initialize any dynamic channel properties
+        # Initialize all user-specified interventions and dynamic channels.
+        self.dyna.runAllInit(self,cells,p)
 
         loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
         loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')

@@ -10,7 +10,7 @@ from betse.science import filehandling as fh
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science.world import World
-from betse.science.dynamics import Dynamics
+from betse.science.tissuehandler import TissueHandler
 import betse.science.finitediff as fd
 from betse.util.io import loggers
 from betse.util.path import files, paths
@@ -77,7 +77,7 @@ class SimRunner(object):
             # define the tissue and boundary profiles for plotting:
             loggers.log_info('Defining tissue and boundary profiles...')
             sim.baseInit(cells,p)
-            dyna = Dynamics(sim,cells,p)
+            dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
@@ -110,7 +110,7 @@ class SimRunner(object):
             # define the tissue and boundary profiles for plotting:
             loggers.log_info('Defining tissue and boundary profiles...')
             sim.baseInit_ECM(cells,p)
-            dyna = Dynamics(sim,cells,p)
+            dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
             # dyna.ecmBoundProfiles(sim,cells,p)
 
@@ -342,11 +342,11 @@ class SimRunner(object):
 
         if p.sim_ECM is False:
             sim.baseInit(cells,p)
-            dyna = Dynamics(sim,cells,p)
+            dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
         else:
             sim.baseInit_ECM(cells,p)
-            dyna = Dynamics(sim,cells,p)
+            dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
         if p.autosave is True:

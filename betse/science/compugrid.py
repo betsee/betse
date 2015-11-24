@@ -2,6 +2,9 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+#FIXME: This module appears to have been entirely superceded by the
+#"compute" module and hence should arguably be deleted. Spaketh the
+#robot army: "Destroy! Erase! Improve!"
 
 # FIXME allow time dependent voltage to be added to global boundaries
 # FIXME allow user to specify open or closed concentration boundaries
@@ -19,7 +22,7 @@ from random import shuffle
 from betse.science import filehandling as fh
 from betse.science import vizgrid as viz
 from betse.science import toolbox as tb
-from betse.science.dynamics import Dynamics
+from betse.science.tissuehandler import TissueHandler
 from betse.science.finitediff import FiniteDiffSolver, laplacian, gradient
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionSimulation
@@ -372,7 +375,7 @@ class SimGrid(object):
 
     def tissueInit(self,cells,p):
 
-        self.dyna = Dynamics(self,cells,p)   # create the tissue dynamics object
+        self.dyna = TissueHandler(self,cells,p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
 
         # add channel noise to the model:
@@ -439,9 +442,8 @@ class SimGrid(object):
             self.cDye_env[:] = p.cDye_to
 
 
-        self.dyna.globalInit(self,cells,p)     # initialize any global interventions
-        self.dyna.scheduledInit(self,cells,p)  # initialize any scheduled interventions
-        self.dyna.dynamicInit(self,cells,p)    # initialize any dynamic channel properties
+        # Initialize all user-specified interventions and dynamic channels.
+        self.dyna.runAllInit(self,cells,p)
 
         loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
         loggers.log_info('You are running the ion profile: '+ p.ion_profile)

@@ -561,7 +561,7 @@ class Parameters(object):
         elif bool_cagK is True:
             self.vg_options['K_cag'] = cagK
 
-        # Calcium Dynamics: Calcium Induced Calcium Release (CICR).....................................................
+        # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 
         cdp = self.config['calcium dynamics parameters']
 
@@ -1389,7 +1389,7 @@ def bal_charge(concentrations,zs):
     #
     #     self.vg_options = {'Na_vg':0,'K_vg':0,'Ca_vg':0,'K_cag':0}
     #
-    #     # Calcium Dynamics: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
+    #     # Calcium TissueHandler: Calcium Induced Calcium Release (CICR) and Store Operated Calcium Entry (SOCE)..............
     #
     #
     #     ERstore_dyn = [5e-15,0.8,0.5]   # base dynamics of endoplasmic reticulum Ca2+ store:
