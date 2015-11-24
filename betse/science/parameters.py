@@ -608,7 +608,7 @@ class Parameters(object):
             self.Ca_dyn_options['CICR'] = cicr
 
 
-        #........................RESULTS OUPUT and PLOTTING............................................................
+        #........................RESULTS OUTPUT and PLOTTING............................................................
 
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']

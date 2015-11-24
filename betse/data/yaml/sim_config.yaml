@@ -247,24 +247,24 @@ geometry defining bitmaps:
           link to profile: clipping  # use 'clipping' to use as geometry mask, or
                                      # link to a defined tissue profile name
 
-        - &spot
-          file: spot.png
-          link to profile: spot
-
-        - &ring
-          file: ring.png
-          link to profile: ring
-
-        - &wedge
-          file: wedge.png
-          link to profile: wound
+#        - &spot
+#          file: spot.png
+#          link to profile: spot
+#
+#        - &ring
+#          file: ring.png
+#          link to profile: ring
+#
+#        - &wedge
+#          file: wedge.png
+#          link to profile: wound
 
 
 
 tissue profile definition:
 
 
-  number of tissue profiles: 4     # specify number of tissue profiles to include
+  number of tissue profiles: 0     # specify number of tissue profiles to include
                                  # tissue profiles are applied in the order they are defined here.
 
   tissue profile 1:
@@ -314,7 +314,7 @@ tissue profile definition:
   tissue profile 4:
       name: wound
       cell targets: bitmap
-      designation: cuts
+      designation: None
       insular: False
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -416,7 +416,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: True
+    event happens: False
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
