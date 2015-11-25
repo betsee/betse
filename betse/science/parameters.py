@@ -310,17 +310,15 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         # Define paths for loading bitmaps.
         gdb = self.config['geometry defining bitmaps']
-        self.use_bitmaps = gdb['use bitmap geometry control']
 
-        if self.use_bitmaps:
-            self.bitmap_path = paths.join(config_dirname, gdb['directory'])
-            self.bitmap_profiles = {}
+        self.bitmap_path = paths.join(config_dirname, gdb['directory'])
+        self.bitmap_profiles = {}
 
-            for bitmap in gdb['bitmaps']:
-                bitmap_designation = bitmap['link to profile']
-                bitmap_filename = bitmap['file']
-                self.bitmap_profiles[bitmap_designation] = bitmap_filename
-                # print('mapped {} to {}'.format(bitmap_designation, bitmap_filename))
+        for bitmap in gdb['bitmaps']:
+            bitmap_designation = bitmap['link to profile']
+            bitmap_filename = bitmap['file']
+            self.bitmap_profiles[bitmap_designation] = bitmap_filename
+            # print('mapped {} to {}'.format(bitmap_designation, bitmap_filename))
 
         #--------------------------------------------------------------------------------------------------------------
         # Tissue Definition

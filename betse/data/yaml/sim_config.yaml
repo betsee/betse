@@ -233,9 +233,6 @@ world options:
 # are changed in the config file after running an init, the init must be run over again with the new settings.
 
 geometry defining bitmaps:
-
-    use bitmap geometry control: True   # bitmaps can control cluster and tissue geometry (True)?
-
     directory: geo/circle            # directory containing geometry-defining
                                      # bitmaps (relative to the directory
                                      # containing this file)

@@ -1013,33 +1013,22 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
     """
 
     if isinstance(targets_description,str):
-
         meter = len(targets_description)
 
         if meter >= 6:
-
             chaff = targets_description[0:6]
             numo = targets_description[6:len(targets_description)]
 
             if chaff == 'bitmap':
+                bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+                bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+                target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
-                if p.use_bitmaps is True:
-
-                    bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
-                    bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
-                    target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
-
-                    if p.sim_ECM is True and ignoreECM is False and len(target_inds):
-
-                        target_inds = cells.cell_to_mems[target_inds]
-                        target_inds,_,_ = tb.flatten(target_inds)
-
-                else:
-
-                    target_inds = []
+                if p.sim_ECM is True and ignoreECM is False and len(target_inds):
+                    target_inds = cells.cell_to_mems[target_inds]
+                    target_inds,_,_ = tb.flatten(target_inds)
 
             elif chaff == 'bounda':
-
                 if p.sim_ECM is False or ignoreECM is True:
                     target_inds = cells.bflags_cells
 
@@ -1047,9 +1036,7 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
                     target_inds = cells.cell_to_mems[cells.bflags_cells]
                     target_inds,_,_ = tb.flatten(target_inds)
 
-
             elif chaff == 'random':
-
                 numo = int(numo)
 
                 if numo > 100:
@@ -1072,7 +1059,6 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
                     target_inds,_,_ = tb.flatten(target_inds)
 
         elif targets_description == 'all':
-
             if p.sim_ECM is False or ignoreECM is True:
                 target_inds = cells.cell_i
 
@@ -1081,12 +1067,12 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
                 target_inds,_,_ = tb.flatten(target_inds)
 
         else:
-            raise BetseExceptionSimulation("Error in specifying cell targets for tissue profile."
-            "String must be in an appropriate format: 'random10', 'all', 'boundary', 'bitmap'")
-
+            raise BetseExceptionSimulation(
+                "Error in specifying cell targets for tissue profile. "
+                "String must be in an appropriate format: "
+                "'random10', 'all', 'boundary', 'bitmap'")
 
     elif isinstance(targets_description, list):
-
         target_inds_cell = targets_description
 
         if p.sim_ECM is False or ignoreECM is True:
@@ -1123,16 +1109,11 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
     target_inds = []
 
     if isinstance(targets_description,str):
-
-        inds_env = np.asarray(len(cells.xypts))
-
+        # inds_env = np.asarray(len(cells.xypts))
         if targets_description == 'bitmap':
-
-            if p.use_bitmaps is True:
-                bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
-                bitmask.clipPoints(cells.xypts[:,0],cells.xypts[:,1])
-                target_inds = bitmask.good_inds   # get the cell_i indicies falling within the bitmap mask
-
+            bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+            bitmask.clipPoints(cells.xypts[:,0],cells.xypts[:,1])
+            target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
     return target_inds
 
@@ -1141,17 +1122,15 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     loggers.log_info('Cutting hole in cell cluster! Removing cells...')
 
     if isinstance(targets_description,str):
-
-        if p.use_bitmaps is True and targets_description == 'bitmap':
-
+        if targets_description == 'bitmap':
             bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
             bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
             target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
-            cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix  # update the cluster mask by subtracting deleted region
+            # Update the cluster mask by subtracting deleted region.
+            cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix
 
     if isinstance(targets_description,list):   # otherwise, if it's a list, then take the targets literally...
-
         target_inds_cell = targets_description
 
     # get the corresponding flags to membrane entities
