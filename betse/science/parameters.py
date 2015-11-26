@@ -325,49 +325,36 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         # Import information used for defining tissues and boundary properties in the collective:
         tpd = self.config['tissue profile definition']
-
-        self.tissue_profile_number = int(tpd['number of tissue profiles'])
-        self.boundary_profile_number = int(tpd['number of boundary profiles'])
         self.default_tissue_name = self.config['variable settings']['default tissue name']
 
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
-
         self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
 
-
-        for pn in range(1,self.tissue_profile_number+1):
-
+        for i, tissue_profile in enumerate(tpd['tissue profiles']):
             profile_features = {}  # initialize a dictionary that will hold embeded data
             diffusion_constants = {}
 
-            profile_string = 'tissue profile ' + str(pn)
+            profile_name = tissue_profile['name']
+            profile_features['target method'] = tissue_profile['cell targets']
+            profile_features['designation'] = tissue_profile['designation']
+            profile_features['insular gj'] = tissue_profile['insular']
 
-            profile_name = tpd[profile_string]['name']
-            profile_features['target method'] = tpd[profile_string]['cell targets']
-            profile_features['designation'] = tpd[profile_string]['designation']
-            profile_features['z order'] = pn
-            profile_features['insular gj'] = tpd[profile_string]['insular']
+            # Convert from 0-based list indices to 1-based z order.
+            profile_features['z order'] = i + 1
 
             for label in self.mem_labels:
-
-                diffusion_constants[label] = float(tpd[profile_string][label])
+                diffusion_constants[label] = float(tissue_profile[label])
 
             profile_features['diffusion constants'] = diffusion_constants
-
             self.tissue_profiles[profile_name] = profile_features
 
-        for bn in range(1,self.boundary_profile_number+1):
-
-            profile_string_b = 'boundary profile ' + str(bn)
-            profile_name_b = tpd[profile_string_b]['name']
-            profile_target_method_b = tpd[profile_string_b]['boundary targets']
-
+        for boundary_profile in tpd['boundary profiles']:
+            profile_name_b = boundary_profile['name']
+            profile_target_method_b = boundary_profile['boundary targets']
             self.boundary_profiles[profile_name_b] = profile_target_method_b
 
-
         # boundary properties:
-
         self.closed_bound = bool(tpd['closed boundary'])
 
         #---------------------------------------------------------------------------------------------------------------

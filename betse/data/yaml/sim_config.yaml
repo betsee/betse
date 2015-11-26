@@ -228,9 +228,11 @@ world options:
 # interventions, and individualized dynamics (e.g voltage gated channels) can be applied.
 # Tissues can be gap-junction connected or separated from other tissues.
 # Cluster shape and individual tissues can be defined by bitmaps, or specified manually by cell number.
-
+#
 # File synch warning: Tissues must be designed at the time of the 'betse init' command. If bitmaps or tissue profiles
 # are changed in the config file after running an init, the init must be run over again with the new settings.
+#
+# For related options, see also the "variable settings" section below.
 
 geometry defining bitmaps:
     directory: geo/circle            # directory containing geometry-defining
@@ -244,97 +246,99 @@ geometry defining bitmaps:
           link to profile: clipping  # use 'clipping' to use as geometry mask, or
                                      # link to a defined tissue profile name
 
-#        - &spot
-#          file: spot.png
-#          link to profile: spot
-#
-#        - &ring
-#          file: ring.png
-#          link to profile: ring
-#
-#        - &wedge
-#          file: wedge.png
-#          link to profile: wound
+        - &spot
+          file: spot.png
+          link to profile: spot
 
+        - &ring
+          file: ring.png
+          link to profile: ring
+
+        - &wedge
+          file: wedge.png
+          link to profile: wound
 
 
 tissue profile definition:
+    # Tissue profiles are applied in the order defined below. When multiple
+    # profiles apply to the same cell, options defined by later profiles
+    # override options defined by earlier profiles for that cell.
+    tissue profiles:
+        # Example default tissue profile, providing sensible defaults for all
+        # options *NOT* defined by subsequent profiles. (Options defined by
+        # subsequent profiles take precedence over those defined here, due to
+        # this being the first listed profile.)
+        - name: tissue         # give your profile a name that will be used to apply the profile
+          cell targets: all    # 'bitmap' to link to image file or:
+                                  #'random##', 'boundary', 'all', or list of inds
+          designation: None    # special instructions for making the profile:
+                                  #'cavity' or 'cuts' (cavity specified in makeWorld)
+          insular: False       # tissue has gj connecting within tissue but not between tissues (True)
+  
+          Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
+        #FIXME: I have no idea if these profile descriptions actually apply.
+        #They probably don't. Such is the price of love and late code nights!
 
-  number of tissue profiles: 0     # specify number of tissue profiles to include
-                                 # tissue profiles are applied in the order they are defined here.
+        # Example tissue profile for a small cluster of healthy cells.
+        - name: spot
+          cell targets: bitmap
+          designation: None
+          insular: False
 
-  tissue profile 1:
-      name: tissue         # give your profile a name that will be used to apply the profile
-      cell targets: all    # 'bitmap' to link to image file or:
-                              #'random##', 'boundary', 'all', , or list of inds
-      designation: None    # special instructions for making the profile:
-                              #'cavity' or 'cuts' (cavity specified in makeWorld)
-      insular: False       # tissue has gj connecting within tissue but not between tissues (True)
+          Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 1.0e-18        # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-      Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+        # Example tissue profile for a large ring of healthy cells.
+        - name: ring
+          cell targets: bitmap
+          designation: None
+          insular: False
 
-  tissue profile 2:
-      name: spot
-      cell targets: bitmap
-      designation: None
-      insular: False
+          Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 1.0e-18        # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
-      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-      Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+        # Example tissue profile for a small cluster of wounded cells.
+        - name: wound
+          cell targets: bitmap
+          designation: None
+          insular: False
 
-  tissue profile 3:
-      name: ring
-      cell targets: bitmap
-      designation: None
-      insular: False
+          Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 150.0e-18      # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-      Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+    # Boundary profiles, each applying a property at a specific global (i.e.
+    # bounding box) boundary. Note that boundary profiles are applied only when
+    # simulating extracellular spaces.
+    boundary profiles:
+      - name: applied pos voltage
+        boundary targets: T  # options include top = T, bottom = B, left = L, and right = R to specify the respective boundaries
 
-  tissue profile 4:
-      name: wound
-      cell targets: bitmap
-      designation: None
-      insular: False
-
-      Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 150.0e-18      # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-      Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-      Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
-  # specify a property to happen at a specific global (i.e. bounding box) boundary
-
-  number of boundary profiles: 2      # Note: boundary profiles only apply if simulating extracellular spaces
-
-  boundary profile 1:   # options include top = T, bottom = B, left = L, and right = R to specify the respective boundaries
-      name: applied pos voltage
-      boundary targets: T
-
-  boundary profile 2:
-      name: applied neg voltage
-      boundary targets: B
-
-  closed boundary: False   # are the global environmental boundaries closed (True) or open (False)?
+      - name: applied neg voltage
+        boundary targets: B
+  
+    closed boundary: False   # are the global environmental boundaries closed (True) or open (False)?
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
