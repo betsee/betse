@@ -20,29 +20,46 @@ import matplotlib.cm as cm
 # Parses the configuration file to define basic class holding all simulation variables
 class Parameters(object):
     '''
-    The object that stores all constants used in world-building, simulation, and
-    plotting.
+    Storage for all user-defined parameters used in world-building,
+    simulation, and plotting.
 
-    The 'inbuiltInit' method is intended for in-house testing purposes when new functionality is built in
-    but before it's added to the configuration file.
+    These parameters are *deserialized* (i.e., read, loaded, and converted) from
+    the user-defined YAML configuration file passed to this object on
+    initialization.
 
-    The '_yamlConfigInit' method parses the main configuration file used in simulations.
-
+    Attributes
+    ----------------------------
+    config_dirname : str
+        Absolute path of the directory containing the source YAML configuration
+        file from which this object was first deserialized. This directory
+        typically also contains example resources for use by BETSE's default
+        configuration file (e.g., geometry-defining bitmaps).
+    config_filename : str
+        Absolute path of the source YAML configuration file from which this
+        object was first deserialized.
     '''
     def __init__(self, config_filename: str):
-        #self.inbuiltInit()
+        '''
+        Parameters
+        ----------------------------
+        config_filename : str
+            Absolute or relative path of the source YAML configuration file from
+            which to deserialize this object.
+        '''
         self._yamlConfigInit(config_filename)
 
     def _yamlConfigInit(self, config_filename: str):
         '''
-        Initialize parameters from the passed YAML-formatted configuration file.
+        Parse parameters from the passed YAML configuration file.
         '''
-        # Dictionary loaded from such YAML file.
-        self.config = simconfig.load(config_filename)
+        # Unique absolute path of the passed file and directory containing this
+        # file. Since the latter uses the former, this dirname is guaranteed to
+        # be non-empty and hence *NOT* raise an exception.
+        self.config_filename = paths.canonicalize(config_filename)
+        self.config_dirname = paths.get_dirname(self.config_filename)
 
-        # Absolute path of the parent directory of such file or the empty string
-        # if such file has no dirname (e.g., "sim_config.yaml").
-        config_dirname = paths.get_dirname_or_empty(config_filename)
+        # Dictionary loaded from this YAML file.
+        self.config = simconfig.load(self.config_filename)
 
         self.grid_size = int(self.config['general options']['comp grid size'])
 
@@ -96,11 +113,11 @@ class Parameters(object):
 
         # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(
-            config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
+            self.config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = paths.join(
-            config_dirname, self.config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
+            self.config_dirname, self.config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
         self.sim_results = paths.join(
-            config_dirname, self.config['results file saving']['directory']) # folder to auto-save results (graphs, images, animations)
+            self.config_dirname, self.config['results file saving']['directory']) # folder to auto-save results (graphs, images, animations)
 
         self.init_filename = self.config['init file saving']['file']
         self.sim_filename = self.config['sim file saving']['file']
@@ -311,7 +328,6 @@ class Parameters(object):
         # Define paths for loading bitmaps.
         gdb = self.config['geometry defining bitmaps']
 
-        self.bitmap_path = paths.join(config_dirname, gdb['directory'])
         self.bitmap_profiles = {}
 
         for bitmap in gdb['bitmaps']:
@@ -1277,11 +1293,13 @@ def bal_charge(concentrations,zs):
 
     return bal_conc,valance
 
-#params = Parameters()
 
+#FIXME: Cut me off at the knees, please.
     # def inbuiltInit(self):
     #     '''
     #     Initialize parameters to sane hardcoded defaults.
+    #     The 'inbuiltInit' method is intended for in-house testing purposes when new functionality is built in
+    #     but before it's added to the configuration file.
     #     '''
     #     self.time_profile_init = 'initialize'        # choose time profile for initialization sim
     #     self.time_profile_sim = 'simulate_somatic'   # choice of 'simulate_excitable' or 'simulate_somatic'

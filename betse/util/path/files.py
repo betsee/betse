@@ -20,7 +20,7 @@ import os, re, shutil, tempfile
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
     '''
-    Raise an exception unless the passed non-directory file exists *after*
+    Raise an exception unless the passed non-directory file exists _after_
     following symbolic links.
     '''
     if not is_file(pathname):
@@ -30,7 +30,7 @@ def die_unless_file(pathname: str) -> None:
 # ....................{ EXCEPTIONS ~ if                    }....................
 def die_if_file(pathname: str) -> None:
     '''
-    Raise an exception if the passed non-directory file exists *after* following
+    Raise an exception if the passed non-directory file exists _after_ following
     symbolic links.
     '''
     if is_file(pathname):

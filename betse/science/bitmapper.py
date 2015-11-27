@@ -4,52 +4,49 @@
 
 # FIXME figure out why scipy can't read pngs!
 
-
 import numpy as np
-# import scipy.spatial as sps
+from betse.exceptions import BetseExceptionSimulation
+from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
-# from matplotlib.path import Path
-# import copy
-# import math
-# from betse.science import toolbox as tb
-import os, os.path
-# from betse.science import filehandling as fh
-# from betse.util.io import loggers
-from betse.exceptions import BetseExceptionSimulation
-
 
 class Bitmapper(object):
     """
-    Finds a designated bitmap, loads it, makes it into an interpolation function,
-    and allows the user to screen a set of points in the space defined by p.wsx,
-    to see if they fall within the colored area of the bitmap.
+    Finds a designated bitmap, loads it, makes it into an interpolation
+    function, and allows the user to screen a set of points in the space defined
+    by `p.wsx`, to see if they fall within the colored area of the bitmap.
 
-    All bitmaps loaded must be square, with equal dimensions (pixels).
-    It is recommended that the bitmaps used be 500x500 pixels. The bitmap should be
-    a completely threshholded image, with black defining the area to be used as the
-    clipping mask for the cell cluster, or defining the area for a tissue or boundary
-    profile.
+    All bitmaps loaded must be square, with equal dimensions (pixels). It is
+    recommended that the bitmaps used be 500x500 pixels. The bitmap should be a
+    completely threshholded image, with black defining the area to be used as
+    the clipping mask for the cell cluster, or defining the area for a tissue or
+    boundary profile.
 
     Parameters
-    -------------
+    ----------------------------
     p                      The instance of the Parameters object used in the simulation.
     desired_bitmap         The designation of the desired bitmap as a string. The string
                            may be:
                            'clipping'   to specify the cluster clipping bitmap is desired
-                           'tissue profile 1' to specify the bitmap defining tissue profile 1 is deisred
-                           'tissue profile 2'     "                           "             2 is deisred
+                           'tissue profile 1' to specify the bitmap defining tissue profile 1 is desired
+                           'tissue profile 2'     "                           "             2 is desired
                            'boudnary profile 1' to specify the bitmap defining the boundary profile 1
 
-    Fields
-    -------------
-    self.bitmapFile            The directory to load or save the desired bitmap.
-    self.clippingMatrix        A numpy matrix defining the threshholded bitmap image
-    self.clipping_function     The interpolation object made from the bitmap image
-    self.good_points           A numpy matrix listing the [x,y] points falling in the bitmap colored area
+    Attributes
+    ----------------------------
+    bitmapFile : str
+        Absolute path of this bitmap.
+    clippingMatrix : ndarray
+        Numpy matrix defining this bitmap's threshholded image.
+    clipping_function : func
+        SciPy interpolation function object accepting a point `(x, y)` and
+        returning `1.0` if that point resides inside this bitmap's colored area.
+    good_points : ndarray
+        Numpy matrix listing all points `(x, y)` residing inside this bitmap's
+        colored area.
 
     Methods
-    -------------
+    ----------------------------
     self.bitmapInit        Loads, initializes, and creates an interpolation object from the bitmap
     self.clipPoints        Takes a set of points as parameters and returns the list of points in the bitmap mask
     """
@@ -64,7 +61,7 @@ class Bitmapper(object):
         file to a threshholded matrix.
 
         Parameters
-        -------------
+        ----------------------------
         p                   An instance of the parameters object
 
         desired_bitmap      This is a string.
@@ -77,27 +74,21 @@ class Bitmapper(object):
 
         threshhold_val      The value of the pixel to threshhold to. Greyscale runs from 0.0 (black)
                             to 255 (white). The default is to get black pixels (0.0).
-
-        Creates
-        --------------
-        self.clippingMatrix        A matrix version of the threshholded input bitmap.
-
-        self.clipping_function     A scipy interpolation function object that takes a point coordinate (x,y)
-                                   and returns 1.0 if the point is inside the bitmap area, 0.0 if outside.
         """
 
-        # Make a call to the BETSE-specific cache directory indicated in the params file:
-        bitmap_cache_dir = os.path.expanduser(p.bitmap_path)
-        os.makedirs(bitmap_cache_dir, exist_ok=True)
+        # Absolute or relative path of the bitmap to be loaded.
+        self.bitmapFile = p.bitmap_profiles[desired_bitmap]
 
-        # Find the filename of the bitmap that's indicated by the designation:
-        file_name = p.bitmap_profiles[desired_bitmap]
+        # If this is a relative path, convert this into an absolute path
+        # relative to the directory containing the source configuration file.
+        if paths.is_relative(self.bitmapFile):
+            self.bitmapFile = paths.join(p.config_dirname, self.bitmapFile)
 
-        # Define data paths for loading the desired bitmap:
-        self.bitmapFile = os.path.join(bitmap_cache_dir, file_name)
+        # If this bitmap does *NOT* exist, raise an exception.
+        files.die_unless_file(self.bitmapFile)
 
-        # Read the bitmap as a flattened (grayscale) array using scipy's imread function:
-        bitmap = misc.imread(self.bitmapFile,flatten=1)
+        # Load this bitmap as a flattened (i.e., grayscale) array.
+        bitmap = misc.imread(self.bitmapFile, flatten=1)
 
         if bitmap.shape[0] != bitmap.shape[1]:
             raise BetseExceptionSimulation(

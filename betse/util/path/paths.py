@@ -68,6 +68,7 @@ def is_path(pathname: str) -> bool:
     # common usage patterns and should *NOT* be discriminated against here.
     return path.lexists(pathname)
 
+# ....................{ TESTERS                            }....................
 def is_absolute(pathname: str) -> bool:
     '''
     `True` if the passed path is absolute.
@@ -81,6 +82,18 @@ def is_absolute(pathname: str) -> bool:
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
     return path.isabs(pathname)
+
+def is_relative(pathname: str) -> bool:
+    '''
+    `True` if the passed path is relative.
+
+    The definition of "relative" depends on the current operating system. Under:
+
+    * POSIX-compatible systems, relative paths are _not_ prefixed by `/`.
+    * Microsoft Windows, relative paths are _not_ prefixed by an optional drive
+      indicator (e.g., `C:`) followed by `\`.
+    '''
+    return not is_absolute(pathname)
 
 # ....................{ TESTERS ~ pathname                 }....................
 def is_dirname_empty(pathname: str) -> bool:
@@ -214,7 +227,7 @@ def get_pathname_sans_filetype(pathname: str) -> str:
 
 # ....................{ JOINERS                            }....................
 #FIXME: According to the Python documentation, os.path.join() implicitly
-#performs the following terrible operation:
+#performs the following hideous operation:
 #
 #    If a component is an absolute path, all previous components are thrown away
 #    and joining continues from the absolute path component.
@@ -231,7 +244,8 @@ def get_pathname_sans_filetype(pathname: str) -> str:
 #
 #Unfortunately, that fails to take into account the drive letter prefixing
 #absolute Windows pathnames. There appears to exist a function path.splitdrive()
-#doing so, but such function inefficiently returns a tuple. *shrug*
+#doing so, but such function inefficiently returns a tuple. "Who cares about
+#efficiency under Windows?" is my retort! *shrug*
 
 def join(*pathnames) -> str:
     '''
@@ -252,12 +266,15 @@ def canonicalize(pathname: str) -> str:
 
     Specifically (in order):
 
-    * Perform **tilde expansion,** replacing a `~` character prefixing such path
+    . Perform **tilde expansion,** replacing a `~` character prefixing such path
       by the absolute path of the current user's home directory.
-    * Perform **path normalization,** thus:
+    . Perform **path normalization,** thus (in no particular order):
       * Collapsing redundant separators (e.g., converting `//` to `/`).
-      * Converting relative to absolute path components (e.g., converting `../`
-        to the name of the parent directory of such component).
+      * Converting explicit relative to absolute path components (e.g.,
+        converting `../` to the name of the parent directory of such component).
+      * Converting implicit relative basenames to absolute paths (e.g.,
+        converting `sim_config.yaml` to `/tmp/sim_config.yaml` when the current
+        working directory is `/tmp`).
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'

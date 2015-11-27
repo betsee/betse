@@ -235,27 +235,21 @@ world options:
 # For related options, see also the "variable settings" section below.
 
 geometry defining bitmaps:
-    directory: geo/circle            # directory containing geometry-defining
-                                     # bitmaps (relative to the directory
-                                     # containing this file)
-
     bitmaps:
-        - &circle_base               # YAML anchor name of bitmap (referrable to
-                                     # elsewhere in this file as "*circle_base")
-          file: circle_base.png      # basename of bitmap in the above directory
+        # Absolute or relative path of bitmap. If relative (i.e., *NOT*
+        # prefixed by a directory separator), the path is relative to the
+        # directory containing this configuration file.
+        - file: geo/circle/circle_base.png
           link to profile: clipping  # use 'clipping' to use as geometry mask, or
                                      # link to a defined tissue profile name
 
-        - &spot
-          file: spot.png
-          link to profile: spot
+        - file: geo/circle/spot.png             # basename of bitmap in the above directory  
+          link to profile: spot      # a defined tissue profile name       
 
-        - &ring
-          file: ring.png
+        - file: geo/circle/ring.png
           link to profile: ring
 
-        - &wedge
-          file: wedge.png
+        - file: geo/circle/wedge.png
           link to profile: wound
 
 
