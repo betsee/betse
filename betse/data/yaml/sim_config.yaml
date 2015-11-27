@@ -351,7 +351,7 @@ tissue profile definition:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: False        # turn the event on (True) or off (False)
+  event happens: True        # turn the event on (True) or off (False)
   change start: 1.0                # time to start change [s]
   change finish: 4.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]

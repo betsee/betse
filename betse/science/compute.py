@@ -1210,6 +1210,8 @@ class Simulator(object):
             if type(valu) == interp.interp1d:
                 setattr(self.dyna,key,None)
 
+        cells.points_tree = None
+
         self.checkPlot = None
 
         if p.run_sim is False:
@@ -1677,6 +1679,8 @@ class Simulator(object):
         for key, valu in vars(self.dyna).items():
             if type(valu) == interp.interp1d:
                 setattr(self.dyna,key,None)
+
+        cells.points_tree = None
 
         self.checkPlot = None
 
@@ -2642,9 +2646,6 @@ class Simulator(object):
 
     def get_current(self,cells,p):
 
-        # Ixo = self.I_tot_x_time[-1]
-        # Iyo = self.I_tot_y_time[-1]
-
         # zero components of total current vector:
 
         self.I_tot_x = np.zeros(cells.Xgrid.shape)
@@ -2727,14 +2728,8 @@ class Simulator(object):
             I_env_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_y,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
 
-            # self.I_env_x = self.I_env_x.reshape(cells.X.shape)
-            # self.I_env_y = self.I_env_y.reshape(cells.X.shape)
-
             self.I_tot_x = self.I_tot_x + I_env_x
             self.I_tot_y = self.I_tot_y + I_env_y
-
-        # self.dIx = ((self.I_tot_x - Ixo)/p.dt)
-        # self.dIy = ((self.I_tot_y - Iyo)/p.dt)
 
     def getFlow(self,cells,p):  # reinstate the possibility of osmotic P --> hydrostatic P induced flow between cells
         """
@@ -3247,9 +3242,6 @@ class Simulator(object):
 
         """
 
-        # if p.sim_ECM is False:  # FIXME this needs to be done only for osmosis, and it needs to apply to ecm too!
-                                # FIXME when doing changes via osmosis, change ecm volume and concentration too!
-
         # obtain the net moles in cells so that we can redo the concs with new volumes
         net_moles = copy.copy(self.cc_cells)
 
@@ -3276,7 +3268,7 @@ class Simulator(object):
 
             else:
 
-                P_cell = self.osmo_P_delta[cells.mem_to_cells]/500
+                P_cell = self.osmo_P_delta[cells.mem_to_cells]/100
 
         if p.deform_electro is True and p.sim_ECM is True:
 
@@ -3351,63 +3343,56 @@ class Simulator(object):
         # find a set of indicies that map between points of ecm_verts_unique and voronoi grid
         # these are updated and used to recalculate the maskM in world module
 
-        vertTree = sps.KDTree(cells.voronoi_grid)
-        map_voronoi2ecm = list(vertTree.query(ecm_new))[1]
-        # set the voronoi points to the value of these new points
-        cells.voronoi_grid[map_voronoi2ecm] = ecm_new
-
+        # vertTree = sps.KDTree(cells.voronoi_grid) # FIXME this will be really slow
+        # map_voronoi2ecm = list(vertTree.query(ecm_new))[1]
+        # # set the voronoi points to the value of these new points
+        # cells.voronoi_grid[map_voronoi2ecm] = ecm_new[:]
 
         #--------------------------------------------------------------------------
-        # FIXME in World, build a new cell_index and cellVerts methods that use matrices with flattened data
-        # arrays to recalculate the same phenomena. This will speed things up considerably by avoiding loops.
-        # may need to keep the loop here, which reorganizes the ecm verts and packages a nested version, but
-        # finalize things by flattening this and working with it in the new module?
 
         # Repackage ecm verts so that the World module can do its magic:
 
-        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
+        # ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
 
         # next repackage the structure to include individual cell data
 
-        cells.ecm_verts = [] # null the original ecm verts data structure...
-
-        for i in range(0,len(cells.cell_to_mems)):
-
-            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
-
-            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
-            cent = ecm_nest.mean(axis=0)     # calculate the centre point
-            angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
-                    #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-            sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
-            sorted_region_b = sorted_region.tolist()
-
-            cells.ecm_verts.append(sorted_region_b)
-
-        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
+        # cells.ecm_verts = [] # null the original ecm verts data structure...
+        #
+        # for i in range(0,len(cells.cell_to_mems)):
+        #
+        #     ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
+        #
+        #     ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
+        #     cent = ecm_nest.mean(axis=0)     # calculate the centre point
+        #     angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
+        #             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+        #     sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
+        #     sorted_region_b = sorted_region.tolist()
+        #
+        #     cells.ecm_verts.append(sorted_region_b)
+        #
+        # cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
 
         # recreate ecm_verts_unique:
-
+        cells.ecm_verts_unique = ecm_new[:]
 
         #  redo cell centres:
-        cells.cell_index(p)
+        cells.cell_index_quick()
 
         # redo other geometric properties:
-        cells.cellVerts(p)  # LONG
+        cells.cellVerts_quick(p)
 
         cells.short_cleanUp(p)
 
         if p.sim_ECM is True:
 
-            cells.voronoiGrid(p)
+            cells.short_environment(p)
+            self.initDenv(cells,p)
 
-            cells.short_environment(p)  #REALLY LONG
+        cells.recalc_gj_vects(p)
 
-        cells.recalc_gj_vects(p)  # LONGISH
 
-        # if p.sim_ECM is False:  # FIXME also for ecm is true, only for osmosis...
-
-        # scale concentrations by new cell volumes:   # FIXME should do this with dye and IP3 too
+        # scale concentrations by new cell volumes:
         for i, moles in enumerate(net_moles):
 
             self.cc_cells[i][:] = moles/cells.cell_vol

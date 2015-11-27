@@ -466,13 +466,12 @@ class World(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
-        # for poly in self.voronoi_verts:
-        #
-        #     poly = np.asarray(poly)
-        #     aa = np.mean(poly,axis=0)
-        #     self.voronoi_centres.append(aa)
-        #
-        # self.voronoi_centres = np.asarray(self.voronoi_centres)
+    def cell_index_quick(self):
+
+        cell_centres_x = np.dot(self.cell_cents_M,self.ecm_verts_unique[:,0])
+        cell_centres_y = np.dot(self.cell_cents_M,self.ecm_verts_unique[:,1])
+
+        self.cell_centres = np.column_stack((cell_centres_x,cell_centres_y))
 
     def near_neigh(self,p):
 
@@ -589,7 +588,8 @@ class World(object):
 
         """
 
-        loggers.log_info('Tagging environmental boundary points... ')
+        if p.deformation is False:
+            loggers.log_info('Tagging environmental boundary points... ')
 
         con_hull = tb.alpha_shape(points, alpha/p.d_cell)  # get the concave hull for the membrane midpoints
         con_hull = np.asarray(con_hull)
@@ -644,13 +644,6 @@ class World(object):
                 pt_scale.append(p.scale_cell*pt_zero + centre)
             self.cell_verts.append(np.asarray(pt_scale))
 
-        # for centre,poly in zip(self.voronoi_centres,self.voronoi_verts):
-        #     pt_scale = []
-        #     for vert in poly:
-        #         pt_zero = vert - centre
-        #         pt_scale.append(p.scale_cell*pt_zero+centre)
-        #     self.all_voronoi_verts.append(pt_scale)
-        #
         self.cell_verts = np.asarray(self.cell_verts)
 
         self.cell_vol = []   # storage for cell volumes
@@ -668,8 +661,6 @@ class World(object):
         cv_ny=[]
         cv_tx=[]
         cv_ty=[]
-
-        perim = 2*math.pi*p.rc*p.cell_height    # area of perimeter of cell (general value)
 
         for polyc in self.cell_verts:
             # First calculate individual cell volumes from cell vertices:
@@ -714,41 +705,75 @@ class World(object):
         self.mem_mids_flat, self.indmap_mem, _ = tb.flatten(self.mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
-        if p.deformation is True:
-            # calculate some quantities used only in deformation sequences:
-            # calculate the chords from cell centre to membrane midpoint
-            chord_mag = []
-            for i, mids in enumerate(self.mem_mids):
-                cent = self.cell_centres[i]
+    def cellVerts_quick(self,p):
 
-                chords = mids - cent
-                chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
-                chord_mag.append(chord_m)
+        # subtract the appropriate cell centre from each ecm vertex:
+        ecm_verts_extended = np.dot(self.cell_verts_M,self.ecm_verts_unique)
+        cell_centred = ecm_verts_extended - self.cell_centres[self.mem_to_cells]
 
-            self.chord_mag, _ , _ = tb.flatten(chord_mag)
-            self.chord_mag = np.asarray(self.chord_mag)
-
-            self.cell_verts_unique, _, _ = tb.flatten(self.cell_verts)
-            self.cell_verts_unique = np.asarray(self.cell_verts_unique)
+        self.cell_verts_unique = cell_centred*p.scale_cell + self.cell_centres[self.mem_to_cells]
 
 
-        # # run a similar (but simplified) protocol with the full voronoi verts structure:
-        # self.voronoi_mids = []   # storage for membrane midpoints
-        #
-        # for polyc in self.voronoi_verts:
-        #
-        #     # Calculate individual membrane and ghost membrane midpoints:
-        #     mps = []
-        #
-        #     for i in range(0,len(polyc)):
-        #         pt1 = polyc[i-1]
-        #         pt2 = polyc[i]
-        #         pt1 = np.asarray(pt1)
-        #         pt2 = np.asarray(pt2)
-        #         mid = (pt1 + pt2)/2       # midpoint calculation
-        #         mps.append(mid)
-        #
-        #     self.voronoi_mids.append(mps)
+        # repackage the cell verts into a nested array structure (used for plotting, unfortunately...)
+
+        self.cell_verts = [] # null the original cell verts data structure...
+
+        for i in range(0,len(self.cell_to_mems)):
+
+            vert_nest = self.cell_verts_unique[self.cell_to_mems[i]]
+
+            self.cell_verts.append(vert_nest)
+
+        self.cell_verts = np.asarray(self.cell_verts)   # Voila! Deformed cell_verts!
+
+
+        # calculate cell area using a matrix version of the Shoelace formula:
+        A_flat = 0.5*(self.cell_verts_unique[self.even_vert_inds,0]*self.cell_verts_unique[self.special_vert_inds,1] -
+                self.cell_verts_unique[self.even_vert_inds,1]*self.cell_verts_unique[self.special_vert_inds,0])
+
+        self.cell_vol = np.abs(np.dot(self.M_sum_mems,A_flat)*p.cell_height)
+
+        # calculate membrane properties:
+        # membrane edges:
+        self.mem_edges_flat[:,0,:] = self.cell_verts_unique[self.even_vert_inds]
+        self.mem_edges_flat[:,1,:] = self.cell_verts_unique[self.special_vert_inds]
+
+        # membrane mids:
+        self.mem_mids_flat = (self.cell_verts_unique[self.even_vert_inds] +
+                              self.cell_verts_unique[self.special_vert_inds])/2
+
+        # membrane length and surface area:
+        self.mem_length = np.sqrt((self.cell_verts_unique[self.even_vert_inds,0] -
+                                        self.cell_verts_unique[self.special_vert_inds,0])**2 +
+                                        (self.cell_verts_unique[self.even_vert_inds,1] -
+                                         self.cell_verts_unique[self.special_vert_inds,1])**2)
+
+        self.mem_sa = p.cell_height*self.mem_length
+
+        # membrane tangent and normal vectors:
+        x1 = self.cell_verts_unique[self.special_vert_inds][:,0]
+        y1 = self.cell_verts_unique[self.special_vert_inds][:,1]
+        x2 = self.cell_verts_unique[self.even_vert_inds][:,0]
+        y2 = self.cell_verts_unique[self.even_vert_inds][:,1]
+
+        tang_x = x2 - x1
+        tang_y = y2 - y1
+        norm_tang = np.sqrt(tang_x**2 + tang_y**2)
+        tang_ax = tang_x/norm_tang
+        tang_ay = tang_y/norm_tang
+
+        cv_x = self.mem_mids_flat[:,0]
+        cv_y = self.mem_mids_flat[:,1]
+        cv_nx = tang_ay
+        cv_ny = -tang_ax
+        cv_tx = tang_ax
+        cv_ty = tang_ay
+
+        self.mem_vects_flat = np.column_stack((cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty))
+
+        # redo boundary tagging:
+        self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+        self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
 
     def makeECM(self,p):
 
@@ -828,11 +853,11 @@ class World(object):
         loggers.log_info('Setting global environmental conditions... ')
 
         # first obtain a structure to map to total xypts vector index:
-        points_tree = sps.KDTree(self.xypts)
+        self.points_tree = sps.KDTree(self.xypts)
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-        self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
+        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -860,10 +885,10 @@ class World(object):
         bL_pts = np.column_stack((bL_x, bL_y))
         bR_pts = np.column_stack((bR_x, bR_y))
 
-        self.bBot_k = list(points_tree.query(bBot_pts))[1]
-        self.bTop_k = list(points_tree.query(bTop_pts))[1]
-        self.bL_k = list(points_tree.query(bL_pts))[1]
-        self.bR_k = list(points_tree.query(bR_pts))[1]
+        self.bBot_k = list(self.points_tree.query(bBot_pts))[1]
+        self.bTop_k = list(self.points_tree.query(bTop_pts))[1]
+        self.bL_k = list(self.points_tree.query(bL_pts))[1]
+        self.bR_k = list(self.points_tree.query(bR_pts))[1]
 
         #-----------------------------------------------------------
         # calculate the cluster masking matrix
@@ -889,12 +914,15 @@ class World(object):
 
     def short_environment(self,p):
 
-        # first obtain a structure to map to total xypts vector index:
-        points_tree = sps.KDTree(self.xypts)
+        if self.points_tree is None:
+
+            # first obtain a structure to map to total xypts vector index:
+            self.points_tree = sps.KDTree(self.xypts)
+
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-        self.map_cell2ecm = list(points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(points_tree.query(self.mem_mids_flat,k=1))[1]
+        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
+        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -903,34 +931,6 @@ class World(object):
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
-
-        self.make_maskM(p)
-
-        # voronoiTree = sps.KDTree(self.voronoi_grid)
-        # mem_inds = list(voronoiTree.query(self.plot_xy))[1]
-        # cell_inds = list(voronoiTree.query(self.cell_centres))[1]
-        #
-        # voronoi_mask = np.zeros(len(self.voronoi_grid))
-        # voronoi_mask[cell_inds]=1
-        # voronoi_mask[mem_inds]=1
-        #
-        # xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
-        # yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
-        #
-        # X,Y = np.meshgrid(xv,yv)
-        #
-        # self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
-        #                      method='linear',fill_value=0)
-        #
-        # self.maskM = fd.integrator(self.maskM)
-        # self.maskM = np.round(self.maskM,0)
-        #
-        # self.Xgrid = X
-        # self.Ygrid = Y
-        #
-        # maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
-        #
-        # self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
 
         if p.sim_ECM is True:
 
@@ -1134,14 +1134,6 @@ class World(object):
 
     def short_cleanUp(self,p):
 
-        self.mem_length,_,_ = tb.flatten(self.mem_length)
-
-        self.mem_length = np.asarray(self.mem_length)
-
-        self.mem_sa = self.mem_length*p.cell_height
-
-        self.cell_vol = np.asarray(self.cell_vol)
-
         # cell surface area:
         self.cell_sa = []
         for grp in self.cell_to_mems:
@@ -1159,21 +1151,11 @@ class World(object):
 
         self.ave_sa_all = np.mean(self.cell_sa)/np.mean(self.num_nn)
 
-        self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
-        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+        self.mem_verts = self.cell_verts_unique[:]
 
-        # structures for plotting interpolated data and streamlines:
-        # create a flattened version of cell_verts that will serve as membrane verts:
-        self.mem_verts,_,_ = tb.flatten(self.cell_verts)
-        self.mem_verts = np.asarray(self.mem_verts)
+        self.plot_xy = np.vstack((self.mem_mids_flat,self.cell_verts_unique))
 
-        self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
-
-        # define matrix for updating cells with fluxes from membranes:
-        if self.worldtype == 'full':
-
-            self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
-            self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+        # self.make_maskM(p)  # FIXME this is way too slow!
 
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
@@ -1197,10 +1179,6 @@ class World(object):
 
                 self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
                 self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
-
-        #---------------------------------------------------------------------------
-
-        self.mem_mids = np.asarray(self.mem_mids)
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1423,6 +1401,8 @@ class World(object):
 
         if savecells is True:
 
+            self.points_tree = None
+
             # save the cell cluster
             loggers.log_info('Saving the cell cluster... ')
 
@@ -1550,15 +1530,32 @@ class World(object):
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
 
-
-
-
     def deformationMatrix(self,p):
+
         """
         Calculate a matrix used to map strain deformation
         from membrane midpoints to the cell vertices.
 
         """
+
+
+        # calculate some quantities used only in deformation sequences:
+        # calculate the chords from cell centre to membrane midpoint
+        chord_mag = []
+        for i, mids in enumerate(self.mem_mids):
+            cent = self.cell_centres[i]
+
+            chords = mids - cent
+            chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
+            chord_mag.append(chord_m)
+
+        self.chord_mag, _ , _ = tb.flatten(chord_mag)
+        self.chord_mag = np.asarray(self.chord_mag)
+
+        self.cell_verts_unique, _, _ = tb.flatten(self.cell_verts)
+        self.cell_verts_unique = np.asarray(self.cell_verts_unique)
+
+        #--------------------------------------------------------------------
 
         # build search trees for the flattened cell verts and mem mids:
         memTree = sps.KDTree(self.mem_mids_flat)
@@ -1630,6 +1627,59 @@ class World(object):
 
         self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
+        #----matrices for calculating trans-membrane Laplacian and inverse Laplacian:
+
+        self.mem_LapM = np.zeros((len(self.cell_i), len(self.mem_i)))
+
+        for cell_i in self.cell_i:
+
+            mem_indices = self.cell_to_mems[cell_i]
+
+            for mem_i in mem_indices:
+
+                self.mem_LapM[cell_i,mem_i] = self.mem_sa[mem_i]/self.cell_vol[cell_i]
+
+
+        self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)
+
+        # matrices for re-calculating cell verts quickly from new ecm verts:
+        ecmTree = sps.KDTree(self.ecm_verts_unique)
+        cellTree = sps.KDTree(self.cell_verts_unique)
+
+        self.cell_verts_M = np.zeros((len(self.cell_verts_unique),len(self.ecm_verts_unique)))
+        self.cell_cents_M = np.zeros((len(self.cell_i),len(self.ecm_verts_unique)))
+        self.ecm_to_cell = np.zeros(len(self.ecm_verts_unique),dtype=np.int64) # maps cell centre to ecm index
+
+        for cell_i, verts in enumerate(self.ecm_verts):
+
+            verts_cll = self.cell_verts[cell_i]
+            # get inds to ecm_verts_unique for these verts:
+            ecm_verts = list(ecmTree.query(verts))[1]
+            cell_verts = list(cellTree.query(verts_cll))[1]
+
+            self.cell_verts_M[cell_verts,ecm_verts] = 1
+
+            num_verts = len(verts)
+
+            for v in ecm_verts:
+
+                self.cell_cents_M[cell_i,v] = 1/num_verts
+
+                self.ecm_to_cell[v] = cell_i
+
+        # speedy way to calculate cell area using matrices:
+        self.even_vert_inds = []
+        self.special_vert_inds = []
+
+        for verts in self.cell_verts:
+
+            flat_verts = list(cellTree.query(verts))[1]
+            flat_verts_rollup = np.roll(flat_verts,1)
+
+            for i in range(len(flat_verts)):
+                self.even_vert_inds.append(flat_verts[i])
+                self.special_vert_inds.append(flat_verts_rollup[i])
+
     def make_maskM(self,p):
         """
         Create structures for plotting interpolated data on cell centres
@@ -1658,13 +1708,10 @@ class World(object):
         self.Ygrid = Y
 
         maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
-        maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
+        # maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
         maskECM = np.round(maskECM,0)
 
         self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
-
-        # self.ecm_vol[self.map_mem2ecm] = p.cell_height*p.cell_space*np.mean(self.mem_sa)  # FIXME uncomment to shrink ecm volume
-
 
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
