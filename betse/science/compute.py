@@ -3199,7 +3199,7 @@ class Simulator(object):
         Works only for p.sim_ECM is True.
 
         """
-        # surfave charge density for cell and ecm:
+        # surface charge density for cell and ecm:
         Q_cell = self.rho_cells*cells.cell_vol*(1/p.ff_cell)*(1/cells.cell_sa)
         Q_ecm = self.rho_env*cells.ecm_vol*(1/p.ff_env)*(1/cells.ecm_sa)
 
@@ -3267,78 +3267,44 @@ class Simulator(object):
             net_moles[i][:] = concs*cells.cell_vol
 
 
-        # determine net pressure in individual cells:-----------------------
+        # determine net pressure in individual cells (mapped to each membrane):-----------------------
 
-        if p.sim_ECM is False:
-
-            P_cell = np.zeros(len(cells.cell_i))
-
-        else:
-
-            P_cell = np.zeros(len(cells.mem_i))
+        P_mem = np.zeros(len(cells.mem_i))
 
         if p.deform_osmo is True:
 
-            self.osmotic_P(cells,p) # update osmotic pressure
+            # self.osmotic_P(cells,p) # update osmotic pressure
 
-            if p.sim_ECM is False:
-
-                P_cell = self.osmo_P_delta/100
-
-            else:
-
-                P_cell = self.osmo_P_delta[cells.mem_to_cells]/15
+            P_mem = self.osmo_P_delta[cells.mem_to_cells]/100
 
         if p.deform_electro is True and p.sim_ECM is True:
 
-            self.electro_P(cells,p)  # update electrostatic pressure
+            # self.electro_P(cells,p)  # update electrostatic pressure
+
+            P_mem = P_mem + self.P_electro
 
         #---------------------------------------------------------------------
         # determine stress
 
-        if p.sim_ECM is False:
-            # calculate net outward stress at boundary:
-            S_cell_x = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
-            S_cell_y = P_cell[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
-
-            # environmental values assumed to be reference zero:
-            env_P = 0
-
-            S_cell_x[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
-                                         env_P)*cells.mem_vects_flat[cells.mem_bound,2]
-            S_cell_y[cells.mem_bound] = (P_cell[cells.mem_to_cells][cells.mem_bound] -
-                                         env_P)*cells.mem_vects_flat[cells.mem_bound,3]
-
-        else:
-
-             # calculate net outward stress at boundary:
-            S_cell_x = P_cell*cells.mem_vects_flat[:,2]
-            S_cell_y = P_cell*cells.mem_vects_flat[:,3]
-
-            # environmental values assumed to be reference zero:
-            env_P = 0
-
-            S_cell_x[cells.mem_bound] = (P_cell[cells.mem_bound] -
-                                         env_P)*cells.mem_vects_flat[cells.mem_bound,2]
-            S_cell_y[cells.mem_bound] = (P_cell[cells.mem_bound] -
-                                         env_P)*cells.mem_vects_flat[cells.mem_bound,3]
+        # calculate net outward stress at each membrane:
+        S_mem_x = P_mem*cells.mem_vects_flat[:,2]
+        S_mem_y = P_mem*cells.mem_vects_flat[:,3]
 
         # balance the stress at the (assumed-to-be) shared boundary:
-        S_mem_x = (S_cell_x[cells.mem_nn[:,1]] + S_cell_x[cells.mem_nn[:,0]])
-        S_mem_y = (S_cell_y[cells.mem_nn[:,1]] + S_cell_y[cells.mem_nn[:,0]])
+        S_mem_x_b = (S_mem_x[cells.mem_nn[:,1]] + S_mem_x[cells.mem_nn[:,0]])
+        S_mem_y_b = (S_mem_y[cells.mem_nn[:,1]] + S_mem_y[cells.mem_nn[:,0]])
 
         # define the strain-stress matrix at the cell membrane midpoints:
-        Y = p.youngMod
-        poi = 0.5
+        Y = p.youngMod   # Young's modulus (elastic modulus)
+        poi = 0.5        # Roisson ratio
 
-        eta_x = (1/Y)*(S_mem_x - poi*S_mem_y)*cells.mem_vects_flat[:,2]**2
-        eta_y = (1/Y)*(S_mem_y - poi*S_mem_x)*cells.mem_vects_flat[:,3]**2
+        eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)*cells.mem_vects_flat[:,2]**2
+        eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)*cells.mem_vects_flat[:,3]**2
 
         d_x = eta_x*cells.chord_mag
         d_y = eta_y*cells.chord_mag
 
         # get new cell verts:
-
         new_cell_verts_x = cells.cell_verts_unique[:,0] + np.dot(cells.deforM,d_x)
         new_cell_verts_y = cells.cell_verts_unique[:,1] + np.dot(cells.deforM,d_y)
 
@@ -3354,17 +3320,52 @@ class Simulator(object):
         # find a set of indicies that map between points of ecm_verts_unique and voronoi grid
         # these are updated and used to recalculate the maskM in world module
 
-        # set the voronoi points to the value of these new points
+        # set the voronoi points originally tagged to the ecm to the value of these new points
         cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
 
         # recreate ecm_verts_unique:
         cells.ecm_verts_unique = ecm_new[:]
 
+        #----------------------------------
+
+        # Repackage ecm verts so that the World module can do its magic:
+
+        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
+
+        # next repackage the structure to include individual cell data
+
+        cells.ecm_verts = [] # null the original ecm verts data structure...
+
+        for i in range(0,len(cells.cell_to_mems)):
+
+            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
+
+            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
+            cent = ecm_nest.mean(axis=0)     # calculate the centre point
+            angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
+                    #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+            sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
+            sorted_region_b = sorted_region.tolist()
+
+            cells.ecm_verts.append(sorted_region_b)
+
+        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
+
         #  redo cell centres:
-        cells.cell_index_quick()
+        cells.cell_index(p)
 
         # redo other geometric properties:
-        cells.cellVerts_quick(p)
+        cells.cellVerts(p)
+
+        #-----------------------------------
+        #
+        # #  redo cell centres:
+        # cells.cell_index_quick()
+        #
+        # # redo other geometric properties:
+        # cells.cellVerts_quick(p)
+
+        #----------------------------------
 
         cells.short_cleanUp(p)
 
@@ -3902,6 +3903,28 @@ def rk4(c,deltac,p):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
+# environmental handling of pressure for deformation
+        # if p.sim_ECM is False:
+        #
+        #     # environmental values assumed to be reference zero:
+        #     env_P = 0
+        #
+        #     S_mem_x[cells.mem_bound] = (P_mem[cells.mem_bound] -
+        #                                  env_P)*cells.mem_vects_flat[cells.mem_bound,2]
+        #     S_mem_y[cells.mem_bound] = (P_mem[cells.mem_bound] -
+        #                                  env_P)*cells.mem_vects_flat[cells.mem_bound,3]
+        #
+        # else:
+        #
+        #     # environmental values assumed to be reference zero:
+        #     env_P = 0
+        #
+        #     S_cell_x[cells.mem_bound] = (P_cell[cells.mem_bound] -
+        #                                  env_P)*cells.mem_vects_flat[cells.mem_bound,2]
+        #     S_cell_y[cells.mem_bound] = (P_cell[cells.mem_bound] -
+        #                                  env_P)*cells.mem_vects_flat[cells.mem_bound,3]
+
+
 
              # method 2--------------------------------------------------------------------------------------------------
             # # force of gravity:

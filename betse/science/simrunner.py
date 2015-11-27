@@ -914,7 +914,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and p.fluid_flow is True and cells.lapGJinv is not None:
+    if p.plot_P is True and p.fluid_flow is True:
 
         if p.showCells is True:
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
@@ -955,18 +955,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.showCells is True:
 
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta/101325,number_cells=p.enumerate_cells,
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
         else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta/101325,number_cells=p.enumerate_cells,
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
              clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
 
         axP.set_title('Final Osmotic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
         axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure Difference Cell Interior vs Exterior [atm]')
+        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
 
         if saveImages is True:
@@ -978,13 +978,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.sim_ECM is True:
 
 
-            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.P_electro/101325,number_cells=p.enumerate_cells,
+            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.P_electro,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
             axEP.set_title('Final Electrostatic Pressure in Cell Network')
             axEP.set_xlabel('Spatial distance [um]')
             axEP.set_ylabel('Spatial distance [um]')
-            cbEP.set_label('Pressure Difference Cell Interior vs Exterior [atm]')
+            cbEP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
 
             if saveImages is True:
@@ -1240,18 +1240,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.ani_osmoP is True and animate == 1:
 
-        osmo_P_atm = [arr*(1/101325) for arr in sim.osmo_P_delta_time]
+        osmo_P_atm = [arr*(1) for arr in sim.osmo_P_delta_time]
 
         if p.showCells is True:
 
-            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells', cbtit = 'Pressure [atm]',
+            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells', cbtit = 'Pressure [Pa]',
                 clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/osmoP',
                 saveFile = 'osmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
         else:
             viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells',
-                cbtit = 'Pressure [atm]',
+                cbtit = 'Pressure [Pa]',
                 clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',

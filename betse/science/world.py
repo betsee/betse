@@ -989,8 +989,7 @@ class World(object):
 
         self.mem_sa = self.mem_length*p.cell_height
 
-        if p.deformation is False:
-            loggers.log_info('Creating computational matrices for discrete transfers... ')
+        loggers.log_info('Creating computational matrices for discrete transfers... ')
 
         # define map allowing a dispatch from cell index to each respective membrane
         self.indmap_mem = np.asarray(self.indmap_mem)
@@ -1116,6 +1115,16 @@ class World(object):
 
     def short_cleanUp(self,p):
 
+        self.cell_vol = np.asarray(self.cell_vol)
+
+        self.R = ((3/4)*(self.cell_vol/math.pi))**(1/3)    # effective radius of each cell
+
+        self.mem_length,_,_ = tb.flatten(self.mem_length)
+
+        self.mem_length = np.asarray(self.mem_length)
+
+        self.mem_sa = self.mem_length*p.cell_height
+
         # cell surface area:
         self.cell_sa = []
         for grp in self.cell_to_mems:
@@ -1142,6 +1151,10 @@ class World(object):
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
         if p.sim_eosmosis is True:
+
+            self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+            self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
             self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
             for i, inds in enumerate(self.cell_to_mems):
@@ -1493,7 +1506,6 @@ class World(object):
 
         vertTree = sps.KDTree(self.voronoi_grid)
         self.map_voronoi2ecm = list(vertTree.query(self.ecm_verts_unique))[1]
-
 
     def deformationMatrix(self,p):
 
