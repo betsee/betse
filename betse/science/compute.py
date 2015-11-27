@@ -3268,7 +3268,7 @@ class Simulator(object):
 
             else:
 
-                P_cell = self.osmo_P_delta[cells.mem_to_cells]/100
+                P_cell = self.osmo_P_delta[cells.mem_to_cells]/15
 
         if p.deform_electro is True and p.sim_ECM is True:
 
@@ -3343,35 +3343,8 @@ class Simulator(object):
         # find a set of indicies that map between points of ecm_verts_unique and voronoi grid
         # these are updated and used to recalculate the maskM in world module
 
-        # vertTree = sps.KDTree(cells.voronoi_grid) # FIXME this will be really slow
-        # map_voronoi2ecm = list(vertTree.query(ecm_new))[1]
-        # # set the voronoi points to the value of these new points
-        # cells.voronoi_grid[map_voronoi2ecm] = ecm_new[:]
-
-        #--------------------------------------------------------------------------
-
-        # Repackage ecm verts so that the World module can do its magic:
-
-        # ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
-
-        # next repackage the structure to include individual cell data
-
-        # cells.ecm_verts = [] # null the original ecm verts data structure...
-        #
-        # for i in range(0,len(cells.cell_to_mems)):
-        #
-        #     ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
-        #
-        #     ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
-        #     cent = ecm_nest.mean(axis=0)     # calculate the centre point
-        #     angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
-        #             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-        #     sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
-        #     sorted_region_b = sorted_region.tolist()
-        #
-        #     cells.ecm_verts.append(sorted_region_b)
-        #
-        # cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
+        # set the voronoi points to the value of these new points
+        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
 
         # recreate ecm_verts_unique:
         cells.ecm_verts_unique = ecm_new[:]
@@ -3390,7 +3363,6 @@ class Simulator(object):
             self.initDenv(cells,p)
 
         cells.recalc_gj_vects(p)
-
 
         # scale concentrations by new cell volumes:
         for i, moles in enumerate(net_moles):

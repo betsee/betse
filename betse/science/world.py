@@ -1155,7 +1155,7 @@ class World(object):
 
         self.plot_xy = np.vstack((self.mem_mids_flat,self.cell_verts_unique))
 
-        # self.make_maskM(p)  # FIXME this is way too slow!
+        self.quick_maskM(p)
 
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
@@ -1340,39 +1340,18 @@ class World(object):
         Used in deformation sequence.
         """
 
-        self.nn_i = []
+        mid = (self.cell_centres[self.nn_i[:,0]] + self.cell_centres[self.nn_i[:,1]])/2
 
-        nn_x = []
-        nn_y = []
-        nn_tx = []
-        nn_ty = []
+        tang_ax = self.cell_centres[self.nn_i[:,1]][:,0] - self.cell_centres[self.nn_i[:,0]][:,0]
+        tang_ay = self.cell_centres[self.nn_i[:,1]][:,1] - self.cell_centres[self.nn_i[:,0]][:,1]
 
-        self.nn_len = []
+        tang_a = np.sqrt(tang_ax**2 + tang_ay**2)
 
-        for i, inds in enumerate(self.cell_nn):
+        tang_x = tang_ax/tang_a
+        tang_y = tang_ay/tang_a
 
-            for j in inds:
-
-                pt1 = self.cell_centres[i]
-                pt2 = self.cell_centres[j]
-
-                mid = (pt1 + pt2)/2       # midpoint calculation
-                tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)
-                nn_x.append(mid[0])
-                nn_y.append(mid[1])
-                nn_tx.append(tang[0])
-                nn_ty.append(tang[1])
-
-                length = np.sqrt(tang_a[0]**2 + tang_a[1]**2)
-
-                self.nn_len.append(length)
-
-                self.nn_i.append([i,j])
-
-        self.nn_i = np.asarray(self.nn_i)
-
-        self.nn_vects = np.array([nn_x,nn_y,nn_tx,nn_ty]).T
+        self.nn_vects = np.column_stack((mid[:,0],mid[:,1],tang_x,tang_y))
+        self.nn_len = np.sqrt(tang_ax**2 + tang_ay**2)
 
         # recalculate matrix for gj divergence of the flux calculation:
         self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
@@ -1529,6 +1508,10 @@ class World(object):
 
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
+
+        vertTree = sps.KDTree(self.voronoi_grid)
+        self.map_voronoi2ecm = list(vertTree.query(self.ecm_verts_unique))[1]
+
 
     def deformationMatrix(self,p):
 
@@ -1690,25 +1673,43 @@ class World(object):
         voronoiTree = sps.KDTree(self.voronoi_grid)
         ecm_inds = list(voronoiTree.query(self.ecm_verts_unique))[1]
 
-        voronoi_mask = np.zeros(len(self.voronoi_grid))
-        voronoi_mask[ecm_inds]=1
+        self.voronoi_mask = np.zeros(len(self.voronoi_grid))
+        self.voronoi_mask[ecm_inds]=1
 
         xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
         yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
 
         X,Y = np.meshgrid(xv,yv)
 
-        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),voronoi_mask,(X,Y),
-                             method='linear',fill_value=0)
-
-        self.maskM = ndimage.filters.gaussian_filter(self.maskM, 5, mode='nearest')
-        self.maskM = np.round(self.maskM,0)
-
         self.Xgrid = X
         self.Ygrid = Y
 
+        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),self.voronoi_mask,(self.Xgrid,self.Ygrid),
+                             method='linear',fill_value=0)
+
+        self.maskM = ndimage.filters.gaussian_filter(self.maskM, 2, mode='nearest')
+        self.maskM = np.round(self.maskM,0)
+
+
         maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
-        # maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
+        maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
+        maskECM = np.round(maskECM,0)
+
+        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
+
+    def quick_maskM(self,p):
+
+        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),self.voronoi_mask,
+                                     (self.Xgrid,self.Ygrid),
+                                        method='linear',fill_value=0)
+
+        self.maskM = ndimage.filters.gaussian_filter(self.maskM, 2, mode='nearest')
+        self.maskM = np.round(self.maskM,0)
+
+
+        maskECM = interp.griddata((self.Xgrid.ravel(),self.Ygrid.ravel()),self.maskM.ravel(), (self.X, self.Y),
+                                  method='linear',fill_value=0)
+        maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
         maskECM = np.round(maskECM,0)
 
         self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
