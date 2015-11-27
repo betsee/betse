@@ -113,7 +113,6 @@ class World(object):
             self.grid_len =len(self.xypts)
             self.memWork(p)
 
-
             if p.deformation is True:
 
                 self.deformationMatrix(p)
@@ -649,6 +648,8 @@ class World(object):
             poly = [x for x in reversed(polyc)]
             self.cell_vol.append(p.cell_height*tb.area(poly))
 
+
+
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []
@@ -1144,16 +1145,20 @@ class World(object):
 
         self.mem_verts = self.cell_verts_unique[:]
 
+        self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
         self.plot_xy = np.vstack((self.mem_mids_flat,self.cell_verts_unique))
 
         self.quick_maskM(p)
 
+
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
         if p.sim_eosmosis is True:
-
-            self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
-            self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+            #
+            # self.mem_edges_flat, _, _ = tb.flatten(self.mem_edges)
+            # self.mem_edges_flat = np.asarray(self.mem_edges_flat)
 
             self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
@@ -1515,7 +1520,7 @@ class World(object):
 
         """
 
-
+        loggers.log_info('Creating computational matrices for mechanical deformation... ')
         # calculate some quantities used only in deformation sequences:
         # calculate the chords from cell centre to membrane midpoint
         chord_mag = []

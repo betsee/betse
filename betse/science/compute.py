@@ -863,12 +863,15 @@ class Simulator(object):
         self.I_tot_y_time = [0]
 
         if p.deformation is True:
+            #initialize the pressure difference across the membrane
+            self.P_mem = np.zeros(len(cells.mem_i))
+            self.P_cells = np.zeros(len(cells.cell_i))
+
             self.cell_centres_time = []
             self.mem_mids_time = []
             self.maskM_time = []
             self.mem_edges_time = []
             self.cell_verts_time = []
-
 
         if p.voltage_dye is True:
 
@@ -1078,6 +1081,7 @@ class Simulator(object):
             # calculate pressures:
 
             self.osmotic_P(cells,p)
+            self.gravity_P(cells,p)
 
             # calculate fluid flow:
             if p.fluid_flow is True and cells.lapGJinv is not 0:
@@ -1172,7 +1176,7 @@ class Simulator(object):
                     self.mem_edges_time.append(cells.mem_edges_flat[:])
                     self.cell_verts_time.append(cells.cell_verts[:])
 
-                if p.fluid_flow is True:
+                if p.fluid_flow is True or p.deformation is True:
 
                     self.P_cells_time.append(self.P_cells[:])
                     self.u_cells_x_time.append(self.u_cells_x[:])
@@ -1346,6 +1350,10 @@ class Simulator(object):
         self.vm_Matrix.append(dat_grid_vm[:])
 
         if p.deformation is True:
+            #initialize the pressure difference across the membrane
+            self.P_mem = np.zeros(len(cells.mem_i))
+            self.P_cells = np.zeros(len(cells.cell_i))
+
             self.cell_centres_time = []
             self.mem_mids_time = []
             self.maskM_time = []
@@ -1526,6 +1534,7 @@ class Simulator(object):
 
             self.osmotic_P(cells,p)
             self.electro_P(cells,p)
+            self.gravity_P(cells,p)
 
             if p.fluid_flow is True:
 
@@ -1639,6 +1648,10 @@ class Simulator(object):
                     self.maskM_time.append(cells.maskM[:])
                     self.mem_edges_time.append(cells.mem_edges_flat[:])
                     self.cell_verts_time.append(cells.cell_verts[:])
+
+                    self.P_cells_time.append(self.P_cells[:])
+                    self.u_cells_x_time.append(self.u_cells_x)
+                    self.u_cells_y_time.append(self.u_cells_y)
 
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
@@ -3207,6 +3220,24 @@ class Simulator(object):
 
         self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
 
+        # ----------------------
+
+        # # surface charge density for cells:
+        # Q_cell = self.rho_cells*cells.cell_vol*(1/p.ff_cell)*(1/cells.cell_sa)
+        #
+        # grad_rho = Q_cell[cells.mem_to_cells][cells.mem_nn[:,1]] - Q_cell[cells.mem_to_cells][cells.mem_nn[:,1]]
+
+        #if p.sim_ECM is False:
+            # vab = self.vm[cells.mem_to_cells][cells.mem_nn[:,1]] - self.vm[cells.mem_to_cells][cells.mem_nn[:,1]]
+        # else:
+        #
+        #
+        # self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
+
+    def gravity_P(self,cells,p):
+
+        self.P_gravity = np.ones(len(cells.cell_i))*9.81*1000*(cells.cell_centres[:,1] - cells.ymin)
+
     def ghk_calculator(self,cells,p):
         """
         Uses simulation parameters in the Goldman (GHK) equation
@@ -3266,29 +3297,32 @@ class Simulator(object):
 
             net_moles[i][:] = concs*cells.cell_vol
 
+        # map pressure from individual cells to their membranes:
+        self.P_mem = self.P_cells[cells.mem_to_cells]
 
-        # determine net pressure in individual cells (mapped to each membrane):-----------------------
-
-        P_mem = np.zeros(len(cells.mem_i))
-
-        if p.deform_osmo is True:
-
-            # self.osmotic_P(cells,p) # update osmotic pressure
-
-            P_mem = self.osmo_P_delta[cells.mem_to_cells]/100
-
+        # first determine the trans-membrane pressure due to electrostatics, if required:
         if p.deform_electro is True and p.sim_ECM is True:
 
-            # self.electro_P(cells,p)  # update electrostatic pressure
+            self.P_mem = self.P_mem[:] + self.P_electro
 
-            P_mem = P_mem + self.P_electro
+
+        # determine net pressure in individual cells due to osmotic water flow:-----------------------
+        if p.deform_osmo is True:
+
+            # the first thing is to calculate the laplacian of the osmotic pressure gradient
+            # across the membrane, scaled by the conductivity of the membrane
+
+            grad_P_osmo = (self.osmo_P_delta[cells.mem_to_cells] - self.P_mem)*p.aquaporins
+
+            # work backwards to get the pressure difference at the membrane:
+            self.P_mem = self.P_mem[:] + grad_P_osmo
 
         #---------------------------------------------------------------------
-        # determine stress
+        # determine mechanical stress arising from pressure in cells:
 
         # calculate net outward stress at each membrane:
-        S_mem_x = P_mem*cells.mem_vects_flat[:,2]
-        S_mem_y = P_mem*cells.mem_vects_flat[:,3]
+        S_mem_x = self.P_mem*cells.mem_vects_flat[:,2]
+        S_mem_y = self.P_mem*cells.mem_vects_flat[:,3]
 
         # balance the stress at the (assumed-to-be) shared boundary:
         S_mem_x_b = (S_mem_x[cells.mem_nn[:,1]] + S_mem_x[cells.mem_nn[:,0]])
@@ -3376,6 +3410,8 @@ class Simulator(object):
 
         cells.recalc_gj_vects(p)
 
+        cells.memWork(p)
+
         # scale concentrations by new cell volumes:
         for i, moles in enumerate(net_moles):
 
@@ -3384,6 +3420,81 @@ class Simulator(object):
         if p.plot_while_solving is True and t > 0:
 
             self.checkPlot.resetData(cells,self,p)
+
+
+        #---------------Pressure induced flow through gap junction connected cells--------------------------------------
+        happy_times = True
+
+        if happy_times is True:
+            # gravity force:
+
+            if p.gravity is True:
+
+                Pgj_gravity = self.P_gravity
+
+                Fgj_gravity = (Pgj_gravity[cells.nn_i][:,1]- Pgj_gravity[cells.nn_i][:,0])/cells.nn_len
+
+
+            else:
+                Fgj_gravity = np.zeros(len(cells.nn_vects))
+
+            # pressure head from osmosis and electrostriction, after deformation:
+            # average it to the whole cell:
+            P_mem_ave = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
+            # take the gradient across the gap junctions:
+            F_gj = (P_mem_ave[cells.nn_i][:,1]- P_mem_ave[cells.nn_i][:,0])/cells.nn_len
+
+            # get the pipe conductivity coefficient for the gap junctions:
+            sa_term = p.gj_surface*self.gjopen
+
+            sagj = sa_term*cells.ave_sa_all    # average total gj surface area
+            rgj = np.sqrt(sagj/math.pi)          # average gj radius
+
+            alpha_gj = ((rgj**2)/(p.mu_water))
+
+            # sum contributions from all forces:
+            F_source = Fgj_gravity
+
+            # sum the tangential body force pressure at the gap junctions for each cell:
+            # scale the forces to the alpha value as 'rgj' may vary over space:
+            S_source = alpha_gj*F_source
+
+            Fgj_sum = np.dot(cells.gjMatrix,S_source)
+
+            # # calculate the pressure in each cell required to create a divergence-free (mass conserved) flow field
+            # NOTE! this represents the fluid conductivity term alpha_gj*grad_pressure
+            # We needed to to it this way because alpha_gj varries over space.
+            # Note also that the 'saterm' (variable GJ surface area) doesn't show up in Fgj_sum because it shows up on the
+            # opposite side of the GJinv equation -- therefore it cancels out.
+            self.P_cells = np.dot(cells.lapGJinv, Fgj_sum)
+
+            gradP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
+
+            u_cells = -(alpha_gj)*(Fgj_gravity) - gradP
+
+            u_cells_x = u_cells*cells.nn_vects[:,2]
+            u_cells_y = u_cells*cells.nn_vects[:,3]
+
+            # average components to the cell centres:
+            self.u_cells_x = np.dot(cells.gj2cellMatrix,u_cells_x)
+            self.u_cells_y = np.dot(cells.gj2cellMatrix,u_cells_y)
+
+            # resample alpha to the cell centres:
+            alpha_ave = np.dot(cells.gj2cellMatrix,alpha_gj)
+
+            alpha_zero = list(*(alpha_ave == 0).nonzero())
+
+            alpha_ave[alpha_zero] = 1
+
+            # final hydrostatic pressure in the cells:
+            self.P_cells = self.P_cells*(1/alpha_ave)
+
+        else:
+            self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
+
+            self.u_cells_x = 1e-9*np.random.rand(len(cells.cell_i))
+            self.u_cells_y = 1e-9*np.random.rand(len(cells.cell_i))
+
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
@@ -3903,6 +4014,21 @@ def rk4(c,deltac,p):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
+
+            # # the first thing is to calculate the laplacian of the osmotic pressure gradient
+            # # across the membrane, scaled by the conductivity of the membrane:
+            #
+            # grad_P_osmo = (self.osmo_P_delta[cells.mem_to_cells]*p.aquaporins)/p.tm
+            # lap_P_osmo = np.dot(cells.mem_LapM,grad_P_osmo)
+            #
+            # # next calculate the pressure head induced by the water inflow:
+            # grad_P_mem = np.dot(cells.mem_LapM_inv,lap_P_osmo)
+            #
+            # # work backwards to get the pressure difference at the membrane:
+            # P_mem = grad_P_mem*p.tm
+
+
+
 # environmental handling of pressure for deformation
         # if p.sim_ECM is False:
         #

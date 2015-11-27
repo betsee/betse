@@ -141,6 +141,8 @@ class Parameters(object):
 
         self.gravity = self.config['variable settings']['gravity']
 
+        self.aquaporins = float(self.config['variable settings']['membrane water conductivity'])
+
         # gap junction constants and network connectivity
         self.search_d = float(self.config['world options']['gap junctions']['search distance']) # distance to search for nearest neighbours
 

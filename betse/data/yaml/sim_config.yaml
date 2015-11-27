@@ -592,10 +592,11 @@ variable settings:
                             # only works for an ion profile with H+ ions (animal or invertebrate)
                             # options True or False (case sensitive)
 
-  gravity: False               # apply a global force of gravity acting in the -y direction?
+  gravity: True               # apply a global force of gravity acting in the -y direction?
 
   water viscocity: 1e-3      # viscocity of medium [Pa s]
 
+  membrane water conductivity: 1e-4   # membrane resistance to water flow (aquaporin fraction)
 
   channel charge: -1         # charge of membrane channels
 
@@ -603,7 +604,7 @@ variable settings:
 
   membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
-  elastic modulus: 100e3         # Elastic modulus (Young's modulus) of the cell [Pa]
+  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
 
 
   static noise level: 0    # level of variance in K+ leaks on cell membranes

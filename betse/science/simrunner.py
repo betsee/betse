@@ -82,7 +82,7 @@ class SimRunner(object):
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
-            if p.fluid_flow is True: # if user desires fluid flow:
+            if p.fluid_flow is True or p.deformation is True: # if user desires fluid flow:
 
                 # make a laplacian and solver for discrete transfers on closed, irregular cell network
                 loggers.log_info('Creating cell network Poisson solver...')
@@ -95,10 +95,6 @@ class SimRunner(object):
             if p.turn_all_plots_off is False:
                 loggers.log_info('Close all plot windows to continue...')
                 self.plotWorld()
-
-
-            # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-            # plt.show(block=False)
 
         else:
 
@@ -117,7 +113,7 @@ class SimRunner(object):
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
             # make a laplacian and solver for discrete transfers on closed, irregular cell network
-            if p.fluid_flow is True:
+            if p.fluid_flow is True or p.deformation is True:
                 loggers.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
 
@@ -914,46 +910,50 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and p.fluid_flow is True:
+    if p.plot_P is True:
 
-        if p.showCells is True:
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        if p.fluid_flow is True or p.deformation is True:
 
-        axP.set_title('Final Hydrostatic Pressure in Cell Network')
-        axP.set_xlabel('Spatial distance [um]')
-        axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure [Pa]')
+            if p.showCells is True:
+                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+            else:
+                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells_time[-1],number_cells=p.enumerate_cells,
+                 clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-        if saveImages is True:
-            savename13 = savedImg + 'final_P_2D_gj' + '.png'
-            plt.savefig(savename13,format='png')
-
-        plt.show(block=False)
-
-
-        if p.sim_ECM is True:
-
-            plt.figure()
-            plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-            plt.colorbar()
-            plt.axis('equal')
-            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Final Extracellular Pressure [Pa]')
+            axP.set_title('Final Hydrostatic Pressure in Cell Network')
+            axP.set_xlabel('Spatial distance [um]')
+            axP.set_ylabel('Spatial distance [um]')
+            cbP.set_label('Pressure [Pa]')
 
             if saveImages is True:
-                savename13 = savedImg + 'final_P_2D_env' + '.png'
+                savename13 = savedImg + 'final_P_2D_gj' + '.png'
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
+
+
+            if p.sim_ECM is True and p.fluid_flow is True:
+
+                plt.figure()
+                plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+                plt.colorbar()
+                plt.axis('equal')
+                plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+                plt.title('Final Extracellular Pressure [Pa]')
+
+                if saveImages is True:
+                    savename13 = savedImg + 'final_P_2D_env' + '.png'
+                    plt.savefig(savename13,format='png')
+
+                plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_osmoP is True:
 
         if p.showCells is True:
+
+            # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
 
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.osmo_P_delta,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
@@ -975,10 +975,38 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+        # gravity hydrostatic pressure head:
+        if p.showCells is True:
+
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_gravity,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_gravity,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+
+        axP.set_title('Final Gravity-Induced Pressure Head in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure [Pa]')
+
+
+        if saveImages is True:
+            savename13 = savedImg + 'final_gravityP_2D' + '.png'
+            plt.savefig(savename13,format='png')
+
+        plt.show(block=False)
+
+        #-----Electrostatic pressure------------------------------------------------------------
+
         if p.sim_ECM is True:
 
+            # average the electrostatic pressure from mems to whole cell:
+            P_electro_cell = np.dot(cells.M_sum_mems,sim.P_electro)/cells.num_mems
 
-            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.P_electro,number_cells=p.enumerate_cells,
+
+            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=P_electro_cell,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
             axEP.set_title('Final Electrostatic Pressure in Cell Network')
@@ -992,59 +1020,61 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 plt.savefig(savename13,format='png')
 
 
-    if p.plot_Vel is True and p.fluid_flow is True:
+    if p.plot_Vel is True:
 
-        ucellso = sim.u_cells_x_time[-1]
-        vcellso = sim.u_cells_y_time[-1]
+        if p.fluid_flow is True or p.deformation is True:
 
-        ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                                 ucellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
+            ucellso = sim.u_cells_x_time[-1]
+            vcellso = sim.u_cells_y_time[-1]
 
-        ucells = ucells*cells.maskM
+            ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                                     ucellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
 
-        vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                                 vcellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
+            ucells = ucells*cells.maskM
 
-        vcells = vcells*cells.maskM
+            vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
+                                     vcellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
 
-        Ucells = np.sqrt(ucells**2 + vcells**2)*1e9
+            vcells = vcells*cells.maskM
 
-        if Ucells.max() != 0.0:
-            lw = (Ucells/Ucells.max()) + 0.5
+            Ucells = np.sqrt(ucells**2 + vcells**2)*1e9
 
-        plt.figure()
-        plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-        plt.colorbar()
-        plt.streamplot(cells.Xgrid,cells.Ygrid,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
-        plt.axis('equal')
-        plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-        plt.title('Final Fluid Velocity in Cell Collective [nm/s]')
-
-        if saveImages is True:
-            savename13 = savedImg + 'final_vel_2D_gj' + '.png'
-            plt.savefig(savename13,format='png')
-
-        plt.show(block=False)
-
-        if p.sim_ECM is True:
-
-            u = sim.u_at_c
-            v = sim.v_at_c
-            U = np.sqrt(u**2 + v**2)*1e9
+            if Ucells.max() != 0.0:
+                lw = (Ucells/Ucells.max()) + 0.5
 
             plt.figure()
-            plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+            plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
             plt.colorbar()
-            plt.streamplot(cells.X,cells.Y,u,v,density=p.stream_density,color='k')
+            plt.streamplot(cells.Xgrid,cells.Ygrid,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
             plt.axis('equal')
             plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Final Extracellular Fluid Velocity [nm/s]')
+            plt.title('Final Fluid Velocity in Cell Collective [nm/s]')
 
             if saveImages is True:
-                savename13 = savedImg + 'final_vel_2D_env' + '.png'
+                savename13 = savedImg + 'final_vel_2D_gj' + '.png'
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
+
+            if p.sim_ECM is True and p.fluid_flow is True:
+
+                u = sim.u_at_c
+                v = sim.v_at_c
+                U = np.sqrt(u**2 + v**2)*1e9
+
+                plt.figure()
+                plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+                plt.colorbar()
+                plt.streamplot(cells.X,cells.Y,u,v,density=p.stream_density,color='k')
+                plt.axis('equal')
+                plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+                plt.title('Final Extracellular Fluid Velocity [nm/s]')
+
+                if saveImages is True:
+                    savename13 = savedImg + 'final_vel_2D_env' + '.png'
+                    plt.savefig(savename13,format='png')
+
+                plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
 
