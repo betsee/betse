@@ -1075,6 +1075,8 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
+            # calculate pressures:
+
             self.osmotic_P(cells,p)
 
             # calculate fluid flow:
@@ -1520,7 +1522,10 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
+            # calculate pressures:
+
             self.osmotic_P(cells,p)
+            self.electro_P(cells,p)
 
             if p.fluid_flow is True:
 
@@ -1557,8 +1562,6 @@ class Simulator(object):
                 self.update_V_ecm(cells,p,t)
 
             check_v(self.vm)
-
-
 
 
             if t in tsamples:
@@ -3190,6 +3193,22 @@ class Simulator(object):
 
             self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env[cells.map_cell2ecm]
 
+    def electro_P(self,cells,p):
+        """
+        Calculates electrostatic pressure in collection of cells.
+        Works only for p.sim_ECM is True.
+
+        """
+        # surfave charge density for cell and ecm:
+        Q_cell = self.rho_cells*cells.cell_vol*(1/p.ff_cell)*(1/cells.cell_sa)
+        Q_ecm = self.rho_env*cells.ecm_vol*(1/p.ff_env)*(1/cells.ecm_sa)
+
+        ave_rho = (Q_cell[cells.mem_to_cells] + Q_ecm[cells.map_mem2ecm])/2
+
+        self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
+
+
+
     def ghk_calculator(self,cells,p):
         """
         Uses simulation parameters in the Goldman (GHK) equation
@@ -3250,7 +3269,7 @@ class Simulator(object):
             net_moles[i][:] = concs*cells.cell_vol
 
 
-        # determine net pressure in individual cells:
+        # determine net pressure in individual cells:-----------------------
 
         if p.sim_ECM is False:
 
@@ -3262,6 +3281,8 @@ class Simulator(object):
 
         if p.deform_osmo is True:
 
+            self.osmotic_P(cells,p) # update osmotic pressure
+
             if p.sim_ECM is False:
 
                 P_cell = self.osmo_P_delta/100
@@ -3272,18 +3293,10 @@ class Simulator(object):
 
         if p.deform_electro is True and p.sim_ECM is True:
 
-            Q_mem = self.rho_cells*cells.cell_vol*(1/p.ff_cell)
-            Q_ecm = self.rho_env*cells.ecm_vol*(1/p.ff_env)
+            self.electro_P(cells,p)  # update electrostatic pressure
 
-            ave_rho = (Q_mem[cells.mem_to_cells] + Q_ecm[cells.map_mem2ecm])/(2*cells.mem_sa)
-
-            self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
-
-            P_cell = P_cell + self.P_electro
-
-            Peaso = np.abs(self.P_electro)
-
-            print(Peaso.max())
+        #---------------------------------------------------------------------
+        # determine stress
 
         if p.sim_ECM is False:
             # calculate net outward stress at boundary:

@@ -975,6 +975,22 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+        if p.sim_ECM is True:
+
+
+            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.P_electro/101325,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+            axEP.set_title('Final Electrostatic Pressure in Cell Network')
+            axEP.set_xlabel('Spatial distance [um]')
+            axEP.set_ylabel('Spatial distance [um]')
+            cbEP.set_label('Pressure Difference Cell Interior vs Exterior [atm]')
+
+
+            if saveImages is True:
+                savename13 = savedImg + 'final_electroP_2D' + '.png'
+                plt.savefig(savename13,format='png')
+
 
     if p.plot_Vel is True and p.fluid_flow is True:
 
