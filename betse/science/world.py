@@ -2,39 +2,33 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
-
 """
-This module contains the class World, which holds
+This module contains the class `World`, which holds
 all data structures relating to the size of the environment,
 the extent of the cell cluster, the co-ordinates of cell
 centre points, and all kinds of data relating to individual cell properties.
 
-The initialization method of the World class sets-up
+The initialization method of the `World` class sets-up
 and crops the cell cluster to an optional user-defined geometry input
 (a set of points arranged in counter-clockwise order and
 defining a closed polygon). Other methods define the cell centres of each
 cell polygon, their volume, and create cell-cell gap junctions (GJs) and membrane domains
 for each cell.
-
 """
-
 
 import numpy as np
 import scipy.spatial as sps
 from scipy import interpolate as interp
 from scipy import ndimage
-import copy
 import math
 from betse.science import toolbox as tb
 from betse.science import finitediff as fd
-from betse.science.bitmapper import Bitmapper
+from betse.science.bitmapper import BitMapper
 import os, os.path
 from betse.science import filehandling as fh
 from betse.util.io import loggers
-
 
 class World(object):
     """
@@ -67,15 +61,6 @@ class World(object):
     makeECM()                         Make the Marker and Cell (MACs) grid for extracellular calculations
     environment()                     Calculate details for the extracellular calculations, including mappings
     graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
-
-    Notes
-    -------
-    Uses Numpy
-    Uses Scipy spatial
-    Uses BETSE-specific Toolbox module
-    Uses BETSE-specific FiniteDiff module
-    Uses BETSE-specific Bitmapper module
-
     """
 
     def __init__(self, p, worldtype = 'basic'):
@@ -298,26 +283,23 @@ class World(object):
         # Clip the Voronoi diagram to polygon defined by clipping bitmap or the default circle:
 
         # Load the bitmap used to clip the cell cluster and create a clipping function:
-        loggers.log_info('Clipping Voronoi geometry to cluster shape... ')
-        self.bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax,self.ymin,self.ymax)
+        loggers.log_info('Clipping Voronoi geometry to cluster shape...')
+        self.bitmasker = BitMapper(
+            p, p.bitmap_profiles['clipping'],
+            self.xmin, self.xmax, self.ymin, self.ymax)
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
-
             if len(poly_ind) >= p.cell_sides:
-
                 cell_poly = vor.vertices[poly_ind]
                 point_check = np.zeros(len(cell_poly))
 
                 for i, pnt in enumerate(cell_poly):
-
                     point_val = self.bitmasker.clipping_function(pnt[0],pnt[1])
 
                     if point_val != 0.0:
-
                         point_check[i] = 1.0
 
                 cell_polya = cell_poly.tolist()
-
                 self.voronoi_verts.append(cell_polya)
 
                 if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range

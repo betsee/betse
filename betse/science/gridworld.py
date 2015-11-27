@@ -29,7 +29,7 @@ defining a closed polygon). Other methods define the cell centres and create cel
 import numpy as np
 import scipy.spatial as sps
 import math
-from betse.science.bitmapper import Bitmapper
+from betse.science.bitmapper import BitMapper
 from betse.science import toolbox as tb
 import os, os.path
 from betse.science import filehandling as fh
@@ -152,22 +152,21 @@ class GridWorld(object):
         self.centre = self.xypts.mean(axis=0)
 
     def makeCluster(self,p):
-
         """
         Uses bitmaps or circle mask to define a cluster of cells on the x,y grid.
-
         """
 
         # load the bitmap used to clip the cell cluster and create a clipping function
         loggers.log_info('Clipping geometry to cluster shape... ')
-        bitmasker = Bitmapper(p,'clipping',self.xmin, self.xmax, self.ymin, self.ymax)
+        bitmasker = BitMapper(
+            p, p.bitmap_profiles['clipping'],
+            self.xmin, self.xmax, self.ymin, self.ymax)
 
         self.cell_bools_k = []
 
         for point in self.xypts:
-
             cell_truth = float(*bitmasker.clipping_function(point[0],point[1]))
-#             cell_truth = 1.0
+#           cell_truth = 1.0
             self.cell_bools_k.append(cell_truth)
 
         self.cluster_mask = bitmasker.clippingMatrix

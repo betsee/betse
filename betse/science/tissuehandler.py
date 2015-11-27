@@ -12,7 +12,7 @@ from scipy import interpolate as interp
 from random import shuffle
 from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
-from betse.science.bitmapper import Bitmapper
+from betse.science.bitmapper import BitMapper
 from betse.util.io import loggers
 
 class TissueHandler(object):
@@ -990,8 +990,10 @@ class TissueHandler(object):
         # Add together all effects to make change on the cell membrane permeabilities:
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_morpho + sim.Dm_base
 
-def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
+#FIXME: For orthogonality, consider renaming "profile_key" to "profile_name".
+#And lo, he saw that she was lovely.
+def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
     """
     Using an input description flag, which is a string in the format of
     'random40', a list of integers corresponding to cell indices,
@@ -1009,7 +1011,6 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
     Returns
     ---------------------------------
     target_inds                          a list of integers corresponding to targeted cell or membrane indices
-
     """
 
     if isinstance(targets_description,str):
@@ -1020,7 +1021,9 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
             numo = targets_description[6:len(targets_description)]
 
             if chaff == 'bitmap':
-                bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+                bitmask = BitMapper(
+                    p, p.bitmap_profiles[profile_key],
+                    cells.xmin, cells.xmax, cells.ymin, cells.ymax)
                 bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
                 target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
@@ -1084,8 +1087,9 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
     return target_inds
 
+#FIXME: For orthogonality, consider renaming "profile_key" to "profile_name".
+#And lo, he saw that she was lovely.
 def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
-
     """
     Using an input description flag, which is a string in the format of
     'random40', or a list of integers corresponding to ecm indices,
@@ -1109,21 +1113,23 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
     target_inds = []
 
     if isinstance(targets_description,str):
-        # inds_env = np.asarray(len(cells.xypts))
         if targets_description == 'bitmap':
-            bitmask = Bitmapper(p,profile_key,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
-            bitmask.clipPoints(cells.xypts[:,0],cells.xypts[:,1])
+            bitmask = BitMapper(
+                p, p.bitmap_profiles[profile_key],
+                cells.xmin, cells.xmax, cells.ymin, cells.ymax)
+            bitmask.clipPoints(cells.xypts[:,0], cells.xypts[:,1])
             target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
     return target_inds
 
 def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, dangling_gj = False, open_TJ = True):
-
     loggers.log_info('Cutting hole in cell cluster! Removing cells...')
 
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
-            bitmask = Bitmapper(p,profile_name,cells.xmin,cells.xmax,cells.ymin,cells.ymax)
+            bitmask = BitMapper(
+                p, p.bitmap_profiles[profile_name],
+                cells.xmin, cells.xmax, cells.ymin, cells.ymax)
             bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
             target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 

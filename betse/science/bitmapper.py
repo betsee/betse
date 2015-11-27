@@ -10,7 +10,7 @@ from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
 
-class Bitmapper(object):
+class BitMapper(object):
     """
     Finds a designated bitmap, loads it, makes it into an interpolation
     function, and allows the user to screen a set of points in the space defined
@@ -21,16 +21,6 @@ class Bitmapper(object):
     completely threshholded image, with black defining the area to be used as
     the clipping mask for the cell cluster, or defining the area for a tissue or
     boundary profile.
-
-    Parameters
-    ----------------------------
-    p                      The instance of the Parameters object used in the simulation.
-    desired_bitmap         The designation of the desired bitmap as a string. The string
-                           may be:
-                           'clipping'   to specify the cluster clipping bitmap is desired
-                           'tissue profile 1' to specify the bitmap defining tissue profile 1 is desired
-                           'tissue profile 2'     "                           "             2 is desired
-                           'boudnary profile 1' to specify the bitmap defining the boundary profile 1
 
     Attributes
     ----------------------------
@@ -44,47 +34,37 @@ class Bitmapper(object):
     good_points : ndarray
         Numpy matrix listing all points `(x, y)` residing inside this bitmap's
         colored area.
-
-    Methods
-    ----------------------------
-    self.bitmapInit        Loads, initializes, and creates an interpolation object from the bitmap
-    self.clipPoints        Takes a set of points as parameters and returns the list of points in the bitmap mask
     """
 
-    def __init__(self, p, desired_bitmap,xmin,xmax,ymin,ymax):
-        self.bitmapInit(p, desired_bitmap,xmin,xmax,ymin,ymax)
-
-    def bitmapInit(self,p,desired_bitmap,xmin,xmax,ymin,ymax, threshhold_val = 0.0):
+    #FIXME: We currently ignore "threshhold_val". Should we just remove it, for
+    #limplicity's sake? ("Think of the simplistic children!")
+    def __init__(self,
+        p, bitmap_filename, xmin, xmax, ymin, ymax, threshhold_val = 0.0):
         """
-        Finds the appropriate bitmap from the library,
-        initializes file loading directory, and loads the
-        file to a threshholded matrix.
+        Loads, initializes, and creates a threshholded interpolation matrix from
+        the passed bitmap file.
 
         Parameters
         ----------------------------
-        p                   An instance of the parameters object
-
-        desired_bitmap      This is a string.
-                            BETSE has a code for bitmap designation in the
-                            model. 'clipping' means the bitmap will be used
-                            to clip the cell cluster to a final shape.
-                            'tissue profile 1', or 'boundary profile 1'
-                            can be used to indicate the bitmap will be used to
-                            define the appropriate tissue and boundary profiles, respectively.
-
-        threshhold_val      The value of the pixel to threshhold to. Greyscale runs from 0.0 (black)
-                            to 255 (white). The default is to get black pixels (0.0).
+        p : Parameters
+            Instance of the `Parameters` object.
+        bitmap_filename : str
+            Absolute or relative path of the bitmap to be loaded. If relative
+            (i.e., _not_ prefixed by a directory separator), this path will be
+            canonicalized into an absolute path relative to the directory
+            containing our source configuration file.
+        threshhold_val : int
+            The value of the pixel to threshhold to. Greyscale runs from 0
+            (black) to 255 (white). The default is to get black pixels (0).
         """
-
-        # Absolute or relative path of the bitmap to be loaded.
-        self.bitmapFile = p.bitmap_profiles[desired_bitmap]
 
         # If this is a relative path, convert this into an absolute path
         # relative to the directory containing the source configuration file.
-        if paths.is_relative(self.bitmapFile):
-            self.bitmapFile = paths.join(p.config_dirname, self.bitmapFile)
+        if paths.is_relative(bitmap_filename):
+            bitmap_filename = paths.join(p.config_dirname, bitmap_filename)
 
         # If this bitmap does *NOT* exist, raise an exception.
+        self.bitmapFile = bitmap_filename
         files.die_unless_file(self.bitmapFile)
 
         # Load this bitmap as a flattened (i.e., grayscale) array.
@@ -114,22 +94,18 @@ class Bitmapper(object):
         self.clipping_function = interp.interp2d(xpts,ypts,self.clippingMatrix)
         self.clipping_function_fast = interp.RectBivariateSpline(xpts,ypts,self.clippingMatrix)
 
-    def clipPoints(self,point_list_x,point_list_y):
-
+    def clipPoints(self, point_list_x, point_list_y):
         """
-        Uses the self.clipping_function defined for the bitmap
-        to screed a list/vector of points, returning those
-        that are within the bitmap's colored area.
+        Initialize the `good_points` attribute to the subset of the passed list
+        or vector of points residing in this bitmap's colored area by calling
+        the clipping function previously initialized for this bitmap.
 
         Parameters
         -----------
-        point_list_x        list or numpy vector of x coordinates of points
-        point_list_y        list or numpy vector of y coordinates of points
-
-        Creates
-        ------------
-        self.good_points    the points falling within the colored area of the bitmap
-
+        point_list_x : {list, ndarray}
+            List or Numpy vector of x coordinates of points.
+        point_list_y : {list, ndarray}
+            List or Numpy vector of y coordinates of points.
         """
 
         self.good_points = []
@@ -144,11 +120,3 @@ class Bitmapper(object):
 
         self.good_points = np.asarray(self.good_points)
         self.good_inds = np.asarray(self.good_inds)
-
-
-
-
-
-
-
-
