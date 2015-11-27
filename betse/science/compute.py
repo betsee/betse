@@ -3207,8 +3207,6 @@ class Simulator(object):
 
         self.P_electro = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
 
-
-
     def ghk_calculator(self,cells,p):
         """
         Uses simulation parameters in the Goldman (GHK) equation
