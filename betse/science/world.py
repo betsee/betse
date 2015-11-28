@@ -1652,7 +1652,7 @@ class World(object):
             diag_multi = self.num_mems[cell_i]  # number of nearest neighbours
 
             # diagonal element will be the negative of the number of neighbours:
-            self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i]/self.cell_vol[cell_i])
+            self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i])
 
             for mem_i in mem_inds:
 
@@ -1660,19 +1660,21 @@ class World(object):
                 mem_partners = self.mem_nn[mem_i]
 
                 if mem_partners[0] == mem_partners[1]: # then we know we're on a boundary
-                    # we know the membrane belongs to this cell:
-                    self.mem_LapM[cell_i, cell_i] = 0 # set the boundary value to signify zero gradient here
+                    # we know the membrane belongs to this cell, already set so do nothing
+                    pass
 
                 elif mem_partners[0] == mem_i: # otherwise, if the first partner is the index from the query cell
 
                     # find out which cell the partner belongs to:
                     cell_j = self.mem_to_cells[mem_partners[1]]
-                    self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i]/self.cell_vol[cell_i])
+
 
                 elif mem_partners[1] == mem_i:
 
                     cell_j = self.mem_to_cells[mem_partners[0]]
-                    self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i]/self.cell_vol[cell_i])
+
+                self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+                self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
 
 
         self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)  # take the inverse to solve poisson equation

@@ -866,6 +866,8 @@ class Simulator(object):
         self.P_mem = np.zeros(len(cells.mem_i))
         self.P_cells = np.zeros(len(cells.cell_i))
 
+        self.P_cells[20] = 50  # FIXME this is temporary for troubleshooting!!
+
         if p.deformation is True:
 
 
@@ -3357,7 +3359,7 @@ class Simulator(object):
         self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
         # ----pressure induced flow through connected cells
-        happy_times = False
+        happy_times = True
 
         if happy_times is True:
             # gravity force:
@@ -3375,6 +3377,8 @@ class Simulator(object):
             # take the gradient across the membrane junctions:
             F_mem_p = -(self.P_mem[cells.mem_nn[:,1]]- self.P_mem[cells.mem_nn[:,0]])/cells.mem_distance
 
+            # F_mem_p = np.sqrt((F_mem_p_o*cells.mem_tx)**2 + (F_mem_p_o*cells.mem_ty)**2)
+
             # get the pipe conductivity coefficient for the gap junctions (assume all the same, not gated):
             sa_term = p.gj_surface
 
@@ -3387,28 +3391,41 @@ class Simulator(object):
             F_source = Fmem_gravity + F_mem_p
 
             # # sum the tangential body force pressure at the gap junctions for each cell:
-            FF = F_source*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+            FF_o = F_source*(cells.mem_sa)*alpha_gj
 
-            Fmem_div = np.dot(cells.M_sum_mems,FF)
+            # get the component of the source normal to the cell boundary in order to calculate divergence:
+            # FF = np.sqrt((FF_o*cells.mem_vects_flat[:,2])**2 + (FF_o*cells.mem_vects_flat[:,3])**2)
+
+            # u_div = np.dot(cells.M_sum_mems,FF)
+
+            FF_x = FF_o*cells.mem_vects_flat[:,2]
+            FF_y = FF_o*cells.mem_vects_flat[:,3]
+
+            u_div_x = np.dot(cells.M_sum_mems,FF_x)
+            u_div_y = np.dot(cells.M_sum_mems,FF_y)
+
+            u_div = u_div_x + u_div_y
 
             # # calculate the pressure in each cell required to create a divergence-free (mass conserved) flow field
-            P_react = np.dot(cells.mem_LapM_inv, Fmem_div)
+            P_react = np.dot(cells.mem_LapM_inv, u_div)
 
-            gradP = -(P_react[cells.mem_to_cells][cells.mem_nn[:,1]] -
+            gradP = (P_react[cells.mem_to_cells][cells.mem_nn[:,1]] -
                       P_react[cells.mem_to_cells][cells.mem_nn[:,0]])/cells.mem_distance
 
-            u_cells = alpha_gj*(F_source - gradP)  # FIXME what is the proper expression for this???
+            u_cells = alpha_gj*(F_source) - gradP  # FIXME what is the proper expression for this???
 
             u_cells_x = u_cells*cells.mem_tx
             u_cells_y = u_cells*cells.mem_ty
 
-            # average components to the cell centres:
+            # average components to the cell centres:  # FIXME stop mapping back to cell centres...!
             self.u_cells_x = np.dot(cells.M_sum_mems,u_cells_x)/cells.num_mems
             self.u_cells_y = np.dot(cells.M_sum_mems,u_cells_y)/cells.num_mems
 
+            self.P_react = (1/alpha_gj)*P_react
+
             # reassign the net pressure at the membrane after flow:
 
-            self.P_cells = self.P_cells + P_react[:]   # FIXME what is the proper expression???
+            self.P_cells = self.P_cells + self.P_react   # FIXME what is the proper expression???
 
             # remap pressure from individual cells to their membranes:
             self.P_mem = self.P_cells[cells.mem_to_cells]
@@ -3424,7 +3441,7 @@ class Simulator(object):
         F_cells = self.P_cells*cells.cell_sa
 
 
-        #---------------------------------------------------------------------
+        #-------------------------------------------------------------------
         # determine mechanical stress arising from pressure in cells:
 
         # calculate net outward stress at each membrane:
@@ -3439,8 +3456,11 @@ class Simulator(object):
         Y = p.youngMod   # Young's modulus (elastic modulus)
         poi = 0.5        # Roisson ratio
 
-        eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)*cells.mem_vects_flat[:,2]**2
-        eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)*cells.mem_vects_flat[:,3]**2
+        # eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)*cells.mem_vects_flat[:,2]**2
+        # eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)*cells.mem_vects_flat[:,3]**2
+
+        eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)
+        eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)
 
         d_x = eta_x*cells.chord_mag
         d_y = eta_y*cells.chord_mag

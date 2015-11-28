@@ -315,8 +315,6 @@ tissue profile definition:
                   # profile to 50% of all cells).
                   percent: 50
 
-        #FIXME: I have no idea if these profile descriptions actually apply.
-        #They probably don't. Such is the price of love and late code nights!
 
         # Example tissue profile for a small cluster of healthy cells.
         - name: spot
