@@ -83,8 +83,8 @@ class Parameters(object):
 
         self.deformation = self.config['world options']['deformation']['turn on']
 
-        self.deform_osmo = self.config['world options']['deformation']['include osmotic pressure']
-        self.deform_electro = self.config['world options']['deformation']['include electrostatic pressure']
+        self.deform_osmo = self.config['variable settings']['include osmotic pressure']
+        self.deform_electro = self.config['variable settings']['include electrostatic pressure']
 
 
         self.youngMod = float(self.config['variable settings']['elastic modulus'])

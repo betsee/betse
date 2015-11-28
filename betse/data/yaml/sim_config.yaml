@@ -209,8 +209,7 @@ world options:
   deformation:
 
     turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
-    include osmotic pressure: False    # include osmotic pressure?
-    include electrostatic pressure: False   # include electrostatic pressure?
+
 
   gap junctions:
 
@@ -635,16 +634,19 @@ variable settings:
 
   water viscocity: 1e-3      # viscocity of medium [Pa s]
 
-  membrane water conductivity: 1e-4   # membrane resistance to water flow (aquaporin fraction)
+  membrane water conductivity: 5e-7   # membrane resistance to water flow (aquaporin fraction)
+
+  include osmotic pressure: False    # include osmotic pressure in any deformation and/or flows?
+
+  include electrostatic pressure: False   # include electrostatic pressure in any deformation and/or flows?
+
+  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
 
   channel charge: -1         # charge of membrane channels
 
   pump charge: 1          # charge of pumps (controls direction they move in)
 
   membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
-
-  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
-
 
   static noise level: 0    # level of variance in K+ leaks on cell membranes
                            # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)

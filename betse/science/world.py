@@ -1080,6 +1080,8 @@ class World(object):
 
         self.num_mems = np.asarray(self.num_mems)
 
+        self.mem_DivM_inv = np.linalg.pinv(self.M_sum_mems)
+
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
         if p.sim_eosmosis is True:
@@ -1151,6 +1153,7 @@ class World(object):
         self.plot_xy = np.vstack((self.mem_mids_flat,self.cell_verts_unique))
 
         self.quick_maskM(p)
+        # self.make_maskM(p)
 
 
         # if studying lateral movement of pumps and channels in membrane,
@@ -1179,6 +1182,10 @@ class World(object):
 
                 self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
                 self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+
+        # redo boundary tagging:
+        self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
+        self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1459,6 +1466,8 @@ class World(object):
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
         mem_nn = np.zeros((len(self.mem_i),2),dtype=np.int16)
         mem_bound = []
+        self.mem_tx = np.zeros(len(self.mem_i))
+        self.mem_ty = np.zeros(len(self.mem_i))
 
         for i, ind_pair in enumerate(mem_nn_o):
 
@@ -1469,9 +1478,15 @@ class World(object):
 
                 mem_nn[i,:] = [i, ind_pair[0]]
 
+
             elif len(ind_pair) == 2:
 
                 mem_nn[i,:] = ind_pair
+
+                ta = (self.mem_mids_flat[ind_pair[1]] - self.mem_mids_flat[ind_pair[0]])
+                tang = ta/np.linalg.norm(ta)
+                self.mem_tx[i] = tang[0]
+                self.mem_ty[i] = tang[1]
 
             elif len(ind_pair) > 2:
 
@@ -1486,8 +1501,22 @@ class World(object):
 
                         mem_nn[i,:] = [i,j]
 
+                        ta = (self.mem_mids_flat[j] - self.mem_mids_flat[i])
+                        tang = ta/np.linalg.norm(ta)
+                        self.mem_tx[i] = tang[0]
+                        self.mem_ty[i] = tang[1]
+
         self.mem_nn = np.asarray(mem_nn)
         self.mem_bound = np.asarray(mem_bound)
+
+        # membrane nn vectors:
+        # txa = (self.mem_mids_flat[self.mem_nn[:,1]][:,0] - self.mem_mids_flat[self.mem_nn[:,0]][:,0])
+        # tya = (self.mem_mids_flat[self.mem_nn[:,1]][:,1] - self.mem_mids_flat[self.mem_nn[:,0]][:,1])
+        #
+        # ta = np.sqrt(txa**2 + tya**2)
+        #
+        # self.mem_tx = txa/ta
+        # self.mem_ty = tya/ta
 
     def voronoiGrid(self,p):
 
@@ -1509,8 +1538,8 @@ class World(object):
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
 
-        vertTree = sps.KDTree(self.voronoi_grid)
-        self.map_voronoi2ecm = list(vertTree.query(self.ecm_verts_unique))[1]
+        # vertTree = sps.KDTree(self.voronoi_grid)
+        # self.map_voronoi2ecm = list(vertTree.query(self.ecm_verts_unique))[1]
 
     def deformationMatrix(self,p):
 
@@ -1611,18 +1640,42 @@ class World(object):
 
         #----matrices for calculating trans-membrane Laplacian and inverse Laplacian:
 
-        self.mem_LapM = np.zeros((len(self.cell_i), len(self.mem_i)))
+        self.mem_LapM = np.zeros((len(self.cell_i), len(self.cell_i)))
+
+        self.mem_distance = p.cell_space + 2*p.tm
 
         for cell_i in self.cell_i:
 
-            mem_indices = self.cell_to_mems[cell_i]
+            # get the set of membrane indices for the cell
+            mem_inds = self.cell_to_mems[cell_i]
 
-            for mem_i in mem_indices:
+            diag_multi = self.num_mems[cell_i]  # number of nearest neighbours
 
-                self.mem_LapM[cell_i,mem_i] = self.mem_sa[mem_i]/self.cell_vol[cell_i]
+            # diagonal element will be the negative of the number of neighbours:
+            self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i]/self.cell_vol[cell_i])
+
+            for mem_i in mem_inds:
+
+                # find out which membrane the mem_i is partnered to:
+                mem_partners = self.mem_nn[mem_i]
+
+                if mem_partners[0] == mem_partners[1]: # then we know we're on a boundary
+                    # we know the membrane belongs to this cell:
+                    self.mem_LapM[cell_i, cell_i] = 0 # set the boundary value to signify zero gradient here
+
+                elif mem_partners[0] == mem_i: # otherwise, if the first partner is the index from the query cell
+
+                    # find out which cell the partner belongs to:
+                    cell_j = self.mem_to_cells[mem_partners[1]]
+                    self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i]/self.cell_vol[cell_i])
+
+                elif mem_partners[1] == mem_i:
+
+                    cell_j = self.mem_to_cells[mem_partners[0]]
+                    self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i]/self.cell_vol[cell_i])
 
 
-        self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)
+        self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)  # take the inverse to solve poisson equation
 
         # matrices for re-calculating cell verts quickly from new ecm verts:
         ecmTree = sps.KDTree(self.ecm_verts_unique)
@@ -1670,10 +1723,10 @@ class World(object):
         """
 
         voronoiTree = sps.KDTree(self.voronoi_grid)
-        ecm_inds = list(voronoiTree.query(self.ecm_verts_unique))[1]
+        self.map_voronoi2ecm = list(voronoiTree.query(self.ecm_verts_unique))[1]
 
         self.voronoi_mask = np.zeros(len(self.voronoi_grid))
-        self.voronoi_mask[ecm_inds]=1
+        self.voronoi_mask[self.map_voronoi2ecm]=1
 
         xv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
         yv = np.linspace(self.xmin,self.xmax,p.plot_grid_size)
