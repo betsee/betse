@@ -27,7 +27,7 @@ class Parameters(object):
     the user-defined YAML configuration file passed to this object on
     initialization.
 
-    Attributes
+    Attributes (General)
     ----------------------------
     config_dirname : str
         Absolute path of the directory containing the source YAML configuration
@@ -37,6 +37,14 @@ class Parameters(object):
     config_filename : str
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
+
+    Attributes (General)
+    ----------------------------
+    clipping_bitmap_filename : str
+        Absolute or relative path of the bitmap file defining the global
+        geometry mask to which all tissue profile bitmaps will be clipped. If
+        relative (i.e., _not_ prefixed by a directory separator), the path is
+        relative to the directory containing the source configuration file.
     '''
     def __init__(self, config_filename: str):
         '''
@@ -345,6 +353,8 @@ class Parameters(object):
         tpd = self.config['tissue profile definition']
         self.default_tissue_name = self.config['variable settings']['default tissue name']
 
+        self.clipping_bitmap_filename = \
+            tpd['geometry clipping']['bitmap']['file']
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
         self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}

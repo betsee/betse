@@ -73,7 +73,7 @@ init time settings:
                                # recommend 10s of initialization.
                                # note this is overriden if you are using 'cutom init' with settings
                                # defined below.
-    
+
   custom init time profile:     # set the following params for more control over init run
                                 # To use these over defaults call 'custom init' in time profile
                                 # setting above.
@@ -239,12 +239,8 @@ geometry defining bitmaps:
         # Absolute or relative path of bitmap. If relative (i.e., *NOT*
         # prefixed by a directory separator), the path is relative to the
         # directory containing this configuration file.
-        - file: geo/circle/circle_base.png
-          link to profile: clipping  # use 'clipping' to use as geometry mask, or
-                                     # link to a defined tissue profile name
-
-        - file: geo/circle/spot.png             # basename of bitmap in the above directory  
-          link to profile: spot      # a defined tissue profile name       
+        - file: geo/circle/spot.png             # basename of bitmap in the above directory
+          link to profile: spot      # a defined tissue profile name
 
         - file: geo/circle/ring.png
           link to profile: ring
@@ -254,6 +250,16 @@ geometry defining bitmaps:
 
 
 tissue profile definition:
+    # Global geometry mask to which all tissue profile bitmaps specified below
+    # will be clipped.
+    geometry clipping:
+        # Bitmap defining this mask as a colored pixel area.
+        bitmap:
+            # Absolute or relative bitmap path. If relative (i.e., *NOT*
+            # prefixed by a directory separator), the path is relative to the
+            # directory containing this configuration file.
+            file: geo/circle/circle_base.png
+
     # Tissue profiles are applied in the order defined below. When multiple
     # profiles apply to the same cell, options defined by later profiles
     # override options defined by earlier profiles for that cell.
@@ -262,13 +268,11 @@ tissue profile definition:
         # options *NOT* defined by subsequent profiles. (Options defined by
         # subsequent profiles take precedence over those defined here, due to
         # this being the first listed profile.)
-        - name: tissue         # give your profile a name that will be used to apply the profile
-          cell targets: all    # 'bitmap' to link to image file or:
-                                  #'random##', 'boundary', 'all', or list of inds
+        - name: tissue         # unique profile name
           designation: None    # special instructions for making the profile:
                                   #'cavity' or 'cuts' (cavity specified in makeWorld)
           insular: False       # tissue has gj connecting within tissue but not between tissues (True)
-  
+
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
           Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -276,6 +280,41 @@ tissue profile definition:
           Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+          cell targets: all
+
+          #FIXME: Rename to "cell targets" and remove the above key-value pair
+          #once working.
+
+          # Subset of cells to which this tissue profile applies.
+          currently unused:
+              #FIXME: Document the "boundary" option and provide an example of
+              #its use below.
+
+              # Type of subset. This must be one of the following strings:
+              #
+              # * "all", uniformly applying this tissue profile to all cells.
+              # * "bitmap", conditionally applying this tissue profile to only
+              #   those cells residing in this bitmap's colored pixel area.
+              # * "boundary," ???.
+              # * "random", conditionally applying this tissue profile to only
+              #   a random subset of all cells.
+              type: all
+
+              # If "type: bitmap" above, options defining this tissue profile;
+              # otherwise ignored.
+              bitmap:
+                  # Absolute or relative bitmap path.
+                  file: geo/circle/circle_base.png
+
+              # If "type: random" above, options defining this tissue profile;
+              # otherwise ignored.
+              random:
+                  # Percentage of the total number of cells to which this
+                  # tissue profile will be randomly applied. This must be an
+                  # integer in the range [0, 100] (e.g., "50", applying this
+                  # profile to 50% of all cells).
+                  percent: 50
 
         #FIXME: I have no idea if these profile descriptions actually apply.
         #They probably don't. Such is the price of love and late code nights!
@@ -331,7 +370,7 @@ tissue profile definition:
 
       - name: applied neg voltage
         boundary targets: B
-  
+
     closed boundary: False   # are the global environmental boundaries closed (True) or open (False)?
 
 #-----------------------------------------------------------------------------------------------------------------------
