@@ -2,10 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-#FIXME: This module appears to have been entirely superceded by the
-#"compute" module and hence should arguably be deleted. Spaketh the
-#robot army: "Destroy! Erase! Improve!"
-
 # FIXME allow time dependent voltage to be added to global boundaries
 # FIXME allow user to specify open or closed concentration boundaries
 # FIXME add this grid computation method as feature to params and config and sim runner...
@@ -14,20 +10,15 @@
 # FIXME create new viz module
 # FIXME check cutting holes and other dynamics
 
-import os
-import os.path
-from random import shuffle
-import time
-import copy
-
+import copy, time, os, os.path
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate as interp
-import matplotlib.pyplot as plt
-
+from random import shuffle
 from betse.science import filehandling as fh
 from betse.science.gridworld import vizgrid as viz
 from betse.science import toolbox as tb
-from betse.science.tissuehandler import TissueHandler
+from betse.science.tissue.handler import TissueHandler
 from betse.science.finitediff import gradient
 from betse.exceptions import BetseExceptionSimulation
 from betse.util.io import loggers

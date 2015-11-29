@@ -2,24 +2,25 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-import numpy as np
 import math
-import numpy.ma as ma
-from scipy import interpolate as interp
-import scipy.spatial as sps
-from scipy import ndimage
-import os, os.path
+import os
+import os.path
 import copy
 from random import shuffle
+import time
+
+import numpy as np
+from scipy import interpolate as interp
+import matplotlib.pyplot as plt
+
 from betse.science import filehandling as fh
 from betse.science import visualize as viz
 from betse.science import toolbox as tb
-from betse.science.tissuehandler import TissueHandler
+from betse.science.tissue.handler import TissueHandler
 from betse.science import finitediff as fd
-import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionSimulation
 from betse.util.io import loggers
-import time
+
 
 class Simulator(object):
     """

@@ -33,7 +33,7 @@ import os.path
 import numpy as np
 import scipy.spatial as sps
 
-from betse.science.geom.bitmap import GeometryBitmap
+from betse.science.tissue.bitmapper import BitMapper
 from betse.science import toolbox as tb
 from betse.science import filehandling as fh
 from betse.util.io import loggers
@@ -162,9 +162,8 @@ class GridWorld(object):
 
         # load the bitmap used to clip the cell cluster and create a clipping function
         loggers.log_info('Clipping geometry to cluster shape... ')
-        bitmasker = GeometryBitmap(
-            p.clipping_bitmap_filename, p.config_dirname)
-        bitmasker.makeClippingFunctions(
+        bitmasker = BitMapper(
+            p.clipping_bitmap_filename, p.config_dirname,
             self.xmin, self.xmax, self.ymin, self.ymax)
 
         self.cell_bools_k = []

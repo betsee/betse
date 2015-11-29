@@ -6,15 +6,13 @@
 # FIXME include other channels in morphogen (dye) dynamics
 
 
-from random import shuffle
-
 import numpy as np
+from random import shuffle
 from scipy import spatial as sps
 from scipy import interpolate as interp
-
 from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
-from betse.science.geom.bitmap import GeometryBitmap
+from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io import loggers
 
 
@@ -994,26 +992,30 @@ class TissueHandler(object):
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_morpho + sim.Dm_base
 
 
-#FIXME: For orthogonality, consider renaming "profile_key" to "profile_name".
-#And lo, he saw that she was lovely.
-def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
+def getCellTargets(
+    profile_name, targets_description, cells, p, ignoreECM = False):
     """
-    Using an input description flag, which is a string in the format of
-    'random40', a list of integers corresponding to cell indices,
-    [4,5,7], this returns the cell or membrane indices to used to define
-    tissue profiles.The string format targets the specified random fraction of total
-    indices, for instance 'random20' would randomly select 20% of the cell population.
+    Get a Numpy array of all cell or membrane indices comprising the passed
+    tissue profile.
 
     Parameters
     ---------------------------------
-    targets_description                  a string in the format 'random50', 'all', or a list of indices to cell_i
-    cells                                an instance of the world module object
-    p                                    an instance of the parameters module object
-    ignoreECM                            a flag telling the function to ignore p.sim_ECM
+    targets_description : str
+        Input description string in the format `random50`, `all`, or a list of
+        integers corresponding to cell indices (e.g., `[4,5,7]`).
+    cells : World
+        Instance of the `World` object.
+    p : Parameters
+        Instance of the `Parameters` object.
+    ignoreECM : bool
+        If `True`, electromagnetism (e.g., `p.sim_ECM`) will be ignored; else,
+        electromagnetism will be simulated. Defaults to `False`.
 
     Returns
     ---------------------------------
-    target_inds                          a list of integers corresponding to targeted cell or membrane indices
+    target_inds : ndarray
+        Numpy array of all targeted cell or membrane indices comprising this
+        tissue profile.
     """
 
     if isinstance(targets_description,str):
@@ -1024,9 +1026,8 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
             numo = targets_description[6:len(targets_description)]
 
             if chaff == 'bitmap':
-                bitmask = GeometryBitmap(
-                    p.bitmap_profiles[profile_key], p.config_dirname)
-                bitmask.makeClippingFunctions(
+                bitmask = BitMapper(
+                    p.bitmap_profiles[profile_name], p.config_dirname,
                     cells.xmin, cells.xmax, cells.ymin, cells.ymax)
                 bitmask.clipPoints(
                     cells.cell_centres[:,0], cells.cell_centres[:,1])
@@ -1092,36 +1093,37 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
     return target_inds
 
-#FIXME: For orthogonality, consider renaming "profile_key" to "profile_name".
-#And lo, he saw that she was lovely.
-def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
+
+def getEcmTargets(
+    profile_name, targets_description, cells, p, boundaryOnly = True):
     """
-    Using an input description flag, which is a string in the format of
-    'random40', or a list of integers corresponding to ecm indices,
-    [4,5,7], this returns the ecm indices to used to define
-    tissue profiles.The string format targets the specified random fraction of total
-    indices, for instance 'random20' would randomly select 20% of the ecm spaces.
+    Get a Numpy array of all ECM indices comprising the passed tissue profile.
 
     Parameters
     ---------------------------------
-    targets_description                  a list [8,9,10] of indices to bflags_ecm or ecm_i or the string 'all'
-    cells                                an instance of the world module object
-    p                                    an instance of the parameters module object
-    boundaryOnly                         a flag telling the function we're only interested in bflags_ecm
+    targets_description : str
+        Input description string in the format `random50`, `all`, or a list of
+        integers corresponding to ECM indices (e.g., `[4,5,7]`).
+    cells : World
+        Instance of the `World` object.
+    p : Parameters
+        Instance of the `Parameters` object.
+    boundaryOnly : bool
+        If `True`, only boundary ECM indices (e.g., `bflags_ecm`) will be
+        returned; else, all ECM indices will be returned. Defaults to `True`.
 
     Returns
     ---------------------------------
-    target_inds                          a list of integers corresponding to targeted ecm indices
-
+    target_inds : ndarray
+        Numpy array of all targeted ECM indices comprising this tissue profile.
     """
 
     target_inds = []
 
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
-            bitmask = GeometryBitmap(
-                p.bitmap_profiles[profile_key], p.config_dirname)
-            bitmask.makeClippingFunctions(
+            bitmask = BitMapper(
+                p.bitmap_profiles[profile_name], p.config_dirname,
                 cells.xmin, cells.xmax, cells.ymin, cells.ymax)
             bitmask.clipPoints(cells.xypts[:,0], cells.xypts[:,1])
             target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
@@ -1133,9 +1135,8 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
-            bitmask = GeometryBitmap(
-                p.bitmap_profiles[profile_name], p.config_dirname)
-            bitmask.makeClippingFunctions(
+            bitmask = BitMapper(
+                p.bitmap_profiles[profile_name], p.config_dirname,
                 cells.xmin, cells.xmax, cells.ymin, cells.ymax)
             bitmask.clipPoints(cells.cell_centres[:,0], cells.cell_centres[:,1])
             target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask

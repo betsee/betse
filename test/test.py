@@ -60,7 +60,7 @@ y_rnd = const.nl * const.dc * (np.random.rand(const.ny, const.nx) - 0.5)  # crea
 x_2d = x_2d + x_rnd
 y_2d = y_2d + y_rnd
 
-# define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry (this is req'd for comp geom)
+# define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry (this is req'd for comp tissue)
 xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
 
 z_xy = np.zeros(xypts.shape)   # create a similar data structure specific to cells data

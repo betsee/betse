@@ -4,22 +4,25 @@
 # See "LICENSE" for further details.
 
 
+import os
+import os.path
+import time
+
 from scipy import interpolate as interp
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.collections import LineCollection, PolyCollection
+
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
 from betse.science.compute import Simulator
 from betse.science.parameters import Parameters
 from betse.science.world import World
-from betse.science.tissuehandler import TissueHandler
-import betse.science.finitediff as fd
+from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from betse.util.path import files, paths
-import matplotlib.pyplot as plt
-import numpy as np
-import os, os.path
-import time
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
-from matplotlib.collections import LineCollection, PolyCollection
+
 
 class SimRunner(object):
     '''
