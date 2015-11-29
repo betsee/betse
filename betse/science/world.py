@@ -18,17 +18,21 @@ cell polygon, their volume, and create cell-cell gap junctions (GJs) and membran
 for each cell.
 """
 
+import math
+import os
+import os.path
+
 import numpy as np
 import scipy.spatial as sps
 from scipy import interpolate as interp
 from scipy import ndimage
-import math
+
 from betse.science import toolbox as tb
 from betse.science import finitediff as fd
-from betse.science.bitmapper import BitMapper
-import os, os.path
+from betse.science.geom.bitmap import GeometryBitmap
 from betse.science import filehandling as fh
 from betse.util.io import loggers
+
 
 class World(object):
     """
@@ -283,7 +287,7 @@ class World(object):
 
         # Load the bitmap used to clip the cell cluster and create a clipping function:
         loggers.log_info('Clipping Voronoi geometry to cluster shape...')
-        self.bitmasker = BitMapper(p.clipping_bitmap_filename, p.config_dirname)
+        self.bitmasker = GeometryBitmap(p.clipping_bitmap_filename, p.config_dirname)
         self.bitmasker.makeClippingFunctions(
             self.xmin, self.xmax, self.ymin, self.ymax)
 
@@ -304,7 +308,7 @@ class World(object):
                 if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
                     self.ecm_verts.append(cell_polya)
 
-        self.cluster_mask = self.bitmasker.clippingMatrix
+        self.cluster_mask = self.bitmasker.clipping_matrix
         self.msize = self.bitmasker.msize
 
         # next redefine the set of unique vertex points from ecm_verts arrangement:

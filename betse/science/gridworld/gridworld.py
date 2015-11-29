@@ -26,14 +26,18 @@ defining a closed polygon). Other methods define the cell centres and create cel
 # modules...!
 #FIXME do an ecm volume
 
+import math
+import os
+import os.path
+
 import numpy as np
 import scipy.spatial as sps
-import math
-from betse.science.bitmapper import BitMapper
+
+from betse.science.geom.bitmap import GeometryBitmap
 from betse.science import toolbox as tb
-import os, os.path
 from betse.science import filehandling as fh
 from betse.util.io import loggers
+
 
 class GridWorld(object):
 
@@ -158,7 +162,7 @@ class GridWorld(object):
 
         # load the bitmap used to clip the cell cluster and create a clipping function
         loggers.log_info('Clipping geometry to cluster shape... ')
-        bitmasker = BitMapper(
+        bitmasker = GeometryBitmap(
             p.clipping_bitmap_filename, p.config_dirname)
         bitmasker.makeClippingFunctions(
             self.xmin, self.xmax, self.ymin, self.ymax)
@@ -170,7 +174,7 @@ class GridWorld(object):
 #           cell_truth = 1.0
             self.cell_bools_k.append(cell_truth)
 
-        self.cluster_mask = bitmasker.clippingMatrix
+        self.cluster_mask = bitmasker.clipping_matrix
         self.msize = bitmasker.msize
         self.cell_bools_k = np.asarray(self.cell_bools_k)
 

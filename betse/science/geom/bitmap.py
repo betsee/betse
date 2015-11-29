@@ -10,7 +10,8 @@ from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
 
-class BitMapper(object):
+
+class GeometryBitmap(object):
     """
     Finds a designated bitmap, loads it, makes it into an interpolation
     function, and allows the user to screen a set of points in the space defined
@@ -24,12 +25,12 @@ class BitMapper(object):
 
     Attributes
     ----------------------------
-    bitmapFile : str
+    filename : str
         Absolute path of this bitmap.
-    clippingMatrix : ndarray
+    clipping_matrix : ndarray
         Numpy matrix defining this bitmap's threshholded image.
 
-    Attributes (Interpolation)
+    Attributes (makeClippingFunctions)
     ----------------------------
     The following attributes are available _only_ after calling the
     `makeClippingFunctions()` method.
@@ -41,13 +42,13 @@ class BitMapper(object):
     clipping_function_fast : func
         Fast variant of `clipping_function` otherwise sharing the same API.
 
-    Attributes (Points)
+    Attributes (clipPoints)
     ----------------------------
     The following attributes are available _only_ after calling the
     `clipPoints()` method.
 
     good_inds : ndarray
-        #FIXME: Document us up the `BitMapper` bomb.
+        #FIXME: Document us up the `GeometryBitmap` bomb.
     good_points : ndarray
         Numpy matrix listing all points `(x, y)` residing inside this bitmap's
         colored area.
@@ -88,15 +89,15 @@ class BitMapper(object):
         files.die_unless_file(filename)
 
         # Store this absolute path.
-        self.bitmapFile = filename
+        self.filename = filename
 
         # Load this bitmap as a flattened (i.e., grayscale) Numpy array.
-        bitmap = misc.imread(self.bitmapFile, flatten=1)
+        bitmap = misc.imread(filename, flatten=1)
 
         if bitmap.shape[0] != bitmap.shape[1]:
             raise BetseExceptionSimulation(
                 'Bitmap "{}" dimensions not square '
-                '(i.e., of the same width and height).'.format(self.bitmapFile))
+                '(i.e., of the same width and height).'.format(filename))
 
         self.msize = bitmap.shape[0]
 
@@ -104,9 +105,9 @@ class BitMapper(object):
         point_inds = (bitmap == 0).nonzero()
 
         # define a new matrix the same shape as the image and set values to 0 or 1:
-        self.clippingMatrix = np.zeros((self.msize,self.msize))
-        self.clippingMatrix[point_inds] = 1.0
-        self.clippingMatrix = np.flipud(self.clippingMatrix)
+        self.clipping_matrix = np.zeros((self.msize, self.msize))
+        self.clipping_matrix[point_inds] = 1.0
+        self.clipping_matrix = np.flipud(self.clipping_matrix)
 
     def makeClippingFunctions(self, xmin, xmax, ymin, ymax):
         """
@@ -133,9 +134,9 @@ class BitMapper(object):
         # Create an interpolation function that returns zero if the query point
         # is outside the mask and 1 if the query point is in the mask.
         self.clipping_function = interp.interp2d(
-            xpts, ypts, self.clippingMatrix)
+            xpts, ypts, self.clipping_matrix)
         self.clipping_function_fast = interp.RectBivariateSpline(
-            xpts, ypts, self.clippingMatrix)
+            xpts, ypts, self.clipping_matrix)
 
     def clipPoints(self, point_list_x, point_list_y):
         """
@@ -159,8 +160,8 @@ class BitMapper(object):
         # an exception.
         if not hasattr(self, 'clipping_function'):
             raise BetseExceptionMethod(
-                'BitMapper.makeClippingFunctions() not called before calling '
-                'BitMapper.clipPoints().')
+                'GeometryBitmap.makeClippingFunctions() not called before calling '
+                'GeometryBitmap.clipPoints().')
 
         self.good_points = []
         self.good_inds = []

@@ -6,14 +6,17 @@
 # FIXME include other channels in morphogen (dye) dynamics
 
 
+from random import shuffle
+
 import numpy as np
 from scipy import spatial as sps
 from scipy import interpolate as interp
-from random import shuffle
+
 from betse.science import toolbox as tb
 from betse.exceptions import BetseExceptionSimulation
-from betse.science.bitmapper import BitMapper
+from betse.science.geom.bitmap import GeometryBitmap
 from betse.util.io import loggers
+
 
 class TissueHandler(object):
     '''
@@ -1021,7 +1024,7 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
             numo = targets_description[6:len(targets_description)]
 
             if chaff == 'bitmap':
-                bitmask = BitMapper(
+                bitmask = GeometryBitmap(
                     p.bitmap_profiles[profile_key], p.config_dirname)
                 bitmask.makeClippingFunctions(
                     cells.xmin, cells.xmax, cells.ymin, cells.ymax)
@@ -1116,7 +1119,7 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
 
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
-            bitmask = BitMapper(
+            bitmask = GeometryBitmap(
                 p.bitmap_profiles[profile_key], p.config_dirname)
             bitmask.makeClippingFunctions(
                 cells.xmin, cells.xmax, cells.ymin, cells.ymax)
@@ -1130,7 +1133,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
 
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
-            bitmask = BitMapper(
+            bitmask = GeometryBitmap(
                 p.bitmap_profiles[profile_name], p.config_dirname)
             bitmask.makeClippingFunctions(
                 cells.xmin, cells.xmax, cells.ymin, cells.ymax)
@@ -1138,7 +1141,7 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
             target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
             # Update the cluster mask by subtracting deleted region.
-            cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix
+            cells.cluster_mask = cells.cluster_mask - bitmask.clipping_matrix
 
     elif isinstance(targets_description,list):   # otherwise, if it's a list, then take the targets literally...
         target_inds_cell = targets_description
