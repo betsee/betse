@@ -159,7 +159,8 @@ class GridWorld(object):
         # load the bitmap used to clip the cell cluster and create a clipping function
         loggers.log_info('Clipping geometry to cluster shape... ')
         bitmasker = BitMapper(
-            p, p.clipping_bitmap_filename,
+            p.clipping_bitmap_filename, p.config_dirname)
+        bitmasker.makeClippingFunctions(
             self.xmin, self.xmax, self.ymin, self.ymax)
 
         self.cell_bools_k = []

@@ -32,6 +32,12 @@ class BetseExceptionModule(BetseException):
     '''
     pass
 
+class BetseExceptionMethod(BetseException):
+    '''
+    Method-specific exception.
+    '''
+    pass
+
 class BetseExceptionRegex(BetseException):
     '''
     Regular exception-specific exception.

@@ -1022,9 +1022,11 @@ def getCellTargets(profile_key,targets_description,cells,p,ignoreECM = False):
 
             if chaff == 'bitmap':
                 bitmask = BitMapper(
-                    p, p.bitmap_profiles[profile_key],
+                    p.bitmap_profiles[profile_key], p.config_dirname)
+                bitmask.makeClippingFunctions(
                     cells.xmin, cells.xmax, cells.ymin, cells.ymax)
-                bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+                bitmask.clipPoints(
+                    cells.cell_centres[:,0], cells.cell_centres[:,1])
                 target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
                 if p.sim_ECM is True and ignoreECM is False and len(target_inds):
@@ -1115,7 +1117,8 @@ def getEcmTargets(profile_key,targets_description,cells,p,boundaryOnly = True):
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
             bitmask = BitMapper(
-                p, p.bitmap_profiles[profile_key],
+                p.bitmap_profiles[profile_key], p.config_dirname)
+            bitmask.makeClippingFunctions(
                 cells.xmin, cells.xmax, cells.ymin, cells.ymax)
             bitmask.clipPoints(cells.xypts[:,0], cells.xypts[:,1])
             target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
@@ -1128,15 +1131,16 @@ def removeCells(profile_name,targets_description,sim,cells,p, simMod = False, da
     if isinstance(targets_description,str):
         if targets_description == 'bitmap':
             bitmask = BitMapper(
-                p, p.bitmap_profiles[profile_name],
+                p.bitmap_profiles[profile_name], p.config_dirname)
+            bitmask.makeClippingFunctions(
                 cells.xmin, cells.xmax, cells.ymin, cells.ymax)
-            bitmask.clipPoints(cells.cell_centres[:,0],cells.cell_centres[:,1])
+            bitmask.clipPoints(cells.cell_centres[:,0], cells.cell_centres[:,1])
             target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
             # Update the cluster mask by subtracting deleted region.
             cells.cluster_mask = cells.cluster_mask - bitmask.clippingMatrix
 
-    if isinstance(targets_description,list):   # otherwise, if it's a list, then take the targets literally...
+    elif isinstance(targets_description,list):   # otherwise, if it's a list, then take the targets literally...
         target_inds_cell = targets_description
 
     # get the corresponding flags to membrane entities
