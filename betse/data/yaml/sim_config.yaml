@@ -639,6 +639,8 @@ variable settings:
 
   include electrostatic pressure: False   # include electrostatic pressure in any deformation and/or flows?
 
+  fixed cluster boundary: False   # are membranes of cells exterior to the cluster fixed (False0 or free to move?
+
   elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
 
   channel charge: -1         # charge of membrane channels

@@ -134,9 +134,10 @@ class World(object):
             self.voronoiGrid(p)
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
+            self.memWork(p)
 
             if p.deformation is True:
-                self.memWork(p)
+
                 self.deformationMatrix(p)
 
     def makeSeeds(self,p):
@@ -1464,6 +1465,8 @@ class World(object):
 
         """
 
+        self.mem_distance = p.cell_space + 2*p.tm
+
         sc = (p.rc/2.5)*(p.scale_cell)
         memTree = sps.KDTree(self.mem_mids_flat)
 
@@ -1638,7 +1641,7 @@ class World(object):
 
         self.mem_LapM = np.zeros((len(self.cell_i), len(self.cell_i)))
 
-        self.mem_distance = p.cell_space + 2*p.tm
+
 
         for cell_i in self.cell_i:
 

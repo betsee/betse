@@ -86,6 +86,8 @@ class Parameters(object):
         self.deform_osmo = self.config['variable settings']['include osmotic pressure']
         self.deform_electro = self.config['variable settings']['include electrostatic pressure']
 
+        self.fixed_cluster_bound = self.config['variable settings']['fixed cluster boundary']
+
 
         self.youngMod = float(self.config['variable settings']['elastic modulus'])
 

@@ -1079,21 +1079,30 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
+            # calculate pressures
+
+            if p.deform_osmo is True:
+
+                 self.osmotic_P(cells,p)
+
+            if p.deform_electro is True:
+
+                self.electro_P(cells,p)
+
+            if p.gravity is True:
+
+                self.gravity_P(cells,p)
+
             # calculate fluid flow:
-            if p.fluid_flow is True and cells.lapGJinv is not 0:
+            if p.fluid_flow is True:
                 self.getFlow(cells,p)
 
             if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
-                            # calculate pressures:
-                self.electro_P(cells,p)
-                self.osmotic_P(cells,p)
-                self.gravity_P(cells,p)
 
                 self.getDeformation(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                 # determine flux through gap junctions for IP3:
-
                 self.update_IP3(cells,p,t)
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
@@ -1166,9 +1175,11 @@ class Simulator(object):
 
                 self.vm_time.append(self.vm[:])
 
-
-
                 self.rho_cells_time.append(self.rho_cells[:])
+
+                if p.deform_osmo is True:
+
+                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
                 if p.deformation is True:
                     self.cell_centres_time.append(cells.cell_centres[:])
@@ -1178,7 +1189,7 @@ class Simulator(object):
                     self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
-                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+
 
                 if p.fluid_flow is True:
 
@@ -1535,6 +1546,20 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
+            # calculate pressures:
+
+            if p.deform_osmo is True:
+
+                self.osmotic_P(cells,p)
+
+            if p.deform_electro is True:
+
+                self.electro_P(cells,p)
+
+            if p.gravity is True:
+
+                self.gravity_P(cells,p)
+
             if p.fluid_flow is True:
 
                 self.getFlow(cells,p)
@@ -1544,12 +1569,8 @@ class Simulator(object):
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
-            if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
 
-                # calculate pressures:
-                self.osmotic_P(cells,p)
-                self.electro_P(cells,p)
-                self.gravity_P(cells,p)
+            if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
 
                 self.getDeformation(cells,t,p)
 
@@ -1644,6 +1665,10 @@ class Simulator(object):
 
                 self.time.append(t)
 
+                if p.deform_osmo is True: # if osmotic pressure is enabled
+
+                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+
                 if p.deformation is True:
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
@@ -1652,9 +1677,6 @@ class Simulator(object):
                     self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
-                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-                    # self.u_cells_x_time.append(self.u_cells_x)
-                    # self.u_cells_y_time.append(self.u_cells_y)
 
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
@@ -3209,6 +3231,9 @@ class Simulator(object):
 
             self.osmo_P_delta = self.osmo_P_cell[cells.mem_to_cells] - self.osmo_P_env[cells.map_mem2ecm]
 
+            # average the pressure to individual cells
+            self.osmo_P_delta = np.dot(cells.M_sum_mems,self.osmo_P_delta)/cells.num_mems
+
     def electro_P(self,cells,p):
         """
         Calculates electrostatic pressure in collection of cells.
@@ -3216,43 +3241,51 @@ class Simulator(object):
 
         """
 
-        # if p.sim_ECM is True:
-        #     # surface charge density for cell and ecm:
-        #     Q_cell = self.rho_cells*cells.cell_vol*(1/p.ff_cell)*(1/cells.cell_sa)
-        #     Q_ecm = self.rho_env*cells.ecm_vol*(1/p.ff_env)*(1/cells.ecm_sa)
-        #
-        #     ave_rho = (Q_cell[cells.mem_to_cells] + Q_ecm[cells.map_mem2ecm])/2
-        #
-        #     P_electro_env = ave_rho*(self.vm/p.tm)  # positive pressure points outwards
-        #
-        # else:
-        P_electro_env = np.zeros(len(cells.mem_i))
+        # electrostatic pressure will be used only in flow calculations
+
 
         # ----------------------
-
         # surface charge density for cells:
-        Q_cell = self.rho_cells*cells.cell_vol*(1/p.ff_cell)*(1/cells.cell_sa)
+        Q_cell = self.rho_cells*cells.cell_vol*(1/cells.cell_sa)*(1/p.ff_cell)
+
+
+
+        #----------------------------------------
+
+        # if p.sim_ECM is False:  # this can't be right as we need membrane component
+        #
+        #     self.P_electro = Q_cell*self.vm
+        #
+        # else:
+        #
+        #     self.P_electro = Q_cell*self.v_cell
+
+        #----------------------------------------
 
         if p.sim_ECM is False:
+
             Eab_o = -(self.vm[cells.mem_to_cells][cells.mem_nn[:,1]] -
-                    self.vm[cells.mem_to_cells][cells.mem_nn[:,0]])/(p.cell_space+2*p.tm)
+                    self.vm[cells.mem_to_cells][cells.mem_nn[:,0]])/(cells.mem_distance)
 
 
         else:
+
             Eab_o = -(self.v_cell[cells.mem_to_cells][cells.mem_nn[:,1]] -
-                    self.v_cell[cells.mem_to_cells][cells.mem_nn[:,0]])/(p.cell_space+2*p.tm)
+                    self.v_cell[cells.mem_to_cells][cells.mem_nn[:,0]])/(cells.mem_distance)
 
         # get the components with respect to the membrane connector tangents:
-        Eab_x = Eab_o*cells.mem_tx
-        Eab_y = Eab_o*cells.mem_ty
+        # self.Eab_x = Eab_o*cells.mem_tx
+        # self.Eab_y = Eab_o*cells.mem_ty
+        #
+        # Eab = np.sqrt(self.Eab_x**2 + self.Eab_y**2)
 
-        Eab = np.sqrt(Eab_x**2 + Eab_y**2)
-
-        self.P_electro = Q_cell[cells.mem_to_cells]*Eab + P_electro_env # positive pressure points outwards
+        self.P_electro = Q_cell[cells.mem_to_cells]*Eab_o # positive pressure points outwards
 
     def gravity_P(self,cells,p):
 
-        self.P_gravity = np.ones(len(cells.cell_i))*9.81*1000*(cells.cell_centres[:,1] - cells.ymin)
+        # calculate gravity hydrostatic pressure head as P = density x gravity constant x height
+
+        self.P_gravity = np.ones(len(cells.mem_i))*9.81*1000*(cells.mem_mids_flat[:,1] - cells.ymin)
 
     def ghk_calculator(self,cells,p):
         """
@@ -3313,10 +3346,15 @@ class Simulator(object):
 
             net_moles[i][:] = concs*cells.cell_vol
 
-        # first determine the trans-membrane pressure due to electrostatics, if required:
-        if p.deform_electro is True:
-
-            self.P_mem = self.P_electro - self.P_mem
+        # # first determine the trans-membrane pressure due to electrostatics, if required:
+        # if p.deform_electro is True:
+        #
+        #     # self.P_mem = self.P_electro - self.P_mem
+        #     P_mem_a = self.P_electro
+        #
+        # else:
+        #
+        #     P_mem_a = np.zeros(len(cells.mem_i))
 
 
         # determine net pressure in individual cells due to osmotic water flow:-----------------------
@@ -3325,19 +3363,16 @@ class Simulator(object):
             # look at fluid flow and pressure resulting from osmotic flows:
             # the first thing is to calculate the laplacian of the osmotic pressure gradient
                 # across the membrane, scaled by the conductivity of the membrane
-            if p.sim_ECM is False:
-                P_osmo = self.osmo_P_delta[cells.mem_to_cells]
 
-            else:
-                P_osmo = self.osmo_P_delta
+            P_osmo = self.osmo_P_delta[cells.mem_to_cells]  # map osmotic pressure to each cell membrane
 
-            # average the pressure at the membrane to the cell centres:
-            self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
+            # # average the pressure at the membrane to the cell centres:
+            # self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
             # calculate the transmembrane flow of water due to osmotic pressure. This is negative as
-            # high osmotic pressure leads to water flow into the cell. Any (turgor) pressure P_cell in the cell
+            # high osmotic pressure leads to water flow into the cell. Existing pressure in the cell
             # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
-            u_osmo = -(P_osmo - self.P_cells[cells.mem_to_cells])*(p.aquaporins/(p.mu_water*p.tm))
+            u_osmo = -(P_osmo - self.P_mem)*(p.aquaporins/(p.mu_water*p.tm))
 
             # calculate the divergence of the flow by summing over membranes:
             divP_osmo = np.dot(cells.M_sum_mems,u_osmo)
@@ -3345,7 +3380,13 @@ class Simulator(object):
             # Next get the reaction force resulting from osmotic water flow across the membrane:
             F_mem = np.dot(cells.mem_DivM_inv,-divP_osmo)
 
-            self.P_mem  = self.P_mem + F_mem*p.tm # (this force will deform the cell)
+            P_mem_b  = self.P_mem + F_mem*p.tm # (the resulting pressure will deform the cell if it's strong enough)
+
+        else:
+            P_mem_b = np.zeros(len(cells.mem_i))
+
+        # Take the total component of pressure from all contributions:
+        self.P_mem = P_mem_b
 
 
         # ----pressure induced flow through connected cells
@@ -3356,8 +3397,8 @@ class Simulator(object):
 
             if p.gravity is True:
 
-                Fmem_gravity = -(self.P_gravity[cells.mem_to_cells][cells.mem_nn[:,1]]-
-                                 self.P_gravity[cells.mem_to_cells][cells.mem_nn[:,0]])/cells.mem_distance
+                Fmem_gravity = -(self.P_gravity[cells.mem_nn[:,1]]-
+                                 self.P_gravity[cells.mem_nn[:,0]])/cells.mem_distance
 
 
             else:
@@ -3383,7 +3424,7 @@ class Simulator(object):
 
             FF_o[cells.mem_bound] = 0  # ensure there's no flow at the outer boundary membranes
 
-            # get the component of the source normal to the cell boundary in order to calculate divergence
+            # get the component of the driving forces normal to the cell boundary in order to calculate divergence
 
             FF_x = FF_o*cells.mem_vects_flat[:,2]
             FF_y = FF_o*cells.mem_vects_flat[:,3]
@@ -3418,7 +3459,7 @@ class Simulator(object):
             P_react_mem = P_react[cells.mem_to_cells]
             P_react_mem[cells.mem_bound] = 0
 
-            self.P_mem = self.P_mem - P_react_mem
+            self.P_mem = self.P_mem + P_react_mem
 
             # self.P_mem = self.P_mem - gradP*cells.mem_distance
 
@@ -3450,6 +3491,12 @@ class Simulator(object):
         eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)
         eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)
 
+        if p.fixed_cluster_bound is True:  # if the outer boundary of the cell cluster is prevented from deforming
+
+            # set the strain at the boundary to zero:
+            eta_x[cells.mem_bound] = 0
+            eta_y[cells.mem_bound] = 0
+
         #-------------------------------------------------------------
 
         self.T_mem = self.P_mem[:]    # assume the tension force that forms is equal and opposite to the applied load
@@ -3459,7 +3506,7 @@ class Simulator(object):
         F_mem_t = self.T_mem*cells.mem_sa
 
         # average the pressure at the membrane to the cell centres:
-        self.P_cells = np.dot(cells.M_sum_mems,(self.P_mem - self.T_mem))/cells.num_mems
+        self.P_cells = np.dot(cells.M_sum_mems,(self.P_mem))/cells.num_mems
 
         #----------------------------------------------------------
         d_x = eta_x*cells.chord_mag

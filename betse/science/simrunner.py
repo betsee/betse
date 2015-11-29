@@ -952,92 +952,99 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_osmoP is True and p.deformation is True: # FIXME control this with the include osmosis p button
+    if p.plot_osmoP is True: # FIXME make this into a pressure head plot set
 
-        if p.showCells is True:
+        if p.deform_osmo is True:
 
-            if p.sim_ECM is True:
-                osmo_P = np.dot(cells.M_sum_mems,sim.osmo_P_delta)/cells.num_mems
+            if p.showCells is True:
 
-            else:
                 osmo_P = sim.osmo_P_delta
 
-            # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
+                # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
 
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-
-        axP.set_title('Final Osmotic Pressure in Cell Network')
-        axP.set_xlabel('Spatial distance [um]')
-        axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
+            else:
+                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
 
-        if saveImages is True:
-            savename13 = savedImg + 'final_osmoP_2D' + '.png'
-            plt.savefig(savename13,format='png')
-
-        plt.show(block=False)
-
-        # # gravity hydrostatic pressure head:
-        # if p.showCells is True:
-        #
-        #     # gravP = np.dot(cells.M_sum_mems,sim.P_gravity)/cells.num_mems
-        #     gravP = sim.P_gravity
-        #
-        #     figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=gravP,number_cells=p.enumerate_cells,
-        #     clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-        #
-        # else:
-        #      figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=gravP,number_cells=p.enumerate_cells,
-        #      clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-        #
-        #
-        # axP.set_title('Final Gravity-Induced Pressure Head in Cell Network')
-        # axP.set_xlabel('Spatial distance [um]')
-        # axP.set_ylabel('Spatial distance [um]')
-        # cbP.set_label('Pressure [Pa]')
-        #
-        #
-        # if saveImages is True:
-        #     savename13 = savedImg + 'final_gravityP_2D' + '.png'
-        #     plt.savefig(savename13,format='png')
-        #
-        # plt.show(block=False)
-
-        #-----Electrostatic pressure------------------------------------------------------------
-        #
-        # if p.sim_ECM is True:
-
-        # average the electrostatic pressure from mems to whole cell:
-        P_electro_cell = np.dot(cells.M_sum_mems,sim.P_electro)/cells.num_mems
+            axP.set_title('Final Osmotic Pressure in Cell Network')
+            axP.set_xlabel('Spatial distance [um]')
+            axP.set_ylabel('Spatial distance [um]')
+            cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
 
-        figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=P_electro_cell,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+            if saveImages is True:
+                savename13 = savedImg + 'final_osmoP_2D' + '.png'
+                plt.savefig(savename13,format='png')
 
-        # axEP.quiver(cells.mem_vects_flat[:,0]*p.um,cells.mem_vects_flat[:,1]*p.um,
-        #     sim.P_electro*cells.mem_tx,sim.P_electro*cells.mem_ty)
+            plt.show(block=False)
 
-        axEP.set_title('Final Electrostatic Pressure in Cell Network')
-        axEP.set_xlabel('Spatial distance [um]')
-        axEP.set_ylabel('Spatial distance [um]')
-        cbEP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
+        if p.gravity is True:
+
+            # gravity hydrostatic pressure head:
+            if p.showCells is True:
+
+                gravP = np.dot(cells.M_sum_mems,sim.P_gravity)/cells.num_mems
+
+                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=gravP,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+            else:
+                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=gravP,number_cells=p.enumerate_cells,
+                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
 
-        if saveImages is True:
-            savename13 = savedImg + 'final_electroP_2D' + '.png'
-            plt.savefig(savename13,format='png')
+            axP.set_title('Final Gravity-Induced Pressure Head in Cell Network')
+            axP.set_xlabel('Spatial distance [um]')
+            axP.set_ylabel('Spatial distance [um]')
+            cbP.set_label('Pressure [Pa]')
+
+
+            if saveImages is True:
+                savename13 = savedImg + 'final_gravityP_2D' + '.png'
+                plt.savefig(savename13,format='png')
+
+            plt.show(block=False)
+
+        #-----Electrostatic stress------------------------------------------------------------
+
+        if p.deform_electro is True:
+
+            # average the electrostatic pressure from mems to whole cell:
+            P_electro_x = sim.P_electro*cells.mem_tx
+            P_electro_y = sim.P_electro*cells.mem_ty
+
+            P_electro_cell_x = np.dot(cells.M_sum_mems,P_electro_x)/cells.num_mems
+            P_electro_cell_y = np.dot(cells.M_sum_mems,P_electro_y)/cells.num_mems
+
+            P_electro_cell = np.sqrt(P_electro_cell_x**2 + P_electro_cell_y**2)
+
+
+            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=P_electro_cell,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+            axEP.quiver(cells.mem_vects_flat[:,0]*p.um,cells.mem_vects_flat[:,1]*p.um,
+                sim.P_electro*cells.mem_tx,sim.P_electro*cells.mem_ty)
+
+            axEP.set_title('Final Electrostatic Pressure in Cell Network')
+            axEP.set_xlabel('Spatial distance [um]')
+            axEP.set_ylabel('Spatial distance [um]')
+            cbEP.set_label('Pressure [Pa]')
+
+
+            if saveImages is True:
+                savename13 = savedImg + 'final_electroP_2D' + '.png'
+                plt.savefig(savename13,format='png')
+
+            plt.show(block=False)
 
 
     if p.plot_Vel is True:
 
-        if p.fluid_flow is True or p.deformation is True:
+        if p.fluid_flow is True:
 
             ucellso = sim.u_cells_x
             vcellso = sim.u_cells_y
