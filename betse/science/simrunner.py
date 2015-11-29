@@ -949,7 +949,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_osmoP is True:
+    if p.plot_osmoP is True: # FIXME control this with the include osmosis p button
 
         if p.showCells is True:
 

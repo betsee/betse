@@ -1509,14 +1509,6 @@ class World(object):
         self.mem_nn = np.asarray(mem_nn)
         self.mem_bound = np.asarray(mem_bound)
 
-        # membrane nn vectors:
-        # txa = (self.mem_mids_flat[self.mem_nn[:,1]][:,0] - self.mem_mids_flat[self.mem_nn[:,0]][:,0])
-        # tya = (self.mem_mids_flat[self.mem_nn[:,1]][:,1] - self.mem_mids_flat[self.mem_nn[:,0]][:,1])
-        #
-        # ta = np.sqrt(txa**2 + tya**2)
-        #
-        # self.mem_tx = txa/ta
-        # self.mem_ty = tya/ta
 
     def voronoiGrid(self,p):
 
@@ -1667,14 +1659,17 @@ class World(object):
 
                     # find out which cell the partner belongs to:
                     cell_j = self.mem_to_cells[mem_partners[1]]
+                    self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+                    # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
 
 
                 elif mem_partners[1] == mem_i:
 
                     cell_j = self.mem_to_cells[mem_partners[0]]
+                    self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+                    # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
 
-                self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])
-                self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+
 
 
         self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)  # take the inverse to solve poisson equation
