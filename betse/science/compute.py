@@ -1078,17 +1078,16 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
-            # calculate pressures:
-
-            self.electro_P(cells,p)
-            self.osmotic_P(cells,p)
-            self.gravity_P(cells,p)
-
             # calculate fluid flow:
             if p.fluid_flow is True and cells.lapGJinv is not 0:
                 self.getFlow(cells,p)
 
             if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
+                            # calculate pressures:
+                self.electro_P(cells,p)
+                self.osmotic_P(cells,p)
+                self.gravity_P(cells,p)
+
                 self.getDeformation(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
@@ -1166,7 +1165,7 @@ class Simulator(object):
 
                 self.vm_time.append(self.vm[:])
 
-                self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+
 
                 self.rho_cells_time.append(self.rho_cells[:])
 
@@ -1178,6 +1177,7 @@ class Simulator(object):
                     self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
+                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
                 if p.fluid_flow is True:
 
@@ -1534,12 +1534,6 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
-            # calculate pressures:
-
-            self.osmotic_P(cells,p)
-            self.electro_P(cells,p)
-            self.gravity_P(cells,p)
-
             if p.fluid_flow is True:
 
                 self.getFlow(cells,p)
@@ -1550,6 +1544,11 @@ class Simulator(object):
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
             if p.deformation is True:  # FIXME do this so that p.run_Sim must be true to inhibit for inits
+
+                # calculate pressures:
+                self.osmotic_P(cells,p)
+                self.electro_P(cells,p)
+                self.gravity_P(cells,p)
 
                 self.getDeformation(cells,t,p)
 
@@ -1625,8 +1624,6 @@ class Simulator(object):
                 self.I_tot_x_time.append(self.I_tot_x)
                 self.I_tot_y_time.append(self.I_tot_y)
 
-                self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-
                 self.rho_cells_time.append(self.rho_cells[:])
 
                 if p.fluid_flow is True:
@@ -1654,6 +1651,7 @@ class Simulator(object):
                     self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
+                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
                     # self.u_cells_x_time.append(self.u_cells_x)
                     # self.u_cells_y_time.append(self.u_cells_y)
 

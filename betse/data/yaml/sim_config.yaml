@@ -287,17 +287,18 @@ tissue profile definition:
 
           # Subset of cells to which this tissue profile applies.
           currently unused:
-              #FIXME: Document the "boundary" option and provide an example of
-              #its use below.
 
-              # Type of subset. This must be one of the following strings:
+              # Mutually exclusive choice of subset. This must be one of the
+              # following strings:
               #
               # * "all", uniformly applying this tissue profile to all cells.
               # * "bitmap", conditionally applying this tissue profile to only
               #   those cells residing in this bitmap's colored pixel area.
-              # * "boundary," ???.
               # * "random", conditionally applying this tissue profile to only
               #   a random subset of all cells.
+              #
+              # Only the specified choice will be applied. All others will be
+              # ignored.
               type: all
 
               # If "type: bitmap" above, options defining this tissue profile;
@@ -347,7 +348,7 @@ tissue profile definition:
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
           cell targets: bitmap
-          designation: None
+          designation: cuts
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -381,7 +382,7 @@ tissue profile definition:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True        # turn the event on (True) or off (False)
+  event happens: False        # turn the event on (True) or off (False)
   change start: 1.0                # time to start change [s]
   change finish: 4.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
@@ -447,7 +448,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: False
+    event happens: True
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
