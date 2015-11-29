@@ -1014,20 +1014,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.deform_electro is True:
 
             # average the electrostatic pressure from mems to whole cell:
-            P_electro_x = sim.P_electro*cells.mem_tx
-            P_electro_y = sim.P_electro*cells.mem_ty
-
-            P_electro_cell_x = np.dot(cells.M_sum_mems,P_electro_x)/cells.num_mems
-            P_electro_cell_y = np.dot(cells.M_sum_mems,P_electro_y)/cells.num_mems
-
-            P_electro_cell = np.sqrt(P_electro_cell_x**2 + P_electro_cell_y**2)
-
+            P_electro_cell = np.dot(cells.M_sum_mems,sim.P_electro)/cells.num_mems
 
             figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=P_electro_cell,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-            axEP.quiver(cells.mem_vects_flat[:,0]*p.um,cells.mem_vects_flat[:,1]*p.um,
-                sim.P_electro*cells.mem_tx,sim.P_electro*cells.mem_ty)
+            # axEP.quiver(cells.mem_vects_flat[:,0]*p.um,cells.mem_vects_flat[:,1]*p.um,
+            #     sim.P_electro*cells.mem_vects_flat[:,2],sim.P_electro*cells.mem_vects_flat[:,3])
 
             axEP.set_title('Final Electrostatic Pressure in Cell Network')
             axEP.set_xlabel('Spatial distance [um]')

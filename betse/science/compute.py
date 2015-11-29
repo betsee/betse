@@ -3273,13 +3273,12 @@ class Simulator(object):
             Eab_o = -(self.v_cell[cells.mem_to_cells][cells.mem_nn[:,1]] -
                     self.v_cell[cells.mem_to_cells][cells.mem_nn[:,0]])/(cells.mem_distance)
 
-        # get the components with respect to the membrane connector tangents:
-        # self.Eab_x = Eab_o*cells.mem_tx
-        # self.Eab_y = Eab_o*cells.mem_ty
-        #
-        # Eab = np.sqrt(self.Eab_x**2 + self.Eab_y**2)
 
-        self.P_electro = Q_cell[cells.mem_to_cells]*Eab_o # positive pressure points outwards
+        P_electro = 10*Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
+        P_x = P_electro*cells.mem_tx
+        P_y = P_electro*cells.mem_ty
+
+        self.P_electro = P_x*cells.mem_vects_flat[:,2] + P_y*cells.mem_vects_flat[:,3]  # positive pressure points out
 
     def gravity_P(self,cells,p):
 
@@ -3346,15 +3345,15 @@ class Simulator(object):
 
             net_moles[i][:] = concs*cells.cell_vol
 
-        # # first determine the trans-membrane pressure due to electrostatics, if required:
-        # if p.deform_electro is True:
-        #
-        #     # self.P_mem = self.P_electro - self.P_mem
-        #     P_mem_a = self.P_electro
-        #
-        # else:
-        #
-        #     P_mem_a = np.zeros(len(cells.mem_i))
+        # first determine the trans-membrane pressure due to electrostatics, if required:
+        if p.deform_electro is True:
+
+            # self.P_mem = self.P_electro - self.P_mem
+            P_mem_a = self.P_electro
+
+        else:
+
+            P_mem_a = np.zeros(len(cells.mem_i))
 
 
         # determine net pressure in individual cells due to osmotic water flow:-----------------------
@@ -3386,7 +3385,7 @@ class Simulator(object):
             P_mem_b = np.zeros(len(cells.mem_i))
 
         # Take the total component of pressure from all contributions:
-        self.P_mem = P_mem_b
+        self.P_mem = P_mem_a + P_mem_b
 
 
         # ----pressure induced flow through connected cells
