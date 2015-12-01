@@ -2,20 +2,18 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME figure out why scipy can't read pngs!
-
 import numpy as np
 from betse.exceptions import BetseExceptionSimulation
+from betse.science.tissue.matcher import TissueMatcherBitmap
 from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
 
 
 class BitMapper(object):
-    """
-    Finds a designated bitmap, loads it, makes it into an interpolation
-    function, and allows the user to screen a set of points in the space defined
-    by `p.wsx` to see if they fall within the colored area of this bitmap.
+    '''
+    Object finding, loading, and converting a passed bitmap into a SciPy-based
+    interpolation function.
 
     All bitmaps loaded must be square, with equal dimensions (pixels). It is
     recommended that the bitmaps used be 500x500 pixels. The bitmap should be a
@@ -25,14 +23,14 @@ class BitMapper(object):
 
     Attributes
     ----------------------------
-    filename : str
-        Absolute path of this bitmap.
     clipping_matrix : ndarray
         Numpy matrix defining this bitmap's threshholded image.
     clipping_function : func
-        SciPy interpolation function accepting an `(x, y)` point and
-        returning `1.0` if that point resides outside this bitmap's colored area
-        _or_ `0.0` otherwise.
+        SciPy-based interpolation function accepting an `(x, y)` point and
+        returning `1.0` if that point resides outside this bitmap's colored
+        pixel area or `0.0` otherwise. This function permits callers to filter
+        a passed set of points in the space defined by `p.wsx` for the subset
+        residing within this area.
     clipping_function_fast : func
         Fast variant of `clipping_function` otherwise sharing the same API.
 
@@ -46,30 +44,22 @@ class BitMapper(object):
     good_points : ndarray
         Numpy matrix listing all points `(x, y)` residing inside this bitmap's
         colored area.
-    """
+    '''
 
     #FIXME: Refactor to accept an instance of "GeometryBitmap" rather than a
     #filename and directory name.
     #FIXME: We currently ignore "threshhold_val". Should we just remove it, for
     #limplicity's sake? ("Think of the simplistic children!")
     def __init__(self,
-        filename, dirname, xmin, xmax, ymin, ymax, threshhold_val = 0.0):
-        """
-        Loads, initializes, and creates a threshholded interpolation matrix from
+        bitmap_matcher, xmin, xmax, ymin, ymax, threshhold_val = 0.0):
+        '''
+        Load, initialize, and create a threshholded interpolation matrix from
         the passed bitmap file.
 
         Parameters
         ----------------------------
-        filename : str
-            Absolute or relative path of the bitmap to be loaded. If relative
-            (i.e., _not_ prefixed by a directory separator), this path will be
-            canonicalized into an absolute path relative to the directory
-            containing our source configuration file.
-        dirname : str
-            Absolute path of the directory containing the path of the bitmap to
-            be loaded (i.e., `filename`). If that path is relative, that path
-            will be prefixed by this path to convert that path into an absolute
-            path; otherwise, this path will be ignored.
+        bitmap_matcher : TissueMatcher
+            Low-level BETSE-specific object describing this bitmap.
         xmin : float
             Minimum `x` coordinate accepted by these interpolation functions.
         xmax : float
@@ -81,35 +71,24 @@ class BitMapper(object):
         threshhold_val : float
             The value of the pixel to threshhold to. Greyscale runs from `0.0`
             (black) to `255.0` (white). Defaults to `0.0`.
-        """
-        assert isinstance(filename, str), '{} not a string.'.format(filename)
-        assert isinstance( dirname, str), '{} not a string.'.format(dirname)
-
-        # If this is a relative path, convert this into an absolute path
-        # relative to the directory containing the source configuration file.
-        if paths.is_relative(filename):
-            filename = paths.join(dirname, filename)
-
-        # If this absolute path is *NOT* an existing file, raise an exception.
-        files.die_unless_file(filename)
-
-        # Store this absolute path.
-        self.filename = filename
+        '''
+        assert isinstance(bitmap_matcher, TissueMatcherBitmap),\
+            '{} not a BETSE-formatted bitmap.'.format(bitmap_matcher)
 
         # Load this bitmap as a flattened (i.e., grayscale) Numpy array.
-        bitmap = misc.imread(filename, flatten=1)
+        bitmap = misc.imread(bitmap_matcher.filename, flatten=1)
 
         if bitmap.shape[0] != bitmap.shape[1]:
             raise BetseExceptionSimulation(
                 'Bitmap "{}" dimensions not square '
-                '(i.e., of the same width and height).'.format(filename))
-
-        self.msize = bitmap.shape[0]
+                '(i.e., not of the same width and height).'.format(
+                    bitmap_matcher.filename))
 
         # find the black pixels (a really basic threshholding!)
         point_inds = (bitmap == 0).nonzero()
 
         # define a new matrix the same shape as the image and set values to 0 or 1:
+        self.msize = bitmap.shape[0]
         self.clipping_matrix = np.zeros((self.msize, self.msize))
         self.clipping_matrix[point_inds] = 1.0
         self.clipping_matrix = np.flipud(self.clipping_matrix)
@@ -127,7 +106,7 @@ class BitMapper(object):
             xpts, ypts, self.clipping_matrix)
 
     def clipPoints(self, point_list_x, point_list_y):
-        """
+        '''
         Initialize the `good_points` and `good_inds` attributes of this object
         to the subset of the passed list or vector of points residing in this
         bitmap's colored area by calling the clipping function previously
@@ -139,12 +118,12 @@ class BitMapper(object):
             List or Numpy vector of x coordinates of points.
         point_list_y : {list, ndarray}
             List or Numpy vector of y coordinates of points.
-        """
+        '''
 
         self.good_points = []
         self.good_inds = []
 
-        for i, (x, y) in enumerate(zip(point_list_x,point_list_y)):
+        for i, (x, y) in enumerate(zip(point_list_x, point_list_y)):
             #FIXME: The following two lines appear to reduce to a single line:
             #    if self.clipping_function(x,y) != 0.0:
             z = self.clipping_function(x,y)

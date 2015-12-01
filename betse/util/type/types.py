@@ -18,19 +18,27 @@ objects).
 from collections.abc import Iterable, Sequence
 
 # ....................{ TESTERS                            }....................
-def is_string(obj: object) -> bool:
+def is_numeric(obj: object) -> bool:
     '''
-    `True` if the passed object is a **string** (i.e., instance of either the
-    `str` class _or_ a subclass thereof).
+    `True` if the passed object is **numeric** (i.e., instance of either the
+    `int` or `float` classes).
+    '''
+    return isinstance(obj, (int, float))
+
+# ....................{ TESTERS ~ str                      }....................
+def is_str(obj: object) -> bool:
+    '''
+    `True` if the passed object is a **string** (i.e., instance of the `str`
+    class).
     '''
     return isinstance(obj, str)
 
-def is_string_nonempty(obj: object) -> bool:
+def is_str_nonempty(obj: object) -> bool:
     '''
     `True` if the passed object is a **nonempty string* (i.e., string comprising
     one or more characters and hence _not_ the empty string).
     '''
-    return is_string(obj) and len(obj)
+    return is_str(obj) and len(obj)
 
 # ....................{ TESTERS ~ iterable                 }....................
 def is_iterable(obj: object) -> bool:
@@ -43,12 +51,12 @@ def is_iterable(obj: object) -> bool:
     '''
     return isinstance(obj, Iterable)
 
-def is_iterable_nonstring(obj: object) -> bool:
+def is_iterable_nonstr(obj: object) -> bool:
     '''
     `True` if the passed object is a **non-string iterable** (i.e., implements
     the abstract base class `collections.Iterable` _and_ is not a string).
     '''
-    return is_iterable(obj) and not is_string(obj)
+    return is_iterable(obj) and not is_str(obj)
 
 # ....................{ TESTERS ~ sequence                 }....................
 def is_sequence(obj: object) -> bool:
@@ -69,54 +77,75 @@ def is_sequence(obj: object) -> bool:
     '''
     return isinstance(obj, Sequence)
 
-def is_sequence_nonstring(obj: object) -> bool:
+def is_sequence_nonstr(obj: object) -> bool:
     '''
     `True` if the passed object is a **non-string sequence** (i.e., implements
     the abstract base class `collections.Sequence` _and_ is not a string).
     '''
-    return is_sequence(obj) and not is_string(obj)
+    return is_sequence(obj) and not is_str(obj)
 
-def is_sequence_nonstring_nonempty(obj: object) -> bool:
+def is_sequence_nonstr_nonempty(obj: object) -> bool:
     '''
     `True` if the passed object is a **nonempty non-string sequence** (i.e.,
     implements the abstract base class `collections.Sequence`, is not a string,
     and contains at least one element).
     '''
-    return is_sequence_nonstring(obj) and len(obj)
+    return is_sequence_nonstr(obj) and len(obj)
 
-# ....................{ ASSERTERS                          }....................
-def assert_is_not_string(obj: object) -> str:
+# ....................{ ASSERTERS ~ str                    }....................
+def assert_is_not_numeric(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be numeric.
+    '''
+    return '"{}" not numeric (i.e., neither an integer or float).'.format(obj)
+
+# ....................{ ASSERTERS ~ str                    }....................
+def assert_is_nonstr(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be a string.
     '''
     return '"{}" not a string.'.format(obj)
 
-def assert_is_not_string_nonempty(obj: object, label: str) -> str:
+def assert_is_nonstr_nonempty(obj: object, label: str) -> str:
     '''
     String asserting the passed object categorized by the passed human-readable
     label to _not_ be a nonempty string.
     '''
-    return assert_is_not_string(obj) if not is_string(obj) else\
+    return assert_is_nonstr(obj) if not is_str(obj) else\
         '{} empty.'.format(label.capitalize())
 
-# ....................{ ASSERTERS                          }....................
-def assert_is_not_sequence_nonstring(obj: object) -> str:
+# ....................{ ASSERTERS ~ sequence               }....................
+def assert_is_not_iterable_nonstr(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a non-string iterable.
+    '''
+    return '"{}" not a non-string iterable (e.g., dict, list).'.format(obj)
+
+def assert_is_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
+    '''
+    String asserting the passed object categorized by the passed human-readable
+    label to _not_ be a nonempty non-string iterable.
+    '''
+    return assert_is_not_iterable_nonstr(obj) if not is_iterable_nonstr(
+        obj) else '{} empty.'.format(label.capitalize())
+
+# ....................{ ASSERTERS ~ sequence               }....................
+def assert_is_not_sequence_nonstr(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be a non-string sequence.
     '''
-    return '"{}" not a non-string sequence (e.g., list, tuple).'.format(obj)
+    return '"{}" not a non-string sequence (e.g., list).'.format(obj)
 
-def assert_is_not_sequence_nonstring_nonempty(obj: object, label: str) -> str:
+def assert_is_not_sequence_nonstr_nonempty(obj: object, label: str) -> str:
     '''
     String asserting the passed object categorized by the passed human-readable
     label to _not_ be a nonempty non-string sequence.
     '''
-    return assert_is_not_sequence_nonstring(obj) if not is_sequence_nonstring(
+    return assert_is_not_sequence_nonstr(obj) if not is_sequence_nonstr(
         obj) else '{} empty.'.format(label.capitalize())
 
 # --------------------( WASTELANDS                         )--------------------
-    # if not is_string(obj):
-    #     return assert_is_not_string(obj)
+    # if not is_str(obj):
+    #     return assert_is_nonstr(obj)
     # else:
     #     return '{} empty.'.format(label.capitalize())
-

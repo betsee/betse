@@ -150,23 +150,18 @@ class SimRunner(object):
         p.run_sim = False # let the simulator know we're just running an initialization
 
         # cells, _ = fh.loadSim(cells.savedWorld)
-
         cells = World(p)  # create an instance of world
-
 
         if files.is_file(cells.savedWorld):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             loggers.log_info('Cell cluster loaded.')
 
             if p_old.config['general options'] != p.config['general options'] or \
-                    p_old.config['world options'] != p.config['world options'] or \
-                    p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
-                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
-
+               p_old.config['world options'] != p.config['world options'] or \
+               p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
                 raise BetseExceptionParameters(
-                    "Important config file options are out of sync between seed and this init attempt!\n" +
-                    "Run 'betse seed' again to match the current settings of this config file.")
-
+                    'Important config file options are out of sync between seed and this init attempt! '
+                    'Run "betse seed" again to match the current settings of this config file.')
 
         else:
             loggers.log_info("Ooops! No such cell cluster file found to load!")
@@ -177,7 +172,6 @@ class SimRunner(object):
                 loggers.log_info('Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
-
             elif p.autoInit is False:
                 raise BetseExceptionSimulation("Run terminated due to missing seed.\n "
                                                "Please run 'betse seed' to try again.")
@@ -185,13 +179,11 @@ class SimRunner(object):
         sim = Simulator(p)   # create an instance of Simulator
 
         if p.sim_ECM is False:
-
             sim.baseInit(cells, p)   # initialize simulation data structures
             # sim.tissueInit(cells,p)
             sim.runSim(cells,p)     # run and save the initialization
 
         elif p.sim_ECM is True:
-
             sim.baseInit_ECM(cells, p)   # initialize simulation data structures
             # sim.tissueInit(cells,p)
             sim.runSim_ECM(cells,p)     # run and save the initialization
@@ -225,22 +217,18 @@ class SimRunner(object):
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
         sim = Simulator(p)   # create an instance of Simulator
 
-
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
             p.sim_ECM = cells.sim_ECM
 
             if p_old.config['general options'] != p.config['general options'] or \
-                    p_old.config['world options'] != p.config['world options'] or \
-                    p_old.config['geometry defining bitmaps'] != p.config['geometry defining bitmaps'] or \
-                    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
-
+               p_old.config['world options'] != p.config['world options'] or \
+               p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
                 raise BetseExceptionParameters(
-                    "Important config file options are out of sync between the seed and this sim attempt!\n" +
-                    "Run 'betse seed' and 'betse init' again to match the current settings of this config file.")
+                    'Important config file options are out of sync between the seed and this sim attempt! '
+                    'Run "betse seed" and "betse init" again to match the current settings of this config file.')
 
         else:
-
             loggers.log_info("No initialization file found to run this simulation!")
 
             if p.autoInit is True:
@@ -392,7 +380,7 @@ class SimRunner(object):
             plt.show(block=False)
 
         # plot gj
-        fig_x = plt.figure()
+        # fig_x = plt.figure()
         ax_x = plt.subplot(111)
         con_segs = cells.cell_centres[cells.nn_i]
         connects = p.um*np.asarray(con_segs)
@@ -409,13 +397,10 @@ class SimRunner(object):
             savename10 = savedImg + 'gj_connectivity_network' + '.png'
             plt.savefig(savename10,format='png')
 
-
         plt.show()
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
-
     if saveImages is True:
-
         images_path = p.sim_results
         image_cache_dir = os.path.expanduser(images_path)
         os.makedirs(image_cache_dir, exist_ok=True)
@@ -424,7 +409,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #--------Single cell data graphs-----------------------------------------------------------------------------------
 
     if p.plot_single_cell_graphs is True:
-
         figConcsNa, axConcsNa = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
              ax=None,lncolor='g',ionname='Na+')
 
@@ -772,18 +756,16 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #-------------------------------------------------------------------------------------------------------------------
 
     if p.plot_dye2d is True and p.voltage_dye == 1:
-
         if p.sim_ECM is False:
-
             if p.showCells is True:
                 figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+
             else:
                 figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
 
         else:
-
             figVdye = plt.figure()
             axVdye = plt.subplot(111)
 

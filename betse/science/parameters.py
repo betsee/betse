@@ -11,6 +11,11 @@
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
+from betse.science.tissue.matcher import (
+    TissueMatcherEverything,
+    TissueMatcherBitmap,
+    TissueMatcherIndices,
+    TissueMatcherRandom,)
 from betse.util.path import paths
 from collections import OrderedDict
 from matplotlib.colors import Colormap
@@ -40,11 +45,10 @@ class Parameters(object):
 
     Attributes (General)
     ----------------------------
-    clipping_bitmap_filename : str
-        Absolute or relative path of the bitmap file defining the global
-        geometry mask to which all tissue profile bitmaps will be clipped. If
-        relative (i.e., _not_ prefixed by a directory separator), the path is
-        relative to the directory containing the source configuration file.
+    clipping_bitmap_matcher : TissueMatcherBitmap
+        Object describing the bitmap whose colored pixel area specifies the
+        global geometry mask to which all tissue profile bitmaps will be
+        clipped.
     '''
     def __init__(self, config_filename: str):
         '''
@@ -335,28 +339,14 @@ class Parameters(object):
             self.global_options['VATP_block'] = vk
 
         #--------------------------------------------------------------------------------------------------------------
-        # Geometry Bitmaps
-        #--------------------------------------------------------------------------------------------------------------
-        # Define paths for loading bitmaps.
-        gdb = self.config['geometry defining bitmaps']
-
-        self.bitmap_profiles = {}
-
-        for bitmap in gdb['bitmaps']:
-            bitmap_designation = bitmap['link to profile']
-            bitmap_filename = bitmap['file']
-            self.bitmap_profiles[bitmap_designation] = bitmap_filename
-            # print('mapped {} to {}'.format(bitmap_designation, bitmap_filename))
-
-        #--------------------------------------------------------------------------------------------------------------
         # Tissue Definition
         #--------------------------------------------------------------------------------------------------------------
         # Import information used for defining tissues and boundary properties in the collective:
         tpd = self.config['tissue profile definition']
-        self.default_tissue_name = self.config['variable settings']['default tissue name']
-
-        self.clipping_bitmap_filename = \
-            tpd['geometry clipping']['bitmap']['file']
+        self.default_tissue_name = \
+            self.config['variable settings']['default tissue name']
+        self.clipping_bitmap_matcher = TissueMatcherBitmap(
+            tpd['geometry clipping']['bitmap']['file'], self.config_dirname)
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
         self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
@@ -366,17 +356,38 @@ class Parameters(object):
             diffusion_constants = {}
 
             profile_name = tissue_profile['name']
-            profile_features['target method'] = tissue_profile['cell targets']
             profile_features['designation'] = tissue_profile['designation']
             profile_features['insular gj'] = tissue_profile['insular']
 
             # Convert from 0-based list indices to 1-based z order.
             profile_features['z order'] = i + 1
 
+            # Convert diffusion constants from strings to floats.
             for label in self.mem_labels:
                 diffusion_constants[label] = float(tissue_profile[label])
-
             profile_features['diffusion constants'] = diffusion_constants
+
+            # Convert this profile's matcher from a dictionary to typed object.
+            profile_matcher = None
+            cts = tissue_profile['cell targets']
+            if cts['type'] == 'all':
+                profile_matcher = TissueMatcherEverything()
+            elif cts['type'] == 'bitmap':
+                profile_matcher = TissueMatcherBitmap(
+                    cts['bitmap']['file'], self.config_dirname)
+            elif cts['type'] == 'indices':
+                profile_matcher = TissueMatcherIndices(cts['indices'])
+            elif cts['type'] == 'random':
+                profile_matcher = TissueMatcherRandom(cts['random'])
+            else:
+                raise BetseExceptionParameters(
+                    'Tissue cell targets type "{}" unrecognized.'.format(
+                        cts['type']))
+
+            #FIXME: Rename "target method" to simply "matcher".
+            profile_features['target method'] = profile_matcher
+
+            # Finalize this tissue profile parameterization.
             self.tissue_profiles[profile_name] = profile_features
 
         for boundary_profile in tpd['boundary profiles']:

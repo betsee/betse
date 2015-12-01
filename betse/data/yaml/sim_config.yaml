@@ -233,26 +233,11 @@ world options:
 #
 # For related options, see also the "variable settings" section below.
 
-geometry defining bitmaps:
-    bitmaps:
-        # Absolute or relative path of bitmap. If relative (i.e., *NOT*
-        # prefixed by a directory separator), the path is relative to the
-        # directory containing this configuration file.
-        - file: geo/circle/spot.png             # basename of bitmap in the above directory
-          link to profile: spot      # a defined tissue profile name
-
-        - file: geo/circle/ring.png
-          link to profile: ring
-
-        - file: geo/circle/wedge.png
-          link to profile: wound
-
-
 tissue profile definition:
     # Global geometry mask to which all tissue profile bitmaps specified below
     # will be clipped.
     geometry clipping:
-        # Bitmap defining this mask as a colored pixel area.
+        # Bitmap whose colored pixel area defines this mask.
         bitmap:
             # Absolute or relative bitmap path. If relative (i.e., *NOT*
             # prefixed by a directory separator), the path is relative to the
@@ -268,9 +253,14 @@ tissue profile definition:
         # subsequent profiles take precedence over those defined here, due to
         # this being the first listed profile.)
         - name: tissue         # unique profile name
+          insular: False       # tissue has gj connecting within tissue but not between tissues (True)
+
+          #FIXME: The "cavity" designation is no longer required and should be
+          #excised; the "cut" designation should be split out into a new (and
+          #vastly simplified) list of "cut profiles". Ultimate Truth Is Revealed.
+
           designation: None    # special instructions for making the profile:
                                   #'cavity' or 'cuts' (cavity specified in makeWorld)
-          insular: False       # tissue has gj connecting within tissue but not between tissues (True)
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
           Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
@@ -280,46 +270,42 @@ tissue profile definition:
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-          cell targets: all
-
-          #FIXME: Rename to "cell targets" and remove the above key-value pair
-          #once working.
-
           # Subset of cells to which this tissue profile applies.
-          currently unused:
-
+          cell targets:
               # Mutually exclusive choice of subset. This must be one of the
               # following strings:
               #
               # * "all", uniformly applying this tissue profile to all cells.
-              # * "bitmap", conditionally applying this tissue profile to only
-              #   those cells residing in this bitmap's colored pixel area.
-              # * "random", conditionally applying this tissue profile to only
-              #   a random subset of all cells.
+              # * "bitmap", only matching cells in this bitmap's colored area.
+              # * "indices", only matching cells with the listed indices.
+              # * "random", only matching a random subset of cells.
               #
               # Only the specified choice will be applied. All others will be
               # ignored.
               type: all
 
-              # If "type: bitmap" above, options defining this tissue profile;
-              # otherwise ignored.
+              # Unless "type: bitmap" above, this is ignored.
               bitmap:
                   # Absolute or relative bitmap path.
                   file: geo/circle/circle_base.png
 
-              # If "type: random" above, options defining this tissue profile;
-              # otherwise ignored.
-              random:
-                  # Percentage of the total number of cells to which this
-                  # tissue profile will be randomly applied. This must be an
-                  # integer in the range [0, 100] (e.g., "50", applying this
-                  # profile to 50% of all cells).
-                  percent: 50
+              # Unless "type: indices" above, this is ignored.
+              #
+              # List of the indices of all cells to which this tissue profile
+              # will be explicitly applied. This must be a list of positive
+              # integers.
+              indices: [3, 14, 15, 9, 265]
 
+              # Unless "type: random" above, this is ignored.
+              #
+              # Percentage of the total number of cells to which this tissue
+              # profile will be randomly applied. This must be an integer
+              # ranging from 0 to 100 (e.g., "50" randomly applies this profile
+              # to 50% of all cells).
+              random: 50
 
         # Example tissue profile for a small cluster of healthy cells.
         - name: spot
-          cell targets: bitmap
           designation: None
           insular: False
 
@@ -331,9 +317,14 @@ tissue profile definition:
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
+          cell targets:
+              type: bitmap
+              bitmap: { file: geo/circle/spot.png }
+              indices: [3, 14, 15, 9, 265]
+              random: 50
+
         # Example tissue profile for a large ring of healthy cells.
         - name: ring
-          cell targets: bitmap
           designation: None
           insular: False
 
@@ -345,9 +336,14 @@ tissue profile definition:
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
+          cell targets:
+              type: bitmap
+              bitmap: { file: geo/circle/ring.png }
+              indices: [3, 14, 15, 9, 265]
+              random: 50
+
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
-          cell targets: bitmap
           designation: cuts
           insular: False
 
@@ -358,6 +354,12 @@ tissue profile definition:
           Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
+
+          cell targets:
+              type: bitmap
+              bitmap: { file: geo/circle/wedge.png }
+              indices: [3, 14, 15, 9, 265]
+              random: 50
 
     # Boundary profiles, each applying a property at a specific global (i.e.
     # bounding box) boundary. Note that boundary profiles are applied only when

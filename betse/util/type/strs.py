@@ -80,7 +80,7 @@ def join_on(*texts, delimiter: str) -> str:
 
         # ...such object is a non-string iterable (e.g, list, tuple), set the
         # list of passed strings to such object.
-        if types.is_iterable_nonstring(texts[0]):
+        if types.is_iterable_nonstr(texts[0]):
             texts = texts[0]
 
     # Join such texts.

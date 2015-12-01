@@ -289,7 +289,7 @@ class World(object):
         # Load the bitmap used to clip the cell cluster and create a clipping function:
         loggers.log_info('Clipping Voronoi geometry to cluster shape...')
         self.bitmasker = BitMapper(
-            p.clipping_bitmap_filename, p.config_dirname,
+            p.clipping_bitmap_matcher,
             self.xmin, self.xmax, self.ymin, self.ymax)
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
