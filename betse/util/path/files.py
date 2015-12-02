@@ -100,7 +100,7 @@ def is_symlink(pathname: str) -> bool:
     `True` if the passed path is an existing symbolic link.
     '''
     assert types.is_str_nonempty(pathname),\
-        types.assert_is_nonstr_nonempty(pathname, 'pathname')
+        types.assert_nonstr_nonempty(pathname, 'pathname')
     return path.islink(pathname)
 
 # ....................{ COPIERS                            }....................
@@ -117,9 +117,9 @@ def copy(filename_source: str, filename_target: str) -> None:
     exists, an exception will be raised.
     '''
     assert types.is_str_nonempty(filename_source),\
-        types.assert_is_nonstr_nonempty(filename_source, 'source filename')
+        types.assert_nonstr_nonempty(filename_source, 'source filename')
     assert types.is_str_nonempty(filename_target),\
-        types.assert_is_nonstr_nonempty(filename_target, 'target filename')
+        types.assert_nonstr_nonempty(filename_target, 'target filename')
 
     # Log such copy.
     loggers.log_info(
@@ -140,7 +140,7 @@ def remove(filename: str) -> None:
     Remove the passed non-directory file.
     '''
     assert types.is_str_nonempty(filename),\
-        types.assert_is_nonstr_nonempty(filename, 'filename')
+        types.assert_nonstr_nonempty(filename, 'filename')
 
     # Log such removal.
     loggers.log_info('Removing file "%s".', filename)
@@ -161,7 +161,7 @@ def open_for_text_reading(filename: str):
     builtin `open()` would otherwise be called (e.g., in `with` statements).
     '''
     assert types.is_str_nonempty(filename),\
-        types.assert_is_nonstr_nonempty(filename, 'filename')
+        types.assert_nonstr_nonempty(filename, 'filename')
 
     # Raise an exception unless such file exists.
     die_unless_file(filename)
@@ -177,7 +177,7 @@ def open_for_text_writing(filename: str):
     builtin `open()` would otherwise be called (e.g., in `with` statements).
     '''
     assert types.is_str_nonempty(filename),\
-        types.assert_is_nonstr_nonempty(filename, 'filename')
+        types.assert_nonstr_nonempty(filename, 'filename')
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs
@@ -289,11 +289,11 @@ def substitute_substrings(
         substrings in the source file matching that regular expression.
     '''
     assert types.is_str_nonempty(filename_source),\
-        types.assert_is_nonstr_nonempty(filename_source, 'source filename')
+        types.assert_nonstr_nonempty(filename_source, 'source filename')
     assert types.is_str_nonempty(filename_target),\
-        types.assert_is_nonstr_nonempty(filename_target, 'target filename')
+        types.assert_nonstr_nonempty(filename_target, 'target filename')
     assert types.is_sequence_nonstr_nonempty(substitutions),\
-        types.assert_is_not_sequence_nonstr_nonempty(
+        types.assert_not_sequence_nonstr_nonempty(
             substitutions, 'regular expression substitution pairs')
 
     # Log such substitution.
@@ -374,10 +374,10 @@ def substitute_substrings(
         # for regex, substitution in substitution_pair
 
 #     assert types.is_sequence_nonstr_nonempty(regexes),\
-#         types.assert_is_not_sequence_nonstr_nonempty(
+#         types.assert_not_sequence_nonstr_nonempty(
 #             regexes, 'regular expressions')
 #     assert types.is_sequence_nonstr_nonempty(substitutions),\
-#         types.assert_is_not_sequence_nonstr_nonempty(
+#         types.assert_not_sequence_nonstr_nonempty(
 #             substitutions, 'substitutions')
 #     assert len(regexes) == len(substitutions),\
 #         '{} regular expressions unequal to {} substitutions.'.format(

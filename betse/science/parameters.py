@@ -12,7 +12,7 @@
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
 from betse.science.tissue.matcher import (
-    TissueMatcherEverything,
+    TissueMatcherAll,
     TissueMatcherBitmap,
     TissueMatcherIndices,
     TissueMatcherRandom,)
@@ -371,7 +371,7 @@ class Parameters(object):
             profile_matcher = None
             cts = tissue_profile['cell targets']
             if cts['type'] == 'all':
-                profile_matcher = TissueMatcherEverything()
+                profile_matcher = TissueMatcherAll()
             elif cts['type'] == 'bitmap':
                 profile_matcher = TissueMatcherBitmap(
                     cts['bitmap']['file'], self.config_dirname)

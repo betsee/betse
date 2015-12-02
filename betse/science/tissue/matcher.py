@@ -4,7 +4,8 @@
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import (
+    BetseExceptionMethodUnimplemented, BetseExceptionParameters)
 from betse.util.path import files, paths
 from betse.util.type import types
 
@@ -19,12 +20,11 @@ class TissueMatcher(object, metaclass = ABCMeta):
     '''
     pass
 
-class TissueMatcherEverything(TissueMatcher):
+class TissueMatcherAll(TissueMatcher):
     '''
-    Ubiquitous (i.e., all-inclusive) tissue matcher.
+    All-inclusive tissue matcher.
 
-    This matcher unconditionally assigns _all_ cells and/or cell membranes to
-    the corresponding tissue profile.
+    This matcher unconditionally matches _all_ cells and/or cell membranes.
     '''
     pass
 
@@ -33,8 +33,8 @@ class TissueMatcherBitmap(TissueMatcher):
     '''
     Bitmap-specific tissue matcher.
 
-    This matcher assigns all cells residing inside a bitmap's colored pixel area
-    to the corresponding tissue profile.
+    This matcher matches all cells residing inside the colored pixel area
+    defined by an associated bitmap file.
 
     Attributes
     ----------------------------
@@ -49,18 +49,18 @@ class TissueMatcherBitmap(TissueMatcher):
         Parameters
         ----------------------------
         filename : str
-            Absolute or relative path of the bitmap to be loaded. If relative
-            (i.e., _not_ prefixed by a directory separator), this path will be
+            Absolute or relative path of the desired bitmap. If relative (i.e.,
+            _not_ prefixed by a directory separator), this path will be
             canonicalized into an absolute path relative to the directory
-            containing our source configuration file.
+            containing the current simulation's configuration file.
         dirname : str
             Absolute path of the directory containing the path of the bitmap to
             be loaded (i.e., `filename`). If that path is relative, that path
             will be prefixed by this path to convert that path into an absolute
             path; otherwise, this path will be ignored.
         '''
-        assert types.is_str(filename), types.assert_is_nonstr(filename)
-        assert types.is_str( dirname), types.assert_is_nonstr( dirname)
+        assert types.is_str(filename), types.assert_nonstr(filename)
+        assert types.is_str( dirname), types.assert_nonstr( dirname)
 
         # If this is a relative path, convert this into an absolute path
         # relative to the directory containing the source configuration file.
@@ -78,14 +78,12 @@ class TissueMatcherIndices(TissueMatcher):
     '''
     Indices-specific tissue matcher.
 
-    This matcher assigns all cells with the listed indices to the corresponding
-    tissue profile.
+    This matcher matches all cells with the listed indices.
 
     Attributes
     ----------------------------
     indices : collections.Sequence
-        Sequence (e.g., list, tuple) of the indices of all cells to be assigned
-        to this tissue profile.
+        Sequence (e.g., list, tuple) of the indices of all cells to be matched.
     '''
 
     def __init__(self, indices):
@@ -98,7 +96,7 @@ class TissueMatcherIndices(TissueMatcher):
             See the class docstring.
         '''
         assert types.is_sequence_nonstr(indices),\
-            types.assert_is_not_sequence_nonstr(indices)
+            types.assert_not_sequence_nonstr(indices)
         self.indices = indices
 
 # ....................{ RANDOM                             }....................
@@ -106,14 +104,13 @@ class TissueMatcherRandom(TissueMatcher):
     '''
     Randomized cell matcher.
 
-    This matcher randomly assigns a predetermined percentage of all cells and/or
-    cell membranes to the corresponding tissue profile.
+    This matcher randomly matches a percentage of cells.
 
     Attributes
     ----------------------------
-    percentage : float
-        Percentage of the cell population to be assigned to this profile. For
-        sanity, this should be in the range `[0,0, 100.0]`.
+    percentage : {int, float}
+        Percentage of the total cell population to be randomly matched as an
+        integer or float in the range `[0,0, 100.0]`.
     '''
 
     def __init__(self, percentage):
@@ -122,11 +119,11 @@ class TissueMatcherRandom(TissueMatcher):
 
         Parameters
         ----------------------------
-        percentage : float
+        percentage : {int, float}
             See the class docstring.
         '''
         assert types.is_numeric(percentage),\
-            types.assert_is_not_numeric(percentage)
+            types.assert_not_numeric(percentage)
 
         # If this is not a valid percentage, raise an exception. This is
         # important enough to always test rather than defer to assertions.

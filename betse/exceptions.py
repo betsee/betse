@@ -25,19 +25,28 @@ class BetseExceptionLog(BetseException):
     '''
     pass
 
-# ....................{ EXCEPTIONS ~ util                 }....................
+# ....................{ EXCEPTIONS ~ python                }....................
 class BetseExceptionModule(BetseException):
     '''
     Module-specific exception.
     '''
     pass
 
-class BetseExceptionMethod(BetseException):
+class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
     '''
-    Method-specific exception.
+    Unimplemented method-specific exception.
+
+    This exception is typically raised from **unimplemented optional methods**
+    (i.e., non-mandatory methods _not_ intended to be called) of concrete
+    subclasses of abstract base classes. While the optimal solution for
+    defining **unimplemented mandatory methods** (i.e., non-optional methods
+    also _not_ intended to be called) is via the canonical `@abc.abstractmethod`
+    decorator, there currently exists no canonical alternative for defining
+    optional methods. Hence, this exception.
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ util                  }....................
 class BetseExceptionRegex(BetseException):
     '''
     Regular exception-specific exception.

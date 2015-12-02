@@ -63,10 +63,10 @@ class SimRunner(object):
         """
 
         loggers.log_info(
-            'Initializing simulation with configuration file "{}".'.format(
+            'Seeding simulation with configuration file "{}".'.format(
                 self._config_basename))
 
-        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
         p.I_overlay = False  # force the current overlay to be null
         sim = Simulator(p)   # create an instance of Simulator as it's needed by plotting objects
 
