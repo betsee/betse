@@ -12,7 +12,7 @@ as a whole.
 Caveats
 ----------
 Word size-specific functions (e.g., `is_wordsize_64()`) are generally considered
-poor form. Consider calling such functions _only_ where necessary.
+poor form. Call these functions _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -44,7 +44,7 @@ def init() -> None:
         )
 
 # ....................{ TESTERS                            }....................
-def is_frozen():
+def is_frozen() -> bool:
     '''
     `True` if the active Python interpreter is **frozen** (i.e., embedded in a
     platform-specific binary containing `betse` and all dependencies thereof).
@@ -57,14 +57,14 @@ def is_frozen():
     return hasattr(sys, '_MEIPASS') or hasattr(sys, 'frozen')
 
 # ....................{ TESTERS ~ arch                     }....................
-def is_wordsize_32():
+def is_wordsize_32() -> bool:
     '''
     `True` if the active Python interpreter is **32-bit** (i.e., was compiled
     with a 32-bit toolchain into a 32-bit executable).
     '''
     return not is_wordsize_64()
 
-def is_wordsize_64():
+def is_wordsize_64() -> bool:
     '''
     `True` if the active Python interpreter is **64-bit** (i.e., was compiled
     with a 64-bit toolchain into a 64-bit executable).
@@ -105,20 +105,3 @@ def get_metadata() -> OrderedDict:
 
     # Get such dictionary.
     return metadata
-
-# --------------------( WASTELANDS                         )--------------------
-    #FIXME: Undo the terrible OS X-specific hack conditional below. Due to time
-    #constraints, we're currently unable to freeze a 64-bit version of BETSE
-    #under OS X. To avoid spamming OS X users with this warning, we currently
-    #squelch it entirely under OS X. (This is terrible, but so are unwitting
-    #time constraints.)
-    #if is_wordsize_32() and not oses.is_os_x():
-
-        # Avoid circular import dependencies.
-    #FUXME: Not terribly human-readable and hence hardly ideal.
-    # ordered_dict[' platform.platform(aliased = True)
-
-# def format() -> str:
-#     '''
-#     Get a human-readable string synopsizing the current system.
-#     '''

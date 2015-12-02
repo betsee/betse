@@ -3,9 +3,11 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta
+import random
+from abc import ABCMeta, abstractmethod
 from betse.exceptions import (
     BetseExceptionMethodUnimplemented, BetseExceptionParameters)
+from betse.science import toolbox
 from betse.util.path import files, paths
 from betse.util.type import types
 
@@ -18,7 +20,30 @@ class TissueMatcher(object, metaclass = ABCMeta):
     matching subclass-specific criteria (e.g., explicit indexing, randomized
     selection, spatial location) to the corresponding tissue profile.
     '''
-    pass
+
+    @abstractmethod
+    def get_cell_indices(
+        self, world, p, ignoreECM: bool = False):
+        '''
+        Numpy array of the indices of all matching cells and/or cell membranes.
+
+        Parameters
+        ---------------------------------
+        world : World
+            Instance of the `World` class.
+        p : Parameters
+            Instance of the `Parameters` class.
+        ignoreECM : bool
+            If `True`, electromagnetism (e.g., `p.sim_ECM`) will be ignored;
+            else, electromagnetism will be simulated. Defaults to `False`.
+
+        Returns
+        ---------------------------------
+        ndarray
+            See method synopsis above.
+        '''
+        pass
+
 
 class TissueMatcherAll(TissueMatcher):
     '''
@@ -26,7 +51,23 @@ class TissueMatcherAll(TissueMatcher):
 
     This matcher unconditionally matches _all_ cells and/or cell membranes.
     '''
-    pass
+
+    def get_cell_indices(
+        self, world, p, ignoreECM: bool = False):
+        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_parameters(p), types.assert_not_parameters(p)
+        assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
+
+        # If either not simulating *OR* ignoring electromagnetism, do so.
+        if p.sim_ECM is False or ignoreECM is True:
+            target_inds = world.cell_i
+
+        # Else, simulate electromagnetism.
+        else:
+            target_inds = world.cell_to_mems[world.cell_i]
+            target_inds, _, _ = toolbox.flatten(target_inds)
+
+        return target_inds
 
 # ....................{ BITMAP                             }....................
 class TissueMatcherBitmap(TissueMatcher):
@@ -73,6 +114,29 @@ class TissueMatcherBitmap(TissueMatcher):
         # Persist this path.
         self.filename = filename
 
+    def get_cell_indices(
+        self, world, p, ignoreECM: bool = False):
+        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_parameters(p), types.assert_not_parameters(p)
+        assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
+
+        # Avoid circular import dependencies.
+        from betse.science.tissue.bitmapper import BitMapper
+
+        # Calculate the indices of all cells residing inside this bitmap.
+        bitmask = BitMapper(
+            self, world.xmin, world.xmax, world.ymin, world.ymax)
+        bitmask.clipPoints(
+            world.cell_centres[:,0], world.cell_centres[:,1])
+        target_inds = bitmask.good_inds
+
+        # If simulating electromagnetism and at least one cell matches...
+        if p.sim_ECM is True and ignoreECM is False and len(target_inds):
+            target_inds = world.cell_to_mems[target_inds]
+            target_inds,_,_ = toolbox.flatten(target_inds)
+
+        return target_inds
+
 # ....................{ INDICES                            }....................
 class TissueMatcherIndices(TissueMatcher):
     '''
@@ -98,6 +162,23 @@ class TissueMatcherIndices(TissueMatcher):
         assert types.is_sequence_nonstr(indices),\
             types.assert_not_sequence_nonstr(indices)
         self.indices = indices
+
+    def get_cell_indices(
+        self, world, p, ignoreECM: bool = False):
+        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_parameters(p), types.assert_not_parameters(p)
+        assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
+
+        # If either not simulating *OR* ignoring electromagnetism, do so.
+        if p.sim_ECM is False or ignoreECM is True:
+            target_inds = self.indices
+
+        # Else, simulate electromagnetism.
+        else:
+            target_inds = world.cell_to_mems[self.indices]
+            target_inds,_,_ = toolbox.flatten(target_inds)
+
+        return target_inds
 
 # ....................{ RANDOM                             }....................
 class TissueMatcherRandom(TissueMatcher):
@@ -132,3 +213,25 @@ class TissueMatcherRandom(TissueMatcher):
                 '{} not in the range [0.0, 100.0].'.format(percentage))
 
         self.percentage = percentage
+
+    def get_cell_indices(
+        self, world, p, ignoreECM: bool = False):
+        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_parameters(p), types.assert_not_parameters(p)
+        assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
+
+        data_length = len(world.cell_i)
+        data_fraction = int((self.percentage/100)*data_length)
+        random.shuffle(world.cell_i)
+        target_inds_cell = [world.cell_i[x] for x in range(0,data_fraction)]
+
+        # If either not simulating *OR* ignoring electromagnetism, do so.
+        if p.sim_ECM is False or ignoreECM is True:
+            target_inds = target_inds_cell
+
+        # Else, simulate electromagnetism.
+        else:
+            target_inds = world.cell_to_mems[target_inds_cell]
+            target_inds,_,_ = toolbox.flatten(target_inds)
+
+        return target_inds

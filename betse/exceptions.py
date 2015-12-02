@@ -32,6 +32,12 @@ class BetseExceptionModule(BetseException):
     '''
     pass
 
+class BetseExceptionFunction(BetseException):
+    '''
+    Function-specific exception.
+    '''
+    pass
+
 class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
     '''
     Unimplemented method-specific exception.
@@ -44,7 +50,12 @@ class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
     decorator, there currently exists no canonical alternative for defining
     optional methods. Hence, this exception.
     '''
-    pass
+    def __init__():
+        # Avoid circular import dependencies.
+        from betse.util.python import callers
+        super().__init__(
+            'Optional method {}() unimplemented.'.format(
+                callers.get_caller_name()))
 
 # ....................{ EXCEPTIONS ~ util                  }....................
 class BetseExceptionRegex(BetseException):

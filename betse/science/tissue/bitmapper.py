@@ -4,7 +4,6 @@
 
 import numpy as np
 from betse.exceptions import BetseExceptionSimulation
-from betse.science.tissue.matcher import TissueMatcherBitmap
 from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
@@ -46,8 +45,6 @@ class BitMapper(object):
         colored area.
     '''
 
-    #FIXME: Refactor to accept an instance of "GeometryBitmap" rather than a
-    #filename and directory name.
     #FIXME: We currently ignore "threshhold_val". Should we just remove it, for
     #limplicity's sake? ("Think of the simplistic children!")
     def __init__(self,
@@ -72,6 +69,8 @@ class BitMapper(object):
             The value of the pixel to threshhold to. Greyscale runs from `0.0`
             (black) to `255.0` (white). Defaults to `0.0`.
         '''
+        # Avoid circular import dependencies.
+        from betse.science.tissue.matcher import TissueMatcherBitmap
         assert isinstance(bitmap_matcher, TissueMatcherBitmap),\
             '{} not a BETSE-formatted bitmap.'.format(bitmap_matcher)
 
@@ -80,7 +79,7 @@ class BitMapper(object):
 
         if bitmap.shape[0] != bitmap.shape[1]:
             raise BetseExceptionSimulation(
-                'Bitmap "{}" dimensions not square '
+                'Bitmap "{}" dimensions non-square '
                 '(i.e., not of the same width and height).'.format(
                     bitmap_matcher.filename))
 

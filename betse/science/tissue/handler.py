@@ -844,8 +844,8 @@ class TissueHandler(object):
 
     def tissueProfiles(self, sim, cells, p):
         '''
-        Create cell- and, if simulating electromagnetism, membrane-specific
-        index sets for all user-defined tissue profiles from parameter data.
+        Create cell-specific (and if simulating electromagnetism membrane-
+        specific as well) index sets for all user-defined tissue profiles.
         '''
 
         profile_names = list(p.tissue_profiles.keys())
@@ -862,29 +862,29 @@ class TissueHandler(object):
         if cells.do_once_cavity is True:  # if we haven't done this already...
             for name in profile_names:
                 data_stream = p.tissue_profiles[name]
-                target_method = data_stream['target method']
+                profile_matcher = data_stream['target method']
                 dmem_list = data_stream['diffusion constants']
                 designation = data_stream['designation']
 
                 if designation == 'cavity':
                     removeCells(
-                        target_method, sim, cells, p, open_TJ=p.cavity_state)
+                        profile_matcher, sim, cells, p, open_TJ=p.cavity_state)
                     sim.make_cavity = True
                     cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
         for name in profile_names:
             data_stream = p.tissue_profiles[name]
-            target_method = data_stream['target method']
+            profile_matcher = data_stream['target method']
             dmem_list = data_stream['diffusion constants']
             designation = data_stream['designation']
 
             if designation == 'None':
                 self.tissue_profile_names.append(name)
-                self.tissue_target_inds[name] = getCellTargets(
-                    target_method, cells, p, ignoreECM=False)
-                self.cell_target_inds[name] = getCellTargets(
-                    target_method, cells, p, ignoreECM=True)
+                self.tissue_target_inds[name] = profile_matcher.get_cell_indices(
+                    cells, p, ignoreECM=False)
+                self.cell_target_inds[name] = profile_matcher.get_cell_indices(
+                    cells, p, ignoreECM=True)
 
                 if len(self.cell_target_inds[name]):
                     # Get ECM targets.
@@ -933,8 +933,8 @@ class TissueHandler(object):
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
-                self.cuts_target_inds[name] = getCellTargets(
-                    target_method, cells, p, ignoreECM=True)
+                self.cuts_target_inds[name] = profile_matcher.get_cell_indices(
+                    cells, p, ignoreECM=True)
 
 
     def makeAllChanges(self, sim):
@@ -943,94 +943,6 @@ class TissueHandler(object):
         permeabilities.
         '''
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_morpho + sim.Dm_base
-
-
-#FIXME: Rename "target_method" to "profile_matcher" everywhere in this module.
-def getCellTargets(target_method, world, p, ignoreECM = False):
-    """
-    Get a Numpy array of the indices of all cells and/or cell membranes matching
-    the passed tissue profile-specific geometry descriptor.
-
-    Parameters
-    ---------------------------------
-    target_method : TissueMatcher
-        Object matching all cells and/or membranes to be returned.
-    world : World
-        Instance of the `World` class.
-    p : Parameters
-        Instance of the `Parameters` class.
-    ignoreECM : bool
-        If `True`, electromagnetism (e.g., `p.sim_ECM`) will be ignored; else,
-        electromagnetism will be simulated. Defaults to `False`.
-
-    Returns
-    ---------------------------------
-    target_inds : ndarray
-        Numpy array of the indices of all matching cells and/or cell membranes.
-    """
-    assert types.is_parameters(p),  types.assert_not_parameters(p)
-    assert types.is_world(world),   types.assert_not_world(world)
-
-    #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-    if isinstance(target_method, TissueMatcherAll):
-        if p.sim_ECM is False or ignoreECM is True:
-            target_inds = world.cell_i
-
-        elif p.sim_ECM is True and ignoreECM is False:
-            target_inds = world.cell_to_mems[world.cell_i]
-            target_inds,_,_ = tb.flatten(target_inds)
-
-    elif isinstance(target_method, TissueMatcherBitmap):
-        bitmask = BitMapper(
-            target_method, world.xmin, world.xmax, world.ymin, world.ymax)
-        bitmask.clipPoints(
-            world.cell_centres[:,0], world.cell_centres[:,1])
-
-        # "cell_i" indices falling within the bitmap mask.
-        target_inds = bitmask.good_inds
-
-        if p.sim_ECM is True and ignoreECM is False and len(target_inds):
-            target_inds = world.cell_to_mems[target_inds]
-            target_inds,_,_ = tb.flatten(target_inds)
-
-    elif isinstance(target_method, TissueMatcherIndices):
-        target_inds_cell = target_method.indices
-
-        if p.sim_ECM is False or ignoreECM is True:
-            target_inds = target_inds_cell
-
-        elif p.sim_ECM is True and ignoreECM is False:
-            target_inds = world.cell_to_mems[target_inds_cell]
-            target_inds,_,_ = tb.flatten(target_inds)
-
-    elif isinstance(target_method, TissueMatcherRandom):
-        data_length = len(world.cell_i)
-        data_fraction = int((target_method.percentage/100)*data_length)
-        shuffle(world.cell_i)
-        target_inds_cell = [world.cell_i[x] for x in range(0,data_fraction)]
-
-        if p.sim_ECM is False or ignoreECM is True:
-            target_inds = target_inds_cell
-
-        elif p.sim_ECM is True and ignoreECM is False:
-            target_inds = world.cell_to_mems[target_inds_cell]
-            target_inds,_,_ = tb.flatten(target_inds)
-
-    #FIXME: Purportedly non-working. Contemplate removing.
-    # elif isinstance(target_method, TissueMatcherBoundary):
-    #     if p.sim_ECM is False or ignoreECM is True:
-    #         target_inds = world.bflags_cells
-    #
-    #     elif p.sim_ECM is True and ignoreECM is False:
-    #         target_inds = world.cell_to_mems[world.bflags_cells]
-    #         target_inds,_,_ = tb.flatten(target_inds)
-
-    else:
-        raise BetseExceptionSimulation(
-            'Tissue matcher "{}" getCellTargets() support unimplemented.'.format(
-                target_method))
-
-    return target_inds
 
 
 def getEcmTargets(target_method, world, p, boundaryOnly = True):

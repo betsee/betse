@@ -18,12 +18,11 @@ objects).
 from collections.abc import Iterable, Sequence
 
 # ....................{ TESTERS                            }....................
-def is_numeric(obj: object) -> bool:
+def is_bool(obj: object) -> bool:
     '''
-    `True` if the passed object is **numeric** (i.e., instance of either the
-    `int` or `float` classes).
+    `True` if the passed object is **boolean** (i.e., either `True` or `False`).
     '''
-    return isinstance(obj, (int, float))
+    return isinstance(obj, bool)
 
 # ....................{ TESTERS ~ iterable                 }....................
 def is_iterable(obj: object) -> bool:
@@ -42,6 +41,20 @@ def is_iterable_nonstr(obj: object) -> bool:
     the abstract base class `collections.Iterable` _and_ is not a string).
     '''
     return is_iterable(obj) and not is_str(obj)
+
+# ....................{ TESTERS ~ numeric                  }....................
+def is_int(obj: object) -> bool:
+    '''
+    `True` if the passed object is an integer.
+    '''
+    return isinstance(obj, int)
+
+def is_numeric(obj: object) -> bool:
+    '''
+    `True` if the passed object is **numeric** (i.e., instance of either the
+    `int` or `float` classes).
+    '''
+    return isinstance(obj, (int, float))
 
 # ....................{ TESTERS ~ sequence                 }....................
 def is_sequence(obj: object) -> bool:
@@ -120,12 +133,12 @@ def is_str_nonempty(obj: object) -> bool:
     '''
     return is_str(obj) and len(obj)
 
-# ....................{ ASSERTERS ~ str                    }....................
-def assert_not_numeric(obj: object) -> str:
+# ....................{ ASSERTERS                          }....................
+def assert_not_bool(obj: object) -> str:
     '''
-    String asserting the passed object to _not_ be numeric.
+    String asserting the passed object to _not_ be boolean.
     '''
-    return '"{}" not numeric (i.e., neither an integer or float).'.format(obj)
+    return '"{}" not boolean (i.e., neither "True" nor "False").'.format(obj)
 
 # ....................{ ASSERTERS ~ iterable               }....................
 def assert_not_iterable_nonstr(obj: object) -> str:
@@ -141,6 +154,19 @@ def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
     '''
     return assert_not_iterable_nonstr(obj) if not is_iterable_nonstr(
         obj) else '{} empty.'.format(label.capitalize())
+
+# ....................{ ASSERTERS ~ numeric                }....................
+def assert_not_int(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an integer.
+    '''
+    return '"{}" not an integer.'.format(obj)
+
+def assert_not_numeric(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be numeric.
+    '''
+    return '"{}" not numeric (i.e., neither an integer nor float).'.format(obj)
 
 # ....................{ ASSERTERS ~ sequence               }....................
 def assert_not_sequence_nonstr(obj: object) -> str:
