@@ -3241,26 +3241,9 @@ class Simulator(object):
 
         """
 
-        # electrostatic pressure will be used only in flow calculations
-
-
-        # ----------------------
         # surface charge density for cells:
         Q_cell = self.rho_cells*cells.cell_vol*(1/cells.cell_sa)*(1/p.ff_cell)
 
-
-
-        #----------------------------------------
-
-        # if p.sim_ECM is False:  # this can't be right as we need membrane component
-        #
-        #     self.P_electro = Q_cell*self.vm
-        #
-        # else:
-        #
-        #     self.P_electro = Q_cell*self.v_cell
-
-        #----------------------------------------
 
         if p.sim_ECM is False:
 
@@ -3337,6 +3320,9 @@ class Simulator(object):
         of intracellular pressure.
 
         """
+
+        # FIXME the divergence of the stress isn't really working...what if we try calculating a flow field, and
+        # deforming the structure using the ux, uy ... in other words, the velocity field is the stress field?
 
         # obtain the net moles in cells so that we can redo the concs with new volumes
         net_moles = copy.copy(self.cc_cells)
@@ -3484,11 +3470,29 @@ class Simulator(object):
         Y = p.youngMod   # Young's modulus (elastic modulus)
         poi = 0.5        # Poisson ratio
 
-        # eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)*cells.mem_vects_flat[:,2]**2 # FIXME may want to reimplement
-        # eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)*cells.mem_vects_flat[:,3]**2
+        # volume conserving deformation requires calculation of a counter-pressure: ----------------
 
-        eta_x = (1/Y)*(S_mem_x_b - poi*S_mem_y_b)
-        eta_y = (1/Y)*(S_mem_y_b - poi*S_mem_x_b)
+        # divergence of the stress
+        u_div_x = np.dot(cells.M_sum_mems,S_mem_x_b*cells.mem_vects_flat[:,2])
+        u_div_y = np.dot(cells.M_sum_mems,S_mem_y_b*cells.mem_vects_flat[:,3])
+
+        u_div = u_div_x + u_div_y
+
+        # tension reaction pressure:
+        P_react = np.dot(cells.mem_DivM_inv, u_div)
+
+        P_react_x = P_react*cells.mem_vects_flat[:,2]
+        P_react_y = P_react*cells.mem_vects_flat[:,3]
+
+        #--------------------------------------------------------------------------------------------
+
+        # Strain
+
+        eta_x = (1/Y)*((S_mem_x_b - P_react_x) - (poi*S_mem_y_b - P_react_y)) # FIXME may want to reimplement
+        eta_y = (1/Y)*((S_mem_y_b - P_react_y) - (poi*S_mem_x_b - P_react_x))
+
+        # eta_x = (1/Y)*(S_mem_x_b - P_react_x)
+        # eta_y = (1/Y)*(S_mem_y_b - P_react_y)
 
         if p.fixed_cluster_bound is True:  # if the outer boundary of the cell cluster is prevented from deforming
 
@@ -3498,7 +3502,7 @@ class Simulator(object):
 
         #-------------------------------------------------------------
 
-        self.T_mem = self.P_mem[:]    # assume the tension force that forms is equal and opposite to the applied load
+        self.T_mem = self.P_mem[:]    # assume a tension force develops which is equal and opposite to the applied load
 
         # get the total force (in order to rescale P_cell and P_mem in response to any deformation)
         F_mem_p = self.P_mem*cells.mem_sa

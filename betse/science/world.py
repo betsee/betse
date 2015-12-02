@@ -230,6 +230,8 @@ class World(object):
         # define the Voronoi diagram from the seed points:
         vor = sps.Voronoi(self.clust_xy)
 
+        vor.vertices = np.round(vor.vertices,6)   # FIXME you changed this by rounding!
+
         cluster_center = vor.points.mean(axis=0)
 
         # complete the Voronoi diagram by adding in undefined vertices to ridges and regions
@@ -1515,7 +1517,6 @@ class World(object):
 
         self.mem_nn = np.asarray(mem_nn)
         self.mem_bound = np.asarray(mem_bound)
-
 
     def voronoiGrid(self,p):
 
