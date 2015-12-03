@@ -23,6 +23,13 @@ from betse.util.io import loggers
 from betse.util.path import files, paths
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 
+ # FIXME Dearest Cecil, I noticed that you merged the plot types for "plot World" into one plot. This doesn't work
+# for large collectives because the cell-cell connection lines obscure everything, but is useful as a separate plot,
+# especially when making more complex models like the planaria with brain and nerves. We can certainly
+# make the cell-cell connection plot an optional overlay or separate plot later on. Howevever, in general,
+# please do not change things like how plots are done without discussing it with me first --
+# I find it frustrating. Thanks!
+
 
 class SimRunner(object):
     '''
@@ -343,6 +350,7 @@ class SimRunner(object):
             os.makedirs(image_cache_dir, exist_ok=True)
             savedImg = os.path.join(image_cache_dir, 'fig_')
 
+
         fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
 
         if p.autosave is True:
@@ -380,7 +388,7 @@ class SimRunner(object):
             plt.show(block=False)
 
         # plot gj
-        # fig_x = plt.figure()
+        fig_x = plt.figure()
         ax_x = plt.subplot(111)
         con_segs = cells.cell_centres[cells.nn_i]
         connects = p.um*np.asarray(con_segs)
@@ -398,6 +406,7 @@ class SimRunner(object):
             plt.savefig(savename10,format='png')
 
         plt.show()
+
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if saveImages is True:

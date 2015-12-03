@@ -230,7 +230,7 @@ class World(object):
         # define the Voronoi diagram from the seed points:
         vor = sps.Voronoi(self.clust_xy)
 
-        vor.vertices = np.round(vor.vertices,6)   # FIXME you changed this by rounding!
+        vor.vertices = np.round(vor.vertices,6)  
 
         cluster_center = vor.points.mean(axis=0)
 
