@@ -3516,13 +3516,13 @@ class Simulator(object):
         d_y = eta_y*cells.chord_mag
 
         # get new cell verts:
-        new_cell_verts_x = cells.cell_verts_unique[:,0] + np.dot(cells.deforM,d_x)
-        new_cell_verts_y = cells.cell_verts_unique[:,1] + np.dot(cells.deforM,d_y)
+        new_cell_verts_x = cells.mem_verts[:,0] + np.dot(cells.deforM,d_x)
+        new_cell_verts_y = cells.mem_verts[:,1] + np.dot(cells.deforM,d_y)
 
-        cells.cell_verts_unique = np.column_stack((new_cell_verts_x,new_cell_verts_y))
+        cells.mem_verts = np.column_stack((new_cell_verts_x,new_cell_verts_y))
 
         # Next, calculate the primitive ecm verts by reverse scaling the new cell verts:
-        ecm_temp = cells.cell_centres[cells.mem_to_cells] + ((cells.cell_verts_unique
+        ecm_temp = cells.cell_centres[cells.mem_to_cells] + ((cells.mem_verts
                                                               - cells.cell_centres[cells.mem_to_cells])/p.scale_cell)
 
         #Merge new ecm verts by averaging to equal the structure of the original Voronoi lattice:

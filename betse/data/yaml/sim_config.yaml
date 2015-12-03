@@ -247,6 +247,8 @@ tissue profile definition:
     # Tissue profiles are applied in the order defined below. When multiple
     # profiles apply to the same cell, options defined by later profiles
     # override options defined by earlier profiles for that cell.
+
+    # FIXME -- there needs to be some way to easily turn all tissue profiles off!
     tissue profiles:
         # Example default tissue profile, providing sensible defaults for all
         # options *NOT* defined by subsequent profiles. (Options defined by
