@@ -28,19 +28,60 @@ class TissuePicker(object, metaclass = ABCMeta):
 
     @abstractmethod
     def get_cell_indices(
-        self, world, p, ignoreECM: bool = False):
+        self, cells, p, ignoreECM: bool = False):
         '''
-        Numpy array of the indices of all matching cells.
+        Get a Numpy array of the indices of all cells selected by this picker.
 
         Parameters
         ---------------------------------
-        world : Cells
+        cells : Cells
             Instance of the `Cells` class.
         p : Parameters
             Instance of the `Parameters` class.
         ignoreECM : bool
             If `True`, electromagnetism (e.g., `p.sim_ECM`) will be ignored;
             else, electromagnetism will be simulated. Defaults to `False`.
+
+        Returns
+        ---------------------------------
+        ndarray
+            See method synopsis above.
+        '''
+        pass
+
+
+    @abstractmethod
+    def get_removal_cell_indices(self, cells):
+        '''
+        Get a Numpy array of the indices of all cells selected by this picker,
+        suitable for permanently removing these cells from the cluster.
+
+        Parameters
+        ---------------------------------
+        cells : Cells
+            Instance of the `Cells` class.
+
+        Returns
+        ---------------------------------
+        ndarray
+            See method synopsis above.
+        '''
+        pass
+
+
+    #FIXME: No idea what a "cluster mask" specifically is. Improve docstring.
+    #You'll thank me in the pancake-laden morning.
+    @abstractmethod
+    def get_removal_cluster_mask(self, cells):
+        '''
+        Get a ??? excluding all cells selected by this picker, intended to
+        replace the cluster mask when permanently removing these cells from the
+        cluster.
+
+        Parameters
+        ---------------------------------
+        cells : Cells
+            Instance of the `Cells` class.
 
         Returns
         ---------------------------------
@@ -58,21 +99,30 @@ class TissuePickerAll(TissuePicker):
     '''
 
     def get_cell_indices(
-        self, world, p, ignoreECM: bool = False):
-        assert types.is_cells(world),  types.assert_not_cells(world)
+        self, cells, p, ignoreECM: bool = False):
+        assert types.is_cells(cells),  types.assert_not_cells(cells)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
         # If either not simulating *OR* ignoring electromagnetism, do so.
         if p.sim_ECM is False or ignoreECM is True:
-            target_inds = world.cell_i
+            target_inds = cells.cell_i
 
         # Else, simulate electromagnetism.
         else:
-            target_inds = world.cell_to_mems[world.cell_i]
+            target_inds = cells.cell_to_mems[cells.cell_i]
             target_inds, _, _ = toolbox.flatten(target_inds)
 
         return target_inds
+
+
+    def get_removal_cell_indices(self, cells):
+        return cells.cell_i
+
+    #FIXME: Since I have no idea how to return a cluster mask encompassing the
+    #entire cell cluster, this class does *NOT* currently support removal.
+    def get_removal_cluster_mask(self, cells):
+        raise BetseExceptionMethodUnimplemented()
 
 # ....................{ BITMAP                             }....................
 class TissuePickerBitmap(TissuePicker):
@@ -121,27 +171,50 @@ class TissuePickerBitmap(TissuePicker):
 
 
     def get_cell_indices(
-        self, world, p, ignoreECM: bool = False):
-        assert types.is_cells(world),  types.assert_not_cells(world)
+        self, cells, p, ignoreECM: bool = False):
+        assert types.is_cells(cells),  types.assert_not_cells(cells)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
-        # Avoid circular import dependencies.
-        from betse.science.tissue.bitmapper import BitMapper
-
         # Calculate the indices of all cells residing inside this bitmap.
-        bitmask = BitMapper(
-            self, world.xmin, world.xmax, world.ymin, world.ymax)
-        bitmask.clipPoints(
-            world.cell_centres[:,0], world.cell_centres[:,1])
+        bitmask = self._get_bitmapper(cells)
         target_inds = bitmask.good_inds
 
         # If simulating electromagnetism and at least one cell matches...
         if p.sim_ECM is True and ignoreECM is False and len(target_inds):
-            target_inds = world.cell_to_mems[target_inds]
+            target_inds = cells.cell_to_mems[target_inds]
             target_inds,_,_ = toolbox.flatten(target_inds)
 
         return target_inds
+
+
+    def get_removal_cell_indices(self, cells):
+        return self._get_bitmapper(cells).good_inds
+
+    def get_removal_cluster_mask(self, cells):
+        return cells.cluster_mask - self._get_bitmapper(cells).clipping_matrix
+
+    # ..................{ BITMAP ~ private                   }..................
+    def _get_bitmapper(self, cells):
+        '''
+        Get an instance of the `BitMapper` object providing the indices of all
+        cells residing inside this bitmap.
+
+        Parameters
+        ---------------------------------
+        cells : Cells
+            Instance of the `Cells` class.
+        '''
+        assert types.is_cells(cells), types.assert_not_cells(cells)
+
+        # Avoid circular import dependencies.
+        from betse.science.tissue.bitmapper import BitMapper
+
+        # Return the desired bitmap object.
+        bitmapper = BitMapper(
+            self, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
+        bitmapper.clipPoints(cells.cell_centres[:,0], cells.cell_centres[:,1])
+        return bitmapper
 
 # ....................{ INDICES                            }....................
 class TissuePickerIndices(TissuePicker):
@@ -171,8 +244,8 @@ class TissuePickerIndices(TissuePicker):
 
 
     def get_cell_indices(
-        self, world, p, ignoreECM: bool = False):
-        assert types.is_cells(world),  types.assert_not_cells(world)
+        self, cells, p, ignoreECM: bool = False):
+        assert types.is_cells(cells),  types.assert_not_cells(cells)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
@@ -182,10 +255,19 @@ class TissuePickerIndices(TissuePicker):
 
         # Else, simulate electromagnetism.
         else:
-            target_inds = world.cell_to_mems[self.indices]
+            target_inds = cells.cell_to_mems[self.indices]
             target_inds,_,_ = toolbox.flatten(target_inds)
 
         return target_inds
+
+
+    def get_removal_cell_indices(self, cells):
+        return self.indices
+
+    #FIXME: Unconvinced this is in any way right. Shouldn't we return a
+    #clipping mask excluding all cells with the listed indices? *shrugs alot*
+    def get_removal_cluster_mask(self, cells):
+        return None
 
 # ....................{ RANDOM                             }....................
 class TissuePickerRandom(TissuePicker):
@@ -223,15 +305,15 @@ class TissuePickerRandom(TissuePicker):
 
 
     def get_cell_indices(
-        self, world, p, ignoreECM: bool = False):
-        assert types.is_cells(world),  types.assert_not_cells(world)
+        self, cells, p, ignoreECM: bool = False):
+        assert types.is_cells(cells),  types.assert_not_cells(cells)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
-        data_length = len(world.cell_i)
+        data_length = len(cells.cell_i)
         data_fraction = int((self.percentage/100)*data_length)
-        random.shuffle(world.cell_i)
-        target_inds_cell = [world.cell_i[x] for x in range(0,data_fraction)]
+        random.shuffle(cells.cell_i)
+        target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
 
         # If either not simulating *OR* ignoring electromagnetism, do so.
         if p.sim_ECM is False or ignoreECM is True:
@@ -239,7 +321,15 @@ class TissuePickerRandom(TissuePicker):
 
         # Else, simulate electromagnetism.
         else:
-            target_inds = world.cell_to_mems[target_inds_cell]
+            target_inds = cells.cell_to_mems[target_inds_cell]
             target_inds,_,_ = toolbox.flatten(target_inds)
 
         return target_inds
+
+
+    # This class does *NOT* currently support removal.
+    def get_removal_cell_indices(self, cells):
+        raise BetseExceptionMethodUnimplemented()
+
+    def get_removal_cluster_mask(self, cells):
+        raise BetseExceptionMethodUnimplemented()

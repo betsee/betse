@@ -7,19 +7,12 @@
 
 
 import numpy as np
+from betse.science import toolbox as tb
+from betse.util.io import loggers
+from betse.util.type import types
 from random import shuffle
 from scipy import spatial as sps
 from scipy import interpolate as interp
-from betse.exceptions import BetseExceptionSimulation
-from betse.science import toolbox as tb
-from betse.science.tissue.bitmapper import BitMapper
-from betse.science.tissue.picker import (
-    TissuePickerAll,
-    TissuePickerBitmap,
-    TissuePickerIndices,
-    TissuePickerRandom,)
-from betse.util.io import loggers
-from betse.util.type import types
 
 
 class TissueHandler(object):
@@ -1009,24 +1002,13 @@ def removeCells(
 
     loggers.log_info('Cutting hole in cell cluster! Removing world...')
 
-    #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-    if isinstance(target_method, TissuePickerBitmap):
-        bitmask = BitMapper(
-            target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
-        bitmask.clipPoints(cells.cell_centres[:, 0], cells.cell_centres[:, 1])
-        target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+    # Indices of all cells to be removed.
+    target_inds_cell = target_method.get_removal_cell_indices(cells)
 
-        # Update the cluster mask by subtracting deleted region.
-        cells.cluster_mask = cells.cluster_mask - bitmask.clipping_matrix
-
-    # Otherwise, if it's a list, then take the targets literally.
-    elif isinstance(target_method, TissuePickerIndices):
-        target_inds_cell = target_method.indices
-
-    else:
-        raise BetseExceptionSimulation(
-            'Tissue matcher "{}" removeCells() support unimplemented.'.format(
-                target_method))
+    # Update the cluster mask by subtracting the deleted region.
+    removal_cluster_mask = target_method.get_removal_cluster_mask(cells)
+    if removal_cluster_mask is not None:
+        cells.cluster_mask = removal_cluster_mask
 
     # get the corresponding flags to membrane entities
     target_inds_mem = cells.cell_to_mems[target_inds_cell]
