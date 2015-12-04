@@ -3534,7 +3534,7 @@ class Simulator(object):
 
         #----------------------------------
 
-        # Repackage ecm verts so that the World module can do its magic:
+        # Repackage ecm verts so that the Cells module can do its magic:
 
         ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
 
@@ -3982,7 +3982,7 @@ def cell_ave(cells,vm_at_mem):
 
     Parameters
     ----------
-    cells               An instance of the World module cells object
+    cells               An instance of the Cells module cells object
     vm_at_mem           Vmem at individual membrane domains
 
 
@@ -4027,7 +4027,7 @@ def vertData(data, cells, p):
     Parameters
     -----------
     data          A numpy vector of data points on cell membrane mids
-    cells         An instance of the World object
+    cells         An instance of the Cells object
     p             An instance of the Parameters object
 
     Returns

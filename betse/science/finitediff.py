@@ -802,9 +802,9 @@ def makeMask(M,xy_pts,X,Y,delta,sensitivity=1.0):
     Parameters
     -----------
     M               A matrix with non-zero data and zero environment
-    xy_pts          unravelled xy points for the World of M
-    X               2D X matrix for the World of M
-    Y               2D Y matrix for the World of M
+    xy_pts          unravelled xy points for the Cells of M
+    X               2D X matrix for the Cells of M
+    Y               2D Y matrix for the Cells of M
     delta           Spacing (average x and y) for world of M grid
     sensitivity     1.0 is average, lower selects less boundary points, higher more
 

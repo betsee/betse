@@ -10,12 +10,12 @@
 
 
 """
-This module contains the class World, which holds
+This module contains the class Cells, which holds
 all data structures relating to the size of the environment,
 the extent of the cell cluster, the co-ordinates of cell
 centre points, and all kinds of data relating to individual cell properties.
 
-The initialization method of the World class sets-up
+The initialization method of the Cells class sets-up
 and crops the cell cluster to an optional user-defined geometry input
 (a set of points arranged in counter-clockwise order and
 defining a closed polygon). Other methods define the cell centres of each
@@ -39,14 +39,14 @@ from science import toolbox as tb
 
 class World(object):
     """
-    The World object creates and stores data structures relating to
+    The Cells object creates and stores data structures relating to
     the geometric properties of the environmental grid and cell
     centre points and provides functions to facilitate data plotting on
     the geometric structures (cell areas, membranes, ect)
 
     Parameters
     ----------
-    constants                           World requires an instance of NumVars, see the Parameters module.
+    constants                           Cells requires an instance of NumVars, see the Parameters module.
 
     vorclose (default = None)           a set of counter-clockwise arranged points defining a closed
                                         polygon to clip the cluster of cells.
@@ -152,8 +152,8 @@ class World(object):
         self.ny = constants.ny   # number of lattice sites in world y index
         self.ac = constants.ac  # cell-cell separation
         self.nl = constants.nl  # noise level for the lattice
-        self.wsx = constants.wsx  # World size
-        self.wsy = constants.wsy # World size
+        self.wsx = constants.wsx  # Cells size
+        self.wsy = constants.wsy # Cells size
         self.search_d = constants.search_d  # distance to search for nearest neighbours (relative to d_cell)
         self.sf = constants.scale_cell              # scale factor to take cell vertices in from extracellular space
         self.cell_sides = constants.cell_sides # minimum number of membrane domains per cell
@@ -278,7 +278,7 @@ class World(object):
 
         Important: bug found that if points are cropped first, and then a Voronoi is created and closed,
         the result is sporadically totally messed up. Therefore, the points are not being pre-cropped and
-        crop_mask is always = None in the instancing of this World class!
+        crop_mask is always = None in the instancing of this Cells class!
 
         """
 

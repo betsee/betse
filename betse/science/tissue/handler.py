@@ -13,11 +13,11 @@ from scipy import interpolate as interp
 from betse.exceptions import BetseExceptionSimulation
 from betse.science import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
-from betse.science.tissue.matcher import (
-    TissueMatcherAll,
-    TissueMatcherBitmap,
-    TissueMatcherIndices,
-    TissueMatcherRandom,)
+from betse.science.tissue.picker import (
+    TissuePickerAll,
+    TissuePickerBitmap,
+    TissuePickerIndices,
+    TissuePickerRandom,)
 from betse.util.io import loggers
 from betse.util.type import types
 
@@ -951,10 +951,10 @@ class TissueHandler(object):
 #
 #     Parameters
 #     ---------------------------------
-#     target_method : TissueMatcher
+#     target_method : TissuePicker
 #         Object matching all ECM indices to be returned.
-#     cells : World
-#         Instance of the `World` class.
+#     cells : Cells
+#         Instance of the `Cells` class.
 #     p : Parameters
 #         Instance of the `Parameters` class.
 #     boundaryOnly : bool
@@ -967,12 +967,12 @@ class TissueHandler(object):
 #         Numpy array of all matching ECM indices.
 #     """
 #     assert types.is_parameters(p),  types.assert_not_parameters(p)
-#     assert types.is_world(cells),   types.assert_not_world(cells)
+#     assert types.is_cells(cells),   types.assert_not_cells(cells)
 #
 #     target_inds = []
 #
 #     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-#     if isinstance(target_method, TissueMatcherBitmap):
+#     if isinstance(target_method, TissuePickerBitmap):
 #         bitmask = BitMapper(
 #             target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
 #         bitmask.clipPoints(cells.xypts[:, 0], cells.xypts[:, 1])
@@ -994,23 +994,23 @@ def removeCells(
 
     Parameters
     ---------------------------------
-    target_method : TissueMatcher
+    target_method : TissuePicker
         Object matching all cells to be removed.
     sim : Simulator
         Instance of the `Simulator` class.
-    cells : World
-        Instance of the `World` class.
+    cells : Cells
+        Instance of the `Cells` class.
     p : Parameters
         Instance of the `Parameters` class.
     '''
     assert types.is_parameters(p),  types.assert_not_parameters(p)
     assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_world(cells),   types.assert_not_world(cells)
+    assert types.is_cells(cells),   types.assert_not_cells(cells)
 
     loggers.log_info('Cutting hole in cell cluster! Removing world...')
 
     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-    if isinstance(target_method, TissueMatcherBitmap):
+    if isinstance(target_method, TissuePickerBitmap):
         bitmask = BitMapper(
             target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
         bitmask.clipPoints(cells.cell_centres[:, 0], cells.cell_centres[:, 1])
@@ -1020,7 +1020,7 @@ def removeCells(
         cells.cluster_mask = cells.cluster_mask - bitmask.clipping_matrix
 
     # Otherwise, if it's a list, then take the targets literally.
-    elif isinstance(target_method, TissueMatcherIndices):
+    elif isinstance(target_method, TissuePickerIndices):
         target_inds_cell = target_method.indices
 
     else:

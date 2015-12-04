@@ -106,17 +106,17 @@ def is_simulator(obj: object) -> bool:
     class.
     '''
     # Avoid circular import dependencies.
-    from betse.science.compute import Simulator
+    from betse.science.sim import Simulator
     return isinstance(obj, Simulator)
 
-def is_world(obj: object) -> bool:
+def is_cells(obj: object) -> bool:
     '''
-    `True` if the passed object is an instance of the BETSE-specific `World`
+    `True` if the passed object is an instance of the BETSE-specific `Cells`
     class.
     '''
     # Avoid circular import dependencies.
-    from betse.science.world import World
-    return isinstance(obj, World)
+    from betse.science.cells import Cells
+    return isinstance(obj, Cells)
 
 # ....................{ TESTERS ~ str                      }....................
 def is_str(obj: object) -> bool:
@@ -198,12 +198,12 @@ def assert_not_simulator(obj: object) -> str:
     '''
     return '"{}" not a "Simulator" instance.'.format(obj)
 
-def assert_not_world(obj: object) -> str:
+def assert_not_cells(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `World` class.
+    specific `Cells` class.
     '''
-    return '"{}" not a "World" instance.'.format(obj)
+    return '"{}" not a "Cells" instance.'.format(obj)
 
 # ....................{ ASSERTERS ~ str                    }....................
 def assert_nonstr(obj: object) -> str:

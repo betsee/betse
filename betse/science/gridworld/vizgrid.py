@@ -1597,7 +1597,7 @@ def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = Tr
         Parameters
         ----------------
 
-        cells                   Data structure created by World module
+        cells                   Data structure created by Cells module
         p                       Parameters data structure created by Parameters module
         fig, ax                 Figure and axes instances
         zdata                   Contains data array matching cell and ecm indices, e.g. zdata = [Vcell, Vecm]
@@ -2108,7 +2108,7 @@ def cell_ave(cells,vm_at_mem):
 
     Parameters
     ----------
-    cells               An instance of the World module cells object
+    cells               An instance of the Cells module cells object
     vm_at_mem           Vmem at individual membrane domains
 
 

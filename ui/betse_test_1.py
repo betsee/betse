@@ -360,7 +360,7 @@ class Ui_MainWindow(object):
         self.lbl_Clenv.setText(QtGui.QApplication.translate("MainWindow", "cCl_env [mol/m3]", None, QtGui.QApplication.UnicodeUTF8))
         self.lbl_Caenv.setText(QtGui.QApplication.translate("MainWindow", "cCa_env [mol/m3]", None, QtGui.QApplication.UnicodeUTF8))
         self.lbl_Henv.setText(QtGui.QApplication.translate("MainWindow", "cH_env [mol/m3]", None, QtGui.QApplication.UnicodeUTF8))
-        self.lbl_WorldProperties.setText(QtGui.QApplication.translate("MainWindow", "World Properties", None, QtGui.QApplication.UnicodeUTF8))
+        self.lbl_WorldProperties.setText(QtGui.QApplication.translate("MainWindow", "Cells Properties", None, QtGui.QApplication.UnicodeUTF8))
         self.lbl_alphaNaK.setToolTip(QtGui.QApplication.translate("MainWindow", "rate constant Na-K-ATPase pump", None, QtGui.QApplication.UnicodeUTF8))
         self.lbl_alphaNaK.setText(QtGui.QApplication.translate("MainWindow", "alpha_NaKATPase [1/s]", None, QtGui.QApplication.UnicodeUTF8))
         self.lbl_CaATPase.setToolTip(QtGui.QApplication.translate("MainWindow", "rate constant Ca-ATPase pump", None, QtGui.QApplication.UnicodeUTF8))

@@ -11,11 +11,11 @@
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
-from betse.science.tissue.matcher import (
-    TissueMatcherAll,
-    TissueMatcherBitmap,
-    TissueMatcherIndices,
-    TissueMatcherRandom,)
+from betse.science.tissue.picker import (
+    TissuePickerAll,
+    TissuePickerBitmap,
+    TissuePickerIndices,
+    TissuePickerRandom,)
 from betse.util.path import paths
 from collections import OrderedDict
 from matplotlib.colors import Colormap
@@ -45,7 +45,7 @@ class Parameters(object):
 
     Attributes (General)
     ----------------------------
-    clipping_bitmap_matcher : TissueMatcherBitmap
+    clipping_bitmap_matcher : TissuePickerBitmap
         Object describing the bitmap whose colored pixel area specifies the
         global geometry mask to which all tissue profile bitmaps will be
         clipped.
@@ -151,7 +151,7 @@ class Parameters(object):
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
 
-        self.T = float(self.config['world options']['temperature'])  # World temperature
+        self.T = float(self.config['world options']['temperature'])  # Cells temperature
 
         self.gravity = self.config['variable settings']['gravity']
 
@@ -345,7 +345,7 @@ class Parameters(object):
         tpd = self.config['tissue profile definition']
         self.default_tissue_name = \
             self.config['variable settings']['default tissue name']
-        self.clipping_bitmap_matcher = TissueMatcherBitmap(
+        self.clipping_bitmap_matcher = TissuePickerBitmap(
             tpd['geometry clipping']['bitmap']['file'], self.config_dirname)
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
@@ -371,14 +371,14 @@ class Parameters(object):
             profile_matcher = None
             cts = tissue_profile['cell targets']
             if cts['type'] == 'all':
-                profile_matcher = TissueMatcherAll()
+                profile_matcher = TissuePickerAll()
             elif cts['type'] == 'bitmap':
-                profile_matcher = TissueMatcherBitmap(
+                profile_matcher = TissuePickerBitmap(
                     cts['bitmap']['file'], self.config_dirname)
             elif cts['type'] == 'indices':
-                profile_matcher = TissueMatcherIndices(cts['indices'])
+                profile_matcher = TissuePickerIndices(cts['indices'])
             elif cts['type'] == 'random':
-                profile_matcher = TissueMatcherRandom(cts['random'])
+                profile_matcher = TissuePickerRandom(cts['random'])
             else:
                 raise BetseExceptionParameters(
                     'Tissue cell targets type "{}" unrecognized.'.format(
@@ -1346,7 +1346,7 @@ def bal_charge(concentrations,zs):
     #     self.nl = 0.8  # noise level for the lattice
     #     self.vol_env = 2*self.wsx*self.wsy*self.cell_height    # volume of the environmental space [m3]
     #
-    #     self.T = 310   # World temperature [K]
+    #     self.T = 310   # Cells temperature [K]
     #
     #     # gap junction constants and network connectivity
     #     self.search_d =1.5     # distance to search for nearest neighbours (relative to cell diameter dc) min 1.0 max 5.0

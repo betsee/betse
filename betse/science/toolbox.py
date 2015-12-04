@@ -344,7 +344,7 @@ def grid_vector_data(xpts,ypts,zdata_x,zdata_y,cells,p):
     ypts                        Linear array of y-coordinates
     zdata_x                     Linear array of vector x-components
     zdata_y                     Linear array of vector y-components
-    cells                       Instance of a World object
+    cells                       Instance of a Cells object
 
     Returns
     ---------

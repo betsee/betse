@@ -5,12 +5,12 @@
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 """
-This module contains the class `World`, which holds
+This module contains the class `Cells`, which holds
 all data structures relating to the size of the environment,
 the extent of the cell cluster, the co-ordinates of cell
 centre points, and all kinds of data relating to individual cell properties.
 
-The initialization method of the `World` class sets-up
+The initialization method of the `Cells` class sets-up
 and crops the cell cluster to an optional user-defined geometry input
 (a set of points arranged in counter-clockwise order and
 defining a closed polygon). Other methods define the cell centres of each
@@ -34,17 +34,22 @@ from betse.science import filehandling as fh
 from betse.util.io import loggers
 
 
-class World(object):
+class Cells(object):
     """
-    The World object creates and stores data structures relating to
-    the geometric properties of the environmental grid and cell cluster, constructs
-    matrices allowing for direct computation of gradients and laplacians on
-    cell and environmental points, and provides functions to facilitate data plotting on
-    the geometric structures (cell areas, membranes, ect)
+    High-level tissue simulation object encapsulating the cell population.
+
+    Specifically, this object:
+
+    * Creates and stores data structures relating to the geometric properties
+      of the environmental grid and cell cluster.
+    * Constructs matrices allowing for direct computation of gradients and
+      laplacians on cell and environmental points.
+    * Provides functions to facilitate data plotting on the geometric
+      structures (e.g., cell areas and membranes).
 
     Parameters
     ----------
-    constants                           World requires an instance of NumVars, see the Parameters module.
+    constants                           Cells requires an instance of NumVars, see the Parameters module.
 
     worldtype (default = None)          'full' creates a complex world with extracellular
                                         matrix points, in addition to cell-cell GJ connections.

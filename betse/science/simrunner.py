@@ -15,15 +15,15 @@ from matplotlib.collections import LineCollection, PolyCollection
 
 from betse.science import visualize as viz
 from betse.science import filehandling as fh
-from betse.science.compute import Simulator
+from betse.science.sim import Simulator
 from betse.science.parameters import Parameters
-from betse.science.world import World
+from betse.science.cells import Cells
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from betse.util.path import files, paths
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 
- # FIXME Dearest Cecil, I noticed that you merged the plot types for "plot World" into one plot. This doesn't work
+ # FIXME Dearest Cecil, I noticed that you merged the plot types for "plot Cells" into one plot. This doesn't work
 # for large collectives because the cell-cell connection lines obscure everything, but is useful as a separate plot,
 # especially when making more complex models like the planaria with brain and nerves. We can certainly
 # make the cell-cell connection plot an optional overlay or separate plot later on. Howevever, in general,
@@ -79,7 +79,7 @@ class SimRunner(object):
 
         if p.sim_ECM is False:
 
-            cells = World(p,worldtype='basic')  # create an instance of world
+            cells = Cells(p,worldtype='basic')  # create an instance of world
             cells.containsECM = False
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
@@ -108,7 +108,7 @@ class SimRunner(object):
 
         else:
 
-            cells = World(p,worldtype='full')  # create an instance of world
+            cells = Cells(p,worldtype='full')  # create an instance of world
             cells.containsECM = True
             loggers.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
@@ -157,7 +157,7 @@ class SimRunner(object):
         p.run_sim = False # let the simulator know we're just running an initialization
 
         # cells, _ = fh.loadSim(cells.savedWorld)
-        cells = World(p)  # create an instance of world
+        cells = Cells(p)  # create an instance of world
 
         if files.is_file(cells.savedWorld):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -325,7 +325,7 @@ class SimRunner(object):
         p.I_overlay = False # force the current overlay to be false as there's no data for it
         sim = Simulator(p)
 
-        cells = World(p,worldtype='basic')
+        cells = Cells(p,worldtype='basic')
 
         if files.is_file(cells.savedWorld):
             cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache

@@ -2,6 +2,11 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+'''
+Class hierarchy collectively implementing various methods for assigning a subset
+of the total cell population to the corresponding tissue profile.
+'''
+
 # ....................{ IMPORTS                            }....................
 import random
 from abc import ABCMeta, abstractmethod
@@ -12,25 +17,25 @@ from betse.util.path import files, paths
 from betse.util.type import types
 
 # ....................{ BASE                               }....................
-class TissueMatcher(object, metaclass = ABCMeta):
+class TissuePicker(object, metaclass = ABCMeta):
     '''
     Abstract base class of all tissue matching classes.
 
-    Instances of this class assign a subset of all cells and/or cell membranes
-    matching subclass-specific criteria (e.g., explicit indexing, randomized
-    selection, spatial location) to the corresponding tissue profile.
+    Instances of this class assign a subset of all cells matching
+    subclass-specific criteria (e.g., explicit indexing, randomized selection,
+    spatial location) to the corresponding tissue profile.
     '''
 
     @abstractmethod
     def get_cell_indices(
         self, world, p, ignoreECM: bool = False):
         '''
-        Numpy array of the indices of all matching cells and/or cell membranes.
+        Numpy array of the indices of all matching cells.
 
         Parameters
         ---------------------------------
-        world : World
-            Instance of the `World` class.
+        world : Cells
+            Instance of the `Cells` class.
         p : Parameters
             Instance of the `Parameters` class.
         ignoreECM : bool
@@ -45,16 +50,16 @@ class TissueMatcher(object, metaclass = ABCMeta):
         pass
 
 
-class TissueMatcherAll(TissueMatcher):
+class TissuePickerAll(TissuePicker):
     '''
-    All-inclusive tissue matcher.
+    All-inclusive tissue picker.
 
-    This matcher unconditionally matches _all_ cells and/or cell membranes.
+    This matcher unconditionally matches _all_ cells.
     '''
 
     def get_cell_indices(
         self, world, p, ignoreECM: bool = False):
-        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_cells(world),  types.assert_not_cells(world)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
@@ -70,9 +75,9 @@ class TissueMatcherAll(TissueMatcher):
         return target_inds
 
 # ....................{ BITMAP                             }....................
-class TissueMatcherBitmap(TissueMatcher):
+class TissuePickerBitmap(TissuePicker):
     '''
-    Bitmap-specific tissue matcher.
+    Bitmap-specific tissue picker.
 
     This matcher matches all cells residing inside the colored pixel area
     defined by an associated bitmap file.
@@ -114,9 +119,10 @@ class TissueMatcherBitmap(TissueMatcher):
         # Persist this path.
         self.filename = filename
 
+
     def get_cell_indices(
         self, world, p, ignoreECM: bool = False):
-        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_cells(world),  types.assert_not_cells(world)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
@@ -138,9 +144,9 @@ class TissueMatcherBitmap(TissueMatcher):
         return target_inds
 
 # ....................{ INDICES                            }....................
-class TissueMatcherIndices(TissueMatcher):
+class TissuePickerIndices(TissuePicker):
     '''
-    Indices-specific tissue matcher.
+    Indices-specific tissue picker.
 
     This matcher matches all cells with the listed indices.
 
@@ -163,9 +169,10 @@ class TissueMatcherIndices(TissueMatcher):
             types.assert_not_sequence_nonstr(indices)
         self.indices = indices
 
+
     def get_cell_indices(
         self, world, p, ignoreECM: bool = False):
-        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_cells(world),  types.assert_not_cells(world)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
@@ -181,7 +188,7 @@ class TissueMatcherIndices(TissueMatcher):
         return target_inds
 
 # ....................{ RANDOM                             }....................
-class TissueMatcherRandom(TissueMatcher):
+class TissuePickerRandom(TissuePicker):
     '''
     Randomized cell matcher.
 
@@ -214,9 +221,10 @@ class TissueMatcherRandom(TissueMatcher):
 
         self.percentage = percentage
 
+
     def get_cell_indices(
         self, world, p, ignoreECM: bool = False):
-        assert types.is_world(world),  types.assert_not_world(world)
+        assert types.is_cells(world),  types.assert_not_cells(world)
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 

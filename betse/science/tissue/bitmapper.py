@@ -55,7 +55,7 @@ class BitMapper(object):
 
         Parameters
         ----------------------------
-        bitmap_matcher : TissueMatcher
+        bitmap_matcher : TissuePicker
             Low-level BETSE-specific object describing this bitmap.
         xmin : float
             Minimum `x` coordinate accepted by these interpolation functions.
@@ -70,8 +70,8 @@ class BitMapper(object):
             (black) to `255.0` (white). Defaults to `0.0`.
         '''
         # Avoid circular import dependencies.
-        from betse.science.tissue.matcher import TissueMatcherBitmap
-        assert isinstance(bitmap_matcher, TissueMatcherBitmap),\
+        from betse.science.tissue.picker import TissuePickerBitmap
+        assert isinstance(bitmap_matcher, TissuePickerBitmap),\
             '{} not a BETSE-formatted bitmap.'.format(bitmap_matcher)
 
         # Load this bitmap as a flattened (i.e., grayscale) Numpy array.

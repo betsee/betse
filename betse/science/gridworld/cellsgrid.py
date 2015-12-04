@@ -13,7 +13,7 @@ GridWorld is defined on a rectilinear grid with equal dimensions in the x and y 
 GridWorld assumes each tick in the grid is the potential location of a cell and its extracellular
 matrix surrounds.
 
-The initialization method of the World class sets-up
+The initialization method of the Cells class sets-up
 and crops the cell cluster to an optional user-defined geometry input
 (a set of points arranged in counter-clockwise order and
 defining a closed polygon). Other methods define the cell centres and create cell-cell gap junctions (GJs).
