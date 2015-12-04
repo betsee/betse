@@ -14,6 +14,7 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionPath
 from betse.util.io import loggers
+from betse.util.type import types
 from os import path
 import shutil
 
@@ -26,6 +27,7 @@ def die_unless_path(*pathnames) -> None:
         if not is_path(pathname):
             raise BetseExceptionPath(
                 'Path "{}" not found or unreadable.'.format(pathname))
+
 
 def die_if_dirname_empty(pathname: str) -> None:
     '''
@@ -59,8 +61,8 @@ def is_path(pathname: str) -> bool:
     If such path is an existing **broken symbolic link** (i.e., a symbolic link
     whose target no longer exists), this function still returns True.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
 
     # Call path.lexists() rather than path.exists(), as the latter returns False
     # for dangling symbolic links -- which is entirely irrelevant to most
@@ -79,9 +81,10 @@ def is_absolute(pathname: str) -> bool:
     * Microsoft Windows, absolute paths are prefixed by an optional drive
       indicator (e.g., `C:`) followed by `\`.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
     return path.isabs(pathname)
+
 
 def is_relative(pathname: str) -> bool:
     '''
@@ -98,10 +101,13 @@ def is_relative(pathname: str) -> bool:
 # ....................{ TESTERS ~ pathname                 }....................
 def is_dirname_empty(pathname: str) -> bool:
     '''
-    `True` if the passed pathname is a *pure basename* (i.e., contains no
+    `True` if the passed pathname is a **pure basename** (i.e., contains no
     directory separators and hence no directory components).
     '''
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
     return path.sep not in pathname
+
 
 def is_filetype(pathname: str, filetype: str) -> bool:
     '''
@@ -110,8 +116,10 @@ def is_filetype(pathname: str, filetype: str) -> bool:
     Such filetype may contain arbitrarily many `.` characters, including an
     optional prefixing `.`. Regardless, this function behaves as expected.
     '''
-    assert isinstance(filetype, str), '"{}" not a string.'.format(filetype)
-    assert len(filetype), 'Filetype empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
+    assert types.is_str_nonempty(filetype),\
+        types.assert_nonstr_nonempty(filetype, 'Filetype')
 
     # Avoid circular import dependencies.
     from betse.util.type import strs
@@ -125,9 +133,10 @@ def get_basename(pathname: str) -> str:
     '''
     Get the **basename** (i.e., last component) of the passed path.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
     return path.basename(pathname)
+
 
 def get_type_label(pathname: str) -> str:
     '''
@@ -166,15 +175,18 @@ def get_dirname(pathname: str) -> str:
     Get the **dirname** (i.e., parent directory) of the passed path if such path
     has a dirname or raise an exception otherwise.
     '''
-    # Raise an exception unless such path has a dirname.
+    # Raise an exception unless this path has a dirname.
     die_if_dirname_empty(pathname)
 
-    # Get such dirname. Technically, the above call *SHOULD* have ensured such
-    # dirname to exist. This is a sufficiently critical function, however, to
-    # warrant asserting this constraint.
+    # Get this dirname.
     dirname = get_dirname_or_empty(pathname)
+
+    # Assert this dirname's non-emptiness. Technically, the above call *SHOULD*
+    # have ensured this. This is a sufficiently critical function, however, to
+    # warrant asserting this fact.
     assert len(dirname), 'Pathname "{}" dirname empty.'.format(pathname)
     return dirname
+
 
 def get_dirname_or_current_dirname(pathname: str) -> str:
     '''
@@ -183,46 +195,47 @@ def get_dirname_or_current_dirname(pathname: str) -> str:
     '''
     # Avoid circular import dependencies.
     from betse.util.path import dirs
-
     dirname = get_dirname_or_empty(pathname)
     return dirname if dirname else dirs.get_current_dirname()
+
 
 def get_dirname_or_empty(pathname: str) -> str:
     '''
     Get the **dirname** (i.e., parent directory) of the passed path if such path
     has a dirname or the empty string otherwise.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
     return path.dirname(pathname)
 
 # ....................{ GETTERS ~ filetype                 }....................
 def get_filetype(pathname: str) -> str:
     '''
     Get the **last filetype** (i.e., last `.`-prefixed substring of the
-    basename *not* including such `.`) of the passed path if such path has a
+    basename *not* including that `.`) of the passed path if this path has a
     filetype or `None` otherwise.
 
-    If such path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
+    If this path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
     last such filetype will be returned.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
 
-    # Such filetype. (Yes, splitext() is exceedingly poorly named.)
+    # Filetype. Yes, splitext() is exceedingly poorly named.
     filetype = path.splitext(pathname)[1]
 
-    # Get such filetype, stripping the prefixing "." from the string returned by
-    # the prior call if such path has a filetype or returning None otherwise.
+    # Strip the prefixing "." from the string returned by the prior call if this
+    # path has a filetype or return None otherwise.
     return filetype[1:] if filetype else None
+
 
 def get_pathname_sans_filetype(pathname: str) -> str:
     '''
     Get the passed path without last filetype (including prefixing `.`) if such
     path has a filetype *or* as is otherwise.
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
     return path.splitext(pathname)[0]
 
 # ....................{ JOINERS                            }....................
@@ -276,8 +289,8 @@ def canonicalize(pathname: str) -> str:
         converting `sim_config.yaml` to `/tmp/sim_config.yaml` when the current
         working directory is `/tmp`).
     '''
-    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
-    assert len(pathname), 'Pathname empty.'
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
     return path.abspath(path.expanduser(pathname))
 
 # ....................{ MOVERS                             }....................
@@ -293,12 +306,10 @@ def move(pathname_source: str, pathname_target: str) -> None:
     If either the source path does not exist *or* the target path already
     exists, an exception will be raised.
     '''
-    assert isinstance(pathname_source, str),\
-        '"{}" not a string.'.format(pathname_source)
-    assert isinstance(pathname_target, str),\
-        '"{}" not a string.'.format(pathname_target)
-    assert len(pathname_source), 'Source pathname empty.'
-    assert len(pathname_target), 'Target pathname empty.'
+    assert types.is_str_nonempty(pathname_source),\
+        types.assert_nonstr_nonempty(pathname_source, 'Source pathname')
+    assert types.is_str_nonempty(pathname_target),\
+        types.assert_nonstr_nonempty(pathname_target, 'Target pathname')
 
     # Log such move in a contextual manner.
     loggers.log_debug(
