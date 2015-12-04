@@ -944,50 +944,50 @@ class TissueHandler(object):
         '''
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_morpho + sim.Dm_base
 
-
-def getEcmTargets(target_method, world, p, boundaryOnly = True):
-    """
-    Get a Numpy array of all ECM indices matching the passed tissue profile.
-
-    Parameters
-    ---------------------------------
-    target_method : TissueMatcher
-        Object matching all ECM indices to be returned.
-    world : World
-        Instance of the `World` class.
-    p : Parameters
-        Instance of the `Parameters` class.
-    boundaryOnly : bool
-        If `True`, only boundary ECM indices (e.g., `bflags_ecm`) will be
-        returned; else, all ECM indices will be returned. Defaults to `True`.
-
-    Returns
-    ---------------------------------
-    target_inds : ndarray
-        Numpy array of all matching ECM indices.
-    """
-    assert types.is_parameters(p),  types.assert_not_parameters(p)
-    assert types.is_world(world),   types.assert_not_world(world)
-
-    target_inds = []
-
-    #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-    if isinstance(target_method, TissueMatcherBitmap):
-        bitmask = BitMapper(
-            target_method, world.xmin, world.xmax, world.ymin, world.ymax)
-        bitmask.clipPoints(world.xypts[:,0], world.xypts[:,1])
-        target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
-
-    else:
-        raise BetseExceptionSimulation(
-            'Tissue matcher "{}" getEcmTargets() support unimplemented.'.format(
-                target_method))
-
-    return target_inds
+#FIXME: Remove if unneeded.
+# def getEcmTargets(target_method, cells, p, boundaryOnly = True):
+#     """
+#     Get a Numpy array of all ECM indices matching the passed tissue profile.
+#
+#     Parameters
+#     ---------------------------------
+#     target_method : TissueMatcher
+#         Object matching all ECM indices to be returned.
+#     cells : World
+#         Instance of the `World` class.
+#     p : Parameters
+#         Instance of the `Parameters` class.
+#     boundaryOnly : bool
+#         If `True`, only boundary ECM indices (e.g., `bflags_ecm`) will be
+#         returned; else, all ECM indices will be returned. Defaults to `True`.
+#
+#     Returns
+#     ---------------------------------
+#     target_inds : ndarray
+#         Numpy array of all matching ECM indices.
+#     """
+#     assert types.is_parameters(p),  types.assert_not_parameters(p)
+#     assert types.is_world(cells),   types.assert_not_world(cells)
+#
+#     target_inds = []
+#
+#     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
+#     if isinstance(target_method, TissueMatcherBitmap):
+#         bitmask = BitMapper(
+#             target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
+#         bitmask.clipPoints(cells.xypts[:, 0], cells.xypts[:, 1])
+#         target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+#
+#     else:
+#         raise BetseExceptionSimulation(
+#             'Tissue matcher "{}" getEcmTargets() support unimplemented.'.format(
+#                 target_method))
+#
+#     return target_inds
 
 #FIXME: Document all optional booleans accepted by this method as well. Tasty!
 def removeCells(
-    target_method, sim, world, p,
+    target_method, sim, cells, p,
     simMod = False, dangling_gj = False, open_TJ = True):
     '''
     Permanently remove all cells matching the passed tissue profile.
@@ -998,26 +998,26 @@ def removeCells(
         Object matching all cells to be removed.
     sim : Simulator
         Instance of the `Simulator` class.
-    world : World
+    cells : World
         Instance of the `World` class.
     p : Parameters
         Instance of the `Parameters` class.
     '''
     assert types.is_parameters(p),  types.assert_not_parameters(p)
     assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_world(world),   types.assert_not_world(world)
+    assert types.is_world(cells),   types.assert_not_world(cells)
 
     loggers.log_info('Cutting hole in cell cluster! Removing world...')
 
     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
     if isinstance(target_method, TissueMatcherBitmap):
         bitmask = BitMapper(
-            target_method, world.xmin, world.xmax, world.ymin, world.ymax)
-        bitmask.clipPoints(world.cell_centres[:,0], world.cell_centres[:,1])
+            target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
+        bitmask.clipPoints(cells.cell_centres[:, 0], cells.cell_centres[:, 1])
         target_inds_cell = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
 
         # Update the cluster mask by subtracting deleted region.
-        world.cluster_mask = world.cluster_mask - bitmask.clipping_matrix
+        cells.cluster_mask = cells.cluster_mask - bitmask.clipping_matrix
 
     # Otherwise, if it's a list, then take the targets literally.
     elif isinstance(target_method, TissueMatcherIndices):
@@ -1029,34 +1029,14 @@ def removeCells(
                 target_method))
 
     # get the corresponding flags to membrane entities
-    target_inds_mem = world.cell_to_mems[target_inds_cell]
+    target_inds_mem = cells.cell_to_mems[target_inds_cell]
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
-    target_inds_gj,_,_ = tb.flatten(world.cell_to_nn_full[target_inds_cell])
-
-    # recreate structures for plotting interpolated data on cell centres:
-    #
-    # xv = np.linspace(world.xmin,world.xmax,world.msize)
-    # yv = np.linspace(world.ymin,world.ymax,world.msize)
-    #
-    # world.Xgrid = world.X
-    # world.Ygrid = world.Y
-    #
-    # mask_interp = interp.RectBivariateSpline(xv,yv,world.cluster_mask)
-    #
-    # # interpolate the cluster mask -- this is intentionally x-y opposite because
-    # world.maskM = mask_interp.ev(world.xypts[:,1],world.xypts[:,0])
-    #
-    # world.maskM = world.maskM.reshape(world.X.shape)
-    #
-    # world.maskM = np.round(world.maskM,0)
-    # world.maskM_temp = world.maskM.astype(int)
-    #
-    # world.inds_env_temp = list(*(world.maskM.ravel() == 0).nonzero())
+    target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
     if p.sim_ECM is True:
         # get environmental targets around each removed cell:
-        ecm_targs_cell = list(world.map_cell2ecm[target_inds_cell])
-        ecm_targs_mem = list(world.map_mem2ecm[target_inds_mem])
+        ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
+        ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
         ecm_targs = []
 
         for v in ecm_targs_cell:
@@ -1069,57 +1049,17 @@ def removeCells(
         # setting the environmental spaces around cut world to the free value -- if desired!:
         if open_TJ is True:
             # save the x,y coordinates of the original boundary cell and membrane points:
-            old_bflag_cellxy = world.cell_centres[world.bflags_cells]
-            old_bglag_memxy = world.mem_mids_flat[world.bflags_mems]
-        #
-        #     for i in range(0,len(sim.D_env)):
-        #         sim.D_env[i][ecm_targs] = sim.D_free[i]
-        #
-        #     D_env_weight = sim.D_env[sim.iP]/sim.D_env[sim.iP].max()
-        #     sim.D_env_weight = D_env_weight.reshape(world.X.shape)
-        #     sim.D_env_weight_base = np.copy(sim.D_env_weight)
-        #
-        #     for i, dmat in enumerate(sim.D_env):  # redo the MACs grid diffusion matrices:
-        #
-        #         if p.env_type is True:
-        #
-        #             sim.D_env_u[i] = interp.griddata((world.xypts[:,0],world.xypts[:,1]),dmat.ravel(),
-        #                 (world.grid_obj.u_X,world.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
-        #
-        #             sim.D_env_v[i] = interp.griddata((world.xypts[:,0],world.xypts[:,1]),dmat.ravel(),
-        #                 (world.grid_obj.v_X,world.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
-        #
-        #         else:
-        #             sim.D_env_u[i] = interp.griddata((world.xypts[:,0],world.xypts[:,1]),dmat.ravel(),
-        #                 (world.grid_obj.u_X,world.grid_obj.u_Y),method='nearest',fill_value = 0)
-        #
-        #             sim.D_env_v[i] = interp.griddata((world.xypts[:,0],world.xypts[:,1]),dmat.ravel(),
-        #                 (world.grid_obj.v_X,world.grid_obj.v_Y),method='nearest',fill_value = 0)
-        #
-        #     sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
-        #
-        #     sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
-        #
-        #     if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-        #
-        #         sim.D_env_weight_u[:,0] = 0
-        #         sim.D_env_weight_u[:,-1] = 0
-        #         sim.D_env_weight_u[0,:] = 0
-        #         sim.D_env_weight_u[-1,:] = 0
-        #
-        #         sim.D_env_weight_v[:,0] = 0
-        #         sim.D_env_weight_v[:,-1] = 0
-        #         sim.D_env_weight_v[0,:] = 0
-        #         sim.D_env_weight_v[-1,:] = 0
+            old_bflag_cellxy = cells.cell_centres[cells.bflags_cells]
+            old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
 
     # set up the situation to make world joined to cut world have more permeable membranes:
-    hurt_cells = np.zeros(len(world.cell_i))
+    hurt_cells = np.zeros(len(cells.cell_i))
 
     if dangling_gj is True: # if we're creating a dangling gap junction situation
         hurt_level = p.hurt_level  # amount by which membrane permeability increases for all ions
         target_inds_gj_unique = np.unique(target_inds_gj)
 
-        for i, inds in enumerate(world.cell_to_nn): # for all the nn inds to a cell...
+        for i, inds in enumerate(cells.cell_to_nn): # for all the nn inds to a cell...
             inds_array = np.asarray(inds)
             inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
 
@@ -1129,7 +1069,7 @@ def removeCells(
         hurt_inds = (hurt_cells == 1).nonzero()
 
         if p.sim_ECM is True:
-            mem_flags,_,_ = tb.flatten(world.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
+            mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
 
             for i,dmat_a in enumerate(sim.Dm_cells):
                 sim.Dm_cells[i][mem_flags] = hurt_level*sim.D_free[i]
@@ -1162,28 +1102,28 @@ def removeCells(
 
                 for i, data in enumerate(super_data):
                     if isinstance(data,np.ndarray):
-                        if len(data) == len(world.cell_i):
+                        if len(data) == len(cells.cell_i):
                             data2 = np.delete(data,target_inds_cell)
 
-                        elif len(data) == len(world.mem_i):
+                        elif len(data) == len(cells.mem_i):
                             data2 = np.delete(data,target_inds_mem)
 
-                        elif len(data) == len(world.nn_i):
+                        elif len(data) == len(cells.nn_i):
                             data2 = np.delete(data,target_inds_gj)
 
                     if isinstance(data,list):
                         data2 = []
-                        if len(data) == len(world.cell_i):
+                        if len(data) == len(cells.cell_i):
                             for index in sorted(target_inds_cell, reverse=True):
                                 del data[index]
                             data2.append(data[index])
 
-                        elif len(data) == len(world.mem_i):
+                        elif len(data) == len(cells.mem_i):
                             for index in sorted(target_inds_mem, reverse=True):
                                 del data[index]
                             data2.append(data[index])
 
-                        elif len(data) == len(world.nn_i):
+                        elif len(data) == len(cells.nn_i):
                             for index in sorted(target_inds_gj, reverse=True):
                                 del data[index]
                             data2.append(data[index])
@@ -1201,34 +1141,34 @@ def removeCells(
                 data = getattr(sim,name)
 
                 if isinstance(data,np.ndarray):
-                    if len(data) == len(world.cell_i):
+                    if len(data) == len(cells.cell_i):
                         data2 = np.delete(data,target_inds_cell)
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(world.mem_i):
+                    elif len(data) == len(cells.mem_i):
                         data2 = np.delete(data,target_inds_mem)
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(world.nn_index):
+                    elif len(data) == len(cells.nn_index):
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
                 if isinstance(data,list):
                     data2 = []
 
-                    if len(data) == len(world.cell_i):
+                    if len(data) == len(cells.cell_i):
                         for index in sorted(target_inds_cell, reverse=True):
                             del data[index]
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(world.mem_i):
+                    elif len(data) == len(cells.mem_i):
                         for index in sorted(target_inds_mem, reverse=True):
                             del data[index]
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(world.nn_index):
+                    elif len(data) == len(cells.nn_index):
                         for index in sorted(target_inds_gj, reverse=True):
                             del data[index]
                         data2.append(data[index])
@@ -1238,57 +1178,68 @@ def removeCells(
 #-------------------------------Fix-up cell world ----------------------------------------------------------------------
     new_cell_centres = []
     new_ecm_verts = []
-    removal_flags = np.zeros(len(world.cell_i))
+    removal_flags = np.zeros(len(cells.cell_i))
     removal_flags[target_inds_cell] = 1
 
     for i,flag in enumerate(removal_flags):
 
         if flag == 0:
 
-            new_cell_centres.append(world.cell_centres[i])
-            new_ecm_verts.append(world.ecm_verts[i])
+            new_cell_centres.append(cells.cell_centres[i])
+            new_ecm_verts.append(cells.ecm_verts[i])
 
-    world.cell_centres = np.asarray(new_cell_centres)
-    world.ecm_verts = np.asarray(new_ecm_verts)
+    cells.cell_centres = np.asarray(new_cell_centres)
+    cells.ecm_verts = np.asarray(new_ecm_verts)
+
+    # recalculate ecm_verts_unique:
+    ecm_verts_flat,_,_ = tb.flatten(cells.ecm_verts)
+
+    ecm_verts_set = set()
+
+    for vert in ecm_verts_flat:
+        ptx = vert[0]
+        pty = vert[1]
+        ecm_verts_set.add((ptx,pty))
+
+    cells.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
+
+    cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
+
+    #-----------------------------------------------------------------
+
 
     loggers.log_info('Recalculating cluster variables for new configuration...')
 
-    if p.sim_ECM is True:
+    if p.sim_ECM is True:   # FIXME need to update the masking matrix after cutting (make voronoi, make mask...)
 
-        world.cellVerts(p)   # create individual cell polygon vertices
-        # print(world.mem_mids_flat)
-        world.bflags_mems,_ = world.boundTag(world.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
-        world.bflags_cells,_ = world.boundTag(world.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
+        cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
 
         if open_TJ is True:
             # if desire for cut away space to lack tight junctions, remove new bflags from set:
-            searchTree = sps.KDTree(world.cell_centres)
+            searchTree = sps.KDTree(cells.cell_centres)
             original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-            world.bflags_cells = original_pt_inds[:]
+            cells.bflags_cells = original_pt_inds[:]
 
 
-        world.near_neigh(p)    # Calculate the nn array for each cell
-        world.cleanUp(p)       # Free up memory...
-        # world.makeECM(p)       # create the ecm grid
-        world.short_environment(p)   # define features of the ecm grid
-        world.grid_len =len(world.xypts)
+        cells.near_neigh(p)    # Calculate the nn array for each cell
+        cells.cleanUp(p)       # Free up memory...
+        cells.short_environment(p)   # define features of the ecm grid
+        cells.make_maskM(p)
+        cells.grid_len =len(cells.xypts)
 
         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
         loggers.log_info('Creating cell network Poisson solver...')
-        world.graphLaplacian(p)
+        cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
 
     else:
 
-        world.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
-        world.bflags_mems,_ = world.boundTag(world.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
-        world.bflags_cells,_ = world.boundTag(world.cell_centres,p,alpha=0.8)
-        world.near_neigh(p)    # Calculate the nn array for each cell
-        world.cleanUp(p)      # Free up memory...
-        world.gj_stuff(p)
+        cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
+        cells.near_neigh(p)    # Calculate the nn array for each cell
+        cells.cleanUp(p)      # Free up memory...
          # make a laplacian and solver for discrete transfers on closed, irregular cell network:
         loggers.log_info('Creating cell network Poisson solver...')
-        world.graphLaplacian(p)
+        cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
 
 

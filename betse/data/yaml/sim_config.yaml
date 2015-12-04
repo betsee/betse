@@ -1077,7 +1077,7 @@ internal parameters:
   u_decay_rate: 0.5
   alpha_rho_gj: 1.0e-3
 
-  interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest' or 'tri'
+  interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
   env modification constant: 5.0e5    # Asymetrical capacitance coefficient for environment
 

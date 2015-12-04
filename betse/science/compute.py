@@ -3147,7 +3147,7 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.mem_bound] = self.D_free[i]
+            dummyMems[cells.bflags_mems] = self.D_free[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type is True:
@@ -3321,20 +3321,15 @@ class Simulator(object):
 
         """
 
-        # FIXME the divergence of the stress isn't really working...what if we try calculating a flow field, and
-        # deforming the structure using the ux, uy ... in other words, the velocity field is the stress field?
-
-        # obtain the net moles in cells so that we can redo the concs with new volumes
-        net_moles = copy.copy(self.cc_cells)
-
-        for i, concs in enumerate(self.cc_cells):
-
-            net_moles[i][:] = concs*cells.cell_vol
+        # # FIXME don't need to do this; can do c1 v1 = c2 v2, and it only applies for osmosis
+        # net_moles = copy.copy(self.cc_cells)
+        #
+        # for i, concs in enumerate(self.cc_cells):
+        #
+        #     net_moles[i][:] = concs*cells.cell_vol
 
         # first determine the trans-membrane pressure due to electrostatics, if required:
         if p.deform_electro is True:
-
-            # self.P_mem = self.P_electro - self.P_mem
             P_mem_a = self.P_electro
 
         else:
@@ -3363,7 +3358,7 @@ class Simulator(object):
             divP_osmo = np.dot(cells.M_sum_mems,u_osmo)
 
             # Next get the reaction force resulting from osmotic water flow across the membrane:
-            F_mem = np.dot(cells.mem_DivM_inv,-divP_osmo)
+            F_mem = np.dot(cells.M_sum_mems_inv,-divP_osmo)
 
             P_mem_b  = self.P_mem + F_mem*p.tm # (the resulting pressure will deform the cell if it's strong enough)
 
@@ -3372,6 +3367,13 @@ class Simulator(object):
 
         # Take the total component of pressure from all contributions:
         self.P_mem = P_mem_a + P_mem_b
+
+        #-----------------------------------------
+
+        mcells = cells.cell_to_mems[50]  # FIXME only temporary for testing!!!
+        self.P_mem[mcells] = 10
+
+        #-----------------------------------------
 
 
         # ----pressure induced flow through connected cells
@@ -3407,7 +3409,7 @@ class Simulator(object):
             # # sum the tangential body force pressure at the gap junctions for each cell:
             FF_o = F_source*(cells.mem_sa)
 
-            FF_o[cells.mem_bound] = 0  # ensure there's no flow at the outer boundary membranes
+            FF_o[cells.bflags_mems] = 0  # ensure there's no flow at the outer boundary membranes
 
             # get the component of the driving forces normal to the cell boundary in order to calculate divergence
 
@@ -3431,8 +3433,8 @@ class Simulator(object):
             u_cells_x = u_cells*cells.mem_tx
             u_cells_y = u_cells*cells.mem_ty
 
-            u_cells_x[cells.mem_bound] = 0  # ensure there's no flow from boundary membranes
-            u_cells_y[cells.mem_bound] = 0
+            u_cells_x[cells.bflags_mems] = 0  # ensure there's no flow from boundary membranes
+            u_cells_y[cells.bflags_mems] = 0
 
             # average components to the cell centres:  # FIXME stop mapping back to cell centres...!
             self.u_cells_x = np.dot(cells.M_sum_mems,u_cells_x)/cells.num_mems
@@ -3442,7 +3444,7 @@ class Simulator(object):
 
             # remap pressure from individual cells to their membranes:
             P_react_mem = P_react[cells.mem_to_cells]
-            P_react_mem[cells.mem_bound] = 0
+            P_react_mem[cells.bflags_mems] = 0
 
             self.P_mem = self.P_mem + P_react_mem
 
@@ -3458,9 +3460,12 @@ class Simulator(object):
         #-------------------------------------------------------------------
         # determine mechanical stress arising from pressure in cells:
 
-        # calculate net outward stress at each membrane:
-        S_mem_x = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,2]
-        S_mem_y = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,3]
+        # calculate net outward stress (traction vector?) at each membrane:
+        # S_mem_x = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,2]
+        # S_mem_y = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,3]
+
+        S_mem_x = (self.P_mem)*cells.mem_vects_flat[:,2]
+        S_mem_y = (self.P_mem)*cells.mem_vects_flat[:,3]
 
         # balance the stress at the (assumed-to-be) shared boundary:
         S_mem_x_b = (S_mem_x[cells.mem_nn[:,1]] + S_mem_x[cells.mem_nn[:,0]])
@@ -3470,72 +3475,62 @@ class Simulator(object):
         Y = p.youngMod   # Young's modulus (elastic modulus)
         poi = 0.5        # Poisson ratio
 
-        # volume conserving deformation requires calculation of a counter-pressure: ----------------
+        # volume conserving deformation requires calculation of stress over whole cell
+        # net stress components on whole cell:
+        S_sum_x = (np.dot(cells.M_sum_mems,S_mem_x_b*cells.mem_sa))/cells.cell_sa
+        S_sum_y = (np.dot(cells.M_sum_mems,S_mem_y_b*cells.mem_sa))/cells.cell_sa
 
-        # divergence of the stress
-        u_div_x = np.dot(cells.M_sum_mems,S_mem_x_b*cells.mem_vects_flat[:,2])
-        u_div_y = np.dot(cells.M_sum_mems,S_mem_y_b*cells.mem_vects_flat[:,3])
-
-        u_div = u_div_x + u_div_y
-
-        # tension reaction pressure:
-        P_react = np.dot(cells.mem_DivM_inv, u_div)
-
-        P_react_x = P_react*cells.mem_vects_flat[:,2]
-        P_react_y = P_react*cells.mem_vects_flat[:,3]
+        # map back to membranes:
+        S_sum_x_b = S_sum_x[cells.mem_to_cells]
+        S_sum_y_b = S_sum_y[cells.mem_to_cells]
 
         #--------------------------------------------------------------------------------------------
-
-        # Strain
-
-        eta_x = (1/Y)*((S_mem_x_b - P_react_x) - (poi*S_mem_y_b - P_react_y)) # FIXME may want to reimplement
-        eta_y = (1/Y)*((S_mem_y_b - P_react_y) - (poi*S_mem_x_b - P_react_x))
-
-        # eta_x = (1/Y)*(S_mem_x_b - P_react_x)
-        # eta_y = (1/Y)*(S_mem_y_b - P_react_y)
+        # calculate the strain on the ecm midpoints:
+        eta_x = (1/Y)*(S_sum_x_b - poi*S_sum_y_b)
+        eta_y = (1/Y)*(S_sum_y_b - poi*S_sum_x_b)
 
         if p.fixed_cluster_bound is True:  # if the outer boundary of the cell cluster is prevented from deforming
 
             # set the strain at the boundary to zero:
-            eta_x[cells.mem_bound] = 0
-            eta_y[cells.mem_bound] = 0
+            eta_x[cells.bflags_mems] = 0
+            eta_y[cells.bflags_mems] = 0
+
+        # map the strain to the extracellular membrane midpoints:
+        eta_ecm_x = (eta_x[cells.ecm_to_mem_mids[:,0]] + eta_x[cells.ecm_to_mem_mids[:,1]])/2
+        eta_ecm_y = (eta_y[cells.ecm_to_mem_mids[:,0]] + eta_y[cells.ecm_to_mem_mids[:,1]])/2
+
+        # calculate the displacement of the extracellular membrane midpoints:
+        d_x = eta_ecm_x*cells.chord_mag
+        d_y = eta_ecm_y*cells.chord_mag
 
         #-------------------------------------------------------------
 
-        self.T_mem = self.P_mem[:]    # assume a tension force develops which is equal and opposite to the applied load
+        self.T_mem = self.P_mem[:] # assume a tension force develops which is equal and opposite to the applied load
 
         # get the total force (in order to rescale P_cell and P_mem in response to any deformation)
         F_mem_p = self.P_mem*cells.mem_sa
         F_mem_t = self.T_mem*cells.mem_sa
 
         # average the pressure at the membrane to the cell centres:
-        self.P_cells = np.dot(cells.M_sum_mems,(self.P_mem))/cells.num_mems
+        self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
         #----------------------------------------------------------
-        d_x = eta_x*cells.chord_mag
-        d_y = eta_y*cells.chord_mag
 
-        # get new cell verts:
-        new_cell_verts_x = cells.mem_verts[:,0] + np.dot(cells.deforM,d_x)
-        new_cell_verts_y = cells.mem_verts[:,1] + np.dot(cells.deforM,d_y)
+        # get new ecm verts:
+        new_ecm_verts_x = cells.ecm_verts_unique[:,0] + np.dot(cells.deforM,d_x)
+        new_ecm_verts_y = cells.ecm_verts_unique[:,1] + np.dot(cells.deforM,d_y)
 
-        cells.mem_verts = np.column_stack((new_cell_verts_x,new_cell_verts_y))
-
-        # Next, calculate the primitive ecm verts by reverse scaling the new cell verts:
-        ecm_temp = cells.cell_centres[cells.mem_to_cells] + ((cells.mem_verts
-                                                              - cells.cell_centres[cells.mem_to_cells])/p.scale_cell)
-
-        #Merge new ecm verts by averaging to equal the structure of the original Voronoi lattice:
-        ecm_new = np.dot(cells.ecm_unique_M,ecm_temp)
-
-        # find a set of indicies that map between points of ecm_verts_unique and voronoi grid
-        # these are updated and used to recalculate the maskM in world module
+        ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
 
         # set the voronoi points originally tagged to the ecm to the value of these new points
-        cells.voronoi_grid[cells.map_voronoi2ecm] = np.copy(ecm_new[:])
+        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
 
         # recreate ecm_verts_unique:
         cells.ecm_verts_unique = ecm_new[:]
+
+        # set the voronoi points originally tagged to the ecm to the value of these new points
+        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
+
 
         #----------------------------------
 
@@ -3562,45 +3557,22 @@ class Simulator(object):
 
         cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
 
-        #  redo cell centres:
-        cells.cell_index(p)
-
-        # redo other geometric properties:
-        cells.cellVerts(p)
-
-        #-----------------------------------
-        #
-        # #  redo cell centres:   # FIXME these aren't working properly. May want to revisit
-        # cells.cell_index_quick()
-        #
-        # # redo other geometric properties:
-        # cells.cellVerts_quick(p)
-
-        #----------------------------------
-
-        cells.short_cleanUp(p)
+        # deform cell world:
+        cells.deformWorld(p)
 
         if p.sim_ECM is True:
-
-            cells.short_environment(p)
             self.initDenv(cells,p)
 
-        cells.recalc_gj_vects(p)
-
-        # cells.memWork(p)  # FIXME may need to reimplement this if instability appears
-
-        # scale concentrations by new cell volumes:
-        for i, moles in enumerate(net_moles):
-
-            self.cc_cells[i][:] = moles/cells.cell_vol
+        # # scale concentrations by new cell volumes:
+        # for i, moles in enumerate(net_moles):
+        #
+        #     self.cc_cells[i][:] = moles/cells.cell_vol
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V_ecm(cells,p,t)
 
         # update the pressure and tension at the membrane after deformation:
         self.P_mem = F_mem_p/cells.mem_sa
         self.T_mem = F_mem_t/cells.mem_sa
-
 
         if p.plot_while_solving is True and t > 0:
 
@@ -4116,9 +4088,6 @@ def rk4(c,deltac,p):
 
 
     return c2
-
-
-
 
 
 #-----------------------------------------------------------------------------------------------------------------------
