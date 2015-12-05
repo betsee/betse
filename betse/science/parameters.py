@@ -891,6 +891,15 @@ class Parameters(object):
         self.z_P = -1
         self.z_M = -1
 
+        # molar mass of ions (kg/mol):
+        self.M_Na = 23e-3
+        self.M_K = 39e-3
+        self.M_Cl = 35e-3
+        self.M_Ca = 40e-3
+        self.M_H = 1e-3
+        self.M_P = 500e-3
+        self.M_M = 60e-3
+
         # fundamental constants
         self.F = 96485 # Faraday constant [J/V*mol]
         self.R = 8.314  # Gas constant [J/K*mol]
@@ -960,7 +969,9 @@ class Parameters(object):
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'P':self.z_P,'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
+
 
 
         elif self.ion_profile == 'basic_Ca':
@@ -997,6 +1008,7 @@ class Parameters(object):
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca, 'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca, 'P':self.z_P,'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca, 'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca, 'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','P':'proteins','M':'anion'}
 
         # default environmental and cytoplasmic initial values mammalian cells
@@ -1037,6 +1049,7 @@ class Parameters(object):
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_Cl,'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
          # default environmental and cytoplasm values invertebrate cells
@@ -1091,6 +1104,7 @@ class Parameters(object):
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass= {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_H,'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
         elif self.ion_profile == 'scratch':
@@ -1124,6 +1138,7 @@ class Parameters(object):
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Cl':self.Dm_Cl ,'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Cl':self.z_Cl,'P':self.z_P,'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Cl':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Cl':self.M_Cl,'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Cl':'chloride','P':'proteins','M':'anion'}
 
         # user-specified environmental and cytoplasm values (customized)
@@ -1178,6 +1193,8 @@ class Parameters(object):
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,
                 'M':self.z_M}
             self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,
+                'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_H,
                 'P':self.Do_P,'M':self.Do_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
                 'P':'proteins','M':'anion'}

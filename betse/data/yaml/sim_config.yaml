@@ -633,19 +633,19 @@ variable settings:
                             # only works for an ion profile with H+ ions (animal or invertebrate)
                             # options True or False (case sensitive)
 
-  gravity: True               # apply a global force of gravity acting in the -y direction?
+  gravity: False               # apply a global force of gravity acting in the -y direction?
 
   water viscocity: 1e-3      # viscocity of medium [Pa s]
 
-  membrane water conductivity: 1e-12   # membrane resistance to water flow (aquaporin fraction)
+  membrane water conductivity: 1e-15   # membrane resistance to water flow (aquaporin fraction) (1e-15 to 1e-17)
 
-  include osmotic pressure: False    # include osmotic pressure in any deformation and/or flows?
+  include osmotic pressure: False    # include osmotic pressure in deformation (excludes electrostatic pressure)?
 
-  include electrostatic pressure: False   # include electrostatic pressure in any deformation and/or flows?
+  include electrostatic pressure: False   # include electrostatic pressure in deformation (excludes osmotic pressure)?
 
   fixed cluster boundary: False   # are membranes of cells exterior to the cluster fixed (False0 or free to move?
 
-  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa]
+  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa] (1e3 to 1e5 Pa)
 
   channel charge: -1         # charge of membrane channels
 

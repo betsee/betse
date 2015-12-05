@@ -911,8 +911,6 @@ class Cells(object):
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
 
-        self.density = 1000*np.ones(len(self.cell_i))
-
     def short_cellVerts(self,p):
 
         if p.deform_osmo is True:

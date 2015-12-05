@@ -145,7 +145,7 @@ class Simulator(object):
         self.Dm_er = []                  # a list of endoplasmic reticulum membrane states
         self.movingIons = []            # moving ions indices
         self.ionlabel = {}              # dictionary to hold ion label names
-
+        self.molar_mass = []
 
 
         self.T = p.T                # set the base temperature for the simulation
@@ -231,6 +231,7 @@ class Simulator(object):
                     self.cc_cells.append(vars(self)[str_cells])
                     self.cc_env.append(vars(self)[str_env])
                     self.zs.append(p.ion_charge[name])
+                    self.molar_mass.append(p.molar_mass[name])
                     self.z_array.append(vars(self)[str_z])
                     self.Dm_cells.append(vars(self)[str_Dm])
                     self.D_free.append(p.free_diff[name])
@@ -306,6 +307,7 @@ class Simulator(object):
             self.cc_cells.append(self.cH_cells)
             self.cc_env.append(self.cH_env)
             self.zs.append(p.z_H)
+            self.molar_mass.append(p.M_H)
             self.z_array.append(self.zH)
             self.Dm_cells.append(DmH)
             self.D_gj.append(DgjH)
@@ -388,6 +390,7 @@ class Simulator(object):
         #
         self.z_array = np.asarray(self.z_array)
         self.D_gj = np.asarray(self.D_gj)
+        # self.molar_mass = np.asarray(self.molar_mass)
 
     def baseInit_ECM(self,cells,p):
 
@@ -434,6 +437,8 @@ class Simulator(object):
         self.fluxes_env_x = []
         self.fluxes_env_y = []
         self.I_env =np.zeros(len(cells.xypts))     # total current in environment
+
+        self.molar_mass = []
 
         # Electroosmosis Initialization:
 
@@ -527,6 +532,7 @@ class Simulator(object):
                     self.c_env_bound.append(p.env_concs[name])
 
                     self.zs.append(p.ion_charge[name])
+                    self.molar_mass.append(p.molar_mass[name])
                     self.z_array.append(vars(self)[str_z])
                     self.z_array_env.append(vars(self)[str_z2])
                     self.Dm_cells.append(vars(self)[str_Dm])
@@ -618,6 +624,7 @@ class Simulator(object):
             self.cc_env.append(self.cH_env)
 
             self.zs.append(p.z_H)
+            self.molar_mass.append(p.M_H)
             self.z_array.append(self.zH)
             self.z_array_env.append(self.zH2)
             self.Dm_cells.append(DmH)
@@ -682,6 +689,7 @@ class Simulator(object):
         self.D_env = np.asarray(self.D_env)
         self.D_free = np.asarray(self.D_free)
         self.D_gj = np.asarray(self.D_gj)
+        # self.molar_mass = np.asarray(self.molar_mass)
 
         self.fluxes_gj_x  = np.asarray(self.fluxes_gj_x)
         self.fluxes_gj_y  = np.asarray(self.fluxes_gj_y)
@@ -3333,10 +3341,12 @@ class Simulator(object):
 
         # determine net pressure in individual cells due to osmotic water flow:-----------------------
         if p.deform_osmo is True:
+            # print(self.molar_mass[0])
 
-            # FIXME: there may also be a net mass flux, and therefore a pressure, due to active and passive
-            # transport of ions across the membrane and through cell gjs: self.fluxes_mem, self.fluxes_gj_x/y
-            # this should be checked out, and modelled!
+            self.get_density(cells,p)
+            self.get_mass_flux(cells,p)
+
+            # FIXME: plot the mass flux calculated in get_mass_flux and also include gap junction fluxes!
 
             cell_vol_o = cells.cell_vol[:]
 
@@ -3351,13 +3361,13 @@ class Simulator(object):
             u_osmo = (P_osmo - self.P_mem)*p.aquaporins
 
             # # get the change in mass per membrane:
-            delta_mass_mem = u_osmo*p.dt*cells.mem_sa*cells.density[cells.mem_to_cells]
+            delta_mass_mem = u_osmo*p.dt*cells.mem_sa*self.density[cells.mem_to_cells]
 
             # get the total mass coming into each cell:
-            delta_mass = np.dot(cells.M_sum_mems,delta_mass_mem)
+            delta_mass = np.dot(cells.M_sum_mems,delta_mass_mem)  + self.delta_m_salts
 
             # original mass per cell:
-            mass_to = cells.density*cells.cell_vol
+            mass_to = self.density*cells.cell_vol
             # new mass per cell:
             mass_t1 = mass_to + delta_mass
 
@@ -3365,7 +3375,7 @@ class Simulator(object):
             density_t1 = (mass_t1/cells.cell_vol)
 
             # calculate the change in pressure using a fluid dynamics state equation:
-            delta_P = ((density_t1 - cells.density)*(p.R*p.T))/18e-3
+            delta_P = ((density_t1 - self.density)*(p.R*p.T))/18e-3
 
             P_mem_b = delta_P[cells.mem_to_cells] + self.P_mem
 
@@ -3423,17 +3433,17 @@ class Simulator(object):
             P_net_mem = self.P_mem + P_react_mem
             self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
-            self.T_mem = self.P_mem[:] # assume a tension force develops which is equal and opposite to the applied load
 
         if p.deform_osmo is True:
 
-            sx = self.P_mem*cells.mem_vects_flat[:,2]
-            sy = self.P_mem*cells.mem_vects_flat[:,3]
+            sx = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,2]
+            sy = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,3]
 
             P_cll = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
             F_net = P_cll*cells.cell_sa
 
-
+        # update the tension force:
+        self.T_mem = self.P_mem[:] # assume a tension force develops which is equal and opposite to the applied load
 
         #--------------------------------------------------------------------------------------------
         # calculate the strain with respect to the membrane midpoints:
@@ -3501,12 +3511,11 @@ class Simulator(object):
             ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
             cent = ecm_nest.mean(axis=0)     # calculate the centre point
             angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
-                    #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
             sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
             sorted_region_b = sorted_region.tolist()
 
-            # cells.ecm_verts.append(sorted_region_b)
-            cells.ecm_verts.append(ecm_nest)
+            cells.ecm_verts.append(sorted_region_b)
+            # cells.ecm_verts.append(ecm_nest)
 
         cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
 
@@ -3533,10 +3542,9 @@ class Simulator(object):
 
 
             #  if we assume the change in volume has now happened, what is the change in density?
-            cells.density = (mass_t1/cells.cell_vol)
+            self.density = self.get_density(cells,p)
 
-
-            # # update the pressure at the membrane:
+            # # update the pressure at the membrane after expansion:
             P_cll = F_net/cells.cell_sa
             self.P_mem = P_cll[cells.mem_to_cells]
 
@@ -3547,6 +3555,37 @@ class Simulator(object):
         if p.plot_while_solving is True and t > 0:
 
             self.checkPlot.resetData(cells,self,p)
+
+    def get_density(self,cells,p):
+
+        mass_water = 1000*cells.cell_vol
+
+        mass_sum = np.zeros(len(cells.cell_i))
+
+        for i, concs in enumerate(self.cc_cells):
+
+            MM = np.float(self.molar_mass[i])
+            mass_sum = MM*concs*cells.cell_vol + mass_sum
+
+        total_mass = mass_sum + mass_water
+        self.density = total_mass/cells.cell_vol
+
+    def get_mass_flux(self,cells,p):
+
+         # calculate mass flux across cell membranes:
+        self.mass_flux = np.zeros(len(cells.mem_i))
+
+        for flux_array, mm in zip(self.fluxes_mem,self.molar_mass):
+
+            m_flx = flux_array*mm
+
+            self.mass_flux = self.mass_flux + m_flx
+
+        # total mass change in cell
+        mass_change = self.mass_flux*p.dt*cells.mem_sa
+        # sum the change over the membranes to get the total mass change of salts:
+        self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
+
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
