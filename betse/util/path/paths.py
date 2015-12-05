@@ -70,6 +70,22 @@ def is_path(pathname: str) -> bool:
     # common usage patterns and should *NOT* be discriminated against here.
     return path.lexists(pathname)
 
+def is_pathname(pathname: str) -> bool:
+    '''
+    `True` if the passed pathname is a valid pathname for the filesystem on
+    which that pathname either does or would hypothetically reside; `False`
+    otherwise.
+    '''
+    assert types.is_str_nonempty(pathname),\
+        types.assert_nonstr_nonempty(pathname, 'Pathname')
+
+    # The following call only raises exceptions when passed invalid pathnames.
+    try:
+        path.exists(pathname)
+    except Exception:
+        return False
+    return True
+
 # ....................{ TESTERS                            }....................
 def is_absolute(pathname: str) -> bool:
     '''

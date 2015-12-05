@@ -1003,13 +1003,11 @@ def removeCells(
 
     loggers.log_info('Cutting hole in cell cluster! Removing world...')
 
-    # Indices of all cells to be removed.
-    target_inds_cell = target_method.get_removal_cell_indices(cells)
+    # Perform removal logic specific to the current tissue picker.
+    target_method.remove_cells(cells)
 
-    # Update the cluster mask by subtracting the deleted region.
-    removal_cluster_mask = target_method.get_removal_cluster_mask(cells)
-    if removal_cluster_mask is not None:
-        cells.cluster_mask = removal_cluster_mask
+    # Indices of all cells to be removed, ignoring electromagnetism.
+    target_inds_cell = target_method.get_cell_indices(cells, p, ignoreECM=True)
 
     # get the corresponding flags to membrane entities
     target_inds_mem = cells.cell_to_mems[target_inds_cell]

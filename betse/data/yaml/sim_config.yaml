@@ -236,7 +236,7 @@ world options:
 tissue profile definition:
     # Global geometry mask to which all tissue profile bitmaps specified below
     # will be clipped.
-    geometry clipping:
+    clipping:
         # Bitmap whose colored pixel area defines this mask.
         bitmap:
             # Absolute or relative bitmap path. If relative (i.e., *NOT*
@@ -1086,4 +1086,4 @@ internal parameters:
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.4"
+version: "0.4.0"

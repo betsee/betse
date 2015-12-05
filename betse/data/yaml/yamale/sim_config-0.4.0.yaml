@@ -1,0 +1,27 @@
+%YAML 1.1
+---
+# Yamale-based schema validating YAML-formatted BETSE simulation configuration
+# files conforming to a specific BETSE version.
+#
+# For simplicity, the version validated by this schema is embedded directly in
+# the basename of this file (e.g., version 0.4.0 for the basename
+# "sim_config-0.4.0.yaml").
+#
+# See Also
+# ---------------------------------
+# https://github.com/23andMe/Yamale/blob/master/README.md
+#     Yamale documentation.
+
+# Subdocuments
+# ---------------------------------
+# Each of the following subdocuments (i.e., "---"-prefixed blocks of YAML markup)
+# is a Yamale include intended to be included in the above main document via the
+# Yamale-specific include() validator. Each include validates a type of block of
+# YAML markup repeated throughout the above main document (e.g., bitmaps).
+#
+# Bitmap
+# ---------------------------------
+# External image file, usually intended for use as a bitmap mask.
+---
+bitmap:
+  file:

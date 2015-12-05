@@ -156,14 +156,14 @@ DEPENDENCIES_RUNTIME = [
 
     # Dependencies directly required by BETSE.
     # 'PySide >= 1.2.0',
-    # 'yamale >= 1.5.3',
     'Matplotlib >= 1.3.0',
     'Numpy >= 1.8.0',
     'SciPy >= 0.12.0',
     'PyYAML >= 3.10',
+    'Yamale >= 1.5.0',
 
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
-    # missing dependencies in a human-readable manner, such dependencies are
+    # missing dependencies in a human-readable manner, these dependencies are
     # explicitly listed as well.
     'six >= 1.5.2',      # required by everything that should not be
     'Pillow >= 2.3.0',   # required by the "scipy.misc.imread" module

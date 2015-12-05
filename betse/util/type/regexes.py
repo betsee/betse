@@ -4,14 +4,14 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level regular expression (regex) facilities.
+Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionRegex
 import re
 
-# ....................{ CONSTANTS ~ python                 }....................
+# ....................{ REGEXES ~ python                   }....................
 PYTHON_IDENTIFIER_CHAR_CLASS = r'a-zA-Z0-9_'
 '''
 Character class (excluding `[` and `]` delimiters) matching any character of a
@@ -22,7 +22,7 @@ PYTHON_IDENTIFIER_UNQUALIFIED_REGEX_RAW = r'[{}]+'.format(
     PYTHON_IDENTIFIER_CHAR_CLASS)
 '''
 Uncompiled regular expression matching an **unqualified Python identifier**
-(i.e., class, function, module, or variable name *not* prefixed by a package or
+(i.e., class, function, module, or variable name _not_ prefixed by a package or
 module name).
 '''
 

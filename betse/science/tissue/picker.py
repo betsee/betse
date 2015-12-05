@@ -10,8 +10,7 @@ of the total cell population to the corresponding tissue profile.
 # ....................{ IMPORTS                            }....................
 import random
 from abc import ABCMeta, abstractmethod
-from betse.exceptions import (
-    BetseExceptionMethodUnimplemented, BetseExceptionParameters)
+from betse.exceptions import BetseExceptionParameters
 from betse.science import toolbox
 from betse.util.path import files, paths
 from betse.util.type import types
@@ -26,6 +25,7 @@ class TissuePicker(object, metaclass = ABCMeta):
     spatial location) to the corresponding tissue profile.
     '''
 
+    # ..................{ ABSTRACT                           }..................
     @abstractmethod
     def get_cell_indices(
         self, cells, p, ignoreECM: bool = False):
@@ -49,44 +49,20 @@ class TissuePicker(object, metaclass = ABCMeta):
         '''
         pass
 
-
-    @abstractmethod
-    def get_removal_cell_indices(self, cells):
+    # ..................{ CONCRETE                           }..................
+    def remove_cells(self, cells) -> None:
         '''
-        Get a Numpy array of the indices of all cells selected by this picker,
-        suitable for permanently removing these cells from the cluster.
+        Permanently remove all cells selected by this picker in a manner
+        specific to this picker.
+
+        By default, this method is a noop. This method is called by
+        `betse.science.tissue.handler.removeCells()`, the function performing
+        general-purpose cell removal, to perform picker-specific cell removal.
 
         Parameters
         ---------------------------------
         cells : Cells
             Instance of the `Cells` class.
-
-        Returns
-        ---------------------------------
-        ndarray
-            See method synopsis above.
-        '''
-        pass
-
-
-    #FIXME: No idea what a "cluster mask" specifically is. Improve docstring.
-    #You'll thank me in the pancake-laden morning.
-    @abstractmethod
-    def get_removal_cluster_mask(self, cells):
-        '''
-        Get a ??? excluding all cells selected by this picker, intended to
-        replace the cluster mask when permanently removing these cells from the
-        cluster.
-
-        Parameters
-        ---------------------------------
-        cells : Cells
-            Instance of the `Cells` class.
-
-        Returns
-        ---------------------------------
-        ndarray
-            See method synopsis above.
         '''
         pass
 
@@ -114,15 +90,6 @@ class TissuePickerAll(TissuePicker):
             target_inds, _, _ = toolbox.flatten(target_inds)
 
         return target_inds
-
-
-    def get_removal_cell_indices(self, cells):
-        return cells.cell_i
-
-    #FIXME: Since I have no idea how to return a cluster mask encompassing the
-    #entire cell cluster, this class does *NOT* currently support removal.
-    def get_removal_cluster_mask(self, cells):
-        raise BetseExceptionMethodUnimplemented()
 
 # ....................{ BITMAP                             }....................
 class TissuePickerBitmap(TissuePicker):
@@ -169,7 +136,7 @@ class TissuePickerBitmap(TissuePicker):
         # Persist this path.
         self.filename = filename
 
-
+    # ..................{ PUBLIC                             }..................
     def get_cell_indices(
         self, cells, p, ignoreECM: bool = False):
         assert types.is_cells(cells),  types.assert_not_cells(cells)
@@ -188,13 +155,22 @@ class TissuePickerBitmap(TissuePicker):
         return target_inds
 
 
-    def get_removal_cell_indices(self, cells):
-        return self._get_bitmapper(cells).good_inds
+    def remove_cells(self, cells) -> None:
+        '''
+        Subtract this bitmap's clipping mask from the global cluster mask.
 
-    def get_removal_cluster_mask(self, cells):
-        return cells.cluster_mask - self._get_bitmapper(cells).clipping_matrix
+        Doing so finalizes the removal of all cells defined by this bitmap.
 
-    # ..................{ BITMAP ~ private                   }..................
+        Parameters
+        ---------------------------------
+        cells : Cells
+            Instance of the `Cells` class.
+        '''
+        assert types.is_cells(cells),  types.assert_not_cells(cells)
+        bitmap_mask = self._get_bitmapper(cells).clipping_matrix
+        cells.cluster_mask = cells.cluster_mask - bitmap_mask
+
+    # ..................{ PRIVATE                            }..................
     def _get_bitmapper(self, cells):
         '''
         Get an instance of the `BitMapper` object providing the indices of all
@@ -260,15 +236,6 @@ class TissuePickerIndices(TissuePicker):
 
         return target_inds
 
-
-    def get_removal_cell_indices(self, cells):
-        return self.indices
-
-    #FIXME: Unconvinced this is in any way right. Shouldn't we return a
-    #clipping mask excluding all cells with the listed indices? *shrugs alot*
-    def get_removal_cluster_mask(self, cells):
-        return None
-
 # ....................{ RANDOM                             }....................
 class TissuePickerRandom(TissuePicker):
     '''
@@ -325,11 +292,3 @@ class TissuePickerRandom(TissuePicker):
             target_inds,_,_ = toolbox.flatten(target_inds)
 
         return target_inds
-
-
-    # This class does *NOT* currently support removal.
-    def get_removal_cell_indices(self, cells):
-        raise BetseExceptionMethodUnimplemented()
-
-    def get_removal_cluster_mask(self, cells):
-        raise BetseExceptionMethodUnimplemented()

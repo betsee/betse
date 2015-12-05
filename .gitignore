@@ -53,12 +53,15 @@ __pycache__/
 # Blacklist all files and subdirectories in such directory by default.
 /betse/data/yaml/*
 
-# Recursively whitelist all YAML files under such directory.
-!/betse/data/yaml/**/*.yaml
-
 # Recursively whitelist all input geometry files and subdirectories.
 !/betse/data/yaml/geo/
 !/betse/data/yaml/geo/**/*
+
+# Recursively whitelist all Yamale-based YAML schemas.
+!/betse/data/yaml/yamale/
+
+# Recursively whitelist all YAML files under such directory.
+!/betse/data/yaml/**/*.yaml
 
 # ....................{ FILES ~ general                    }....................
 # Ignore all BETSE-specific output files.

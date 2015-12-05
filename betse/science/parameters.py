@@ -346,7 +346,7 @@ class Parameters(object):
         self.default_tissue_name = \
             self.config['variable settings']['default tissue name']
         self.clipping_bitmap_matcher = TissuePickerBitmap(
-            tpd['geometry clipping']['bitmap']['file'], self.config_dirname)
+            tpd['clipping']['bitmap']['file'], self.config_dirname)
         self.tissue_profiles = OrderedDict()
         self.boundary_profiles = OrderedDict()
         self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
