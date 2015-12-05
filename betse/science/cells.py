@@ -627,7 +627,8 @@ class Cells(object):
 
         self.M_sum_mems_inv = np.linalg.pinv(self.M_sum_mems)  # inverse of a sum over membranes
 
-        self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
+        # self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
+        self.mem_distance = 2*p.rc
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
@@ -711,6 +712,7 @@ class Cells(object):
 
             ecm_mids = list(ecm_mids)
             self.ecm_mids = np.asarray(ecm_mids)
+
             #------------------------------------
 
             # define conversion between ecm midpoints and the membrane midpoints
@@ -752,6 +754,26 @@ class Cells(object):
                 ey.append(ind_pair[1])
 
             self.ecm_to_mem_mids = np.column_stack((ex,ey))
+
+            # Create a matrix that will sum from the membranes to the ecm midpoint:
+
+            self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids),len(self.mem_i)))
+
+            for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
+
+                if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
+
+                    ind = ind_pair[0]
+                    self.M_sum_mem_to_ecm[i_ecm,ind] = 1
+
+                else:
+                    ind1 = ind_pair[0]
+                    ind2 = ind_pair[1]
+                    self.M_sum_mem_to_ecm[i_ecm,ind1] = 1
+                    self.M_sum_mem_to_ecm[i_ecm,ind2] = 1
+
+
+
 
             #------------------------------------
             # calculate segments from cell centre to ecm midpoints (chord_mag):
@@ -828,7 +850,7 @@ class Cells(object):
                 # get the set of membrane indices for the cell
                 mem_inds = self.cell_to_mems[cell_i]
 
-                diag_multi = self.num_mems[cell_i]  # number of nearest neighbours
+                diag_multi = self.num_mems[cell_i]/self.cell_vol[cell_i]  # number of nearest neighbours
 
                 # diagonal element will be the negative of the number of neighbours:
                 self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i])
@@ -846,14 +868,14 @@ class Cells(object):
 
                         # find out which cell the partner belongs to:
                         cell_j = self.mem_to_cells[mem_partners[1]]
-                        self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+                        self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
                         # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
 
 
                     elif mem_partners[1] == mem_i:
 
                         cell_j = self.mem_to_cells[mem_partners[0]]
-                        self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+                        self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
                         # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
 
 
@@ -973,87 +995,68 @@ class Cells(object):
         self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
-        # FIXME this slows things down a lot in the deformation calculation, but appears to be necessary...
-        # is there a quicker way to do this???
+        # # FIXME this slows things down a lot in the deformation calculation, but appears to be necessary...
+        # # is there a quicker way to do this???
+        #
+        # sc = (p.rc/2.5)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
+        # memTree = sps.KDTree(self.mem_mids_flat)
+        #
+        # mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
+        # mem_nn = np.zeros((len(self.mem_i),2),dtype=np.int16)
+        # mem_bound = []
+        # self.mem_tx = np.zeros(len(self.mem_i))
+        # self.mem_ty = np.zeros(len(self.mem_i))
+        #
+        # for i, ind_pair in enumerate(mem_nn_o):
+        #
+        #     if len(ind_pair) == 1:
+        #
+        #         mem_bound.append(*ind_pair)
+        #         mem_nn[i,:] = [i, ind_pair[0]]
+        #
+        #
+        #     elif len(ind_pair) == 2:
+        #
+        #         mem_nn[i,:] = ind_pair
+        #
+        #         ta = (self.mem_mids_flat[ind_pair[1]] - self.mem_mids_flat[ind_pair[0]])
+        #         tang = ta/np.linalg.norm(ta)
+        #         self.mem_tx[i] = tang[0]
+        #         self.mem_ty[i] = tang[1]
+        #
+        #     elif len(ind_pair) > 2:
+        #         i_n = [self.mem_vects_flat[i,2],self.mem_vects_flat[i,3]]
+        #
+        #         for j in ind_pair:
+        #             a = [self.mem_vects_flat[j,2],self.mem_vects_flat[j,3]]
+        #             ia = round(np.dot(i_n,a),1)
+        #
+        #             if ia == -1.0:
+        #
+        #                 mem_nn[i,:] = [i,j]
+        #
+        #                 ta = (self.mem_mids_flat[j] - self.mem_mids_flat[i])
+        #                 tang = ta/np.linalg.norm(ta)
+        #                 self.mem_tx[i] = tang[0]
+        #                 self.mem_ty[i] = tang[1]
+        #
+        # self.mem_nn = np.asarray(mem_nn)
+        #
+        # # Tag membranes and cells on the outer boundary of the cell cluster---------------------------------------------
+        # self.bflags_mems = np.asarray(mem_bound)
+        #
+        #  # get the boundary cells associated with these membranes:
+        # self.bflags_cells = []
+        #
+        # for mem_i in self.bflags_mems:
+        #
+        #     cell_i = self.mem_to_cells[mem_i]
+        #
+        #     self.bflags_cells.append(cell_i)
+        #
+        # self.bflags_cells = np.asarray(self.bflags_cells)
 
-        sc = (p.rc/2.5)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
-        memTree = sps.KDTree(self.mem_mids_flat)
-
-        mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
-        mem_nn = np.zeros((len(self.mem_i),2),dtype=np.int16)
-        mem_bound = []
-        self.mem_tx = np.zeros(len(self.mem_i))
-        self.mem_ty = np.zeros(len(self.mem_i))
-
-        for i, ind_pair in enumerate(mem_nn_o):
-
-            if len(ind_pair) == 1:
-
-                mem_bound.append(*ind_pair)
-                mem_nn[i,:] = [i, ind_pair[0]]
-
-
-            elif len(ind_pair) == 2:
-
-                mem_nn[i,:] = ind_pair
-
-                ta = (self.mem_mids_flat[ind_pair[1]] - self.mem_mids_flat[ind_pair[0]])
-                tang = ta/np.linalg.norm(ta)
-                self.mem_tx[i] = tang[0]
-                self.mem_ty[i] = tang[1]
-
-            elif len(ind_pair) > 2:
-                i_n = [self.mem_vects_flat[i,2],self.mem_vects_flat[i,3]]
-
-                for j in ind_pair:
-                    a = [self.mem_vects_flat[j,2],self.mem_vects_flat[j,3]]
-                    ia = round(np.dot(i_n,a),1)
-
-                    if ia == -1.0:
-
-                        mem_nn[i,:] = [i,j]
-
-                        ta = (self.mem_mids_flat[j] - self.mem_mids_flat[i])
-                        tang = ta/np.linalg.norm(ta)
-                        self.mem_tx[i] = tang[0]
-                        self.mem_ty[i] = tang[1]
-
-        self.mem_nn = np.asarray(mem_nn)
-
-        # Tag membranes and cells on the outer boundary of the cell cluster---------------------------------------------
-        self.bflags_mems = np.asarray(mem_bound)
-
-         # get the boundary cells associated with these membranes:
-        self.bflags_cells = []
-
-        for mem_i in self.bflags_mems:
-
-            cell_i = self.mem_to_cells[mem_i]
-
-            self.bflags_cells.append(cell_i)
-
-        self.bflags_cells = np.asarray(self.bflags_cells)
-
-        # Data structures specific for deformation option------------------------------------------------------------
-
-        # calculate midpoints of each ecm (voronoi cell) segment:
-        ecm_mids = set()
-
-        for verts in self.ecm_verts:
-            for i in range(0,len(verts)):
-                        pt1 = verts[i-1]
-                        pt2 = verts[i]
-                        pt1 = np.asarray(pt1)
-                        pt2 = np.asarray(pt2)
-                        mid = (pt1 + pt2)/2       # midpoint calculation
-                        mx = mid[0]
-                        my = mid[1]
-                        ecm_mids.add((mx,my))
-
-        ecm_mids = list(ecm_mids)
-        self.ecm_mids = np.asarray(ecm_mids)
-
-        #------------------------------------
+        # #------------------------------------
         # calculate segments from cell centre to ecm midpoints (chord_mag):
         chord_mag = []
 

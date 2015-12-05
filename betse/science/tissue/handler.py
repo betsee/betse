@@ -584,6 +584,7 @@ class TissueHandler(object):
             removeCells(
                 target_method, sim, cells, p,
                 simMod=True, dangling_gj=self.dangling_gj)
+            loggers.log_info("Cutting event successful! Resuming simulation...")
 
             # redo main data length variable for this dynamics module with updated world:
             if p.sim_ECM is True:
