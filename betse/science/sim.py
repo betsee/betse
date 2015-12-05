@@ -3322,6 +3322,8 @@ class Simulator(object):
 
         """
 
+        # FIXME osmosis option looks the most promising, but needs to be stabilized with an itterative volume calc...
+
 
         # first determine the trans-membrane pressure due to electrostatics, if required:
         if p.deform_electro is True:
@@ -3334,6 +3336,14 @@ class Simulator(object):
 
         # determine net pressure in individual cells due to osmotic water flow:-----------------------
         if p.deform_osmo is True:
+
+            cell_vol_o = cells.cell_vol[:]
+
+            # moles = np.zeros(self.cc_cells.shape)
+            # # get total moles of each
+            # for i, concs in enumerate(self.cc_cells):
+            #
+            #     moles[i,:] = concs*cells.cell_vol
 
             # look at fluid flow and pressure resulting from osmotic flows:
             # the first thing is to calculate the laplacian of the osmotic pressure gradient
@@ -3349,20 +3359,26 @@ class Simulator(object):
             # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
             u_osmo = -(P_osmo - self.P_mem)*(p.aquaporins/(p.mu_water*p.tm))
 
-            # # get the change in volume:
+            # # # get the change in volume:
             # delta_vol_mem = u_osmo*p.dt*cells.mem_sa
             #
+            # #
             # delta_vol = np.dot(cells.M_sum_mems,delta_vol_mem)/cells.num_mems
+            #
+            # print(delta_vol)
+            # print('-------')
+            # print(cells.cell_vol)
+            # print('******')
             #
             # cells.cell_vol = cells.cell_vol + delta_vol
             #
             # print((delta_vol/cells.cell_vol)*100)
 
             # calculate the divergence of the flow by summing over membranes:
-            divP_osmo = np.dot(cells.M_sum_mems,u_osmo)
+            divP_osmo = np.dot(cells.M_sum_mems,u_osmo)   # FIXME I don't think this is being calculated properly...
 
             # Next get the reaction force resulting from osmotic water flow across the membrane:
-            F_mem = np.dot(cells.M_sum_mems_inv,-divP_osmo)
+            F_mem = np.dot(cells.M_sum_mems_inv,-divP_osmo)  # FIXME I don't think this is right either...
 
             P_mem_b  = self.P_mem + F_mem*p.tm # (the resulting pressure will deform the cell if it's strong enough)
 
@@ -3375,7 +3391,13 @@ class Simulator(object):
         #-----------------------------------------
         # calculate a divergence-free material flow field
 
-        P_mem_net = self.P_mem - self.T_mem
+        if p.deform_osmo is True:
+
+            P_mem_net = self.P_mem
+
+        elif p.deform_electro is True:
+
+            P_mem_net = self.P_mem - self.T_mem
 
         F = - (P_mem_net[cells.mem_nn[:,1]] -
                P_mem_net[cells.mem_nn[:,0]])/cells.mem_distance   # driving force # FIXME change cells.mem_dist to actual nn distance between cell centres
@@ -3500,6 +3522,11 @@ class Simulator(object):
 
         if p.sim_ECM is True:
             self.initDenv(cells,p)
+
+
+        if p.deform_osmo is True:
+
+            self.cc_cells = self.cc_cells*(cell_vol_o/cells.cell_vol)
 
         if p.plot_while_solving is True and t > 0:
 
