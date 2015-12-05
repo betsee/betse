@@ -3322,9 +3322,6 @@ class Simulator(object):
 
         """
 
-        # FIXME osmosis option looks the most promising, but needs to be stabilized with an itterative volume calc...
-
-
         # first determine the trans-membrane pressure due to electrostatics, if required:
         if p.deform_electro is True:
             P_mem_a = self.P_electro
@@ -3337,50 +3334,40 @@ class Simulator(object):
         # determine net pressure in individual cells due to osmotic water flow:-----------------------
         if p.deform_osmo is True:
 
+            # FIXME: there may also be a net mass flux, and therefore a pressure, due to active and passive
+            # transport of ions across the membrane and through cell gjs: self.fluxes_mem, self.fluxes_gj_x/y
+            # this should be checked out, and modelled!
+
             cell_vol_o = cells.cell_vol[:]
 
-            # moles = np.zeros(self.cc_cells.shape)
-            # # get total moles of each
-            # for i, concs in enumerate(self.cc_cells):
-            #
-            #     moles[i,:] = concs*cells.cell_vol
-
             # look at fluid flow and pressure resulting from osmotic flows:
-            # the first thing is to calculate the laplacian of the osmotic pressure gradient
-                # across the membrane, scaled by the conductivity of the membrane
 
-            P_osmo = self.osmo_P_delta[cells.mem_to_cells]  # map osmotic pressure to each cell membrane
+            # map osmotic pressure to each cell membrane:
+            P_osmo = self.osmo_P_delta[cells.mem_to_cells]
 
-            # # average the pressure at the membrane to the cell centres:
-            # self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
-
-            # calculate the transmembrane flow of water due to osmotic pressure. This is negative as
-            # high osmotic pressure leads to water flow into the cell. Existing pressure in the cell
+            # Calculate the transmembrane flow of water due to osmotic pressure.
+            # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
             # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
-            u_osmo = -(P_osmo - self.P_mem)*(p.aquaporins/(p.mu_water*p.tm))
+            u_osmo = (P_osmo - self.P_mem)*p.aquaporins
 
-            # # # get the change in volume:
-            # delta_vol_mem = u_osmo*p.dt*cells.mem_sa
-            #
-            # #
-            # delta_vol = np.dot(cells.M_sum_mems,delta_vol_mem)/cells.num_mems
-            #
-            # print(delta_vol)
-            # print('-------')
-            # print(cells.cell_vol)
-            # print('******')
-            #
-            # cells.cell_vol = cells.cell_vol + delta_vol
-            #
-            # print((delta_vol/cells.cell_vol)*100)
+            # # get the change in mass per membrane:
+            delta_mass_mem = u_osmo*p.dt*cells.mem_sa*cells.density[cells.mem_to_cells]
 
-            # calculate the divergence of the flow by summing over membranes:
-            divP_osmo = np.dot(cells.M_sum_mems,u_osmo)   # FIXME I don't think this is being calculated properly...
+            # get the total mass coming into each cell:
+            delta_mass = np.dot(cells.M_sum_mems,delta_mass_mem)
 
-            # Next get the reaction force resulting from osmotic water flow across the membrane:
-            F_mem = np.dot(cells.M_sum_mems_inv,-divP_osmo)  # FIXME I don't think this is right either...
+            # original mass per cell:
+            mass_to = cells.density*cells.cell_vol
+            # new mass per cell:
+            mass_t1 = mass_to + delta_mass
 
-            P_mem_b  = self.P_mem + F_mem*p.tm # (the resulting pressure will deform the cell if it's strong enough)
+            # if we assume the change in volume has not happened yet, what is the increase in density?
+            density_t1 = (mass_t1/cells.cell_vol)
+
+            # calculate the change in pressure using a fluid dynamics state equation:
+            delta_P = ((density_t1 - cells.density)*(p.R*p.T))/18e-3
+
+            P_mem_b = delta_P[cells.mem_to_cells] + self.P_mem
 
         else:
             P_mem_b = np.zeros(len(cells.mem_i))
@@ -3389,55 +3376,64 @@ class Simulator(object):
         self.P_mem = P_mem_a + P_mem_b
 
         #-----------------------------------------
-        # calculate a divergence-free material flow field
 
-        if p.deform_osmo is True:
+        if p.deform_electro is True:
+
+            # calculate a divergence-free material flow field
 
             P_mem_net = self.P_mem
 
-        elif p.deform_electro is True:
+            F = - (P_mem_net[cells.mem_nn[:,1]] -
+                   P_mem_net[cells.mem_nn[:,0]])/cells.mem_distance   # driving force # FIXME change cells.mem_dist to actual nn distance between cell centres
 
-            P_mem_net = self.P_mem - self.T_mem
+            # components of the driving force field:
+            Fx = F*cells.mem_tx
+            Fy = F*cells.mem_ty
 
-        F = - (P_mem_net[cells.mem_nn[:,1]] -
-               P_mem_net[cells.mem_nn[:,0]])/cells.mem_distance   # driving force # FIXME change cells.mem_dist to actual nn distance between cell centres
+            # divergence of the driving force field:
+            divF_x = np.dot(cells.M_sum_mems,Fx*cells.mem_sa*cells.mem_vects_flat[:,2])*(1/cells.cell_vol)
+            divF_y = np.dot(cells.M_sum_mems,Fy*cells.mem_sa*cells.mem_vects_flat[:,3])*(1/cells.cell_vol)
 
-        # components of the driving force field:
-        Fx = F*cells.mem_tx
-        Fy = F*cells.mem_ty
+            divF = divF_x + divF_y
 
-        # divergence of the driving force field:
-        divF_x = np.dot(cells.M_sum_mems,Fx*cells.mem_sa*cells.mem_vects_flat[:,2])*(1/cells.cell_vol)
-        divF_y = np.dot(cells.M_sum_mems,Fy*cells.mem_sa*cells.mem_vects_flat[:,3])*(1/cells.cell_vol)
+            # reaction pressure:
+            P_react = cells.num_mems*np.dot(cells.mem_LapM_inv,divF)
 
-        divF = divF_x + divF_y
+            P_react_mem = P_react[cells.mem_to_cells]
 
-        # reaction pressure:
-        P_react = cells.num_mems*np.dot(cells.mem_LapM_inv,divF)
+            # reaction force field:
+            gradP_react = -(P_react_mem[cells.mem_nn[:,1]] - P_react_mem[cells.mem_nn[:,0]])/cells.mem_distance
 
-        P_react_mem = P_react[cells.mem_to_cells]
+            gPx = gradP_react*cells.mem_tx
+            gPy = gradP_react*cells.mem_ty
 
-        # reaction force field:
-        gradP_react = -(P_react_mem[cells.mem_nn[:,1]] - P_react_mem[cells.mem_nn[:,0]])/cells.mem_distance
+            # net body force field:
+            fx_o = Fx + gPx
+            fy_o = Fy + gPy
 
-        gPx = gradP_react*cells.mem_tx
-        gPy = gradP_react*cells.mem_ty
+            # average the force field to cell centres, multiply by volume to get total force:
+            fx = (np.dot(cells.M_sum_mems, fx_o)/cells.num_mems)*cells.cell_vol
+            fy = (np.dot(cells.M_sum_mems, fy_o)/cells.num_mems)*cells.cell_vol
 
-        # net body force field:
-        fx_o = Fx + gPx
-        fy_o = Fy + gPy
+            # calculate the stress at the membrane by dividing by membrane surface area:
+            sx = fx[cells.mem_to_cells]/cells.mem_sa
+            sy = fy[cells.mem_to_cells]/cells.mem_sa
 
-        # average the force field to cell centres, multiply by volume to get total force:
-        fx = (np.dot(cells.M_sum_mems, fx_o)/cells.num_mems)*cells.cell_vol
-        fy = (np.dot(cells.M_sum_mems, fy_o)/cells.num_mems)*cells.cell_vol
+            # Calculate net pressure
+            P_net_mem = self.P_mem + P_react_mem
+            self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
-        # calculate the stress at the membrane by dividing by membrane surface area:
-        sx = fx[cells.mem_to_cells]/cells.mem_sa
-        sy = fy[cells.mem_to_cells]/cells.mem_sa
+            self.T_mem = self.P_mem[:] # assume a tension force develops which is equal and opposite to the applied load
 
-        # Calculate net pressure
-        P_net_mem = self.P_mem + P_react_mem
-        self.P_cells = np.dot(cells.M_sum_mems,P_net_mem)/cells.num_mems
+        if p.deform_osmo is True:
+
+            sx = self.P_mem*cells.mem_vects_flat[:,2]
+            sy = self.P_mem*cells.mem_vects_flat[:,3]
+
+            P_cll = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
+            F_net = P_cll*cells.cell_sa
+
+
 
         #--------------------------------------------------------------------------------------------
         # calculate the strain with respect to the membrane midpoints:
@@ -3448,6 +3444,7 @@ class Simulator(object):
 
         eta_x = (1/Y)*(sx)
         eta_y = (1/Y)*(sy)
+
 
         if p.fixed_cluster_bound is True:  # if the outer boundary of the cell cluster is prevented from deforming
 
@@ -3462,10 +3459,6 @@ class Simulator(object):
         # calculate the displacement gradient field:
         d_x = eta_ecm_x*cells.chord_mag
         d_y = eta_ecm_y*cells.chord_mag
-
-        #-------------------------------------------------------------
-
-        self.T_mem = self.P_mem[:] # assume a tension force develops which is equal and opposite to the applied load
 
         #----------------------------------------------------------
         # Deform key structures:
@@ -3524,9 +3517,32 @@ class Simulator(object):
             self.initDenv(cells,p)
 
 
+        # if p.deform_osmo is True:
+        # #
+        # #     size_eta_mem = eta_x*cells.mem_vects_flat[:,2] + eta_y*cells.mem_vects_flat[:,3]
+        # #     eta_cell = np.dot(cells.M_sum_mems,size_eta_mem)/cells.num_mems
+        # #     cells.cell_vol = cells.cell_vol*(1+eta_cell)  # increase in cell vol
+        #     self.cc_cells = self.cc_cells*(cell_vol_o/cells.cell_vol)
+
+
         if p.deform_osmo is True:
 
+            # with osmosis, we assume cells can deform under the strain. Therefore, update concentrations
+            # with new volumes:
             self.cc_cells = self.cc_cells*(cell_vol_o/cells.cell_vol)
+
+
+            #  if we assume the change in volume has now happened, what is the change in density?
+            cells.density = (mass_t1/cells.cell_vol)
+
+
+            # # update the pressure at the membrane:
+            P_cll = F_net/cells.cell_sa
+            self.P_mem = P_cll[cells.mem_to_cells]
+
+            self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
+
+
 
         if p.plot_while_solving is True and t > 0:
 

@@ -911,6 +911,8 @@ class Cells(object):
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
 
+        self.density = 1000*np.ones(len(self.cell_i))
+
     def short_cellVerts(self,p):
 
         if p.deform_osmo is True:
@@ -945,7 +947,8 @@ class Cells(object):
             if p.deform_osmo is True:
                 # First calculate individual cell volumes from cell vertices:
                 poly = [x for x in reversed(polyc)]
-                self.cell_vol.append(p.cell_height*tb.area(poly))
+                vol = np.abs(p.cell_height*tb.area(poly))
+                self.cell_vol.append(vol)
 
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
@@ -996,6 +999,16 @@ class Cells(object):
         self.mem_length = np.asarray(self.mem_length)
 
         self.mem_sa = self.mem_length*p.cell_height
+
+        if p.deform_osmo is True:
+             # cell surface area:
+            self.cell_sa = []
+            for grp in self.cell_to_mems:
+                cell_sa = sum(self.mem_sa[grp])
+                self.cell_sa.append(cell_sa)
+
+            self.cell_sa = np.asarray(self.cell_sa)
+
 
         self.mem_edges_flat, _, _ = tb.flatten(mem_edges)
         self.mem_edges_flat = np.asarray(self.mem_edges_flat)
