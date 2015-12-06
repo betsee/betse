@@ -894,7 +894,7 @@ class Simulator(object):
         self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
-        self.gjl[:] = cells.nn_len
+        self.gjl[:] = cells.gj_len
 
         self.rho_pump = np.ones(len(cells.mem_i))
 
@@ -1402,7 +1402,7 @@ class Simulator(object):
         self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
-        self.gjl[:] = cells.nn_len
+        self.gjl[:] = cells.gj_len
 
         # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
         self.update_V_ecm(cells,p,0)
@@ -1989,7 +1989,7 @@ class Simulator(object):
 
 
         # voltage gradient:
-        grad_vgj = self.vgj/cells.nn_len
+        grad_vgj = self.vgj/cells.gj_len
 
         grad_vgj_x = grad_vgj*cells.nn_tx
         grad_vgj_y = grad_vgj*cells.nn_ty
@@ -1997,7 +1997,7 @@ class Simulator(object):
         # concentration gradient for ion i:
 
         conc_mem = self.cc_cells[i][cells.mem_to_cells]
-        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.nn_len
+        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.gj_len
 
         grad_cgj_x = grad_cgj*cells.nn_tx
         grad_cgj_y = grad_cgj*cells.nn_ty
@@ -2290,7 +2290,7 @@ class Simulator(object):
         # Update dye concentration in the gj connected cell network:
 
         # voltage gradient:
-        grad_vgj = self.vgj/cells.nn_len
+        grad_vgj = self.vgj/cells.gj_len
 
         grad_vgj_x = grad_vgj*cells.nn_tx
         grad_vgj_y = grad_vgj*cells.nn_ty
@@ -2298,7 +2298,7 @@ class Simulator(object):
         # concentration gradient for Dye:
         Dye_mems = self.cDye_cell[cells.mem_to_cells]
 
-        grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i])/cells.nn_len
+        grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i])/cells.gj_len
 
         grad_cgj_x = grad_cgj*cells.nn_tx
         grad_cgj_y = grad_cgj*cells.nn_ty
@@ -2467,7 +2467,7 @@ class Simulator(object):
 
         # Update dye concentration in the gj connected cell network:
         # voltage gradient:
-        grad_vgj = self.vgj/cells.nn_len
+        grad_vgj = self.vgj/cells.gj_len
 
         grad_vgj_x = grad_vgj*cells.nn_tx
         grad_vgj_y = grad_vgj*cells.nn_ty
@@ -2476,7 +2476,7 @@ class Simulator(object):
 
         IP3mem = self.cIP3[cells.mem_to_cells]
 
-        grad_cgj = (IP3mem[cells.nn_i] - IP3mem[cells.mem_i])/cells.nn_len
+        grad_cgj = (IP3mem[cells.nn_i] - IP3mem[cells.mem_i])/cells.gj_len
 
         grad_cgj_x = grad_cgj*cells.nn_tx
         grad_cgj_y = grad_cgj*cells.nn_ty
@@ -2648,7 +2648,7 @@ class Simulator(object):
 
             vmem = self.v_cell[cells.mem_to_cells]
 
-            self.Egj = - (vmem[cells.nn_i]- vmem[cells.mem_i])/cells.nn_len
+            self.Egj = - (vmem[cells.nn_i]- vmem[cells.mem_i])/cells.gj_len
 
             # in the environment:
             venv = self.v_env.reshape(cells.X.shape)
@@ -2660,7 +2660,7 @@ class Simulator(object):
         else:
 
             vmem = self.vm[cells.mem_to_cells]
-            self.Egj = - (vmem[cells.nn_i] - vmem[cells.mem_i])/cells.nn_len
+            self.Egj = - (vmem[cells.nn_i] - vmem[cells.mem_i])/cells.gj_len
 
         # get x and y components of the electric field:
         self.E_gj_x = cells.nn_tx*self.Egj
@@ -3017,7 +3017,7 @@ class Simulator(object):
 
         Pmems = self.P_cells[cells.mem_to_cells]
 
-        gradP = (Pmems[cells.nn_i] - Pmems[cells.mem_i])/cells.nn_len
+        gradP = (Pmems[cells.nn_i] - Pmems[cells.mem_i])/cells.gj_len
 
         u_cells = (alpha_gj)*(F_gj +Fgj_gravity) - gradP
 

@@ -381,14 +381,14 @@ class SimRunner(object):
         fig_x = plt.figure()
         ax_x = plt.subplot(111)
 
-        cell_edges_flat = p.um*cells.mem_edges_flat
-        coll = LineCollection(cell_edges_flat,color='k',linewidth=1.0)
-        ax_x.add_collection(coll)
+        # cell_edges_flat = p.um*cells.mem_edges_flat
+        # coll = LineCollection(cell_edges_flat,color='k',linewidth=1.0)
+        # ax_x.add_collection(coll)
 
 
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
-        collection = LineCollection(connects,linewidths=5.0,color='r')
+        collection = LineCollection(connects,linewidths=2.0,color='b')
         ax_x.add_collection(collection)
         plt.axis('equal')
         plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])

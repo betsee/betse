@@ -1191,7 +1191,7 @@ def removeCells(
 
     loggers.log_info('Recalculating cluster variables for new configuration...')
 
-    if p.sim_ECM is True:   # FIXME need to update the masking matrix after cutting (make voronoi, make mask...)
+    if p.sim_ECM is True:
 
         cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
 
@@ -1203,7 +1203,8 @@ def removeCells(
 
 
         cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.gj_stuff(p)       # Free up memory...
+        cells.calc_gj_vects(p)
+        cells.gj_matrix(p)      # Calculate extra stuff for gap junction work
         cells.short_environment(p)   # define features of the ecm grid
         cells.make_maskM(p)
         cells.grid_len =len(cells.xypts)
@@ -1217,7 +1218,8 @@ def removeCells(
 
         cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
         cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.gj_stuff(p)      # gap junction properties...
+        cells.calc_gj_vects(p)
+        cells.gj_matrix(p)      # Calculate extra stuff for gap junction work
          # make a laplacian and solver for discrete transfers on closed, irregular cell network:
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)

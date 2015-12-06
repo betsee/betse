@@ -211,15 +211,6 @@ world options:
     turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
 
 
-  gap junctions:
-
-    search distance: 1.8      # distance to search for nearest neighbours
-                              # relative to cell diameter
-                              # min 1.1 max 3.5
-                              # warning high search distances can produce
-                              # extremely long simulation time
-
-
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
@@ -346,7 +337,7 @@ tissue profile definition:
 
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
-          designation: None
+          designation: cuts
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -386,7 +377,7 @@ tissue profile definition:
 
 change Na mem:       # Change the membrane permeability to Na+
 
-  event happens: True        # turn the event on (True) or off (False)
+  event happens: False        # turn the event on (True) or off (False)
   change start: 1.0                # time to start change [s]
   change finish: 4.0               # time to end change and return to original [s]
   change rate: 0.5                 # rate of change [s]
@@ -452,7 +443,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: False
+    event happens: True
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants

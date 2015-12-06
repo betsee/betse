@@ -157,9 +157,6 @@ class Parameters(object):
 
         self.aquaporins = float(self.config['variable settings']['membrane water conductivity'])
 
-        # gap junction constants and network connectivity
-        self.search_d = float(self.config['world options']['gap junctions']['search distance']) # distance to search for nearest neighbours
-
         self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
         self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
 
