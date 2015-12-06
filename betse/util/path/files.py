@@ -22,6 +22,11 @@ def die_unless_file(pathname: str) -> None:
     '''
     Raise an exception unless the passed non-directory file exists _after_
     following symbolic links.
+
+    See Also
+    ----------
+    `is_file()`
+        For further details.
     '''
     if not is_file(pathname):
         raise BetseExceptionFile(
@@ -32,9 +37,15 @@ def die_if_file(pathname: str) -> None:
     '''
     Raise an exception if the passed non-directory file exists _after_ following
     symbolic links.
+
+    See Also
+    ----------
+    `is_file()`
+        For further details.
     '''
     if is_file(pathname):
         raise BetseExceptionFile('File "{}" already exists.'.format(pathname))
+
 
 def die_if_special(pathname: str) -> None:
     '''
@@ -63,11 +74,11 @@ def is_file(pathname: str) -> bool:
     This function intrinsically differs from the standard `path.isfile()`
     function. While the latter returns `True` only for non-special files and
     hence `False` for all non-directory special files (e.g., device nodes,
-    sockets), this function returns `True` for *all* non-directory files
+    sockets), this function returns `True` for _all_ non-directory files
     regardless of whether such files are special or not.
 
     **Why?** Because this function complies with POSIX semantics, whereas
-    `path.isfile()` does *not*. The specialness of non-directory files is
+    `path.isfile()` does _not_. The specialness of non-directory files is
     usually irrelevant; in general, it only matters whether such files are
     directories or not. For example, the external command `rm` removes only
     non-directory files (regardless of specialness) while the external command
@@ -78,6 +89,7 @@ def is_file(pathname: str) -> bool:
 
     # True if such path exists and is *NOT* a directory.
     return paths.is_path(pathname) and not dirs.is_dir(pathname)
+
 
 def is_special(pathname: str) -> bool:
     '''
@@ -94,6 +106,7 @@ def is_special(pathname: str) -> bool:
         # such file to *NOT* be a symbolic link, thus reducing this test to:
         # "...is either a symbolic link *OR* not a regular file."
         is_symlink(pathname) or not path.isfile(pathname))
+
 
 def is_symlink(pathname: str) -> bool:
     '''
@@ -169,6 +182,7 @@ def open_for_text_reading(filename: str):
     # Open such file.
     return open(filename, mode = 'rt')
 
+
 def open_for_text_writing(filename: str):
     '''
     Open the passed file for line-oriented writing.
@@ -222,6 +236,7 @@ def open_for_text_writing_temporary():
     '''
     return tempfile.NamedTemporaryFile(mode='w+', delete=False)
 
+
 def open_for_byte_writing_temporary():
     '''
     Open a temporary named file for byte-oriented writing.
@@ -247,6 +262,7 @@ def substitute_substrings_inplace(
     '''
     substitute_substrings(
         filename, filename, substitutions, **kwargs)
+
 
 def substitute_substrings(
     filename_source: str,
