@@ -1426,7 +1426,7 @@ class Cells(object):
 
             vol = self.cell_vol[cell_i]
 
-            idiag = -self.num_nn[cell_i]*(self.cell_sa[cell_i]/vol)*(1/L)
+            idiag = -(self.cell_sa[cell_i]/vol)*(1/L)
 
             self.lapGJ[cell_i,cell_i] = idiag
 
@@ -1439,6 +1439,8 @@ class Cells(object):
                     cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
 
                     self.lapGJ[cell_i,cell_j] = (1/L)*(self.mem_sa[mem_i]/vol)
+
+
 
         self.lapGJinv = np.linalg.pinv(self.lapGJ)
 

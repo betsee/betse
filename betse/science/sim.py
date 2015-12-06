@@ -2796,6 +2796,9 @@ class Simulator(object):
 
         """
 
+        # FIXME: everything you have tried to do here is utter garbage. Please try again with the Stokes equation.
+        # thank you, the Management.
+
         if p.sim_ECM is True:
 
             # method 1-------------------------------------------------------------------------------------------------
@@ -2985,10 +2988,10 @@ class Simulator(object):
 
         sa_term = p.gj_surface*self.gjopen
 
-        sagj = sa_term*cells.ave_sa_all    # average total gj surface area
+        sagj = sa_term*cells.mem_sa    # average total gj surface area
         rgj = np.sqrt(sagj/math.pi)          # average gj radius
 
-        alpha_gj = ((rgj**2)/(p.mu_water))
+        alpha_gj = ((rgj**4)/(8*p.mu_water*cells.gj_len))
 
         # Calculate electroosmotic body forces on flow field, if desired:
 
@@ -3337,6 +3340,9 @@ class Simulator(object):
         of intracellular pressure.
 
         """
+
+        # FIXME: everything you have tried to do here is utter garbage. Please try again with the Stokes equation.
+        # thank you, the Management.
 
         # first determine the trans-membrane pressure due to electrostatics, if required:
         if p.deform_electro is True:
