@@ -1203,7 +1203,7 @@ def removeCells(
 
 
         cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.cleanUp(p)       # Free up memory...
+        cells.gj_stuff(p)       # Free up memory...
         cells.short_environment(p)   # define features of the ecm grid
         cells.make_maskM(p)
         cells.grid_len =len(cells.xypts)
@@ -1217,7 +1217,7 @@ def removeCells(
 
         cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
         cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.cleanUp(p)      # Free up memory...
+        cells.gj_stuff(p)      # gap junction properties...
          # make a laplacian and solver for discrete transfers on closed, irregular cell network:
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)

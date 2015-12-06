@@ -23,13 +23,6 @@ from betse.util.io import loggers
 from betse.util.path import files, paths
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 
- # FIXME Dearest Cecil, I noticed that you merged the plot types for "plot Cells" into one plot. This doesn't work
-# for large collectives because the cell-cell connection lines obscure everything, but is useful as a separate plot,
-# especially when making more complex models like the planaria with brain and nerves. We can certainly
-# make the cell-cell connection plot an optional overlay or separate plot later on. Howevever, in general,
-# please do not change things like how plots are done without discussing it with me first --
-# I find it frustrating. Thanks!
-
 
 class SimRunner(object):
     '''
@@ -118,7 +111,6 @@ class SimRunner(object):
             sim.baseInit_ECM(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
-            # dyna.ecmBoundProfiles(sim,cells,p)
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
@@ -131,8 +123,6 @@ class SimRunner(object):
 
             loggers.log_info('Cell cluster creation complete!')
 
-            # fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-            # plt.show(block=False)
             if p.turn_all_plots_off is False:
                 loggers.log_info('Close all plot windows to continue...')
                 self.plotWorld()
@@ -390,9 +380,15 @@ class SimRunner(object):
         # plot gj
         fig_x = plt.figure()
         ax_x = plt.subplot(111)
-        con_segs = cells.cell_centres[cells.nn_i]
+
+        cell_edges_flat = p.um*cells.mem_edges_flat
+        coll = LineCollection(cell_edges_flat,color='k',linewidth=1.0)
+        ax_x.add_collection(coll)
+
+
+        con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
-        collection = LineCollection(connects)
+        collection = LineCollection(connects,linewidths=5.0,color='r')
         ax_x.add_collection(collection)
         plt.axis('equal')
         plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
@@ -1243,7 +1239,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         ax_x = plt.subplot(111)
         # plt.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],cells.nn_vects[:,2],cells.nn_vects[:,3],
         #     sim.gj_rho,cmap = p.default_cm)
-        con_segs = cells.cell_centres[cells.nn_i]
+        con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
         collection = LineCollection(connects, array=sim.gjopen, cmap= p.default_cm, linewidths=2.0)
         ax_x.add_collection(collection)

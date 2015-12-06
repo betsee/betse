@@ -112,10 +112,8 @@ class Cells(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
-            # self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
-            # self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
-            self.cleanUp(p)       # Free up memory...
+            self.gj_stuff(p)       # Calculate extra stuff for gap junction work
             self.voronoiGrid(p)
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # define features of the ecm grid
@@ -127,10 +125,8 @@ class Cells(object):
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
-            # self.bflags_mems,_ = self.boundTag(self.mem_mids_flat,p,alpha=0.8)  # flag membranes on the cluster bound
-            # self.bflags_cells,_ = self.boundTag(self.cell_centres,p,alpha=1.0)  # flag membranes on the cluster bound
             self.near_neigh(p)    # Calculate the nn array for each cell
-            self.cleanUp(p)      # Free up memory...
+            self.gj_stuff(p)      # Calculate extra stuff for gap junction work
             self.voronoiGrid(p)
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
@@ -773,8 +769,6 @@ class Cells(object):
                     self.M_sum_mem_to_ecm[i_ecm,ind2] = 1
 
 
-
-
             #------------------------------------
             # calculate segments from cell centre to ecm midpoints (chord_mag):
             chord_mag = []
@@ -1135,9 +1129,9 @@ class Cells(object):
         self.cell_nn            Indices of all nearest neighbours to each cell (ordered to self.cell_i)
         self.num_nn             Number of nearest neighbours for each cell (ordered to self.cell_i)
         self.average_nn         Average number of nearest neighbours for entire cluster
-        self.nn_i               Non-unique list of index pairs to cells, each pair defining a cell-cell GJ
-        self.nn_len             Length of each GJ [m]
-        self.nn_vects           Normal and tangent vectors to each gj
+        self.nn_i                           Non-unique list of index pairs to cells, each pair defining a cell-cell GJ
+        self.nn_len                         Length of each GJ [m]
+        self.nn_tx, self.nn_ty              Tangent vector coordinates to each gj
 
         Notes
         -------
@@ -1148,73 +1142,92 @@ class Cells(object):
 
         loggers.log_info('Creating gap junctions... ')
 
-        cell_tree = sps.KDTree(self.cell_centres)
-        self.cell_nn=cell_tree.query_ball_point(self.cell_centres,p.search_d*p.d_cell)
+        self.cell_nn = []
+        self.mem_nn_list = np.empty(len(self.mem_i),dtype=np.int64)
+        # First go through and find the nearest neighbour set for each cell:
+        for cell_i, mem_i_set in enumerate(self.cell_to_mems):
 
-        # first need to go through and modify cell nn list to get rid of any empty returns:
-        temp_cell_nn = []
-        for inds in self.cell_nn:
-            if len(inds) != 0:
-                temp_cell_nn.append(inds)
+            cell_neigh_set = []
 
-        self.cell_nn = temp_cell_nn
+            for mem_i in mem_i_set:
+
+                nn_mem_pair = self.mem_nn[mem_i]
+
+                if nn_mem_pair[0] == nn_mem_pair[1]:
+
+                    self.mem_nn_list[mem_i] = mem_i
+
+                elif nn_mem_pair[0] == mem_i:
+
+                    mem_partner_i = nn_mem_pair[1]  # then the neighbouring cell membrane is the partner
+                    cell_j = self.mem_to_cells[mem_partner_i]
+                    cell_neigh_set.append(cell_j)
+
+                    self.mem_nn_list[mem_i] = mem_partner_i
+
+                elif nn_mem_pair[1] == mem_i:
+
+                    mem_partner_i = nn_mem_pair[0]  # then the neighbouring cell membrane is the partner
+                    cell_j = self.mem_to_cells[mem_partner_i]
+                    cell_neigh_set.append(cell_j)
+                    self.mem_nn_list[mem_i] = mem_partner_i
+
+            self.cell_nn.append(cell_neigh_set)
+
+        self.nn_i = np.empty(len(self.mem_i),dtype = np.int64)
+
+        self.nn_tx = np.empty(len(self.mem_i))
+        self.nn_ty = np.empty(len(self.mem_i))
+
+        self.nn_len = p.cell_space + 2*p.tm
+
+        self.nn_edges = np.empty((len(self.mem_i),2,2))
+
+        for cell_i, inds in enumerate(self.cell_nn):
+
+            mem_set_i = self.cell_to_mems[cell_i]
+
+            mem_set_j = self.mem_nn_list[mem_set_i]
+
+            self.nn_i[mem_set_i] = mem_set_j
+
+            # calculate vectors for the pairing:
+            pts1 = self.mem_mids_flat[mem_set_i]
+            pts2 = self.mem_mids_flat[mem_set_j]
+
+            tang_o = pts2 - pts1
+
+            tang_xo  = tang_o[:,0]
+            tang_yo = tang_o[:,1]
+
+            tang_mag = np.sqrt(tang_xo**2 + tang_yo**2)
+
+            inds_zero = (tang_mag == 0).nonzero()
+
+            tang_mag[inds_zero] = 1
+
+            tang_x = tang_xo/tang_mag
+            tang_y = tang_yo/tang_mag
+
+            tang_x[inds_zero] = 0
+            tang_y[inds_zero] = 0
+
+            self.nn_tx[mem_set_i] = tang_x
+            self.nn_ty[mem_set_i] = tang_y
+
+            self.nn_edges[mem_set_i,0,:] = pts1
+            self.nn_edges[mem_set_i,1,:] = pts2
 
         self.num_nn = []  # initialize a list that will hold number of nns to a cell
 
         for indices in self.cell_nn:
-            self.num_nn.append(len(indices) -1)  # minus one because query cell is included in each nn list
+            self.num_nn.append(len(indices))
 
         self.average_nn = (sum(self.num_nn)/len(self.num_nn))
 
-        #--------------------------------------------------------------------------------------------
-        # first -- need to re-do cell nearest neighbours list to remove the self value for each entry:
-        nn_list = []
+        self.num_nn = np.asarray(self.num_nn)
 
-        for i, inds in enumerate(self.cell_nn):
-            sublist = []
-            for j in inds:
-                if i!= j:
-                    sublist.append(j)
-            nn_list.append(sublist)
-        nn_list = np.asarray(nn_list)
-        self.cell_nn = nn_list
-
-        # next, calculate a list of non-unique nn pairs for each cell, in addition to nn midpoints and unit vectors:
-        self.nn_i = []
-
-        nn_x = []
-        nn_y = []
-        nn_tx = []
-        nn_ty = []
-
-        self.nn_len = []
-
-        for i, inds in enumerate(self.cell_nn):
-
-            for j in inds:
-
-                pt1 = self.cell_centres[i]
-                pt2 = self.cell_centres[j]
-
-                mid = (pt1 + pt2)/2       # midpoint calculation
-                tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)
-                nn_x.append(mid[0])
-                nn_y.append(mid[1])
-                nn_tx.append(tang[0])
-                nn_ty.append(tang[1])
-
-                length = np.sqrt(tang_a[0]**2 + tang_a[1]**2)
-
-                self.nn_len.append(length)
-
-                self.nn_i.append([i,j])
-
-        self.nn_i = np.asarray(self.nn_i)
-
-        self.nn_vects = np.array([nn_x,nn_y,nn_tx,nn_ty]).T
-
-        self.nn_index = [x for x in range(0,len(self.nn_i))]
+        self.cell_nn = np.asarray(self.cell_nn)
 
     def boundTag(self,points,p,alpha=1.0):
 
@@ -1437,54 +1450,34 @@ class Cells(object):
         # now define a Laplacian matrix for this cell collection
         self.lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
 
-        nn_inds = self.nn_i.tolist()
+        # nn_inds = self.nn_i.tolist()
 
-        for i, inds in enumerate(self.cell_nn):
+        for cell_i in self.cell_i:
 
-            idiag = 0
-            ave_mem = self.av_mem_sa[i]
-            vol = self.cell_vol[i]
+            mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our tolken cell
 
-            alpha = ave_mem/vol
+            L = p.cell_space + 2*p.tm
 
-            for j in inds:
+            vol = self.cell_vol[cell_i]
 
-                nn_index = nn_inds.index([i,j])
-                L = self.nn_len[nn_index]
+            idiag = -self.num_nn[cell_i]*(self.cell_sa[cell_i]/vol)*(1/L)
 
-                idiag = idiag - (1/L)*alpha
-                self.lapGJ[i,j] = (1/L)*alpha
+            self.lapGJ[cell_i,cell_i] = idiag
 
-            self.lapGJ[i,i] = idiag
+            for mem_i in mem_set_i:
+
+                mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
+
+                if mem_i != mem_j:  # if we're not on a boundary...
+
+                    cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+
+                    self.lapGJ[cell_i,cell_j] = (1/L)*(self.mem_sa[mem_i]/vol)
 
         self.lapGJinv = np.linalg.pinv(self.lapGJ)
 
         # null out the original matrix to save memory:
         self.lapGJ = None
-
-    def cleanUp(self,p):
-
-        """
-        Nulls unused data structures to free up memory.
-        Creates index data structures for unique cell, gap junction and ecm segments (used in simulation during
-        randomization of progression through the data structure).
-
-        """
-
-        # get an average cell_sa for each membrane domain (used in graph Laplacian calculation):
-        self.num_nn = np.asarray(self.num_nn)
-        nn_zero = (self.num_nn == 0).nonzero()
-        self.num_nn[nn_zero] = 1
-
-        self.av_mem_sa = self.cell_sa/self.num_nn
-
-        self.ave_sa_all = np.mean(self.cell_sa)/np.mean(self.num_nn)
-
-        # do gj stuff as we need it for later:
-        self.gj_stuff(p)
-
-        # get rid of fields that aren't required any more:
-        self.clust_xy = None
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1527,118 +1520,85 @@ class Cells(object):
                     new_cell_nn[i].append(cell)
 
         self.cell_nn = np.asarray(new_cell_nn)
-        # next, re-calc list of non-unique nn pairs for each cell
-        self.nn_i = []
 
-        nn_x = []
-        nn_y = []
-        nn_tx = []
-        nn_ty = []
+        # self.cell_nn_new = np.asarray(new_cell_nn)
 
-        self.nn_len = []
+        self.nn_i = np.empty(len(self.mem_i),dtype = np.int64)
 
-        for i, inds in enumerate(self.cell_nn):
+        self.nn_tx = np.empty(len(self.mem_i))
+        self.nn_ty = np.empty(len(self.mem_i))
 
-            for j in inds:
+        self.nn_len = p.cell_space + 2*p.tm
 
-                pt1 = self.cell_centres[i]
-                pt2 = self.cell_centres[j]
+        self.nn_edges = np.empty((len(self.mem_i),2,2))
 
-                mid = (pt1 + pt2)/2       # midpoint calculation
-                tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)
-                nn_x.append(mid[0])
-                nn_y.append(mid[1])
-                nn_tx.append(tang[0])
-                nn_ty.append(tang[1])
+        for cell_i, inds in enumerate(self.cell_nn):  # FIXME find out how to make this work!
 
-                length = np.sqrt(tang_a[0]**2 + tang_a[1]**2)
+            mem_set_i = self.cell_to_mems[cell_i]
 
-                self.nn_len.append(length)
+            mem_set_j = self.mem_nn_list[mem_set_i]
 
-                self.nn_i.append([i,j])
+            self.nn_i[mem_set_i] = mem_set_j
 
-        self.nn_i = np.asarray(self.nn_i)
+            # calculate vectors for the pairing:
+            pts1 = self.mem_mids_flat[mem_set_i]
+            pts2 = self.mem_mids_flat[mem_set_j]
 
-        self.nn_vects = np.array([nn_x,nn_y,nn_tx,nn_ty]).T
+            tang_o = pts2 - pts1
+
+            tang_xo  = tang_o[:,0]
+            tang_yo = tang_o[:,1]
+
+            tang_mag = np.sqrt(tang_xo**2 + tang_yo**2)
+
+            inds_zero = (tang_mag == 0).nonzero()
+            tang_mag[inds_zero] = 1
+
+            tang_x = tang_xo/tang_mag
+            tang_y = tang_yo/tang_mag
+
+            tang_x[inds_zero] = 0
+            tang_y[inds_zero] = 0
+
+            self.nn_tx[mem_set_i] = tang_x
+            self.nn_ty[mem_set_i] = tang_y
+
+            self.nn_edges[mem_set_i,0,:] = pts1
+            self.nn_edges[mem_set_i,1,:] = pts2
 
         # now that basics are done, do the remaining calculations for gap junctions:
         self.gj_stuff(p)
 
     def gj_stuff(self,p):
 
-         # remake gap junction properties based on new configuration:
-        self.nn_index = [x for x in range(0,len(self.nn_i))]
+        # mapping between gap junction index and cell:
+        self.cell_to_nn_full = np.zeros(len(self.cell_i))
 
-        #------------------------------------------------------------
+        # calculate matrix for gj divergence of the flux calculation -- this is now simply a sum over nn values:
+        self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))
 
-        # compute mapping between cell and nn with outwards vectors:
-        self.cell_to_nn =[[] for x in range(0,len(self.cell_i))]
+        for cell_i, i_mem_set in enumerate(self.cell_to_mems):
 
-        # mapping between cell and all nn with duplicates:
-        self.cell_to_nn_full = [[] for x in range(0,len(self.cell_i))]
+            for i_mem in i_mem_set:
 
-        nn_inds = self.nn_i.tolist()
+                j_mem = self.nn_i[i_mem]  # get the neighbouring membrane for this cell's membrane
 
-        for i, inds in enumerate(self.cell_nn):
+                if i_mem != j_mem: # if we're not on a neighbourless boundary membrane...
 
-            for j in inds:
-                nn_index = nn_inds.index([i,j])
-                self.cell_to_nn[i].append(nn_index)
-
-                self.cell_to_nn_full[i].append(nn_index)
-                self.cell_to_nn_full[j].append(nn_index)
-
-        self.cell_to_nn = np.asarray(self.cell_to_nn)
-        self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
-
-
-        # recalculate matrix for gj divergence of the flux calculation:
-        self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
-
-        for igj, pair in enumerate(self.nn_i):
-
-            ci = pair[0]
-
-            sa_i = self.av_mem_sa[ci]
-
-            vol_i = self.cell_vol[ci]
-
-            self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
-
-         # matrix for averaging values on gap junctions to each cell:
-
-        self.gj2cellMatrix = np.zeros((len(self.cell_i),len(self.nn_i)))
-
-        for i, inds in enumerate(self.cell_to_nn):
-            ave_fact = len(inds)
-            for j in inds:
-                self.gj2cellMatrix[i,j] = 1/ave_fact
-
-        # matrix for summing values on gap junctions to each cell:
-        self.gj2cellSum = np.zeros((len(self.cell_i),len(self.nn_i)))
-
-        for i, inds in enumerate(self.cell_to_nn):
-            for j in inds:
-                self.gj2cellSum[i,j] = 1
-
+                    self.gjMatrix[cell_i,i_mem] = 1
 
         # the nnAveMatrix will take a property defined from two cells onto a single gap junction and average
         # the property to provide one unique result:
-
         if p.gj_flux_sensitive is True:# if the user desires flux sensitive gj, construct the very large nnAveMatrix:
-            self.nnAveMatrix = np.zeros((len(self.nn_i),len(self.nn_i)))
+            self.nnAveMatrix = np.zeros((len(self.mem_i),len(self.mem_i)))
 
-            nn_list = self.nn_i.tolist()
-
-            for i, (pt1, pt2) in enumerate(self.nn_i):
+            for i, j in enumerate(self.nn_i):
                 # find the index of the duplicate point in the gj matrix:
-                nn_dupe = nn_list.index([pt2,pt1])
-
-                self.nnAveMatrix[i,i] = 1/2
-                self.nnAveMatrix[i,nn_dupe] = 1/2
+                self.nnAveMatrix[i,j] = 1/2
+                self.nnAveMatrix[j,i] = 1/2
 
     def recalc_gj_vects(self,p):
+
         """
         Recalculate nearest neighbour (gap junction)
         vectors.
@@ -1646,31 +1606,61 @@ class Cells(object):
         Used in deformation sequence.
         """
 
-        mid = (self.cell_centres[self.nn_i[:,0]] + self.cell_centres[self.nn_i[:,1]])/2
+        self.nn_i = np.empty(len(self.mem_i),dtype = np.int64)
 
-        tang_ax = self.cell_centres[self.nn_i[:,1]][:,0] - self.cell_centres[self.nn_i[:,0]][:,0]
-        tang_ay = self.cell_centres[self.nn_i[:,1]][:,1] - self.cell_centres[self.nn_i[:,0]][:,1]
+        self.nn_tx = np.empty(len(self.mem_i))
+        self.nn_ty = np.empty(len(self.mem_i))
 
-        tang_a = np.sqrt(tang_ax**2 + tang_ay**2)
+        self.nn_len = p.cell_space + 2*p.tm
 
-        tang_x = tang_ax/tang_a
-        tang_y = tang_ay/tang_a
+        self.nn_edges = np.empty((len(self.mem_i),2,2))
 
-        self.nn_vects = np.column_stack((mid[:,0],mid[:,1],tang_x,tang_y))
-        self.nn_len = np.sqrt(tang_ax**2 + tang_ay**2)
+        for cell_i, inds in enumerate(self.cell_nn):
 
-        # recalculate matrix for gj divergence of the flux calculation:
-        self.gjMatrix = np.zeros((len(self.cell_centres), len(self.nn_i)))
+            mem_set_i = self.cell_to_mems[cell_i]
 
-        for igj, pair in enumerate(self.nn_i):
+            mem_set_j = self.mem_nn_list[mem_set_i]
 
-            ci = pair[0]
+            self.nn_i[mem_set_i] = mem_set_j
 
-            sa_i = self.av_mem_sa[ci]
+            # calculate vectors for the pairing:
+            pts1 = self.mem_mids_flat[mem_set_i]
+            pts2 = self.mem_mids_flat[mem_set_j]
 
-            vol_i = self.cell_vol[ci]
+            tang_o = pts2 - pts1
 
-            self.gjMatrix[ci,igj] = -1*(sa_i/vol_i)
+            tang_xo  = tang_o[:,0]
+            tang_yo = tang_o[:,1]
+
+            tang_mag = np.sqrt(tang_xo**2 + tang_yo**2)
+
+            inds_zero = (tang_mag == 0).nonzero()
+            tang_mag[inds_zero] = 1
+
+            tang_x = tang_xo/tang_mag
+            tang_y = tang_yo/tang_mag
+
+            tang_x[inds_zero] = 0
+            tang_y[inds_zero] = 0
+
+            self.nn_tx[mem_set_i] = tang_x
+            self.nn_ty[mem_set_i] = tang_y
+
+            self.nn_edges[mem_set_i,0,:] = pts1
+            self.nn_edges[mem_set_i,1,:] = pts2
+
+        # calculate matrix for gj divergence of the flux calculation -- this is now simply a sum over nn values:
+        self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))
+
+        for cell_i, i_mem_set in enumerate(self.cell_to_mems):
+
+            for i_mem in i_mem_set:
+
+                j_mem = self.nn_i[i_mem]  # get the neighbouring membrane for this cell's membrane
+
+                if i_mem != j_mem: # if we're not on a neighbourless boundary membrane...
+
+                    self.gjMatrix[cell_i,i_mem] = 1
 
     def save_cluster(self,p,savecells = True):
         '''

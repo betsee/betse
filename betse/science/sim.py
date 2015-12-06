@@ -1907,13 +1907,15 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM is True:
 
-            self.vgj = self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0]
-            # self.vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
-            #
-            # self.vgj = self.vm_ave[cells.nn_i][:,1] - self.vm_ave[cells.nn_i][:,0]
+            vmems = self.v_cell[cells.mem_to_cells]
+
+            self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
 
         else:
-            self.vgj = self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0]
+
+            vmems = self.vm[cells.mem_to_cells]
+
+            self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
 
 
         if p.gj_flux_sensitive is True and cells.nnAveMatrix is not None:
@@ -1921,14 +1923,11 @@ class Simulator(object):
             if p.gj_respond_flow is True:
 
                 # map intracellular flow velocity to gap junctions:
-                ux_gj = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
-                uy_gj = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
+                ux_gj = (self.u_cells_x[cells.mem_i] + self.u_cells_x[cells.nn_i])/2
+                uy_gj = (self.u_cells_y[cells.mem_i] + self.u_cells_y[cells.nn_i])/2
 
                 # get the magnitude of flow at the gap junction:
                 u_gj_s = np.sqrt(ux_gj**2 + uy_gj**2)
-
-                # sum the flow vector lengths for individual cells
-                # u_sum = np.dot(cells.gj2cellSum,u_gj_s)
 
                 # average flow vector lengths for whole cell collection:
                 u_sum = np.mean(u_gj_s)
@@ -1953,9 +1952,6 @@ class Simulator(object):
                     I_gj_y = I_gj_y + I_i_y
 
                 u_gj_s = np.sqrt(I_gj_x**2 + I_gj_y**2)
-
-                # sum the flow vector lengths for individual cells
-                # u_sum = np.dot(cells.gj2cellSum,u_gj_s)
 
                 u_sum =np.mean(u_gj_s)
 
@@ -1995,22 +1991,24 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.nn_len
 
-        grad_vgj_x = grad_vgj*cells.nn_vects[:,2]
-        grad_vgj_y = grad_vgj*cells.nn_vects[:,3]
+        grad_vgj_x = grad_vgj*cells.nn_tx
+        grad_vgj_y = grad_vgj*cells.nn_ty
 
         # concentration gradient for ion i:
-        grad_cgj = (self.cc_cells[i][cells.nn_i][:,1] - self.cc_cells[i][cells.nn_i][:,0])/cells.nn_len
 
-        grad_cgj_x = grad_cgj*cells.nn_vects[:,2]
-        grad_cgj_y = grad_cgj*cells.nn_vects[:,3]
+        conc_mem = self.cc_cells[i][cells.mem_to_cells]
+        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.nn_len
+
+        grad_cgj_x = grad_cgj*cells.nn_tx
+        grad_cgj_y = grad_cgj*cells.nn_ty
 
         # midpoint concentration:
-        c = (self.cc_cells[i][cells.nn_i][:,1] + self.cc_cells[i][cells.nn_i][:,0])/2
+        c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
         # electroosmotic fluid velocity -- averaged at gap junctions:
         if p.fluid_flow is True:
-            ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
-            uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
+            ux = (self.u_cells_x[cells.nn_i] + self.u_cells_x[cells.mem_i])/2
+            uy = (self.u_cells_y[cells.nn_i] + self.u_cells_y[cells.mem_i])/2
 
         else:
             ux = 0
@@ -2020,9 +2018,9 @@ class Simulator(object):
             p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
 
 
-        fgj = fgj_x*cells.nn_vects[:,2] + fgj_y*cells.nn_vects[:,3]
+        fgj = fgj_x*cells.nn_tx + fgj_y*cells.nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix,fgj)
+        delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
@@ -2294,22 +2292,25 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.nn_len
 
-        grad_vgj_x = grad_vgj*cells.nn_vects[:,2]
-        grad_vgj_y = grad_vgj*cells.nn_vects[:,3]
+        grad_vgj_x = grad_vgj*cells.nn_tx
+        grad_vgj_y = grad_vgj*cells.nn_ty
 
         # concentration gradient for Dye:
-        grad_cgj = (self.cDye_cell[cells.nn_i][:,1] - self.cDye_cell[cells.nn_i][:,0])/cells.nn_len
+        Dye_mems = self.cDye_cell[cells.mem_to_cells]
 
-        grad_cgj_x = grad_cgj*cells.nn_vects[:,2]
-        grad_cgj_y = grad_cgj*cells.nn_vects[:,3]
+        grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i])/cells.nn_len
+
+        grad_cgj_x = grad_cgj*cells.nn_tx
+        grad_cgj_y = grad_cgj*cells.nn_ty
 
         # midpoint concentration:
-        cdye = (self.cDye_cell[cells.nn_i][:,1] + self.cDye_cell[cells.nn_i][:,0])/2
+        cdye = (Dye_mems[cells.nn_i] + Dye_mems[cells.mem_i])/2
 
         # electroosmotic fluid velocity:
         if p.base_eosmo is True:
-            ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
-            uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
+
+            ux = (self.u_cells_x[cells.mem_i] + self.u_cells_x[cells.nn_i])/2
+            uy = (self.u_cells_y[cells.mem_i] + self.u_cells_y[cells.nn_i])/2
 
         else:
             ux = 0
@@ -2318,9 +2319,9 @@ class Simulator(object):
         fgj_x_dye,fgj_y_dye = nernst_planck_flux(cdye,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             p.Do_Dye*self.gjopen,p.z_Dye,self.T,p)
 
-        fgj_dye = fgj_x_dye*cells.nn_vects[:,2] + fgj_y_dye*cells.nn_vects[:,3]
+        fgj_dye = fgj_x_dye*cells.nn_tx + fgj_y_dye*cells.nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_dye)
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_dye*cells.mem_sa)/cells.cell_vol
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
@@ -2468,22 +2469,25 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.nn_len
 
-        grad_vgj_x = grad_vgj*cells.nn_vects[:,2]
-        grad_vgj_y = grad_vgj*cells.nn_vects[:,3]
+        grad_vgj_x = grad_vgj*cells.nn_tx
+        grad_vgj_y = grad_vgj*cells.nn_ty
 
         # concentration gradient for Dye:
-        grad_cgj = (self.cIP3[cells.nn_i][:,1] - self.cIP3[cells.nn_i][:,0])/cells.nn_len
 
-        grad_cgj_x = grad_cgj*cells.nn_vects[:,2]
-        grad_cgj_y = grad_cgj*cells.nn_vects[:,3]
+        IP3mem = self.cIP3[cells.mem_to_cells]
+
+        grad_cgj = (IP3mem[cells.nn_i] - IP3mem[cells.mem_i])/cells.nn_len
+
+        grad_cgj_x = grad_cgj*cells.nn_tx
+        grad_cgj_y = grad_cgj*cells.nn_ty
 
         # midpoint concentration:
-        cip3 = (self.cIP3[cells.nn_i][:,1] + self.cIP3[cells.nn_i][:,0])/2
+        cip3 = (IP3mem[cells.nn_i] + IP3mem[cells.mem_i])/2
 
         # electroosmotic fluid velocity:
         if p.base_eosmo is True:
-            ux = (self.u_cells_x[cells.nn_i][:,0] + self.u_cells_x[cells.nn_i][:,1])/2
-            uy = (self.u_cells_y[cells.nn_i][:,0] + self.u_cells_y[cells.nn_i][:,1])/2
+            ux = (self.u_cells_x[cells.nn_i] + self.u_cells_x[cells.mem_i])/2
+            uy = (self.u_cells_y[cells.nn_i] + self.u_cells_y[cells.mem_i])/2
 
         else:
             ux = 0
@@ -2492,9 +2496,9 @@ class Simulator(object):
         fgj_x_ip3,fgj_y_ip3 = nernst_planck_flux(cip3,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             p.Do_IP3*self.gjopen,p.z_IP3,self.T,p)
 
-        fgj_ip3 = fgj_x_ip3*cells.nn_vects[:,2] + fgj_y_ip3*cells.nn_vects[:,3]
+        fgj_ip3 = fgj_x_ip3*cells.nn_tx + fgj_y_ip3*cells.nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_ip3)
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_ip3*cells.mem_sa)/cells.cell_vol
 
         self.cIP3 = self.cIP3 + p.dt*delta_cc
 
@@ -2642,7 +2646,9 @@ class Simulator(object):
          # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM is True:
 
-            self.Egj = - (self.v_cell[cells.nn_i][:,1]- self.v_cell[cells.nn_i][:,0])/cells.nn_len
+            vmem = self.v_cell[cells.mem_to_cells]
+
+            self.Egj = - (vmem[cells.nn_i]- vmem[cells.mem_i])/cells.nn_len
 
             # in the environment:
             venv = self.v_env.reshape(cells.X.shape)
@@ -2652,11 +2658,13 @@ class Simulator(object):
             self.E_env_y = -genv_y
 
         else:
-            self.Egj = - (self.vm[cells.nn_i][:,1]- self.vm[cells.nn_i][:,0])/cells.nn_len
+
+            vmem = self.vm[cells.mem_to_cells]
+            self.Egj = - (vmem[cells.nn_i] - vmem[cells.mem_i])/cells.nn_len
 
         # get x and y components of the electric field:
-        self.E_gj_x = cells.nn_vects[:,2]*self.Egj
-        self.E_gj_y = cells.nn_vects[:,3]*self.Egj
+        self.E_gj_x = cells.nn_tx*self.Egj
+        self.E_gj_y = cells.nn_ty*self.Egj
 
     def get_Bfield(self,cells,p):
 
@@ -2718,11 +2726,11 @@ class Simulator(object):
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
         self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
-        self.I_gj_y = interp.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
 
@@ -2969,10 +2977,10 @@ class Simulator(object):
             Fgy = np.zeros(len(cells.nn_i))
             Fgy[:] = -9.81*1000
 
-            Fgj_gravity = cells.nn_vects[:,2]*Fgx + cells.nn_vects[:,3]*Fgy
+            Fgj_gravity = cells.nn_tx*Fgx + cells.nn_ty*Fgy
 
         else:
-            Fgj_gravity = np.zeros(len(cells.nn_vects))
+            Fgj_gravity = np.zeros(len(cells.nn_ty))
 
         sa_term = p.gj_surface*self.gjopen
 
@@ -2986,13 +2994,14 @@ class Simulator(object):
         if p.base_eosmo is True:  # FIXME redo this as an electrostatic pressure
 
             # to get the eletroosmotic body force at each gap junction, first map the charge density from cell to gj:
-            rho_gj = (self.rho_cells[cells.nn_i][:,0] + self.rho_cells[cells.nn_i][:,1])*(1/p.ff_cell)
+            rho_mems = self.rho_cells[cells.mem_to_cells]
+            rho_gj = (rho_mems[cells.mem_i] + rho_mems[cells.nn_i])*(1/p.ff_cell)
 
             # body force is equal to the electric field at the gap junction multiplied by the charge density there.
             F_gj = rho_gj*self.Egj
 
         else:
-            F_gj = np.zeros(len(cells.nn_vects))
+            F_gj = np.zeros(len(cells.mem_i))
 
 
         F_source = F_gj + Fgj_gravity
@@ -3001,28 +3010,26 @@ class Simulator(object):
         # Pre-scale the forces to the alpha value as 'rgj' may vary over space:
         S_source = alpha_gj*F_source
 
-        Fgj_sum = np.dot(cells.gjMatrix,S_source)
+        Fgj_sum = np.dot(cells.gjMatrix,-S_source*cells.mem_sa)/cells.cell_vol
 
         # # calculate the pressure in each cell required to create a divergence-free (mass conserved) flow field
-        # NOTE! this represents the fluid conductivity term alpha_gj*grad_pressure
-        # We needed to to it this way because alpha_gj varries over space.
-        # Note also that the 'saterm' (variable GJ surface area) doesn't show up in Fgj_sum because it shows up on the
-        # opposite side of the GJinv equation -- therefore it cancels out.
         self.P_cells = np.dot(cells.lapGJinv, -Fgj_sum)
 
-        gradP = (self.P_cells[cells.nn_i][:,1] - self.P_cells[cells.nn_i][:,0])/cells.nn_len
+        Pmems = self.P_cells[cells.mem_to_cells]
+
+        gradP = (Pmems[cells.nn_i] - Pmems[cells.mem_i])/cells.nn_len
 
         u_cells = (alpha_gj)*(F_gj +Fgj_gravity) - gradP
 
-        u_cells_x = -u_cells*cells.nn_vects[:,2]
-        u_cells_y = -u_cells*cells.nn_vects[:,3]
+        u_cells_x = -u_cells*cells.nn_tx
+        u_cells_y = -u_cells*cells.nn_ty
 
         # average components to the cell centres:
-        self.u_cells_x = np.dot(cells.gj2cellMatrix,u_cells_x)
-        self.u_cells_y = np.dot(cells.gj2cellMatrix,u_cells_y)
+        self.u_cells_x = np.dot(cells.gjMatrix,u_cells_x)/cells.num_nn
+        self.u_cells_y = np.dot(cells.gjMatrix,u_cells_y)/cells.num_nn
 
         # resample alpha to the cell centres:
-        alpha_ave = np.dot(cells.gj2cellMatrix,alpha_gj)
+        alpha_ave = np.dot(cells.gjMatrix,alpha_gj)/cells.num_nn
 
         alpha_zero = list(*(alpha_ave == 0).nonzero())
 
@@ -3379,6 +3386,8 @@ class Simulator(object):
 
             P_mem_b = delta_P[cells.mem_to_cells] + self.P_mem
 
+            # P_mem_b = u_osmo + self.P_mem
+
         else:
             P_mem_b = np.zeros(len(cells.mem_i))
 
@@ -3514,8 +3523,11 @@ class Simulator(object):
             sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
             sorted_region_b = sorted_region.tolist()
 
-            cells.ecm_verts.append(sorted_region_b)
-            # cells.ecm_verts.append(ecm_nest)
+            if p.deform_osmo is False:
+                cells.ecm_verts.append(sorted_region_b)
+
+            else:
+                cells.ecm_verts.append(ecm_nest)
 
         cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
 
@@ -4164,7 +4176,7 @@ def rk4(c,deltac,p):
         #     self.P_cell = np.dot(cells.M_sum_mems,self.P_mem_o)/cells.num_mems
         #
         #     # # resample alpha to the cell centres:
-        #     # alpha_ave = np.dot(cells.gj2cellMatrix,alpha_gj)
+        #     # alpha_ave = np.dot(cells.gjMatrix,alpha_gj)/cells.num_nn
         #     #
         #     # alpha_zero = list(*(alpha_ave == 0).nonzero())
         #     #

@@ -439,7 +439,8 @@ class AnimateGJData(object):
 
         self.gjI_t_x = sim.I_gj_x_time
         self.gjI_t_x = sim.I_gj_y_time
-        self.gjvects = cells.nn_vects
+        self.gjvects_x = cells.nn_tx
+        self.gjvects_y = cells.nn_ty
 
         self.cells = cells
         self.p = p
@@ -596,7 +597,8 @@ class AnimateGJData_smoothed(object):
 
         self.gjIx_t = np.sign(sim.I_gj_x_time)
         self.gjIy_t = np.sign(sim.I_gj_y_time)
-        self.gjvects = cells.nn_vects
+        self.gjvects_x = cells.nn_tx
+        self.gjvects_y = cells.nn_ty
 
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
@@ -1188,12 +1190,12 @@ class AnimateEfield(object):
 
         elif p.ani_Efield_type == 'GJ' or p.sim_ECM is False:
 
-            E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+            E_gj_x = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
             sim.efield_gj_x_time[-1],(cells.Xgrid,cells.Ygrid), fill_value=0,method=p.interp_type)
 
             E_gj_x = np.multiply(E_gj_x,cells.maskM)
 
-            E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+            E_gj_y = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
                 sim.efield_gj_y_time[-1],(cells.Xgrid,cells.Ygrid), fill_value=0,method=p.interp_type)
 
             E_gj_y = np.multiply(E_gj_y, cells.maskM)
@@ -1255,12 +1257,12 @@ class AnimateEfield(object):
 
         elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM is False:
 
-            E_gj_x = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+            E_gj_x = interpolate.griddata((self.cells.mem_mids_flat[:,0],self.cells.mem_mids_flat[:,1]),
             self.sim.efield_gj_x_time[i],(self.cells.Xgrid,self.cells.Ygrid), fill_value=0,method=self.p.interp_type)
 
             E_gj_x = np.multiply(E_gj_x,self.cells.maskM)
 
-            E_gj_y = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
+            E_gj_y = interpolate.griddata((self.cells.mem_mids_flat[:,0],self.cells.mem_mids_flat[:,1]),
                 self.sim.efield_gj_y_time[i],(self.cells.Xgrid,self.cells.Ygrid), fill_value=0,method=self.p.interp_type)
 
             E_gj_y = np.multiply(E_gj_y,self.cells.maskM)
@@ -1762,48 +1764,6 @@ class AnimateDyeData(object):
         self.collection.set_array(self.zdata_t[0])
         self.ax.add_collection(self.collection)
 
-        # if self.current_overlay is True:
-        #
-        #     if p.IecmPlot is False:
-        #
-        #         dye_fx = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-        #             sim.Dye_flux_x_gj_time[0],(self.cells.Xgrid,self.cells.Ygrid),method=p.interp_type,fill_value=0)
-        #
-        #         dye_fx = dye_fx*cells.maskM
-        #
-        #         dye_fy = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
-        #             sim.Dye_flux_y_gj_time[0],(self.cells.Xgrid,self.cells.Ygrid),method=p.interp_type,fill_value=0)
-        #
-        #         dye_fy = dye_fy*cells.maskM
-        #
-        #         Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
-        #
-        #         F_x = np.asarray(dye_fx/Fmag_M)
-        #         F_y = np.asarray(dye_fy/Fmag_M)
-        #
-        #         lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
-        #
-        #         lw = lw.reshape(cells.Xgrid.shape)
-        #
-        #         self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,F_x.reshape(cells.Xgrid.shape),
-        #             F_y.reshape(cells.Xgrid.shape),density=self.density,linewidth=lw,color='k',
-        #             cmap=clrmap,arrowsize=1.5)
-        #
-        #     elif p.IecmPlot is True:
-        #
-        #         Fmag_M = np.sqrt(sim.Dye_flux_env_x_time[0]**2 + sim.Dye_flux_env_y_time[0]**2) + 1e-30
-        #
-        #         F_x = np.asarray(sim.Dye_flux_env_x_time[0]/Fmag_M)
-        #         F_y = np.asarray(sim.Dye_flux_env_y_time[0]/Fmag_M)
-        #
-        #         lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
-        #
-        #         lw = lw.reshape(cells.X.shape)
-        #
-        #         self.streams = self.ax.streamplot(cells.X*p.um,cells.Y*p.um,F_x.reshape(cells.X.shape),
-        #             F_y.reshape(cells.X.shape),density=self.density,linewidth=lw,color='k',
-        #             cmap=clrmap,arrowsize=1.5)
-
         # set range of the colormap
 
         if clrAutoscale is True:
@@ -1875,50 +1835,6 @@ class AnimateDyeData(object):
 
         self.collection.set_array(zz)
         self.bkgPlot.set_data(zenv.reshape(self.cells.X.shape))
-
-        # if self.current_overlay is True:
-        #
-        #     if self.IecmPlot is False:
-        #
-        #         dye_fx = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-        #             self.sim.Dye_flux_x_gj_time[i],(self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type,fill_value=0)
-        #
-        #         dye_fx = dye_fx*self.cells.maskM
-        #
-        #         dye_fy = interpolate.griddata((self.cells.nn_vects[:,0],self.cells.nn_vects[:,1]),
-        #             self.sim.Dye_flux_y_gj_time[i],(self.cells.Xgrid,self.cells.Ygrid),method=self.p.interp_type,fill_value=0)
-        #
-        #         dye_fy = dye_fy*self.cells.maskM
-        #
-        #         Fmag_M = np.sqrt(dye_fx**2 + dye_fy**2) + 1e-30
-        #
-        #         F_x = dye_fx/Fmag_M
-        #         F_y = dye_fy/Fmag_M
-        #
-        #         lw = (3.0*Fmag_M/Fmag_M.max()) + 0.5
-        #
-        #         self.streams.lines.remove()
-        #         self.ax.patches = []
-        #
-        #         self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,F_x,F_y,
-        #             density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
-        #
-        #     elif self.IecmPlot is True:
-        #
-        #         Fmag_M = np.sqrt(self.sim.Dye_flux_env_x_time[i]**2 + self.sim.Dye_flux_env_y_time[i]**2) + 1e-30
-        #
-        #         F_x = np.asarray(self.sim.Dye_flux_env_x_time[i]/Fmag_M)
-        #         F_y = np.asarray(self.sim.Dye_flux_env_y_time[i]/Fmag_M)
-        #
-        #         lw = np.asarray((3.0*Fmag_M/Fmag_M.max()) + 0.5)
-        #         lw = lw.reshape(self.cells.X.shape)
-        #
-        #         self.streams.lines.remove()
-        #         self.ax.patches = []
-        #
-        #         self.streams = self.ax.streamplot(self.cells.X*1e6,self.cells.Y*1e6,F_x.reshape(self.cells.X.shape),
-        #             F_y.reshape(self.cells.X.shape),density=self.density,linewidth=lw,color='k',
-        #             cmap=self.colormap,arrowsize=1.5)
 
         titani = 'sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s'
         self.ax.set_title(titani)
@@ -2360,10 +2276,10 @@ def plotEfield(sim,cells,p):
 
     elif p.plot_Efield_type == 'GJ' or p.sim_ECM is False:
 
-        E_gj_x = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+        E_gj_x = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
             sim.efield_gj_x_time[-1],(cells.Xgrid,cells.Ygrid), method=p.interp_type,fill_value=0)
 
-        E_gj_y = interpolate.griddata((cells.nn_vects[:,0],cells.nn_vects[:,1]),
+        E_gj_y = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
             sim.efield_gj_y_time[-1],(cells.Xgrid,cells.Ygrid), method=p.interp_type,fill_value=0)
 
         E_gj_x = np.multiply(E_gj_x,cells.maskM)
