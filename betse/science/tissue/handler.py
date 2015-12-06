@@ -115,10 +115,10 @@ class TissueHandler(object):
             elif numo < 1:
                 numo = 1
 
-            data_length = len(cells.nn_index)
+            data_length = len(cells.mem_i)
             data_fraction = int((numo/100)*data_length)
-            shuffle(cells.nn_index)
-            self.targets_gj_block = [cells.nn_index[x] for x in range(0,data_fraction)]
+            shuffle(cells.mem_i)
+            self.targets_gj_block = [cells.mem_i[x] for x in range(0,data_fraction)]
 
 
         if p.global_options['NaKATP_block'] != 0:
@@ -1040,7 +1040,7 @@ def removeCells(
         hurt_level = p.hurt_level  # amount by which membrane permeability increases for all ions
         target_inds_gj_unique = np.unique(target_inds_gj)
 
-        for i, inds in enumerate(cells.cell_to_nn): # for all the nn inds to a cell...
+        for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
             inds_array = np.asarray(inds)
             inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
 
@@ -1130,7 +1130,7 @@ def removeCells(
                         data2 = np.delete(data,target_inds_mem)
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(cells.nn_index):
+                    elif len(data) == len(cells.mem_i):  #FIXME originally was nn_index! Now they're equal!
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
@@ -1149,7 +1149,7 @@ def removeCells(
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(cells.nn_index):
+                    elif len(data) == len(cells.mem_i): # Fixme originally nn_index
                         for index in sorted(target_inds_gj, reverse=True):
                             del data[index]
                         data2.append(data[index])

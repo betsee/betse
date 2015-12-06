@@ -1521,7 +1521,16 @@ class Cells(object):
     def gj_matrix(self,p):
 
         # mapping between gap junction index and cell:
-        self.cell_to_nn_full = np.zeros(len(self.cell_i)) # FIXME not done!
+        self.cell_to_nn_full = [[] for x in range(len(self.cell_i))]
+
+        for i, (cell_i, cell_j) in enumerate(self.cell_nn_i):
+
+            if cell_i != cell_j:   # if it's not a boundary membrane...
+
+                self.cell_to_nn_full[cell_i].append(i)
+                self.cell_to_nn_full[cell_j].append(i)
+
+        self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
 
         # calculate matrix for gj divergence of the flux calculation -- this is now simply a sum over nn values:
         self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))

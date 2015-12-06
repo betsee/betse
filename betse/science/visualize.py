@@ -461,7 +461,7 @@ class AnimateGJData(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        con_segs = cells.cell_centres[cells.nn_i]
+        con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
         self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=10)
         self.collection.set_clim(0.0,max_zdata)
@@ -1190,12 +1190,12 @@ class AnimateEfield(object):
 
         elif p.ani_Efield_type == 'GJ' or p.sim_ECM is False:
 
-            E_gj_x = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
+            E_gj_x = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
             sim.efield_gj_x_time[-1],(cells.Xgrid,cells.Ygrid), fill_value=0,method=p.interp_type)
 
             E_gj_x = np.multiply(E_gj_x,cells.maskM)
 
-            E_gj_y = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
+            E_gj_y = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
                 sim.efield_gj_y_time[-1],(cells.Xgrid,cells.Ygrid), fill_value=0,method=p.interp_type)
 
             E_gj_y = np.multiply(E_gj_y, cells.maskM)
@@ -1257,12 +1257,12 @@ class AnimateEfield(object):
 
         elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM is False:
 
-            E_gj_x = interpolate.griddata((self.cells.mem_mids_flat[:,0],self.cells.mem_mids_flat[:,1]),
+            E_gj_x = interpolate.griddata((self.cells.nn_mids[:,0],self.cells.nn_mids[:,1]),
             self.sim.efield_gj_x_time[i],(self.cells.Xgrid,self.cells.Ygrid), fill_value=0,method=self.p.interp_type)
 
             E_gj_x = np.multiply(E_gj_x,self.cells.maskM)
 
-            E_gj_y = interpolate.griddata((self.cells.mem_mids_flat[:,0],self.cells.mem_mids_flat[:,1]),
+            E_gj_y = interpolate.griddata((self.cells.nn_mids[:,0],self.cells.nn_mids[:,1]),
                 self.sim.efield_gj_y_time[i],(self.cells.Xgrid,self.cells.Ygrid), fill_value=0,method=self.p.interp_type)
 
             E_gj_y = np.multiply(E_gj_y,self.cells.maskM)
@@ -2276,10 +2276,10 @@ def plotEfield(sim,cells,p):
 
     elif p.plot_Efield_type == 'GJ' or p.sim_ECM is False:
 
-        E_gj_x = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
+        E_gj_x = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
             sim.efield_gj_x_time[-1],(cells.Xgrid,cells.Ygrid), method=p.interp_type,fill_value=0)
 
-        E_gj_y = interpolate.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),
+        E_gj_y = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
             sim.efield_gj_y_time[-1],(cells.Xgrid,cells.Ygrid), method=p.interp_type,fill_value=0)
 
         E_gj_x = np.multiply(E_gj_x,cells.maskM)
@@ -2298,13 +2298,6 @@ def plotEfield(sim,cells,p):
                 color='k',arrowsize=1.5)
 
         tit_extra = 'Intracellular'
-
-    # if p.showCells is True:
-    #     # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-    #     cell_edges_flat = cells.um*cells.mem_edges_flat
-    #     coll = LineCollection(cell_edges_flat,colors='k')
-    #     coll.set_alpha(0.5)
-    #     ax.add_collection(coll)
 
     ax.axis('equal')
 
@@ -2527,98 +2520,6 @@ def plotBoundCells(points_flat,bflags,cells, p, fig=None, ax=None):
 
         return fig, ax
 
-# def plotIntraExtraData(cells,p,fig = None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
-#     clrmap=None):
-#
-#         """
-#         This plotting function plots data on both cell centres and ecm midpoints, as patch objects.
-#
-#
-#         Parameters
-#         ----------------
-#
-#         cells                   Data structure created by Cells module
-#         p                       Parameters data structure created by Parameters module
-#         fig, ax                 Figure and axes instances
-#         zdata                   Contains data array matching cell and ecm indices, e.g. zdata = [Vcell, Vecm]
-#         clrAutoscale            True or False
-#         clrMin, clrMax          Minimum, maximum colorbar values (for zdata)
-#         clrmap                  Colormap for the plot
-#
-#
-#         Returns
-#         -----------
-#         fig, ax, ax_cb          Figure, axes, and colorbar instances
-#         """
-#
-#         if fig is None:
-#             fig = plt.figure()# define the figure and axes instances
-#         if ax is None:
-#             ax = plt.subplot(111)
-#             #ax = plt.axes()
-#
-#         data_length = len(cells.cell_i) + len(cells.ecm_i)
-#
-#         if zdata is None:  # if user doesn't supply data
-#             z = np.ones(data_length) # create flat data for plotting
-#
-#         else:
-#             zCells = zdata[0]
-#             zEcm = zdata[1]
-#
-#         if clrmap is None:
-#             clrmap = p.default_cm
-#
-#         points = np.multiply(cells.cell_verts, p.um)
-#
-#         coll = PolyCollection(points, array = zCells, cmap = clrmap, edgecolors='k',zorder=1)
-#
-#         ax.add_collection(coll)
-#
-#         scat = ax.scatter(p.um*cells.ecm_mids[:,0],p.um*cells.ecm_mids[:,1],c=zEcm,cmap=clrmap)
-#
-#         ax.axis('equal')
-#
-#          # Add a colorbar for the plot:
-#
-#         maxval_cells = round(np.max(zCells,axis=0),1)
-#         minval_cells = round(np.min(zCells,axis=0),1)
-#         checkval_cells = maxval_cells - minval_cells
-#
-#         maxval_ecm = round(np.max(zEcm,axis=0),1)
-#         minval_ecm = round(np.min(zEcm,axis=0),1)
-#         checkval_ecm = maxval_ecm - minval_ecm
-#
-#         if checkval_cells == 0:
-#             minval_cells = minval_cells - 0.1
-#             maxval_cells = maxval_cells + 0.1
-#
-#         if checkval_ecm == 0:
-#             minval_ecm = minval_ecm - 0.1
-#             maxval_ecm = maxval_ecm + 0.1
-#
-#         if zdata is not None and clrAutoscale is True:
-#             coll.set_clim(minval_cells,maxval_cells)
-#             scat.set_clim(minval_ecm,maxval_ecm)
-#             ax_cb = fig.colorbar(scat,ax=ax)
-#
-#         elif clrAutoscale is False:
-#
-#             coll.set_clim(clrMin,clrMax)
-#             scat.set_clim(clrMin,clrMax)
-#             ax_cb = fig.colorbar(scat,ax=ax)
-#
-#
-#         xmin = cells.xmin*p.um
-#         xmax = cells.xmax*p.um
-#         ymin = cells.ymin*p.um
-#         ymax = cells.ymax*p.um
-#
-#         ax.axis([xmin,xmax,ymin,ymax])
-#
-#
-#         return fig, ax, ax_cb
-
 def plotVects(cells, p, fig=None, ax=None):
         """
         This function plots all unit vectors in the tissue system as a cross-check.
@@ -2830,75 +2731,6 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     ax.axis([xmin,xmax,ymin,ymax])
 
     return fig, ax, ax_cb
-
-# def clusterPlotMesh(p,dyna,cells,clrmap=cm.jet):
-#
-#     fig = plt.figure()
-#     ax = plt.subplot(111)
-#
-#     cb_ticks = []
-#     cb_tick_labels = []
-#
-#     Z = np.zeros(cells.X.shape)
-#
-#     cb_ticks.append(0)
-#     cb_tick_labels.append('environment')
-#
-#     Z[cells.map_ij2k[cells.map_cell2ecm][:,0],cells.map_ij2k[cells.map_cell2ecm][:,1]] = 1
-#
-#     cb_ticks.append(1)
-#     cb_tick_labels.append(p.default_tissue_name)
-#
-#
-#     if len(dyna.tissue_profile_names):
-#
-#         for i, name in enumerate(dyna.tissue_profile_names):
-#
-#             cell_inds = dyna.cell_target_inds[name]
-#
-#             Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
-#               cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = i+2
-#
-#             cb_ticks.append(i+2)
-#             cb_tick_labels.append(name)
-#
-#     if p.plot_cutlines is True:
-#
-#         if len(dyna.cuts_target_inds):
-#
-#             names = dyna.cuts_target_inds.keys()
-#
-#             for name in names:
-#
-#                 cell_inds = dyna.cuts_target_inds[name]
-#
-#                 Z[cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,0],
-#                   cells.map_ij2k[cells.map_cell2ecm[cell_inds]][:,1]] = -1
-#
-#     xmin = cells.xmin*p.um
-#     xmax = cells.xmax*p.um
-#     ymin = cells.ymin*p.um
-#     ymax = cells.ymax*p.um
-#
-#     clust_plot = ax.imshow(Z,origin = 'lower', extent=[xmin, xmax, ymin,ymax])
-#
-#     if len(dyna.tissue_profile_names) or len(dyna.cuts_target_inds):
-#
-#         ax_cb = fig.colorbar(clust_plot,ax=ax, ticks=cb_ticks)
-#         ax_cb.ax.set_yticklabels(cb_tick_labels)
-#
-#     else:
-#         ax_cb = None
-#
-#     ax.set_xlabel('Spatial Distance [um]')
-#     ax.set_ylabel('Spatial Distance [um]')
-#     ax.set_title('Cell Cluster')
-#
-#     ax.axis('equal')
-#
-#     ax.axis([xmin,xmax,ymin,ymax])
-#
-#     return fig, ax, ax_cb
 
 def exportData(cells,sim,p):
 

@@ -1908,6 +1908,7 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             vmems = self.v_cell[cells.mem_to_cells]
+            # vmems = self.vm
 
             self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
 
@@ -1923,7 +1924,7 @@ class Simulator(object):
             if p.gj_respond_flow is True:
 
                 # map intracellular flow velocity to gap junctions:
-                ux_gj = (self.u_cells_x[cells.mem_i] + self.u_cells_x[cells.nn_i])/2
+                ux_gj = (self.u_cells_x[cells.mem_i] + self.u_cells_x[cells.nn_i])/2  # FIXME ux_gj should be right length
                 uy_gj = (self.u_cells_y[cells.mem_i] + self.u_cells_y[cells.nn_i])/2
 
                 # get the magnitude of flow at the gap junction:
@@ -2659,8 +2660,8 @@ class Simulator(object):
 
         else:
 
-            vmem = self.vm[cells.mem_to_cells]
-            self.Egj = - (vmem[cells.nn_i] - vmem[cells.mem_i])/cells.gj_len
+            # vmem = self.vm[cells.mem_to_cells]
+            self.Egj = - (self.vm[cells.cell_nn_i[:,1]] - self.vm[cells.cell_nn_i[:,0]])/cells.gj_len
 
         # get x and y components of the electric field:
         self.E_gj_x = cells.nn_tx*self.Egj
@@ -2726,11 +2727,11 @@ class Simulator(object):
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_x = interp.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
         self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
-        self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_y = interp.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
 
@@ -3273,7 +3274,7 @@ class Simulator(object):
                     self.v_cell[cells.mem_to_cells][cells.mem_nn[:,0]])/(dist)
 
 
-        P_electro = -0.1*Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
+        P_electro = 0.1*Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
         P_x = P_electro*cells.mem_tx
         P_y = P_electro*cells.mem_ty
 
