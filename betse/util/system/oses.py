@@ -22,6 +22,7 @@ def is_linux() -> bool:
     '''
     return platform.system() == 'Linux'
 
+
 def is_os_x() -> bool:
     '''
     `True` if the current operating system is Apple OS X.
@@ -35,16 +36,18 @@ def is_windows() -> bool:
 
     This function reports `True` for both vanilla and Cygwin Microsoft Windows.
     '''
-    return is_os_windows_vanilla() or is_os_windows_cygwin()
+    return is_windows_vanilla() or is_windows_cygwin()
 
-def is_os_windows_cygwin() -> bool:
+
+def is_windows_cygwin() -> bool:
     '''
     `True` if the current operating system is **Cygwin Microsoft Windows**
     (i.e., running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'cygwin'
 
-def is_os_windows_vanilla() -> bool:
+
+def is_windows_vanilla() -> bool:
     '''
     `True` if the current operating system is **vanilla Microsoft Windows**
     (i.e., _not_ running the Cygwin POSIX compatibility layer).
