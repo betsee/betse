@@ -93,7 +93,7 @@ class Parameters(object):
         self.fixed_cluster_bound = self.config['variable settings']['fixed cluster boundary']
 
 
-        self.youngMod = float(self.config['variable settings']['elastic modulus'])
+        self.youngMod = float(self.config['variable settings']['shear modulus'])
 
         self.mu_membrane = 1.0 # membrane viscocity
 

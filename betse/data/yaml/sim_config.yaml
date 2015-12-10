@@ -118,7 +118,7 @@ sim time settings:
 
 general options:
 
-  comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
+  comp grid size: 30         # grid used in computation of environmental parameters (keep smaller than 50)
   plot grid size: 50                 # grid used for interpolated data plotting (recommend 60 to 100)
 
   simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
@@ -636,7 +636,7 @@ variable settings:
 
   fixed cluster boundary: False   # are membranes of cells exterior to the cluster fixed (False0 or free to move?
 
-  elastic modulus: 1000         # Elastic modulus (Young's modulus) of the cell [Pa] (1e3 to 1e5 Pa)
+  shear modulus: 1000         # Elastic modulus (shear modulus) of the tissue [Pa] (1e3 to 1e5 Pa)
 
   channel charge: -1         # charge of membrane channels
 

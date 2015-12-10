@@ -2,6 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# FIXME -- for flow calcs, the divergence needs to be directional derivatives (simple gradient x unit vectors)
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 """
@@ -32,6 +33,7 @@ from betse.science import finitediff as fd
 from betse.science.tissue.bitmapper import BitMapper
 from betse.science import filehandling as fh
 from betse.util.io import loggers
+from betse.exceptions import BetseExceptionParameters
 
 
 class Cells(object):
@@ -1400,35 +1402,40 @@ class Cells(object):
 
     def graphLaplacian(self,p):
         '''
-        Defines an abstract Laplacian that is used to solve Poisson's equation on the
-        irregular grid of the cell cluster.
+        Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
+        irregular Voronoi grid of the cell cluster.
 
         Parameters
         ----------
         p               An instance of the Parameters object
 
+        boundary        Values: 'zero_gradient' or 'zero_value". An optional parameter indicating
+                        whether the laplacian should be built with a zero-value (Dirchlet)
+                        or zero-gradient (Neumann) boundary conditions.
+
+
         Creates
         ----------
-        self.lapGJ, self.lapGJ
+        self.lapGJinv
 
         '''
 
-        # now define a Laplacian matrix for this cell collection
-        self.lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
 
-        # nn_inds = self.nn_i.tolist()
+        loggers.log_info("Creating velocity and deformation Poisson solver for cell cluster...")
+        # zero-value boundary version --------------------------------
+        lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
 
         for cell_i in self.cell_i:
 
             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our tolken cell
 
-            L = p.cell_space + 2*p.tm
+            L = self.gj_len
 
             vol = self.cell_vol[cell_i]
 
             idiag = -(self.cell_sa[cell_i]/vol)*(1/L)
 
-            self.lapGJ[cell_i,cell_i] = idiag
+            lapGJ[cell_i,cell_i] = idiag
 
             for mem_i in mem_set_i:
 
@@ -1438,14 +1445,45 @@ class Cells(object):
 
                     cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
 
-                    self.lapGJ[cell_i,cell_j] = (1/L)*(self.mem_sa[mem_i]/vol)
+                    lapGJ[cell_i,cell_j] = (self.mem_sa[mem_i]/vol)*(1/L)
 
+        self.lapGJinv = np.linalg.pinv(lapGJ)
 
+#---------------------------------------------------------------------------------------------------------------
+        loggers.log_info("Creating internal pressure Poisson solver for cell cluster...")
+         # Next do zero-gradient boundary version --------------------------------
+        lapGJ_P = np.zeros((len(self.cell_i,), len(self.cell_i)))
 
-        self.lapGJinv = np.linalg.pinv(self.lapGJ)
+        for cell_i in self.cell_i:
 
-        # null out the original matrix to save memory:
-        self.lapGJ = None
+            mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our token cell
+
+            L = p.cell_space + 2*p.tm
+
+            vol = self.cell_vol[cell_i]
+
+            idiag = -(self.cell_sa[cell_i]/vol)*(1/L)
+
+            lapGJ_P[cell_i,cell_i] = idiag
+
+            for mem_i in mem_set_i:
+
+                mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
+
+                if mem_i == mem_j: # if on a boundary, add in a "self" term to produce zero gradient:
+
+                    cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+
+                    lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + (1/L)*(self.mem_sa[mem_i]/vol)
+
+                elif mem_i != mem_j:  # if we're not on a boundary...
+
+                    cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+
+                    lapGJ_P[cell_i,cell_j] = (1/L)*(self.mem_sa[mem_i]/vol)
+
+        self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
+
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1627,6 +1665,33 @@ class Cells(object):
 
             self.nn_edges[mem_i,0,:] = pt1_cell
             self.nn_edges[mem_i,1,:] = pt2_cell
+
+        self.cell_nn_tx = []
+        self.cell_nn_ty = []
+
+
+        for cell_i, cell_j in self.cell_nn_i:
+
+            pt1 = self.cell_centres[cell_i]
+            pt2 = self.cell_centres[cell_j]
+
+            tang_o = pt2 - pt1
+            norm_tang = np.sqrt(tang_o[0]**2 + tang_o[1]**2)
+
+            if norm_tang != 0:
+                tang = tang_o/norm_tang
+
+            else:
+                norm_tang = 1
+                tang = tang_o/norm_tang
+                tang[0] = 0
+                tang[1] = 0
+
+            self.cell_nn_tx.append(tang[0])
+            self.cell_nn_ty.append(tang[1])
+
+        self.cell_nn_tx = np.asarray(self.cell_nn_tx)
+        self.cell_nn_ty = np.asarray(self.cell_nn_ty)
 
     def save_cluster(self,p,savecells = True):
         '''

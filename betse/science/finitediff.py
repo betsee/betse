@@ -963,7 +963,23 @@ def flux_summer(U,V,P):
     sV = V[0:-1:1,:] # south midpoints
 
     # do the sum:
-    F[:,:] = - nV + sV - eU + wU
+    F[:,:] = nV - sV + eU - wU
+
+    return F
+
+def flux_summer_sym(U,V):
+
+    F = np.zeros(U.shape)
+
+    eP = U[:,1:] # east midpoints
+    wP = U[:,0:-1] # west midpoints
+    nP = V[1:,:] # north midpoints
+    sP = V[0:-1,:] # south midpoints
+
+    F[0:-1,:] = nP
+    F[1:,:] = F[1:,:] - sP
+    F[:,0:-1] = F[:,0:-1] + eP
+    F[:,1:] = F[:,1:] - wP
 
     return F
 
