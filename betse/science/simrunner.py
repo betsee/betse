@@ -902,41 +902,41 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_P is True:
 
-        if p.fluid_flow is True or p.deformation is True:
+        # if p.fluid_flow is True or p.deformation is True:
 
-            if p.showCells is True:
-                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
-            else:
-                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-                 clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        if p.showCells is True:
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-            axP.set_title('Final Hydrostatic Pressure in Cell Network')
-            axP.set_xlabel('Spatial distance [um]')
-            axP.set_ylabel('Spatial distance [um]')
-            cbP.set_label('Pressure [Pa]')
+        axP.set_title('Final Hydrostatic Pressure in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure [Pa]')
+
+        if saveImages is True:
+            savename13 = savedImg + 'final_P_2D_gj' + '.png'
+            plt.savefig(savename13,format='png')
+
+        plt.show(block=False)
+
+
+        if p.sim_ECM is True and p.fluid_flow is True:
+
+            plt.figure()
+            plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
+            plt.colorbar()
+            plt.axis('equal')
+            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
+            plt.title('Final Extracellular Pressure [Pa]')
 
             if saveImages is True:
-                savename13 = savedImg + 'final_P_2D_gj' + '.png'
+                savename13 = savedImg + 'final_P_2D_env' + '.png'
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
-
-
-            if p.sim_ECM is True and p.fluid_flow is True:
-
-                plt.figure()
-                plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-                plt.colorbar()
-                plt.axis('equal')
-                plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-                plt.title('Final Extracellular Pressure [Pa]')
-
-                if saveImages is True:
-                    savename13 = savedImg + 'final_P_2D_env' + '.png'
-                    plt.savefig(savename13,format='png')
-
-                plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_osmoP is True: # FIXME make this into a pressure head plot set

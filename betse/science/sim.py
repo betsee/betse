@@ -870,6 +870,9 @@ class Simulator(object):
         self.I_tot_x_time = [0]
         self.I_tot_y_time = [0]
 
+        self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
+        self.P_cells = np.zeros(len(cells.cell_i))
+
         if p.deformation is True:
 
             self.cell_centres_time = []
@@ -877,10 +880,6 @@ class Simulator(object):
             self.maskM_time = []
             self.mem_edges_time = []
             self.cell_verts_time = []
-
-            self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
-            self.T_mem = np.zeros(len(cells.mem_i)) # initialize tension of the membrane
-            self.P_cells = np.zeros(len(cells.cell_i))
 
         if p.voltage_dye is True:
 
@@ -1367,6 +1366,9 @@ class Simulator(object):
         self.rho_pump_time = []    # store pump and channel states as function of time...
         self.rho_channel_time = []
 
+        self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure in cells at membrane
+        self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
+
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
@@ -1380,9 +1382,7 @@ class Simulator(object):
             self.mem_edges_time = []
             self.cell_verts_time = []
 
-            self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
-            self.T_mem = np.zeros(len(cells.mem_i)) # initialize tension of the membrane
-            self.P_cells = np.zeros(len(cells.cell_i))
+
 
         if p.Ca_dyn is True:
             self.cc_er_to = np.copy(self.cc_er[:])
@@ -3253,6 +3253,39 @@ class Simulator(object):
             # average the pressure to individual cells
             self.osmo_P_delta = np.dot(cells.M_sum_mems,self.osmo_P_delta)/cells.num_mems
 
+        # Calculate the osmotic water influx, resulting internal pressure and volume change of cells:
+
+        # map osmotic pressure to each cell membrane:
+        P_osmo = self.osmo_P_delta[cells.mem_to_cells]
+
+        # Calculate the transmembrane flow of water due to osmotic pressure.
+        # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
+        # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
+        u_osmo = (P_osmo - self.P_mem)*(p.aquaporins/p.mu_water)
+
+        # pressure at the membrane is increased due to osmotic influx:
+        P_react = p.tm*np.dot(cells.M_sum_mems,u_osmo*cells.mem_sa)/cells.cell_vol
+
+        self.P_mem = self.P_mem + P_react[cells.mem_to_cells]
+
+        self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
+
+        # calculate the change in cell volume due to osmotic water influx:
+        # First calculate the % strain:
+        eta = (1/p.youngMod)*P_react
+
+        # next update cell volume:
+        cells.cell_vol = (1+eta)*cells.cell_vol
+
+        # update cell conservations to conserve total mass:
+        self.cc_cells = self.cc_cells*(1+eta)
+
+        if p.voltage_dye ==1:
+            self.cDye_cell = self.cDye_cell*(1+eta)
+
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+            self.cIP3 = self.cIP3*(1+eta)
+
     def electro_P(self,cells,p):
         """
         Calculates electrostatic pressure in collection of cells.
@@ -3261,7 +3294,7 @@ class Simulator(object):
         """
 
         # surface charge density for cells:
-        Q_cell = self.rho_cells*cells.cell_vol*(1/cells.cell_sa)*(1)
+        Q_cell = self.rho_cells*cells.cell_vol*(1/cells.cell_sa)*(1/p.ff_cell)
         dist = p.cell_space + 2*p.tm
 
 
@@ -3277,7 +3310,7 @@ class Simulator(object):
                     self.v_cell[cells.mem_to_cells][cells.mem_nn[:,0]])/(dist)
 
 
-        P_electro = 0.1*Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
+        P_electro = Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
         P_x = P_electro*cells.mem_tx
         P_y = P_electro*cells.mem_ty
 
@@ -3341,8 +3374,6 @@ class Simulator(object):
 
         """
 
-        # FIXME: everything you have tried to do here is utter garbage. Please try again with the Stokes equation.
-        # thank you, the Management.
 
         # first determine the trans-membrane pressure due to electrostatics, if required:
         if p.deform_electro is True:
@@ -3360,40 +3391,7 @@ class Simulator(object):
             self.get_density(cells,p)
             self.get_mass_flux(cells,p)
 
-            # FIXME: plot the mass flux calculated in get_mass_flux and also include gap junction fluxes!
-
-            cell_vol_o = cells.cell_vol[:]
-
-            # look at fluid flow and pressure resulting from osmotic flows:
-
-            # map osmotic pressure to each cell membrane:
-            P_osmo = self.osmo_P_delta[cells.mem_to_cells]
-
-            # Calculate the transmembrane flow of water due to osmotic pressure.
-            # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
-            # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
-            u_osmo = (P_osmo - self.P_mem)*p.aquaporins
-
-            # # get the change in mass per membrane:
-            delta_mass_mem = u_osmo*p.dt*cells.mem_sa*self.density[cells.mem_to_cells]
-
-            # get the total mass coming into each cell:
-            delta_mass = np.dot(cells.M_sum_mems,delta_mass_mem)  + self.delta_m_salts
-
-            # original mass per cell:
-            mass_to = self.density*cells.cell_vol
-            # new mass per cell:
-            mass_t1 = mass_to + delta_mass
-
-            # if we assume the change in volume has not happened yet, what is the increase in density?
-            density_t1 = (mass_t1/cells.cell_vol)
-
-            # calculate the change in pressure using a fluid dynamics state equation:
-            delta_P = ((density_t1 - self.density)*(p.R*p.T))/18e-3
-
-            P_mem_b = delta_P[cells.mem_to_cells] + self.P_mem
-
-            # P_mem_b = u_osmo + self.P_mem
+            # look at fluid flow and internal pressure resulting from osmotic flows:
 
         else:
             P_mem_b = np.zeros(len(cells.mem_i))
@@ -3449,17 +3447,6 @@ class Simulator(object):
             P_net_mem = self.P_mem + P_react_mem
             self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
-
-        if p.deform_osmo is True:
-
-            sx = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,2]
-            sy = (self.P_mem - self.T_mem)*cells.mem_vects_flat[:,3]
-
-            P_cll = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
-            F_net = P_cll*cells.cell_sa
-
-        # update the tension force:
-        self.T_mem = self.P_mem[:] # assume a tension force develops which is equal and opposite to the applied load
 
         #--------------------------------------------------------------------------------------------
         # calculate the strain with respect to the membrane midpoints:
@@ -3600,10 +3587,10 @@ class Simulator(object):
 
             self.mass_flux = self.mass_flux + m_flx
 
-        # total mass change in cell
-        mass_change = self.mass_flux*p.dt*cells.mem_sa
-        # sum the change over the membranes to get the total mass change of salts:
-        self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
+        # # total mass change in cell
+        # mass_change = self.mass_flux*p.dt*cells.mem_sa
+        # # sum the change over the membranes to get the total mass change of salts:
+        # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):

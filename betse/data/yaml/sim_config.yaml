@@ -628,9 +628,9 @@ variable settings:
 
   water viscocity: 1e-3      # viscocity of medium [Pa s]
 
-  membrane water conductivity: 1e-15   # membrane resistance to water flow (aquaporin fraction) (1e-15 to 1e-17)
+  membrane water conductivity: 1e-7   # membrane resistance to water flow (aquaporin fraction) (1e-15 to 1e-17)
 
-  include osmotic pressure: True    # include osmotic pressure in deformation (excludes electrostatic pressure)?
+  include osmotic pressure: False    # include osmotic pressure in deformation (excludes electrostatic pressure)?
 
   include electrostatic pressure: False   # include electrostatic pressure in deformation (excludes osmotic pressure)?
 
