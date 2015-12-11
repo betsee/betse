@@ -765,24 +765,24 @@ class Cells(object):
                     self.M_sum_mem_to_ecm[i_ecm,ind2] = 1
 
 
-            #------------------------------------
-            # calculate segments from cell centre to ecm midpoints (chord_mag):
-            chord_mag = []
-
-            for cell_i, mem_i_set in enumerate(self.cell_to_mems):
-
-                cent = self.cell_centres[cell_i]
-
-                ecm_points = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
-
-                chords = ecm_points - cent
-                chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
-                chord_mag.append(chord_m)
-
-            self.chord_mag, _ , _ = tb.flatten(chord_mag)
-            self.chord_mag = np.asarray(self.chord_mag)
-
-            self.chord_mag = (self.chord_mag[self.ecm_to_mem_mids[:,0]] + self.chord_mag[self.ecm_to_mem_mids[:,1]])/2
+            # #------------------------------------
+            # # calculate segments from cell centre to ecm midpoints (chord_mag):
+            # chord_mag = []
+            #
+            # for cell_i, mem_i_set in enumerate(self.cell_to_mems):
+            #
+            #     cent = self.cell_centres[cell_i]
+            #
+            #     ecm_points = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
+            #
+            #     chords = ecm_points - cent
+            #     chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
+            #     chord_mag.append(chord_m)
+            #
+            # self.chord_mag, _ , _ = tb.flatten(chord_mag)
+            # self.chord_mag = np.asarray(self.chord_mag)
+            #
+            # self.chord_mag = (self.chord_mag[self.ecm_to_mem_mids[:,0]] + self.chord_mag[self.ecm_to_mem_mids[:,1]])/2
 
             #---------Deformation matrix-------------------------------------------------------------------------------
 
@@ -831,45 +831,45 @@ class Cells(object):
 
             self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
-            #----matrices for calculating trans-membrane Laplacian and inverse Laplacian:
-
-            self.mem_LapM = np.zeros((len(self.cell_i), len(self.cell_i)))
-
-            for cell_i in self.cell_i:
-
-                # get the set of membrane indices for the cell
-                mem_inds = self.cell_to_mems[cell_i]
-
-                diag_multi = self.num_mems[cell_i]/self.cell_vol[cell_i]  # number of nearest neighbours
-
-                # diagonal element will be the negative of the number of neighbours:
-                self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i])
-
-                for mem_i in mem_inds:
-
-                    # find out which membrane the mem_i is partnered to:
-                    mem_partners = self.mem_nn[mem_i]
-
-                    if mem_partners[0] == mem_partners[1]: # then we know we're on a boundary
-                        # we know the membrane belongs to this cell, already set so do nothing
-                        pass
-
-                    elif mem_partners[0] == mem_i: # otherwise, if the first partner is the index from the query cell
-
-                        # find out which cell the partner belongs to:
-                        cell_j = self.mem_to_cells[mem_partners[1]]
-                        self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
-                        # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
-
-
-                    elif mem_partners[1] == mem_i:
-
-                        cell_j = self.mem_to_cells[mem_partners[0]]
-                        self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
-                        # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
-
-
-            self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)  # take the inverse to solve poisson equation
+            # #----matrices for calculating trans-membrane Laplacian and inverse Laplacian:
+            #
+            # self.mem_LapM = np.zeros((len(self.cell_i), len(self.cell_i)))
+            #
+            # for cell_i in self.cell_i:
+            #
+            #     # get the set of membrane indices for the cell
+            #     mem_inds = self.cell_to_mems[cell_i]
+            #
+            #     diag_multi = self.num_mems[cell_i]/self.cell_vol[cell_i]  # number of nearest neighbours
+            #
+            #     # diagonal element will be the negative of the number of neighbours:
+            #     self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i])
+            #
+            #     for mem_i in mem_inds:
+            #
+            #         # find out which membrane the mem_i is partnered to:
+            #         mem_partners = self.mem_nn[mem_i]
+            #
+            #         if mem_partners[0] == mem_partners[1]: # then we know we're on a boundary
+            #             # we know the membrane belongs to this cell, already set so do nothing
+            #             pass
+            #
+            #         elif mem_partners[0] == mem_i: # otherwise, if the first partner is the index from the query cell
+            #
+            #             # find out which cell the partner belongs to:
+            #             cell_j = self.mem_to_cells[mem_partners[1]]
+            #             self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
+            #             # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+            #
+            #
+            #         elif mem_partners[1] == mem_i:
+            #
+            #             cell_j = self.mem_to_cells[mem_partners[0]]
+            #             self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
+            #             # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
+            #
+            #
+            # self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)  # take the inverse to solve poisson equation
 
         #-----------------------------------------------------------------------------------------------------------
 
@@ -1429,11 +1429,16 @@ class Cells(object):
 
             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our tolken cell
 
-            L = self.gj_len
+            L_set = self.nn_len[mem_set_i]
+
+            # find valid (not -1) indices of the nn length set:
+            inds_L = (L_set != -1).nonzero()
+
+            L_o = np.mean(L_set[inds_L])
 
             vol = self.cell_vol[cell_i]
 
-            idiag = -(self.cell_sa[cell_i]/vol)*(1/L)
+            idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)
 
             lapGJ[cell_i,cell_i] = idiag
 
@@ -1445,7 +1450,13 @@ class Cells(object):
 
                     cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
 
-                    lapGJ[cell_i,cell_j] = (self.mem_sa[mem_i]/vol)*(1/L)
+                    # L = self.nn_len[mem_i]
+                    #
+                    # if L == -1:
+                    #
+                    #     L = L_o
+
+                    lapGJ[cell_i,cell_j] = (self.mem_sa[mem_i]/vol)*(1/L_o)
 
         self.lapGJinv = np.linalg.pinv(lapGJ)
 
@@ -1458,32 +1469,37 @@ class Cells(object):
 
             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our token cell
 
-            L = p.cell_space + 2*p.tm
+            # L = p.cell_space + 2*p.tm
+
+            L_set = self.nn_len[mem_set_i]
+
+            # find valid (not -1) indices of the nn length set:
+            inds_L = (L_set != -1).nonzero()
+
+            L_o = np.mean(L_set[inds_L])
 
             vol = self.cell_vol[cell_i]
 
-            idiag = -(self.cell_sa[cell_i]/vol)*(1/L)
+            idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)
 
             lapGJ_P[cell_i,cell_i] = idiag
+
 
             for mem_i in mem_set_i:
 
                 mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
 
+                cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+
                 if mem_i == mem_j: # if on a boundary, add in a "self" term to produce zero gradient:
 
-                    cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
-
-                    lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + (1/L)*(self.mem_sa[mem_i]/vol)
+                    lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + (1/L_o)*(self.mem_sa[mem_i]/vol)
 
                 elif mem_i != mem_j:  # if we're not on a boundary...
 
-                    cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
-
-                    lapGJ_P[cell_i,cell_j] = (1/L)*(self.mem_sa[mem_i]/vol)
+                    lapGJ_P[cell_i,cell_j] = (1/L_o)*(self.mem_sa[mem_i]/vol)
 
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
-
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1654,7 +1670,7 @@ class Cells(object):
 
             if len_mag == 0.0:
 
-                self.nn_len[mem_i] = 1
+                self.nn_len[mem_i] = -1
 
             else:
 
