@@ -199,8 +199,6 @@ world options:
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
-    electroosmosis: False       # electroosmosis in the intra and extracellular spaces? (Note: memory intenstive option!)
-
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -600,8 +598,8 @@ variable settings:
   morphogen properties:  # specify the properties of an auxillary chemical
 
       include morphogen: True     # include electrodiffusion of an auxillary chemical substance?
-      Dm: 1.0e-12        # morphogen membrane diffusion coefficient [m2/s]
-      Do: 1.0e-9         # morphogen free diffusion constant [m2/s]
+      Dm: 1.0e-15        # morphogen membrane diffusion coefficient [m2/s]
+      Do: 1.0e-10         # morphogen free diffusion constant [m2/s]
       z: -1               # charge of morphogen (oxidation state)
       env conc: 1.0e-3        # initial concentration of morphogen in the environment [mmol/L]
       cell conc: 1.0e-3    # initial concentration of morphogen in the cell network [mmol/L]
@@ -611,7 +609,7 @@ variable settings:
       peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
       acts extracellularly: False         # acts via extracellular (True) or intracellular (False) concentration?
       active pumping:                     # use ATP driven pumps to actively move morphogen?
-        turn on: True                     # turn pumping on?
+        turn on: False                     # turn pumping on?
         pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
         maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
 

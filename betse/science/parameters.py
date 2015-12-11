@@ -81,8 +81,6 @@ class Parameters(object):
 
         self.fluid_flow = self.config['world options']['fluid flow']['include fluid flow']
 
-        self.base_eosmo = self.config['world options']['fluid flow']['electroosmosis']
-
         self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
 
         self.deformation = self.config['world options']['deformation']['turn on']

@@ -403,7 +403,6 @@ class SimRunner(object):
 
         plt.show()
 
-
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if saveImages is True:
         images_path = p.sim_results
@@ -902,44 +901,28 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_P is True:
 
-        # if p.fluid_flow is True or p.deformation is True:
+        if p.deformation is True or p.deform_osmo is True:
 
-        if p.showCells is True:
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+            if p.showCells is True:
+                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+            else:
+                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+                 clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-        axP.set_title('Final Hydrostatic Pressure in Cell Network')
-        axP.set_xlabel('Spatial distance [um]')
-        axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure [Pa]')
-
-        if saveImages is True:
-            savename13 = savedImg + 'final_P_2D_gj' + '.png'
-            plt.savefig(savename13,format='png')
-
-        plt.show(block=False)
-
-
-        if p.sim_ECM is True and p.fluid_flow is True:
-
-            plt.figure()
-            plt.imshow(sim.P_env,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-            plt.colorbar()
-            plt.axis('equal')
-            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Final Extracellular Pressure [Pa]')
+            axP.set_title('Final Hydrostatic Pressure in Cell Network')
+            axP.set_xlabel('Spatial distance [um]')
+            axP.set_ylabel('Spatial distance [um]')
+            cbP.set_label('Pressure [Pa]')
 
             if saveImages is True:
-                savename13 = savedImg + 'final_P_2D_env' + '.png'
+                savename13 = savedImg + 'final_P_2D_gj' + '.png'
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_osmoP is True: # FIXME make this into a pressure head plot set
+    if p.plot_osmoP is True:
 
         if p.deform_osmo is True:
 
@@ -1000,19 +983,16 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.deform_electro is True:
 
-            # average the electrostatic pressure from mems to whole cell:
-            P_electro_cell = np.dot(cells.M_sum_mems,sim.P_electro)/cells.num_mems
-
-            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=P_electro_cell,number_cells=p.enumerate_cells,
+            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.F_electro,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-            # axEP.quiver(cells.mem_vects_flat[:,0]*p.um,cells.mem_vects_flat[:,1]*p.um,
-            #     sim.P_electro*cells.mem_vects_flat[:,2],sim.P_electro*cells.mem_vects_flat[:,3])
+            axEP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
+                sim.F_electro_x,sim.F_electro_y)
 
-            axEP.set_title('Final Electrostatic Pressure in Cell Network')
+            axEP.set_title('Final Electrostatic Body Force in Cell Network')
             axEP.set_xlabel('Spatial distance [um]')
             axEP.set_ylabel('Spatial distance [um]')
-            cbEP.set_label('Pressure [Pa]')
+            cbEP.set_label('Volume Force [N/m3]')
 
 
             if saveImages is True:
@@ -1254,7 +1234,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    if p.ani_Pcell is True and animate == 1 and p.base_eosmo is True:
+    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
 
         if p.showCells is True:
 
