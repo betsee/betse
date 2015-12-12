@@ -870,8 +870,7 @@ class Simulator(object):
 
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
         self.P_cells = np.zeros(len(cells.cell_i))
-        self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
-        self.Ty = np.zeros(len(cells.cell_i))
+
 
         if p.deformation is True:
 
@@ -880,6 +879,12 @@ class Simulator(object):
             self.maskM_time = []
             self.mem_edges_time = []
             self.cell_verts_time = []
+
+            self.dx_cell_time = []
+            self.dy_cell_time = []
+
+            self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
+            self.Ty = np.zeros(len(cells.cell_i))
 
         if p.voltage_dye is True:
 
@@ -1106,7 +1111,13 @@ class Simulator(object):
 
             if p.deformation is True:
 
-                self.getDeformation(cells,t,p)
+                if p.td_deform is False:
+
+                    self.getDeformation(cells,t,p)
+
+                else:
+
+                    self.timeDeform(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                 # determine flux through gap junctions for IP3:
@@ -1196,6 +1207,9 @@ class Simulator(object):
                     self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
+
+                    self.dx_cell_time.append(self.d_cells_x[:])
+                    self.dy_cell_time.append(self.d_cells_y[:])
 
 
                 if p.fluid_flow is True:
@@ -1368,9 +1382,6 @@ class Simulator(object):
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure in cells at membrane
         self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
 
-        self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
-        self.Ty = np.zeros(len(cells.cell_i))
-
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
@@ -1383,6 +1394,12 @@ class Simulator(object):
             self.maskM_time = []
             self.mem_edges_time = []
             self.cell_verts_time = []
+
+            self.dx_cell_time = []
+            self.dy_cell_time = []
+
+            self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
+            self.Ty = np.zeros(len(cells.cell_i))
 
 
 
@@ -1582,7 +1599,13 @@ class Simulator(object):
 
             if p.deformation is True:
 
-                self.getDeformation(cells,t,p)
+                if p.td_deform is False:
+
+                    self.getDeformation(cells,t,p)
+
+                else:
+
+                    self.timeDeform(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
@@ -1686,6 +1709,9 @@ class Simulator(object):
                     self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
+
+                    self.dx_cell_time.append(self.d_cells_x[:])
+                    self.dy_cell_time.append(self.d_cells_y[:])
 
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
@@ -3272,7 +3298,7 @@ class Simulator(object):
         """
 
         # average charge density at the gap junctions between cells:
-        rho_cells = 10*self.rho_cells*(1/p.ff_cell)
+        rho_cells = self.rho_cells*(1/p.ff_cell)
 
         Q_cell = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
 

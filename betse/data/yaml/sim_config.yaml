@@ -208,6 +208,8 @@ world options:
 
     turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
 
+    time dependent: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE DESIGNATION
@@ -237,7 +239,7 @@ tissue profile definition:
     # profiles apply to the same cell, options defined by later profiles
     # override options defined by earlier profiles for that cell.
 
-    # FIXME -- there needs to be some way to easily turn all tissue profiles off!
+    # FIXME -- there needs to be some way to easily turn all tissue profiles off
     tissue profiles:
         # Example default tissue profile, providing sensible defaults for all
         # options *NOT* defined by subsequent profiles. (Options defined by
@@ -634,7 +636,7 @@ variable settings:
 
   fixed cluster boundary: False   # are membranes of cells exterior to the cluster fixed (False0 or free to move?
 
-  shear modulus: 500         # Elastic modulus (shear modulus) of individual cell [Pa] (100 to 1e6 Pa)
+  shear modulus: 50         # Elastic modulus (shear modulus) of individual cell [Pa] (100 to 1e6 Pa)
 
   channel charge: -1         # charge of membrane channels
 

@@ -1215,9 +1215,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    # if p.ani_Velocity is True and p.deformation is True and animate == 1:
-    #
-    #     viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
+    if p.ani_Velocity is True and p.deformation is True and animate == 1:
+
+        viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
 
     if p.exportData is True:
         viz.exportData(cells, sim, p)
@@ -1277,7 +1277,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_osmoP is True and animate == 1:
+    if p.ani_osmoP is True and p.deform_osmo is True and animate == 1:
 
         osmo_P_atm = [arr*(1) for arr in sim.osmo_P_delta_time]
 

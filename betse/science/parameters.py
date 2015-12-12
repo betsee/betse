@@ -85,6 +85,8 @@ class Parameters(object):
 
         self.deformation = self.config['world options']['deformation']['turn on']
 
+        self.td_deform = self.config['world options']['deformation']['time dependent']
+
         self.deform_osmo = self.config['variable settings']['include osmotic pressure']
         self.deform_electro = self.config['variable settings']['include electrostatic pressure']
 

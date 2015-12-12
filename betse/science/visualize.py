@@ -1288,7 +1288,8 @@ class AnimateEfield(object):
 
 class AnimateVelocity(object):
 
-    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = '/animation/Velocity',saveFile = 'Velocity_'):
+    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = '/animation/Velocity',
+        saveFile = 'Velocity_'):
 
         self.fig = plt.figure()
         self.ax = plt.subplot(111)
@@ -1427,6 +1428,109 @@ class AnimateVelocity(object):
 
         if self.p.autoscale_Velocity_ani is True:
             self.msh.set_clim(0,cmax)
+
+        if self.save is True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
+class AnimateDeformation(object):
+
+    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = '/animation/Deformation',
+        saveFile = 'Deformation_'):
+
+        self.fig = plt.figure()
+        self.ax = plt.subplot(111)
+        self.p = p
+        self.sim = sim
+        self.cells = cells
+        self.save = save
+
+        if self.save is True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+
+        dx = sim.dx_cell_time[0]
+        dy = sim.dy_cell_time[0]
+
+        dd = np.sqrt(dx**2 + dy**2)
+
+        points = np.multiply(sim.cell_verts_time[0], p.um)
+        dd_collection = PolyCollection(points, array=dd*p.um, cmap=p.default_cm, edgecolors='none')
+        self.ax.add_collection(dd_collection)
+
+        self.ax.quiver(p.um*sim.cell_centres_time[0][:,0],p.um*sim.cell_centres_time[0][:,1],dx,dy)
+
+        self.ax.axis('equal')
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if p.autoscale_Velocity_ani is False:
+            dd_collection.set_clim(p.Velocity_ani_min_clr,p.Velocity_ani_max_clr)
+
+        cb = self.fig.colorbar(dd_collection)
+
+        self.tit = "Displacement Field and Deformation"
+        self.ax.set_title(self.tit)
+        self.ax.set_xlabel('Spatial distance [um]')
+        self.ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Deformation [um]')
+
+        self.frames = len(sim.time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        plt.show()
+
+    def aniFunc(self,i):
+
+        # we need to have changing cells, so we have to clear the plot and redo it...
+        self.fig.clf()
+        self.ax = plt.subplot(111)
+
+        dx = self.sim.dx_cell_time[i]
+        dy = self.sim.dy_cell_time[i]
+
+        dd = np.sqrt(dx**2 + dy**2)
+
+        points = np.multiply(self.sim.cell_verts_time[i], self.p.um)
+        dd_collection = PolyCollection(points, array=dd*self.p.um, cmap=self.p.default_cm, edgecolors='none')
+        self.ax.add_collection(dd_collection)
+
+        self.ax.quiver(self.p.um*self.sim.cell_centres_time[i][:,0],self.p.um*self.sim.cell_centres_time[i][:,1],dx,dy)
+
+        self.ax.axis('equal')
+
+        xmin = self.cells.xmin*self.p.um
+        xmax = self.cells.xmax*self.p.um
+        ymin = self.cells.ymin*self.p.um
+        ymax = self.cells.ymax*self.p.um
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if self.p.autoscale_Velocity_ani is False:
+
+            dd_collection.set_clim(self.p.Velocity_ani_min_clr,self.p.Velocity_ani_max_clr)
+
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+        self.ax.set_xlabel('Spatial distance [um]')
+        self.ax.set_ylabel('Spatial distance [um]')
+
+        cb = self.fig.colorbar(dd_collection)
+
+        cb.set_label('Deformation [um]')
 
         if self.save is True:
             self.fig.canvas.draw()
