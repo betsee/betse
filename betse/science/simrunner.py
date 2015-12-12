@@ -85,7 +85,7 @@ class SimRunner(object):
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
-            if p.fluid_flow is True: # if user desires fluid flow:
+            if p.fluid_flow is True or p.deformation is True: # if user desires fluid flow:
 
                 # make a laplacian and solver for discrete transfers on closed, irregular cell network
                 loggers.log_info('Creating cell network Poisson solver...')
@@ -901,7 +901,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_P is True:
 
-        if p.deformation is True or p.deform_osmo is True:
+        if p.deform_osmo is True:
 
             if p.showCells is True:
                 figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
@@ -1001,8 +1001,31 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
-
     if p.plot_Vel is True:
+
+        if p.deformation is True:
+
+            d_cells = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
+
+            figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
+                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr,
+                clrmap = p.default_cm)
+
+            axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
+                sim.d_cells_x,sim.d_cells_y)
+
+            axDef.set_title('Displacement in Cell Network')
+            axDef.set_xlabel('Spatial distance [um]')
+            axDef.set_ylabel('Spatial distance [um]')
+            cbDef.set_label('Displacement [um]')
+
+
+            if saveImages is True:
+                savename13 = savedImg + 'final_displacement_2D' + '.png'
+                plt.savefig(savename13,format='png')
+
+            plt.show(block=False)
+
 
         if p.fluid_flow is True:
 
@@ -1191,6 +1214,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if p.ani_Velocity is True and p.fluid_flow is True and animate == 1:
 
         viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
+
+    # if p.ani_Velocity is True and p.deformation is True and animate == 1:
+    #
+    #     viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
 
     if p.exportData is True:
         viz.exportData(cells, sim, p)

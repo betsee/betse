@@ -870,6 +870,8 @@ class Simulator(object):
 
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
         self.P_cells = np.zeros(len(cells.cell_i))
+        self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
+        self.Ty = np.zeros(len(cells.cell_i))
 
         if p.deformation is True:
 
@@ -3241,7 +3243,7 @@ class Simulator(object):
         """
 
         # average charge density at the gap junctions between cells:
-        rho_cells = self.rho_cells*(1/p.ff_cell)
+        rho_cells = 10*self.rho_cells*(1/p.ff_cell)
 
         Q_cell = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
 
@@ -3357,8 +3359,16 @@ class Simulator(object):
 
         # calculate the initial displacement field (not divergence free!) for the forces using the linear elasticity
         # equation:
-        u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x - self.Tx))
-        u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y - self.Ty))
+
+        if p.fixed_cluster_bound is True:
+
+            u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x - self.Tx))
+            u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y - self.Ty))
+
+        else:
+
+            u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_x - self.Tx))
+            u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_y - self.Ty))
 
         # calculate the divergence of this displacement using derivatives:
         dux_dx_o = (u_x_o[cells.cell_nn_i[:,1]] - u_x_o[cells.cell_nn_i[:,0]])/cells.nn_len
@@ -3374,7 +3384,14 @@ class Simulator(object):
         div_u = np.dot(cells.gjMatrix,div_u_o)
 
         # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,div_u)
+
+        if p.fixed_cluster_bound is True:
+
+            P_react = np.dot(cells.lapGJ_P_inv,div_u)
+
+        else:
+
+            P_react = np.dot(cells.lapGJinv,div_u)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3389,6 +3406,11 @@ class Simulator(object):
         # calculate the displacement of cell centres under the applied force under incompressible conditions:
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
+
+        # if p.fixed_cluster_bound is True:
+        #
+        #     self.d_cells_x[cells.bflags_cells] = 0
+        #     self.d_cells_y[cells.bflags_cells] = 0
 
         # save the tension force for later:
         self.Tx = F_cell_x

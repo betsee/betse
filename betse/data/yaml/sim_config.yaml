@@ -634,7 +634,7 @@ variable settings:
 
   fixed cluster boundary: False   # are membranes of cells exterior to the cluster fixed (False0 or free to move?
 
-  shear modulus: 1000         # Elastic modulus (shear modulus) of the tissue [Pa] (1e3 to 1e5 Pa)
+  shear modulus: 500         # Elastic modulus (shear modulus) of individual cell [Pa] (100 to 1e6 Pa)
 
   channel charge: -1         # charge of membrane channels
 
