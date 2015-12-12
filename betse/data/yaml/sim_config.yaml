@@ -626,17 +626,19 @@ variable settings:
 
   gravity: False               # apply a global force of gravity acting in the -y direction?
 
-  water viscocity: 1e-3      # viscocity of medium [Pa s]
+  water viscocity: 1e-3      # viscocity of water [Pa s]
 
-  membrane water conductivity: 1e-7   # membrane resistance to water flow (aquaporin fraction) (1e-15 to 1e-17)
+  tissue viscocity: 1        # viscocity of the viscoelatic tissue [Pa s]
+
+  membrane water conductivity: 1e-7   # membrane resistance to water flow (aquaporin fraction) (1e-3 to 1e-8)
 
   include osmotic pressure: False    # include osmotic pressure in deformation (excludes electrostatic pressure)?
 
   include electrostatic pressure: False   # include electrostatic pressure in deformation (excludes osmotic pressure)?
 
-  fixed cluster boundary: False   # are membranes of cells exterior to the cluster fixed (False0 or free to move?
+  fixed cluster boundary: False   # are exterior cells of the cluster fixed (True) or free to move (False)?
 
-  shear modulus: 50         # Elastic modulus (shear modulus) of individual cell [Pa] (100 to 1e6 Pa)
+  shear modulus: 10         # Elastic modulus (shear modulus) of individual cell [Pa] (10 to 1e6 Pa)
 
   channel charge: -1         # charge of membrane channels
 

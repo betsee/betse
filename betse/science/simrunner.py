@@ -1005,7 +1005,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.deformation is True:
 
-            d_cells = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
+            d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
 
             figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
@@ -1013,7 +1013,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrmap = p.default_cm)
 
             axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
-                sim.d_cells_x,sim.d_cells_y)
+                sim.dx_cell_time[-1],sim.dy_cell_time[-1])
 
             axDef.set_title('Displacement in Cell Network')
             axDef.set_xlabel('Spatial distance [um]')

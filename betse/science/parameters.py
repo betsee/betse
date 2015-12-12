@@ -97,8 +97,6 @@ class Parameters(object):
 
         self.mu_membrane = 1.0 # membrane viscocity
 
-        self.EM_waves = True  # FIXME add to config file!
-
         # in-membrane diffusion coefficient
         self.D_membrane = float(self.config['variable settings']['membrane mobility'])
         # charge of membrane pumps and channels:
@@ -107,6 +105,8 @@ class Parameters(object):
         self.z_pump = float(self.config['variable settings']['pump charge'])
 
         self.mu_water = float(self.config['variable settings']['water viscocity'])   # viscocity of water [Pa.s]
+
+        self.mu_tissue = float(self.config['variable settings']['tissue viscocity']) # viscocity of tissue medium [Pa s}
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 

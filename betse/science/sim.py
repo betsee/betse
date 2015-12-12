@@ -166,10 +166,14 @@ class Simulator(object):
         self.I_mem =np.zeros(len(cells.mem_i))     # total current across membranes
         self.I_mem_time = []                            # membrane current unit time
 
-        # initialize vectors for electroosmosis in the cell collection:
+        # initialize vectors for potential electroosmosis in the cell collection:
         self.u_cells_x = np.zeros(len(cells.cell_i))
         self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
+
+        # initialize vectors for potential deformation:
+        self.d_cells_x = np.zeros(len(cells.cell_i))
+        self.d_cells_y = np.zeros(len(cells.cell_i))
 
         if p.gj_flux_sensitive is True:
 
@@ -450,6 +454,10 @@ class Simulator(object):
         self.u_cells_x = np.zeros(len(cells.cell_i))
         self.u_cells_y = np.zeros(len(cells.cell_i))
         self.P_cells = np.zeros(len(cells.cell_i))
+
+        # initialize vectors for potential deformation:
+        self.d_cells_x = np.zeros(len(cells.cell_i))
+        self.d_cells_y = np.zeros(len(cells.cell_i))
 
 
         if p.gj_flux_sensitive is True:
@@ -883,6 +891,9 @@ class Simulator(object):
             self.dx_cell_time = []
             self.dy_cell_time = []
 
+            self.dx_time = []
+            self.dy_time = []
+
             self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
             self.Ty = np.zeros(len(cells.cell_i))
 
@@ -1115,7 +1126,7 @@ class Simulator(object):
 
                     self.getDeformation(cells,t,p)
 
-                else:
+                elif p.td_deform is True:
 
                     self.timeDeform(cells,t,p)
 
@@ -1398,6 +1409,9 @@ class Simulator(object):
             self.dx_cell_time = []
             self.dy_cell_time = []
 
+            self.dx_time = []
+            self.dy_time = []
+
             self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
             self.Ty = np.zeros(len(cells.cell_i))
 
@@ -1603,7 +1617,7 @@ class Simulator(object):
 
                     self.getDeformation(cells,t,p)
 
-                else:
+                elif p.td_deform is True:
 
                     self.timeDeform(cells,t,p)
 
@@ -2758,11 +2772,11 @@ class Simulator(object):
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
         self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
-        self.I_gj_y = interp.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
                                       method=p.interp_type,fill_value=0)
         self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
 
@@ -3442,14 +3456,6 @@ class Simulator(object):
 
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
-        # if p.fixed_cluster_bound is True:
-        #
-        #     P_react = np.dot(cells.lapGJ_P_inv,div_u)
-        #
-        # else:
-        #
-        #     P_react = np.dot(cells.lapGJinv,div_u)
-
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
 
@@ -3507,11 +3513,185 @@ class Simulator(object):
             ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
 
             ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
-        #     cent = ecm_nest.mean(axis=0)     # calculate the centre point
-        #     angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
-        #             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
-        #     sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
-        #     sorted_region_b = sorted_region.tolist()
+
+            cells.ecm_verts.append(ecm_nest)
+
+        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
+
+        cells.deformWorld(p)
+
+        #----------------------------------------
+        if p.plot_while_solving is True and t > 0:
+
+            self.checkPlot.resetData(cells,self,p)
+
+    def timeDeform(self,cells,t,p):
+        """
+        Calculates the deformation of the cell cluster under the action
+        of intracellular pressure, considering the full time dependent
+        linear elasticity equation for an incompressible medium.
+
+        """
+
+
+
+        # Check for the adequacy of the time step:
+        step_check = (p.dt/(2*p.rc))*np.sqrt(p.youngMod/1000)
+
+        if step_check > 0.5:
+
+            new_ts = (0.5*2*p.rc)/(np.sqrt(p.youngMod/1000))
+
+            raise BetseExceptionSimulation(
+                    'Time dependent deformation is tricky business, requiring a small time step! '
+                    'The time step you are using is too large to bother going further with. '
+                    'Please set your time step to ' + str(new_ts) + ' and try again.')
+
+        k_const = (p.dt**2)*(p.youngMod/1000)
+
+        # # Determine action forces ------------------------------------------------
+        # # first determine body force components due to electrostatics, if desired:
+        # if p.deform_electro is True:
+        #     F_electro_x = self.F_electro_x
+        #     F_electro_y = self.F_electro_y
+        #
+        # else:
+        #
+        #     F_electro_x = np.zeros(len(cells.cell_i))
+        #     F_electro_y = np.zeros(len(cells.cell_i))
+        #
+        #
+        # # determine body force due to osmotic water flow, if desired
+        # if p.deform_osmo is True:
+        #
+        #     F_osmo_x = self.F_osmo_x
+        #     F_osmo_y = self.F_osmo_y
+        #
+        # else:
+        #     F_osmo_x = np.zeros(len(cells.cell_i))
+        #     F_osmo_y = np.zeros(len(cells.cell_i))
+        #
+        # # Take the total component of pressure from all contributions:
+        # F_cell_x = F_electro_x + F_osmo_x
+        # F_cell_y = F_electro_y + F_osmo_y
+
+        # FIXME above grey and below force only for testing purposes!
+
+        pc = self.dyna.tissue_target_inds['wound']
+        F_cell_x = np.zeros(len(cells.cell_i))
+        F_cell_y = np.zeros(len(cells.cell_i))
+        F_cell_y[pc] = 1.0e5*tb.pulse(t,2e-4,5e-4,1e-4)
+
+
+        self.dx_time.append(self.d_cells_x[:]) # append the initial value solution to the time save vector
+        self.dy_time.append(self.d_cells_y[:])
+
+        # Initial value solution--------------------------------------------------------------------------------
+        if t == 0.0:
+
+            if p.fixed_cluster_bound is True:
+
+                u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
+                u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
+
+            else:
+
+                u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
+                u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
+
+
+        elif t > 0.0:
+            # do the non-initial value, standard solution iteration:
+            if p.fixed_cluster_bound is True:
+
+                u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
+                        self.dx_time[-2]
+
+                u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
+                        self.dy_time[-2]
+
+            else:
+
+                u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
+                        self.dx_time[-2]
+
+                u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
+                        self.dy_time[-2]
+
+
+        # calculate divergence and internal pressure of the updated displacement field:
+
+        # calculate the divergence of this displacement using derivatives:
+        dux_dx_o = (u_x_o[cells.cell_nn_i[:,1]] - u_x_o[cells.cell_nn_i[:,0]])/cells.nn_len
+
+        dux_dx = dux_dx_o*cells.cell_nn_tx
+
+        duy_dy_o = (u_y_o[cells.cell_nn_i[:,1]] - u_y_o[cells.cell_nn_i[:,0]])/cells.nn_len
+        duy_dy = duy_dy_o*cells.cell_nn_ty
+
+        div_u_o = dux_dx + duy_dy
+
+        # and the divergence at the cell centres:
+        div_u = np.dot(cells.gjMatrix,div_u_o)
+
+        # calculate the reaction pressure required to counter-balance the flow field:
+
+        P_react = np.dot(cells.lapGJ_P_inv,(p.youngMod/k_const)*div_u)
+
+        # calculate its gradient:
+        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
+
+        gP_x = gradP_react*cells.cell_nn_tx
+        gP_y = gradP_react*cells.cell_nn_ty
+
+        # average the components of the reaction force field at cell centres and get boundary values:
+        self.gPx_cell = np.dot(cells.gjMatrix,gP_x)/cells.num_nn
+        self.gPy_cell = np.dot(cells.gjMatrix,gP_y)/cells.num_nn
+
+        # calculate the updated displacement of cell centres under the applied force under incompressible conditions:
+        self.d_cells_x = u_x_o - (k_const/p.youngMod)*self.gPx_cell
+        self.d_cells_y = u_y_o - (k_const/p.youngMod)*self.gPy_cell
+
+        if p.fixed_cluster_bound is True:
+
+            self.d_cells_x[cells.bflags_cells] = 0
+            self.d_cells_y[cells.bflags_cells] = 0
+
+
+        #--update the cell world with deformation ------------------------------------------------------------
+        # map membrane displacements to extracellular matrix mids and ecm:
+        ux_s = (self.d_cells_x/cells.cell_sa)
+        uy_s = (self.d_cells_y/cells.cell_sa)
+
+        ux_at_mem = ux_s[cells.mem_to_cells]*cells.mem_sa
+        uy_at_mem = uy_s[cells.mem_to_cells]*cells.mem_sa
+
+        ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
+        uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
+
+        # get new ecm verts:
+        new_ecm_verts_x = cells.ecm_verts_unique[:,0] + np.dot(cells.deforM,ux_at_ecm)
+        new_ecm_verts_y = cells.ecm_verts_unique[:,1] + np.dot(cells.deforM,uy_at_ecm)
+
+        ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
+
+        # set the voronoi points originally tagged to the ecm to the value of these new points
+        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
+
+        # recreate ecm_verts_unique:
+        cells.ecm_verts_unique = ecm_new[:]
+
+        # Repackage ecm verts so that the World module can do its magic:
+        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
+
+        # next repackage the structure to include individual cell data
+        cells.ecm_verts = [] # null the original ecm verts data structure...
+
+        for i in range(0,len(cells.cell_to_mems)):
+
+            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
+
+            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
 
             cells.ecm_verts.append(ecm_nest)
 

@@ -1462,6 +1462,10 @@ class Cells(object):
 
         self.lapGJinv = np.linalg.pinv(lapGJ)
 
+        if p.td_deform is True:
+            # if time dependent deformation is selected, also save the direct Laplacian operator:
+            self.lapGJ = lapGJ
+
 #---------------------------------------------------------------------------------------------------------------
         loggers.log_info("Creating internal pressure Poisson solver for cell cluster...")
          # Next do zero-gradient boundary version --------------------------------
@@ -1502,6 +1506,10 @@ class Cells(object):
                     lapGJ_P[cell_i,cell_j] = (1/L_o)*(self.mem_sa[mem_i]/vol)
 
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
+
+        if p.td_deform is True:
+            # if time dependent deformation is selected, also save the direct Laplacian operator:
+            self.lapGJ_P = lapGJ_P
 
     def redo_gj(self,dyna,p,savecells =True):
 
@@ -1679,7 +1687,7 @@ class Cells(object):
                 self.nn_len[mem_i] = len_mag
 
             self.nn_tx[mem_i] = tang_x
-            self.nn_ty[mem_j] = tang_y
+            self.nn_ty[mem_i] = tang_y
 
             self.nn_edges[mem_i,0,:] = pt1_cell
             self.nn_edges[mem_i,1,:] = pt2_cell
