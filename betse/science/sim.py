@@ -2818,26 +2818,44 @@ class Simulator(object):
             alpha = (1/p.mu_water)*self.D_env_weight
             #---------------------------------------------------------
 
-            # calculate the electroosmotic force (shaped to the u and v grids):
-            # first calculate the electric field on the u and v junctions:
-            venv = self.v_env.reshape(cells.X.shape)
+            if p.deform_electro is True:
 
-            # take the gradient of the venv and calculate the electric field
-            env_x, env_y = fd.gradient(venv,cells.delta)
+                # calculate the electroosmotic force (shaped to the u and v grids):
+                # first calculate the electric field on the u and v junctions:
+                venv = self.v_env.reshape(cells.X.shape)
 
-            # reshape and rescale the charge density:
-            rho_env = self.rho_env.reshape(cells.X.shape)*(1/p.ff_env)
+                # take the gradient of the venv and calculate the electric field
+                env_x, env_y = fd.gradient(venv,cells.delta)
 
-            # these are negative because the gradient of the voltage is the electric field and we just took the grad
-            # above but didn't carry through the negative sign.
-            Fe_x = -(rho_env)*env_x
-            Fe_y = -(rho_env)*env_y
+                # reshape and rescale the charge density:
+                rho_env = self.rho_env.reshape(cells.X.shape)*(1/p.ff_env)
+
+                # these are negative because the gradient of the voltage is the electric field and we just took the grad
+                # above but didn't carry through the negative sign.
+                Fe_x = -(rho_env)*env_x
+                Fe_y = -(rho_env)*env_y
+
+            else:
+
+                Fe_x = np.zeros(cells.X.shape)
+                Fe_y = np.zeros(cells.Y.shape)
+
+            if p.deform_osmo is True:
+
+                Fo_x, Fo_y = fd.gradient(self.osmo_P_env.reshape(cells.X.shape),cells.delta)
+                Fo_x = -Fo_x
+                Fo_y = -Fo_y
+
+            else:
+
+                Fo_x = np.zeros(cells.X.shape)
+                Fo_y = np.zeros(cells.Y.shape)
 
             #**************************************************************
 
             # sum the forces:
-            Fx = Fe_x
-            Fy = Fe_y
+            Fx = Fe_x + Fo_x
+            Fy = Fe_y + Fo_y
 
             source_x = -Fx*alpha
             source_y = -Fy*alpha
@@ -2856,26 +2874,16 @@ class Simulator(object):
                 cells.delta,cells.delta)
 
             # calculate the alpha-scaled internal pressure from the divergence of the force:
-            if p.closed_bound is True:
+            # if p.closed_bound is True:
 
-                P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-                P = P.reshape(cells.grid_obj.cents_shape)
+            P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
+            P = P.reshape(cells.grid_obj.cents_shape)
 
-                # enforce zero normal gradient boundary conditions on P:
-                P[:,0] = P[:,1]
-                P[:,-1] = P[:,-2]
-                P[0,:] = P[1,:]
-                P[-1,:] = P[-2,:]
-
-            else:
-                P = np.dot(cells.lapENVinv, div_uo.ravel())
-                P = P.reshape(cells.grid_obj.cents_shape)
-
-                # enforce zero pressure boundary conditions on P:
-                P[:,0] = 0
-                P[:,-1] = 0
-                P[0,:] = 0
-                P[-1,:] = 0
+            # enforce zero normal gradient boundary conditions on P:
+            P[:,0] = P[:,1]
+            P[:,-1] = P[:,-2]
+            P[0,:] = P[1,:]
+            P[-1,:] = P[-2,:]
 
             # smooth out the pressure
             P = fd.integrator(P)
@@ -2947,9 +2955,30 @@ class Simulator(object):
         # average to individual cells:
         alpha_gj = np.dot(cells.gjMatrix,alpha_gj_o)/cells.num_nn
 
-        # Calculate flow under electroosmotic body forces:
-        u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*self.F_electro_x)
-        u_gj_yo = np.dot(cells.lapGJinv,-alpha_gj*self.F_electro_y)
+        if p.deform_electro is True:
+
+            Fe_cell_x = self.F_electro_x
+            Fe_cell_y = self.F_electro_y
+
+        else:
+            Fe_cell_x = np.zeros(len(cells.cell_i))
+            Fe_cell_y = np.zeros(len(cells.cell_i))
+
+        if p.deform_osmo is True:
+
+            Fo_cell_x = self.F_osmo_x
+            Fo_cell_y = self.F_osmo_y
+
+        else:
+            Fo_cell_x = np.zeros(len(cells.cell_i))
+            Fo_cell_y = np.zeros(len(cells.cell_i))
+
+        F_net_x = Fe_cell_x + Fo_cell_x
+        F_ney_y = Fe_cell_y + Fo_cell_y
+
+        # Calculate flow under body forces:
+        u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
+        u_gj_yo = np.dot(cells.lapGJinv,-alpha_gj*F_net_y)
 
         # calculate divergence of the flow field using derivatives:
         dux_dx_o = (u_gj_xo[cells.cell_nn_i[:,1]] - u_gj_xo[cells.cell_nn_i[:,0]])/cells.nn_len
@@ -2979,7 +3008,7 @@ class Simulator(object):
         self.u_cells_x = u_gj_xo - gPx_cell
         self.u_cells_y = u_gj_yo - gPy_cell
 
-        # enforce the boundary conditions:  # FIXME -- any way to do this so that the boundary tangent is zero?
+        # enforce the boundary conditions:
 
         self.u_cells_x[cells.bflags_cells] = 0
         self.u_cells_y[cells.bflags_cells] = 0
@@ -3385,13 +3414,15 @@ class Simulator(object):
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
-        if p.fixed_cluster_bound is True:
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
-            P_react = np.dot(cells.lapGJ_P_inv,div_u)
-
-        else:
-
-            P_react = np.dot(cells.lapGJinv,div_u)
+        # if p.fixed_cluster_bound is True:
+        #
+        #     P_react = np.dot(cells.lapGJ_P_inv,div_u)
+        #
+        # else:
+        #
+        #     P_react = np.dot(cells.lapGJinv,div_u)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3407,10 +3438,10 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.d_cells_x[cells.bflags_cells] = 0
-        #     self.d_cells_y[cells.bflags_cells] = 0
+        if p.fixed_cluster_bound is True:
+
+            self.d_cells_x[cells.bflags_cells] = 0
+            self.d_cells_y[cells.bflags_cells] = 0
 
         # save the tension force for later:
         self.Tx = F_cell_x

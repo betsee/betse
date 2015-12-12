@@ -187,7 +187,7 @@ world options:
                               # recommended 26.0e-9 m for animal cells
                               # 1.0e-6 for plant cells and animal cells with ecm
 
-  lattice disorder: 0.5       # noise level for the lattice
+  lattice disorder: 0.8       # noise level for the lattice
                               # recommended range 0 to 0.9
                               # this randomizes lattice points from a
                               # square grid. If equal to 0 a perfect
