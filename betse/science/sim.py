@@ -3533,8 +3533,6 @@ class Simulator(object):
 
         """
 
-
-
         # Check for the adequacy of the time step:
         step_check = (p.dt/(2*p.rc))*np.sqrt(p.youngMod/1000)
 
@@ -3580,7 +3578,8 @@ class Simulator(object):
         pc = self.dyna.tissue_target_inds['wound']
         F_cell_x = np.zeros(len(cells.cell_i))
         F_cell_y = np.zeros(len(cells.cell_i))
-        F_cell_y[pc] = 1.0e5*tb.pulse(t,2e-4,5e-4,1e-4)
+        # F_cell_y[pc] = 1.0e5*tb.pulse(t,2e-4,5e-4,1e-4)
+        # F_cell_y[pc] = 5.0e4
 
 
         self.dx_time.append(self.d_cells_x[:]) # append the initial value solution to the time save vector
@@ -3589,34 +3588,58 @@ class Simulator(object):
         # Initial value solution--------------------------------------------------------------------------------
         if t == 0.0:
 
-            if p.fixed_cluster_bound is True:
+            u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
+            u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
 
-                u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
-                u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
-
-            else:
-
-                u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
-                u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
+            # if p.fixed_cluster_bound is True:
+            #
+            #     u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
+            #     u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
+            #
+            # else:
+            #
+            #     u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
+            #     u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
 
 
         elif t > 0.0:
             # do the non-initial value, standard solution iteration:
-            if p.fixed_cluster_bound is True:
 
-                u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
+            # calculate the velocity for viscous damping:
+            vx = (self.d_cells_x - self.dx_time[-2])/(2*p.dt)
+            vy = (self.d_cells_y - self.dy_time[-2])/(2*p.dt)
+
+            gamma = ((p.dt**2)*(p.mu_tissue))/(1000*(2*p.rc))
+
+
+            u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) -  gamma*vx + \
+                        (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
                         self.dx_time[-2]
 
-                u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
+            u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) - gamma*vy + \
+                        (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
                         self.dy_time[-2]
 
-            else:
 
-                u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
-                        self.dx_time[-2]
-
-                u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
-                        self.dy_time[-2]
+            # if p.fixed_cluster_bound is True:
+            #
+            #     u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) -  gamma*vx + \
+            #             (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
+            #             self.dx_time[-2]
+            #
+            #     u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) - gamma*vy + \
+            #             (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
+            #             self.dy_time[-2]
+            #
+            # else:
+            #
+            #     u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) - gamma*vx + \
+            #             (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
+            #             self.dx_time[-2]
+            #
+            #     u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) - gamma*vy + \
+            #             (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
+            #             self.dy_time[-2]
 
 
         # calculate divergence and internal pressure of the updated displacement field:
@@ -3652,10 +3675,10 @@ class Simulator(object):
         self.d_cells_x = u_x_o - (k_const/p.youngMod)*self.gPx_cell
         self.d_cells_y = u_y_o - (k_const/p.youngMod)*self.gPy_cell
 
-        if p.fixed_cluster_bound is True:
+        # if p.fixed_cluster_bound is True:
 
-            self.d_cells_x[cells.bflags_cells] = 0
-            self.d_cells_y[cells.bflags_cells] = 0
+        self.d_cells_x[cells.bflags_cells] = 0
+        self.d_cells_y[cells.bflags_cells] = 0
 
 
         #--update the cell world with deformation ------------------------------------------------------------

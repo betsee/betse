@@ -628,7 +628,7 @@ variable settings:
 
   water viscocity: 1e-3      # viscocity of water [Pa s]
 
-  tissue viscocity: 1        # viscocity of the viscoelatic tissue [Pa s]
+  tissue viscocity: 10        # viscocity of the viscoelatic tissue [Pa s] (0.1 to 10; larger = higher wave damping)
 
   membrane water conductivity: 1e-7   # membrane resistance to water flow (aquaporin fraction) (1e-3 to 1e-8)
 
