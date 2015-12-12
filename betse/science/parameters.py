@@ -817,6 +817,12 @@ class Parameters(object):
         self.Velocity_ani_min_clr =float(ro['Velocity Ani']['min val'])         # maximum colorbar value in V/m
         self.Velocity_ani_max_clr =float(ro['Velocity Ani']['max val'])       # maximum colorbar value in V/m
 
+        self.ani_Deformation = ro['Deformation Ani']['animate Deformation']   # 2d animation of electric field
+        self.ani_Deformation_type =ro['Deformation Ani']['data type']   # data type can be 'Vmem' or 'Displacement'
+        self.autoscale_Deformation_ani =ro['Deformation Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
+        self.Deformation_ani_min_clr =float(ro['Deformation Ani']['min val'])         # maximum colorbar value in V/m
+        self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
+
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
         self.saveAnimations = ro['save animations']    # save all animations as png sequences
 

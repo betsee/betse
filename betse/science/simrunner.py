@@ -1001,14 +1001,15 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
-    if p.plot_Vel is True:
+        # deformation plot:
 
         if p.deformation is True:
 
             d_cells = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
 
             figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr,
+                clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
+                clrMax = p.Deformation_ani_max_clr,
                 clrmap = p.default_cm)
 
             axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
@@ -1025,6 +1026,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 plt.savefig(savename13,format='png')
 
             plt.show(block=False)
+
+    if p.plot_Vel is True:
 
 
         if p.fluid_flow is True:
@@ -1081,9 +1084,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
                 plt.show(block=False)
 
-    #------------------------------------------------------------------------------------------------------------------
+    #---------Animations---------------------------------------------------------------------------------------
 
-    if p.ani_ip32d is True and p.Ca_dyn is True and animate == 1:
+    if p.ani_ip32d is True and p.Ca_dyn is True and animate == 1 and p.deformation is False:
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
@@ -1098,7 +1101,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
 
-    if p.ani_dye2d is True and p.voltage_dye == 1 and animate ==1:
+    if p.ani_dye2d is True and p.voltage_dye == 1 and animate ==1 and p.deformation is False:
 
         if p.sim_ECM is False:
 
@@ -1124,7 +1127,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
             number_cells = p.enumerate_cells, saveFolder = '/animation/Dye', saveFile = 'Dye_')
 
-    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and animate == 1:
+    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and animate == 1 and p.deformation is False:
 
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
@@ -1138,7 +1141,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
                 ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
 
-    if p.ani_vm2d is True and animate == 1:
+    if p.ani_vm2d is True and animate == 1 and p.deformation is False:
 
         vmplt = [1000*arr for arr in sim.vm_time]
 
@@ -1161,7 +1164,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                      clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
                     ani_repeat=True,number_cells=False,saveFolder = '/animation/Vmem', saveFile = 'vm_',current_overlay=p.I_overlay)
 
-    if p.ani_vmgj2d is True and animate == 1:
+    if p.ani_vmgj2d is True and animate == 1 and p.deformation is False:
 
         if p.sim_ECM is True:
             viz.AnimateGJData(cells, sim, p, tit='Vcell ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
@@ -1179,7 +1182,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                     clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
                     saveFile = 'vmem_gj', number_cells=False)
 
-    if p.ani_vcell is True and animate == 1 and p.sim_ECM == 1:
+    if p.ani_vcell is True and animate == 1 and p.sim_ECM == 1 and p.deformation is False:
 
         vcellplt = [1000*arr for arr in sim.vcell_time]
 
@@ -1195,7 +1198,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_I is True and animate == 1:
+    if p.ani_I is True and animate == 1 and p.deformation is False:
 
         viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =True,
             clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
@@ -1207,15 +1210,15 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
             clrmap = p.default_cm, number_cells=False,saveFolder = '/animation/current_ecm',saveFile = 'I_')
 
-    if p.ani_Efield is True and animate == 1:
+    if p.ani_Efield is True and animate == 1 and p.deformation is False:
 
         viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    if p.ani_Velocity is True and p.fluid_flow is True and animate == 1:
+    if p.ani_Velocity is True and p.fluid_flow is True and animate == 1 and p.deformation is False:
 
         viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    if p.ani_Velocity is True and p.deformation is True and animate == 1:
+    if p.ani_Deformation is True and p.deformation is True and animate == 1:
 
         viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
 
@@ -1223,7 +1226,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         viz.exportData(cells, sim, p)
 
 
-    if p.sim_eosmosis is True and p.sim_ECM is True and cells.gradMem is not None:
+    if p.sim_eosmosis is True and p.sim_ECM is True and cells.gradMem is not None and p.deformation is False:
 
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
@@ -1261,7 +1264,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
+    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True and p.deformation is False:
 
         if p.showCells is True:
 
@@ -1277,7 +1280,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_osmoP is True and p.deform_osmo is True and animate == 1:
+    if p.ani_osmoP is True and p.deform_osmo is True and animate == 1 and p.deformation is False:
 
         osmo_P_atm = [arr*(1) for arr in sim.osmo_P_delta_time]
 
@@ -1296,12 +1299,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
+    if p.ani_venv is True and animate == 1 and p.sim_ECM is True and p.deformation is False:
 
         viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
                        clrMax=p.venv_max_clr, save = saveAni)
 
-    if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True:
+    if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True and p.deformation is False:
 
         viz.AnimateMem(sim,cells,sim.time,p,clrAutoscale=p.autoscale_mem_ani,clrMin= p.mem_ani_min_clr,
                        clrMax=p.mem_ani_max_clr,save = saveAni,current_overlay=p.I_overlay)

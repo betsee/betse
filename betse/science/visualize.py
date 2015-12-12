@@ -1454,14 +1454,27 @@ class AnimateDeformation(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
+        if self.p.ani_Deformation_type == 'Vmem':
 
-        dx = sim.dx_cell_time[0]
-        dy = sim.dy_cell_time[0]
+            dx = self.sim.dx_cell_time[0]
+            dy = self.sim.dy_cell_time[0]
 
-        dd = np.sqrt(dx**2 + dy**2)
+            if self.p.sim_ECM is False:
+
+                dd = self.sim.vm_time[0]*1e3
+
+            else:
+                dd = self.sim.vcell_time[0]*1e3
+
+        elif self.p.ani_Deformation_type == 'Displacement':
+
+            dx = self.sim.dx_cell_time[0]
+            dy = self.sim.dy_cell_time[0]
+
+            dd = p.um*np.sqrt(dx**2 + dy**2)
 
         points = np.multiply(sim.cell_verts_time[0], p.um)
-        dd_collection = PolyCollection(points, array=dd*p.um, cmap=p.default_cm, edgecolors='none')
+        dd_collection = PolyCollection(points, array=dd, cmap=p.default_cm, edgecolors='none')
         self.ax.add_collection(dd_collection)
 
         self.ax.quiver(p.um*sim.cell_centres_time[0][:,0],p.um*sim.cell_centres_time[0][:,1],dx,dy)
@@ -1475,8 +1488,8 @@ class AnimateDeformation(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autoscale_Velocity_ani is False:
-            dd_collection.set_clim(p.Velocity_ani_min_clr,p.Velocity_ani_max_clr)
+        if p.autoscale_Deformation_ani is False:
+            dd_collection.set_clim(p.Deformation_ani_min_clr,p.Deformation_ani_max_clr)
 
         cb = self.fig.colorbar(dd_collection)
 
@@ -1484,7 +1497,12 @@ class AnimateDeformation(object):
         self.ax.set_title(self.tit)
         self.ax.set_xlabel('Spatial distance [um]')
         self.ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Deformation [um]')
+
+        if self.p.ani_Deformation_type == 'Displacement':
+            cb.set_label('Displacement [um]')
+
+        elif self.p.ani_Deformation_type == 'Vmem':
+            cb.set_label('Voltage [mV]')
 
         self.frames = len(sim.time)
 
@@ -1499,13 +1517,30 @@ class AnimateDeformation(object):
         self.fig.clf()
         self.ax = plt.subplot(111)
 
-        dx = self.sim.dx_cell_time[i]
-        dy = self.sim.dy_cell_time[i]
+        if self.p.ani_Deformation_type == 'Vmem':
 
-        dd = np.sqrt(dx**2 + dy**2)
+            dx = self.sim.dx_cell_time[i]
+            dy = self.sim.dy_cell_time[i]
+
+            if self.p.sim_ECM is False:
+
+                dd = self.sim.vm_time[i]*1e3
+
+            else:
+                dd = self.sim.vcell_time[i]*1e3
+
+        elif self.p.ani_Deformation_type == 'Displacement':
+
+            dx = self.sim.dx_cell_time[i]
+            dy = self.sim.dy_cell_time[i]
+
+            dd = 1e6*np.sqrt(dx**2 + dy**2)
+
+        cmin = dd.min()
+        cmax = dd.max()
 
         points = np.multiply(self.sim.cell_verts_time[i], self.p.um)
-        dd_collection = PolyCollection(points, array=dd*self.p.um, cmap=self.p.default_cm, edgecolors='none')
+        dd_collection = PolyCollection(points, array=dd, cmap=self.p.default_cm, edgecolors='none')
         self.ax.add_collection(dd_collection)
 
         self.ax.quiver(self.p.um*self.sim.cell_centres_time[i][:,0],self.p.um*self.sim.cell_centres_time[i][:,1],dx,dy)
@@ -1519,9 +1554,12 @@ class AnimateDeformation(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.p.autoscale_Velocity_ani is False:
+        if self.p.autoscale_Deformation_ani is False:
 
-            dd_collection.set_clim(self.p.Velocity_ani_min_clr,self.p.Velocity_ani_max_clr)
+            dd_collection.set_clim(self.p.Deformation_ani_min_clr,self.p.Deformation_ani_max_clr)
+
+        else:
+            dd_collection.set_clim(cmin,cmax)
 
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
@@ -1530,7 +1568,11 @@ class AnimateDeformation(object):
 
         cb = self.fig.colorbar(dd_collection)
 
-        cb.set_label('Deformation [um]')
+        if self.p.ani_Deformation_type == 'Displacement':
+            cb.set_label('Displacement [um]')
+
+        elif self.p.ani_Deformation_type == 'Vmem':
+            cb.set_label('Voltage [mV]')
 
         if self.save is True:
             self.fig.canvas.draw()

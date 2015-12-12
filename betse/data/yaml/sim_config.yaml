@@ -957,6 +957,14 @@ results options:
     max val: 500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]
 
+
+  Deformation Ani:
+    animate Deformation: True        # 2d animation of electric field in extracellullar matrix
+    data type: Vmem                  # data type can be 'Vmem' or 'Displacement'
+    autoscale colorbar: True    # autoscale colorbar to min max of datat set?
+    max val: 10               # max colorbar value [um] when autoscale is False
+    min val: 0                  # min colorbar value [um] when autoscale is False
+
   default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
                                # options include
                                # coolwarm, hot, rainbow, jet, Blues, Greens, bone
