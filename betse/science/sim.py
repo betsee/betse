@@ -1366,6 +1366,9 @@ class Simulator(object):
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure in cells at membrane
         self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
 
+        self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
+        self.Ty = np.zeros(len(cells.cell_i))
+
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
@@ -1988,16 +1991,16 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.gj_len
 
-        grad_vgj_x = grad_vgj*cells.nn_tx
-        grad_vgj_y = grad_vgj*cells.nn_ty
+        grad_vgj_x = grad_vgj*cells.cell_nn_tx
+        grad_vgj_y = grad_vgj*cells.cell_nn_ty
 
         # concentration gradient for ion i:
 
         conc_mem = self.cc_cells[i][cells.mem_to_cells]
         grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.gj_len
 
-        grad_cgj_x = grad_cgj*cells.nn_tx
-        grad_cgj_y = grad_cgj*cells.nn_ty
+        grad_cgj_x = grad_cgj*cells.cell_nn_tx
+        grad_cgj_y = grad_cgj*cells.cell_nn_ty
 
         # midpoint concentration:
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
@@ -2015,7 +2018,7 @@ class Simulator(object):
             p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
 
 
-        fgj = fgj_x*cells.nn_tx + fgj_y*cells.nn_ty
+        fgj = fgj_x*cells.cell_nn_tx + fgj_y*cells.cell_nn_ty
 
         delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
 
@@ -2287,16 +2290,16 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.gj_len
 
-        grad_vgj_x = grad_vgj*cells.nn_tx
-        grad_vgj_y = grad_vgj*cells.nn_ty
+        grad_vgj_x = grad_vgj*cells.cell_nn_tx
+        grad_vgj_y = grad_vgj*cells.cell_nn_ty
 
         # concentration gradient for Dye:
         Dye_mems = self.cDye_cell[cells.mem_to_cells]
 
         grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i])/cells.gj_len
 
-        grad_cgj_x = grad_cgj*cells.nn_tx
-        grad_cgj_y = grad_cgj*cells.nn_ty
+        grad_cgj_x = grad_cgj*cells.cell_nn_tx
+        grad_cgj_y = grad_cgj*cells.cell_nn_ty
 
         # midpoint concentration:
         cdye = (Dye_mems[cells.nn_i] + Dye_mems[cells.mem_i])/2
@@ -2314,7 +2317,7 @@ class Simulator(object):
         fgj_x_dye,fgj_y_dye = nernst_planck_flux(cdye,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             p.Do_Dye*self.gjopen,p.z_Dye,self.T,p)
 
-        fgj_dye = fgj_x_dye*cells.nn_tx + fgj_y_dye*cells.nn_ty
+        fgj_dye = fgj_x_dye*cells.cell_nn_tx + fgj_y_dye*cells.cell_nn_ty
 
         delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_dye*cells.mem_sa)/cells.cell_vol
 
@@ -2467,8 +2470,8 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.gj_len
 
-        grad_vgj_x = grad_vgj*cells.nn_tx
-        grad_vgj_y = grad_vgj*cells.nn_ty
+        grad_vgj_x = grad_vgj*cells.cell_nn_tx
+        grad_vgj_y = grad_vgj*cells.cell_nn_ty
 
         # concentration gradient for Dye:
 
@@ -2476,8 +2479,8 @@ class Simulator(object):
 
         grad_cgj = (IP3mem[cells.nn_i] - IP3mem[cells.mem_i])/cells.gj_len
 
-        grad_cgj_x = grad_cgj*cells.nn_tx
-        grad_cgj_y = grad_cgj*cells.nn_ty
+        grad_cgj_x = grad_cgj*cells.cell_nn_tx
+        grad_cgj_y = grad_cgj*cells.cell_nn_ty
 
         # midpoint concentration:
         cip3 = (IP3mem[cells.nn_i] + IP3mem[cells.mem_i])/2
@@ -2494,7 +2497,7 @@ class Simulator(object):
         fgj_x_ip3,fgj_y_ip3 = nernst_planck_flux(cip3,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             p.Do_IP3*self.gjopen,p.z_IP3,self.T,p)
 
-        fgj_ip3 = fgj_x_ip3*cells.nn_tx + fgj_y_ip3*cells.nn_ty
+        fgj_ip3 = fgj_x_ip3*cells.cell_nn_tx + fgj_y_ip3*cells.cell_nn_ty
 
         delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_ip3*cells.mem_sa)/cells.cell_vol
 
@@ -2664,8 +2667,8 @@ class Simulator(object):
             self.Egj = - (self.vm[cells.cell_nn_i[:,1]] - self.vm[cells.cell_nn_i[:,0]])/cells.gj_len
 
         # get x and y components of the electric field:
-        self.E_gj_x = cells.nn_tx*self.Egj
-        self.E_gj_y = cells.nn_ty*self.Egj
+        self.E_gj_x = cells.cell_nn_tx*self.Egj
+        self.E_gj_y = cells.cell_nn_ty*self.Egj
 
     def get_Bfield(self,cells,p):
 
@@ -2956,13 +2959,13 @@ class Simulator(object):
 
         div_u_o = dux_dx + duy_dy
 
-        div_u = np.dot(cells.gjMatrix,div_u_o)/cells.num_nn
+        div_u = np.dot(cells.gjMatrix,div_u_o)
 
         # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,div_u*cells.num_nn)
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
         # calculate its gradient:
-        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.gj_len)
+        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
 
         gP_x = gradP_react*cells.cell_nn_tx
         gP_y = gradP_react*cells.cell_nn_ty
@@ -3237,31 +3240,31 @@ class Simulator(object):
 
         """
 
-        # surface charge density for cells:
-        Q_cell = self.rho_cells*cells.cell_vol*(1/cells.cell_sa)*(1/p.ff_cell)
-        dist = p.cell_space + 2*p.tm
+        # average charge density at the gap junctions between cells:
+        rho_cells = self.rho_cells*(1/p.ff_cell)
+
+        Q_cell = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
 
 
         if p.sim_ECM is False:
 
-            Eab_o = -(self.vm[cells.mem_to_cells][cells.mem_nn[:,1]] -
-                    self.vm[cells.mem_to_cells][cells.mem_nn[:,0]])/(dist)
+            Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
+                    self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
 
         else:
 
-            Eab_o = -(self.v_cell[cells.mem_to_cells][cells.mem_nn[:,1]] -
-                    self.v_cell[cells.mem_to_cells][cells.mem_nn[:,0]])/(dist)
+            Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
+                    self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
 
-        P_electro = Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
-        P_x = P_electro*cells.mem_tx
-        P_y = P_electro*cells.mem_ty
-
+        # P_electro = Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
+        F_x = Q_cell*Eab_o*cells.cell_nn_tx
+        F_y = Q_cell*Eab_o*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
-        self.F_electro_x = np.dot(cells.M_sum_mems, P_x*cells.mem_sa)/cells.cell_vol
-        self.F_electro_y = np.dot(cells.M_sum_mems, P_y*cells.mem_sa)/cells.cell_vol
+        self.F_electro_x = np.dot(cells.gjMatrix, F_x)/cells.num_nn
+        self.F_electro_y = np.dot(cells.gjMatrix, F_y)/cells.num_nn
 
         # self.P_electro = P_x*cells.mem_vects_flat[:,2] + P_y*cells.mem_vects_flat[:,3]  # positive pressure points out
 
@@ -3354,11 +3357,10 @@ class Simulator(object):
 
         # calculate the initial displacement field (not divergence free!) for the forces using the linear elasticity
         # equation:
-        u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*F_cell_x)
-        u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*F_cell_y)
+        u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x - self.Tx))
+        u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y - self.Ty))
 
-        # calculate the divergence of this displacement:
-        # calculate divergence of the flow field using derivatives:
+        # calculate the divergence of this displacement using derivatives:
         dux_dx_o = (u_x_o[cells.cell_nn_i[:,1]] - u_x_o[cells.cell_nn_i[:,0]])/cells.nn_len
 
         dux_dx = dux_dx_o*cells.cell_nn_tx
@@ -3368,14 +3370,14 @@ class Simulator(object):
 
         div_u_o = dux_dx + duy_dy
 
-        # average the divergence to the cell centres:
-        div_u = np.dot(cells.gjMatrix,div_u_o)/cells.num_nn
+        # and the divergence at the cell centres:
+        div_u = np.dot(cells.gjMatrix,div_u_o)
 
         # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,div_u*cells.num_nn)
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
         # calculate its gradient:
-        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.gj_len)
+        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
 
         gP_x = gradP_react*cells.cell_nn_tx
         gP_y = gradP_react*cells.cell_nn_ty
@@ -3388,30 +3390,55 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
+        # save the tension force for later:
+        self.Tx = F_cell_x
+        self.Ty = F_cell_y
+
         #--update the cell world with deformation ------------------------------------------------------------
+        # map membrane displacements to extracellular matrix mids and ecm:
+        ux_s = (self.d_cells_x/cells.cell_sa)
+        uy_s = (self.d_cells_y/cells.cell_sa)
 
-        # deform cell centres
+        ux_at_mem = ux_s[cells.mem_to_cells]*cells.mem_sa
+        uy_at_mem = uy_s[cells.mem_to_cells]*cells.mem_sa
 
-        # deform mem-mids
+        ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
+        uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
 
-        # deform cell-verts
+        # get new ecm verts:
+        new_ecm_verts_x = cells.ecm_verts_unique[:,0] + np.dot(cells.deforM,ux_at_ecm)
+        new_ecm_verts_y = cells.ecm_verts_unique[:,1] + np.dot(cells.deforM,uy_at_ecm)
 
-        # deform voronoi lattice
+        ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
 
-        # remake mem-vectors
+        # set the voronoi points originally tagged to the ecm to the value of these new points
+        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
 
-        # remake gj vectors
+        # recreate ecm_verts_unique:
+        cells.ecm_verts_unique = ecm_new[:]
 
-        # remake plotting vectors
+        # Repackage ecm verts so that the World module can do its magic:
+        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
 
-        # remake cell mask
+        # next repackage the structure to include individual cell data
+        cells.ecm_verts = [] # null the original ecm verts data structure...
 
-        # if p.sim_ECM is True:
+        for i in range(0,len(cells.cell_to_mems)):
 
-        # find new cell and mem ecm space mappings on the grid
+            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
 
+            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
+        #     cent = ecm_nest.mean(axis=0)     # calculate the centre point
+        #     angles = np.arctan2(ecm_nest[:,1]-cent[1], ecm_nest[:,0] - cent[0])  # calculate point angles
+        #             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise
+        #     sorted_region = ecm_nest[np.argsort(angles)]   # sort indices counter-clockwise
+        #     sorted_region_b = sorted_region.tolist()
 
+            cells.ecm_verts.append(ecm_nest)
 
+        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
+
+        cells.deformWorld(p)
 
         #----------------------------------------
         if p.plot_while_solving is True and t > 0:

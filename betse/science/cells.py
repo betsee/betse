@@ -2,7 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME -- for flow calcs, the divergence needs to be directional derivatives (simple gradient x unit vectors)
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
 """
@@ -148,6 +147,8 @@ class Cells(object):
 
             self.short_environment(p)
             self.quick_maskM(p)
+
+        self.calc_gj_vects(p)
 
     def makeSeeds(self,p):
 
@@ -345,6 +346,7 @@ class Cells(object):
 
         #--------------------Remove small edges---------------------------------------------------
         loggers.log_info('Cleaning Voronoi geometry... ')
+
         perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
 
         ecm_verts_2 = []
@@ -1568,7 +1570,7 @@ class Cells(object):
                     self.nn_i[mem_i] = mem_i
                     self.cell_nn_i[mem_i] = [cell_i,cell_i]
 
-        # recalculate gap junction vectors
+        # calculate gap junction vectors
         self.calc_gj_vects(p)
 
         # now that basics are done, do the remaining calculations for gap junctions:

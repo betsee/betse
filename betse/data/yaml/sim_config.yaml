@@ -187,7 +187,7 @@ world options:
                               # recommended 26.0e-9 m for animal cells
                               # 1.0e-6 for plant cells and animal cells with ecm
 
-  lattice disorder: 0.8       # noise level for the lattice
+  lattice disorder: 0.5       # noise level for the lattice
                               # recommended range 0 to 0.9
                               # this randomizes lattice points from a
                               # square grid. If equal to 0 a perfect
@@ -335,7 +335,7 @@ tissue profile definition:
 
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
-          designation: cuts
+          designation: None
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -441,7 +441,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: True
+    event happens: False
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
