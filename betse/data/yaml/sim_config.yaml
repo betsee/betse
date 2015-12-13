@@ -79,7 +79,7 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 3.0             # end time [s] (recommend 3 seconds or more)
+    total time: 1.0             # end time [s] (recommend 3 seconds or more)
     sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ world options:
 
   deformation:
 
-    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+    turn on: True       # deformation of the structure under the action of osmotic and electrostatic pressure
 
     time dependent: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
 
@@ -628,11 +628,11 @@ variable settings:
 
   water viscocity: 1e-3      # viscocity of water [Pa s]
 
-  tissue viscocity: 10        # viscocity of the viscoelatic tissue [Pa s] (0.1 to 10; larger = higher wave damping)
+  viscous damping: 10        # viscous damping of shear waves in tissue [Pa s] (0.1 to 100; larger = higher damping)
 
   membrane water conductivity: 1e-7   # membrane resistance to water flow (aquaporin fraction) (1e-3 to 1e-8)
 
-  include osmotic pressure: False    # include osmotic pressure in deformation (excludes electrostatic pressure)?
+  include osmotic pressure: True    # include osmotic pressure in deformation (excludes electrostatic pressure)?
 
   include electrostatic pressure: False   # include electrostatic pressure in deformation (excludes osmotic pressure)?
 

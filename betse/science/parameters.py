@@ -106,7 +106,7 @@ class Parameters(object):
 
         self.mu_water = float(self.config['variable settings']['water viscocity'])   # viscocity of water [Pa.s]
 
-        self.mu_tissue = float(self.config['variable settings']['tissue viscocity']) # viscocity of tissue medium [Pa s}
+        self.mu_tissue = float(self.config['variable settings']['viscous damping']) # viscocity of tissue medium [Pa s}
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 

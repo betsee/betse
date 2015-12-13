@@ -1460,6 +1460,8 @@ class Cells(object):
 
                     lapGJ[cell_i,cell_j] = (self.mem_sa[mem_i]/vol)*(1/L_o)
 
+        lapGJ = (1/2)*lapGJ # our first derivatives were central differences so need the extra factor of 2
+
         self.lapGJinv = np.linalg.pinv(lapGJ)
 
         if p.td_deform is True:
@@ -1504,6 +1506,8 @@ class Cells(object):
                 elif mem_i != mem_j:  # if we're not on a boundary...
 
                     lapGJ_P[cell_i,cell_j] = (1/L_o)*(self.mem_sa[mem_i]/vol)
+
+        lapGJ_P = (1/2)*lapGJ_P # our first derivatives were central differences so need the extra factor of 2
 
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 

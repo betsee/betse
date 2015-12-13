@@ -880,7 +880,7 @@ class Simulator(object):
         self.P_cells = np.zeros(len(cells.cell_i))
 
 
-        if p.deformation is True:
+        if p.deformation is True and p.run_sim is True:
 
             self.cell_centres_time = []
             self.mem_mids_time = []
@@ -1118,9 +1118,12 @@ class Simulator(object):
 
             # calculate fluid flow:
             if p.fluid_flow is True:
+
                 self.getFlow(cells,p)
 
-            if p.deformation is True:
+            if p.deformation is True and p.run_sim is True:
+
+                self.run_sim = True
 
                 if p.td_deform is False:
 
@@ -1210,7 +1213,8 @@ class Simulator(object):
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
-                if p.deformation is True:
+                if p.deformation is True and p.run_sim is True:
+
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
                     self.maskM_time.append(cells.maskM[:])
@@ -1398,7 +1402,7 @@ class Simulator(object):
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
 
-        if p.deformation is True:
+        if p.deformation is True and p.run_sim is True:
 
             self.cell_centres_time = []
             self.mem_mids_time = []
@@ -1611,7 +1615,9 @@ class Simulator(object):
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
 
-            if p.deformation is True:
+            if p.deformation is True and p.run_sim is True:
+
+                self.run_sim = True
 
                 if p.td_deform is False:
 
@@ -1715,7 +1721,7 @@ class Simulator(object):
 
                     self.P_cells_time.append(self.P_cells[:])
 
-                if p.deformation is True:
+                if p.deformation is True and p.run_sim is True:
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
                     self.maskM_time.append(cells.maskM[:])
@@ -3282,27 +3288,29 @@ class Simulator(object):
 
         self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
 
-        # calculate the change in cell volume due to osmotic water influx:
-        # First calculate the % strain:
         eta = (1/p.youngMod)*P_react
 
         # next update cell volume:
-        cells.cell_vol = (1+eta)*cells.cell_vol
+        cells.cell_vol = ((1+eta))*cells.cell_vol
 
         # update cell conservations to conserve total mass:
-        self.cc_cells = self.cc_cells*(1+eta)
+        self.cc_cells = self.cc_cells*((1+eta))
 
         if p.voltage_dye ==1:
-            self.cDye_cell = self.cDye_cell*(1+eta)
+            self.cDye_cell = self.cDye_cell*((1+eta))
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            self.cIP3 = self.cIP3*(1+eta)
+            self.cIP3 = self.cIP3*((1+eta))
 
         # determine body force due to hydrostatic pressure gradient between cells:
         gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
 
-        self.F_osmo_x = gPcells*cells.cell_nn_tx
-        self.F_osmo_y = gPcells*cells.cell_nn_ty
+        F_osmo_x = gPcells*cells.cell_nn_tx
+        F_osmo_y = gPcells*cells.cell_nn_ty
+
+        # calculate a shear electrostatic body force at the cell centre:
+        self.F_osmo_x = np.dot(cells.gjMatrix, F_osmo_x)/cells.num_nn
+        self.F_osmo_y = np.dot(cells.gjMatrix, F_osmo_y)/cells.num_nn
 
     def electro_P(self,cells,p):
         """
@@ -3312,7 +3320,7 @@ class Simulator(object):
         """
 
         # average charge density at the gap junctions between cells:
-        rho_cells = self.rho_cells*(1/p.ff_cell)
+        rho_cells = 10*self.rho_cells*(1/p.ff_cell)
 
         Q_cell = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
 
@@ -3328,8 +3336,8 @@ class Simulator(object):
             Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
                     self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
+        # FIXME calculate a pressure and a mean cluster boundary pressure, that we can try adding to the ux uy solns
 
-        # P_electro = Q_cell[cells.mem_to_cells]*Eab_o # with respect to membrane nn vectors
         F_x = Q_cell*Eab_o*cells.cell_nn_tx
         F_y = Q_cell*Eab_o*cells.cell_nn_ty
 
@@ -3337,9 +3345,16 @@ class Simulator(object):
         self.F_electro_x = np.dot(cells.gjMatrix, F_x)/cells.num_nn
         self.F_electro_y = np.dot(cells.gjMatrix, F_y)/cells.num_nn
 
-        # self.P_electro = P_x*cells.mem_vects_flat[:,2] + P_y*cells.mem_vects_flat[:,3]  # positive pressure points out
-
         self.F_electro = np.sqrt(self.F_electro_x**2 + self.F_electro_y**2)
+
+        P_x = (self.F_electro_x*cells.cell_vol)/cells.cell_sa
+        P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
+
+        Pbx = P_x[cells.bflags_cells]
+        Pby = P_y[cells.bflags_cells]
+
+        self.P_electro_bound_x = np.mean(Pbx)
+        self.P_electro_bound_y = np.mean(Pby)
 
     def gravity_P(self,cells,p):
 
@@ -3434,6 +3449,9 @@ class Simulator(object):
             u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x - self.Tx))
             u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y - self.Ty))
 
+            # u_x_o = u_x_o + self.P_electro_bound_x*cells.gj_len
+            # u_y_o = u_y_o + self.P_electro_bound_y*cells.gj_len
+
         else:
 
             u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_x - self.Tx))
@@ -3470,10 +3488,10 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-        if p.fixed_cluster_bound is True:
-
-            self.d_cells_x[cells.bflags_cells] = 0
-            self.d_cells_y[cells.bflags_cells] = 0
+        # if p.fixed_cluster_bound is True:
+        #
+        #     self.d_cells_x[cells.bflags_cells] = 0
+        #     self.d_cells_y[cells.bflags_cells] = 0
 
         # save the tension force for later:
         self.Tx = F_cell_x
@@ -3547,6 +3565,8 @@ class Simulator(object):
 
         k_const = (p.dt**2)*(p.youngMod/1000)
 
+
+
         # # Determine action forces ------------------------------------------------
         # # first determine body force components due to electrostatics, if desired:
         # if p.deform_electro is True:
@@ -3578,8 +3598,8 @@ class Simulator(object):
         pc = self.dyna.tissue_target_inds['wound']
         F_cell_x = np.zeros(len(cells.cell_i))
         F_cell_y = np.zeros(len(cells.cell_i))
-        # F_cell_y[pc] = 1.0e5*tb.pulse(t,2e-4,5e-4,1e-4)
-        # F_cell_y[pc] = 5.0e4
+        F_cell_y[pc] = 1.0e6*tb.pulse(t,2e-5,8e-5,5e-5)
+        # # F_cell_y[pc] = 5.0e4
 
 
         self.dx_time.append(self.d_cells_x[:]) # append the initial value solution to the time save vector
@@ -3588,18 +3608,22 @@ class Simulator(object):
         # Initial value solution--------------------------------------------------------------------------------
         if t == 0.0:
 
+            wave_speed = np.sqrt(p.youngMod/1000)
+            wave_speed = np.float(wave_speed)
+            wave_speed = np.round(wave_speed,2)
+            freq = (wave_speed/p.wsx)*1e-3
+            freq = np.round(freq,2)
+
+            loggers.log_info(
+                'Your wave speed is about: ' +
+                 str(wave_speed) + ' m/s '
+                "so with your world size, you'd be looking for resonances at:"
+                ' ' + str(freq) + ' kHz '
+            )
+
+
             u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
             u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
-
-            # if p.fixed_cluster_bound is True:
-            #
-            #     u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
-            #     u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
-            #
-            # else:
-            #
-            #     u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) + (k_const/p.youngMod)*F_cell_x + self.d_cells_x
-            #     u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) + (k_const/p.youngMod)*F_cell_y + self.d_cells_y
 
 
         elif t > 0.0:
@@ -3620,24 +3644,11 @@ class Simulator(object):
                         (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
                         self.dy_time[-2]
 
-
-            # if p.fixed_cluster_bound is True:
-            #
-            #     u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x) -  gamma*vx + \
+            # u_x_o = k_const*np.dot(cells.lapGJ,self.d_cells_x)  + \
             #             (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
             #             self.dx_time[-2]
             #
-            #     u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y) - gamma*vy + \
-            #             (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
-            #             self.dy_time[-2]
-            #
-            # else:
-            #
-            #     u_x_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_x) - gamma*vx + \
-            #             (k_const/p.youngMod)*F_cell_x + 2*self.d_cells_x - \
-            #             self.dx_time[-2]
-            #
-            #     u_y_o = k_const*np.dot(cells.lapGJ_P,self.d_cells_y) - gamma*vy + \
+            # u_y_o = k_const*np.dot(cells.lapGJ,self.d_cells_y)  + \
             #             (k_const/p.youngMod)*F_cell_y + 2*self.d_cells_y - \
             #             self.dy_time[-2]
 

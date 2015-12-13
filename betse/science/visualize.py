@@ -843,11 +843,11 @@ class PlotWhileSolving(object):
 
         if p.sim_ECM is False:
 
-            if p.showCells is True and p.deformation is False:
+            if p.showCells is True and p.deformation is False or p.run_sim is False:
                 zv = sim.vm_time[-1]*1000
                 self.coll2.set_array(zv)
 
-            elif p.showCells is True and p.deformation is True:
+            elif p.showCells is True and p.deformation is True and p.run_sim is True:
 
                  # Add a collection of cell polygons, with animated voltage data
 

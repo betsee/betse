@@ -146,6 +146,7 @@ class SimRunner(object):
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
 
+
         # cells, _ = fh.loadSim(cells.savedWorld)
         cells = Cells(p)  # create an instance of world
 
@@ -174,6 +175,7 @@ class SimRunner(object):
                                                "Please run 'betse seed' to try again.")
 
         sim = Simulator(p)   # create an instance of Simulator
+        sim.run_sim = False
 
         if p.sim_ECM is False:
             sim.baseInit(cells, p)   # initialize simulation data structures
@@ -240,6 +242,7 @@ class SimRunner(object):
 
         sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
 
+
         if p.sim_ECM is False:
 
             sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
@@ -253,6 +256,7 @@ class SimRunner(object):
                 round(time.time() - start_time, 2)))
 
         loggers.log_info('When ready, close all of the figure windows to end the program.')
+
 
         if p.turn_all_plots_off is False:
             plots4Sim(
@@ -1003,7 +1007,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         # deformation plot:
 
-        if p.deformation is True:
+        if p.deformation is True and sim.run_sim is True:
 
             d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
 
@@ -1218,7 +1222,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    if p.ani_Deformation is True and p.deformation is True and animate == 1:
+    if p.ani_Deformation is True and p.deformation is True and animate == 1 and sim.run_sim is True:
 
         viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
 
