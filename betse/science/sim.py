@@ -3480,17 +3480,21 @@ class Simulator(object):
         self.d_cells_y = u_y_o - gPy_cell
 
         # save the tension force for later:
-        # self.Tx = F_cell_x
-        # self.Ty = F_cell_y
+        self.Tx = F_cell_x
+        self.Ty = F_cell_y
 
         #--update the cell world with deformation ------------------------------------------------------------
         # map membrane displacements to extracellular matrix mids and ecm:
         #  # first interpolate displacement field to membrane midpoints:
+
         ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
                          (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
         uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
                                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+
+        ux_at_mem[cells.bflags_mems] = self.d_cells_x[cells.bflags_cells]
+        uy_at_mem[cells.bflags_mems] = self.d_cells_y[cells.bflags_cells]
 
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
@@ -3586,8 +3590,8 @@ class Simulator(object):
         pc = self.dyna.tissue_target_inds['wound']
         F_cell_x = np.zeros(len(cells.cell_i))
         F_cell_y = np.zeros(len(cells.cell_i))
-        F_cell_y[pc] = 1.0e6*tb.pulse(t,2e-5,8e-5,5e-5)
-        # # F_cell_y[pc] = 5.0e4
+        F_cell_y[pc] = 1.0e6*tb.pulse(t,1e-5,8e-5,5e-5)
+        # F_cell_y[pc] = 5.0e5
 
 
         self.dx_time.append(self.d_cells_x[:]) # append the initial value solution to the time save vector
@@ -3643,22 +3647,22 @@ class Simulator(object):
 
         # calculate divergence and internal pressure of the updated displacement field:
 
-        # calculate the divergence of this displacement using derivatives:
-        dux_dx_o = (u_x_o[cells.cell_nn_i[:,1]] - u_x_o[cells.cell_nn_i[:,0]])/cells.nn_len
+           # first interpolate displacement field at membrane midpoints:
+        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_x_o,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        dux_dx = dux_dx_o*cells.cell_nn_tx
+        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_y_o,
+                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
 
-        duy_dy_o = (u_y_o[cells.cell_nn_i[:,1]] - u_y_o[cells.cell_nn_i[:,0]])/cells.nn_len
-        duy_dy = duy_dy_o*cells.cell_nn_ty
+        # get the component of the velocity field normal to the membranes:
+        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
-        div_u_o = dux_dx + duy_dy
-
-        # and the divergence at the cell centres:
-        div_u = np.dot(cells.gjMatrix,div_u_o)
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
-        P_react = np.dot(cells.lapGJ_P_inv,(p.youngMod/k_const)*div_u)
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3671,22 +3675,27 @@ class Simulator(object):
         self.gPy_cell = np.dot(cells.gjMatrix,gP_y)/cells.num_nn
 
         # calculate the updated displacement of cell centres under the applied force under incompressible conditions:
-        self.d_cells_x = u_x_o - (k_const/p.youngMod)*self.gPx_cell
-        self.d_cells_y = u_y_o - (k_const/p.youngMod)*self.gPy_cell
+        self.d_cells_x = u_x_o - self.gPx_cell
+        self.d_cells_y = u_y_o - self.gPy_cell
 
         # if p.fixed_cluster_bound is True:
 
         self.d_cells_x[cells.bflags_cells] = 0
         self.d_cells_y[cells.bflags_cells] = 0
 
+        # check the displacement for NANs:
+        check_v(self.d_cells_x)
 
-        #--update the cell world with deformation ------------------------------------------------------------
-        # map membrane displacements to extracellular matrix mids and ecm:
-        ux_s = (self.d_cells_x/cells.cell_sa)
-        uy_s = (self.d_cells_y/cells.cell_sa)
+        # --update the cell world with deformation ------------------------------------------------------------
 
-        ux_at_mem = ux_s[cells.mem_to_cells]*cells.mem_sa
-        uy_at_mem = uy_s[cells.mem_to_cells]*cells.mem_sa
+        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
+
+        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
+                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+
+        ux_at_mem[cells.bflags_mems] = self.d_cells_x[cells.bflags_cells]
+        uy_at_mem[cells.bflags_mems] = self.d_cells_y[cells.bflags_cells]
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)

@@ -1005,8 +1005,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
-        # deformation plot:
-
         if p.deformation is True and sim.run_sim is True:
 
             d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
