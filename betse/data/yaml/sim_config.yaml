@@ -206,7 +206,7 @@ world options:
 
   deformation:
 
-    turn on: True       # deformation of the structure under the action of osmotic and electrostatic pressure
+    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
 
     time dependent: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
 

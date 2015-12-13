@@ -1428,13 +1428,6 @@ class Simulator(object):
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
             self.cDye_env_time = []
 
-        if p.EM_waves is True:
-            self.Ax_time = [0.0]
-            self.Ay_time =[0.0]
-
-            self.dAx_time = []
-            self.dAy_time = []
-
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
@@ -2878,8 +2871,8 @@ class Simulator(object):
 
                 # these are negative because the gradient of the voltage is the electric field and we just took the grad
                 # above but didn't carry through the negative sign.
-                Fe_x = -(rho_env)*env_x
-                Fe_y = -(rho_env)*env_y
+                Fe_x = -rho_env*env_x
+                Fe_y = -rho_env*env_y
 
             else:
 
@@ -2993,7 +2986,6 @@ class Simulator(object):
                 # bottom
                 self.u_env_y[0,:] = self.u_env_y[1,:]
 
-
         #---------------Flow through gap junction connected cells-------------------------------------------------------
 
         # calculate the inverse viscocity for the cell collection, which is scaled by gj conductivity:
@@ -3020,23 +3012,26 @@ class Simulator(object):
             Fo_cell_y = np.zeros(len(cells.cell_i))
 
         F_net_x = Fe_cell_x + Fo_cell_x
-        F_ney_y = Fe_cell_y + Fo_cell_y
+        F_net_y = Fe_cell_y + Fo_cell_y
 
         # Calculate flow under body forces:
         u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
         u_gj_yo = np.dot(cells.lapGJinv,-alpha_gj*F_net_y)
 
-        # calculate divergence of the flow field using derivatives:
-        dux_dx_o = (u_gj_xo[cells.cell_nn_i[:,1]] - u_gj_xo[cells.cell_nn_i[:,0]])/cells.nn_len
+        # calculate divergence of the flow field using general definition:
+        # first interpolate flow field at membrane midpoints:
+        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_gj_xo,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        dux_dx = dux_dx_o*cells.cell_nn_tx
+        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_gj_yo,
+                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
 
-        duy_dy_o = (u_gj_yo[cells.cell_nn_i[:,1]] - u_gj_yo[cells.cell_nn_i[:,0]])/cells.nn_len
-        duy_dy = duy_dy_o*cells.cell_nn_ty
+        # get the component of the velocity field normal to the membranes:
+        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
-        div_u_o = dux_dx + duy_dy
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
-        div_u = np.dot(cells.gjMatrix,div_u_o)
 
         # calculate the reaction pressure required to counter-balance the flow field:
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
@@ -3048,16 +3043,15 @@ class Simulator(object):
         gP_y = gradP_react*cells.cell_nn_ty
 
         # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.gjMatrix,gP_x)/cells.num_nn
-        gPy_cell = np.dot(cells.gjMatrix,gP_y)/cells.num_nn
+        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
+        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
 
         self.u_cells_x = u_gj_xo - gPx_cell
         self.u_cells_y = u_gj_yo - gPy_cell
 
-        # enforce the boundary conditions:
-
-        self.u_cells_x[cells.bflags_cells] = 0
-        self.u_cells_y[cells.bflags_cells] = 0
+        # # enforce the boundary conditions:
+        # self.u_cells_x[cells.bflags_cells] = 0
+        # self.u_cells_y[cells.bflags_cells] = 0
 
     def eosmosis(self,cells,p):
 
@@ -3320,7 +3314,7 @@ class Simulator(object):
         """
 
         # average charge density at the gap junctions between cells:
-        rho_cells = 10*self.rho_cells*(1/p.ff_cell)
+        rho_cells = self.rho_cells*(1/p.ff_cell)
 
         Q_cell = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
 
@@ -3449,26 +3443,23 @@ class Simulator(object):
             u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x - self.Tx))
             u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y - self.Ty))
 
-            # u_x_o = u_x_o + self.P_electro_bound_x*cells.gj_len
-            # u_y_o = u_y_o + self.P_electro_bound_y*cells.gj_len
-
         else:
 
             u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_x - self.Tx))
             u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_y - self.Ty))
 
-        # calculate the divergence of this displacement using derivatives:
-        dux_dx_o = (u_x_o[cells.cell_nn_i[:,1]] - u_x_o[cells.cell_nn_i[:,0]])/cells.nn_len
+         # first interpolate displacement field at membrane midpoints:
+        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_x_o,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        dux_dx = dux_dx_o*cells.cell_nn_tx
+        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_y_o,
+                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
 
-        duy_dy_o = (u_y_o[cells.cell_nn_i[:,1]] - u_y_o[cells.cell_nn_i[:,0]])/cells.nn_len
-        duy_dy = duy_dy_o*cells.cell_nn_ty
+        # get the component of the velocity field normal to the membranes:
+        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
-        div_u_o = dux_dx + duy_dy
-
-        # and the divergence at the cell centres:
-        div_u = np.dot(cells.gjMatrix,div_u_o)
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
@@ -3488,22 +3479,19 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.d_cells_x[cells.bflags_cells] = 0
-        #     self.d_cells_y[cells.bflags_cells] = 0
-
         # save the tension force for later:
-        self.Tx = F_cell_x
-        self.Ty = F_cell_y
+        # self.Tx = F_cell_x
+        # self.Ty = F_cell_y
 
         #--update the cell world with deformation ------------------------------------------------------------
         # map membrane displacements to extracellular matrix mids and ecm:
-        ux_s = (self.d_cells_x/cells.cell_sa)
-        uy_s = (self.d_cells_y/cells.cell_sa)
+        #  # first interpolate displacement field to membrane midpoints:
+        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        ux_at_mem = ux_s[cells.mem_to_cells]*cells.mem_sa
-        uy_at_mem = uy_s[cells.mem_to_cells]*cells.mem_sa
+        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
+                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
