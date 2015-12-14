@@ -3680,7 +3680,7 @@ class Simulator(object):
 
         if p.fixed_cluster_bound is False:
 
-            self.d_cells_x = np.dot(cells.lapGJ_P_inv,-curl_phi_x) # FIXME: technically, these should be negative, but seem to produce opposite solution...
+            self.d_cells_x = np.dot(cells.lapGJ_P_inv,-curl_phi_x)
             self.d_cells_y = np.dot(cells.lapGJ_P_inv,-curl_phi_y)
 
         else:
