@@ -727,7 +727,7 @@ results options:
                                      # to the results directory
                                      # options True or False (case sensitive)
 
-  create all animations: False     # use this setting to quickly toggle creation of all
+  create all animations: True     # use this setting to quickly toggle creation of all
                                   # animations. If False, no animations created. If
                                   # true, all animations created.
                                   # options True or False (case sensitive)
@@ -971,7 +971,7 @@ results options:
 
   Deformation Ani:
     animate Deformation: True        # 2d animation of electric field in extracellullar matrix
-    data type: Vmem                  # data type can be 'Vmem' or 'Displacement'
+    data type: Displacement                  # data type can be 'Vmem' or 'Displacement'
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 10               # max colorbar value [um] when autoscale is False
     min val: 0                  # min colorbar value [um] when autoscale is False

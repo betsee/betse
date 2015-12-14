@@ -96,7 +96,7 @@ class Parameters(object):
         self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
 
         # calculate lame's parameters from young mod and the poisson ratio:
-        self.poi = 0.45 # Poisson's ratio for the biological medium
+        self.poi = 0.49 # Poisson's ratio for the biological medium
 
         self.lame_mu = self.youngMod/(2*(1+self.poi))
         self.lame_lamb = (self.youngMod*self.poi)/((1+self.poi)*(1-2*self.poi))

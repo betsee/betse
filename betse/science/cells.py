@@ -1876,6 +1876,67 @@ class Cells(object):
 
         self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
 
+    def curl(self,Fx,Fy,phi_z):
+        """
+        Calculates the curl of a vector field
+        defined on cell centres of the cluster.
+
+        Parameters
+        -----------
+        Fx       x-component of a 2D vector field
+        Fy:      y-component of a 2D vector field
+        phi_z:   z- component of a vector field with only a z-component
+
+        Returns
+        ----------
+        curl_x      Components of curl.
+        curl_y
+        curl_z
+
+        """
+
+        if type(phi_z) == int:
+            # x and y components of the fields:
+            grad_F_cell_x = (Fx[self.cell_nn_i[:,1]] - Fx[self.cell_nn_i[:,0]])/(2*self.nn_len)
+
+            dFx_dy = grad_F_cell_x*self.cell_nn_ty
+
+            grad_F_cell_y = (Fy[self.cell_nn_i[:,1]] - Fy[self.cell_nn_i[:,0]])/(2*self.nn_len)
+
+            dFy_dx = grad_F_cell_y*self.cell_nn_tx
+
+            curlF_o = dFy_dx - dFx_dy
+
+            curl_z = np.dot(self.M_sum_mems,curlF_o)/self.num_mems
+
+            curl_x = 0
+            curl_y = 0
+
+        elif type(Fx) == int and type(Fy) == int:
+
+            # the z-component of the field:
+            grad_phi = (phi_z[self.cell_nn_i[:,1]] - phi_z[self.cell_nn_i[:,0]])/(2*self.nn_len)
+
+            dphi_dx_o = grad_phi*self.cell_nn_tx
+            dphi_dy_o = grad_phi*self.cell_nn_ty
+
+            curl_phi_x_o = dphi_dy_o
+            curl_phi_y_o = -dphi_dx_o
+
+            curl_x = np.dot(self.M_sum_mems,curl_phi_x_o)/self.num_mems
+            curl_y = np.dot(self.M_sum_mems,curl_phi_y_o)/self.num_mems
+
+            curl_z = 0
+
+        else:
+
+            raise BetseExceptionParameters("Input to cells.curl not defined properly."
+                                           "It takes (Fx = 0, Fy=0, phi)  or "
+                                           "(Fx,Fy,phi=0). Also, the 0 must"
+                                           "be an integer, not 0.0.")
+
+        return curl_x, curl_y, curl_z
+
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
               # # matrices for re-calculating cell verts quickly from new ecm verts:

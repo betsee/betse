@@ -882,6 +882,8 @@ class Simulator(object):
 
         if p.deformation is True and p.run_sim is True:
 
+            self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
+
             self.cell_centres_time = []
             self.mem_mids_time = []
             self.maskM_time = []
@@ -894,8 +896,8 @@ class Simulator(object):
             self.dx_time = []
             self.dy_time = []
 
-            self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
-            self.Ty = np.zeros(len(cells.cell_i))
+            # self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
+            # self.Ty = np.zeros(len(cells.cell_i))
 
             self.phi = np.zeros(len(cells.cell_i))
             self.phi_time = []
@@ -1406,6 +1408,8 @@ class Simulator(object):
         self.vm_Matrix.append(dat_grid_vm[:])
 
         if p.deformation is True and p.run_sim is True:
+
+            self.ecm_verts_unique_to = cells.ecm_verts_unique[:]
 
             self.cell_centres_time = []
             self.mem_mids_time = []
@@ -3317,14 +3321,18 @@ class Simulator(object):
         """
 
         # average charge density at the gap junctions between cells:
-        rho_cells = self.rho_cells*(1/p.ff_cell)
+        rho_cells = 10*self.rho_cells*(1/p.ff_cell)
 
         # charge density interpolated to membranes
 
-        Q_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),rho_cells,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
+        # Q_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),rho_cells,
+        #                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        # Q_mem = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
+        # charge density averaged at nearest neighbour membranes:
+
+        Q_mem = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
+
+# FIXME: Maybe calculate Q per cell as Q = Cap Vmem as it's so important to get the right value here...
 
 
         if p.sim_ECM is False:
@@ -3446,13 +3454,13 @@ class Simulator(object):
 
         if p.fixed_cluster_bound is True:
 
-            u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x - self.Tx))
-            u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y - self.Ty))
+            u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x))
+            u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y))
 
         else:
 
-            u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_x - self.Tx))
-            u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_y - self.Ty))
+            u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_x))
+            u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_y))
 
          # first interpolate displacement field at membrane midpoints:
         ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_x_o,
@@ -3485,9 +3493,9 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-        # save the tension force for later:
-        self.Tx = F_cell_x
-        self.Ty = F_cell_y
+        # # save the tension force for later:
+        # self.Tx = F_cell_x
+        # self.Ty = F_cell_y
 
         #--update the cell world with deformation ------------------------------------------------------------
         # map membrane displacements to extracellular matrix mids and ecm:
@@ -3506,9 +3514,9 @@ class Simulator(object):
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
 
-        # get new ecm verts:
-        new_ecm_verts_x = cells.ecm_verts_unique[:,0] + np.dot(cells.deforM,ux_at_ecm)
-        new_ecm_verts_y = cells.ecm_verts_unique[:,1] + np.dot(cells.deforM,uy_at_ecm)
+        # get new ecm verts, using displacement on original verts as per definition:
+        new_ecm_verts_x = self.ecm_verts_unique_to[:,0] + np.dot(cells.deforM,ux_at_ecm)
+        new_ecm_verts_y = self.ecm_verts_unique_to[:,1] + np.dot(cells.deforM,uy_at_ecm)
 
         ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
 
@@ -3552,9 +3560,9 @@ class Simulator(object):
         # Check for the adequacy of the time step:
         step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
 
-        if step_check > 0.5:
+        if step_check > 1.0:
 
-            new_ts = (0.5*2*p.rc)/(np.sqrt(p.lame_mu/1000))
+            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
 
             raise BetseExceptionSimulation(
                     'Time dependent deformation is tricky business, requiring a small time step! '
@@ -3592,13 +3600,13 @@ class Simulator(object):
 
         # Testing force---------------------------------------------------------------------------------
 
-        # # above grey and below force only for testing purposes!
-        #
-        # pc = self.dyna.tissue_target_inds['wound']
+        # # # above grey and below force only for testing purposes!
+        # #
+        # pc = self.dyna.tissue_target_inds['spot']
         # F_cell_x = np.zeros(len(cells.cell_i))
         # F_cell_y = np.zeros(len(cells.cell_i))
-        # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
-        # # F_cell_y[pc] = 2.5e5
+        # # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
+        # F_cell_y[pc] = 2.0e7
 
         #-------------------------------------------------------------------------------------------------
 
@@ -3610,17 +3618,19 @@ class Simulator(object):
 
         # calculate the curl of the force ----------------------------------------------------------------
 
-        grad_F_cell_x = (F_cell_x[cells.cell_nn_i[:,1]] - F_cell_x[cells.cell_nn_i[:,0]])/cells.nn_len
+        # grad_F_cell_x = (F_cell_x[cells.cell_nn_i[:,1]] - F_cell_x[cells.cell_nn_i[:,0]])/cells.nn_len
+        #
+        # dFx_dy = grad_F_cell_x*cells.cell_nn_ty
+        #
+        # grad_F_cell_y = (F_cell_y[cells.cell_nn_i[:,1]] - F_cell_y[cells.cell_nn_i[:,0]])/cells.nn_len
+        #
+        # dFy_dx = grad_F_cell_y*cells.cell_nn_tx
+        #
+        # curlF_o = dFy_dx - dFx_dy
+        #
+        # curlF = np.dot(cells.M_sum_mems,curlF_o)/cells.num_mems
 
-        dFx_dy = grad_F_cell_x*cells.cell_nn_ty
-
-        grad_F_cell_y = (F_cell_y[cells.cell_nn_i[:,1]] - F_cell_y[cells.cell_nn_i[:,0]])/cells.nn_len
-
-        dFy_dx = grad_F_cell_y*cells.cell_nn_tx
-
-        curlF_o = dFy_dx - dFx_dy
-
-        curlF = np.dot(cells.M_sum_mems,curlF_o)/cells.num_mems
+        _, _, curlF = cells.curl(F_cell_x,F_cell_y,0)
 
 
         # Initial value solution--------------------------------------------------------------------------------
@@ -3666,16 +3676,18 @@ class Simulator(object):
         # obtain displacement from phi ------------------------------------------------------------------------
 
         # to get the displacement back again, take the curl of phi and the laplacian of that!
-        grad_phi = (self.phi[cells.cell_nn_i[:,1]] - self.phi[cells.cell_nn_i[:,0]])/cells.nn_len
+        # grad_phi = (self.phi[cells.cell_nn_i[:,1]] - self.phi[cells.cell_nn_i[:,0]])/cells.nn_len
+        #
+        # dphi_dx_o = grad_phi*cells.cell_nn_tx
+        # dphi_dy_o = grad_phi*cells.cell_nn_ty
+        #
+        # curl_phi_x_o = dphi_dy_o
+        # curl_phi_y_o = -dphi_dx_o
+        #
+        # curl_phi_x = np.dot(cells.M_sum_mems,curl_phi_x_o)/cells.num_mems
+        # curl_phi_y = np.dot(cells.M_sum_mems,curl_phi_y_o)/cells.num_mems
 
-        dphi_dx_o = grad_phi*cells.cell_nn_tx
-        dphi_dy_o = grad_phi*cells.cell_nn_ty
-
-        curl_phi_x_o = dphi_dy_o
-        curl_phi_y_o = -dphi_dx_o
-
-        curl_phi_x = np.dot(cells.M_sum_mems,curl_phi_x_o)/cells.num_mems
-        curl_phi_y = np.dot(cells.M_sum_mems,curl_phi_y_o)/cells.num_mems
+        curl_phi_x, curl_phi_y, _ = cells.curl(0,0,self.phi)
 
 
         if p.fixed_cluster_bound is False:
@@ -3712,8 +3724,8 @@ class Simulator(object):
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
 
         # get new ecm verts:
-        new_ecm_verts_x = cells.ecm_verts_unique[:,0] + np.dot(cells.deforM,ux_at_ecm)
-        new_ecm_verts_y = cells.ecm_verts_unique[:,1] + np.dot(cells.deforM,uy_at_ecm)
+        new_ecm_verts_x = self.ecm_verts_unique_to[:,0] + np.dot(cells.deforM,ux_at_ecm)
+        new_ecm_verts_y = self.ecm_verts_unique_to[:,1] + np.dot(cells.deforM,uy_at_ecm)
 
         ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
 
