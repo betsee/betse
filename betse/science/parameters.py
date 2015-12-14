@@ -87,26 +87,32 @@ class Parameters(object):
 
         self.td_deform = self.config['world options']['deformation']['time dependent']
 
-        self.deform_osmo = self.config['variable settings']['include osmotic pressure']
-        self.deform_electro = self.config['variable settings']['include electrostatic pressure']
+        self.deform_osmo = self.config['variable settings']['flow and deformation']['include osmotic pressure']
+        self.deform_electro = self.config['variable settings']['flow and deformation']['include electrostatic pressure']
 
-        self.fixed_cluster_bound = self.config['variable settings']['fixed cluster boundary']
+        self.fixed_cluster_bound = self.config['variable settings']['flow and deformation']['fixed cluster boundary']
 
 
-        self.youngMod = float(self.config['variable settings']['shear modulus'])
+        self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
+
+        # calculate lame's parameters from young mod and the poisson ratio:
+        self.poi = 0.45 # Poisson's ratio for the biological medium
+
+        self.lame_mu = self.youngMod/(2*(1+self.poi))
+        self.lame_lamb = (self.youngMod*self.poi)/((1+self.poi)*(1-2*self.poi))
 
         self.mu_membrane = 1.0 # membrane viscocity
 
         # in-membrane diffusion coefficient
-        self.D_membrane = float(self.config['variable settings']['membrane mobility'])
+        self.D_membrane = float(self.config['variable settings']['channel electroosmosis']['membrane mobility'])
         # charge of membrane pumps and channels:
-        self.z_channel = float(self.config['variable settings']['channel charge'])
+        self.z_channel = float(self.config['variable settings']['channel electroosmosis']['channel charge'])
 
-        self.z_pump = float(self.config['variable settings']['pump charge'])
+        self.z_pump = float(self.config['variable settings']['channel electroosmosis']['pump charge'])
 
-        self.mu_water = float(self.config['variable settings']['water viscocity'])   # viscocity of water [Pa.s]
+        self.mu_water = float(self.config['variable settings']['flow and deformation']['water viscocity'])   # viscocity of water [Pa.s]
 
-        self.mu_tissue = float(self.config['variable settings']['viscous damping']) # viscocity of tissue medium [Pa s}
+        self.mu_tissue = float(self.config['variable settings']['flow and deformation']['viscous damping']) # viscocity of tissue medium [Pa s}
 
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
@@ -153,9 +159,9 @@ class Parameters(object):
 
         self.T = float(self.config['world options']['temperature'])  # Cells temperature
 
-        self.gravity = self.config['variable settings']['gravity']
+        self.gravity = self.config['variable settings']['flow and deformation']['gravity']
 
-        self.aquaporins = float(self.config['variable settings']['membrane water conductivity'])
+        self.aquaporins = float(self.config['variable settings']['flow and deformation']['membrane water conductivity'])
 
         self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
         self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
@@ -197,10 +203,10 @@ class Parameters(object):
         self.Ca_dyn = self.config['Ca dynamics']['turn on']
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = self.config['variable settings']['HKATPase pump']
+        self.HKATPase_dyn = self.config['variable settings']['optional pumps']['HKATPase pump']
 
         # include V-ATPase in the simulation? Yes =1, No = 0
-        self.VATPase_dyn = self.config['variable settings']['VATPase pump']
+        self.VATPase_dyn = self.config['variable settings']['optional pumps']['VATPase pump']
 
         # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
         self.voltage_dye = self.config['variable settings']['morphogen properties']['include morphogen']
@@ -223,10 +229,10 @@ class Parameters(object):
                                 ['active pumping']['maximum rate'])
 
         # include noise in the simulation?
-        self.channel_noise_level = float(self.config['variable settings']['static noise level'])
+        self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
 
-        self.dynamic_noise = self.config['variable settings']['dynamic noise']
-        self.dynamic_noise_level = float(self.config['variable settings']['dynamic noise level'])
+        self.dynamic_noise = self.config['variable settings']['noise']['dynamic noise']
+        self.dynamic_noise_level = float(self.config['variable settings']['noise']['dynamic noise level'])
 
 
         #---------------------------------------------------------------------------------------------------------------

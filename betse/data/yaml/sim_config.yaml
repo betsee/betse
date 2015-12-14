@@ -615,46 +615,55 @@ variable settings:
         pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
         maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
 
+  optional pumps:
 
-  HKATPase pump: False     # include the HK-ATPase pump in the simulation?
-                           # only works for an ion profile with H+ ions (animal or invertebrate)
-                           # options True or False (case sensitive)
 
-  VATPase pump: False    # include the plasma membrane V-ATPase pump?
-                            # only works for an ion profile with H+ ions (animal or invertebrate)
-                            # options True or False (case sensitive)
+    HKATPase pump: False     # include the HK-ATPase pump in the simulation?
+                             # only works for an ion profile with H+ ions (animal or invertebrate)
+                             # options True or False (case sensitive)
 
-  gravity: False               # apply a global force of gravity acting in the -y direction?
+    VATPase pump: False    # include the plasma membrane V-ATPase pump?
+                              # only works for an ion profile with H+ ions (animal or invertebrate)
+                              # options True or False (case sensitive)
 
-  water viscocity: 1e-3      # viscocity of water [Pa s]
+  flow and deformation:
 
-  viscous damping: 10        # viscous damping of shear waves in tissue [Pa s] (0.1 to 100; larger = higher damping)
+    gravity: False             # include a global force of gravity acting in the -y direction?
 
-  membrane water conductivity: 1e-7   # membrane resistance to water flow (aquaporin fraction) (1e-3 to 1e-8)
+    water viscocity: 1e-3      # viscocity of water [Pa s] (applies to ease of flow)
 
-  include osmotic pressure: True    # include osmotic pressure in deformation (excludes electrostatic pressure)?
+    include osmotic pressure: True    # include osmotic pressure in flow & deformation?
 
-  include electrostatic pressure: False   # include electrostatic pressure in deformation (excludes osmotic pressure)?
+    include electrostatic pressure: False   # include electrostatic pressure in flow and deformation?
 
-  fixed cluster boundary: False   # are exterior cells of the cluster fixed (True) or free to move (False)?
+    membrane water conductivity: 1e-7   # mem conductivity for osmotic water inflow (aquaporin fraction) (1e-3 to 1e-8)
 
-  shear modulus: 10         # Elastic modulus (shear modulus) of individual cell [Pa] (10 to 1e6 Pa)
+    viscous damping: 10        # viscous damping of elastic waves in tissue [Pa s] (0.1 to 100; larger = higher damping)
 
-  channel charge: -1         # charge of membrane channels
+    fixed cluster boundary: False   # are exterior cells of the cluster fixed (True) or free to move (False)?
 
-  pump charge: 1          # charge of pumps (controls direction they move in)
+    young modulus: 1e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
-  membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
-  static noise level: 0    # level of variance in K+ leaks on cell membranes
-                           # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
+  channel electroosmosis:
 
-  dynamic noise: False      # is dynamic noise desired? Options True or False
-                            # simulated as random-walk on cellular protein concentrations
+    channel charge: -1         # charge of membrane channels
 
-  dynamic noise level: 1e-7     # level of dynamic noise
-                                # appropriate range 0 to 1e-6
-                                # Note high values may cause simulation instability
+    pump charge: 1          # charge of pumps (controls direction they move in)
+
+    membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+
+  noise:
+
+    static noise level: 0    # level of variance in K+ leaks on cell membranes
+                             # appropriate range 0 (all cells equivalent) to 10.0 (very high variation)
+
+    dynamic noise: False      # is dynamic noise desired? Options True or False
+                              # simulated as random-walk on cellular protein concentrations
+
+    dynamic noise level: 1e-7     # level of dynamic noise
+                                  # appropriate range 0 to 1e-6
+                                  # Note high values may cause simulation instability
 
   gap junctions:
 
