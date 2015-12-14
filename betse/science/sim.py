@@ -876,6 +876,8 @@ class Simulator(object):
         self.I_tot_x_time = [0]
         self.I_tot_y_time = [0]
 
+        self.P_electro_time = []
+
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
         self.P_cells = np.zeros(len(cells.cell_i))
 
@@ -1217,8 +1219,12 @@ class Simulator(object):
                 if p.deform_osmo is True:
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+                    self.P_cells_time.append(self.P_cells[:])
 
-                if p.deformation is True and p.run_sim is True:
+                if p.deform_electro is True:
+                     self.P_electro_time.append(self.P_electro[:])
+
+                if p.deformation is True and p.run_sim is True: # FIXME new deform will have deformation applied here
 
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
@@ -1406,6 +1412,8 @@ class Simulator(object):
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
+
+        self.P_electro_time = []
 
         if p.deformation is True and p.run_sim is True:
 
@@ -1721,7 +1729,10 @@ class Simulator(object):
 
                     self.P_cells_time.append(self.P_cells[:])
 
-                if p.deformation is True and p.run_sim is True:
+                if p.deform_electro is True:
+                     self.P_electro_time.append(self.P_electro[:])
+
+                if p.deformation is True and p.run_sim is True:  # FIXME new deform will have cell deform applied here
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
                     self.maskM_time.append(cells.maskM[:])
@@ -3320,19 +3331,24 @@ class Simulator(object):
 
         """
 
-        # average charge density at the gap junctions between cells:
-        rho_cells = 10*self.rho_cells*(1/p.ff_cell)
+        # # average charge density at the gap junctions between cells:
+        # rho_cells = 10*self.rho_cells*(1/p.ff_cell)
+        # make sure we're using a realistic charge density by working with the referenced cell membrane capacitance:
+        if p.sim_ECM is False:
+
+            q_cells = (p.cm*cells.cell_sa*self.vm)/cells.cell_vol
+
+        else:
+            q_cells = (p.cm*cells.cell_sa*self.v_cell)/cells.cell_vol
 
         # charge density interpolated to membranes
 
-        # Q_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),rho_cells,
-        #                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
+        Q_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),q_cells,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
         # charge density averaged at nearest neighbour membranes:
 
-        Q_mem = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
-
-# FIXME: Maybe calculate Q per cell as Q = Cap Vmem as it's so important to get the right value here...
+        # Q_mem = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
 
 
         if p.sim_ECM is False:
@@ -3358,11 +3374,8 @@ class Simulator(object):
         P_x = (self.F_electro_x*cells.cell_vol)/cells.cell_sa
         P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
 
-        Pbx = P_x[cells.bflags_cells]
-        Pby = P_y[cells.bflags_cells]
+        self.P_electro = np.sqrt(P_x**2 + P_y**2)
 
-        self.P_electro_bound_x = np.mean(Pbx)
-        self.P_electro_bound_y = np.mean(Pby)
 
     def gravity_P(self,cells,p):
 
@@ -3501,6 +3514,8 @@ class Simulator(object):
         # map membrane displacements to extracellular matrix mids and ecm:
         #  # first interpolate displacement field to membrane midpoints:
 
+        # FIXME do this only at the time sampling since it doesn't matter anyway...
+
         ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
                          (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
@@ -3618,18 +3633,6 @@ class Simulator(object):
 
         # calculate the curl of the force ----------------------------------------------------------------
 
-        # grad_F_cell_x = (F_cell_x[cells.cell_nn_i[:,1]] - F_cell_x[cells.cell_nn_i[:,0]])/cells.nn_len
-        #
-        # dFx_dy = grad_F_cell_x*cells.cell_nn_ty
-        #
-        # grad_F_cell_y = (F_cell_y[cells.cell_nn_i[:,1]] - F_cell_y[cells.cell_nn_i[:,0]])/cells.nn_len
-        #
-        # dFy_dx = grad_F_cell_y*cells.cell_nn_tx
-        #
-        # curlF_o = dFy_dx - dFx_dy
-        #
-        # curlF = np.dot(cells.M_sum_mems,curlF_o)/cells.num_mems
-
         _, _, curlF = cells.curl(F_cell_x,F_cell_y,0)
 
 
@@ -3673,19 +3676,7 @@ class Simulator(object):
              # set boundary condition for phi:
             self.phi[cells.bflags_cells] = 0
 
-        # obtain displacement from phi ------------------------------------------------------------------------
-
-        # to get the displacement back again, take the curl of phi and the laplacian of that!
-        # grad_phi = (self.phi[cells.cell_nn_i[:,1]] - self.phi[cells.cell_nn_i[:,0]])/cells.nn_len
-        #
-        # dphi_dx_o = grad_phi*cells.cell_nn_tx
-        # dphi_dy_o = grad_phi*cells.cell_nn_ty
-        #
-        # curl_phi_x_o = dphi_dy_o
-        # curl_phi_y_o = -dphi_dx_o
-        #
-        # curl_phi_x = np.dot(cells.M_sum_mems,curl_phi_x_o)/cells.num_mems
-        # curl_phi_y = np.dot(cells.M_sum_mems,curl_phi_y_o)/cells.num_mems
+        # obtain displacement from phi -----------------------------------------------------------------------
 
         curl_phi_x, curl_phi_y, _ = cells.curl(0,0,self.phi)
 
@@ -3708,6 +3699,8 @@ class Simulator(object):
 
         # check the displacement for NANs:
         check_v(self.d_cells_x)
+
+        # FIXME do this only at the time sampling since it doesn't matter anyway...
 
         # --update the cell world with deformation ------------------------------------------------------------
 

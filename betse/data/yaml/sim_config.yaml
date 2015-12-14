@@ -934,7 +934,7 @@ results options:
 
   Electrostatic P Ani:
 
-    animate electrostatic P: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate electrostatic P: True     # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
