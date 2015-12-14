@@ -1224,7 +1224,9 @@ class Simulator(object):
                 if p.deform_electro is True:
                      self.P_electro_time.append(self.P_electro[:])
 
-                if p.deformation is True and p.run_sim is True: # FIXME new deform will have deformation applied here
+                if p.deformation is True and p.run_sim is True:
+
+                    self.implement_deform(cells,t,p)
 
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
@@ -1732,7 +1734,10 @@ class Simulator(object):
                 if p.deform_electro is True:
                      self.P_electro_time.append(self.P_electro[:])
 
-                if p.deformation is True and p.run_sim is True:  # FIXME new deform will have cell deform applied here
+                if p.deformation is True and p.run_sim is True:
+
+                    self.implement_deform(cells,t,p)
+
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
                     self.maskM_time.append(cells.maskM[:])
@@ -3332,7 +3337,7 @@ class Simulator(object):
         """
 
         # # average charge density at the gap junctions between cells:
-        # rho_cells = 10*self.rho_cells*(1/p.ff_cell)
+        # q_cells = 10*self.rho_cells*(1/p.ff_cell)
         # make sure we're using a realistic charge density by working with the referenced cell membrane capacitance:
         if p.sim_ECM is False:
 
@@ -3354,13 +3359,13 @@ class Simulator(object):
         if p.sim_ECM is False:
 
             Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
-                    self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
+                    self.vm[cells.cell_nn_i[:,0]])/(2*cells.gj_len)
 
 
         else:
 
             Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
-                    self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
+                    self.v_cell[cells.cell_nn_i[:,0]])/(2*cells.nn_len)
 
         F_x = Q_mem*Eab_o*cells.cell_nn_tx
         F_y = Q_mem*Eab_o*cells.cell_nn_ty
@@ -3375,7 +3380,6 @@ class Simulator(object):
         P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
 
         self.P_electro = np.sqrt(P_x**2 + P_y**2)
-
 
     def gravity_P(self,cells,p):
 
@@ -3467,13 +3471,13 @@ class Simulator(object):
 
         if p.fixed_cluster_bound is True:
 
-            u_x_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_x))
-            u_y_o = np.dot(cells.lapGJinv,-(1/p.youngMod)*(F_cell_y))
+            u_x_o = np.dot(cells.lapGJinv,-(1/p.lamb_mu)*(F_cell_x))
+            u_y_o = np.dot(cells.lapGJinv,-(1/p.lamb_mu)*(F_cell_y))
 
         else:
 
-            u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_x))
-            u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.youngMod)*(F_cell_y))
+            u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.lamb_mu)*(F_cell_x))
+            u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.lamb_mu)*(F_cell_y))
 
          # first interpolate displacement field at membrane midpoints:
         ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_x_o,
@@ -3505,64 +3509,6 @@ class Simulator(object):
         # calculate the displacement of cell centres under the applied force under incompressible conditions:
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
-
-        # # save the tension force for later:
-        # self.Tx = F_cell_x
-        # self.Ty = F_cell_y
-
-        #--update the cell world with deformation ------------------------------------------------------------
-        # map membrane displacements to extracellular matrix mids and ecm:
-        #  # first interpolate displacement field to membrane midpoints:
-
-        # FIXME do this only at the time sampling since it doesn't matter anyway...
-
-        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
-                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-
-        ux_at_mem[cells.bflags_mems] = self.d_cells_x[cells.bflags_cells]
-        uy_at_mem[cells.bflags_mems] = self.d_cells_y[cells.bflags_cells]
-
-
-        ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
-        uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
-
-        # get new ecm verts, using displacement on original verts as per definition:
-        new_ecm_verts_x = self.ecm_verts_unique_to[:,0] + np.dot(cells.deforM,ux_at_ecm)
-        new_ecm_verts_y = self.ecm_verts_unique_to[:,1] + np.dot(cells.deforM,uy_at_ecm)
-
-        ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
-
-        # set the voronoi points originally tagged to the ecm to the value of these new points
-        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
-
-        # recreate ecm_verts_unique:
-        cells.ecm_verts_unique = ecm_new[:]
-
-        # Repackage ecm verts so that the World module can do its magic:
-        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
-
-        # next repackage the structure to include individual cell data
-        cells.ecm_verts = [] # null the original ecm verts data structure...
-
-        for i in range(0,len(cells.cell_to_mems)):
-
-            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
-
-            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
-
-            cells.ecm_verts.append(ecm_nest)
-
-        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
-
-        cells.deformWorld(p)
-
-        #----------------------------------------
-        if p.plot_while_solving is True and t > 0:
-
-            self.checkPlot.resetData(cells,self,p)
 
     def timeDeform(self,cells,t,p):
         """
@@ -3700,8 +3646,37 @@ class Simulator(object):
         # check the displacement for NANs:
         check_v(self.d_cells_x)
 
-        # FIXME do this only at the time sampling since it doesn't matter anyway...
+    def get_density(self,cells,p):
 
+        mass_water = 1000*cells.cell_vol
+
+        mass_sum = np.zeros(len(cells.cell_i))
+
+        for i, concs in enumerate(self.cc_cells):
+
+            MM = np.float(self.molar_mass[i])
+            mass_sum = MM*concs*cells.cell_vol + mass_sum
+
+        total_mass = mass_sum + mass_water
+        self.density = total_mass/cells.cell_vol
+
+    def get_mass_flux(self,cells,p):
+
+         # calculate mass flux across cell membranes:
+        self.mass_flux = np.zeros(len(cells.mem_i))
+
+        for flux_array, mm in zip(self.fluxes_mem,self.molar_mass):
+
+            m_flx = flux_array*mm
+
+            self.mass_flux = self.mass_flux + m_flx
+
+        # # total mass change in cell
+        # mass_change = self.mass_flux*p.dt*cells.mem_sa
+        # # sum the change over the membranes to get the total mass change of salts:
+        # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
+
+    def implement_deform(self,cells,t,p):
         # --update the cell world with deformation ------------------------------------------------------------
 
         ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
@@ -3709,9 +3684,6 @@ class Simulator(object):
 
         uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
                                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-
-        ux_at_mem[cells.bflags_mems] = self.d_cells_x[cells.bflags_cells]
-        uy_at_mem[cells.bflags_mems] = self.d_cells_y[cells.bflags_cells]
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
@@ -3750,36 +3722,6 @@ class Simulator(object):
         if p.plot_while_solving is True and t > 0:
 
             self.checkPlot.resetData(cells,self,p)
-
-    def get_density(self,cells,p):
-
-        mass_water = 1000*cells.cell_vol
-
-        mass_sum = np.zeros(len(cells.cell_i))
-
-        for i, concs in enumerate(self.cc_cells):
-
-            MM = np.float(self.molar_mass[i])
-            mass_sum = MM*concs*cells.cell_vol + mass_sum
-
-        total_mass = mass_sum + mass_water
-        self.density = total_mass/cells.cell_vol
-
-    def get_mass_flux(self,cells,p):
-
-         # calculate mass flux across cell membranes:
-        self.mass_flux = np.zeros(len(cells.mem_i))
-
-        for flux_array, mm in zip(self.fluxes_mem,self.molar_mass):
-
-            m_flx = flux_array*mm
-
-            self.mass_flux = self.mass_flux + m_flx
-
-        # # total mass change in cell
-        # mass_change = self.mass_flux*p.dt*cells.mem_sa
-        # # sum the change over the membranes to get the total mass change of salts:
-        # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
