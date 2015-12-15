@@ -1226,7 +1226,7 @@ class Simulator(object):
 
                 if p.deformation is True and p.run_sim is True:
 
-                    self.implement_deform(cells,t,p)
+                    # self.implement_deform(cells,t,p)
 
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
@@ -1283,6 +1283,19 @@ class Simulator(object):
         cells.points_tree = None
 
         self.checkPlot = None
+
+        # if p.deformation is True and p.run_sim is True: # at the end of the sim, update the cell matrix if deformation is chosen:
+        #
+        #     loggers.log_info("Completing processing of cluster deformation...")
+        #
+        #     for ii in range(0,len(tsamples)):
+        #
+        #         self.implement_deform(cells,ii,p)
+        #         self.cell_centres_time.append(cells.cell_centres[:])
+        #         self.mem_mids_time.append(cells.mem_mids_flat[:])
+        #         self.maskM_time.append(cells.maskM[:])
+        #         self.mem_edges_time.append(cells.mem_edges_flat[:])
+        #         self.cell_verts_time.append(cells.cell_verts[:])
 
         if p.run_sim is False:
 
@@ -1736,14 +1749,6 @@ class Simulator(object):
 
                 if p.deformation is True and p.run_sim is True:
 
-                    self.implement_deform(cells,t,p)
-
-                    self.cell_centres_time.append(cells.cell_centres[:])
-                    self.mem_mids_time.append(cells.mem_mids_flat[:])
-                    self.maskM_time.append(cells.maskM[:])
-                    self.mem_edges_time.append(cells.mem_edges_flat[:])
-                    self.cell_verts_time.append(cells.cell_verts[:])
-
                     self.P_cells_time.append(self.P_cells[:])
 
                     self.dx_cell_time.append(self.d_cells_x[:])
@@ -1786,6 +1791,19 @@ class Simulator(object):
 
 
         # self.dyna.scalar_Namem = None
+
+        if p.deformation is True and p.run_sim is True: # at the end of the sim, update the cell matrix if deformation is chosen:
+
+            loggers.log_info("Completing processing of cluster deformation...")
+
+            for ii in range(0,len(tsamples)):
+
+                self.implement_deform(cells,ii,p)
+                self.cell_centres_time.append(cells.cell_centres[:])
+                self.mem_mids_time.append(cells.mem_mids_flat[:])
+                self.maskM_time.append(cells.maskM[:])
+                self.mem_edges_time.append(cells.mem_edges_flat[:])
+                self.cell_verts_time.append(cells.cell_verts[:])
 
          # Find embeded functions that can't be pickled...
         for key, valu in vars(self.dyna).items():
@@ -3365,7 +3383,7 @@ class Simulator(object):
         else:
 
             Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
-                    self.v_cell[cells.cell_nn_i[:,0]])/(2*cells.nn_len)
+                    self.v_cell[cells.cell_nn_i[:,0]])/(2*cells.gj_len)
 
         F_x = Q_mem*Eab_o*cells.cell_nn_tx
         F_y = Q_mem*Eab_o*cells.cell_nn_ty
@@ -3533,41 +3551,41 @@ class Simulator(object):
         k_const = (p.dt**2)*(p.lame_mu/1000)
 
 
-        # # Determine action forces ------------------------------------------------
-        # first determine body force components due to electrostatics, if desired:
-        if p.deform_electro is True:
-            F_electro_x = self.F_electro_x
-            F_electro_y = self.F_electro_y
-
-        else:
-
-            F_electro_x = np.zeros(len(cells.cell_i))
-            F_electro_y = np.zeros(len(cells.cell_i))
-
-
-        # determine body force due to osmotic water flow, if desired
-        if p.deform_osmo is True:
-
-            F_osmo_x = self.F_osmo_x
-            F_osmo_y = self.F_osmo_y
-
-        else:
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
-
-        # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_osmo_x
-        F_cell_y = F_electro_y + F_osmo_y
+        # # # Determine action forces ------------------------------------------------
+        # # first determine body force components due to electrostatics, if desired:
+        # if p.deform_electro is True:
+        #     F_electro_x = self.F_electro_x
+        #     F_electro_y = self.F_electro_y
+        #
+        # else:
+        #
+        #     F_electro_x = np.zeros(len(cells.cell_i))
+        #     F_electro_y = np.zeros(len(cells.cell_i))
+        #
+        #
+        # # determine body force due to osmotic water flow, if desired
+        # if p.deform_osmo is True:
+        #
+        #     F_osmo_x = self.F_osmo_x
+        #     F_osmo_y = self.F_osmo_y
+        #
+        # else:
+        #     F_osmo_x = np.zeros(len(cells.cell_i))
+        #     F_osmo_y = np.zeros(len(cells.cell_i))
+        #
+        # # Take the total component of pressure from all contributions:
+        # F_cell_x = F_electro_x + F_osmo_x
+        # F_cell_y = F_electro_y + F_osmo_y
 
         # Testing force---------------------------------------------------------------------------------
 
-        # # # above grey and below force only for testing purposes!
-        # #
-        # pc = self.dyna.tissue_target_inds['spot']
-        # F_cell_x = np.zeros(len(cells.cell_i))
-        # F_cell_y = np.zeros(len(cells.cell_i))
-        # # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
-        # F_cell_y[pc] = 2.0e7
+        # # above grey and below force only for testing purposes!
+        #
+        pc = self.dyna.tissue_target_inds['spot']
+        F_cell_x = np.zeros(len(cells.cell_i))
+        F_cell_y = np.zeros(len(cells.cell_i))
+        # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
+        F_cell_y[pc] = 1.0e4
 
         #-------------------------------------------------------------------------------------------------
 
@@ -3595,8 +3613,10 @@ class Simulator(object):
                 'Your wave speed is about: ' +
                  str(wave_speed) + ' m/s '
                 "so with your world size, you'd be looking for resonances at:"
-                ' ' + str(freq) + ' kHz '
+                ' ' + str(freq) + ' kHz. '
             )
+
+            loggers.log_info('Try a world size of at least: ' + str(wave_speed*1000) + ' um for resonance.')
 
 
             self.phi = k_const*np.dot(cells.lapGJ,self.phi) + (k_const/p.lame_mu)*curlF + self.phi
@@ -3646,6 +3666,7 @@ class Simulator(object):
         # check the displacement for NANs:
         check_v(self.d_cells_x)
 
+
     def get_density(self,cells,p):
 
         mass_water = 1000*cells.cell_vol
@@ -3676,13 +3697,13 @@ class Simulator(object):
         # # sum the change over the membranes to get the total mass change of salts:
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
-    def implement_deform(self,cells,t,p):
+    def implement_deform(self,cells,i,p):
         # --update the cell world with deformation ------------------------------------------------------------
 
-        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
+        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.dx_cell_time[i],
                          (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
+        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.dy_cell_time[i],
                                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
@@ -3718,10 +3739,10 @@ class Simulator(object):
 
         cells.deformWorld(p)
 
-        #----------------------------------------
-        if p.plot_while_solving is True and t > 0:
-
-            self.checkPlot.resetData(cells,self,p)
+        # #----------------------------------------
+        # if p.plot_while_solving is True and t > 0:
+        #
+        #     self.checkPlot.resetData(cells,self,p)
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 

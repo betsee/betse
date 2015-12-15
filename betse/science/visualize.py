@@ -843,21 +843,9 @@ class PlotWhileSolving(object):
 
         if p.sim_ECM is False:
 
-            if p.showCells is True and p.deformation is False or p.run_sim is False:
+            if p.showCells is True:
                 zv = sim.vm_time[-1]*1000
                 self.coll2.set_array(zv)
-
-            elif p.showCells is True and p.deformation is True and p.run_sim is True:
-
-                 # Add a collection of cell polygons, with animated voltage data
-
-                zv = sim.vm_time[-1]*1000
-
-                points = np.multiply(sim.cell_verts_time[-1], p.um)
-                self.coll2 =  PolyCollection(points, array=zv, edgecolors='none', cmap=self.colormap)
-                self.coll2.set_alpha(1.0)
-                self.ax.add_collection(self.coll2)
-
 
             elif p.showCells is False:
                 dat_grid = interpolate.griddata((self.cells.cell_centres[:, 0],self.cells.cell_centres[:, 1]),
@@ -1488,7 +1476,26 @@ class AnimateDeformation(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autoscale_Deformation_ani is False:
+
+        if p.autoscale_Deformation_ani is True:
+
+            # first flatten the data (needed in case cells were cut)
+            all_z = []
+            for zarray in sim.dx_cell_time:
+                for val in zarray:
+                    all_z.append(val)
+
+            for zarray in sim.dy_cell_time:
+                for val in zarray:
+                    all_z.append(val)
+
+            self.cmin = p.um*np.min(all_z)
+            self.cmax = p.um*np.max(all_z)
+
+            dd_collection.set_clim(self.cmin,self.cmax)
+
+
+        elif p.autoscale_Deformation_ani is False:
             dd_collection.set_clim(p.Deformation_ani_min_clr,p.Deformation_ani_max_clr)
 
         cb = self.fig.colorbar(dd_collection)
@@ -1536,8 +1543,8 @@ class AnimateDeformation(object):
 
             dd = 1e6*np.sqrt(dx**2 + dy**2)
 
-        cmin = dd.min()
-        cmax = dd.max()
+        # cmin = dd.min()
+        # cmax = dd.max()
 
         points = np.multiply(self.sim.cell_verts_time[i], self.p.um)
         dd_collection = PolyCollection(points, array=dd, cmap=self.p.default_cm, edgecolors='none')
@@ -1559,7 +1566,7 @@ class AnimateDeformation(object):
             dd_collection.set_clim(self.p.Deformation_ani_min_clr,self.p.Deformation_ani_max_clr)
 
         else:
-            dd_collection.set_clim(cmin,cmax)
+            dd_collection.set_clim(self.cmin,self.cmax)
 
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)

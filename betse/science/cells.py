@@ -619,7 +619,7 @@ class Cells(object):
 
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
-        self.M_sum_mems_inv = np.linalg.pinv(self.M_sum_mems)  # inverse of a sum over membranes
+        # self.M_sum_mems_inv = np.linalg.pinv(self.M_sum_mems)  # inverse of a sum over membranes
 
         # self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
         self.mem_distance = 2*p.rc
@@ -1431,7 +1431,7 @@ class Cells(object):
 
             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our tolken cell
 
-            L_set = self.nn_len[mem_set_i]
+            L_set = self.nn_len[mem_set_i]   # FIXME I think this method causes crap out in larger grid sizes...
 
             # find valid (not -1) indices of the nn length set:
             inds_L = (L_set != -1).nonzero()
@@ -1440,7 +1440,7 @@ class Cells(object):
 
             vol = self.cell_vol[cell_i]
 
-            idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)
+            idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)  # FIXME use true length for the diagonal!
 
             lapGJ[cell_i,cell_i] = idiag
 
