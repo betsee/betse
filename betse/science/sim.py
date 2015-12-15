@@ -1228,11 +1228,11 @@ class Simulator(object):
 
                     # self.implement_deform(cells,t,p)
 
-                    self.cell_centres_time.append(cells.cell_centres[:])
-                    self.mem_mids_time.append(cells.mem_mids_flat[:])
-                    self.maskM_time.append(cells.maskM[:])
-                    self.mem_edges_time.append(cells.mem_edges_flat[:])
-                    self.cell_verts_time.append(cells.cell_verts[:])
+                    # self.cell_centres_time.append(cells.cell_centres[:])
+                    # self.mem_mids_time.append(cells.mem_mids_flat[:])
+                    # self.maskM_time.append(cells.maskM[:])
+                    # self.mem_edges_time.append(cells.mem_edges_flat[:])
+                    # self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
 
@@ -1284,18 +1284,20 @@ class Simulator(object):
 
         self.checkPlot = None
 
-        # if p.deformation is True and p.run_sim is True: # at the end of the sim, update the cell matrix if deformation is chosen:
-        #
-        #     loggers.log_info("Completing processing of cluster deformation...")
-        #
-        #     for ii in range(0,len(tsamples)):
-        #
-        #         self.implement_deform(cells,ii,p)
-        #         self.cell_centres_time.append(cells.cell_centres[:])
-        #         self.mem_mids_time.append(cells.mem_mids_flat[:])
-        #         self.maskM_time.append(cells.maskM[:])
-        #         self.mem_edges_time.append(cells.mem_edges_flat[:])
-        #         self.cell_verts_time.append(cells.cell_verts[:])
+        # at the end of the sim, update the cell matrix if deformation is chosen:
+
+        if p.deformation is True and p.run_sim is True:
+
+            loggers.log_info("Completing processing of cluster deformation...")
+
+            for ii in range(0,len(tsamples)):
+
+                self.implement_deform(cells,ii,p)
+                self.cell_centres_time.append(cells.cell_centres[:])
+                self.mem_mids_time.append(cells.mem_mids_flat[:])
+                self.maskM_time.append(cells.maskM[:])
+                self.mem_edges_time.append(cells.mem_edges_flat[:])
+                self.cell_verts_time.append(cells.cell_verts[:])
 
         if p.run_sim is False:
 
@@ -1445,11 +1447,6 @@ class Simulator(object):
 
             self.dx_time = []
             self.dy_time = []
-
-            self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
-            self.Ty = np.zeros(len(cells.cell_i))
-
-
 
         if p.Ca_dyn is True:
             self.cc_er_to = np.copy(self.cc_er[:])
@@ -3377,13 +3374,13 @@ class Simulator(object):
         if p.sim_ECM is False:
 
             Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
-                    self.vm[cells.cell_nn_i[:,0]])/(2*cells.gj_len)
+                    self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
 
         else:
 
             Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
-                    self.v_cell[cells.cell_nn_i[:,0]])/(2*cells.gj_len)
+                    self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
         F_x = Q_mem*Eab_o*cells.cell_nn_tx
         F_y = Q_mem*Eab_o*cells.cell_nn_ty
@@ -3551,41 +3548,41 @@ class Simulator(object):
         k_const = (p.dt**2)*(p.lame_mu/1000)
 
 
-        # # # Determine action forces ------------------------------------------------
-        # # first determine body force components due to electrostatics, if desired:
-        # if p.deform_electro is True:
-        #     F_electro_x = self.F_electro_x
-        #     F_electro_y = self.F_electro_y
-        #
-        # else:
-        #
-        #     F_electro_x = np.zeros(len(cells.cell_i))
-        #     F_electro_y = np.zeros(len(cells.cell_i))
-        #
-        #
-        # # determine body force due to osmotic water flow, if desired
-        # if p.deform_osmo is True:
-        #
-        #     F_osmo_x = self.F_osmo_x
-        #     F_osmo_y = self.F_osmo_y
-        #
-        # else:
-        #     F_osmo_x = np.zeros(len(cells.cell_i))
-        #     F_osmo_y = np.zeros(len(cells.cell_i))
-        #
-        # # Take the total component of pressure from all contributions:
-        # F_cell_x = F_electro_x + F_osmo_x
-        # F_cell_y = F_electro_y + F_osmo_y
+        # # Determine action forces ------------------------------------------------
+        # first determine body force components due to electrostatics, if desired:
+        if p.deform_electro is True:
+            F_electro_x = self.F_electro_x
+            F_electro_y = self.F_electro_y
 
-        # Testing force---------------------------------------------------------------------------------
+        else:
 
-        # # above grey and below force only for testing purposes!
+            F_electro_x = np.zeros(len(cells.cell_i))
+            F_electro_y = np.zeros(len(cells.cell_i))
+
+
+        # determine body force due to osmotic water flow, if desired
+        if p.deform_osmo is True:
+
+            F_osmo_x = self.F_osmo_x
+            F_osmo_y = self.F_osmo_y
+
+        else:
+            F_osmo_x = np.zeros(len(cells.cell_i))
+            F_osmo_y = np.zeros(len(cells.cell_i))
+
+        # Take the total component of pressure from all contributions:
+        F_cell_x = F_electro_x + F_osmo_x
+        F_cell_y = F_electro_y + F_osmo_y
+
+        # # Testing force---------------------------------------------------------------------------------
         #
-        pc = self.dyna.tissue_target_inds['spot']
-        F_cell_x = np.zeros(len(cells.cell_i))
-        F_cell_y = np.zeros(len(cells.cell_i))
-        # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
-        F_cell_y[pc] = 1.0e4
+        # # # above grey and below force only for testing purposes!
+        # #
+        # pc = self.dyna.tissue_target_inds['spot']
+        # F_cell_x = np.zeros(len(cells.cell_i))
+        # F_cell_y = np.zeros(len(cells.cell_i))
+        # # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
+        # F_cell_y[pc] = 2.5e7
 
         #-------------------------------------------------------------------------------------------------
 
@@ -3665,7 +3662,6 @@ class Simulator(object):
 
         # check the displacement for NANs:
         check_v(self.d_cells_x)
-
 
     def get_density(self,cells,p):
 

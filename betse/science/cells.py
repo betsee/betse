@@ -1897,11 +1897,11 @@ class Cells(object):
 
         if type(phi_z) == int:
             # x and y components of the fields:
-            grad_F_cell_x = (Fx[self.cell_nn_i[:,1]] - Fx[self.cell_nn_i[:,0]])/(2*self.nn_len)
+            grad_F_cell_x = (Fx[self.cell_nn_i[:,1]] - Fx[self.cell_nn_i[:,0]])/(self.nn_len)
 
             dFx_dy = grad_F_cell_x*self.cell_nn_ty
 
-            grad_F_cell_y = (Fy[self.cell_nn_i[:,1]] - Fy[self.cell_nn_i[:,0]])/(2*self.nn_len)
+            grad_F_cell_y = (Fy[self.cell_nn_i[:,1]] - Fy[self.cell_nn_i[:,0]])/(self.nn_len)
 
             dFy_dx = grad_F_cell_y*self.cell_nn_tx
 
@@ -1915,7 +1915,7 @@ class Cells(object):
         elif type(Fx) == int and type(Fy) == int:
 
             # the z-component of the field:
-            grad_phi = (phi_z[self.cell_nn_i[:,1]] - phi_z[self.cell_nn_i[:,0]])/(2*self.nn_len)
+            grad_phi = (phi_z[self.cell_nn_i[:,1]] - phi_z[self.cell_nn_i[:,0]])/(self.nn_len)
 
             dphi_dx_o = grad_phi*self.cell_nn_tx
             dphi_dy_o = grad_phi*self.cell_nn_ty

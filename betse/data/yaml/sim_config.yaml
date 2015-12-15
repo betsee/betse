@@ -642,7 +642,7 @@ variable settings:
 
     fixed cluster boundary: False   # are exterior cells of the cluster fixed (True) or free to move (False)?
 
-    young modulus: 1e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
+    young modulus: 5e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
 
   channel electroosmosis:

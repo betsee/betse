@@ -248,7 +248,7 @@ class FiniteDiffSolver(object):
                     A[k,k] = 1
                     A[k,k_i_jn1] = 1
 
-        A = A/(2*self.delta**2)
+        A = A/(self.delta**2)
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
         Ainv = np.linalg.pinv(A)
@@ -351,7 +351,7 @@ class FiniteDiffSolver(object):
                     A[k,k] = 1
                     A[k,k_i_jn1] = 1
 
-        A = A/(2*self.delta**2)
+        A = A/(self.delta**2)
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
         Ainv = np.linalg.pinv(A)
@@ -454,7 +454,7 @@ class FiniteDiffSolver(object):
                     A[k,k] = 1
                     A[k,k_i_jn1] = 1
 
-        A = A/(2*self.delta**2)
+        A = A/(self.delta**2)
 
         # calculate the inverse, which is stored for solution calculation of Laplace and Poisson equations
         Ainv = np.linalg.pinv(A)
