@@ -119,6 +119,8 @@ class Cells(object):
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
 
+            self.lapGJinv = None
+
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
@@ -129,6 +131,8 @@ class Cells(object):
             self.voronoiGrid(p)
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
+
+            self.lapGJinv = None
 
     def deformWorld(self,p):
         """

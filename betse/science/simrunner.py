@@ -910,6 +910,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             if p.showCells is True:
                 figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+
+                # axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],sim.ux_osmo,sim.uy_osmo)
             else:
                  figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
                  clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
@@ -935,7 +937,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 osmo_P = sim.osmo_P_delta
 
                 # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
-
                 figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
@@ -943,12 +944,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                  figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
                  clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-
             axP.set_title('Final Osmotic Pressure in Cell Network')
             axP.set_xlabel('Spatial distance [um]')
             axP.set_ylabel('Spatial distance [um]')
             cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
-
 
             if saveImages is True:
                 savename13 = savedImg + 'final_osmoP_2D' + '.png'
@@ -970,12 +969,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                  figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=gravP,number_cells=p.enumerate_cells,
                  clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-
             axP.set_title('Final Gravity-Induced Pressure Head in Cell Network')
             axP.set_xlabel('Spatial distance [um]')
             axP.set_ylabel('Spatial distance [um]')
             cbP.set_label('Pressure [Pa]')
-
 
             if saveImages is True:
                 savename13 = savedImg + 'final_gravityP_2D' + '.png'
@@ -997,7 +994,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             axEP.set_xlabel('Spatial distance [um]')
             axEP.set_ylabel('Spatial distance [um]')
             cbEP.set_label('Volume Force [N/m3]')
-
 
             if saveImages is True:
                 savename13 = savedImg + 'final_electroP_2D' + '.png'
