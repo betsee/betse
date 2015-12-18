@@ -1230,7 +1230,7 @@ class Simulator(object):
 
                 if p.deformation is True and p.run_sim is True:
 
-                    # self.implement_deform(cells,t,p)
+                    self.implement_deform_timestep(cells,t,p)
 
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
@@ -3517,7 +3517,15 @@ class Simulator(object):
     def getDeformation(self,cells,t,p):
         """
         Calculates the deformation of the cell cluster under the action
-        of intracellular pressure.
+        of intracellular forces and pressures, assuming steady-state
+        (slow) changes.
+
+        The method assumes that material is entirely incompressible.
+        First, the equation of linear elastic motion is used to calculate
+        deformation assuming full compressibility. Then, the divergence
+        is calculated, an internal reaction pressure is calculated from
+        the divergence, and the gradient of the reaction pressure is subtracted
+        from the initial solution to create a divergence-free deformation field.
 
         """
 
@@ -3593,25 +3601,176 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-    def timeDeform(self,cells,t,p):
+    def timeDeform_o(self,cells,t,p):
         """
         Calculates the deformation of the cell cluster under the action
         of intracellular pressure, considering the full time dependent
         linear elasticity equation for an incompressible medium.
+
+        This version uses the "Earthquake" scientist's theory of S-waves
+        and the reduction of the linear elasticity equation to solve
+        for the cross product of the displacement field and force.
+
+        Unfortunately, this doesn't seem to produce the right wave
+        solutions as it's defined here, so it's been taken out of
+        use for the moment.
 
         """
 
         # Check for the adequacy of the time step:
         step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
 
-        if step_check > 0.5:
+        if step_check > 1.0:
 
-            new_ts = (0.4*2*p.rc)/(np.sqrt(p.lame_mu/1000))
+            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
 
             raise BetseExceptionSimulation(
                     'Time dependent deformation is tricky business, requiring a small time step! '
                     'The time step you are using is too large to bother going further with. '
                     'Please set your time step to ' + str(new_ts) + ' and try again.')
+
+        k_const = (p.dt**2)*(p.lame_mu/1000)
+
+
+        # # Determine action forces ------------------------------------------------
+        # first determine body force components due to electrostatics, if desired:
+        if p.deform_electro is True:
+            F_electro_x = self.F_electro_x
+            F_electro_y = self.F_electro_y
+
+        else:
+
+            F_electro_x = np.zeros(len(cells.cell_i))
+            F_electro_y = np.zeros(len(cells.cell_i))
+
+
+        # determine body force due to osmotic water flow, if desired
+        if p.deform_osmo is True:
+
+            F_osmo_x = self.F_osmo_x
+            F_osmo_y = self.F_osmo_y
+
+        else:
+            F_osmo_x = np.zeros(len(cells.cell_i))
+            F_osmo_y = np.zeros(len(cells.cell_i))
+
+        # Take the total component of pressure from all contributions:
+        F_cell_x = F_electro_x + F_osmo_x
+        F_cell_y = F_electro_y + F_osmo_y
+
+        self.dx_time.append(self.d_cells_x[:]) # append the solution to the time-save vector
+        self.dy_time.append(self.d_cells_y[:])
+
+        self.phi_time.append(self.phi[:])
+
+        # calculate the curl of the force ----------------------------------------------------------------
+
+        _, _, curlF = cells.curl(F_cell_x,F_cell_y,0)
+
+
+        # Initial value solution--------------------------------------------------------------------------------
+        if t == 0.0:
+
+            wave_speed = np.sqrt(p.lame_mu/1000)
+            wave_speed = np.float(wave_speed)
+            wave_speed = np.round(wave_speed,2)
+            freq = (wave_speed/p.wsx)*1e-3
+            freq = np.round(freq,2)
+
+            loggers.log_info(
+                'Your wave speed is about: ' +
+                 str(wave_speed) + ' m/s '
+                "so with your world size, you'd be looking for resonances at:"
+                ' ' + str(freq) + ' kHz. '
+            )
+
+            loggers.log_info('Try a world size of at least: ' + str(wave_speed*1000) + ' um for resonance.')
+
+
+            self.phi = k_const*np.dot(cells.lapGJ,self.phi_time[-1]) + (k_const/p.lame_mu)*curlF + self.phi_time[-1]
+
+            # set boundary condition for phi:
+            self.phi[cells.bflags_cells] = 0
+
+
+        elif t > 0.0:
+
+
+            # do the non-initial value, standard solution iteration:
+
+            # calculate the velocity for viscous damping:
+            d_phi_dt = (self.phi - self.phi_time[-2])/(p.dt)
+            # vy = (self.d_cells_y - self.dy_time[-2])/(p.dt)
+
+            gamma = ((p.dt**2)*(p.mu_tissue))/(1000*(2*p.rc))
+
+            self.phi = k_const*np.dot(cells.lapGJ,self.phi) - gamma*d_phi_dt + \
+                       (k_const/p.lame_mu)*curlF + 2*self.phi -self.phi_time[-2]
+
+             # set boundary condition for phi:
+            self.phi[cells.bflags_cells] = 0
+
+        # obtain displacement from phi -----------------------------------------------------------------------
+
+        curl_phi_x, curl_phi_y, _ = cells.curl(0,0,self.phi)
+
+
+        if p.fixed_cluster_bound is False:
+
+            self.d_cells_x = np.dot(cells.lapGJ_P_inv,-curl_phi_x)
+            self.d_cells_y = np.dot(cells.lapGJ_P_inv,-curl_phi_y)
+
+        else:
+
+            self.d_cells_x = np.dot(cells.lapGJinv,-curl_phi_x)
+            self.d_cells_y = np.dot(cells.lapGJinv,-curl_phi_y)
+
+
+        if p.fixed_cluster_bound is True:
+
+            self.d_cells_x[cells.bflags_cells] = 0
+            self.d_cells_y[cells.bflags_cells] = 0
+
+        # check the displacement for NANs:
+        check_v(self.d_cells_x)
+
+    def timeDeform(self,cells,t,p):
+        """
+        Calculates the deformation of the cell cluster under the action
+        of intracellular pressure, considering the full time-dependent
+        linear elasticity equation for an incompressible medium.
+
+        The solution method for this equation is similar to the
+        steady-state method of deformation(). First the displacement
+        field is calculated assuming compressibility,
+        a reaction pressure is calculated from the divergence of the
+        initial field, and the gradient of the internal pressure is
+        subtracted from the initial field to produce a divergence
+        free solution.
+
+        This method is working much better than the timeDeform_o()
+        so is presently in active use.
+
+        """
+
+        # Check for the adequacy of the time step:
+        step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
+
+        if step_check > 1.0:
+
+            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
+
+            raise BetseExceptionSimulation(
+                    'Time dependent deformation is tricky business, requiring a small time step! '
+                    'The time step you are using is too large to bother going further with. '
+                    'Please set your time step to ' + str(new_ts) + ' and try again.')
+
+        if p.wsx < 400e-6:
+
+            raise BetseExceptionSimulation(
+                    'Time dependent deformation is tricky business, requiring a larger grid! '
+                    'The world size you are using will likely result in instability. '
+                    'Please set your world dimension to at least ' + str(400e-6) + ' and try again.')
 
         k_const = (p.dt**2)*(p.lame_mu/1000)
 
@@ -3658,11 +3817,6 @@ class Simulator(object):
         self.dx_time.append(self.d_cells_x[:]) # append the solution to the time-save vector
         self.dy_time.append(self.d_cells_y[:])
 
-        self.phi_time.append(self.phi)
-
-        # calculate the curl of the force ----------------------------------------------------------------
-
-        _, _, curlF = cells.curl(F_cell_x,F_cell_y,0)
 
 
         # Initial value solution--------------------------------------------------------------------------------
@@ -3683,50 +3837,99 @@ class Simulator(object):
 
             loggers.log_info('Try a world size of at least: ' + str(wave_speed*1000) + ' um for resonance.')
 
+            if p.fixed_cluster_bound is True:
 
-            self.phi = k_const*np.dot(cells.lapGJ,self.phi) + (k_const/p.lame_mu)*curlF + self.phi
+                self.d_cells_x = k_const*np.dot(cells.lapGJ,self.dx_time[-1]) + (k_const/p.lame_mu)*F_cell_x + \
+                                 self.dx_time[-1]
+                self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
+                                 self.dy_time[-1]
 
-            # set boundary condition for phi:
-            self.phi[cells.bflags_cells] = 0
+            else:
 
+                self.d_cells_x = k_const*np.dot(cells.lapGJ_P,self.dx_time[-1]) + (k_const/p.lame_mu)*F_cell_x + \
+                                 self.dx_time[-1]
+                self.d_cells_y = k_const*np.dot(cells.lapGJ_P,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
+                                 self.dy_time[-1]
+
+            # # set boundary condition for phi:
+            # self.d_cells_x[cells.bflags_cells] = 0
 
         elif t > 0.0:
-
 
             # do the non-initial value, standard solution iteration:
 
             # calculate the velocity for viscous damping:
-            d_phi_dt = (self.phi - self.phi_time[-2])/(p.dt)
+            d_ux_dt = (self.dx_time[-1] - self.dx_time[-2])/(p.dt)
+            d_uy_dt = (self.dy_time[-1] - self.dy_time[-2])/(p.dt)
             # vy = (self.d_cells_y - self.dy_time[-2])/(p.dt)
 
-            gamma = ((p.dt**2)*(p.mu_tissue))/(1000*(2*p.rc))
 
-            self.phi = k_const*np.dot(cells.lapGJ,self.phi) - gamma*d_phi_dt + \
-                       (k_const/p.lame_mu)*curlF + 2*self.phi -self.phi_time[-2]
+            gamma = ((p.dt**2)*(p.mu_tissue*p.lame_mu))/(1000*(2*p.rc))
 
-             # set boundary condition for phi:
-            self.phi[cells.bflags_cells] = 0
+            if p.fixed_cluster_bound is True:
 
-        # obtain displacement from phi -----------------------------------------------------------------------
+                self.d_cells_x = k_const*np.dot(cells.lapGJ,self.dx_time[-1]) - gamma*d_ux_dt + \
+                           (k_const/p.lame_mu)*F_cell_x + 2*self.dx_time[-1] -self.dx_time[-2]
 
-        curl_phi_x, curl_phi_y, _ = cells.curl(0,0,self.phi)
+                self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) - gamma*d_uy_dt + \
+                           (k_const/p.lame_mu)*F_cell_y + 2*self.dy_time[-1] -self.dy_time[-2]
 
+            else:
 
-        if p.fixed_cluster_bound is False:
+                self.d_cells_x = k_const*np.dot(cells.lapGJ_P,self.dx_time[-1]) - gamma*d_ux_dt + \
+                           (k_const/p.lame_mu)*F_cell_x + 2*self.dx_time[-1] -self.dx_time[-2]
 
-            self.d_cells_x = np.dot(cells.lapGJ_P_inv,-curl_phi_x)
-            self.d_cells_y = np.dot(cells.lapGJ_P_inv,-curl_phi_y)
+                self.d_cells_y = k_const*np.dot(cells.lapGJ_P,self.dy_time[-1]) - gamma*d_uy_dt + \
+                           (k_const/p.lame_mu)*F_cell_y + 2*self.dy_time[-1] -self.dy_time[-2]
 
-        else:
+            #  # set boundary condition for phi:
+            # self.d_cells_x[cells.bflags_cells] = 0
 
-            self.d_cells_x = np.dot(cells.lapGJinv,-curl_phi_x)
-            self.d_cells_y = np.dot(cells.lapGJinv,-curl_phi_y)
+        # calculate divergence of u  -----------------------------------------------------------------------
 
+         # first interpolate displacement field at membrane midpoints:
+        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
+                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
 
-        if p.fixed_cluster_bound is True:
+        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
+                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+
+        # get the component of the displacement field normal to the membranes:
+        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
+
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
+
+        # calculate the reaction pressure required to counter-balance the flow field:
+
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
+
+        # # enforce zero-gradient boundary condition:
+        # P_react[cells.bflags_cells] = P_react[cells.cell_nn_i[cells.bflags_cells,1]]
+
+        # calculate its gradient:
+        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
+
+        gP_x = gradP_react*cells.cell_nn_tx
+        gP_y = gradP_react*cells.cell_nn_ty
+
+        # average the components of the reaction force field at cell centres and get boundary values:
+        gPx_cell = np.dot(cells.gjMatrix,gP_x)/cells.num_nn
+        gPy_cell = np.dot(cells.gjMatrix,gP_y)/cells.num_nn
+
+        # calculate the displacement of cell centres under the applied force under incompressible conditions:
+        self.d_cells_x = self.d_cells_x - gPx_cell
+        self.d_cells_y = self.d_cells_y - gPy_cell
+
+        if p.fixed_cluster_bound is True: # enforce zero displacement boundary condition:
 
             self.d_cells_x[cells.bflags_cells] = 0
             self.d_cells_y[cells.bflags_cells] = 0
+
+        else:  # enforce zero-gradient boundary conditions"
+
+            self.d_cells_x[cells.bflags_cells] = self.d_cells_x[cells.cell_nn_i[cells.bflags_cells,1]]
+            self.d_cells_y[cells.bflags_cells] = self.d_cells_y[cells.cell_nn_i[cells.bflags_cells,1]]
 
         # check the displacement for NANs:
         check_v(self.d_cells_x)

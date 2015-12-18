@@ -1481,8 +1481,6 @@ class Cells(object):
 
             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our token cell
 
-            # L = p.cell_space + 2*p.tm
-
             L_set = self.nn_len[mem_set_i]
 
             # find valid (not -1) indices of the nn length set:

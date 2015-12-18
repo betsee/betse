@@ -209,6 +209,7 @@ world options:
     turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
 
     time dependent: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
+                            # upon simulation, will check for appropriate world size and time set for your parameters.
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -638,7 +639,7 @@ variable settings:
 
     membrane water conductivity: 1e-7   # mem conductivity for osmotic water inflow (aquaporin fraction) (1e-3 to 1e-8)
 
-    viscous damping: 10        # viscous damping of elastic waves in tissue [Pa s] (0.1 to 100; larger = higher damping)
+    viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
 
     fixed cluster boundary: False   # are exterior cells of the cluster fixed (True) or free to move (False)?
 

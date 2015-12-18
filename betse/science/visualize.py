@@ -93,7 +93,7 @@ class AnimateCellData(object):
             # define a polygon collection based on individual cell polygons
             self.points = np.multiply(cells.cell_verts, p.um)
             self.collection =  PolyCollection(self.points, cmap=self.colormap, edgecolors='none')
-            self.collection.set_array(self.zdata_t[0])
+            self.collection.set_array(self.zdata_t[-1])
             self.ax.add_collection(self.collection)
 
         if self.current_overlay is True:
@@ -147,7 +147,6 @@ class AnimateCellData(object):
             self.cmin = clrMin
             self.cmax = clrMax
 
-
         self.collection.set_clim(self.cmin,self.cmax)
 
         self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
@@ -186,6 +185,8 @@ class AnimateCellData(object):
     def aniFunc(self,i):
 
         zz = self.zdata_t[i]
+
+
 
         if self.p.sim_ECM is True and self.ignore_simECm is False:
 

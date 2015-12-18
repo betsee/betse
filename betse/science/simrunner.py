@@ -408,6 +408,7 @@ class SimRunner(object):
         plt.show()
 
 def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
+
     if saveImages is True:
         images_path = p.sim_results
         image_cache_dir = os.path.expanduser(images_path)
@@ -499,7 +500,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             plt.savefig(savename,dpi=300,format='png')
 
         plt.show(block=False)
-
 
         #---------------------------------------------------------
 
@@ -1025,6 +1025,31 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
+            # if p.td_deform is True:
+            #
+            #     # d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
+            #
+            #     figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=sim.phi_time[-1],number_cells=p.enumerate_cells,
+            #         clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
+            #         clrMax = p.Deformation_ani_max_clr,
+            #         clrmap = p.default_cm)
+            #
+            #     # axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
+            #     #     sim.dx_cell_time[-1],sim.dy_cell_time[-1])
+            #
+            #     axDef.set_title('Phi in Cell Network')
+            #     axDef.set_xlabel('Spatial distance [um]')
+            #     axDef.set_ylabel('Spatial distance [um]')
+            #     cbDef.set_label('Phi [1/s]')
+            #
+            #
+            #     if saveImages is True:
+            #         savename13 = savedImg + 'final_phi_2D' + '.png'
+            #         plt.savefig(savename13,format='png')
+            #
+            #     plt.show(block=False)
+
+
     if p.plot_Vel is True:
 
 
@@ -1223,7 +1248,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     if p.exportData is True:
         viz.exportData(cells, sim, p)
 
-
     if p.sim_eosmosis is True and p.sim_ECM is True and cells.gradMem is not None:
 
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
@@ -1279,6 +1303,24 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
                 current_overlay=p.I_overlay)
+
+    # if p.td_deform is True:
+    #
+    #     if p.showCells is True:
+    #
+    #         viz.AnimateCellData(sim,cells,sim.phi_time,sim.time,p,tit='Del x U in Cells',
+    #             cbtit = 'Phi [1/s]',
+    #             clrAutoscale = False, clrMin = -0.0150, clrMax = 0,
+    #             clrmap = p.default_cm,
+    #             save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Phi',
+    #             saveFile = 'Phi_', ignore_simECM =True, current_overlay=p.I_overlay)
+    #     else:
+    #         viz.AnimateCellData_smoothed(sim,cells,sim.phi_time,sim.time,p,tit='Del x U in Cells',
+    #             cbtit = 'Phi [1/s]',
+    #             clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+    #             clrmap = p.default_cm,
+    #             save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Phi', saveFile = 'Phi_',
+    #             current_overlay=p.I_overlay)
 
     # if p.ani_osmoP is True and p.deform_osmo is True and animate == 1:
     #
