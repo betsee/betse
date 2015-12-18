@@ -236,11 +236,13 @@ tissue profile definition:
             # directory containing this configuration file.
             file: geo/circle/circle_base.png
 
+    # Will the tissue profiles listed below be applied as is ("True") or
+    # replaced by the empty list and hence ignored entirely ("False")?
+    tissue profiles enabled: True
+
     # Tissue profiles are applied in the order defined below. When multiple
     # profiles apply to the same cell, options defined by later profiles
     # override options defined by earlier profiles for that cell.
-
-    # FIXME -- there needs to be some way to easily turn all tissue profiles off
     tissue profiles:
         # Example default tissue profile, providing sensible defaults for all
         # options *NOT* defined by subsequent profiles. (Options defined by
@@ -365,7 +367,8 @@ tissue profile definition:
       - name: applied neg voltage
         boundary targets: B
 
-    closed boundary: False   # are the global environmental boundaries closed (True) or open (False)?
+    # Are the global environmental boundaries closed (True) or open (False)?
+    closed boundary: False
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS

@@ -35,6 +35,7 @@ class TissueHandler(object):
         elif p.sim_ECM is False:
             self.data_length = len(cells.cell_i)
 
+
     def runAllInit(self,sim,cells,p):
         '''
         Initialize all tissue manipulations specified by the passed
@@ -42,23 +43,25 @@ class TissueHandler(object):
         world.
         '''
 
-        self._initEventsGlobal(sim,cells,p)
-        self._initEventsTissue(sim,cells,p)
-        self._initChannelsTissue(sim,cells,p)
+        self._init_events_global(  sim, cells, p)
+        self._init_events_tissue(  sim, cells, p)
+        self._init_channels_tissue(sim, cells, p)
 
-    def runAllDynamics(self,sim,cells,p,t):
+
+    def runAllDynamics(self, sim, cells, p, t):
         '''
         Apply all tissue manipulations specified by the passed user-specified
         parameters to the passed tissue simulation and cellular world for the
         passed time step.
         '''
 
-        self._simEventsGlobal(sim,cells,p,t)
-        self._simEventsTissue(sim,cells,p,t)
-        self._simChannelsTissue(sim,cells,p,t)
+        self._sim_events_global(  sim, cells, p, t)
+        self._sim_events_tissue(  sim, cells, p, t)
+        self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
 
-    def _initEventsGlobal(self,sim,cells,p):
+
+    def _init_events_global(self,sim,cells,p):
         '''
         Initialize all **global scheduled interventions** (i.e., events globally
         applicable to all cells) specified by the passed user-specified
@@ -137,7 +140,7 @@ class TissueHandler(object):
             self.trampV = p.global_options['VATP_block'][2]
 
 
-    def _initEventsTissue(self, sim, cells, p):
+    def _init_events_tissue(self, sim, cells, p):
         '''
         Initialize all **targeted scheduled interventions** (i.e., events only
         applicable to specific tissue profiles) specified by the passed
@@ -277,12 +280,12 @@ class TissueHandler(object):
             self.targets_cuts = [item for sublist in self.targets_cuts for item in sublist]
 
 
-    def _initChannelsTissue(self,sim,cells,p):
+    def _init_channels_tissue(self, sim, cells, p):
         '''
         Initialize all **targeted ion channels** (i.e., ion channels only
         applicable to specific tissue profiles) specified by the passed
-        user-specified parameters with the passed tissue simulation and cellular
-        world.
+        user-specified parameters with the passed tissue simulation and
+        cellular world.
         '''
 
         if p.vg_options['Na_vg'] != 0:
@@ -426,7 +429,8 @@ class TissueHandler(object):
             self.target_mask_Ca = np.zeros(len(cells.cell_i))
             self.target_mask_Ca[self.targets_Ca] = 1
 
-    def _simEventsGlobal(self,sim,cells,p,t):
+
+    def _sim_events_global(self, sim, cells, p, t):
         '''
         Apply all **global scheduled interventions** (i.e., events globally
         applicable to all cells) specified by the passed user-specified
@@ -507,7 +511,8 @@ class TissueHandler(object):
 
             sim.VATP_block = (1.0 - tb.pulse(t,self.tonV,self.toffV,self.trampV))
 
-    def _simEventsTissue(self,sim,cells,p,t):
+
+    def _sim_events_tissue(self, sim, cells, p, t):
         '''
         Apply all **targeted scheduled interventions** (i.e., events only
         applicable to specific tissue profiles) specified by the passed
@@ -579,10 +584,10 @@ class TissueHandler(object):
                 sim.D_env_weight_v[0,:] = 0
                 sim.D_env_weight_v[-1,:] = 0
 
-        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True and t>self.t_cuts:
-            target_method = p.tissue_profiles[self.apply_cuts]['target method']
+        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True and t > self.t_cuts:
+            cut_picker = p.tissue_profiles[self.apply_cuts]['picker']
             removeCells(
-                target_method, sim, cells, p,
+                cut_picker, sim, cells, p,
                 simMod=True, dangling_gj=self.dangling_gj)
             loggers.log_info("Cutting event successful! Resuming simulation...")
 
@@ -611,7 +616,8 @@ class TissueHandler(object):
             sim.bound_V[self.targets_extV_positive] = self.peak_val_extV*effector_extV
             sim.bound_V[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
 
-    def _simChannelsTissue(self,sim,cells,p,t):
+
+    def _sim_channels_tissue(self, sim, cells, p, t):
         '''
         Handle all **targeted ion channels** (i.e., ion channels only applicable
         to specific tissue profiles) specified by the passed user-specified
@@ -856,79 +862,81 @@ class TissueHandler(object):
         if cells.do_once_cavity is True:  # if we haven't done this already...
             for name in profile_names:
                 data_stream = p.tissue_profiles[name]
-                profile_matcher = data_stream['target method']
+                profile_picker = data_stream['picker']
                 dmem_list = data_stream['diffusion constants']
                 designation = data_stream['designation']
 
                 if designation == 'cavity':
                     removeCells(
-                        profile_matcher, sim, cells, p, open_TJ=p.cavity_state)
+                        profile_picker, sim, cells, p, open_TJ=p.cavity_state)
                     sim.make_cavity = True
                     cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
-        for name in profile_names:
-            data_stream = p.tissue_profiles[name]
-            profile_matcher = data_stream['target method']
-            dmem_list = data_stream['diffusion constants']
-            designation = data_stream['designation']
+        for profile_name in profile_names:
+            profile = p.tissue_profiles[profile_name]
+            profile_picker = profile['picker']
+            dmem_list = profile['diffusion constants']
+            designation = profile['designation']
 
             if designation == 'None':
-                self.tissue_profile_names.append(name)
-                self.tissue_target_inds[name] = profile_matcher.get_cell_indices(
-                    cells, p, ignoreECM=False)
-                self.cell_target_inds[name] = profile_matcher.get_cell_indices(
-                    cells, p, ignoreECM=True)
+                self.tissue_profile_names.append(profile_name)
+                self.tissue_target_inds[profile_name] = \
+                    profile_picker.get_cell_indices(cells, p, ignoreECM=False)
+                self.cell_target_inds[profile_name] = \
+                    profile_picker.get_cell_indices(cells, p, ignoreECM=True)
 
-                if len(self.cell_target_inds[name]):
+                if len(self.cell_target_inds[profile_name]):
                     # Get ECM targets.
                     if p.sim_ECM is True:
-                        ecm_targs_cell = list(cells.map_cell2ecm[self.cell_target_inds[name]])
-                        ecm_targs_mem = list(cells.map_mem2ecm[self.tissue_target_inds[name]])
+                        ecm_targs_cell = list(
+                            cells.map_cell2ecm[self.cell_target_inds[profile_name]])
+                        ecm_targs_mem = list(
+                            cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
 
                         #FIXME: The following six lines are reducible to merely:
-                        #    self.env_target_inds[name] = ecm_targs_cell + ecm_targs_mem
+                        #    self.env_target_inds[profile_name] = ecm_targs_cell + ecm_targs_mem
                         ecm_targs = []
                         for v in ecm_targs_cell:
                             ecm_targs.append(v)
                         for v in ecm_targs_mem:
                             ecm_targs.append(v)
-                        self.env_target_inds[name] = ecm_targs
+                        self.env_target_inds[profile_name] = ecm_targs
 
                     # Set the values of Dmems and ECM diffusion based on the
                     # identified target indices.
                     if p.ions_dict['Na'] == 1:
                         dNa = dmem_list['Dm_Na']
-                        sim.Dm_cells[sim.iNa][self.tissue_target_inds[name]] = dNa
+                        sim.Dm_cells[sim.iNa][self.tissue_target_inds[profile_name]] = dNa
 
                     if p.ions_dict['K'] == 1:
                         dK = dmem_list['Dm_K']
-                        sim.Dm_cells[sim.iK][self.tissue_target_inds[name]] = dK
+                        sim.Dm_cells[sim.iK][self.tissue_target_inds[profile_name]] = dK
 
                     if p.ions_dict['Cl'] == 1:
                         dCl = dmem_list['Dm_Cl']
-                        sim.Dm_cells[sim.iCl][self.tissue_target_inds[name]] = dCl
+                        sim.Dm_cells[sim.iCl][self.tissue_target_inds[profile_name]] = dCl
 
                     if p.ions_dict['Ca'] == 1:
                         dCa = dmem_list['Dm_Ca']
-                        sim.Dm_cells[sim.iCa][self.tissue_target_inds[name]] = dCa
+                        sim.Dm_cells[sim.iCa][self.tissue_target_inds[profile_name]] = dCa
 
                     if p.ions_dict['H'] == 1:
                         dH = dmem_list['Dm_H']
-                        sim.Dm_cells[sim.iH][self.tissue_target_inds[name]] = dH
+                        sim.Dm_cells[sim.iH][self.tissue_target_inds[profile_name]] = dH
 
                     if p.ions_dict['M'] == 1:
                         dM = dmem_list['Dm_M']
-                        sim.Dm_cells[sim.iM][self.tissue_target_inds[name]] = dM
+                        sim.Dm_cells[sim.iM][self.tissue_target_inds[profile_name]] = dM
 
                     if p.ions_dict['P'] == 1:
                         dP = dmem_list['Dm_P']
-                        sim.Dm_cells[sim.iP][self.tissue_target_inds[name]] = dP
+                        sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
 
             elif designation == 'cuts':
                 # if the user wants to use this as a region to be cut, define cuts target inds:
-                self.cuts_target_inds[name] = profile_matcher.get_cell_indices(
-                    cells, p, ignoreECM=True)
+                self.cuts_target_inds[profile_name] = \
+                    profile_picker.get_cell_indices(cells, p, ignoreECM=True)
 
 
     def makeAllChanges(self, sim):
@@ -938,57 +946,17 @@ class TissueHandler(object):
         '''
         sim.Dm_cells = sim.Dm_scheduled + sim.Dm_vg + sim.Dm_cag + sim.Dm_morpho + sim.Dm_base
 
-#FIXME: Remove if unneeded.
-# def getEcmTargets(target_method, cells, p, boundaryOnly = True):
-#     """
-#     Get a Numpy array of all ECM indices matching the passed tissue profile.
-#
-#     Parameters
-#     ---------------------------------
-#     target_method : TissuePicker
-#         Object matching all ECM indices to be returned.
-#     cells : Cells
-#         Instance of the `Cells` class.
-#     p : Parameters
-#         Instance of the `Parameters` class.
-#     boundaryOnly : bool
-#         If `True`, only boundary ECM indices (e.g., `bflags_ecm`) will be
-#         returned; else, all ECM indices will be returned. Defaults to `True`.
-#
-#     Returns
-#     ---------------------------------
-#     target_inds : ndarray
-#         Numpy array of all matching ECM indices.
-#     """
-#     assert types.is_parameters(p),  types.assert_not_parameters(p)
-#     assert types.is_cells(cells),   types.assert_not_cells(cells)
-#
-#     target_inds = []
-#
-#     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-#     if isinstance(target_method, TissuePickerBitmap):
-#         bitmask = BitMapper(
-#             target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
-#         bitmask.clipPoints(cells.xypts[:, 0], cells.xypts[:, 1])
-#         target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
-#
-#     else:
-#         raise BetseExceptionSimulation(
-#             'Tissue matcher "{}" getEcmTargets() support unimplemented.'.format(
-#                 target_method))
-#
-#     return target_inds
 
 #FIXME: Document all optional booleans accepted by this method as well. Tasty!
 def removeCells(
-    target_method, sim, cells, p,
+    tissue_picker, sim, cells, p,
     simMod = False, dangling_gj = False, open_TJ = True):
     '''
     Permanently remove all cells matching the passed tissue profile.
 
     Parameters
     ---------------------------------
-    target_method : TissuePicker
+    tissue_picker : TissuePicker
         Object matching all cells to be removed.
     sim : Simulator
         Instance of the `Simulator` class.
@@ -1004,10 +972,10 @@ def removeCells(
     loggers.log_info('Cutting hole in cell cluster! Removing world...')
 
     # Perform removal logic specific to the current tissue picker.
-    target_method.remove_cells(cells)
+    tissue_picker.remove_cells(cells)
 
     # Indices of all cells to be removed, ignoring electromagnetism.
-    target_inds_cell = target_method.get_cell_indices(cells, p, ignoreECM=True)
+    target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
 
     # get the corresponding flags to membrane entities
     target_inds_mem = cells.cell_to_mems[target_inds_cell]
@@ -1174,7 +1142,6 @@ def removeCells(
 
     # recalculate ecm_verts_unique:
     ecm_verts_flat,_,_ = tb.flatten(cells.ecm_verts)
-
     ecm_verts_set = set()
 
     for vert in ecm_verts_flat:
@@ -1183,16 +1150,12 @@ def removeCells(
         ecm_verts_set.add((ptx,pty))
 
     cells.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
-
     cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
 
     #-----------------------------------------------------------------
-
-
     loggers.log_info('Recalculating cluster variables for new configuration...')
 
     if p.sim_ECM is True:
-
         cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
 
         if open_TJ is True:
@@ -1200,7 +1163,6 @@ def removeCells(
             searchTree = sps.KDTree(cells.cell_centres)
             original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
             cells.bflags_cells = original_pt_inds[:]
-
 
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.calc_gj_vects(p)
@@ -1215,7 +1177,6 @@ def removeCells(
         loggers.log_info('Completed major world-building computations.')
 
     else:
-
         cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.calc_gj_vects(p)
@@ -1226,15 +1187,43 @@ def removeCells(
         loggers.log_info('Completed major world-building computations.')
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+#FIXME: Remove if unneeded.
+# def getEcmTargets(target_method, cells, p, boundaryOnly = True):
+#     """
+#     Get a Numpy array of all ECM indices matching the passed tissue profile.
+#
+#     Parameters
+#     ---------------------------------
+#     target_method : TissuePicker
+#         Object matching all ECM indices to be returned.
+#     cells : Cells
+#         Instance of the `Cells` class.
+#     p : Parameters
+#         Instance of the `Parameters` class.
+#     boundaryOnly : bool
+#         If `True`, only boundary ECM indices (e.g., `bflags_ecm`) will be
+#         returned; else, all ECM indices will be returned. Defaults to `True`.
+#
+#     Returns
+#     ---------------------------------
+#     target_inds : ndarray
+#         Numpy array of all matching ECM indices.
+#     """
+#     assert types.is_parameters(p),  types.assert_not_parameters(p)
+#     assert types.is_cells(cells),   types.assert_not_cells(cells)
+#
+#     target_inds = []
+#
+#     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
+#     if isinstance(target_method, TissuePickerBitmap):
+#         bitmask = BitMapper(
+#             target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
+#         bitmask.clipPoints(cells.xypts[:, 0], cells.xypts[:, 1])
+#         target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
+#
+#     else:
+#         raise BetseExceptionSimulation(
+#             'Tissue matcher "{}" getEcmTargets() support unimplemented.'.format(
+#                 target_method))
+#
+#     return target_inds
