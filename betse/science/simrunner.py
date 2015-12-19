@@ -154,10 +154,6 @@ class SimRunner(object):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             loggers.log_info('Cell cluster loaded.')
 
-            if p.deform_osmo is True:
-                loggers.log_info('Creating cell network Poisson solver...')
-                cells.graphLaplacian(p)
-
             if p_old.config['general options'] != p.config['general options'] or \
                p_old.config['world options'] != p.config['world options'] or \
                p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
@@ -222,12 +218,6 @@ class SimRunner(object):
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
-
-            if p.deform_osmo is True:
-                loggers.log_info('Creating cell network Poisson solver...')
-                cells.graphLaplacian(p)
-
-
             p.sim_ECM = cells.sim_ECM
 
             if p_old.config['general options'] != p.config['general options'] or \
@@ -1035,6 +1025,30 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
+            # if p.td_deform is True:
+            #
+            #     # d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
+            #
+            #     figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=sim.phi_time[-1],number_cells=p.enumerate_cells,
+            #         clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
+            #         clrMax = p.Deformation_ani_max_clr,
+            #         clrmap = p.default_cm)
+            #
+            #     # axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
+            #     #     sim.dx_cell_time[-1],sim.dy_cell_time[-1])
+            #
+            #     axDef.set_title('Phi in Cell Network')
+            #     axDef.set_xlabel('Spatial distance [um]')
+            #     axDef.set_ylabel('Spatial distance [um]')
+            #     cbDef.set_label('Phi [1/s]')
+            #
+            #
+            #     if saveImages is True:
+            #         savename13 = savedImg + 'final_phi_2D' + '.png'
+            #         plt.savefig(savename13,format='png')
+            #
+            #     plt.show(block=False)
+
 
     if p.plot_Vel is True:
 
@@ -1308,24 +1322,24 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     #             save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Phi', saveFile = 'Phi_',
     #             current_overlay=p.I_overlay)
 
-    if p.ani_osmoP is True and p.deform_osmo is True and animate == 1:
-
-        osmo_P_atm = [arr*(1) for arr in sim.osmo_P_delta_time]
-
-        if p.showCells is True:
-
-            viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells', cbtit = 'Pressure [Pa]',
-                clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/osmoP',
-                saveFile = 'osmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells',
-                cbtit = 'Pressure [Pa]',
-                clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
-                current_overlay=p.I_overlay)
+    # if p.ani_osmoP is True and p.deform_osmo is True and animate == 1:
+    #
+    #     osmo_P_atm = [arr*(1) for arr in sim.osmo_P_delta_time]
+    #
+    #     if p.showCells is True:
+    #
+    #         viz.AnimateCellData(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells', cbtit = 'Pressure [Pa]',
+    #             clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
+    #             clrmap = p.default_cm,
+    #             save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/osmoP',
+    #             saveFile = 'osmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
+    #     else:
+    #         viz.AnimateCellData_smoothed(sim,cells,osmo_P_atm,sim.time,p,tit='Osmotic Pressure in Cells',
+    #             cbtit = 'Pressure [Pa]',
+    #             clrAutoscale = p.autoscale_osmoP_ani, clrMin = p.osmoP_ani_min_clr, clrMax = p.osmoP_ani_max_clr,
+    #             clrmap = p.default_cm,
+    #             save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/osmoP', saveFile = 'osmoP_',
+    #             current_overlay=p.I_overlay)
 
     if p.ani_force is True and p.deform_electro is True and animate == 1:
 

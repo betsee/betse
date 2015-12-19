@@ -106,7 +106,7 @@ sim time settings:
 
     time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
 
-    total time: 2.0         # time to end sim run [s]
+    total time: 1.0         # time to end sim run [s]
 
     sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -340,7 +340,7 @@ tissue profile definition:
 
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
-          designation: None
+          designation: cuts
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -447,7 +447,7 @@ break ecm junctions:     # break extracellular junctions between cells
   apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: False
+    event happens: True
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
@@ -603,7 +603,7 @@ variable settings:
 
   morphogen properties:  # specify the properties of an auxillary chemical
 
-      include morphogen: True     # include electrodiffusion of an auxillary chemical substance?
+      include morphogen: False     # include electrodiffusion of an auxillary chemical substance?
       Dm: 1.0e-15        # morphogen membrane diffusion coefficient [m2/s]
       Do: 1.0e-10         # morphogen free diffusion constant [m2/s]
       z: -1               # charge of morphogen (oxidation state)
@@ -636,17 +636,17 @@ variable settings:
 
     water viscocity: 1e-3      # viscocity of water [Pa s] (applies to ease of flow)
 
-    include osmotic pressure: True    # include osmotic pressure in flow & deformation?
+    include osmotic pressure: False    # include osmotic pressure in flow & deformation?
 
     include electrostatic pressure: False   # include electrostatic pressure in flow and deformation?
 
-    membrane water conductivity: 1e-7   # mem conductivity for osmotic water inflow (aquaporin fraction) (1e-3 to 1e-8)
+    membrane water conductivity: 1e-9   # mem conductivity for osmotic water inflow (aquaporin fraction) (1e-5 to 1e-10)
 
     viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
 
-    fixed cluster boundary: False   # are exterior cells of the cluster fixed (True) or free to move (False)?
+    fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
 
-    young modulus: 5e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
+    young modulus: 1e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
 
   channel electroosmosis:
@@ -671,9 +671,9 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 1.0e-6 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
+    gap junction surface area: 1.0e-8 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
 
-    voltage sensitive gj: True    # gj close with voltage difference between cells?
+    voltage sensitive gj: False    # gj close with voltage difference between cells?
 
     gj voltage threshold: 15e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 10e-3 to 80e-3 V

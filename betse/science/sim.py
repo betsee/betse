@@ -902,6 +902,9 @@ class Simulator(object):
             self.dx_time = []
             self.dy_time = []
 
+            # self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
+            # self.Ty = np.zeros(len(cells.cell_i))
+
             self.phi = np.zeros(len(cells.cell_i))
             self.phi_time = []
 
@@ -1135,7 +1138,7 @@ class Simulator(object):
 
                 if p.td_deform is False:
 
-                    self.getDeformation(cells,p)  # sim ecm call to deform
+                    self.getDeformation(cells,t,p)
 
                 elif p.td_deform is True:
 
@@ -1642,7 +1645,7 @@ class Simulator(object):
 
                 if p.td_deform is False:
 
-                    self.getDeformation(cells,p)  # Run-sim ECM loop call to deform
+                    self.getDeformation(cells,t,p)
 
                 elif p.td_deform is True:
 
@@ -3311,38 +3314,91 @@ class Simulator(object):
         # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
         u_osmo = (self.osmo_P_delta - self.P_cells)*(p.aquaporins/p.mu_water)
 
-        # assume pressure that develops precisely resists any flow in reverse proportion to elastic modulus:
-        P_react = u_osmo
+        P_react = u_osmo     # assume pressure that develops precisely resists any flow...
 
         self.P_cells = self.P_cells + P_react
 
-        #---------------------------------
+        self.P_mem = self.P_mem + P_react[cells.mem_to_cells]
 
-        # divergences of the flow and volume:
+        # # stress at each membrane due to pressure are normal to membranes:
+        # sxx_o = self.P_mem*cells.mem_vects_flat[:,2]
+        # syy_o = self.P_mem*cells.mem_vects_flat[:,3]
+        #
+        # # each cell will push against neighbouring cells, so average nn membrane stress:
+        # sxx = (sxx_o[cells.nn_i] + sxx_o[cells.mem_i])/2
+        # syy = (syy_o[cells.nn_i] + syy_o[cells.mem_i])/2
+        #
+        # if p.fixed_cluster_bound is True:
+        #
+        #     sxx[cells.bflags_mems] = 0
+        #     syy[cells.bflags_mems] = 0
 
-        self.div_d_osmo = (1/p.youngMod)*(u_osmo*cells.cell_sa*p.dt)/cells.cell_vol    # divergence of the volume
+        # # divergence of the stress tensor is the dot product of stress tensor with membrane normals.
+        # # these are body forces which will be tried in the time-dependent deformation equation later.
+        # self.F_osmo_x = np.dot(cells.M_sum_mems, sxx*cells.mem_sa)/cells.cell_vol
+        # self.F_osmo_y = np.dot(cells.M_sum_mems, syy*cells.mem_sa)/cells.cell_vol
+        #
+        # if p.fixed_cluster_bound is True:
+        #
+        #     self.F_osmo_x[cells.bflags_cells] = 0
+        #     self.F_osmo_y[cells.bflags_cells] = 0
+        #
+        # self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)  # net body force
 
-        delta_vol = (1/p.youngMod)*(u_osmo*cells.cell_sa*p.dt)    # approximate volume change due to the osmotic flow
-
-        # update cell volume
-        # (Note: must update with respect to original cell volume, as per definition of deformation):
-        new_cell_vol = cells.cell_vol + delta_vol
-
-        # update cell conservations to conserve total mass:
-        self.cc_cells = self.cc_cells*(cells.cell_vol/new_cell_vol)
-
-        if p.voltage_dye == 1:
-
-            self.cDye_cell = self.cDye_cell*(cells.cell_vol/new_cell_vol)
-
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
-            self.cIP3 = self.cIP3*(cells.cell_vol/new_cell_vol)
-
-        # reassign cell volume:
-        cells.cell_vol = new_cell_vol[:]
-
-        #-----------
+        # # estimate deformation (not divergence free as we're assuming cell volume change can happen):
+        #
+        # if p.fixed_cluster_bound is True:
+        #
+        #     self.ux_osmo = np.dot(cells.lapGJinv,-(1/p.lame_mu)*self.F_osmo_x)
+        #     self.uy_osmo = np.dot(cells.lapGJinv,-(1/p.lame_mu)*self.F_osmo_y)
+        #
+        #     self.ux_osmo[cells.bflags_cells] = 0
+        #     self.uy_osmo[cells.bflags_cells] = 0
+        #
+        # else:
+        #
+        #     self.ux_osmo = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*self.F_osmo_x)
+        #     self.uy_osmo = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*self.F_osmo_y)
+        #
+        # self.u_osmo = np.sqrt(self.ux_osmo**2 + self.uy_osmo**2)
+        #
+        # # map displacement to membrane midpoints:
+        # # first interpolate displacement field at membrane midpoints:
+        # ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.ux_osmo,
+        #                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
+        #
+        # uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.uy_osmo,
+        #                          (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+        #
+        # # get the component of the velocity field normal to the membranes:
+        # u_n = ux_mem[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + uy_mem[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
+        #
+        # # calculate the percent change in average cell radius:
+        # cell_r_x = cells.mem_mids_flat[:,0] - cells.cell_centres[cells.mem_to_cells][:,0]
+        # cell_r_y = cells.mem_mids_flat[:,1] - cells.cell_centres[cells.mem_to_cells][:,1]
+        #
+        # cell_ro = np.sqrt(cell_r_x**2 + cell_r_y**2)
+        #
+        # new_r = cell_ro + u_n
+        #
+        # frac_r = new_r/cell_ro
+        #
+        # self.delta_r = (np.dot(cells.M_sum_mems,frac_r)/cells.num_mems)
+        #
+        # # next update cell volume
+        # # (Note: must update with respect to original cell volume, as per definition of deformation):
+        # cells.cell_vol = ((self.delta_r))*self.cell_vol_o
+        #
+        # # update cell conservations to conserve total mass:
+        # self.cc_cells = self.cc_cells*((self.delta_r))
+        #
+        # if p.voltage_dye == 1:
+        #
+        #     self.cDye_cell = self.cDye_cell*((self.delta_r))
+        #
+        # if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+        #
+        #     self.cIP3 = self.cIP3*((self.delta_r))
 
         # determine body force due to hydrostatic pressure gradient between cells:
         gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
@@ -3355,33 +3411,6 @@ class Simulator(object):
         self.F_osmo_y = np.dot(cells.gjMatrix, F_osmo_y)/cells.num_nn
 
         self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)
-
-        #------------
-
-        # # stress at each membrane due to pressure are normal to membranes:
-        # sxx_o = self.P_cells[cells.mem_to_cells]*cells.mem_vects_flat[:,2]
-        # syy_o = self.P_cells[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
-        #
-        # # each cell will push against neighbouring cells, so average nn membrane stress:
-        # sxx = (sxx_o[cells.nn_i] + sxx_o[cells.mem_i])/2
-        # syy = (syy_o[cells.nn_i] + syy_o[cells.mem_i])/2
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     sxx[cells.bflags_mems] = 0
-        #     syy[cells.bflags_mems] = 0
-        #
-        # # divergence of the stress tensor is the dot product of stress tensor with membrane normals.
-        # # these are body forces which will be tried in the time-dependent deformation equation later.
-        # self.F_osmo_x = np.dot(cells.M_sum_mems, sxx*cells.mem_sa)/cells.cell_vol
-        # self.F_osmo_y = np.dot(cells.M_sum_mems, syy*cells.mem_sa)/cells.cell_vol
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.F_osmo_x[cells.bflags_cells] = 0
-        #     self.F_osmo_y[cells.bflags_cells] = 0
-        #
-        # self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)  # net body force
 
     def electro_P(self,cells,p):
         """
@@ -3485,7 +3514,7 @@ class Simulator(object):
 
         self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
 
-    def getDeformation(self,cells,p):
+    def getDeformation(self,cells,t,p):
         """
         Calculates the deformation of the cell cluster under the action
         of intracellular forces and pressures, assuming steady-state
@@ -3518,13 +3547,9 @@ class Simulator(object):
             F_osmo_x = self.F_osmo_x
             F_osmo_y = self.F_osmo_y
 
-            div_osmo = self.div_d_osmo
-
         else:
             F_osmo_x = np.zeros(len(cells.cell_i))
             F_osmo_y = np.zeros(len(cells.cell_i))
-
-            div_osmo = np.zeros(len(cells.cell_i))
 
         # Take the total component of pressure from all contributions:
         F_cell_x = F_electro_x + F_osmo_x
@@ -3558,13 +3583,12 @@ class Simulator(object):
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
         div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
-        # calculate the reaction pressure required to counter-balance the flow field, subtracting off
-        # any divergence caused by cell volume changes:
+        # calculate the reaction pressure required to counter-balance the flow field:
 
-        self.P_react = np.dot(cells.lapGJ_P_inv,div_u)
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
         # calculate its gradient:
-        gradP_react = (self.P_react[cells.cell_nn_i[:,1]] - self.P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
+        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
 
         gP_x = gradP_react*cells.cell_nn_tx
         gP_y = gradP_react*cells.cell_nn_ty
@@ -3741,12 +3765,12 @@ class Simulator(object):
                     'The time step you are using is too large to bother going further with. '
                     'Please set your time step to ' + str(new_ts) + ' and try again.')
 
-        # if p.wsx < 400e-6:
-        #
-        #     raise BetseExceptionSimulation(
-        #             'Time dependent deformation is tricky business, requiring a larger grid! '
-        #             'The world size you are using will likely result in instability. '
-        #             'Please set your world dimension to at least ' + str(400e-6) + ' and try again.')
+        if p.wsx < 400e-6:
+
+            raise BetseExceptionSimulation(
+                    'Time dependent deformation is tricky business, requiring a larger grid! '
+                    'The world size you are using will likely result in instability. '
+                    'Please set your world dimension to at least ' + str(400e-6) + ' and try again.')
 
         k_const = (p.dt**2)*(p.lame_mu/1000)
 
@@ -4703,76 +4727,6 @@ def rk4(c,deltac,p):
         #     self.P_mem = P_cll[cells.mem_to_cells]
         #
         #     self.P_cells = np.dot(cells.M_sum_mems,self.P_mem)/cells.num_mems
-
-
-        #----------------
-          #--------------------------------------------
-
-
-        # # stress at each membrane due to pressure are normal to membranes:
-        # sxx_o = self.P_mem*cells.mem_vects_flat[:,2]
-        # syy_o = self.P_mem*cells.mem_vects_flat[:,3]
-        #
-        # # each cell will push against neighbouring cells, so average nn membrane stress:
-        # sxx = (sxx_o[cells.nn_i] + sxx_o[cells.mem_i])/2
-        # syy = (syy_o[cells.nn_i] + syy_o[cells.mem_i])/2
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     sxx[cells.bflags_mems] = 0
-        #     syy[cells.bflags_mems] = 0
-
-        # # divergence of the stress tensor is the dot product of stress tensor with membrane normals.
-        # # these are body forces which will be tried in the time-dependent deformation equation later.
-        # self.F_osmo_x = np.dot(cells.M_sum_mems, sxx*cells.mem_sa)/cells.cell_vol
-        # self.F_osmo_y = np.dot(cells.M_sum_mems, syy*cells.mem_sa)/cells.cell_vol
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.F_osmo_x[cells.bflags_cells] = 0
-        #     self.F_osmo_y[cells.bflags_cells] = 0
-        #
-        # self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)  # net body force
-
-        # # estimate deformation (not divergence free as we're assuming cell volume change can happen):
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.ux_osmo = np.dot(cells.lapGJinv,-(1/p.lame_mu)*self.F_osmo_x)
-        #     self.uy_osmo = np.dot(cells.lapGJinv,-(1/p.lame_mu)*self.F_osmo_y)
-        #
-        #     self.ux_osmo[cells.bflags_cells] = 0
-        #     self.uy_osmo[cells.bflags_cells] = 0
-        #
-        # else:
-        #
-        #     self.ux_osmo = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*self.F_osmo_x)
-        #     self.uy_osmo = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*self.F_osmo_y)
-        #
-        # self.u_osmo = np.sqrt(self.ux_osmo**2 + self.uy_osmo**2)
-        #
-        # # map displacement to membrane midpoints:
-        # # first interpolate displacement field at membrane midpoints:
-        # ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.ux_osmo,
-        #                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-        #
-        # uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.uy_osmo,
-        #                          (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-        #
-        # # get the component of the velocity field normal to the membranes:
-        # u_n = ux_mem[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + uy_mem[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
-        #
-        # # calculate the percent change in average cell radius:
-        # cell_r_x = cells.mem_mids_flat[:,0] - cells.cell_centres[cells.mem_to_cells][:,0]
-        # cell_r_y = cells.mem_mids_flat[:,1] - cells.cell_centres[cells.mem_to_cells][:,1]
-        #
-        # cell_ro = np.sqrt(cell_r_x**2 + cell_r_y**2)
-        #
-        # new_r = cell_ro + u_n
-        #
-        # frac_r = new_r/cell_ro
-        #
-        # self.delta_r = (np.dot(cells.M_sum_mems,frac_r)/cells.num_mems)
 
 
 
