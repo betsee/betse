@@ -49,6 +49,48 @@ class TissuePicker(object, metaclass = ABCMeta):
         '''
         pass
 
+    # ..................{ CONCRETE ~ static                  }..................
+    @staticmethod
+    def make(config: dict, params: 'Parameters') -> 'TissuePicker':
+        '''
+        Factory method producing a concrete instance of this abstract base class
+        from the passed dictionary and tissue simulation configuration.
+
+        Parameters
+        ----------------------------
+        config : dict
+             Dictionary describing the type and contents of the tissue picker to
+             be created via the following key-value pairs:
+             * `type`, a string enumeration.
+        params : Parameters
+             Current tissue simulation configuration.
+
+        Returns
+        ----------------------------
+        TissueProfileBase
+            Concrete instance of this abstract base class.
+        '''
+        assert types.is_mapping(config), types.assert_not_mapping(config)
+        assert types.is_parameters(params), types.assert_not_parameters(params)
+
+        picker = None
+        picker_type = config['type']
+
+        if picker_type == 'all':
+            picker = TissuePickerAll()
+        elif picker_type == 'bitmap':
+            picker = TissuePickerBitmap(
+                config['bitmap']['file'], params.config_dirname)
+        elif picker_type == 'indices':
+            picker = TissuePickerIndices(config['indices'])
+        elif picker_type == 'random':
+            picker = TissuePickerRandom(config['random'])
+        else:
+            raise BetseExceptionParameters(
+                'Tissue picker type "{}"' 'unrecognized.'.format(picker_type))
+
+        return picker
+
     # ..................{ CONCRETE                           }..................
     def remove_cells(self, cells) -> None:
         '''

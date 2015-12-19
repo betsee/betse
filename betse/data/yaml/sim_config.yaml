@@ -234,12 +234,20 @@ tissue profile definition:
             # Absolute or relative bitmap path. If relative (i.e., *NOT*
             # prefixed by a directory separator), the path is relative to the
             # directory containing this configuration file.
+            #
+            # If "None", then clipping will be disabled altogether, in which
+            # case the cell population will extend over the entire environment.
             file: geo/circle/circle_base.png
 
-    # Will the tissue profiles listed below be applied as is ("True") or
-    # replaced by the empty list and hence ignored entirely ("False")?
-    tissue profiles enabled: True
+    # Will the tissue and cut profiles listed below be applied as is ("True")
+    # or replaced with empty lists and hence ignored entirely ("False")?
+    #
+    # This does *NOT* apply to the clipping mask defined above, which may be
+    # disabled by setting "file:' to "None" above.
+    profiles enabled: True
 
+    # List of profiles identifying cells to be associated with particular
+    # properties, applied in the order listed below.
     # Tissue profiles are applied in the order defined below. When multiple
     # profiles apply to the same cell, options defined by later profiles
     # override options defined by earlier profiles for that cell.
@@ -357,13 +365,51 @@ tissue profile definition:
               indices: [3, 14, 15, 9, 265]
               random: 50
 
+    #FIXME: Enable me, please. This is currently ignored. Bugaboo, hullaballoo!
+
+    # Profile identifying cells to be permanently "cut" (i.e., removed) from
+    # the cell population. Note that this is ignored unless the "cutting event"
+    # declared below is also enabled.
+    cut profile:
+        # Example cut profile for a small cluster of cells.
+        name: wound     # unique profile name
+
+        # Subset of cells to be cut.
+        cell targets:
+            type: bitmap
+            bitmap: { file: geo/circle/wedge.png }
+            indices: [3, 14, 15, 9, 265]
+            random: 50
+
+#-----------------------------------------------------------------------------------------------------------------------
+# BOUNDARY DESIGNATION
+#-----------------------------------------------------------------------------------------------------------------------
+boundary profile definition:
+    #FIXME: Is it valid for multiple boundary profiles to share the same
+    #boundary edge? If not, it might be sensible to reduce this list to simply
+    #four keys corresponding to the four cardinal directions: e.g.,
+    #
+    #top boundary:
+    #    name: applied pos voltage
+    #bottom boundary:
+    #    name: applied neg voltage
+    #left boundary:
+    #    name: None
+    #right boundary:
+    #    name: None
+
     # Boundary profiles, each applying a property at a specific global (i.e.
     # bounding box) boundary. Note that boundary profiles are applied only when
     # simulating extracellular spaces.
     boundary profiles:
+      # Example boundary profile applying a positive voltage at the top.
       - name: applied pos voltage
-        boundary targets: T  # options include top = T, bottom = B, left = L, and right = R to specify the respective boundaries
 
+        # Options include top = T, bottom = B, left = L, and right = R to
+        # specify the respective boundaries.
+        boundary targets: T
+
+      # Example boundary profile applying a negative voltage at the bottom.
       - name: applied neg voltage
         boundary targets: B
 
@@ -380,57 +426,51 @@ tissue profile definition:
 # Targeted intervention settings can be altered between seed, init and sim without affecting outcome (no synch issues).
 
 change Na mem:       # Change the membrane permeability to Na+
-
-  event happens: False        # turn the event on (True) or off (False)
-  change start: 1.0                # time to start change [s]
-  change finish: 4.0               # time to end change and return to original [s]
-  change rate: 0.5                 # rate of change [s]
-  multiplier: 50.0                # factor to multiply base level
-  function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
+    event happens: False        # turn the event on (True) or off (False)
+    change start: 1.0                # time to start change [s]
+    change finish: 4.0               # time to end change and return to original [s]
+    change rate: 0.5                 # rate of change [s]
+    multiplier: 50.0                # factor to multiply base level
+    function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
 
 change K mem:       # Change the membrane permeability to K+
-
-  event happens: False              # turn the event on (True) or off (False)
-  change start: 1.0                   # time to start change [s]
-  change finish: 2.0                 # time to end change and return to original [s]
-  change rate: 0.5                    # rate of change [s]
-  multiplier: 50.0                    # factor to multiply base level
-  function: None                   # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 1.0                   # time to start change [s]
+    change finish: 2.0                 # time to end change and return to original [s]
+    change rate: 0.5                    # rate of change [s]
+    multiplier: 50.0                    # factor to multiply base level
+    function: None                   # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
 change Cl mem:      # Change the membrane permeability to Cl-
-
-  event happens: False              # turn the event on (True) or off (False)
-  change start: 1.0                  # time to start change [s]
-  change finish: 4.0                 # time to end change and return to original [s]
-  change rate: 0.5                    # rate of change [s]
-  multiplier: 10                    # factor to multiply base level
-  function: None                # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 1.0                  # time to start change [s]
+    change finish: 4.0                 # time to end change and return to original [s]
+    change rate: 0.5                    # rate of change [s]
+    multiplier: 10                    # factor to multiply base level
+    function: None                # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
-
-  event happens: False              # turn the event on (True) or off (False)
-  change start: 2.0                  # time to start change [s]
-  change finish: 8.0                 # time to end change and return to original [s]
-  change rate: 1                    # rate of change [s]
-  multiplier: 10                    # factor to multiply base level
-  function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['tissue']     # name(s) of the tissue profile(s) to apply intervention to
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 2.0                  # time to start change [s]
+    change finish: 8.0                 # time to end change and return to original [s]
+    change rate: 1                    # rate of change [s]
+    multiplier: 10                    # factor to multiply base level
+    function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['tissue']     # name(s) of the tissue profile(s) to apply intervention to
 
 produce IP3:        # Schedule cell production of IP3
-
-  event happens: False              # turn the event on (True) or off (False)
-  change start: 1                   # time to start IP3 production [s]
-  change finish: 4                 # time to end IP3 production [s]
-  change rate: 1                    # rate of production ramp-up time [s]
-  multiplier: 1e-3                  # maximum rate of production [mol/(s*m3)]
-  function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-  apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 1                   # time to start IP3 production [s]
+    change finish: 4                 # time to end IP3 production [s]
+    change rate: 1                    # rate of production ramp-up time [s]
+    multiplier: 1e-3                  # maximum rate of production [mol/(s*m3)]
+    function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
 apply external voltage:   # apply external voltage to global boundary (needs simulate ECM is True)
-
     event happens: False            # turn the event on (True) or off (False)
     change start: 1.0                 # time event starts [s]
     change finish: 10.0               # time event finishes [s]
@@ -439,12 +479,11 @@ apply external voltage:   # apply external voltage to global boundary (needs sim
     apply to: ['applied pos voltage','applied neg voltage']   # must specify two bound profiles, first + V then - V
 
 break ecm junctions:     # break extracellular junctions between cells
-
-  event happens: False      # turn the event on (True) or off (False)
-  change start: 2.0        # time to start change [s]
-  change finish: 7.0       # time to end change and return to original [s]
-  change rate: 0.5         # rate of change [s]
-  apply to: ['wound']      # tissue profile(s) to apply intervention to
+    event happens: False     # turn the event on (True) or off (False)
+    change start: 2.0        # time to start change [s]
+    change finish: 7.0       # time to end change and return to original [s]
+    change rate: 0.5         # rate of change [s]
+    apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
     event happens: True
@@ -455,17 +494,14 @@ cutting event:   # cut cells out of an initialized cluster at the beginning of a
 function properties:   # set properties of spatial functions which may be used in above:
 
   gradient_x:
-
       slope: 1.0        # rate of change of gradient per unit x-dimension
       offset: 0         # offset to all gradient values
 
   gradient_y:
-
-      slope: 1.0         # rate of change of gradient per unit x-dimension
+      slope: 1.0        # rate of change of gradient per unit x-dimension
       offset: 0         # offset to all gradient values
 
   gradient_r:
-
       slope: 1.0        # radial gradient rate of change per unit radius
       offset: 0
 

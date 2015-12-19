@@ -4,6 +4,42 @@
 
 # FIXME create a few options for neat seed points: hexagonal or radial-spiral array
 
+#FIXME: Hey, lovely. I received a spurious fatal error from this module the
+#other day. Unfortunately, I couldn't replicate it; it appears to be related to
+#randomized world generation. Apologies for the log vomit, but it seems fairly
+#critical that users not trip over this "in the wild":
+#
+#     Defining cell-specific geometric properties...
+#     Creating computational matrices for cell-cell transfers...
+#     Creating gap junctions...
+#     Setting global environmental conditions...
+#     Defining tissue and boundary profiles...
+#
+#     Exiting prematurely due to fatal error:
+#
+#         IndexError: index 139776299209088 is out of bounds for axis 0 with size 185
+#
+# Traceback (most recent call last):
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/cli.py", line 82, in run
+#     self._do()
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 125, in _do
+#     subcommand_method()
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 284, in _do_try
+#     self._do_seed()
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 301, in _do_seed
+#     self._get_sim_runner().makeWorld()
+#   File "/usr/lib64/python3.4/site-packages/betse/science/simrunner.py", line 86, in makeWorld
+#     cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
+#   File "/usr/lib64/python3.4/site-packages/betse/science/cells.py", line 1588, in redo_gj
+#     self.calc_gj_vects(p)
+#   File "/usr/lib64/python3.4/site-packages/betse/science/cells.py", line 1657, in calc_gj_vects
+#     pt1_cell = self.cell_centres[cell_i]
+#
+#Thanks to this comment, the line numbers listed above are a bit off now. The
+#culprit appears to be calc_gj_vects(). Any ideas? The index
+#"139776299209088" seems suspiciously large to me. Lambast all the gummy fruit!
+
+
 """
 This module contains the class `Cells`, which holds
 all data structures relating to the size of the environment,

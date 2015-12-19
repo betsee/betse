@@ -15,7 +15,7 @@ objects).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ IMPORTS                            }....................
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 # ....................{ TESTERS                            }....................
 def is_bool(obj: object) -> bool:
@@ -23,6 +23,14 @@ def is_bool(obj: object) -> bool:
     `True` if the passed object is **boolean** (i.e., either `True` or `False`).
     '''
     return isinstance(obj, bool)
+
+def is_mapping(obj: object) -> bool:
+    '''
+    `True` if the passed object is a **mapping** (i.e., indexable by strings).
+
+    The canonical examples are `dict` and `OrderedDict` instances.
+    '''
+    return isinstance(obj, Mapping)
 
 # ....................{ TESTERS ~ iterable                 }....................
 def is_iterable(obj: object) -> bool:
@@ -91,6 +99,15 @@ def is_sequence_nonstr_nonempty(obj: object) -> bool:
     return is_sequence_nonstr(obj) and len(obj)
 
 # ....................{ TESTERS ~ science                  }....................
+def is_cells(obj: object) -> bool:
+    '''
+    `True` if the passed object is an instance of the BETSE-specific `Cells`
+    class.
+    '''
+    # Avoid circular import dependencies.
+    from betse.science.cells import Cells
+    return isinstance(obj, Cells)
+
 def is_parameters(obj: object) -> bool:
     '''
     `True` if the passed object is an instance of the BETSE-specific
@@ -109,14 +126,14 @@ def is_simulator(obj: object) -> bool:
     from betse.science.sim import Simulator
     return isinstance(obj, Simulator)
 
-def is_cells(obj: object) -> bool:
+def is_tissue_picker(obj: object) -> bool:
     '''
-    `True` if the passed object is an instance of the BETSE-specific `Cells`
-    class.
+    `True` if the passed object is an instance of the BETSE-specific
+    `TissuePicker` class.
     '''
     # Avoid circular import dependencies.
-    from betse.science.cells import Cells
-    return isinstance(obj, Cells)
+    from betse.science.tissue.picker import TissuePicker
+    return isinstance(obj, TissuePicker)
 
 # ....................{ TESTERS ~ str                      }....................
 def is_str(obj: object) -> bool:
@@ -139,6 +156,12 @@ def assert_not_bool(obj: object) -> str:
     String asserting the passed object to _not_ be boolean.
     '''
     return '"{}" not boolean (i.e., neither "True" nor "False").'.format(obj)
+
+def assert_not_mapping(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a mapping.
+    '''
+    return '"{}" not a mapping (e.g., "dict", "OrderedDict").'.format(obj)
 
 # ....................{ ASSERTERS ~ iterable               }....................
 def assert_not_iterable_nonstr(obj: object) -> str:
@@ -184,6 +207,13 @@ def assert_not_sequence_nonstr_nonempty(obj: object, label: str) -> str:
         obj) else '{} empty.'.format(label.capitalize())
 
 # ....................{ ASSERTERS ~ science                }....................
+def assert_not_cells(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an instance of the BETSE-
+    specific `Cells` class.
+    '''
+    return '"{}" not a "Cells" instance.'.format(obj)
+
 def assert_not_parameters(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be an instance of the BETSE-
@@ -198,12 +228,12 @@ def assert_not_simulator(obj: object) -> str:
     '''
     return '"{}" not a "Simulator" instance.'.format(obj)
 
-def assert_not_cells(obj: object) -> str:
+def assert_not_tissue_picker(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `Cells` class.
+    specific `TissuePicker` class.
     '''
-    return '"{}" not a "Cells" instance.'.format(obj)
+    return '"{}" not a "TissuePicker" instance.'.format(obj)
 
 # ....................{ ASSERTERS ~ str                    }....................
 def assert_nonstr(obj: object) -> str:

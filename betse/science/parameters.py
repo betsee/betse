@@ -16,6 +16,7 @@ from betse.science.tissue.picker import (
     TissuePickerBitmap,
     TissuePickerIndices,
     TissuePickerRandom,)
+from betse.science.tissue.profile import CutProfile
 from betse.util.path import paths
 from collections import OrderedDict
 from matplotlib.colors import Colormap
@@ -43,12 +44,24 @@ class Parameters(object):
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
 
-    Attributes (General)
+    Attributes (Tissue)
     ----------------------------
     clipping_bitmap_matcher : TissuePickerBitmap
         Object describing the bitmap whose colored pixel area specifies the
         global geometry mask to which all tissue profile bitmaps will be
         clipped.
+    cut_profile : CutProfile
+        Object identifying cells to be permanently removed by a cutting event
+        triggered during the tissue simulation if any or `None` otherwise.
+    boundary_profiles : list
+        List of ordered dictionaries, each describing a **boundary profile**
+        (i.e., instance of the `BoundaryProfile` class associating one of the
+        four cardinal directions with parameters specific to that edge of the
+        environment).
+    tissue_profiles : list
+        List of ordered dictionaries, each describing a **tissue profile**
+        (i.e., instance of the `TissueProfile` class identifying cells to be
+        associated with particular simulation constants and parameters).
     '''
     def __init__(self, config_filename: str):
         '''
@@ -338,7 +351,8 @@ class Parameters(object):
             vk = [on_v,off_v,rate_v]
             self.global_options['VATP_block'] = vk
 
-        self._init_profiles()
+        self._init_tissue_and_cut_profiles()
+        self._init_boundary_profiles()
 
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions
@@ -1156,9 +1170,7 @@ class Parameters(object):
     def set_time_profile(self,time_profile):
 
         if time_profile == 'simulate somatic':
-
             if self.sim_ECM is False:
-
                 self.dt = 1e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
@@ -1167,9 +1179,7 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-
             elif self.sim_ECM is True:
-
                 self.dt = 1.0e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
@@ -1181,9 +1191,7 @@ class Parameters(object):
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':
-
             if self.sim_ECM is False:
-
                 self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
@@ -1196,7 +1204,6 @@ class Parameters(object):
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM is True:
-
                 self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
@@ -1208,11 +1215,8 @@ class Parameters(object):
                 # self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
-
         elif time_profile == 'initialize':
-
             if self.sim_ECM is False:
-
                 self.dt = 5.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
                 self.resamp = 0.1         # time to resample in world time
@@ -1225,7 +1229,6 @@ class Parameters(object):
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM is True:
-
                 self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
                 self.resamp = 0.1         # time to resample in world time
@@ -1238,7 +1241,6 @@ class Parameters(object):
                 # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'custom init':
-
             self.dt = float(self.config['init time settings']['custom init time profile']['time step'])
             self.init_end = float(self.config['init time settings']['custom init time profile']['total time'])
             self.init_tsteps = self.init_end/self.dt
@@ -1249,7 +1251,6 @@ class Parameters(object):
             # self.gjsa = math.pi*((self.gj_radius)**2)
 
         elif time_profile == 'custom sim':
-
             self.dt = float(self.config['sim time settings']['custom sim time profile']['time step'])
             self.sim_end = float(self.config['sim time settings']['custom sim time profile']['total time'])
             self.sim_tsteps = self.sim_end/self.dt
@@ -1260,39 +1261,29 @@ class Parameters(object):
             # self.gjsa = math.pi*((self.gj_radius)**2)
 
 
-    def _init_profiles(self) -> None:
+    def _init_tissue_and_cut_profiles(self) -> None:
         '''
-        Parse profile-specific parameters from the current YAML configuration
-        file.
-
-        This includes parameters defining both tissue and boundary profiles.
-        '''
-        tpd = self.config['tissue profile definition']
-
-        self.default_tissue_name = \
-            self.config['variable settings']['default tissue name']
-        self.clipping_bitmap_matcher = TissuePickerBitmap(
-            tpd['clipping']['bitmap']['file'], self.config_dirname)
-        self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
-
-        # Define tissue and boundary profiles.
-        self._init_tissue_profiles()
-        self._init_boundary_profiles()
-
-
-    def _init_tissue_profiles(self) -> None:
-        '''
-        Parse tissue profile-specific parameters from the current YAML
+        Parse tissue and cut profile-specific parameters from the current YAML
         configuration file.
         '''
         tpd = self.config['tissue profile definition']
 
-        # If tissue profiles are currently disabled, forego further parsing.
+        self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
+        self.default_tissue_name = \
+            self.config['variable settings']['default tissue name']
+        self.clipping_bitmap_matcher = TissuePickerBitmap(
+            tpd['clipping']['bitmap']['file'], self.config_dirname)
         self.tissue_profiles = OrderedDict()
-        if not tpd['tissue profiles enabled']:
+        self.cut_profile = None
+
+        # Parse the cut profile.
+        self.cut_profile = CutProfile.make(self)
+
+        # If tissue profiles are currently disabled, forego parsing.
+        if not tpd['profiles enabled']:
             return
 
-        # Else, parse each tissue profile.
+        # Parse all tissue profiles.
         for i, tissue_profile in enumerate(tpd['tissue profiles']):
             # Parameter dictionaries specific to the current tissue profile.
             profile_features = {}
@@ -1329,6 +1320,9 @@ class Parameters(object):
                     'unrecognized.'.format(profile_picker_type))
             profile_features['picker'] = profile_picker
 
+            #FIXME: Map each such profile name to an instance of the
+            #"TissueProfile" class instead.
+
             # Finalize this tissue profile parameterization.
             self.tissue_profiles[profile_name] = profile_features
 
@@ -1338,24 +1332,25 @@ class Parameters(object):
         Parse boundary profile-specific parameters from the current YAML
         configuration file.
         '''
-        tpd = self.config['tissue profile definition']
+        tpd = self.config['boundary profile definition']
 
         self.boundary_profiles = OrderedDict()
-        for boundary_profile in tpd['boundary profiles']:
-            profile_name_b = boundary_profile['name']
-            profile_target_method_b = boundary_profile['boundary targets']
-            self.boundary_profiles[profile_name_b] = profile_target_method_b
+        for bp in tpd['boundary profiles']:
+            self.boundary_profiles[bp['name']] = bp['boundary targets']
 
         self.closed_bound = bool(tpd['closed boundary'])
 
 
+#FIXME: Move to the existing "betse.util.dependency.matplotlibs" module.
 def get_colormap(colormap_name: str) -> Colormap:
     '''
-    Get the colormap with the passed name.
+    Get the matplotlib-specific colormap with the passed name.
     '''
+
     colormap = getattr(cm, colormap_name, None)
     if not isinstance(colormap, Colormap):
-        raise BetseExceptionParameters('matplotlib colormap "{}" unrecognized.'.format(colormap_name))
+        raise BetseExceptionParameters(
+            'Matplotlib colormap "{}" unrecognized.'.format(colormap_name))
     return colormap
 
 
@@ -1364,7 +1359,6 @@ def get_colormap(colormap_name: str) -> Colormap:
 #than something related to YAML configuration. We might want to contemplate
 #shifting them elsewhere -- say, to the "toolbox" module. Tasty thought food!
 def bal_charge(concentrations, zs):
-
     q = 0
 
     for conc,z in zip(concentrations,zs):
