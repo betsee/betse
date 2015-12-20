@@ -13,7 +13,7 @@ from betse.science.tissue.picker import TissuePicker
 from betse.util.type import types
 
 # ....................{ BASE                               }....................
-class TissueProfileBase(object, metaclass = ABCMeta):
+class Profile(object, metaclass = ABCMeta):
     '''
     Abstract base class of all tissue-centric profile classes.
 
@@ -31,7 +31,7 @@ class TissueProfileBase(object, metaclass = ABCMeta):
 
     # ..................{ ABSTRACT ~ static                  }..................
     @abstractstaticmethod
-    def make(params: 'Parameters') -> 'TissueProfileBase':
+    def make(params: 'Parameters') -> 'Profile':
         '''
         Factory method producing a concrete instance of this abstract base class
         from the passed tissue simulation configuration.
@@ -43,7 +43,7 @@ class TissueProfileBase(object, metaclass = ABCMeta):
 
         Returns
         ----------------------------
-        TissueProfileBase
+        Profile
             Concrete instance of this abstract base class.
         '''
         pass
@@ -58,7 +58,7 @@ class TissueProfileBase(object, metaclass = ABCMeta):
         self.picker = picker
 
 # ....................{ CUT                                }....................
-class TissueProfile(TissueProfileBase):
+class TissueProfile(Profile):
     '''
     Profile identifying all cells to be initialized with the same parameters.
     '''
@@ -72,7 +72,7 @@ class TissueProfile(TissueProfileBase):
         return None
 
 # ....................{ CUT                                }....................
-class CutProfile(TissueProfileBase):
+class CutProfile(Profile):
     '''
     Profile identifying all cells to be permanently removed by a cutting
     event subsequently triggered during the tissue simulation.

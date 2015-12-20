@@ -7,7 +7,6 @@
 # FIXME need to have cells.old and cells.new saved in the simulation for dealing with changing cell structure
 # FIXME need to put the flattened data stuff into all animations to deal with chanigng cell structure
 
-import warnings
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt

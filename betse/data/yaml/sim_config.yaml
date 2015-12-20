@@ -385,33 +385,8 @@ tissue profile definition:
 # BOUNDARY DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
 boundary profile definition:
-    #FIXME: Is it valid for multiple boundary profiles to share the same
-    #boundary edge? If not, it might be sensible to reduce this list to simply
-    #four keys corresponding to the four cardinal directions: e.g.,
-    #
-    #top boundary:
-    #    name: applied pos voltage
-    #bottom boundary:
-    #    name: applied neg voltage
-    #left boundary:
-    #    name: None
-    #right boundary:
-    #    name: None
-
-    # Boundary profiles, each applying a property at a specific global (i.e.
-    # bounding box) boundary. Note that boundary profiles are applied only when
-    # simulating extracellular spaces.
-    boundary profiles:
-      # Example boundary profile applying a positive voltage at the top.
-      - name: applied pos voltage
-
-        # Options include top = T, bottom = B, left = L, and right = R to
-        # specify the respective boundaries.
-        boundary targets: T
-
-      # Example boundary profile applying a negative voltage at the bottom.
-      - name: applied neg voltage
-        boundary targets: B
+    #FIXME: Can this reasonably be changed without re-seeding or -initting? If
+    #so, move to the "variables:" dict below; else, contemplate the mysteries.
 
     # Are the global environmental boundaries closed (True) or open (False)?
     closed boundary: False
@@ -470,13 +445,24 @@ produce IP3:        # Schedule cell production of IP3
     function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
-apply external voltage:   # apply external voltage to global boundary (needs simulate ECM is True)
+
+# Apply an external voltage to two edges of the environmental boundary if the
+# "simulate extracellular spaces" option is enabled. (If that option is
+# disabled, this event is simply ignored.)
+apply external voltage:
     event happens: False            # turn the event on (True) or off (False)
-    change start: 1.0                 # time event starts [s]
-    change finish: 10.0               # time event finishes [s]
-    change rate: 1.0                  # time to reach peak value [s]
+    change start: 0.5                 # time event starts [s]
+    change finish: 1.0               # time event finishes [s]
+    change rate: 0.1                  # time to reach peak value [s]
     peak value: 0.100                 # peak value [V]
-    apply to: ['applied pos voltage','applied neg voltage']   # must specify two bound profiles, first + V then - V
+
+    # Environment boundary edge to apply positive voltage to. Valid values:
+    # "top", "bottom", "left", and "right".
+    boundary positive voltage: top
+
+    # Environment boundary edge to apply negative voltage to.
+    boundary negative voltage: bottom
+
 
 break ecm junctions:     # break extracellular junctions between cells
     event happens: False     # turn the event on (True) or off (False)

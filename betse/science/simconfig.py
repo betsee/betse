@@ -139,7 +139,7 @@ def _write_default_dir(config_filename: str) -> None:
     # If this directory already exists, log a non-fatal warning.
     if dirs.is_dir(target_geometry_dirname):
         loggers.log_warning(
-            'Subdirectory "{}" already exists; ignoring!'.format(
+            'Ignoring existing subdirectory "{}".'.format(
                 target_geometry_dirname))
     # Else, copy the source geometry subdirectory to this directory.
     else:

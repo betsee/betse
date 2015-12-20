@@ -16,6 +16,7 @@ from betse.util.path import files, paths
 from betse.util.type import types
 
 # ....................{ BASE                               }....................
+#FIXME: Rename to simply "Picker" and all classes below likewise.
 class TissuePicker(object, metaclass = ABCMeta):
     '''
     Abstract base class of all tissue matching classes.
@@ -39,8 +40,8 @@ class TissuePicker(object, metaclass = ABCMeta):
         p : Parameters
             Instance of the `Parameters` class.
         ignoreECM : bool
-            If `True`, electromagnetism (e.g., `p.sim_ECM`) will be ignored;
-            else, electromagnetism will be simulated. Defaults to `False`.
+            `True` if extracellular spaces are to be ignored; `False` if
+            extracellular spaces are to be simulated. Defaults to `False`.
 
         Returns
         ---------------------------------
@@ -67,7 +68,7 @@ class TissuePicker(object, metaclass = ABCMeta):
 
         Returns
         ----------------------------
-        TissueProfileBase
+        TissuePicker
             Concrete instance of this abstract base class.
         '''
         assert types.is_mapping(config), types.assert_not_mapping(config)

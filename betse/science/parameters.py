@@ -17,6 +17,7 @@ from betse.science.tissue.picker import (
     TissuePickerIndices,
     TissuePickerRandom,)
 from betse.science.tissue.profile import CutProfile
+from betse.util.io import loggers
 from betse.util.path import paths
 from collections import OrderedDict
 from matplotlib.colors import Colormap
@@ -50,14 +51,11 @@ class Parameters(object):
         Object describing the bitmap whose colored pixel area specifies the
         global geometry mask to which all tissue profile bitmaps will be
         clipped.
+    closed_bound : bool
+        `True` if environmental boundaries are closed (i.e., _not_ open).
     cut_profile : CutProfile
         Object identifying cells to be permanently removed by a cutting event
         triggered during the tissue simulation if any or `None` otherwise.
-    boundary_profiles : list
-        List of ordered dictionaries, each describing a **boundary profile**
-        (i.e., instance of the `BoundaryProfile` class associating one of the
-        four cardinal directions with parameters specific to that edge of the
-        environment).
     tissue_profiles : list
         List of ordered dictionaries, each describing a **tissue profile**
         (i.e., instance of the `TissueProfile` class identifying cells to be
@@ -365,7 +363,6 @@ class Parameters(object):
         bool_Clmem = bool(self.config['change Cl mem']['event happens'])
         bool_Camem = bool(self.config['change Ca mem']['event happens'])
         bool_ip3 = bool(self.config['produce IP3']['event happens'])
-        bool_extV = bool(self.config['apply external voltage']['event happens'])
         bool_ecmj = bool(self.config['break ecm junctions']['event happens'])
         bool_cut = bool(self.config['cutting event']['event happens'])
 
@@ -430,16 +427,55 @@ class Parameters(object):
 
             self.scheduled_options['IP3'] = ip3
 
-        if bool_extV is False:
-            self.scheduled_options['extV'] = 0
-        elif bool_extV is True:
-            on_extV = float(self.config['apply external voltage']['change start'])
-            off_extV = float(self.config['apply external voltage']['change finish'])
-            rate_extV = float(self.config['apply external voltage']['change rate'])
-            peak_extV = float(self.config['apply external voltage']['peak value'])
-            apply_extV = self.config['apply external voltage']['apply to']
-            extV = [on_extV, off_extV, rate_extV, peak_extV, apply_extV]
-            self.scheduled_options['extV'] = extV
+        #FIXME: Rename this dictionary key from "extV" to "external voltage".
+
+        # Parameterize the "apply external voltage" event.
+        self.scheduled_options['extV'] = None
+        aev = self.config['apply external voltage']
+        if bool(aev['event happens']):
+            #FIXME: Shift into the newly created voltage class.
+            #FIXME: Efficiency is probably *NOT* a concern here. Ideally, BETSE
+            #should use human-readable strings (e.g., "top") or perhaps even
+            #enumeration constants rather than machine-readable characters
+            #(e.g., "T") everywhere. Until utopia happens, this utility
+            #function remains. Life to the livid givers!
+            def _machinate_boundary(boundary: str) -> str:
+                '''
+                Convert the passed human-readable string identifying an
+                environmental boundary edge (e.g., `top`) into the
+                corresponding machine-readable character (e.g., `T`).
+                '''
+                if boundary == 'top':
+                    return 'T'
+                elif boundary == 'bottom':
+                    return 'B'
+                elif boundary == 'left':
+                    return 'L'
+                elif boundary == 'right':
+                    return 'R'
+                else:
+                    raise BetseExceptionParameters(
+                        'Boundary edge "{}" unrecognized.'.format(boundary))
+
+            # If extracellular spaces are enabled, parse this event.
+            if self.sim_ECM:
+                #FIXME: Convert into a typed class. Give to the gravid crooner!
+                self.scheduled_options['extV'] = {
+                    'change start': float(aev['change start']),
+                    'change finish':  float(aev['change finish']),
+                    'change rate': float(aev['change rate']),
+                    'peak value': float(aev['peak value']),
+                    'positive voltage boundary': _machinate_boundary(
+                        aev['boundary positive voltage']),
+                    'negative voltage boundary': _machinate_boundary(
+                        aev['boundary negative voltage']),
+                }
+            # Else, print a non-fatal warning.
+            else:
+                loggers.log_warning(
+                    '"apply external voltage" event enabled, but '
+                    'extracellular spaces disabled; ignoring this event.'
+                )
 
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0
@@ -1327,17 +1363,14 @@ class Parameters(object):
             self.tissue_profiles[profile_name] = profile_features
 
 
+    #FIXME: After the "closed boundary" option is moved elsewhere, make this
+    #contumely function go away. Lugubrious sons of the night, arise!
     def _init_boundary_profiles(self) -> None:
         '''
         Parse boundary profile-specific parameters from the current YAML
         configuration file.
         '''
         tpd = self.config['boundary profile definition']
-
-        self.boundary_profiles = OrderedDict()
-        for bp in tpd['boundary profiles']:
-            self.boundary_profiles[bp['name']] = bp['boundary targets']
-
         self.closed_bound = bool(tpd['closed boundary'])
 
 

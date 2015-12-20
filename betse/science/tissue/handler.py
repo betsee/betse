@@ -26,6 +26,19 @@ class TissueHandler(object):
       geometry-specifying bitmaps.
     * Scheduled interventions, even those _not_ pertaining to tissue profiles
       (e.g., global scheduled interventions).
+
+    Attributes (General)
+    ----------------------------
+    targets_extV_negative : str
+        String identifying the boundary edge to apply a negative voltage to.
+        Valid values include:
+        * `T`, identifying the top boundary.
+        * `B`, identifying the bottom boundary.
+        * `L`, identifying the left boundary.
+        * `R`, identifying the right boundary.
+    targets_extV_positive : str
+        String identifying the boundary edge to apply a positive voltage to.
+        Valid values are as for `targets_extV_negative` above.
     '''
 
     def __init__(self, sim, cells, p):
@@ -243,18 +256,20 @@ class TissueHandler(object):
             if self.function_IP3 != 'None':
                 self.scalar_IP3 = getattr(tb,self.function_IP3)(cells,sim,p)
 
-        if p.scheduled_options['extV'] != 0 and p.sim_ECM is True:
-            self.t_on_extV = p.scheduled_options['extV'][0]
-            self.t_off_extV = p.scheduled_options['extV'][1]
-            self.t_change_extV = p.scheduled_options['extV'][2]
-            self.peak_val_extV = p.scheduled_options['extV'][3]
-            self.apply_extV = p.scheduled_options['extV'][4]
+        #FIXME: Reuse rather than duplicate these attributes. First, of course,
+        #we should probably convert the "p.scheduled_options['extV']" dict into
+        #a properly typed class. Baying hounds!
 
-            name_positive = self.apply_extV[0]
-            name_negative = self.apply_extV[1]
-
-            self.targets_extV_positive = p.boundary_profiles[name_positive]
-            self.targets_extV_negative = p.boundary_profiles[name_negative]
+        # If the "apply external voltage" event is enabled, copy its parameters
+        # into this object under different names. ("Just go with it.")
+        ev = p.scheduled_options['extV']
+        if ev is not None:
+            self.t_on_extV = ev['change start']
+            self.t_off_extV = ev['change finish']
+            self.t_change_extV = ev['change rate']
+            self.peak_val_extV = ev['peak value']
+            self.targets_extV_positive = ev['positive voltage boundary']
+            self.targets_extV_negative = ev['negative voltage boundary']
 
         if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
             self.t_on_ecmJ = p.scheduled_options['ecmJ'][0]
@@ -609,12 +624,15 @@ class TissueHandler(object):
             # cells.maskM = cells.maskM_temp[:]
             # cells.inds_env = cells.inds_env_temp[:]
 
-        if p.scheduled_options['extV'] != 0 and p.sim_ECM is True:
+        # If the "apply external voltage" event is enabled, adjust the voltage.
+        if p.scheduled_options['extV'] is not None:
+            effector_extV = tb.pulse(
+                t, self.t_on_extV, self.t_off_extV, self.t_change_extV)
 
-            effector_extV = tb.pulse(t,self.t_on_extV,self.t_off_extV,self.t_change_extV)
-
-            sim.bound_V[self.targets_extV_positive] = self.peak_val_extV*effector_extV
-            sim.bound_V[self.targets_extV_negative] = -self.peak_val_extV*effector_extV
+            sim.bound_V[self.targets_extV_positive] = \
+                 self.peak_val_extV*effector_extV
+            sim.bound_V[self.targets_extV_negative] = \
+                -self.peak_val_extV*effector_extV
 
 
     def _sim_channels_tissue(self, sim, cells, p, t):

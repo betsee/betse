@@ -5,7 +5,6 @@
 
 # FIXME saving animations as video files directly doesn't work
 
-import warnings
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -946,17 +945,17 @@ class PlotWhileSolving(object):
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
-            if p.scheduled_options['extV'] != 0 and p.sim_ECM is True and p.extVPlot is True:
-
+            # If the "apply external voltage" event occurred and is to be
+            # plotted, plot this event.
+            if p.scheduled_options['extV'] is not None and p.extVPlot is True:
                 boundv = sim.v_env*1e3
-
-                self.vext_plot = self.ax.scatter(p.um*cells.env_points[:,0],p.um*cells.env_points[:,1],
-                    cmap=self.colormap,c=boundv,zorder=10)
-
-                self.vext_plot.set_clim(self.cmin,self.cmax)
+                self.vext_plot = self.ax.scatter(
+                    p.um*cells.env_points[:,0],
+                    p.um*cells.env_points[:,1],
+                    cmap=self.colormap, c=boundv, zorder=10)
+                self.vext_plot.set_clim(self.cmin, self.cmax)
 
             if p.showCells is True:
-
                 # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
                 cell_edges_flat = cells.um*cells.mem_edges_flat
                 coll = LineCollection(cell_edges_flat,colors='k')
