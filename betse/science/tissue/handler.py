@@ -177,6 +177,9 @@ class TissueHandler(object):
             self.targets_Namem = [item for sublist in self.targets_Namem for item in sublist]
             self.scalar_Namem = 1
 
+            # call a special toolbox function to change membrane permeability: spatial grads
+            # 'gradient_x', 'gradient_y', 'gradient_r'
+
             if self.function_Namem != 'None':
                 self.scalar_Namem = getattr(tb,self.function_Namem)(cells,sim,p)
 
@@ -197,6 +200,9 @@ class TissueHandler(object):
             self.scalar_Kmem = 1
 
             if self.function_Kmem != 'None':
+                # call a special toolbox function to change membrane permeability: spatial grads
+                # 'gradient_x', 'gradient_y', 'gradient_r'
+
                 self.scalar_Kmem = getattr(tb,self.function_Kmem)(cells,sim,p)
 
         if p.scheduled_options['Cl_mem'] != 0:
@@ -216,6 +222,9 @@ class TissueHandler(object):
             self.scalar_Clmem = 1
 
             if self.function_Clmem != 'None':
+
+                # call a special toolbox function to change membrane permeability: spatial grads
+                # 'gradient_x', 'gradient_y', 'gradient_r'
                 self.scalar_Clmem = getattr(tb,self.function_Clmem)(cells,sim,p)
 
         if p.scheduled_options['Ca_mem'] != 0:
@@ -235,6 +244,9 @@ class TissueHandler(object):
             self.scalar_Camem = 1
 
             if self.function_Camem != 'None':
+                # call a special toolbox function to change membrane permeability: spatial grads
+                # 'gradient_x', 'gradient_y', 'gradient_r'
+
                 self.scalar_Camem = getattr(tb,self.function_Camem)(cells,sim,p)
 
         if p.scheduled_options['IP3'] != 0:
@@ -254,6 +266,10 @@ class TissueHandler(object):
             self.scalar_IP3 = 1
 
             if self.function_IP3 != 'None':
+
+                # call a special toolbox function to change membrane permeability: spatial grads
+                # 'gradient_x', 'gradient_y', 'gradient_r'
+
                 self.scalar_IP3 = getattr(tb,self.function_IP3)(cells,sim,p)
 
         #FIXME: Reuse rather than duplicate these attributes. First, of course,
