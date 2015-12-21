@@ -8,8 +8,9 @@ Low-level string facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from textwrap import TextWrapper
 import textwrap
+from betse.util.type import types
+from textwrap import TextWrapper
 
 # ....................{ SINGLETONS                         }....................
 text_wrapper = TextWrapper()
@@ -24,25 +25,27 @@ functions provided by module `textwrap` implicitly instantiate temporary
 # ....................{ TESTERS                            }....................
 def is_str(obj) -> bool:
     '''
-    True if the passed object is a *string* (i.e., is an instance of the `str`
+    True if the passed object is a **string** (i.e., is an instance of the `str`
     class or a subclass thereof).
     '''
     return isinstance(obj, str)
+
 
 def is_prefix(text: str, prefix: str) -> bool:
     '''
     True if the first passed string is prefixed by the last passed string.
     '''
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
-    assert isinstance(prefix, str), '"{}" not a string.'.format(prefix)
+    assert is_str(text), types.assert_not_str(text)
+    assert is_str(prefix), types.assert_not_str(prefix)
     return text.startswith(prefix)
+
 
 def is_suffix(text: str, suffix: str) -> bool:
     '''
     True if the first passed string is suffixed by the last passed string.
     '''
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
-    assert isinstance(suffix, str), '"{}" not a string.'.format(suffix)
+    assert is_str(text), types.assert_not_str(text)
+    assert is_str(suffix), types.assert_not_str(suffix)
     return text.endswith(suffix)
 
 # ....................{ JOINERS                            }....................
@@ -55,6 +58,7 @@ def join(*texts) -> str:
     '''
     return join_on(*texts, delimiter = '')
 
+
 def join_on_newline(*texts) -> str:
     '''
     Join the passed strings with newline as the separating delimiter.
@@ -64,6 +68,7 @@ def join_on_newline(*texts) -> str:
     '''
     return join_on(*texts, delimiter = '\n')
 
+
 def join_on(*texts, delimiter: str) -> str:
     '''
     Join the passed strings with the passed separating delimiter.
@@ -71,7 +76,7 @@ def join_on(*texts, delimiter: str) -> str:
     This is a convenience function wrapping the standard
     `"...".join((...))` method, whose syntax is arguably overly obfuscated.
     '''
-    assert isinstance(delimiter, str), '"{}" not a string.'.format(delimiter)
+    assert is_str(delimiter), types.assert_not_str(delimiter)
 
     # If only one object was passed and...
     if len(texts) == 1:
@@ -94,6 +99,7 @@ def add_prefix_unless_found(text: str, prefix: str) -> str:
     '''
     return text if is_prefix(text, prefix) else prefix + text
 
+
 def add_suffix_unless_found(text: str, suffix: str) -> str:
     '''
     Suffix the passed string by the passed suffix unless such string is already
@@ -104,20 +110,34 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
 # ....................{ REMOVERS                           }....................
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
-    Remove the passed prefix from the passed string if such string is prefixed
-    by such prefix *or* such string as is otherwise.
+    Remove the passed prefix from the passed string if found.
     '''
     return text[len(prefix):] if is_prefix(text, prefix) else text
 
+
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    Remove the passed suffix from the passed string if such string is suffixed
-    by such suffix *or* such string as is otherwise.
+    Remove the passed suffix from the passed string if found.
     '''
     # There exists a special case *NOT* present in remove_prefix(). If such
     # suffix is empty, "string[:-0]" is also incorrectly empty. Avoid returning
     # the empty string in such case by explicitly testing for emptiness.
     return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
+
+# ....................{ CASERS                             }....................
+def uppercase_first_char(text: str) -> str:
+    '''
+    Uppercase the first character of the passed string.
+
+    Whereas the related `str.capitalize()` method both uppercases the first
+    character of this string _and_ lowercases all remaining characters, this
+    function _only_ uppercases the first character. All remaining characters
+    remain unmodified.
+    '''
+    assert is_str(text), types.assert_not_str(text)
+    return (
+        text[0].upper() + (text[1:] if len(text) > 2 else '')
+        if len(text) else '')
 
 # ....................{ QUOTERS                            }....................
 def shell_quote(text: str) -> str:
@@ -137,8 +157,10 @@ def shell_quote(text: str) -> str:
       under Windows. For this reason, shell quoting is inherently unreliable
       under Windows.
     '''
+    assert is_str(text), types.assert_not_str(text)
+
+    # Avoid circular import dependencies.
     from betse.util.system import oses
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
 
     # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
     # Windows is POSIX-incompatible and hence does *NOT* parse command-line
@@ -167,6 +189,7 @@ def wrap_lines(lines: list, **kwargs) -> str:
     '''
     return wrap(join(lines), **kwargs)
 
+
 def wrap(
     text: str,
     text_wrapper = textwrap,
@@ -188,17 +211,16 @@ def wrap(
     https://docs.python.org/3/library/textwrap.html
         For further details on keyword arguments.
     '''
-    assert isinstance(text, str), '"{}" not a string.'.format(text)
-    assert isinstance(line_prefix, str),\
-        '"{}" not a string.'.format(line_prefix)
-    assert hasattr(text_wrapper, 'wrap'),\
-        '"{}" has no wrap() function or method.'.format(text_wrapper)
+    assert is_str(text), types.assert_not_str(text)
+    assert is_str(line_prefix), types.assert_not_str(line_prefix)
+    assert hasattr(text_wrapper, 'wrap'), (
+        'Object "{}" not a text wrapper '
+        '(i.e., has no wrap() callable).'.format(text_wrapper))
 
     # wrap() function or method to be called.
     wrap_callable = getattr(text_wrapper, 'wrap')
-    assert callable(wrap_callable),\
-        '"{}" attribute "wrap" neither a function nor method.'.format(
-            text_wrapper)
+    assert callable(wrap_callable), (
+        'Text wrapper "{}" attribute "wrap" not callable.'.format(text_wrapper))
 
     # If passed a nonempty line prefix, add appropriate keyword arguments.
     if line_prefix:
@@ -218,6 +240,3 @@ def dedent(*texts) -> str:
     Remove all indentation shared in common by all lines of all passed strings.
     '''
     return textwrap.dedent(*texts)
-
-# --------------------( WASTELANDS                         )--------------------
-# (defaulting to the empty string)

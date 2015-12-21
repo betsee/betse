@@ -52,7 +52,7 @@ def is_dir(dirname: str) -> bool:
     `True` if the passed directory exists.
     '''
     assert types.is_str_nonempty(dirname),\
-        types.assert_nonstr_nonempty(dirname, 'Dirname')
+        types.assert_not_str_nonempty(dirname, 'Dirname')
     return path.isdir(dirname)
 
 # ....................{ GETTERS                            }....................
@@ -84,7 +84,7 @@ def make_unless_dir(dirname: str) -> None:
     mimicking the action of the standard `mkdir -p` shell command.
     '''
     assert types.is_str_nonempty(dirname),\
-        types.assert_nonstr_nonempty(dirname, 'Dirname')
+        types.assert_not_str_nonempty(dirname, 'Dirname')
 
     # If such directory does *NOT* already exist, create such directory. To
     # support logging, such condition is explicitly tested for. To avoid race
@@ -136,9 +136,9 @@ def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
         True
     '''
     assert types.is_str_nonempty(dirname_source),\
-        types.assert_nonstr_nonempty(dirname_source, 'Source dirname')
+        types.assert_not_str_nonempty(dirname_source, 'Source dirname')
     assert types.is_str_nonempty(dirname_target),\
-        types.assert_nonstr_nonempty(dirname_target, 'Target dirname')
+        types.assert_not_str_nonempty(dirname_target, 'Target dirname')
 
     # Avoid circular import dependencies.
     from betse.util.path import paths
@@ -161,9 +161,9 @@ def copy(dirname_source: str, dirname_target: str) -> None:
     already exists, an exception will be raised.
     '''
     assert types.is_str_nonempty(dirname_source),\
-        types.assert_nonstr_nonempty(dirname_source, 'Source dirname')
+        types.assert_not_str_nonempty(dirname_source, 'Source dirname')
     assert types.is_str_nonempty(dirname_target),\
-        types.assert_nonstr_nonempty(dirname_target, 'Target dirname')
+        types.assert_not_str_nonempty(dirname_target, 'Target dirname')
 
     # Log such copy.
     loggers.log_info(

@@ -165,8 +165,8 @@ class TissuePickerBitmap(TissuePicker):
             will be prefixed by this path to convert that path into an absolute
             path; otherwise, this path will be ignored.
         '''
-        assert types.is_str(filename), types.assert_nonstr(filename)
-        assert types.is_str( dirname), types.assert_nonstr( dirname)
+        assert types.is_str(filename), types.assert_not_str(filename)
+        assert types.is_str( dirname), types.assert_not_str( dirname)
 
         # If this is a relative path, convert this into an absolute path
         # relative to the directory containing the source configuration file.

@@ -12,9 +12,10 @@ from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata
 from betse.util.io import loggers, stderr
+from betse.util.python import identifiers
 from betse.util.system import processes
 from betse.util.system.args import HelpFormatterParagraph
-from betse.util.type import regexes, strs
+from betse.util.type import regexes, strs, types
 from io import StringIO
 import sys, traceback
 
@@ -223,43 +224,81 @@ class CLI(metaclass = ABCMeta):
                     log_buffer   .write(exception_parent + '\n')
                     continue
 
+                # List of traceback lines, excluding the exception message.
+                exception_traceback_lines = traceback.format_exception(
+                    type(exception_parent),
+                    exception_parent,
+                    exception_parent_traceback)
+                exception_traceback_lines.pop()
+
                 # List of exception message lines, excluding traceback and hence
-                # consisting only of such exception type and original message.
+                # consisting only of this exception type and original message.
                 exception_message_lines = traceback.format_exception_only(
                     type(exception_parent), exception_parent)
 
-                # Append such message to the log buffer *BEFORE* appending such
+                # Append this message to the log buffer *BEFORE* appending this
                 # message to the standard error buffer. (The latter requires
-                # truncating such message for human-readability.)
+                # truncating this message for human-readability.)
                 log_buffer.write(strs.join(exception_message_lines))
                 #print('exception string: '+ exception_message_lines[-1])
 
-                # Split the the last line of such message into a non-human-
-                # readable exception class and an ideally human-readable
-                # exception message. If such exception is not None *AND* is
-                # convertable without raising exceptions into a string, both
-                # format_exception_only() and _format_final_exc_line() guarantee
-                # such line to be formatted as follows:
+                # Split the last line of this message into a non-human-readable
+                # exception class and ideally human-readable exception message.
+                # If this exception is not None *AND* is convertable without
+                # raising exceptions into a string, both format_exception_only()
+                # and _format_final_exc_line() guarantee this line to be
+                # formatted as follows:
                 #     "${exception_class}: ${exception_message}"
                 assert len(exception_message_lines),\
                     'Exception message lines empty.'
-                exception_class, exception_message =\
-                    regexes.get_match_groups_numeric(
+                exception_message_match_groups = \
+                    regexes.get_match_groups_numbered(
                         exception_message_lines[-1],
-                        r'^({}):\s+(.*)$'.format(
-                            regexes.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
-                #        r'^[^:]+:\s+(.*)$')
+                        r'^({})(?:\s*|:\s+(.+))$'.format(
+                            identifiers.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
 
-                # If such class is "KeyError", such message is the single-quoted
+                # This message is guaranteed to be prefixed by a class name.
+                exception_class_name = exception_message_match_groups[0]
+
+                # This message is *NOT* guaranteed to be prefixed by a non-empty
+                # message (e.g., assert statements passed no message).
+                #
+                # If a non-empty message matched, use that.
+                exception_message = None
+                if exception_message_match_groups[1] is not None:
+                    exception_message = exception_message_match_groups[1]
+                # Else if a debug assertion failed with no explicit message, use
+                # the exception context directly detailing this assertion.
+                elif exception_class_name == 'AssertionError':
+                    exception_message = 'Debug assertion failed: {}'.format(
+                        # A traceback line typically contains an internal
+                        # newline. The substring preceding this newline details
+                        # the file and function containing the corresponding
+                        # call; the substring following this newline is this
+                        # call. Hence, ignore the former.
+                        regexes.remove_substrings(
+                            exception_traceback_lines[-1], r'^.+\n\s*'))
+                # Else, convert this exception's class name into a
+                # human-readable message (e.g., from "FileNotFoundError" to
+                # "File not found error."). Well, try... at least!
+                else:
+                    exception_message = strs.uppercase_first_char(
+                        identifiers.convert_camelcase_to_whitespaced_lowercase(
+                            exception_class_name))
+                assert types.is_str_nonempty(exception_message), (
+                    types.assert_not_str_nonempty(
+                        exception_message, 'Exception message'))
+
+                # If this class is "KeyError", this message is the single-quoted
                 # name of a non-existent key in a dictionary whose access raised
-                # such exception. Since this is non-human-readable, wrap such
+                # this exception. Since that is non-human-readable, wrap this
                 # key in human-readable description.
-                if exception_class == 'KeyError':
+                if exception_class_name == 'KeyError':
                     exception_message = 'Dictionary key {} not found.'.format(
                         exception_message)
 
-                # Append such message to the standard error buffer. For
-                # readability, wrap such message to the default terminal width
+                # Append this message to the standard error buffer. For
+                # readability, wrap this message to the default terminal width
                 # and prefix each wrapped line with indentation.
                 stderr_buffer.write(
                     strs.wrap(
@@ -343,224 +382,3 @@ class CLI(metaclass = ABCMeta):
         Configure subclass-specific argument parsing.
         '''
         pass
-
-# --------------------( WASTELANDS                         )--------------------
-        #FUXME: Enable the "--config" option. More work than we care to invest,
-        #at the moment.
-
-        # Add globally applicable arguments.
-        # self._arg_parser.add_argument(
-        #     '-c', '--config-file',
-        #     default = files.DEFAULT_CONFIG_FILE,
-        #     dest = 'config_filename',
-        #     help = 'config file to read program settings from')
-                #FUXME: If such exception type is "KeyError", the remaining
-                #exception message consists only of the offending key and hence
-                #is non-human-readable. Correct this by capturing the exception
-                #type to group 1, testing such type, and responding accordingly.
-
-            # yum = {}
-            # yum["a"]
-
-                # Strip the non-human-readable exception class from the last
-                # line of such message. If such exception is not None *AND* is
-                # exception_message_lines[-1] = regexes.remove_substrings(
-                # stderr_buffer.write(
-                #     strs.wrap_lines(
-                #         lines = exception_message_lines,
-                #         line_prefix = '    ',))
-
-            # from six.moves import _dummy_thread
-            # from six.moves import tkinter
-# from betse.cli import help
-            # is_verbose = getattr(self._args, 'is_verbose', False)
-            # If either the user requested verbosity *OR* no loggers have been
-            # initialized, print such exception to standard error. Since the log
-            # message is more verbose than and hence subsumes the standard error
-            # message, only the former is printed.
-            # if is_verbose or not loggers.config.is_initted:
-            #     stderr.output(log_message)
-            # Help text printed *AFTER* all other output when such script is
-            # passed no command-line arguments.
-            # epilog = self._format_help_template(help.TEMPLATE_EPILOG),
-
-            # Else, print such exception to standard error. Since the log
-            # message is more verbose than and hence subsumes the standard error
-            # message, print only the former.
-            # else:
-            #     stderr.output(log_message)
-
-            # raise Exception('Governments, if they endure, always tend increasingly toward aristocratic forms. No government in history has been known to evade this pattern. And as the aristocracy develops, government tends more and more to act exclusively in the interests of the ruling class -- whether that class be hereditary royalty, oligarchs of financial empires, or entrenched bureaucracy.')
-            # Initialize such buffers with descriptive headers.
-            # stderr_buffer.write(
-            #     'Exiting prematurely due to fatal error:\n\n')
-            # log_buffer.write(
-            #     'Halting prematurely due to uncaught exception:\n\n')
-
-            # Initialize such buffers with descriptive headers.
-            # stderr_buffer.write(
-            #     'Exiting prematurely due to fatal error:\n\n')
-            # log_buffer.write(
-            #     'Halting prematurely due to uncaught exception:\n\n')
-
-                # Exception message concatenated from such lines.
-                # exception_message = ''.join(exception_message_lines)
-
-            # are likely to feel comfortable viewing.
-            # from being printed to either standard output or error.
-            # Assuming such logger retains its default
-            # configuration, such exception will be propagated up to the root
-            # logger and then handled by the stderr handler.
-    # ..................{ LOGGING                            }..................
-    #         self._configure_logging()
-    # def _configure_logging(self) -> None:
-    #     '''
-    #     Configure the root logger and obtain an application-wide child logger.
-    #     '''
-    #     # Configure the root logger.
-    #     # Configure the root logger.
-    #     self._logger_config = LoggerConfig()
-    #
-    #     # Create an application-wide child logger.
-    #     self._logger = self._logger_config.get_logger()
-
-    # _logger_config : LoggerConfig
-    #     Logger configuration, providing access to root logger handlers (e.g.,
-    #     for modifying logging levels).
-    # _logger : Logger
-    #     Logger intended to be used globally (i.e., by *all* classes, functions,
-    #     and modules) or None if no such logger has been initialized.
-# from betse.util.io.loggers import LoggerConfig
-        # self._logger_config = None
-        # self._logger = None
-#FUXME: Can PyInstaller be made to embed setuptools-specific eggs in the
-#executable binaries it produces? If not, we'll probably want to avoid even
-#calling die_unless_satisfied_all(), as such function is a noop unless such eggs
-#are available at runtime.
-
-# from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-            # Print the default values of options in help output.
-    # def _configure_arg_parsing(self, arg_parser: ArgumentParser):
-    #     '''
-    #     Configure subclass-specific argument parsing with the passed top-level
-    #     argument parser.
-    #     '''
-    #     pass
-            #FUXME: We probably don't need this. Excise away. Yay!
-
-                # 'Halting prematurely [read: fatally crashing] due to uncaught exception:\n\n')
-            # # Else, print such exception via the standard Python library.
-            # else:
-            #     traceback.print_exc()
-#Parse all passed command-line arguments and run the specified command.
-                # usage = '{} <command> [<arg>...]'.format(metadata.SCRIPT_NAME_CLI),
-        # Logger intended to be used only by CLI modules or None if no such
-        # logger has been initialized.
-        # Define global command-line arguments (i.e., arguments applicable to
-        # all subparsers, added below).
-            # Make a child logger specific to this module.
-                # script_basename = self._script_basename)
-    # @abstractmethod
-    # def _script_basename(self) -> str:
-    #     '''
-    #     Get the basename of the currently executed external script.
-    #     '''
-    #     pass
-
-                # # Traceback formatted as a list of lines.
-                # exception_traceback_lines = traceback.format_list(
-                #     traceback.extract_tb(exception_traceback))
-                #
-                # # Traceback formatted as a list of lines.
-                # exception_traceback_lines = traceback.format_list(
-                #     traceback.extract_tb(exception_traceback))
-                #
-                # # Exception formatted as a string concatenating such exception's
-                # # message and traceback in that order.
-                # # exception_
-
-                    # reversed(exception_parents):
-#FUXME: Improve output on uncatched exceptions by wrapping all CLI operations in
-#a try-except block that:
-#
-#* Catches all exceptions.
-#* Improves such output.
-#* Exits the current process with status 1.
-
-                # self._logger.exception(exception)
-            #FUXME: Print such exception.
-
-            # If a logger has been initialized, log such exception *AFTER*
-            # printing such exception to standard error. (Logging is
-            # substantially more fragile and hence likely to itself raise
-            # further exceptions.)
-            # if self._logger:
-                #FUXME: Erroneous. This will result in duplicate output.
-                # self._logger.exception(exception)
-
-        # return exception.errno if hasattr(exception, 'errno') else 1
-#FUXME: Define a new module "betse/dependency.py" performing validation of
-#external dependencies, both Python and non-Python. Although we believe "yppy"
-#implemented such functionality, google about for the optimum Python 3 solution
-#to this presumably commonplace problem.
-
-    # _args : list
-    #     List of zero or more arguments passed to such interface (e.g., from the
-    #     command line).
-        # Initialize such arguments to the current argument list, excluding
-        # such list's first item. By cross-platform consent, such item is
-        # *ALWAYS* the command name for the current process (e.g., "betse") and
-        # hence ignorable.
-        # self._args = sys.argv[1:]
-
-#List of zero or more external arguments passed from the command line.
-# def main(args = None):
-#     CLI().run()
-#     '''Run betse`'s command line interface (CLI).
-#
-#     Parameters
-#     ----------
-#     args : list, optional
-#         List of zero or more arguments passed to such interface (e.g., from the
-#         command line) or `None` if called as the entry point in an external
-#         script installed by `setuptools`.
-#     '''
-#     # If called from a setuptools-installed script, copy such arguments from the
-#     # argument list excluding the first item of such list. By cross-platform
-#     # agreement, such item is *ALWAYS* the command name of the current process
-#     # (e.g., "betse") and hence ignorable.
-#     if args is None:
-#         args = sys.argv[1:]
-
-# if __name__ == '__main__':
-#     main()
-
-#FUXME; Configure me for CLI usage. Note that I'm no longer convinced that the
-#way we launched "yppy" (e.g., "bin/yppy.bash") was ideal. We really want to do
-#the "Pythonic" thing here. ruamel.yaml, for example, installs a Python wrapper
-#"/usr/lib/yaml" which (in order):
-#
-#* Finds an appropriate Python interpreter.
-#* Replaces the current process with the result of interpreting
-#  "/usr/lib/python-exec/python${PYTHON_VERSION}/yaml". Such file appears to be
-#  autogenerated by setuptools at installation time.
-#FUXME; Hmm: it looks like we want a new file "betse/__main__.py" resembling:
-#    from betse.main import main
-#    main()
-#This then permits betse to be run as follows:
-#    # Yes, you either have to be in the parent directory of the directory
-#    # containing such "__main__.py" file *OR* you have to fiddle with
-#    # ${PYTHONPATH}.
-#    >>> cd ~/py/betse
-#    >>> python -m betse
-#Naturally, this lends itself well to shell scripting. (Yay!)
-#FUXME; Wo! Even nicer. setuptools has implicit support for "__main__.py"-style
-#entry points. We just need a "setup.py" resembling:
-#    setup(
-#        # [...]
-#        entry_points={
-#            'betse': ['betse = betse.main:main'],
-#        },
-#    )
-#What's sweet about this is that we can define additional separate scripts with
-#deeper entry points if we need and or want to.

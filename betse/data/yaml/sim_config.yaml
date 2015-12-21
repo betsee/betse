@@ -458,10 +458,10 @@ apply external voltage:
 
     # Environment boundary edge to apply positive voltage to. Valid values:
     # "top", "bottom", "left", and "right".
-    boundary positive voltage: top
+    positive voltage boundary: top
 
     # Environment boundary edge to apply negative voltage to.
-    boundary negative voltage: bottom
+    negative voltage boundary: bottom
 
 
 break ecm junctions:     # break extracellular junctions between cells

@@ -26,7 +26,7 @@ def load(config_filename: str) -> dict:
     config_filename : str
         Absolute or relative path of the YAML file to be loaded.
     '''
-    assert types.is_str(config_filename), types.assert_nonstr(config_filename)
+    assert types.is_str(config_filename), types.assert_not_str(config_filename)
 
     # Contents of such file as a dictionary.
     config = None
@@ -88,7 +88,7 @@ def _write_default_check(config_filename: str) -> None:
     config_filename : str
         Absolute or relative path of the target YAML file to be validated.
     '''
-    assert types.is_str(config_filename), types.assert_nonstr(config_filename)
+    assert types.is_str(config_filename), types.assert_not_str(config_filename)
 
     # Basename and filetype of this file.
     config_basename = paths.get_basename(config_filename)
@@ -124,7 +124,7 @@ def _write_default_dir(config_filename: str) -> None:
         `sim_config.yaml`), the parent directory to which resources are copied
         will be the current working directory (CWD).
     '''
-    assert types.is_str(config_filename), types.assert_nonstr(config_filename)
+    assert types.is_str(config_filename), types.assert_not_str(config_filename)
 
     # Parent directory of this file if any or the current directory otherwise.
     target_dirname = paths.get_dirname_or_current_dirname(config_filename)
@@ -156,7 +156,7 @@ def _write_default_file(config_filename: str) -> None:
     config_filename : str
         Absolute or relative path of the YAML file to be written.
     '''
-    assert types.is_str(config_filename), types.assert_nonstr(config_filename)
+    assert types.is_str(config_filename), types.assert_not_str(config_filename)
 
     #FIXME: Ideally, we should be using ruamel.yaml to munge YAML data in a
     #well-structured and hence sane manner rather than the admittedly crude

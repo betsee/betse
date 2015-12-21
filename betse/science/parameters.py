@@ -11,6 +11,7 @@
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
+from betse.science.event.voltage import EventPeriodVoltage
 from betse.science.tissue.picker import (
     TissuePickerAll,
     TissuePickerBitmap,
@@ -428,54 +429,10 @@ class Parameters(object):
             self.scheduled_options['IP3'] = ip3
 
         #FIXME: Rename this dictionary key from "extV" to "external voltage".
+        #Thus spake Sessums!
 
-        # Parameterize the "apply external voltage" event.
-        self.scheduled_options['extV'] = None
-        aev = self.config['apply external voltage']
-        if bool(aev['event happens']):
-            #FIXME: Shift into the newly created voltage class.
-            #FIXME: Efficiency is probably *NOT* a concern here. Ideally, BETSE
-            #should use human-readable strings (e.g., "top") or perhaps even
-            #enumeration constants rather than machine-readable characters
-            #(e.g., "T") everywhere. Until utopia happens, this utility
-            #function remains. Life to the livid givers!
-            def _machinate_boundary(boundary: str) -> str:
-                '''
-                Convert the passed human-readable string identifying an
-                environmental boundary edge (e.g., `top`) into the
-                corresponding machine-readable character (e.g., `T`).
-                '''
-                if boundary == 'top':
-                    return 'T'
-                elif boundary == 'bottom':
-                    return 'B'
-                elif boundary == 'left':
-                    return 'L'
-                elif boundary == 'right':
-                    return 'R'
-                else:
-                    raise BetseExceptionParameters(
-                        'Boundary edge "{}" unrecognized.'.format(boundary))
-
-            # If extracellular spaces are enabled, parse this event.
-            if self.sim_ECM:
-                #FIXME: Convert into a typed class. Give to the gravid crooner!
-                self.scheduled_options['extV'] = {
-                    'change start': float(aev['change start']),
-                    'change finish':  float(aev['change finish']),
-                    'change rate': float(aev['change rate']),
-                    'peak value': float(aev['peak value']),
-                    'positive voltage boundary': _machinate_boundary(
-                        aev['boundary positive voltage']),
-                    'negative voltage boundary': _machinate_boundary(
-                        aev['boundary negative voltage']),
-                }
-            # Else, print a non-fatal warning.
-            else:
-                loggers.log_warning(
-                    '"apply external voltage" event enabled, but '
-                    'extracellular spaces disabled; ignoring this event.'
-                )
+        # Parameterize the voltage event if enabled.
+        self.scheduled_options['extV'] = EventPeriodVoltage.make(self)
 
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0

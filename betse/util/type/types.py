@@ -24,6 +24,14 @@ def is_bool(obj: object) -> bool:
     '''
     return isinstance(obj, bool)
 
+
+def is_char(obj: object) -> bool:
+    '''
+    `True` if the passed object is a **character** (i.e., a string of length 1).
+    '''
+    return is_str(obj) and len(obj) == 1
+
+
 def is_mapping(obj: object) -> bool:
     '''
     `True` if the passed object is a **mapping** (i.e., indexable by strings).
@@ -143,6 +151,7 @@ def is_str(obj: object) -> bool:
     '''
     return isinstance(obj, str)
 
+
 def is_str_nonempty(obj: object) -> bool:
     '''
     `True` if the passed object is a **nonempty string* (i.e., string comprising
@@ -156,6 +165,14 @@ def assert_not_bool(obj: object) -> str:
     String asserting the passed object to _not_ be boolean.
     '''
     return '"{}" not boolean (i.e., neither "True" nor "False").'.format(obj)
+
+
+def assert_not_char(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be character.
+    '''
+    return '"{}" not a character (i.e., string of length 1).'.format(obj)
+
 
 def assert_not_mapping(obj: object) -> str:
     '''
@@ -236,16 +253,16 @@ def assert_not_tissue_picker(obj: object) -> str:
     return '"{}" not a "TissuePicker" instance.'.format(obj)
 
 # ....................{ ASSERTERS ~ str                    }....................
-def assert_nonstr(obj: object) -> str:
+def assert_not_str(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be a string.
     '''
     return '"{}" not a string.'.format(obj)
 
-def assert_nonstr_nonempty(obj: object, label: str) -> str:
+def assert_not_str_nonempty(obj: object, label: str) -> str:
     '''
     String asserting the passed object categorized by the passed human-readable
     label to _not_ be a nonempty string.
     '''
-    return assert_nonstr(obj) if not is_str(obj) else\
+    return assert_not_str(obj) if not is_str(obj) else\
         '{} empty.'.format(label.capitalize())

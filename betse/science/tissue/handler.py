@@ -29,19 +29,11 @@ class TissueHandler(object):
 
     Attributes (General)
     ----------------------------
-    targets_extV_negative : str
-        String identifying the boundary edge to apply a negative voltage to.
-        Valid values include:
-        * `T`, identifying the top boundary.
-        * `B`, identifying the bottom boundary.
-        * `L`, identifying the left boundary.
-        * `R`, identifying the right boundary.
-    targets_extV_positive : str
-        String identifying the boundary edge to apply a positive voltage to.
-        Valid values are as for `targets_extV_negative` above.
     '''
 
     def __init__(self, sim, cells, p):
+        #FIXME: Reduce to the following single line:
+        #    self.data_length = len(cells.mem_i if p.sim_ECM else cells.cell_i)
         if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
 
@@ -280,16 +272,16 @@ class TissueHandler(object):
         # into this object under different names. ("Just go with it.")
         ev = p.scheduled_options['extV']
         if ev is not None:
-            self.t_on_extV = ev['change start']
-            self.t_off_extV = ev['change finish']
-            self.t_change_extV = ev['change rate']
-            self.peak_val_extV = ev['peak value']
-            self.targets_extV_positive = ev['positive voltage boundary']
-            self.targets_extV_negative = ev['negative voltage boundary']
+            self.t_on_extV = ev.start_time
+            self.t_off_extV = ev.stop_time
+            self.t_change_extV = ev.step_width
+            self.peak_val_extV = ev.peak_voltage
+            self.targets_extV_positive = ev.positive_voltage_boundary
+            self.targets_extV_negative = ev.negative_voltage_boundary
 
         if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
-            self.t_on_ecmJ = p.scheduled_options['ecmJ'][0]
-            self.t_off_ecmJ= p.scheduled_options['ecmJ'][1]
+            self.t_on_ecmJ  = p.scheduled_options['ecmJ'][0]
+            self.t_off_ecmJ = p.scheduled_options['ecmJ'][1]
             self.t_change_ecmJ = p.scheduled_options['ecmJ'][2]
             self.apply_ecmJ = p.scheduled_options['ecmJ'][3]
 
