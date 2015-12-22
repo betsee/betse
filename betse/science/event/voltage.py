@@ -93,6 +93,11 @@ class EventPeriodVoltage(EventPeriod):
         self.positive_voltage_boundary = positive_voltage_boundary
         self.negative_voltage_boundary = negative_voltage_boundary
 
+
+    #FIXME: Define me, please! See the "tissue.handler" module.
+    def fire(self, sim: 'Simulation', t: float) -> None:
+        pass
+
 # ....................{ CONVERTERS                         }....................
 def _convert_boundary_str_to_char(side: str) -> str:
         '''

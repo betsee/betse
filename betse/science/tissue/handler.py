@@ -166,14 +166,15 @@ class TissueHandler(object):
                 targets = self.tissue_target_inds[profile]
                 self.targets_Namem.append(targets)
 
-            self.targets_Namem = [item for sublist in self.targets_Namem for item in sublist]
+            self.targets_Namem = [
+                item for sublist in self.targets_Namem for item in sublist]
             self.scalar_Namem = 1
 
             # call a special toolbox function to change membrane permeability: spatial grads
             # 'gradient_x', 'gradient_y', 'gradient_r'
 
             if self.function_Namem != 'None':
-                self.scalar_Namem = getattr(tb,self.function_Namem)(cells,sim,p)
+                self.scalar_Namem = getattr(tb, self.function_Namem)(cells,sim,p)
 
         if p.scheduled_options['K_mem'] != 0:
             self.t_on_Kmem = p.scheduled_options['K_mem'][0]
@@ -188,7 +189,8 @@ class TissueHandler(object):
                 targets = self.tissue_target_inds[profile]
                 self.targets_Kmem.append(targets)
 
-            self.targets_Kmem = [item for sublist in self.targets_Kmem for item in sublist]
+            self.targets_Kmem = [
+                item for sublist in self.targets_Kmem for item in sublist]
             self.scalar_Kmem = 1
 
             if self.function_Kmem != 'None':
@@ -210,7 +212,8 @@ class TissueHandler(object):
                 targets = self.tissue_target_inds[profile]
                 self.targets_Clmem.append(targets)
 
-            self.targets_Clmem = [item for sublist in self.targets_Clmem for item in sublist]
+            self.targets_Clmem = [
+                item for sublist in self.targets_Clmem for item in sublist]
             self.scalar_Clmem = 1
 
             if self.function_Clmem != 'None':
@@ -232,14 +235,15 @@ class TissueHandler(object):
                 targets = self.tissue_target_inds[profile]
                 self.targets_Camem.append(targets)
 
-            self.targets_Camem = [item for sublist in self.targets_Camem for item in sublist]
+            self.targets_Camem = [
+                item for sublist in self.targets_Camem for item in sublist]
             self.scalar_Camem = 1
 
             if self.function_Camem != 'None':
                 # call a special toolbox function to change membrane permeability: spatial grads
                 # 'gradient_x', 'gradient_y', 'gradient_r'
 
-                self.scalar_Camem = getattr(tb,self.function_Camem)(cells,sim,p)
+                self.scalar_Camem = getattr(tb, self.function_Camem)(cells,sim,p)
 
         if p.scheduled_options['IP3'] != 0:
             self.t_onIP3 = p.scheduled_options['IP3'][0]
@@ -254,30 +258,14 @@ class TissueHandler(object):
                 targets = self.cell_target_inds[profile]
                 self.targets_IP3.append(targets)
 
-            self.targets_IP3 = [item for sublist in self.targets_IP3 for item in sublist]
+            self.targets_IP3 = [
+                item for sublist in self.targets_IP3 for item in sublist]
             self.scalar_IP3 = 1
 
+            # call a special toolbox function to change membrane permeability: spatial grads
+            # 'gradient_x', 'gradient_y', 'gradient_r'
             if self.function_IP3 != 'None':
-
-                # call a special toolbox function to change membrane permeability: spatial grads
-                # 'gradient_x', 'gradient_y', 'gradient_r'
-
-                self.scalar_IP3 = getattr(tb,self.function_IP3)(cells,sim,p)
-
-        #FIXME: Reuse rather than duplicate these attributes. First, of course,
-        #we should probably convert the "p.scheduled_options['extV']" dict into
-        #a properly typed class. Baying hounds!
-
-        # If the "apply external voltage" event is enabled, copy its parameters
-        # into this object under different names. ("Just go with it.")
-        ev = p.scheduled_options['extV']
-        if ev is not None:
-            self.t_on_extV = ev.start_time
-            self.t_off_extV = ev.stop_time
-            self.t_change_extV = ev.step_width
-            self.peak_val_extV = ev.peak_voltage
-            self.targets_extV_positive = ev.positive_voltage_boundary
-            self.targets_extV_negative = ev.negative_voltage_boundary
+                self.scalar_IP3 = getattr(tb, self.function_IP3)(cells, sim, p)
 
         if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
             self.t_on_ecmJ  = p.scheduled_options['ecmJ'][0]
@@ -290,7 +278,8 @@ class TissueHandler(object):
                 targets = self.env_target_inds[profile]
                 self.targets_ecmJ.append(targets)
 
-            self.targets_ecmJ = [item for sublist in self.targets_ecmJ for item in sublist]
+            self.targets_ecmJ = [
+                item for sublist in self.targets_ecmJ for item in sublist]
 
         if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True:
             self.t_cuts = p.scheduled_options['cuts'][0]
@@ -300,7 +289,8 @@ class TissueHandler(object):
             self.targets_cuts = []
             targets = self.cuts_target_inds[self.apply_cuts]
             self.targets_cuts.append(targets)
-            self.targets_cuts = [item for sublist in self.targets_cuts for item in sublist]
+            self.targets_cuts = [
+                item for sublist in self.targets_cuts for item in sublist]
 
 
     def _init_channels_tissue(self, sim, cells, p):
@@ -340,7 +330,6 @@ class TissueHandler(object):
             self.target_mask_vgNa[self.targets_vgNa] = 1
 
         if p.vg_options['K_vg'] !=0:
-
             # Initialization of logic values forr voltage gated potassium channel
             self.maxDmK = p.vg_options['K_vg'][0]
             self.v_on_K = p.vg_options['K_vg'][1]
@@ -369,9 +358,7 @@ class TissueHandler(object):
             self.target_mask_vgK = np.zeros(self.data_length)
             self.target_mask_vgK[self.targets_vgK] = 1
 
-
         if p.vg_options['Ca_vg'] !=0:
-
             # Initialization of logic values for voltage gated calcium channel
             self.maxDmCa = p.vg_options['Ca_vg'][0]
             self.v_on_Ca = p.vg_options['Ca_vg'][1]
@@ -398,7 +385,6 @@ class TissueHandler(object):
             self.target_mask_vgCa[self.targets_vgCa] = 1
 
         if p.vg_options['K_cag'] != 0:
-
             self.maxDmKcag = p.vg_options['K_cag'][0]
             self.Kcag_halfmax = p.vg_options['K_cag'][1]
             self.Kcag_n = p.vg_options['K_cag'][2]
@@ -421,7 +407,6 @@ class TissueHandler(object):
 
         # calcium dynamics
         if p.Ca_dyn_options['CICR'] != 0:
-
             self.stateER = np.zeros(len(cells.cell_i))   # state of ER membrane Ca permeability
 
             self.maxDmCaER = p.Ca_dyn_options['CICR'][0][0]
@@ -429,12 +414,10 @@ class TissueHandler(object):
             self.bottomCa =  p.Ca_dyn_options['CICR'][0][2]
 
             if len(p.Ca_dyn_options['CICR'][1])!=0:
-
                 self.midCaR = p.Ca_dyn_options['CICR'][1][0]
                 self.widthCaR = p.Ca_dyn_options['CICR'][1][1]
 
             if len(p.Ca_dyn_options['CICR'][2])!=0:
-
                 self.KhmIP3 = p.Ca_dyn_options['CICR'][2][0]
                 self.n_IP3 = p.Ca_dyn_options['CICR'][2][1]
 
@@ -462,76 +445,57 @@ class TissueHandler(object):
         '''
 
         if p.global_options['K_env'] != 0:
-
             effector_Kenv = tb.pulse(t,self.t_on_Kenv,self.t_off_Kenv,self.t_change_Kenv)
 
             if p.sim_ECM is False:
-
                 sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
 
             elif p.sim_ECM is True: # simulate addition of potassium salt to remain charge neutral
-
                 sim.c_env_bound[sim.iK] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['K']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['M']
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
-
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
             if p.sim_ECM is False:
-
                 sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
 
             elif p.sim_ECM is True:  # simulate addition of sodium chloride to remain charge neutral
-
                 sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Na']
 
         if p.global_options['Na_env'] != 0:
-
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
 
             if p.sim_ECM is False:
-
                 sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
             elif p.sim_ECM is True: # simulate addition of sodium salt to remain charge neutral
-
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
 
         if p.global_options['Morph_env'] != 0 and p.voltage_dye is True:
-
             effector_MorphEnv = tb.pulse(t,self.t_on_MorphEnv,self.t_off_MorphEnv,self.t_change_MorphEnv)
 
             if p.sim_ECM is False:
-
                 sim.cDye_env[:] = self.conc_MorphEnv*effector_MorphEnv + sim.cDye_env*(1-effector_MorphEnv)
 
             elif p.sim_ECM is True: # simulate addition of counter salt to maintain charge neutrality:
-
                 sim.c_dye_bound = self.conc_MorphEnv*effector_MorphEnv + p.cDye_to*(1-effector_MorphEnv)
 
-
         if p.global_options['T_change'] != 0:
-
             sim.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
 
         if p.global_options['gj_block'] != 0:
-
             sim.gj_block[self.targets_gj_block] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
 
-
         if p.global_options['NaKATP_block'] != 0:
-
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
 
         if p.global_options['HKATP_block'] != 0:
-
             sim.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
 
         if p.global_options['VATP_block'] != 0:
-
             sim.VATP_block = (1.0 - tb.pulse(t,self.tonV,self.toffV,self.trampV))
 
 
@@ -572,7 +536,8 @@ class TissueHandler(object):
                 sim.D_env_weight = sim.D_env_weight.ravel()
                 sim.D_env_weight_base = sim.D_env_weight_base.ravel()
 
-                sim.D_env_weight[self.targets_ecmJ] = sim.D_env_weight_base[self.targets_ecmJ]*(1-effector_ecmJ) + \
+                sim.D_env_weight[self.targets_ecmJ] = \
+                    sim.D_env_weight_base[self.targets_ecmJ]*(1-effector_ecmJ) + \
                                                       effector_ecmJ
 
                 sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
@@ -582,7 +547,6 @@ class TissueHandler(object):
                 if p.env_type is True:
                     sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                         (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
-
                     sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                         (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
 
@@ -632,15 +596,19 @@ class TissueHandler(object):
             # cells.maskM = cells.maskM_temp[:]
             # cells.inds_env = cells.inds_env_temp[:]
 
-        # If the "apply external voltage" event is enabled, adjust the voltage.
-        if p.scheduled_options['extV'] is not None:
-            effector_extV = tb.pulse(
-                t, self.t_on_extV, self.t_off_extV, self.t_change_extV)
+        #FIXME: Refactor into a new EventPeriodVoltage.fire() event, as is the
+        #customary jargon for this sort of thing.
 
-            sim.bound_V[self.targets_extV_positive] = \
-                 self.peak_val_extV*effector_extV
-            sim.bound_V[self.targets_extV_negative] = \
-                -self.peak_val_extV*effector_extV
+        # If the voltage event is enabled, adjust the voltage accordingly.
+        ev = p.scheduled_options['extV']
+        if ev is not None:
+            effector_extV = tb.pulse(
+                t, ev.start_time, ev.stop_time, ev.step_width)
+
+            sim.bound_V[ev.positive_voltage_boundary] = \
+                 ev.peak_voltage * effector_extV
+            sim.bound_V[ev.negative_voltage_boundary] = \
+                -ev.peak_voltage * effector_extV
 
 
     def _sim_channels_tissue(self, sim, cells, p, t):
@@ -1025,7 +993,7 @@ def removeCells(
         if open_TJ is True:
             # save the x,y coordinates of the original boundary cell and membrane points:
             old_bflag_cellxy = cells.cell_centres[cells.bflags_cells]
-            old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
+            # old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
 
     # set up the situation to make world joined to cut world have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
@@ -1112,19 +1080,23 @@ def removeCells(
                 setattr(sim,name,super_data2)
 
             else:
-
                 data = getattr(sim,name)
 
-                if isinstance(data,np.ndarray):
+                if isinstance(data, np.ndarray):
                     if len(data) == len(cells.cell_i):
-                        data2 = np.delete(data,target_inds_cell)
-                        setattr(sim,name,data2)
+                        data2 = np.delete(data, target_inds_cell)
+                        setattr(sim, name, data2)
 
                     elif len(data) == len(cells.mem_i):
-                        data2 = np.delete(data,target_inds_mem)
-                        setattr(sim,name,data2)
+                        data2 = np.delete(data, target_inds_mem)
+                        setattr(sim, name, data2)
 
-                    elif len(data) == len(cells.mem_i):  #FIXME originally was nn_index! Now they're equal!
+                    #FIXME: This branch is identical to the prior branch and
+                    #hence will *NEVER* be run. A footnote to this branch read:
+                    #"FIXME originally was nn_index! Now they're equal!". wat?
+                    #Run, Sessum, run!
+
+                    elif len(data) == len(cells.mem_i):
                         data2 = np.delete(data,target_inds_gj)
                         setattr(sim,name,data2)
 
@@ -1143,7 +1115,11 @@ def removeCells(
                         data2.append(data[index])
                         setattr(sim,name,data2)
 
-                    elif len(data) == len(cells.mem_i): # Fixme originally nn_index
+                    #FIXME: This branch is identical to the prior branch and
+                    #hence will *NEVER* be run. A footnote to this branch read:
+                    #"Fixme originally nn_index". wat? Run, Sessum, run!
+
+                    elif len(data) == len(cells.mem_i):
                         for index in sorted(target_inds_gj, reverse=True):
                             del data[index]
                         data2.append(data[index])
@@ -1157,9 +1133,7 @@ def removeCells(
     removal_flags[target_inds_cell] = 1
 
     for i,flag in enumerate(removal_flags):
-
         if flag == 0:
-
             new_cell_centres.append(cells.cell_centres[i])
             new_ecm_verts.append(cells.ecm_verts[i])
 
