@@ -569,19 +569,19 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         # time-dependent osmotic and/or electrostatic pressure in cell
         if p.deform_electro is True:
 
-            f_electro = [arr[plot_cell] for arr in sim.F_electro_time]
+            f_electro = [arr[plot_cell] for arr in sim.P_electro_time]
             figPE = plt.figure()
             axPE = plt.subplot(111)
 
             axPE.plot(sim.time,f_electro)
 
             axPE.set_xlabel('Time [s]')
-            axPE.set_ylabel('Electrostatic Force [N/m3]')
+            axPE.set_ylabel('Electrostatic Pressure [Pa]')
 
             axPE.set_title('Electrostatic force in cell ' + str(plot_cell) )
 
             if saveImages is True:
-                savename = savedImg + 'ElectrostaticF_' + '.png'
+                savename = savedImg + 'ElectrostaticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png')
 
             plt.show(block=False)

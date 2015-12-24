@@ -877,6 +877,7 @@ class Simulator(object):
         self.I_tot_y_time = [0]
 
         self.F_electro_time = []
+        self.P_electro_time = []
 
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
         self.P_cells = np.zeros(len(cells.cell_i))
@@ -1226,7 +1227,8 @@ class Simulator(object):
                     self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
-                     self.F_electro_time.append(self.F_electro[:])
+                    self.F_electro_time.append(self.F_electro[:])
+                    self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
 
@@ -1435,6 +1437,7 @@ class Simulator(object):
         self.vm_Matrix.append(dat_grid_vm[:])
 
         self.F_electro_time = []
+        self.P_electro_time = []
 
         if p.deformation is True and p.run_sim is True:
 
@@ -1746,7 +1749,8 @@ class Simulator(object):
                     self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
-                     self.F_electro_time.append(self.F_electro[:])
+                    self.F_electro_time.append(self.F_electro[:])
+                    self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
 
@@ -3314,91 +3318,19 @@ class Simulator(object):
         # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
         u_osmo = (self.osmo_P_delta - self.P_cells)*(p.aquaporins/p.mu_water)
 
-        P_react = u_osmo     # assume pressure that develops precisely resists any flow...
+        # calculate the flow due to net mass flux into the cell due to selective active/passive ion transport:
+        u_mass_flux_o = (1/p.rho)*self.get_mass_flux(cells,p)
 
-        self.P_cells = self.P_cells + P_react
+        # average the flow to the cell centres:
+        u_mass_flux = np.dot(cells.M_sum_mems,u_mass_flux_o)/cells.num_mems
+
+        P_react = u_mass_flux  + u_osmo  # assume pressure that develops precisely resists any flow...
+
+        self.P_cells = P_react[:]
+
+        # self.P_cells = self.P_cells + P_react
 
         self.P_mem = self.P_mem + P_react[cells.mem_to_cells]
-
-        # # stress at each membrane due to pressure are normal to membranes:
-        # sxx_o = self.P_mem*cells.mem_vects_flat[:,2]
-        # syy_o = self.P_mem*cells.mem_vects_flat[:,3]
-        #
-        # # each cell will push against neighbouring cells, so average nn membrane stress:
-        # sxx = (sxx_o[cells.nn_i] + sxx_o[cells.mem_i])/2
-        # syy = (syy_o[cells.nn_i] + syy_o[cells.mem_i])/2
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     sxx[cells.bflags_mems] = 0
-        #     syy[cells.bflags_mems] = 0
-
-        # # divergence of the stress tensor is the dot product of stress tensor with membrane normals.
-        # # these are body forces which will be tried in the time-dependent deformation equation later.
-        # self.F_osmo_x = np.dot(cells.M_sum_mems, sxx*cells.mem_sa)/cells.cell_vol
-        # self.F_osmo_y = np.dot(cells.M_sum_mems, syy*cells.mem_sa)/cells.cell_vol
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.F_osmo_x[cells.bflags_cells] = 0
-        #     self.F_osmo_y[cells.bflags_cells] = 0
-        #
-        # self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)  # net body force
-
-        # # estimate deformation (not divergence free as we're assuming cell volume change can happen):
-        #
-        # if p.fixed_cluster_bound is True:
-        #
-        #     self.ux_osmo = np.dot(cells.lapGJinv,-(1/p.lame_mu)*self.F_osmo_x)
-        #     self.uy_osmo = np.dot(cells.lapGJinv,-(1/p.lame_mu)*self.F_osmo_y)
-        #
-        #     self.ux_osmo[cells.bflags_cells] = 0
-        #     self.uy_osmo[cells.bflags_cells] = 0
-        #
-        # else:
-        #
-        #     self.ux_osmo = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*self.F_osmo_x)
-        #     self.uy_osmo = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*self.F_osmo_y)
-        #
-        # self.u_osmo = np.sqrt(self.ux_osmo**2 + self.uy_osmo**2)
-        #
-        # # map displacement to membrane midpoints:
-        # # first interpolate displacement field at membrane midpoints:
-        # ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.ux_osmo,
-        #                  (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-        #
-        # uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.uy_osmo,
-        #                          (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-        #
-        # # get the component of the velocity field normal to the membranes:
-        # u_n = ux_mem[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + uy_mem[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
-        #
-        # # calculate the percent change in average cell radius:
-        # cell_r_x = cells.mem_mids_flat[:,0] - cells.cell_centres[cells.mem_to_cells][:,0]
-        # cell_r_y = cells.mem_mids_flat[:,1] - cells.cell_centres[cells.mem_to_cells][:,1]
-        #
-        # cell_ro = np.sqrt(cell_r_x**2 + cell_r_y**2)
-        #
-        # new_r = cell_ro + u_n
-        #
-        # frac_r = new_r/cell_ro
-        #
-        # self.delta_r = (np.dot(cells.M_sum_mems,frac_r)/cells.num_mems)
-        #
-        # # next update cell volume
-        # # (Note: must update with respect to original cell volume, as per definition of deformation):
-        # cells.cell_vol = ((self.delta_r))*self.cell_vol_o
-        #
-        # # update cell conservations to conserve total mass:
-        # self.cc_cells = self.cc_cells*((self.delta_r))
-        #
-        # if p.voltage_dye == 1:
-        #
-        #     self.cDye_cell = self.cDye_cell*((self.delta_r))
-        #
-        # if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-        #
-        #     self.cIP3 = self.cIP3*((self.delta_r))
 
         # determine body force due to hydrostatic pressure gradient between cells:
         gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
@@ -3949,15 +3881,26 @@ class Simulator(object):
         self.density = total_mass/cells.cell_vol
 
     def get_mass_flux(self,cells,p):
+        """
+        Sum up individual trans-membrane and
+        trans-gap junction ion fluxes to obtain the
+        net flow of mass into a cell.
+
+        Assumes that each ion travels with a hydration
+        shell of 6 water molecules.
+
+        """
 
          # calculate mass flux across cell membranes:
-        self.mass_flux = np.zeros(len(cells.mem_i))
+        mass_flux = np.zeros(len(cells.mem_i))
 
         for flux_array, mm in zip(self.fluxes_mem,self.molar_mass):
 
-            m_flx = flux_array*mm
+            m_flx = flux_array*mm*6*18e-3  # flux x molar mass of ion x 6 water molecules at 18e-3 kg/mol
 
-            self.mass_flux = self.mass_flux + m_flx
+            mass_flux = mass_flux + m_flx
+
+        return mass_flux
 
         # # total mass change in cell
         # mass_change = self.mass_flux*p.dt*cells.mem_sa
