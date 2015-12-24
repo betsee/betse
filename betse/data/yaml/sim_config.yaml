@@ -347,7 +347,7 @@ tissue profile definition:
 
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
-          designation: cuts
+          designation: None
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -365,6 +365,16 @@ tissue profile definition:
               random: 50
 
     #FIXME: Enable me, please. This is currently ignored. Bugaboo, hullaballoo!
+    # FIXME #1: Hi Sessabo! How about we have a boolean under "cut profile" which says:
+    #      *********
+    # cut profile:
+    #     enable cuting: True
+    #     name: wound
+    #    *********
+    # This would make it easy for someone to turn this feature on/off, which is important!
+    # We could even swap over the boolean from the cutting event -- maybe even combine the cutting even stuff like
+    # "dammaged membranes" and "hurt level" with
+    # with this profile so that it doesn't get done redundantly.
 
     # Profile identifying cells to be permanently "cut" (i.e., removed) from
     # the cell population. Note that this is ignored unless the "cutting event"
@@ -401,12 +411,12 @@ boundary profile definition:
 
 change Na mem:       # Change the membrane permeability to Na+
     event happens: False        # turn the event on (True) or off (False)
-    change start: 1.0                # time to start change [s]
-    change finish: 4.0               # time to end change and return to original [s]
-    change rate: 0.5                 # rate of change [s]
-    multiplier: 50.0                # factor to multiply base level
+    change start: 1.0e-3                # time to start change [s]
+    change finish: 20.0e-3               # time to end change and return to original [s]
+    change rate: 2.0e-3                 # rate of change [s]
+    multiplier: 1500.0                # factor to multiply base level
     function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-    apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
+    apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
 
 change K mem:       # Change the membrane permeability to K+
     event happens: False              # turn the event on (True) or off (False)
@@ -449,7 +459,7 @@ produce IP3:        # Schedule cell production of IP3
 # "simulate extracellular spaces" option is enabled. (If that option is
 # disabled, this event is simply ignored.)
 apply external voltage:
-    event happens: True            # turn the event on (True) or off (False)
+    event happens: False            # turn the event on (True) or off (False)
 
     change start: 0.5                 # time event starts [s]
     change finish: 1.0               # time event finishes [s]
@@ -472,7 +482,7 @@ break ecm junctions:     # break extracellular junctions between cells
     apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: True
+    event happens: False
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
@@ -668,7 +678,7 @@ variable settings:
 
     fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
 
-    young modulus: 1e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
+    young modulus: 0.75e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
 
   channel electroosmosis:
@@ -693,9 +703,9 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 1.0e-8 # surface area of gj as fraction of cell area (1.0e-2 or smaller)
+    gap junction surface area: 1.0e-8 # surface area of gj as fraction of cell area (1.0e-3 or smaller)
 
-    voltage sensitive gj: False    # gj close with voltage difference between cells?
+    voltage sensitive gj: True    # gj close with voltage difference between cells?
 
     gj voltage threshold: 15e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 10e-3 to 80e-3 V

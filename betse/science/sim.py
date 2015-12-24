@@ -876,7 +876,7 @@ class Simulator(object):
         self.I_tot_x_time = [0]
         self.I_tot_y_time = [0]
 
-        self.P_electro_time = []
+        self.F_electro_time = []
 
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
         self.P_cells = np.zeros(len(cells.cell_i))
@@ -1226,7 +1226,7 @@ class Simulator(object):
                     self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
-                     self.P_electro_time.append(self.P_electro[:])
+                     self.F_electro_time.append(self.F_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
 
@@ -1434,7 +1434,7 @@ class Simulator(object):
         dat_grid_vm = vertData(vm_dato,cells,p)
         self.vm_Matrix.append(dat_grid_vm[:])
 
-        self.P_electro_time = []
+        self.F_electro_time = []
 
         if p.deformation is True and p.run_sim is True:
 
@@ -1746,7 +1746,7 @@ class Simulator(object):
                     self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
-                     self.P_electro_time.append(self.P_electro[:])
+                     self.F_electro_time.append(self.F_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
 

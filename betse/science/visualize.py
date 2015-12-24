@@ -1997,7 +1997,7 @@ class AnimateDyeData(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
+def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'): # FIXME you're not actually plotting the right data value for sim_ECM is True!!!
 
     tvect_data=[x[celli]*1000 for x in sim.vm_time]
 
@@ -2068,6 +2068,59 @@ def plotSingleCellData(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',l
     ax.set_ylabel(lab)
 
     return fig, ax
+
+def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
+    """
+    Calculates the FFT for time-series data defined on a single cell (p.plot_cell)
+    and returns a plot of the spectrum in frequency-space.
+
+    Parameters
+    -----------
+    simtime:            The time vector for the plot
+    simdata_time:       The full data for the plot define on all cell centres of the cluster at all sample times
+    celli:              The single cell index to extract data for
+    fig:                A handle to an existing figure (default None; function creates the figure)
+    ax:                 Handle to an existing axis (default None; function creates the axis)
+    lncolor:            Line colour for the plot
+    lab:                Label for the data type (e.g. "Vmem [V]" or "Body Force [N/m3]")
+
+    Returns
+    --------
+    fig, ax     Handles to the figure and axis of the FFT plot
+    """
+
+
+
+    if fig is None:
+        fig = plt.figure()
+    if ax is None:
+        ax = plt.subplot(111)
+
+    sample_size = len(simtime)
+    sample_spacing = simtime[1] - simtime[0]
+
+
+    cell_data_o = [arr[celli] for arr in simdata_time]
+    cell_data = (1/sample_size)*(cell_data_o/np.mean(cell_data_o))    # normalize the signal
+
+    f_axis = np.fft.rfftfreq(sample_size, d=sample_spacing)
+    fft_data_o = np.fft.rfft(cell_data)
+    fft_data = np.real(fft_data_o)
+
+    xmin = f_axis[0]
+    xmax = f_axis[-1]
+    ymin = np.min(fft_data)
+    ymax = np.max(0.5)
+
+    ax.plot(f_axis,np.abs(fft_data))
+    ax.axis([xmin,xmax,ymin,ymax])
+
+    ax.set_xlabel('Frequency [1/s]')
+    ax.set_ylabel('Signal Power')
+
+    return fig, ax
+
+
 
 def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap=None,edgeOverlay = True,pointOverlay=None, number_cells = False, number_mems = False,
