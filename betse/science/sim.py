@@ -3316,33 +3316,65 @@ class Simulator(object):
         # Calculate the transmembrane flow of water due to osmotic pressure.
         # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
         # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
-        u_osmo = (self.osmo_P_delta - self.P_cells)*(p.aquaporins/p.mu_water)
+        u_osmo_o = (self.osmo_P_delta - self.P_cells)*(p.aquaporins/p.mu_water)
+
+        # map osmotic influx to membranes:
+        u_osmo = u_osmo_o[cells.mem_to_cells]
 
         # calculate the flow due to net mass flux into the cell due to selective active/passive ion transport:
-        u_mass_flux_o = (1/p.rho)*self.get_mass_flux(cells,p)
+        u_mass_flux = (1/p.rho)*self.get_mass_flux(cells,p)
 
-        # average the flow to the cell centres:
-        u_mass_flux = np.dot(cells.M_sum_mems,u_mass_flux_o)/cells.num_mems
+        u_net = u_osmo + u_mass_flux
 
-        P_react = u_mass_flux  + u_osmo  # assume pressure that develops precisely resists any flow...
+        # print('mass flux',u_mass_flux.mean())
+        # print('osmotic flux',u_osmo.mean())
+        # print('u_net',u_net.mean())
+        # print('-----')
 
-        self.P_cells = P_react[:]
+        # obtain the divergence of the flow in a timestep, which yields the fractional volume change:
+        self.div_u_osmo = p.dt*np.dot(cells.M_sum_mems,u_net*cells.mem_sa)/cells.cell_vol
 
-        # self.P_cells = self.P_cells + P_react
+        #------------------------------------------------------------------------------------------------------------
 
-        self.P_mem = self.P_mem + P_react[cells.mem_to_cells]
+        # update concentrations and volume in the cell:
+        vo = cells.cell_vol[:]
 
-        # determine body force due to hydrostatic pressure gradient between cells:
-        gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
+        v1 = (1 + self.div_u_osmo)*vo
 
-        F_osmo_x = gPcells*cells.cell_nn_tx
-        F_osmo_y = gPcells*cells.cell_nn_ty
+        self.cc_cells =self.cc_cells*(vo/v1)
 
-        # calculate a shear electrostatic body force at the cell centre:
-        self.F_osmo_x = np.dot(cells.gjMatrix, F_osmo_x)/cells.num_nn
-        self.F_osmo_y = np.dot(cells.gjMatrix, F_osmo_y)/cells.num_nn
+        if p.voltage_dye is True:
 
-        self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)
+            self.cDye_cell= self.cDye_cell*(vo/v1)
+
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+
+            self.cIP3 = self.cIP3*(vo/v1)
+
+        cells.cell_vol = v1[:]
+
+
+        #--------------------------------------------------------------------------------
+
+        # P_react = u_mass_flux  + u_osmo  # assume pressure that develops precisely resists any flow...
+        #
+        # self.P_cells = P_react[:]
+        #
+        # # self.P_cells = self.P_cells + P_react
+        #
+        # self.P_mem = self.P_mem + P_react[cells.mem_to_cells]
+        #
+        # # determine body force due to hydrostatic pressure gradient between cells:
+        # gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
+        #
+        # F_osmo_x = gPcells*cells.cell_nn_tx
+        # F_osmo_y = gPcells*cells.cell_nn_ty
+        #
+        # # calculate a shear electrostatic body force at the cell centre:
+        # self.F_osmo_x = np.dot(cells.gjMatrix, F_osmo_x)/cells.num_nn
+        # self.F_osmo_y = np.dot(cells.gjMatrix, F_osmo_y)/cells.num_nn
+        #
+        # self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)
 
     def electro_P(self,cells,p):
         """
@@ -3472,20 +3504,28 @@ class Simulator(object):
             F_electro_x = np.zeros(len(cells.cell_i))
             F_electro_y = np.zeros(len(cells.cell_i))
 
-
-        # determine body force due to osmotic water flow, if desired
         if p.deform_osmo is True:
 
-            F_osmo_x = self.F_osmo_x
-            F_osmo_y = self.F_osmo_y
+            div_osmo = self.div_u_osmo
 
         else:
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
+
+            div_osmo = np.zeros(len(cells.cell_i))
+
+
+        # # determine body force due to osmotic water flow, if desired
+        # if p.deform_osmo is True:
+        #
+        #     F_osmo_x = self.F_osmo_x
+        #     F_osmo_y = self.F_osmo_y
+        #
+        # else:
+        #     F_osmo_x = np.zeros(len(cells.cell_i))
+        #     F_osmo_y = np.zeros(len(cells.cell_i))
 
         # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_osmo_x
-        F_cell_y = F_electro_y + F_osmo_y
+        F_cell_x = F_electro_x
+        F_cell_y = F_electro_y
 
         #--calculate displacement field for incompressible medium------------------------------------------------
 
@@ -3513,11 +3553,13 @@ class Simulator(object):
         u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol) - div_osmo
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
+
+        self.P_cells = P_react[:]
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3532,6 +3574,13 @@ class Simulator(object):
         # calculate the displacement of cell centres under the applied force under incompressible conditions:
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
+
+        # inforce boundary conditions:
+        if p.fixed_cluster_bound is True:
+            self.d_cells_x[cells.bflags_cells] = 0
+            self.d_cells_y[cells.bflags_cells] = 0
+            self.d_cells_x[cells.nn_bound] = 0
+            self.d_cells_y[cells.nn_bound] = 0
 
     def timeDeform_o(self,cells,t,p):
         """
@@ -3891,12 +3940,13 @@ class Simulator(object):
 
         """
 
+        # FIXME add in gap junction component to mass flux
          # calculate mass flux across cell membranes:
         mass_flux = np.zeros(len(cells.mem_i))
 
         for flux_array, mm in zip(self.fluxes_mem,self.molar_mass):
 
-            m_flx = flux_array*mm*6*18e-3  # flux x molar mass of ion x 6 water molecules at 18e-3 kg/mol
+            m_flx = flux_array*(mm + 6*18.01e-3)  # flux x molar mass of ion x 6 water molecules at 18e-3 kg/mol
 
             mass_flux = mass_flux + m_flx
 

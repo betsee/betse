@@ -1239,6 +1239,10 @@ class Cells(object):
 
         self.cell_nn = np.asarray(self.cell_nn)
 
+        # nearest neighbours to the boundary cells:
+        nn_bound = self.cell_nn[self.bflags_cells]
+        self.nn_bound, _,_ = tb.flatten(nn_bound)
+
     def boundTag(self,points,p,alpha=1.0):
 
         """

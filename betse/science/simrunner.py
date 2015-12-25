@@ -588,7 +588,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.deform_osmo is True:
 
-            p_osmo = [arr[plot_cell] for arr in sim.P_cells_time]
+            p_osmo = [arr[plot_cell] for arr in sim.osmo_P_delta_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
 
@@ -607,11 +607,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
 
         # total displacement in cell
-        if p.deformation is True:
+        if p.deformation is True and sim.run_sim is True:
 
             # extract time-series deformation data for the plot cell:
-            dx = [arr[plot_cell] for arr in sim.dx_cell_time]
-            dy = [arr[plot_cell] for arr in sim.dy_cell_time]
+            dx = np.asarray([arr[plot_cell] for arr in sim.dx_cell_time])
+            dy = np.asarray([arr[plot_cell] for arr in sim.dy_cell_time])
 
             # get the total magnitude:
             disp = np.sqrt(dx**2 + dy**2)
@@ -1009,7 +1009,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
                 clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-                # axP.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],sim.ux_osmo,sim.uy_osmo)
             else:
                  figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
                  clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
@@ -1042,11 +1041,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                  figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
                  clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-            normOsmo = np.sqrt(sim.F_osmo_x**2 + sim.F_osmo_y**2)
-            fx = sim.F_osmo_x/normOsmo
-            fy = sim.F_osmo_y/normOsmo
-
-            axP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,fx,fy)
+            # normOsmo = np.sqrt(sim.F_osmo_x**2 + sim.F_osmo_y**2)
+            # fx = sim.F_osmo_x/normOsmo
+            # fy = sim.F_osmo_y/normOsmo
+            #
+            # axP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,fx,fy)
 
             axP.set_title('Final Osmotic Pressure in Cell Network')
             axP.set_xlabel('Spatial distance [um]')
