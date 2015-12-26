@@ -7,11 +7,11 @@ Abstract base classes for timed event classes.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractstaticmethod
+from abc import ABCMeta, abstractmethod, abstractstaticmethod
 from betse.util.type import types
 
 # ....................{ BASE                               }....................
-class Event(object, metaclass = ABCMeta):
+class Event(object, metaclass=ABCMeta):
     '''
     Abstract base class of all timed event classes.
 
@@ -34,7 +34,7 @@ class Event(object, metaclass = ABCMeta):
         Parameters
         ----------------------------
         params : Parameters
-             Current tissue simulation configuration.
+            Current tissue simulation configuration.
 
         Returns
         ----------------------------
@@ -43,8 +43,23 @@ class Event(object, metaclass = ABCMeta):
         '''
         pass
 
+    # ..................{ ABSTRACT                           }..................
+    @abstractmethod
+    def fire(self, sim: 'Simulation', t: float) -> None:
+        '''
+        Apply this event to the passed time step of the passed tissue
+        simulation.
+
+        Parameters
+        ----------------------------
+        sim : Simulation
+            Current tissue simulation.
+        t : float
+            Time step to apply this event to.
+        '''
+
 # ....................{ PERIOD                             }....................
-class EventPeriod(Event):
+class EventSpan(Event):
     '''
     Abstract base class of all classes describing simulation events occurring
     over a period (rather than single point) of time.
@@ -52,27 +67,31 @@ class EventPeriod(Event):
     Attributes
     ----------------------------
     start_time : float
-        Time point in seconds at which to begin triggering this event.
+        Time (s) at which to begin triggering this event.
     stop_time : float
-        Time point in seconds at which to cease triggering this event.
-    step_width : float
-        Time period in seconds of the width of the step function providing
-        smooth continuity between the underlying time-dependent function and
-        the event overlayed onto that function. This time period applies to both
-        the above start and stop times and hence applies twice as follows:
-        * The first time period "steps" up to this event from the underlying
-          function. Its mid-point is centered at `time_start`.
-        * The second time period "steps" down from this event to the underlying
-          function. Its mid-point is centered at `time_stop`.
+        Time (s) at which to cease triggering this event.
+    step_rate : float
+        Slope of the pair of step functions guaranteeing smooth continuity
+        between the background function and this event. Each step function is
+        the mirror image of the other reflected across the Y axis. These are:
+        * A "step" up from the background function to this event, whose
+          mid-point is centered at `start_time`.
+        * A "step" down from this event back to the background function, whose
+          mid-point is centered at `stop_time`.
+        If the background function is time-dependent, this slope is a *rate*
+        (i.e., change over time). For the `EventSpanVoltage` subclass, for
+        example, this is the rate in voltage per seconds (V/s) at which:
+        * The background voltage is first increased to the peak voltage.
+        * The peak voltage is later decreased to the background voltage.
     '''
 
     # ..................{ CONCRETE                           }..................
     def __init__(
-        self, start_time: float, stop_time: float, step_width: float) -> None:
+        self, start_time: float, stop_time: float, step_rate: float) -> None:
         assert types.is_numeric(start_time)
         assert types.is_numeric(stop_time)
-        assert types.is_numeric(step_width)
+        assert types.is_numeric(step_rate)
 
         self.start_time = start_time
         self.stop_time = stop_time
-        self.step_width = step_width
+        self.step_rate = step_rate

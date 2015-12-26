@@ -11,7 +11,7 @@
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
-from betse.science.event.voltage import EventPeriodVoltage
+from betse.science.event.voltage import EventSpanVoltage
 from betse.science.tissue.picker import (
     TissuePickerAll,
     TissuePickerBitmap,
@@ -432,7 +432,7 @@ class Parameters(object):
         #Thus spake Sessums!
 
         # Parameterize the voltage event if enabled.
-        self.scheduled_options['extV'] = EventPeriodVoltage.make(self)
+        self.scheduled_options['extV'] = EventSpanVoltage.make(self)
 
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0

@@ -449,12 +449,25 @@ produce IP3:        # Schedule cell production of IP3
 # "simulate extracellular spaces" option is enabled. (If that option is
 # disabled, this event is simply ignored.)
 apply external voltage:
-    event happens: False            # turn the event on (True) or off (False)
+    # Enable (True) or disable (False) this event?
+    event happens: False
 
-    change start: 0.5                 # time event starts [s]
-    change finish: 1.0               # time event finishes [s]
-    change rate: 0.1                  # time to reach peak value [s]
-    peak value: 0.100                 # peak value [V]
+    # Time (s) at which to begin applying this voltage.
+    change start: 0.5
+
+    # Time (s) at which to cease applying this voltage.
+    change finish: 1.0
+
+    # Slope of the pair of step functions providing smooth continuity between
+    # the background voltage and this event. Specifically, this is the rate in
+    # voltage per seconds (V/s) at which:
+    #
+    # * The background voltage is first increased to the peak voltage.
+    # * The peak voltage is later decreased to the background voltage.
+    change rate: 0.1
+
+    # Maximum voltage (V) to be applied by this event.
+    peak voltage: 0.100
 
     # Environment boundary edge to apply positive voltage to. Valid values:
     # "top", "bottom", "left", and "right".

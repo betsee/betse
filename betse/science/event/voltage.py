@@ -8,12 +8,13 @@ High-level classes aggregating all parameters pertaining to simulation events.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionParameters
-from betse.science.event.abc import EventPeriod
+from betse.science import toolbox
+from betse.science.event.abc import EventSpan
 from betse.util.io import loggers
 from betse.util.type import types
 
 # ....................{ EVENT                              }....................
-class EventPeriodVoltage(EventPeriod):
+class EventSpanVoltage(EventSpan):
     '''
     Event applying a directed voltage to the environmental boundary during some
     time period of the simulation.
@@ -39,7 +40,7 @@ class EventPeriodVoltage(EventPeriod):
 
     # ..................{ PUBLIC ~ static                    }..................
     @staticmethod
-    def make(params: 'Parameters') -> 'EventPeriodVoltage':
+    def make(params: 'Parameters') -> 'EventSpanVoltage':
         assert types.is_parameters(params), types.assert_not_parameters(params)
 
         # Object to be returned, defaulting to nothing.
@@ -50,11 +51,11 @@ class EventPeriodVoltage(EventPeriod):
         if bool(aev['event happens']):
             # If extracellular spaces are enabled, parse this event.
             if params.sim_ECM:
-                event = EventPeriodVoltage(
+                event = EventSpanVoltage(
                     start_time=float(aev['change start']),
                     stop_time=float(aev['change finish']),
-                    step_width=float(aev['change rate']),
-                    peak_voltage=float(aev['peak value']),
+                    step_rate=float(aev['change rate']),
+                    peak_voltage=float(aev['peak voltage']),
                     positive_voltage_boundary=\
                         _convert_boundary_str_to_char(
                             aev['positive voltage boundary']),
@@ -75,7 +76,7 @@ class EventPeriodVoltage(EventPeriod):
         self,
         start_time: float,
         stop_time: float,
-        step_width: float,
+        step_rate: float,
         peak_voltage: float,
         positive_voltage_boundary: float,
         negative_voltage_boundary: float,
@@ -87,16 +88,21 @@ class EventPeriodVoltage(EventPeriod):
         assert types.is_char(negative_voltage_boundary), (
             types.assert_not_char(negative_voltage_boundary))
 
-        super().__init__(start_time, stop_time, step_width)
+        super().__init__(start_time, stop_time, step_rate)
 
         self.peak_voltage = peak_voltage
         self.positive_voltage_boundary = positive_voltage_boundary
         self.negative_voltage_boundary = negative_voltage_boundary
 
 
-    #FIXME: Define me, please! See the "tissue.handler" module.
     def fire(self, sim: 'Simulation', t: float) -> None:
-        pass
+        effector = toolbox.pulse(
+            t, self.start_time, self.stop_time, self.step_rate)
+
+        sim.bound_V[self.positive_voltage_boundary] = \
+             self.peak_voltage * effector
+        sim.bound_V[self.negative_voltage_boundary] = \
+            -self.peak_voltage * effector
 
 # ....................{ CONVERTERS                         }....................
 def _convert_boundary_str_to_char(side: str) -> str:

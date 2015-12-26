@@ -584,31 +584,21 @@ class TissueHandler(object):
             else:
                 self.data_length = len(cells.cell_i)
 
-            self.tissueProfiles(sim,cells,p)
-            cells.redo_gj(self, p, savecells = False)
-            self.runAllInit(sim,cells,p)
+            self.tissueProfiles(sim, cells, p)
+            cells.redo_gj(self, p, savecells=False)
+            self.runAllInit(sim, cells, p)
 
             if p.plot_while_solving is True:
-                sim.checkPlot.resetData(cells,sim,p)
+                sim.checkPlot.resetData(cells, sim, p)
 
             cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
 
             # cells.maskM = cells.maskM_temp[:]
             # cells.inds_env = cells.inds_env_temp[:]
 
-        #FIXME: Refactor into a new EventPeriodVoltage.fire() event, as is the
-        #customary jargon for this sort of thing.
-
         # If the voltage event is enabled, adjust the voltage accordingly.
-        ev = p.scheduled_options['extV']
-        if ev is not None:
-            effector_extV = tb.pulse(
-                t, ev.start_time, ev.stop_time, ev.step_width)
-
-            sim.bound_V[ev.positive_voltage_boundary] = \
-                 ev.peak_voltage * effector_extV
-            sim.bound_V[ev.negative_voltage_boundary] = \
-                -ev.peak_voltage * effector_extV
+        if p.scheduled_options['extV'] is not None:
+           p.scheduled_options['extV'].fire(sim, t)
 
 
     def _sim_channels_tissue(self, sim, cells, p, t):
