@@ -347,7 +347,7 @@ tissue profile definition:
 
         # Example tissue profile for a small cluster of wounded cells.
         - name: wound
-          designation: None
+          designation: cuts
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -365,16 +365,6 @@ tissue profile definition:
               random: 50
 
     #FIXME: Enable me, please. This is currently ignored. Bugaboo, hullaballoo!
-    # FIXME #1: Hi Sessabo! How about we have a boolean under "cut profile" which says:
-    #      *********
-    # cut profile:
-    #     enable cuting: True
-    #     name: wound
-    #    *********
-    # This would make it easy for someone to turn this feature on/off, which is important!
-    # We could even swap over the boolean from the cutting event -- maybe even combine the cutting even stuff like
-    # "dammaged membranes" and "hurt level" with
-    # with this profile so that it doesn't get done redundantly.
 
     # Profile identifying cells to be permanently "cut" (i.e., removed) from
     # the cell population. Note that this is ignored unless the "cutting event"
@@ -482,7 +472,7 @@ break ecm junctions:     # break extracellular junctions between cells
     apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 cutting event:   # cut cells out of an initialized cluster at the beginning of a sim run
-    event happens: False
+    event happens: True
     apply to: wound    # tissue profile to apply this to -- can only be one profile; no profile lists
     damaged membranes: True # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
@@ -672,7 +662,7 @@ variable settings:
 
     include electrostatic pressure: False   # include electrostatic pressure in flow and deformation?
 
-    membrane water conductivity: 1e-9   # mem conductivity for osmotic water inflow (aquaporin fraction) (1e-5 to 1e-10)
+    membrane water conductivity: 1e-12   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
 
     viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
 

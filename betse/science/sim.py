@@ -3326,11 +3326,6 @@ class Simulator(object):
 
         u_net = u_osmo + u_mass_flux
 
-        # print('mass flux',u_mass_flux.mean())
-        # print('osmotic flux',u_osmo.mean())
-        # print('u_net',u_net.mean())
-        # print('-----')
-
         # obtain the divergence of the flow in a timestep, which yields the fractional volume change:
         self.div_u_osmo = p.dt*np.dot(cells.M_sum_mems,u_net*cells.mem_sa)/cells.cell_vol
 
@@ -3575,7 +3570,7 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-        # inforce boundary conditions:
+        # enforce boundary conditions:
         if p.fixed_cluster_bound is True:
             self.d_cells_x[cells.bflags_cells] = 0
             self.d_cells_y[cells.bflags_cells] = 0
@@ -3737,21 +3732,14 @@ class Simulator(object):
         # Check for the adequacy of the time step:
         step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
 
-        if step_check > 1.0:
+        if step_check > 0.5:
 
-            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
+            new_ts = (0.5*2*p.rc)/(np.sqrt(p.lame_mu/1000))
 
             raise BetseExceptionSimulation(
                     'Time dependent deformation is tricky business, requiring a small time step! '
                     'The time step you are using is too large to bother going further with. '
                     'Please set your time step to ' + str(new_ts) + ' and try again.')
-
-        if p.wsx < 400e-6:
-
-            raise BetseExceptionSimulation(
-                    'Time dependent deformation is tricky business, requiring a larger grid! '
-                    'The world size you are using will likely result in instability. '
-                    'Please set your world dimension to at least ' + str(400e-6) + ' and try again.')
 
         k_const = (p.dt**2)*(p.lame_mu/1000)
 
@@ -3767,37 +3755,33 @@ class Simulator(object):
             F_electro_x = np.zeros(len(cells.cell_i))
             F_electro_y = np.zeros(len(cells.cell_i))
 
-
-        # determine body force due to osmotic water flow, if desired
         if p.deform_osmo is True:
 
-            F_osmo_x = self.F_osmo_x
-            F_osmo_y = self.F_osmo_y
+            div_osmo = self.div_u_osmo
 
         else:
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
+
+            div_osmo = np.zeros(len(cells.cell_i))
+
+
+        # determine body force due to osmotic water flow, if desired
+        # if p.deform_osmo is True:
+        #
+        #     F_osmo_x = self.F_osmo_x
+        #     F_osmo_y = self.F_osmo_y
+        #
+        # else:
+        #     F_osmo_x = np.zeros(len(cells.cell_i))
+        #     F_osmo_y = np.zeros(len(cells.cell_i))
 
         # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_osmo_x
-        F_cell_y = F_electro_y + F_osmo_y
-
-        # # Testing force---------------------------------------------------------------------------------
-        #
-        # # # above grey and below force only for testing purposes!
-        # #
-        # pc = self.dyna.tissue_target_inds['spot']
-        # F_cell_x = np.zeros(len(cells.cell_i))
-        # F_cell_y = np.zeros(len(cells.cell_i))
-        # # F_cell_y[pc] = 2.5e5*tb.pulse(t,2e-5,8e-5,5e-5)
-        # F_cell_y[pc] = 2.5e7
+        F_cell_x = F_electro_x
+        F_cell_y = F_electro_y
 
         #-------------------------------------------------------------------------------------------------
 
-
         self.dx_time.append(self.d_cells_x[:]) # append the solution to the time-save vector
         self.dy_time.append(self.d_cells_y[:])
-
 
 
         # Initial value solution--------------------------------------------------------------------------------
@@ -3806,17 +3790,13 @@ class Simulator(object):
             wave_speed = np.sqrt(p.lame_mu/1000)
             wave_speed = np.float(wave_speed)
             wave_speed = np.round(wave_speed,2)
-            freq = (wave_speed/p.wsx)*1e-3
-            freq = np.round(freq,2)
 
             loggers.log_info(
-                'Your wave speed is about: ' +
+                'Your wave speed is approximately: ' +
                  str(wave_speed) + ' m/s '
-                "so with your world size, you'd be looking for resonances at:"
-                ' ' + str(freq) + ' kHz. '
             )
 
-            loggers.log_info('Try a world size of at least: ' + str(wave_speed*1000) + ' um for resonance.')
+            loggers.log_info('Try a world size of at least: ' + str((wave_speed/500)*1e6) + ' um for resonance.')
 
             if p.fixed_cluster_bound is True:
 
@@ -3825,6 +3805,12 @@ class Simulator(object):
                 self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
                                  self.dy_time[-1]
 
+                self.d_cells_x[cells.bflags_cells] = 0
+                self.d_cells_y[cells.bflags_cells] = 0
+
+                self.d_cells_x[cells.nn_bound] = 0
+                self.d_cells_y[cells.nn_bound] = 0
+
             else:
 
                 self.d_cells_x = k_const*np.dot(cells.lapGJ_P,self.dx_time[-1]) + (k_const/p.lame_mu)*F_cell_x + \
@@ -3832,8 +3818,7 @@ class Simulator(object):
                 self.d_cells_y = k_const*np.dot(cells.lapGJ_P,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
                                  self.dy_time[-1]
 
-            # # set boundary condition for phi:
-            # self.d_cells_x[cells.bflags_cells] = 0
+
 
         elif t > 0.0:
 
@@ -3863,8 +3848,6 @@ class Simulator(object):
                 self.d_cells_y = k_const*np.dot(cells.lapGJ_P,self.dy_time[-1]) - gamma*d_uy_dt + \
                            (k_const/p.lame_mu)*F_cell_y + 2*self.dy_time[-1] -self.dy_time[-2]
 
-            #  # set boundary condition for phi:
-            # self.d_cells_x[cells.bflags_cells] = 0
 
         # calculate divergence of u  -----------------------------------------------------------------------
 
@@ -3879,14 +3862,11 @@ class Simulator(object):
         u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol) - div_osmo
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
-
-        # # enforce zero-gradient boundary condition:
-        # P_react[cells.bflags_cells] = P_react[cells.cell_nn_i[cells.bflags_cells,1]]
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3907,10 +3887,8 @@ class Simulator(object):
             self.d_cells_x[cells.bflags_cells] = 0
             self.d_cells_y[cells.bflags_cells] = 0
 
-        else:  # enforce zero-gradient boundary conditions"
-
-            self.d_cells_x[cells.bflags_cells] = self.d_cells_x[cells.cell_nn_i[cells.bflags_cells,1]]
-            self.d_cells_y[cells.bflags_cells] = self.d_cells_y[cells.cell_nn_i[cells.bflags_cells,1]]
+            self.d_cells_x[cells.nn_bound] = 0
+            self.d_cells_y[cells.nn_bound] = 0
 
         # check the displacement for NANs:
         check_v(self.d_cells_x)

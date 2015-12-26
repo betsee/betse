@@ -1224,7 +1224,9 @@ class Cells(object):
                 else:
 
                     cell_j = self.mem_to_cells[mem_j]
-                    cell_neigh_set.append(cell_j)
+
+                    if cell_i != cell_j:  # cross-check that values are not the same
+                        cell_neigh_set.append(cell_j)
 
             self.cell_nn.append(cell_neigh_set)
 
@@ -1241,7 +1243,13 @@ class Cells(object):
 
         # nearest neighbours to the boundary cells:
         nn_bound = self.cell_nn[self.bflags_cells]
-        self.nn_bound, _,_ = tb.flatten(nn_bound)
+        nn_bound, _,_ = tb.flatten(nn_bound)
+
+        self.nn_bound = []
+        for ind in nn_bound:
+
+            if ind not in self.bflags_cells:
+                self.nn_bound.append(ind)
 
     def boundTag(self,points,p,alpha=1.0):
 
@@ -1455,106 +1463,62 @@ class Cells(object):
         ----------
         p               An instance of the Parameters object
 
-        boundary        Values: 'zero_gradient' or 'zero_value". An optional parameter indicating
-                        whether the laplacian should be built with a zero-value (Dirchlet)
-                        or zero-gradient (Neumann) boundary conditions.
 
 
         Creates
         ----------
-        self.lapGJinv
+        self.lapGJinv          Solver for Poisson equation with Dirchlet (zero value) boundary
+        self.lapGJ_P_inv       Solver for Poisson equation with Neumann (zero gradient) boundary
 
         '''
 
-
-        loggers.log_info("Creating velocity and deformation Poisson solver for cell cluster...")
-        # zero-value boundary version --------------------------------
+        loggers.log_info("Creating Poisson solvers for cell cluster...")
+        # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
-
-        for cell_i in self.cell_i:
-
-            mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our tolken cell
-
-            L_set = self.nn_len[mem_set_i]   # FIXME I think this method causes crap out in larger grid sizes...
-
-            # find valid (not -1) indices of the nn length set:
-            inds_L = (L_set != -1).nonzero()
-
-            L_o = np.mean(L_set[inds_L])
-
-            vol = self.cell_vol[cell_i]
-
-            idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)  # FIXME use true length for the diagonal!
-
-            lapGJ[cell_i,cell_i] = idiag
-
-            for mem_i in mem_set_i:
-
-                mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
-
-                if mem_i != mem_j:  # if we're not on a boundary...
-
-                    cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
-
-                    # L = self.nn_len[mem_i]
-                    #
-                    # if L == -1:
-                    #
-                    #     L = L_o
-
-                    lapGJ[cell_i,cell_j] = (self.mem_sa[mem_i]/vol)*(1/L_o)
-
-        lapGJ = (1/2)*lapGJ # our first derivatives were central differences so need the extra factor of 2
-
-        self.lapGJinv = np.linalg.pinv(lapGJ)
-
-        if p.td_deform is True:
-            # if time dependent deformation is selected, also save the direct Laplacian operator:
-            self.lapGJ = lapGJ
-
-#---------------------------------------------------------------------------------------------------------------
-        loggers.log_info("Creating internal pressure Poisson solver for cell cluster...")
-         # Next do zero-gradient boundary version --------------------------------
+        # zero-gradient, free boundary version (Neumann condition)
         lapGJ_P = np.zeros((len(self.cell_i,), len(self.cell_i)))
 
-        for cell_i in self.cell_i:
+        cell_nn_pairs = self.cell_nn_i.tolist()
 
-            mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our token cell
-
-            L_set = self.nn_len[mem_set_i]
-
-            # find valid (not -1) indices of the nn length set:
-            inds_L = (L_set != -1).nonzero()
-
-            L_o = np.mean(L_set[inds_L])
+        for cell_i, cell_inds in enumerate(self.cell_nn):
 
             vol = self.cell_vol[cell_i]
+            ave_mem = self.cell_sa[cell_i]/self.num_mems[cell_i]
 
-            idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)
+            for cell_j in cell_inds:
 
-            lapGJ_P[cell_i,cell_i] = idiag
+                # get the distance between the cell centres of the pair:
+                lx = self.cell_centres[cell_j,0] - self.cell_centres[cell_i,0]
+                ly = self.cell_centres[cell_j,1] - self.cell_centres[cell_i,1]
+                len_ij = np.sqrt(lx**2 + ly**2)
 
+                # find the shared membrane index for the pair:
+                mem_ij = cell_nn_pairs.index([cell_i,cell_j])
 
-            for mem_i in mem_set_i:
+                # and the membrane surface area:
+                mem_sa = self.mem_sa[mem_ij]
 
-                mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
+                lapGJ[cell_i,cell_i] = lapGJ[cell_i,cell_i] - mem_sa*(1/(len_ij))*(1/vol)
+                lapGJ[cell_i,cell_j] = lapGJ[cell_i,cell_j] + mem_sa*(1/(len_ij))*(1/vol)
 
-                cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+                lapGJ_P[cell_i,cell_i] = lapGJ_P[cell_i,cell_i] - mem_sa*(1/(len_ij))*(1/vol)
+                lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + mem_sa*(1/(len_ij))*(1/vol)
 
-                if mem_i == mem_j: # if on a boundary, add in a "self" term to produce zero gradient:
+            # deal with boundary values --- this actually works to give proper values at fixed boundary!:
+            if cell_i in self.bflags_cells:
+                lapGJ[cell_i,cell_i] = 0
+                # lapGJ[cell_i,cell_i] = lapGJ[cell_i,cell_i] - ave_mem*(1/(2*p.rc))*(1/vol)   # for fixed boundary
+                # lapGJ_P[cell_i,cell_i] = lapGJ_P[cell_i,cell_i] - ave_mem*(1/(2*p.rc))*(1/vol)
 
-                    lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + (1/L_o)*(self.mem_sa[mem_i]/vol)
+        # lapGJ = (1/2)*lapGJ
+        # lapGJ_P = (1/2)*lapGJ_P
 
-                elif mem_i != mem_j:  # if we're not on a boundary...
-
-                    lapGJ_P[cell_i,cell_j] = (1/L_o)*(self.mem_sa[mem_i]/vol)
-
-        lapGJ_P = (1/2)*lapGJ_P # our first derivatives were central differences so need the extra factor of 2
-
+        self.lapGJinv = np.linalg.pinv(lapGJ)
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 
         if p.td_deform is True:
             # if time dependent deformation is selected, also save the direct Laplacian operator:
+            self.lapGJ = lapGJ
             self.lapGJ_P = lapGJ_P
 
     def redo_gj(self,dyna,p,savecells =True):
@@ -1981,6 +1945,119 @@ class Cells(object):
 
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
+#         def graphLaplacian_o(self,p):
+#         '''
+#         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
+#         irregular Voronoi grid of the cell cluster.
+#
+#         Parameters
+#         ----------
+#         p               An instance of the Parameters object
+#
+#         boundary        Values: 'zero_gradient' or 'zero_value". An optional parameter indicating
+#                         whether the laplacian should be built with a zero-value (Dirchlet)
+#                         or zero-gradient (Neumann) boundary conditions.
+#
+#
+#         Creates
+#         ----------
+#         self.lapGJinv
+#
+#         '''
+#
+#
+#         loggers.log_info("Creating velocity and deformation Poisson solver for cell cluster...")
+#         # zero-value boundary version --------------------------------
+#         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
+#
+#         for cell_i in self.cell_i:
+#
+#             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our token cell
+#
+#             L_set = self.nn_len[mem_set_i]   # FIXME I think this method causes crap out in larger grid sizes...
+#
+#             # find valid (not -1) indices of the nn length set:
+#             inds_L = (L_set != -1).nonzero()
+#
+#             L_o = np.mean(L_set[inds_L])
+#
+#             vol = self.cell_vol[cell_i]
+#
+#             idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)  # FIXME use true length for the diagonal!
+#
+#             lapGJ[cell_i,cell_i] = idiag
+#
+#             for mem_i in mem_set_i:
+#
+#                 mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
+#
+#                 if mem_i != mem_j:  # if we're not on a boundary...
+#
+#                     cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+#
+#                     # L = self.nn_len[mem_i]
+#                     #
+#                     # if L == -1:
+#                     #
+#                     #     L = L_o
+#
+#                     lapGJ[cell_i,cell_j] = (self.mem_sa[mem_i]/vol)*(1/L_o)
+#
+#         lapGJ = (1/2)*lapGJ # our first derivatives were central differences so need the extra factor of 2
+#
+#         self.lapGJinv = np.linalg.pinv(lapGJ)
+#
+#         if p.td_deform is True:
+#             # if time dependent deformation is selected, also save the direct Laplacian operator:
+#             self.lapGJ = lapGJ
+#
+# #---------------------------------------------------------------------------------------------------------------
+#         loggers.log_info("Creating internal pressure Poisson solver for cell cluster...")
+#          # Next do zero-gradient boundary version --------------------------------
+#         lapGJ_P = np.zeros((len(self.cell_i,), len(self.cell_i)))
+#
+#         for cell_i in self.cell_i:
+#
+#             mem_set_i = self.cell_to_mems[cell_i] # get the membranes of our token cell
+#
+#             L_set = self.nn_len[mem_set_i]
+#
+#             # find valid (not -1) indices of the nn length set:
+#             inds_L = (L_set != -1).nonzero()
+#
+#             L_o = np.mean(L_set[inds_L])
+#
+#             vol = self.cell_vol[cell_i]
+#
+#             idiag = -(self.cell_sa[cell_i]/vol)*(1/L_o)
+#
+#             lapGJ_P[cell_i,cell_i] = idiag
+#
+#
+#             for mem_i in mem_set_i:
+#
+#                 mem_j = self.nn_i[mem_i] # get the complementary membrane for this set
+#
+#                 cell_j = self.mem_to_cells[mem_j]  # get the cell index for the partner membrane
+#
+#                 if mem_i == mem_j: # if on a boundary, add in a "self" term to produce zero gradient:
+#
+#                     lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + (1/L_o)*(self.mem_sa[mem_i]/vol)
+#
+#                 elif mem_i != mem_j:  # if we're not on a boundary...
+#
+#                     lapGJ_P[cell_i,cell_j] = (1/L_o)*(self.mem_sa[mem_i]/vol)
+#
+#         lapGJ_P = (1/2)*lapGJ_P # our first derivatives were central differences so need the extra factor of 2
+#
+#         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
+#
+#         if p.td_deform is True:
+#             # if time dependent deformation is selected, also save the direct Laplacian operator:
+#             self.lapGJ_P = lapGJ_P
+
+
+
               # # matrices for re-calculating cell verts quickly from new ecm verts:
             # ecmTree = sps.KDTree(self.ecm_verts_unique)
             # cellTree = sps.KDTree(self.mem_verts)
