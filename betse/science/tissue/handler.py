@@ -839,7 +839,7 @@ class TissueHandler(object):
 
     def tissueProfiles(self, sim, cells, p):
         '''
-        Create cell-specific (and if simulating electromagnetism membrane-
+        Create cell-specific (and if simulating extracellular spaces, membrane-
         specific as well) index sets for all user-defined tissue profiles.
         '''
 
@@ -947,7 +947,7 @@ def removeCells(
     #FIXME: I'm reasonably certain that this has already been calculated. See
     #the "Parameter.targets_cuts" list. Jumbo love in a heavy sea!
 
-    # Indices of all cells to be removed, ignoring electromagnetism.
+    # Indices of all cells to be removed, ignoring extracellular spaces.
     target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
 
     # get the corresponding flags to membrane entities

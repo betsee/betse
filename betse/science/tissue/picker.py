@@ -123,11 +123,11 @@ class TissuePickerAll(TissuePicker):
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
-        # If either not simulating *OR* ignoring electromagnetism, do so.
+        # If either not simulating *OR* ignoring extracellular spaces, get cell indices only
         if p.sim_ECM is False or ignoreECM is True:
             target_inds = cells.cell_i
 
-        # Else, simulate electromagnetism.
+        # Else, simulate extracellular spaces
         else:
             target_inds = cells.cell_to_mems[cells.cell_i]
             target_inds, _, _ = toolbox.flatten(target_inds)
@@ -268,11 +268,11 @@ class TissuePickerIndices(TissuePicker):
         assert types.is_parameters(p), types.assert_not_parameters(p)
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
-        # If either not simulating *OR* ignoring electromagnetism, do so.
+        # If either not simulating *OR* ignoring extracellular spaces, get cell indices only.
         if p.sim_ECM is False or ignoreECM is True:
             target_inds = self.indices
 
-        # Else, simulate electromagnetism.
+        # Else, if simulating extracellular spaces get membrane indices as well.
         else:
             target_inds = cells.cell_to_mems[self.indices]
             target_inds,_,_ = toolbox.flatten(target_inds)
@@ -325,11 +325,11 @@ class TissuePickerRandom(TissuePicker):
         random.shuffle(cells.cell_i)
         target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
 
-        # If either not simulating *OR* ignoring electromagnetism, do so.
+        # If either not simulating *OR* ignoring extracellular spaces, get cell indices only:
         if p.sim_ECM is False or ignoreECM is True:
             target_inds = target_inds_cell
 
-        # Else, simulate electromagnetism.
+        # Else, if simulating extracellular spaces, get membrane indices:
         else:
             target_inds = cells.cell_to_mems[target_inds_cell]
             target_inds,_,_ = toolbox.flatten(target_inds)

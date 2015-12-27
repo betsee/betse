@@ -167,7 +167,6 @@ class AnimateCellData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        #FIXME: If issues persist, bloggers recommend increasing the above "interval".
         try:
             plt.show()
         # plt.show() unreliably raises exceptions on window close resembling:
@@ -1798,7 +1797,6 @@ class AnimateMem(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        #FIXME: If issues persist, bloggers recommend increasing the above "interval".
         try:
             plt.show()
         # plt.show() unreliably raises exceptions on window close resembling:
@@ -1967,7 +1965,6 @@ class AnimateDyeData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        #FIXME: If issues persist, bloggers recommend increasing the above "interval".
         try:
             plt.show()
         # plt.show() unreliably raises exceptions on window close resembling:
@@ -2119,8 +2116,6 @@ def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
     ax.set_ylabel('Signal Power')
 
     return fig, ax
-
-
 
 def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap=None,edgeOverlay = True,pointOverlay=None, number_cells = False, number_mems = False,
@@ -2883,7 +2878,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
             cb_ticks.append(i+1)
             cb_tick_labels.append(name)
 
-    if p.plot_cutlines is True:
+    if p.plot_cutlines is True:   # FIXME: Sess, unfortunately this was broken with changed cut method...
 
         if len(dyna.cuts_target_inds):
 

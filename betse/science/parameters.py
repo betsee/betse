@@ -1249,8 +1249,7 @@ class Parameters(object):
             self.resample = float(self.config['sim time settings']['custom sim time profile']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
-            # self.gj_radius = float(self.config['sim time settings']['custom sim time profile']['gap junction radius'])
-            # self.gjsa = math.pi*((self.gj_radius)**2)
+
 
 
     def _init_tissue_and_cut_profiles(self) -> None:
@@ -1304,7 +1303,7 @@ class Parameters(object):
         Parse boundary profile-specific parameters from the current YAML
         configuration file.
         '''
-        tpd = self.config['boundary profile definition']
+        tpd = self.config['variable settings']['environmental boundary']
         self.closed_bound = bool(tpd['closed boundary'])
 
 

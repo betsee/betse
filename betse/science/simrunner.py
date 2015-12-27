@@ -157,8 +157,7 @@ class SimRunner(object):
             #FIXME: This same test is duplicate in simulate(). Diadem trinkets!
             if p_old.config['general options'] != p.config['general options'] or \
                p_old.config['world options'] != p.config['world options'] or \
-               p_old.config['tissue profile definition'] != p.config['tissue profile definition'] or \
-               p_old.config['boundary profile definition'] != p.config['boundary profile definition']:
+               p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
                 raise BetseExceptionParameters(
                     'Important config file options are out of sync between seed and this init attempt! '
                     'Run "betse seed" again to match the current settings of this config file.')
@@ -226,8 +225,7 @@ class SimRunner(object):
             #FIXME: This same test is duplicate in initialize(). Emerald sky!
             if p_old.config['general options'] != p.config['general options'] or \
                p_old.config['world options'] != p.config['world options'] or \
-               p_old.config['tissue profile definition'] != p.config['tissue profile definition'] or \
-               p_old.config['boundary profile definition'] != p.config['boundary profile definition']:
+               p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
                 raise BetseExceptionParameters(
                     'Important config file options are out of sync between the seed and this sim attempt! '
                     'Run "betse seed" and "betse init" again to match the current settings of this config file.')

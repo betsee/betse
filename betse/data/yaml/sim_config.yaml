@@ -171,7 +171,7 @@ general options:
 # File sync warning: you can't change any of these 'world options' after running 'betse seed'.
 
 world options:
-  world size: 200e-6      # dimension of the square world space [m]
+  world size: 300e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -225,36 +225,22 @@ world options:
 # For related options, see also the "variable settings" section below.
 
 tissue profile definition:
-    # Global geometry mask to which all tissue profile bitmaps specified below
-    # will be clipped.
-    clipping:
-        # Bitmap whose colored pixel area defines this mask.
-        bitmap:
-            # Absolute or relative bitmap path. If relative (i.e., *NOT*
-            # prefixed by a directory separator), the path is relative to the
-            # directory containing this configuration file.
-            #
-            # If "None", then clipping will be disabled altogether, in which
-            # case the cell population will extend over the entire environment.
-            file: geo/circle/circle_base.png
 
-    # Will the tissue and cut profiles listed below be applied as is ("True")
-    # or replaced with empty lists and hence ignored entirely ("False")?
-    #
-    # This does *NOT* apply to the clipping mask defined above, which may be
-    # disabled by setting "file:' to "None" above.
-    profiles enabled: True
+    clipping:     # Geometry mask defining shape of global cell cluster
 
-    # List of profiles identifying cells to be associated with particular
-    # properties, applied in the order listed below.
+        bitmap:  # Bitmap whose colored pixel area defines this mask
+
+            file: geo/starfish/starfish_base.png  # bitmap path relative to config file location
+                                              # If "None", clipping disabled
+
+    profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
+
     # Tissue profiles are applied in the order defined below. When multiple
     # profiles apply to the same cell, options defined by later profiles
-    # override options defined by earlier profiles for that cell.
+    # override options defined by earlier profiles.
+
     tissue profiles:
-        # Example default tissue profile, providing sensible defaults for all
-        # options *NOT* defined by subsequent profiles. (Options defined by
-        # subsequent profiles take precedence over those defined here, due to
-        # this being the first listed profile.)
+        # Example default tissue profile, defined over all cells of the collective
         - name: tissue         # unique profile name
           insular: False       # tissue has gj connecting within tissue but not between tissues (True)
 
@@ -266,41 +252,29 @@ tissue profile definition:
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-          # Subset of the cell population to which this tissue profile applies.
-          cell targets:
-              # Mutually exclusive choice of subset. This must be one of the
-              # following strings:
-              #
-              # * "all", uniformly applying this tissue profile to all cells.
-              # * "bitmap", only matching cells in this bitmap's colored area.
-              # * "indices", only matching cells with the listed indices.
-              # * "random", only matching a random subset of cells.
-              #
-              # Only the specified choice will be applied. All others will be
-              # ignored.
-              type: all
+          cell targets:   # Cell population to which this tissue profile applies
 
-              # Unless "type: bitmap" above, this is ignored.
-              bitmap:
-                  # Absolute or relative bitmap path.
-                  file: geo/circle/circle_base.png
+              type: all   # "all", uniformly apply this tissue profile to all cells
+                          # "bitmap", match cells falling in a bitmap's colored area
+                          # "indices", match cells with the listed indices
+                          # "random", match a random subset of cells in the cluster
 
-              # Unless "type: indices" above, this is ignored.
-              #
-              # List of the indices of all cells to which this tissue profile
-              # will be explicitly applied. This must be a list of positive
-              # integers.
-              indices: [3, 14, 15, 9, 265]
+              bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
 
-              # Unless "type: random" above, this is ignored.
-              #
-              # Percentage of the total number of cells to which this tissue
-              # profile will be randomly applied. This must be an integer
-              # ranging from 0 to 100 (e.g., "50" randomly applies this profile
-              # to 50% of all cells).
-              random: 50
+                  file: geo/starfish/starfish_base.png  # Absolute or relative bitmap path
 
-        # Example tissue profile for a small cluster of healthy cells.
+              indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
+                                           # otherwise this is ignored. This must be a list of positive integers
+                                           # for cells existing in cluster.
+
+              random: 50                 # If "type: random" specified above,
+                                         # define percentage of cells to which this tissue
+                                         # profile will be randomly applied; otherwise this is ignored.
+                                         # This must be an integer
+                                         # ranging from 0 to 100 (e.g., "50" randomly applies this profile
+                                         # to 50% of all cells).
+
+        # Example tissue profile for a small, slightly depolarized cluster of cells near the centre.
         - name: spot
           insular: False
 
@@ -314,29 +288,11 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/circle/mini_spot.png }
+              bitmap: { file: geo/starfish/spot.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
-        # Example tissue profile for a large ring of healthy cells.
-        - name: ring
-          insular: False
-
-          Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-          Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-          Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-          Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
-          Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
-          Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
-          cell targets:
-              type: bitmap
-              bitmap: { file: geo/circle/ring.png }
-              indices: [3, 14, 15, 9, 265]
-              random: 50
-
-        # Example tissue profile for a small cluster of wounded cells.
+        # Example tissue profile for a small cluster of depolarized cells near the cluster boundary.
         - name: wound
           insular: False
 
@@ -350,7 +306,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/circle/wedge.png }
+              bitmap: { file: geo/starfish/wedge.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -361,19 +317,9 @@ tissue profile definition:
         # Subset of the cell population to be removed.
         cell targets:
             type: bitmap
-            bitmap: { file: geo/circle/wedge.png }
+            bitmap: { file: geo/starfish/wedge.png }
             indices: [3, 14, 15, 9, 265]
             random: 50
-
-#-----------------------------------------------------------------------------------------------------------------------
-# BOUNDARY DESIGNATION
-#-----------------------------------------------------------------------------------------------------------------------
-boundary profile definition:
-    #FIXME: Can this reasonably be changed without re-seeding or -initting? If
-    #so, move to the "variables:" dict below; else, contemplate the mysteries.
-
-    # Are the global environmental boundaries closed (True) or open (False)?
-    closed boundary: False
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -457,8 +403,7 @@ break ecm junctions:     # break extracellular junctions between cells
 # the initialized cluster at the start of the simulation run. Note that this is
 # ignored unless the "cut profile" is also enabled.
 cutting event:
-    # Enable (True) or disable (False) this event?
-    event happens: True
+    event happens: True   # Enable (True) or disable (False) this event?
     membranes damaged: True  # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
 
@@ -584,6 +529,7 @@ block VATP pump:
 # These settings can be changed in between seed, init and sim runs, meaning there are no synchronization issues.
 
 variable settings:
+
   default tissue name: base   # name of cells to which no profile is applied
 
   default tissue properties:     # specify the base membrane diffusion constants below
@@ -679,6 +625,13 @@ variable settings:
                                   # suggested range from 5e-3 to 50e-3
 
     gj flux sensitive: False      # gj conductivity increases with increasing current (Note: memory intensive!)
+
+
+  environmental boundary: # set conditions for the global (environmental) boundary
+
+    closed boundary: False  # Are global environmental boundaries closed (True) or open (False)?
+                            # Applies only if the "simulate extracellular spaces" option is enabled,
+                            # otherwise this is ignored.
 
 
   tight junction scaling: 1.0e-5   # factor by which tight junctions scale free-diffusion
@@ -968,7 +921,6 @@ results options:
     max val: 500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]
 
-
   Deformation Ani:
     animate Deformation: True        # 2d animation of electric field in extracellullar matrix
     data type: Displacement                  # data type can be 'Vmem' or 'Displacement'
@@ -1066,7 +1018,7 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-9   # maximum rate constant sodium-potassium ATPase per unit surface area [m/mol*s]
+  alpha_NaK:  1.0e-9   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-10)
   halfmax_NaK:  5      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  3        # the energy window width of the NaK-ATPase pump [kJ]
 

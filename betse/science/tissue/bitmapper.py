@@ -45,10 +45,8 @@ class BitMapper(object):
         colored area.
     '''
 
-    #FIXME: We currently ignore "threshhold_val". Should we just remove it, for
-    #limplicity's sake? ("Think of the simplistic children!")
     def __init__(self,
-        bitmap_matcher, xmin, xmax, ymin, ymax, threshhold_val = 0.0):
+        bitmap_matcher, xmin, xmax, ymin, ymax):
         '''
         Load, initialize, and create a threshholded interpolation matrix from
         the passed bitmap file.
@@ -65,9 +63,7 @@ class BitMapper(object):
             Minimum `y` coordinate accepted by these interpolation functions.
         ymax : float
             Maximum `y` coordinate accepted by these interpolation functions.
-        threshhold_val : float
-            The value of the pixel to threshhold to. Greyscale runs from `0.0`
-            (black) to `255.0` (white). Defaults to `0.0`.
+
         '''
         # Avoid circular import dependencies.
         from betse.science.tissue.picker import TissuePickerBitmap
@@ -123,10 +119,7 @@ class BitMapper(object):
         self.good_inds = []
 
         for i, (x, y) in enumerate(zip(point_list_x, point_list_y)):
-            #FIXME: The following two lines appear to reduce to a single line:
-            #    if self.clipping_function(x,y) != 0.0:
-            z = self.clipping_function(x,y)
-            if z != 0.0:
+            if self.clipping_function(x,y) != 0.0:
                 pt = [x,y]
                 self.good_points.append(pt)
                 self.good_inds.append(i)

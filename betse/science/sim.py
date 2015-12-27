@@ -1872,8 +1872,6 @@ class Simulator(object):
 
             self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
 
-            # self.v_cell, self.v_env, self.vm = get_Vall(self,cells,p)
-
         else:
 
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
@@ -2100,7 +2098,7 @@ class Simulator(object):
 
         v_env = self.v_env[:].reshape(cells.X.shape)
 
-        # enforce zero voltage boundary:
+        # enforce voltage at boundary:
         v_env[:,0] = self.bound_V['L']
         v_env[:,-1] = self.bound_V['R']
         v_env[0,:] = self.bound_V['B']
@@ -3345,14 +3343,26 @@ class Simulator(object):
         u_net = u_osmo + u_mass_flux
 
         # obtain the divergence of the flow in a timestep, which yields the fractional volume change:
-        self.div_u_osmo = p.dt*np.dot(cells.M_sum_mems,u_net*cells.mem_sa)/cells.cell_vol
+        div_u_osmo = p.dt*np.dot(cells.M_sum_mems,u_net*cells.mem_sa)/cells.cell_vol
+
+        # pressure developing in the cell depends on how much the volume can change:
+        P_cells = (1 - (1/p.youngMod))*div_u_osmo*(p.mu_water/p.aquaporins)
+        print("osmotic P",self.osmo_P_delta.mean())
+        print("reaction pressure",P_cells.mean())
+        print('-----------------------------------')
+
 
         #------------------------------------------------------------------------------------------------------------
+
+        # actual volume change depends on the mechanical properties (young's modulus) of the
+        # tissue:
+
+        self.delta_vol = (1/p.youngMod)*div_u_osmo
 
         # update concentrations and volume in the cell:
         vo = cells.cell_vol[:]
 
-        v1 = (1 + self.div_u_osmo)*vo
+        v1 = (1 + self.delta_vol)*vo
 
         self.cc_cells =self.cc_cells*(vo/v1)
 
@@ -3847,7 +3857,6 @@ class Simulator(object):
 
         cells.deformWorld(p)
 
-
     def implement_deform_timestep(self,cells,t,p):
         # map individual cell deformations to their membranes. In this case it's better than interpolation
         ux_at_mem = self.d_cells_x[cells.mem_to_cells]
@@ -4233,7 +4242,7 @@ def get_Venv(self,cells,p):
     # Solve Poisson's electrostatic equation:
     V = np.dot(cells.lapENVinv,fxy)
 
-    # if the boundary conditions set the outside of the matrix:
+    # set the boundary conditions for the outside of the matrix:
     V[cells.bBot_k] = self.bound_V['B']
     V[cells.bTop_k] = self.bound_V['T']
     V[cells.bL_k] = self.bound_V['L']
@@ -4244,8 +4253,6 @@ def get_Venv(self,cells,p):
     V = V.ravel()
 
     # V = (1/(4*math.pi*p.eo*80*cells.ecm_r*self.ff))*(self.rho_env*cells.ecm_vol)
-
-
 
     return V
 

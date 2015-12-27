@@ -772,7 +772,7 @@ class Cells(object):
         memTree = sps.KDTree(self.mem_mids_flat)
 
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
-        mem_nn = np.zeros((len(self.mem_i),2),dtype=np.int16)
+        mem_nn = [[] for x in self.mem_i]
         mem_bound = []
         self.mem_tx = np.zeros(len(self.mem_i))
         self.mem_ty = np.zeros(len(self.mem_i))
@@ -781,13 +781,15 @@ class Cells(object):
 
             if len(ind_pair) == 1:
 
-                mem_bound.append(*ind_pair)
-                mem_nn[i,:] = [i, ind_pair[0]]
+                mem_bound.append(i)
+                mem_nn[i].append(i)
+                mem_nn[i].append(i)
 
 
             elif len(ind_pair) == 2:
 
-                mem_nn[i,:] = ind_pair
+                mem_nn[i].append(ind_pair[0])
+                mem_nn[i].append(ind_pair[1])
 
                 ta = (self.mem_mids_flat[ind_pair[1]] - self.mem_mids_flat[ind_pair[0]])
                 tang = ta/np.linalg.norm(ta)
@@ -803,12 +805,21 @@ class Cells(object):
 
                     if ia == -1.0:
 
-                        mem_nn[i,:] = [i,j]
+                        mem_nn[i] = []
+
+                        mem_nn[i].append(i)
+                        mem_nn[i].append(j)
 
                         ta = (self.mem_mids_flat[j] - self.mem_mids_flat[i])
                         tang = ta/np.linalg.norm(ta)
                         self.mem_tx[i] = tang[0]
                         self.mem_ty[i] = tang[1]
+
+                    else:  # in rare cases, tag as self instead of leaving a blank spot:
+
+                        mem_nn[i] =[]
+                        mem_nn[i].append(i)
+                        mem_nn[i].append(i)
 
         self.mem_nn = np.asarray(mem_nn)
 
@@ -975,46 +986,6 @@ class Cells(object):
 
             self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
-            # #----matrices for calculating trans-membrane Laplacian and inverse Laplacian:
-            #
-            # self.mem_LapM = np.zeros((len(self.cell_i), len(self.cell_i)))
-            #
-            # for cell_i in self.cell_i:
-            #
-            #     # get the set of membrane indices for the cell
-            #     mem_inds = self.cell_to_mems[cell_i]
-            #
-            #     diag_multi = self.num_mems[cell_i]/self.cell_vol[cell_i]  # number of nearest neighbours
-            #
-            #     # diagonal element will be the negative of the number of neighbours:
-            #     self.mem_LapM[cell_i,cell_i] = -diag_multi*(1/self.mem_distance)*(self.cell_sa[cell_i])
-            #
-            #     for mem_i in mem_inds:
-            #
-            #         # find out which membrane the mem_i is partnered to:
-            #         mem_partners = self.mem_nn[mem_i]
-            #
-            #         if mem_partners[0] == mem_partners[1]: # then we know we're on a boundary
-            #             # we know the membrane belongs to this cell, already set so do nothing
-            #             pass
-            #
-            #         elif mem_partners[0] == mem_i: # otherwise, if the first partner is the index from the query cell
-            #
-            #             # find out which cell the partner belongs to:
-            #             cell_j = self.mem_to_cells[mem_partners[1]]
-            #             self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
-            #             # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
-            #
-            #
-            #         elif mem_partners[1] == mem_i:
-            #
-            #             cell_j = self.mem_to_cells[mem_partners[0]]
-            #             self.mem_LapM[cell_i, cell_j] = (1/self.mem_distance)*(self.mem_sa[mem_i])*(1/self.cell_vol[cell_i])
-            #             # self.mem_LapM[cell_j, cell_i] = (1/self.mem_distance)*(self.mem_sa[mem_i])
-            #
-            #
-            # self.mem_LapM_inv = np.linalg.pinv(self.mem_LapM)  # take the inverse to solve poisson equation
-
         #-----------------------------------------------------------------------------------------------------------
 
         # if studying lateral movement of pumps and channels in membrane,
@@ -1152,86 +1123,24 @@ class Cells(object):
         # structures for plotting interpolated data and streamlines:
         self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
-        #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
-        # # FIXME this slows things down a lot in the deformation calculation, but appears to be necessary...
-        # # is there a quicker way to do this???
+        # # #------------------------------------
+        # # calculate segments from cell centre to ecm midpoints (chord_mag):
+        # chord_mag = []
         #
-        # sc = (p.rc/2.5)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
-        # memTree = sps.KDTree(self.mem_mids_flat)
+        # for cell_i, mem_i_set in enumerate(self.cell_to_mems):
         #
-        # mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
-        # mem_nn = np.zeros((len(self.mem_i),2),dtype=np.int16)
-        # mem_bound = []
-        # self.mem_tx = np.zeros(len(self.mem_i))
-        # self.mem_ty = np.zeros(len(self.mem_i))
+        #     cent = self.cell_centres[cell_i]
         #
-        # for i, ind_pair in enumerate(mem_nn_o):
+        #     ecm_points = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
         #
-        #     if len(ind_pair) == 1:
+        #     chords = ecm_points - cent
+        #     chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
+        #     chord_mag.append(chord_m)
         #
-        #         mem_bound.append(*ind_pair)
-        #         mem_nn[i,:] = [i, ind_pair[0]]
+        # self.chord_mag, _ , _ = tb.flatten(chord_mag)
+        # self.chord_mag = np.asarray(self.chord_mag)
         #
-        #
-        #     elif len(ind_pair) == 2:
-        #
-        #         mem_nn[i,:] = ind_pair
-        #
-        #         ta = (self.mem_mids_flat[ind_pair[1]] - self.mem_mids_flat[ind_pair[0]])
-        #         tang = ta/np.linalg.norm(ta)
-        #         self.mem_tx[i] = tang[0]
-        #         self.mem_ty[i] = tang[1]
-        #
-        #     elif len(ind_pair) > 2:
-        #         i_n = [self.mem_vects_flat[i,2],self.mem_vects_flat[i,3]]
-        #
-        #         for j in ind_pair:
-        #             a = [self.mem_vects_flat[j,2],self.mem_vects_flat[j,3]]
-        #             ia = round(np.dot(i_n,a),1)
-        #
-        #             if ia == -1.0:
-        #
-        #                 mem_nn[i,:] = [i,j]
-        #
-        #                 ta = (self.mem_mids_flat[j] - self.mem_mids_flat[i])
-        #                 tang = ta/np.linalg.norm(ta)
-        #                 self.mem_tx[i] = tang[0]
-        #                 self.mem_ty[i] = tang[1]
-        #
-        # self.mem_nn = np.asarray(mem_nn)
-        #
-        # # Tag membranes and cells on the outer boundary of the cell cluster---------------------------------------------
-        # self.bflags_mems = np.asarray(mem_bound)
-        #
-        #  # get the boundary cells associated with these membranes:
-        # self.bflags_cells = []
-        #
-        # for mem_i in self.bflags_mems:
-        #
-        #     cell_i = self.mem_to_cells[mem_i]
-        #
-        #     self.bflags_cells.append(cell_i)
-        #
-        # self.bflags_cells = np.asarray(self.bflags_cells)
-
-        # #------------------------------------
-        # calculate segments from cell centre to ecm midpoints (chord_mag):
-        chord_mag = []
-
-        for cell_i, mem_i_set in enumerate(self.cell_to_mems):
-
-            cent = self.cell_centres[cell_i]
-
-            ecm_points = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
-
-            chords = ecm_points - cent
-            chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
-            chord_mag.append(chord_m)
-
-        self.chord_mag, _ , _ = tb.flatten(chord_mag)
-        self.chord_mag = np.asarray(self.chord_mag)
-
-        self.chord_mag = (self.chord_mag[self.ecm_to_mem_mids[:,0]] + self.chord_mag[self.ecm_to_mem_mids[:,1]])/2
+        # self.chord_mag = (self.chord_mag[self.ecm_to_mem_mids[:,0]] + self.chord_mag[self.ecm_to_mem_mids[:,1]])/2
 
         #-----------------------------------------------------------------------------------------------------------
 
@@ -1283,32 +1192,42 @@ class Cells(object):
         loggers.log_info('Creating gap junctions... ')
 
 
-        self.nn_i = np.empty(len(self.mem_i),dtype=np.int64) # gives the partnering membrane index at the vectors' index
-        self.cell_nn_i = np.empty((len(self.mem_i),2),dtype=np.int64) # gives the two connecting cell indices
+        self.nn_i = [] # gives the partnering membrane index at the vectors' index
+        self.cell_nn_i = [[] for x in self.mem_i] # stores the two connecting cell indices at a shared membrane
 
         for i, (mem_i,mem_j) in enumerate(self.mem_nn):
 
             if mem_i == mem_j:  # we're on a boundary cell
 
-                self.nn_i[i] = i
+                self.nn_i.append(i)
                 cell_i = self.mem_to_cells[i]
-                self.cell_nn_i[mem_i] = [cell_i, cell_i]
+                self.cell_nn_i[mem_i].append(cell_i)
+                self.cell_nn_i[mem_i].append(cell_i)
 
-            elif i == mem_i and mem_j is not None:
+            elif i == mem_i and i != mem_j:
 
-                self.nn_i[i] = mem_j
+                self.nn_i.append(mem_j)
                 cell_i = self.mem_to_cells[mem_i]
                 cell_j = self.mem_to_cells[mem_j]
 
-                self.cell_nn_i[i] = [cell_i,cell_j]
+                self.cell_nn_i[i].append(cell_i)
+                self.cell_nn_i[i].append(cell_j)
 
-            elif i == mem_j and mem_i is not None:
+            elif i == mem_j and i != mem_i:
 
-                self.nn_i[i] = mem_i
+                self.nn_i.append(mem_i)
                 cell_i = self.mem_to_cells[mem_j]
                 cell_j = self.mem_to_cells[mem_i]
 
-                self.cell_nn_i[i] = [cell_i,cell_j]
+                self.cell_nn_i[i].append(cell_i)
+                self.cell_nn_i[i].append(cell_j)
+
+            else:
+                loggers.log_info("WARNING: entry not placed in seed nearest neighbour construction. "
+                                 "Results may not be accurate.")
+
+        self.nn_i = np.asarray(self.nn_i)
+        self.cell_nn_i = np.asarray(self.cell_nn_i)
 
         # Next find the nearest neighbour set for each cell:
         self.cell_nn = []
@@ -1320,7 +1239,7 @@ class Cells(object):
 
                 mem_j = self.nn_i[mem_i]  # find the partner to this membrane...
 
-                if mem_j == mem_i:  # if the indices are equal, we're on a neighborless cell
+                if mem_j == mem_i:  # if the indices are equal, we're on a neighborless boundary cell
                     pass
 
                 else:
@@ -1348,7 +1267,7 @@ class Cells(object):
         nn_bound, _,_ = tb.flatten(nn_bound)
 
         self.nn_bound = []
-        for ind in nn_bound:
+        for ind in nn_bound:  # take out the shared values:
 
             if ind not in self.bflags_cells:
                 self.nn_bound.append(ind)
@@ -1745,15 +1664,15 @@ class Cells(object):
         Used in deformation sequence.
         """
 
-        self.nn_mids = np.empty((len(self.mem_i),2))
+        self.nn_mids = []
 
-        self.nn_tx = np.empty(len(self.mem_i))  # tangent vector to gap junction (through neighboring cell centres)
-        self.nn_ty = np.empty(len(self.mem_i))
+        self.nn_tx = []  # tangent vector to gap junction (through neighboring cell centres)
+        self.nn_ty = []
 
         self.gj_len = p.cell_space + 2*p.tm      # distance between gap junction (as "pipe length")
-        self.nn_len = np.empty(len(self.mem_i))  # distance between neighbouring cell centres
+        self.nn_len = []  # distance between neighbouring cell centres
 
-        self.nn_edges = np.empty((len(self.mem_i),2,2))  # line segment between neighbouring cell centres
+        self.nn_edges = [[] for x in self.mem_i]  # line segment between neighbouring cell centres
 
         for mem_i, mem_j in enumerate(self.nn_i):
 
@@ -1783,7 +1702,7 @@ class Cells(object):
                 tang_y = tang_y_o/tang_mag
 
             mid = (pt1_mem + pt2_mem)/2
-            self.nn_mids[mem_i] = mid
+            self.nn_mids.append(mid)
 
             # calculate length
             len_o = pt2_cell - pt1_cell
@@ -1795,21 +1714,28 @@ class Cells(object):
 
             if len_mag == 0.0:
 
-                self.nn_len[mem_i] = -1
+                self.nn_len.append(-1)
 
             else:
 
-                self.nn_len[mem_i] = len_mag
+                self.nn_len.append(len_mag)
 
-            self.nn_tx[mem_i] = tang_x
-            self.nn_ty[mem_i] = tang_y
+            self.nn_tx.append(tang_x)
+            self.nn_ty.append(tang_y)
 
-            self.nn_edges[mem_i,0,:] = pt1_cell
-            self.nn_edges[mem_i,1,:] = pt2_cell
+            self.nn_edges[mem_i].append(pt1_cell)
+            self.nn_edges[mem_i].append(pt2_cell)
+
+        self.nn_mids = np.asarray(self.nn_mids)
+
+        self.nn_tx = np.asarray(self.nn_tx)
+        self.nn_ty = np.asarray(self.nn_ty)
+        self.nn_len = np.asarray(self.nn_len)
+        self.nn_edges = np.asarray(self.nn_edges)
+
 
         self.cell_nn_tx = []
         self.cell_nn_ty = []
-
 
         for cell_i, cell_j in self.cell_nn_i:
 
