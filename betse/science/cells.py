@@ -803,8 +803,8 @@ class Cells(object):
                 else:
                     ind1 = ind_pair[0]
                     ind2 = ind_pair[1]
-                    self.M_sum_mem_to_ecm[i_ecm,ind1] = 1
-                    self.M_sum_mem_to_ecm[i_ecm,ind2] = 1
+                    self.M_sum_mem_to_ecm[i_ecm,ind1] = 1/2
+                    self.M_sum_mem_to_ecm[i_ecm,ind2] = 1/2
 
 
             # #------------------------------------
@@ -1580,13 +1580,16 @@ class Cells(object):
             for mem_i in mem_i_set:
 
                 mem_j = self.nn_i[mem_i]  # get the current neighbour mem and cell...
-                cell_j = self.mem_to_cells[mem_j]
 
-                if cell_j not in nn_cell_i_set:  # if the partner cell is *not* listed as a nn...
+                if mem_j != mem_i:  # if we're not on a boundary
 
-                    #...then set both the membrane and cell neighbour spot to "self":
-                    self.nn_i[mem_i] = mem_i
-                    self.cell_nn_i[mem_i] = [cell_i,cell_i]
+                    cell_j = self.mem_to_cells[mem_j]
+
+                    if cell_j not in nn_cell_i_set:  # if the partner cell is no longer listed as a nn...
+
+                        #...then set both the membrane and cell neighbour spot to "self":
+                        self.nn_i[mem_i] = mem_i
+                        self.cell_nn_i[mem_i] = [cell_i,cell_i]
 
         # calculate gap junction vectors
         self.calc_gj_vects(p)

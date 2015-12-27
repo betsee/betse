@@ -578,7 +578,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
             axPE.set_xlabel('Time [s]')
             axPE.set_ylabel('Electrostatic Pressure [Pa]')
 
-            axPE.set_title('Electrostatic force in cell ' + str(plot_cell) )
+            axPE.set_title('Electrostatic pressure in cell ' + str(plot_cell) )
 
             if saveImages is True:
                 savename = savedImg + 'ElectrostaticP_' + '.png'
@@ -589,6 +589,25 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         if p.deform_osmo is True:
 
             p_osmo = [arr[plot_cell] for arr in sim.osmo_P_delta_time]
+            figOP = plt.figure()
+            axOP = plt.subplot(111)
+
+            axOP.plot(sim.time,p_osmo)
+
+            axOP.set_xlabel('Time [s]')
+            axOP.set_ylabel('Osmotic Pressure [Pa]')
+
+            axOP.set_title('Osmotic pressure in cell ' + str(plot_cell) )
+
+            if saveImages is True:
+                savename = savedImg + 'OsmoticP_' + '.png'
+                plt.savefig(savename,dpi=300,format='png')
+
+            plt.show(block=False)
+
+        if p.deformation is True and sim.run_sim is True:
+
+            p_osmo = [arr[plot_cell] for arr in sim.P_cells_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
 
@@ -1001,109 +1020,99 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True:
+    if p.plot_P is True and p.deformation is True and sim.run_sim is True:
 
-        if p.deform_osmo is True:
+        if p.showCells is True:
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-            if p.showCells is True:
-                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-            else:
-                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-                 clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        axP.set_title('Final Hydrostatic Pressure in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure [Pa]')
 
-            axP.set_title('Final Hydrostatic Pressure in Cell Network')
-            axP.set_xlabel('Spatial distance [um]')
-            axP.set_ylabel('Spatial distance [um]')
-            cbP.set_label('Pressure [Pa]')
+        if saveImages is True:
+            savename13 = savedImg + 'final_P_2D_gj' + '.png'
+            plt.savefig(savename13,format='png')
 
-            if saveImages is True:
-                savename13 = savedImg + 'final_P_2D_gj' + '.png'
-                plt.savefig(savename13,format='png')
-
-            plt.show(block=False)
+        plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_osmoP is True:
+    if p.plot_osmoP is True and p.deform_osmo is True:
 
-        if p.deform_osmo is True:
+        osmo_P = sim.osmo_P_delta
 
-            osmo_P = sim.osmo_P_delta
+        if p.showCells is True:
 
-            if p.showCells is True:
+            # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-                # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
-                figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-            else:
-                 figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-                 clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+        axP.set_title('Final Osmotic Pressure in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
-            # normOsmo = np.sqrt(sim.F_osmo_x**2 + sim.F_osmo_y**2)
-            # fx = sim.F_osmo_x/normOsmo
-            # fy = sim.F_osmo_y/normOsmo
-            #
-            # axP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,fx,fy)
+        if saveImages is True:
+            savename13 = savedImg + 'final_osmoP_2D' + '.png'
+            plt.savefig(savename13,format='png')
 
-            axP.set_title('Final Osmotic Pressure in Cell Network')
-            axP.set_xlabel('Spatial distance [um]')
-            axP.set_ylabel('Spatial distance [um]')
-            cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
+        plt.show(block=False)
 
-            if saveImages is True:
-                savename13 = savedImg + 'final_osmoP_2D' + '.png'
-                plt.savefig(savename13,format='png')
+    #-----Electrostatic Force------------------------------------------------------------
 
-            plt.show(block=False)
+    if p.deform_electro is True:
 
-        #-----Electrostatic Force------------------------------------------------------------
+        figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.F_electro,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        if p.deform_electro is True:
+        fx = sim.F_electro_x/sim.F_electro
+        fy = sim.F_electro_y/sim.F_electro
 
-            figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.F_electro,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+        axEP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
 
-            fx = sim.F_electro_x/sim.F_electro
-            fy = sim.F_electro_y/sim.F_electro
+        axEP.set_title('Final Electrostatic Body Force in Cell Network')
+        axEP.set_xlabel('Spatial distance [um]')
+        axEP.set_ylabel('Spatial distance [um]')
+        cbEP.set_label('Body Force [N/m3]')
 
-            axEP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
+        if saveImages is True:
+            savename13 = savedImg + 'final_electroF_2D' + '.png'
+            plt.savefig(savename13,format='png')
 
-            axEP.set_title('Final Electrostatic Body Force in Cell Network')
-            axEP.set_xlabel('Spatial distance [um]')
-            axEP.set_ylabel('Spatial distance [um]')
-            cbEP.set_label('Body Force [N/m3]')
+        plt.show(block=False)
 
-            if saveImages is True:
-                savename13 = savedImg + 'final_electroF_2D' + '.png'
-                plt.savefig(savename13,format='png')
+    if p.deformation is True and sim.run_sim is True:
 
-            plt.show(block=False)
+        d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
 
-        if p.deformation is True and sim.run_sim is True:
+        figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
+            clrMax = p.Deformation_ani_max_clr,
+            clrmap = p.default_cm)
 
-            d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
+        axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
+            sim.dx_cell_time[-1],sim.dy_cell_time[-1])
 
-            figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
-                clrMax = p.Deformation_ani_max_clr,
-                clrmap = p.default_cm)
-
-            axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
-                sim.dx_cell_time[-1],sim.dy_cell_time[-1])
-
-            axDef.set_title('Displacement in Cell Network')
-            axDef.set_xlabel('Spatial distance [um]')
-            axDef.set_ylabel('Spatial distance [um]')
-            cbDef.set_label('Displacement [um]')
+        axDef.set_title('Displacement in Cell Network')
+        axDef.set_xlabel('Spatial distance [um]')
+        axDef.set_ylabel('Spatial distance [um]')
+        cbDef.set_label('Displacement [um]')
 
 
-            if saveImages is True:
-                savename13 = savedImg + 'final_displacement_2D' + '.png'
-                plt.savefig(savename13,format='png')
+        if saveImages is True:
+            savename13 = savedImg + 'final_displacement_2D' + '.png'
+            plt.savefig(savename13,format='png')
 
-            plt.show(block=False)
+        plt.show(block=False)
 
 
     if p.plot_Vel is True:
@@ -1291,7 +1300,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.ani_Efield is True and animate == 1:
 
-        viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)
+        viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)  # FIXME change this so that it's a general force animator
 
     if p.ani_Velocity is True and p.fluid_flow is True and animate == 1:
 
@@ -1299,7 +1308,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
     if p.ani_Deformation is True and p.deformation is True and animate == 1 and sim.run_sim is True:
 
-        viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)  # FIXME change this for new deformation style
+        viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
 
     if p.exportData is True:
         viz.exportData(cells, sim, p)
@@ -1342,7 +1351,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
+    if p.ani_Pcell is True and animate == 1 and p.deformation is True and sim.run_sim is True:
 
         if p.showCells is True:
 
@@ -1360,7 +1369,25 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_force is True and p.deform_electro is True and animate == 1:
+    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
+
+        if p.showCells is True:
+
+            viz.AnimateCellData(sim,cells,sim.osmo_P_delta_time,sim.time,p,tit='Osmotic Pressure in Cells',
+                cbtit = 'Pressure [Pa]',
+                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+                clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/OsmoP',
+                saveFile = 'OsmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
+        else:
+            viz.AnimateCellData_smoothed(sim,cells,sim.osmo_P_delta_time,sim.time,p,tit='Osmotic Pressure in Cells',
+                cbtit = 'Pressure [Pa]',
+                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+                clrmap = p.default_cm,
+                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/OsmoP', saveFile = 'OsmoP_',
+                current_overlay=p.I_overlay)
+
+    if p.ani_force is True and p.deform_electro is True and animate == 1:  # FIXME change this to Force field animator
 
         if p.showCells is True:
 
@@ -1369,7 +1396,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
                 clrmap = p.default_cm,
                 save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/electroF',
-                saveFile = 'electroP_', ignore_simECM =True, current_overlay=p.I_overlay)
+                saveFile = 'electroF_', ignore_simECM =True, current_overlay=p.I_overlay)
 
 
         else:
@@ -1395,6 +1422,5 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
     plt.show()
 
 
-    #------------------------------------------------------------------------------------------------------------
 
 

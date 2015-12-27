@@ -449,32 +449,15 @@ produce IP3:        # Schedule cell production of IP3
 # "simulate extracellular spaces" option is enabled. (If that option is
 # disabled, this event is simply ignored.)
 apply external voltage:
-    # Enable (True) or disable (False) this event?
-    event happens: False
 
-    # Time (s) at which to begin applying this voltage.
-    change start: 0.5
+    event happens: False   # Enable (True) or disable (False) this event?
+    change start: 0.5    # Time [s] at which to begin applying voltage
+    change finish: 1.0  # Time [s] at which to cease applying voltage
+    change rate: 0.1    # Time [s] over which voltage proceeds from background to peak and from peak to background
+    peak voltage: 0.100   # Max voltage [V] applied by this event
 
-    # Time (s) at which to cease applying this voltage.
-    change finish: 1.0
-
-    # Slope of the pair of step functions providing smooth continuity between
-    # the background voltage and this event. Specifically, this is the rate in
-    # voltage per seconds (V/s) at which:
-    #
-    # * The background voltage is first increased to the peak voltage.
-    # * The peak voltage is later decreased to the background voltage.
-    change rate: 0.1
-
-    # Maximum voltage (V) to be applied by this event.
-    peak voltage: 0.100
-
-    # Environment boundary edge to apply positive voltage to. Valid values:
-    # "top", "bottom", "left", and "right".
-    positive voltage boundary: top
-
-    # Environment boundary edge to apply negative voltage to.
-    negative voltage boundary: bottom
+    positive voltage boundary: top     # Env boundary to apply positive voltage ("top", "bottom", "left", or "right")
+    negative voltage boundary: bottom  # Env boundary to apply negative voltage ("top", "bottom", "left", or "right")
 
 
 break ecm junctions:     # break extracellular junctions between cells

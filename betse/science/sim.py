@@ -1224,7 +1224,6 @@ class Simulator(object):
                 if p.deform_osmo is True:
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-                    self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
@@ -1248,7 +1247,6 @@ class Simulator(object):
 
                 if p.fluid_flow is True:
 
-                    self.P_cells_time.append(self.P_cells[:])
                     self.u_cells_x_time.append(self.u_cells_x[:])
                     self.u_cells_y_time.append(self.u_cells_y[:])
 
@@ -1289,21 +1287,6 @@ class Simulator(object):
         cells.points_tree = None
 
         self.checkPlot = None
-
-        # at the end of the sim, update the cell matrix if deformation is chosen:
-
-        # if p.deformation is True and p.run_sim is True:
-        #
-        #     loggers.log_info("Completing processing of cluster deformation...")
-        #
-        #     for ii in range(0,len(tsamples)):
-        #
-        #         self.implement_deform(cells,ii,p)
-        #         self.cell_centres_time.append(cells.cell_centres[:])
-        #         self.mem_mids_time.append(cells.mem_mids_flat[:])
-        #         self.maskM_time.append(cells.maskM[:])
-        #         self.mem_edges_time.append(cells.mem_edges_flat[:])
-        #         self.cell_verts_time.append(cells.cell_verts[:])
 
         if p.run_sim is False:
 
@@ -1746,13 +1729,19 @@ class Simulator(object):
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
-                    self.P_cells_time.append(self.P_cells[:])
-
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
                     self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
+
+                    self.implement_deform_timestep(cells,t,p)
+
+                    self.cell_centres_time.append(cells.cell_centres[:])
+                    self.mem_mids_time.append(cells.mem_mids_flat[:])
+                    self.maskM_time.append(cells.maskM[:])
+                    self.mem_edges_time.append(cells.mem_edges_flat[:])
+                    self.cell_verts_time.append(cells.cell_verts[:])
 
                     self.P_cells_time.append(self.P_cells[:])
 
@@ -1793,22 +1782,6 @@ class Simulator(object):
                     time_estimate = round(loop_time*p.init_tsteps,2)
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
-
-
-        # self.dyna.scalar_Namem = None
-
-        if p.deformation is True and p.run_sim is True: # at the end of the sim, update the cell matrix if deformation is chosen:
-
-            loggers.log_info("Completing processing of cluster deformation...")
-
-            for ii in range(0,len(tsamples)):
-
-                self.implement_deform(cells,ii,p)
-                self.cell_centres_time.append(cells.cell_centres[:])
-                self.mem_mids_time.append(cells.mem_mids_flat[:])
-                self.maskM_time.append(cells.maskM[:])
-                self.mem_edges_time.append(cells.mem_edges_flat[:])
-                self.cell_verts_time.append(cells.cell_verts[:])
 
          # Find embeded functions that can't be pickled...
         for key, valu in vars(self.dyna).items():
@@ -2920,27 +2893,32 @@ class Simulator(object):
                 Fe_x = -rho_env*env_x
                 Fe_y = -rho_env*env_y
 
+                # # set the boundary conditions for an electrically grounded boundary:
+                # Fe_x[:,0] = 0
+                # # right
+                # Fe_x[:,-1] = 0
+                # # top
+                # Fe_x[-1,:] = 0
+                # # bottom
+                # Fe_x[0,:] = 0
+                #
+                # # set the boundary conditions for an electrically grounded boundary:
+                # Fe_y[:,0] = 0
+                # # right
+                # Fe_y[:,-1] = 0
+                # # top
+                # Fe_y[-1,:] = 0
+                # # bottom
+                # Fe_y[0,:] = 0
+
             else:
 
                 Fe_x = np.zeros(cells.X.shape)
                 Fe_y = np.zeros(cells.Y.shape)
 
-            if p.deform_osmo is True:
-
-                Fo_x, Fo_y = fd.gradient(self.osmo_P_env.reshape(cells.X.shape),cells.delta)
-                Fo_x = -Fo_x
-                Fo_y = -Fo_y
-
-            else:
-
-                Fo_x = np.zeros(cells.X.shape)
-                Fo_y = np.zeros(cells.Y.shape)
-
-            #**************************************************************
-
             # sum the forces:
-            Fx = Fe_x + Fo_x
-            Fy = Fe_y + Fo_y
+            Fx = Fe_x
+            Fy = Fe_y
 
             source_x = -Fx*alpha
             source_y = -Fy*alpha
@@ -2954,21 +2932,71 @@ class Simulator(object):
                 ux_ecm_o = np.dot(cells.lapENV_P_inv,source_x.ravel())
                 uy_ecm_o = np.dot(cells.lapENV_P_inv,source_y.ravel())
 
+             # reinforce boundary conditions
+            if p.closed_bound is True:
+                #left
+                self.u_env_x[:,0] = 0
+                # right
+                self.u_env_x[:,-1] = 0
+                # top
+                self.u_env_x[-1,:] = 0
+                # bottom
+                self.u_env_x[0,:] = 0
+
+                # left
+                self.u_env_y[:,0] = 0
+                # right
+                self.u_env_y[:,-1] = 0
+                # top
+                self.u_env_y[-1,:] = 0
+                # bottom
+                self.u_env_y[0,:] = 0
+
+            else:
+                # left
+                self.u_env_x[:,0] = self.u_env_x[:,1]
+                # right
+                self.u_env_x[:,-1] = self.u_env_x[:,-2]
+                # top
+                self.u_env_x[-1,:] = self.u_env_x[-2,:]
+                # bottom
+                self.u_env_x[0,:] = self.u_env_x[1,:]
+
+                # left
+                self.u_env_y[:,0] = self.u_env_y[:,1]
+                # right
+                self.u_env_y[:,-1] = self.u_env_y[:,-2]
+                # top
+                self.u_env_y[-1,:] = self.u_env_y[-2,:]
+                # bottom
+                self.u_env_y[0,:] = self.u_env_y[1,:]
+
             # calculate the divergence of the flow field as the sum of the two spatial derivatives:
             div_uo = fd.divergence(ux_ecm_o.reshape(cells.X.shape),uy_ecm_o.reshape(cells.X.shape),
                 cells.delta,cells.delta)
 
             # calculate the alpha-scaled internal pressure from the divergence of the force:
-            # if p.closed_bound is True:
+            if p.closed_bound is True:
 
-            P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-            P = P.reshape(cells.grid_obj.cents_shape)
+                P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
+                P = P.reshape(cells.grid_obj.cents_shape)
 
-            # enforce zero normal gradient boundary conditions on P:
-            P[:,0] = P[:,1]
-            P[:,-1] = P[:,-2]
-            P[0,:] = P[1,:]
-            P[-1,:] = P[-2,:]
+                # enforce zero normal gradient boundary conditions on P:
+                P[:,0] = P[:,1]
+                P[:,-1] = P[:,-2]
+                P[0,:] = P[1,:]
+                P[-1,:] = P[-2,:]
+
+            else:
+
+                P = np.dot(cells.lapENVinv, div_uo.ravel())
+                P = P.reshape(cells.grid_obj.cents_shape)
+
+                # enforce zero pressure boundary conditions on P:
+                P[:,0] = 0
+                P[:,-1] = 0
+                P[0,:] = 0
+                P[-1,:] = 0
 
             # smooth out the pressure
             P = fd.integrator(P)
@@ -2989,7 +3017,7 @@ class Simulator(object):
             self.u_env_x = np.zeros(cells.grid_obj.u_shape)
             self.u_env_y = np.zeros(cells.grid_obj.v_shape)
 
-            # create the proper shape for the velocity matrices and state appropriate boundary conditions::
+            # create the proper shape for the velocity matrices and state appropriate boundary conditions:
             self.u_env_x[:,1:] = u_env_x[:]
             self.u_env_y[1:,:] = u_env_y[:]
 
@@ -3048,17 +3076,8 @@ class Simulator(object):
             Fe_cell_x = np.zeros(len(cells.cell_i))
             Fe_cell_y = np.zeros(len(cells.cell_i))
 
-        if p.deform_osmo is True:
-
-            Fo_cell_x = self.F_osmo_x
-            Fo_cell_y = self.F_osmo_y
-
-        else:
-            Fo_cell_x = np.zeros(len(cells.cell_i))
-            Fo_cell_y = np.zeros(len(cells.cell_i))
-
-        F_net_x = Fe_cell_x + Fo_cell_x
-        F_net_y = Fe_cell_y + Fo_cell_y
+        F_net_x = Fe_cell_x
+        F_net_y = Fe_cell_y
 
         # Calculate flow under body forces:
         u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
@@ -3078,9 +3097,8 @@ class Simulator(object):
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
         div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
-
         # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,div_u)
+        P_react = np.dot(cells.lapGJ_P_inv,div_u*2)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3095,9 +3113,9 @@ class Simulator(object):
         self.u_cells_x = u_gj_xo - gPx_cell
         self.u_cells_y = u_gj_yo - gPy_cell
 
-        # # enforce the boundary conditions:
-        # self.u_cells_x[cells.bflags_cells] = 0
-        # self.u_cells_y[cells.bflags_cells] = 0
+        # enforce the boundary conditions:
+        self.u_cells_x[cells.bflags_cells] = 0
+        self.u_cells_y[cells.bflags_cells] = 0
 
     def eosmosis(self,cells,p):
 
@@ -3507,17 +3525,6 @@ class Simulator(object):
 
             div_osmo = np.zeros(len(cells.cell_i))
 
-
-        # # determine body force due to osmotic water flow, if desired
-        # if p.deform_osmo is True:
-        #
-        #     F_osmo_x = self.F_osmo_x
-        #     F_osmo_y = self.F_osmo_y
-        #
-        # else:
-        #     F_osmo_x = np.zeros(len(cells.cell_i))
-        #     F_osmo_y = np.zeros(len(cells.cell_i))
-
         # Take the total component of pressure from all contributions:
         F_cell_x = F_electro_x
         F_cell_y = F_electro_y
@@ -3552,9 +3559,19 @@ class Simulator(object):
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
-        P_react = np.dot(cells.lapGJ_P_inv,div_u)
+        if p.fixed_cluster_bound is True:
 
-        self.P_cells = P_react[:]
+            P_react = np.dot(cells.lapGJ_P_inv,2*div_u)
+
+        else:
+
+            P_react = np.dot(cells.lapGJ_P_inv,div_u)
+            # P_react[cells.bflags_cells] = 0
+
+        # As the reaction pressure is a correction to the non-divergence-free velocity field,
+        # the actual pressure in Pascals must be multiplied by the reciprocal square of characteristic length,
+        # as well as the shear modulus
+        self.P_cells = p.lame_mu*P_react[:]*(1/(2*p.rc)**2)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3570,145 +3587,12 @@ class Simulator(object):
         self.d_cells_x = u_x_o - gPx_cell
         self.d_cells_y = u_y_o - gPy_cell
 
-        # enforce boundary conditions:
+        # # enforce boundary conditions:
         if p.fixed_cluster_bound is True:
             self.d_cells_x[cells.bflags_cells] = 0
             self.d_cells_y[cells.bflags_cells] = 0
-            self.d_cells_x[cells.nn_bound] = 0
-            self.d_cells_y[cells.nn_bound] = 0
-
-    def timeDeform_o(self,cells,t,p):
-        """
-        Calculates the deformation of the cell cluster under the action
-        of intracellular pressure, considering the full time dependent
-        linear elasticity equation for an incompressible medium.
-
-        This version uses the "Earthquake" scientist's theory of S-waves
-        and the reduction of the linear elasticity equation to solve
-        for the cross product of the displacement field and force.
-
-        Unfortunately, this doesn't seem to produce the right wave
-        solutions as it's defined here, so it's been taken out of
-        use for the moment.
-
-        """
-
-        # Check for the adequacy of the time step:
-        step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
-
-        if step_check > 1.0:
-
-            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
-
-            raise BetseExceptionSimulation(
-                    'Time dependent deformation is tricky business, requiring a small time step! '
-                    'The time step you are using is too large to bother going further with. '
-                    'Please set your time step to ' + str(new_ts) + ' and try again.')
-
-        k_const = (p.dt**2)*(p.lame_mu/1000)
-
-
-        # # Determine action forces ------------------------------------------------
-        # first determine body force components due to electrostatics, if desired:
-        if p.deform_electro is True:
-            F_electro_x = self.F_electro_x
-            F_electro_y = self.F_electro_y
-
-        else:
-
-            F_electro_x = np.zeros(len(cells.cell_i))
-            F_electro_y = np.zeros(len(cells.cell_i))
-
-
-        # determine body force due to osmotic water flow, if desired
-        if p.deform_osmo is True:
-
-            F_osmo_x = self.F_osmo_x
-            F_osmo_y = self.F_osmo_y
-
-        else:
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
-
-        # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_osmo_x
-        F_cell_y = F_electro_y + F_osmo_y
-
-        self.dx_time.append(self.d_cells_x[:]) # append the solution to the time-save vector
-        self.dy_time.append(self.d_cells_y[:])
-
-        self.phi_time.append(self.phi[:])
-
-        # calculate the curl of the force ----------------------------------------------------------------
-
-        _, _, curlF = cells.curl(F_cell_x,F_cell_y,0)
-
-
-        # Initial value solution--------------------------------------------------------------------------------
-        if t == 0.0:
-
-            wave_speed = np.sqrt(p.lame_mu/1000)
-            wave_speed = np.float(wave_speed)
-            wave_speed = np.round(wave_speed,2)
-            freq = (wave_speed/p.wsx)*1e-3
-            freq = np.round(freq,2)
-
-            loggers.log_info(
-                'Your wave speed is about: ' +
-                 str(wave_speed) + ' m/s '
-                "so with your world size, you'd be looking for resonances at:"
-                ' ' + str(freq) + ' kHz. '
-            )
-
-            loggers.log_info('Try a world size of at least: ' + str(wave_speed*1000) + ' um for resonance.')
-
-
-            self.phi = k_const*np.dot(cells.lapGJ,self.phi_time[-1]) + (k_const/p.lame_mu)*curlF + self.phi_time[-1]
-
-            # set boundary condition for phi:
-            self.phi[cells.bflags_cells] = 0
-
-
-        elif t > 0.0:
-
-
-            # do the non-initial value, standard solution iteration:
-
-            # calculate the velocity for viscous damping:
-            d_phi_dt = (self.phi - self.phi_time[-2])/(p.dt)
-            # vy = (self.d_cells_y - self.dy_time[-2])/(p.dt)
-
-            gamma = ((p.dt**2)*(p.mu_tissue))/(1000*(2*p.rc))
-
-            self.phi = k_const*np.dot(cells.lapGJ,self.phi) - gamma*d_phi_dt + \
-                       (k_const/p.lame_mu)*curlF + 2*self.phi -self.phi_time[-2]
-
-             # set boundary condition for phi:
-            self.phi[cells.bflags_cells] = 0
-
-        # obtain displacement from phi -----------------------------------------------------------------------
-
-        curl_phi_x, curl_phi_y, _ = cells.curl(0,0,self.phi)
-
-
-        if p.fixed_cluster_bound is False:
-
-            self.d_cells_x = np.dot(cells.lapGJ_P_inv,-curl_phi_x)
-            self.d_cells_y = np.dot(cells.lapGJ_P_inv,-curl_phi_y)
-
-        else:
-
-            self.d_cells_x = np.dot(cells.lapGJinv,-curl_phi_x)
-            self.d_cells_y = np.dot(cells.lapGJinv,-curl_phi_y)
-
-
-        if p.fixed_cluster_bound is True:
-
-            self.d_cells_x[cells.bflags_cells] = 0
-            self.d_cells_y[cells.bflags_cells] = 0
-
-        # check the displacement for NANs:
-        check_v(self.d_cells_x)
+            # self.d_cells_x[cells.nn_bound] = 0
+            # self.d_cells_y[cells.nn_bound] = 0
 
     def timeDeform(self,cells,t,p):
         """
@@ -3763,17 +3647,6 @@ class Simulator(object):
 
             div_osmo = np.zeros(len(cells.cell_i))
 
-
-        # determine body force due to osmotic water flow, if desired
-        # if p.deform_osmo is True:
-        #
-        #     F_osmo_x = self.F_osmo_x
-        #     F_osmo_y = self.F_osmo_y
-        #
-        # else:
-        #     F_osmo_x = np.zeros(len(cells.cell_i))
-        #     F_osmo_y = np.zeros(len(cells.cell_i))
-
         # Take the total component of pressure from all contributions:
         F_cell_x = F_electro_x
         F_cell_y = F_electro_y
@@ -3827,8 +3700,6 @@ class Simulator(object):
             # calculate the velocity for viscous damping:
             d_ux_dt = (self.dx_time[-1] - self.dx_time[-2])/(p.dt)
             d_uy_dt = (self.dy_time[-1] - self.dy_time[-2])/(p.dt)
-            # vy = (self.d_cells_y - self.dy_time[-2])/(p.dt)
-
 
             gamma = ((p.dt**2)*(p.mu_tissue*p.lame_mu))/(1000*(2*p.rc))
 
@@ -3867,6 +3738,8 @@ class Simulator(object):
         # calculate the reaction pressure required to counter-balance the flow field:
 
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
+
+        self.P_cells = (p.lame_mu/k_const)*P_react[:]
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3936,13 +3809,10 @@ class Simulator(object):
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
     def implement_deform(self,cells,i,p):
-        # --update the cell world with deformation ------------------------------------------------------------
 
-        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.dx_cell_time[i],
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.dy_cell_time[i],
-                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+        # map individual cell deformations to their membranes. In this case it's better than interpolation
+        ux_at_mem = self.d_cells_x[cells.mem_to_cells]
+        uy_at_mem = self.d_cells_y[cells.mem_to_cells]
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
@@ -3977,19 +3847,11 @@ class Simulator(object):
 
         cells.deformWorld(p)
 
-        # #----------------------------------------
-        # if p.plot_while_solving is True and t > 0:
-        #
-        #     self.checkPlot.resetData(cells,self,p)
 
     def implement_deform_timestep(self,cells,t,p):
-        # --update the cell world with deformation ------------------------------------------------------------
-
-        ux_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        uy_at_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
-                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
+        # map individual cell deformations to their membranes. In this case it's better than interpolation
+        ux_at_mem = self.d_cells_x[cells.mem_to_cells]
+        uy_at_mem = self.d_cells_y[cells.mem_to_cells]
 
         ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
         uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
@@ -4544,6 +4406,141 @@ def rk4(c,deltac,p):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
+
+    # def timeDeform_o(self,cells,t,p):
+    #     """
+    #     Calculates the deformation of the cell cluster under the action
+    #     of intracellular pressure, considering the full time dependent
+    #     linear elasticity equation for an incompressible medium.
+    #
+    #     This version uses the "Earthquake" scientist's theory of S-waves
+    #     and the reduction of the linear elasticity equation to solve
+    #     for the cross product of the displacement field and force.
+    #
+    #     Unfortunately, this doesn't seem to produce the right wave
+    #     solutions as it's defined here, so it's been taken out of
+    #     use for the moment.
+    #
+    #     """
+    #
+    #     # Check for the adequacy of the time step:
+    #     step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
+    #
+    #     if step_check > 1.0:
+    #
+    #         new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
+    #
+    #         raise BetseExceptionSimulation(
+    #                 'Time dependent deformation is tricky business, requiring a small time step! '
+    #                 'The time step you are using is too large to bother going further with. '
+    #                 'Please set your time step to ' + str(new_ts) + ' and try again.')
+    #
+    #     k_const = (p.dt**2)*(p.lame_mu/1000)
+    #
+    #
+    #     # # Determine action forces ------------------------------------------------
+    #     # first determine body force components due to electrostatics, if desired:
+    #     if p.deform_electro is True:
+    #         F_electro_x = self.F_electro_x
+    #         F_electro_y = self.F_electro_y
+    #
+    #     else:
+    #
+    #         F_electro_x = np.zeros(len(cells.cell_i))
+    #         F_electro_y = np.zeros(len(cells.cell_i))
+    #
+    #
+    #     # determine body force due to osmotic water flow, if desired
+    #     if p.deform_osmo is True:
+    #
+    #         F_osmo_x = self.F_osmo_x
+    #         F_osmo_y = self.F_osmo_y
+    #
+    #     else:
+    #         F_osmo_x = np.zeros(len(cells.cell_i))
+    #         F_osmo_y = np.zeros(len(cells.cell_i))
+    #
+    #     # Take the total component of pressure from all contributions:
+    #     F_cell_x = F_electro_x + F_osmo_x
+    #     F_cell_y = F_electro_y + F_osmo_y
+    #
+    #     self.dx_time.append(self.d_cells_x[:]) # append the solution to the time-save vector
+    #     self.dy_time.append(self.d_cells_y[:])
+    #
+    #     self.phi_time.append(self.phi[:])
+    #
+    #     # calculate the curl of the force ----------------------------------------------------------------
+    #
+    #     _, _, curlF = cells.curl(F_cell_x,F_cell_y,0)
+    #
+    #
+    #     # Initial value solution--------------------------------------------------------------------------------
+    #     if t == 0.0:
+    #
+    #         wave_speed = np.sqrt(p.lame_mu/1000)
+    #         wave_speed = np.float(wave_speed)
+    #         wave_speed = np.round(wave_speed,2)
+    #         freq = (wave_speed/p.wsx)*1e-3
+    #         freq = np.round(freq,2)
+    #
+    #         loggers.log_info(
+    #             'Your wave speed is about: ' +
+    #              str(wave_speed) + ' m/s '
+    #             "so with your world size, you'd be looking for resonances at:"
+    #             ' ' + str(freq) + ' kHz. '
+    #         )
+    #
+    #         loggers.log_info('Try a world size of at least: ' + str(wave_speed*1000) + ' um for resonance.')
+    #
+    #
+    #         self.phi = k_const*np.dot(cells.lapGJ,self.phi_time[-1]) + (k_const/p.lame_mu)*curlF + self.phi_time[-1]
+    #
+    #         # set boundary condition for phi:
+    #         self.phi[cells.bflags_cells] = 0
+    #
+    #
+    #     elif t > 0.0:
+    #
+    #
+    #         # do the non-initial value, standard solution iteration:
+    #
+    #         # calculate the velocity for viscous damping:
+    #         d_phi_dt = (self.phi - self.phi_time[-2])/(p.dt)
+    #         # vy = (self.d_cells_y - self.dy_time[-2])/(p.dt)
+    #
+    #         gamma = ((p.dt**2)*(p.mu_tissue))/(1000*(2*p.rc))
+    #
+    #         self.phi = k_const*np.dot(cells.lapGJ,self.phi) - gamma*d_phi_dt + \
+    #                    (k_const/p.lame_mu)*curlF + 2*self.phi -self.phi_time[-2]
+    #
+    #          # set boundary condition for phi:
+    #         self.phi[cells.bflags_cells] = 0
+    #
+    #     # obtain displacement from phi -----------------------------------------------------------------------
+    #
+    #     curl_phi_x, curl_phi_y, _ = cells.curl(0,0,self.phi)
+    #
+    #
+    #     if p.fixed_cluster_bound is False:
+    #
+    #         self.d_cells_x = np.dot(cells.lapGJ_P_inv,-curl_phi_x)
+    #         self.d_cells_y = np.dot(cells.lapGJ_P_inv,-curl_phi_y)
+    #
+    #     else:
+    #
+    #         self.d_cells_x = np.dot(cells.lapGJinv,-curl_phi_x)
+    #         self.d_cells_y = np.dot(cells.lapGJinv,-curl_phi_y)
+    #
+    #
+    #     if p.fixed_cluster_bound is True:
+    #
+    #         self.d_cells_x[cells.bflags_cells] = 0
+    #         self.d_cells_y[cells.bflags_cells] = 0
+    #
+    #     # check the displacement for NANs:
+    #     check_v(self.d_cells_x)
+
+
 
 # if p.deform_electro is True:
         #
