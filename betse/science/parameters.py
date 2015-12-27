@@ -11,21 +11,16 @@
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
-from betse.science.event.voltage import EventSpanVoltage
-from betse.science.tissue.picker import (
-    TissuePickerAll,
-    TissuePickerBitmap,
-    TissuePickerIndices,
-    TissuePickerRandom,)
-from betse.science.tissue.profile import CutProfile
-from betse.util.io import loggers
+from betse.science.event.cut import EventCut
+from betse.science.event.voltage import PulseVoltage
+from betse.science.tissue.picker import (TissuePicker, TissuePickerBitmap)
 from betse.util.path import paths
 from collections import OrderedDict
 from matplotlib.colors import Colormap
 import numpy as np
 import matplotlib.cm as cm
 
-# Parses the configuration file to define basic class holding all simulation variables
+
 class Parameters(object):
     '''
     Storage for all user-defined parameters used in world-building,
@@ -54,9 +49,6 @@ class Parameters(object):
         clipped.
     closed_bound : bool
         `True` if environmental boundaries are closed (i.e., _not_ open).
-    cut_profile : CutProfile
-        Object identifying cells to be permanently removed by a cutting event
-        triggered during the tissue simulation if any or `None` otherwise.
     tissue_profiles : list
         List of ordered dictionaries, each describing a **tissue profile**
         (i.e., instance of the `TissueProfile` class identifying cells to be
@@ -365,7 +357,6 @@ class Parameters(object):
         bool_Camem = bool(self.config['change Ca mem']['event happens'])
         bool_ip3 = bool(self.config['produce IP3']['event happens'])
         bool_ecmj = bool(self.config['break ecm junctions']['event happens'])
-        bool_cut = bool(self.config['cutting event']['event happens'])
 
         if bool_Namem is False:
             self.scheduled_options['Na_mem'] = 0
@@ -432,7 +423,7 @@ class Parameters(object):
         #Thus spake Sessums!
 
         # Parameterize the voltage event if enabled.
-        self.scheduled_options['extV'] = EventSpanVoltage.make(self)
+        self.scheduled_options['extV'] = PulseVoltage.make(self)
 
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0
@@ -445,16 +436,24 @@ class Parameters(object):
 
             self.scheduled_options['ecmJ'] = ecmj
 
+        #FIXME: Uncomment when working, please.
+        # # Parameterize the cutting event if enabled.
+        # self.scheduled_options['cuts'] = CutProfile.make(self)
 
-        if bool_cut is False:
-            self.scheduled_options['cuts'] = 0
-
+        ce = self.config['cutting event']
+        tpd = self.config['tissue profile definition']
+        if bool(ce['event happens']) is False:
+            self.scheduled_options['cuts'] = None
         else:
-            cut_time = 0.0 # time event happens
-            apply_to = self.config['cutting event']['apply to']    # tissue profile to apply this to
-            dangling_gj = self.config['cutting event']['damaged membranes']  # does the cut produce env open cells?
-            hurt_level = float(self.config['cutting event']['hurt level'])
-            cuts_params = [cut_time, apply_to, dangling_gj,hurt_level]
+            # Time step at which to cut. For simplicity, this is currently
+            # forced to be the first time step.
+            cut_time = 0.0
+
+            cut_picker = TissuePicker.make(
+                tpd['cut profile']['cell targets'], self)
+            dangling_gj = bool(ce['membranes damaged'])  # does the cut produce env open cells?
+            hurt_level = float(ce['hurt level'])
+            cuts_params = [cut_time, cut_picker, dangling_gj, hurt_level]
             self.scheduled_options['cuts'] = cuts_params
 
         self.gradient_x_properties = {}
@@ -1267,10 +1266,6 @@ class Parameters(object):
         self.clipping_bitmap_matcher = TissuePickerBitmap(
             tpd['clipping']['bitmap']['file'], self.config_dirname)
         self.tissue_profiles = OrderedDict()
-        self.cut_profile = None
-
-        # Parse the cut profile.
-        self.cut_profile = CutProfile.make(self)
 
         # If tissue profiles are currently disabled, forego parsing.
         if not tpd['profiles enabled']:
@@ -1283,8 +1278,9 @@ class Parameters(object):
             diffusion_constants = {}
 
             profile_name = tissue_profile['name']
-            profile_features['designation'] = tissue_profile['designation']
             profile_features['insular gj'] = tissue_profile['insular']
+            profile_features['picker'] = TissuePicker.make(
+                tissue_profile['cell targets'], self)
 
             # Convert from 0-based list indices to 1-based z order.
             profile_features['z order'] = i + 1
@@ -1293,25 +1289,6 @@ class Parameters(object):
             for label in self.mem_labels:
                 diffusion_constants[label] = float(tissue_profile[label])
             profile_features['diffusion constants'] = diffusion_constants
-
-            # Convert this profile's picker from a dictionary to typed object.
-            cts = tissue_profile['cell targets']
-            profile_picker_type = cts['type']
-            profile_picker = None
-            if profile_picker_type == 'all':
-                profile_picker = TissuePickerAll()
-            elif profile_picker_type == 'bitmap':
-                profile_picker = TissuePickerBitmap(
-                    cts['bitmap']['file'], self.config_dirname)
-            elif profile_picker_type == 'indices':
-                profile_picker = TissuePickerIndices(cts['indices'])
-            elif profile_picker_type == 'random':
-                profile_picker = TissuePickerRandom(cts['random'])
-            else:
-                raise BetseExceptionParameters(
-                    'Tissue profile cell targets type "{}"'
-                    'unrecognized.'.format(profile_picker_type))
-            profile_features['picker'] = profile_picker
 
             #FIXME: Map each such profile name to an instance of the
             #"TissueProfile" class instead.

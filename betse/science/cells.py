@@ -38,6 +38,114 @@
 #Thanks to this comment, the line numbers listed above are a bit off now. The
 #culprit appears to be calc_gj_vects(). Any ideas? The index
 #"139776299209088" seems suspiciously large to me. Lambast all the gummy fruit!
+#FIXME: Right! So, I hit the related issue you mentioned. Here's the log:
+#
+#    [2015-12-27 03:04:48,618] betse INFO (loggers.py:log_info():178):
+#        Cell cluster creation complete!
+#    [2015-12-27 03:04:48,622] betse INFO (loggers.py:log_info():178):
+#        Initializing simulation with configuration file "sample_sim.yaml".
+#    [2015-12-27 03:04:49,272] betse INFO (loggers.py:log_info():178):
+#        Cell cluster loaded.
+#    [2015-12-27 03:04:51,711] betse INFO (loggers.py:log_info():178):
+#        This world contains 180 cells.
+#    [2015-12-27 03:04:51,711] betse INFO (loggers.py:log_info():178):
+#        Each cell has an average of 5.28 nearest-neighbours.
+#    [2015-12-27 03:04:51,711] betse INFO (loggers.py:log_info():178):
+#        You are running the ion profile: basic
+#    [2015-12-27 03:04:51,712] betse INFO (loggers.py:log_info():178):
+#        Ions in this simulation: {0: 'sodium', 1: 'potassium', 2: 'proteins', 3: 'anion'}
+#    [2015-12-27 03:04:51,712] betse INFO (loggers.py:log_info():178):
+#        If you have selected features using other ions, they will be ignored.
+#    [2015-12-27 03:04:51,713] betse INFO (loggers.py:log_info():178):
+#        Your initialization is running from 0 to 1.0 seconds of in-world time.
+#    [2015-12-27 03:04:52,390] betse INFO (loggers.py:log_info():178):
+#        This run should take approximately 7.84 s to compute...
+#    [2015-12-27 03:05:04,894] betse INFO (loggers.py:log_info():178):
+#        Initialization run saved to /home/leycec/tmp/betse/sample_sim/init
+#    [2015-12-27 03:05:04,895] betse INFO (loggers.py:log_info():178):
+#        Final average cytoplasmic concentration of sodium: 7.805057 mmol/L
+#    [2015-12-27 03:05:04,895] betse INFO (loggers.py:log_info():178):
+#        Final average cytoplasmic concentration of potassium: 146.438145 mmol/L
+#    [2015-12-27 03:05:04,896] betse INFO (loggers.py:log_info():178):
+#        Final average cytoplasmic concentration of proteins: 138.0 mmol/L
+#    [2015-12-27 03:05:04,897] betse INFO (loggers.py:log_info():178):
+#        Final average cytoplasmic concentration of anion: 16.30287 mmol/L
+#    [2015-12-27 03:05:04,897] betse INFO (loggers.py:log_info():178):
+#        Final environmental concentration of sodium: 145.0 mmol/L
+#    [2015-12-27 03:05:04,898] betse INFO (loggers.py:log_info():178):
+#        Final environmental concentration of potassium: 5.0 mmol/L
+#    [2015-12-27 03:05:04,899] betse INFO (loggers.py:log_info():178):
+#        Final environmental concentration of proteins: 10.0 mmol/L
+#    [2015-12-27 03:05:04,899] betse INFO (loggers.py:log_info():178):
+#        Final environmental concentration of anion: 140.0 mmol/L
+#    [2015-12-27 03:05:04,900] betse INFO (loggers.py:log_info():178):
+#        Final average cell Vmem of : -42.429 mV
+#    [2015-12-27 03:05:04,909] betse INFO (loggers.py:log_info():178):
+#        Simulation completed successfully.
+#    [2015-12-27 03:05:04,909] betse INFO (loggers.py:log_info():178):
+#        Initialization run complete!
+#    [2015-12-27 03:05:04,910] betse INFO (loggers.py:log_info():178):
+#        The initialization took 16.29 seconds to complete.
+#    [2015-12-27 03:05:04,913] betse INFO (loggers.py:log_info():178):
+#        Running simulation with configuration file "sample_sim.yaml".
+#    [2015-12-27 03:05:08,004] betse INFO (loggers.py:log_info():178):
+#        This world contains 180 cells.
+#    [2015-12-27 03:05:08,004] betse INFO (loggers.py:log_info():178):
+#        Each cell has an average of 5.28 nearest-neighbours.
+#    [2015-12-27 03:05:08,004] betse INFO (loggers.py:log_info():178):
+#        You are running the ion profile: basic
+#    [2015-12-27 03:05:08,005] betse INFO (loggers.py:log_info():178):
+#        Ions in this simulation: {0: 'sodium', 1: 'potassium', 2: 'proteins', 3: 'anion'}
+#    [2015-12-27 03:05:08,005] betse INFO (loggers.py:log_info():178):
+#        If you have selected features using other ions, they will be ignored.
+#    [2015-12-27 03:05:08,006] betse INFO (loggers.py:log_info():178):
+#        Your simulation is running from 0 to 1.0 seconds of in-world time.
+#    [2015-12-27 03:05:08,640] betse INFO (loggers.py:log_info():178):
+#        This run should take approximately 8.57 s to compute...
+#    [2015-12-27 03:05:08,641] betse INFO (loggers.py:log_info():178):
+#        Cutting hole in cell cluster! Removing world...
+#    [2015-12-27 03:05:09,030] betse INFO (loggers.py:log_info():178):
+#        Recalculating cluster variables for new configuration...
+#    [2015-12-27 03:05:09,031] betse INFO (loggers.py:log_info():178):
+#        Defining cell-specific geometric properties...
+#    [2015-12-27 03:05:09,225] betse INFO (loggers.py:log_info():178):
+#        Creating computational matrices for cell-cell transfers...
+#    [2015-12-27 03:05:11,765] betse INFO (loggers.py:log_info():178):
+#        Creating gap junctions...
+#    [2015-12-27 03:05:11,887] betse INFO (loggers.py:log_info():178):
+#        Creating cell network Poisson solver...
+#    [2015-12-27 03:05:11,887] betse INFO (loggers.py:log_info():178):
+#        Creating Poisson solvers for cell cluster...
+#    [2015-12-27 03:05:11,889] betse ERROR (loggers.py:log_error():200):
+#        Exiting prematurely due to fatal error:
+#
+#    [2015-12-27 03:05:11,899] betse DEBUG (loggers.py:log_debug():167):
+#        ValueError: [0, 3] is not in list
+#
+#    Traceback (most recent call last):
+#    File "/usr/lib64/python3.4/site-packages/betse/cli/cli.py", line 83, in run
+#        self._do()
+#    File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 125, in _do
+#        subcommand_method()
+#    File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 286, in _do_try
+#        self._do_sim()
+#    File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 313, in _do_sim
+#        self._get_sim_runner().simulate()
+#    File "/usr/lib64/python3.4/site-packages/betse/science/simrunner.py", line 253, in simulate
+#        sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
+#    File "/usr/lib64/python3.4/site-packages/betse/science/sim.py", line 991, in runSim
+#        self.dyna.runAllDynamics(self,cells,p,t)
+#    File "/usr/lib64/python3.4/site-packages/betse/science/tissue/handler.py", line 68, in runAllDynamics
+#        self._sim_events_tissue(  sim, cells, p, t)
+#    File "/usr/lib64/python3.4/site-packages/betse/science/tissue/handler.py", line 589, in _sim_events_tissue
+#        simMod=True, dangling_gj=self.dangling_gj)
+#    File "/usr/lib64/python3.4/site-packages/betse/science/tissue/handler.py", line 1164, in removeCells
+#        cells.graphLaplacian(p)
+#    File "/usr/lib64/python3.4/site-packages/betse/science/cells.py", line 1490, in graphLaplacian
+#        mem_ij = cell_nn_pairs.index([cell_i,cell_j])
+#
+#I saved the seeded and initted world this time. If you still can't replicate
+#this, I'll feed you the files. Pink unicorns there; pink unicorns everywhere!
 
 
 """
@@ -109,22 +217,16 @@ class Cells(object):
     graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
     """
 
-    def __init__(self, p, worldtype = 'basic'):
+    def __init__(self, p, worldtype='basic'):
         # Extract the constants from the input object:
         self.worldtype = worldtype # the complexity of cluster to create
         self.fileInit(p)
 
-        self.um = 1e6    # multiplication factor to convert m to um
-        self.do_once_cavity = True  # boolean to ensure any cavity preparation happens only once...
-        self.do_once_cuts = True      #boolean to ensure cut lines are only prepared once...
+        # Multiplicative factor for converting from m to um.
+        self.um = 1e6
 
-        # initialize some parameters that may or may not be used...
-        self.cavity_inds = []
-        self.true_env_inds = []
-        self.cavity_volume = []
 
-    def fileInit(self,p):
-
+    def fileInit(self, p):
         """
         Initializes file saving and loading directory as the BETSE cache, which is
         automatically assigned from the user-specified path in the configuration file.

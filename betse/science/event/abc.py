@@ -59,7 +59,7 @@ class Event(object, metaclass=ABCMeta):
         '''
 
 # ....................{ PERIOD                             }....................
-class EventSpan(Event):
+class Pulse(Event):
     '''
     Abstract base class of all classes describing simulation events occurring
     over a period (rather than single point) of time.
@@ -79,7 +79,7 @@ class EventSpan(Event):
         * A "step" down from this event back to the background function, whose
           mid-point is centered at `stop_time`.
         If the background function is time-dependent, this slope is a *rate*
-        (i.e., change over time). For the `EventSpanVoltage` subclass, for
+        (i.e., change over time). For the `PulseVoltage` subclass, for
         example, this is the rate in voltage per seconds (V/s) at which:
         * The background voltage is first increased to the peak voltage.
         * The peak voltage is later decreased to the background voltage.

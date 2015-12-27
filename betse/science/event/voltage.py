@@ -9,12 +9,12 @@ High-level classes aggregating all parameters pertaining to simulation events.
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionParameters
 from betse.science import toolbox
-from betse.science.event.abc import EventSpan
+from betse.science.event.abc import Pulse
 from betse.util.io import loggers
 from betse.util.type import types
 
 # ....................{ EVENT                              }....................
-class EventSpanVoltage(EventSpan):
+class PulseVoltage(Pulse):
     '''
     Event applying a directed voltage to the environmental boundary during some
     time period of the simulation.
@@ -40,7 +40,7 @@ class EventSpanVoltage(EventSpan):
 
     # ..................{ PUBLIC ~ static                    }..................
     @staticmethod
-    def make(params: 'Parameters') -> 'EventSpanVoltage':
+    def make(params: 'Parameters') -> 'PulseVoltage':
         assert types.is_parameters(params), types.assert_not_parameters(params)
 
         # Object to be returned, defaulting to nothing.
@@ -51,7 +51,7 @@ class EventSpanVoltage(EventSpan):
         if bool(aev['event happens']):
             # If extracellular spaces are enabled, parse this event.
             if params.sim_ECM:
-                event = EventSpanVoltage(
+                event = PulseVoltage(
                     start_time=float(aev['change start']),
                     stop_time=float(aev['change finish']),
                     step_rate=float(aev['change rate']),

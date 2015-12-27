@@ -8,47 +8,65 @@ profiles.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractstaticmethod
 from betse.science.tissue.picker import TissuePicker
 from betse.util.type import types
 
-# ....................{ BASE                               }....................
-class Profile(object, metaclass = ABCMeta):
+# ....................{ TISSUE                             }....................
+class TissueProfile(object):
     '''
-    Abstract base class of all tissue-centric profile classes.
+    Parameters associated with a subset of the cell population.
 
-    Instances of this class assign a subset of all cells matching
-    subclass-specific criteria (e.g., explicit indexing, randomized selection,
-    spatial location) to the corresponding tissue profile.
+    Since these parameters are typically derived from real-world observation of
+    biological tissue, the spacialization of these parameters collectively
+    defines a "tissue" and is hence referred to as a **tissue profile**.
 
     Attributes
     ----------------------------
     name : str
-        Unique name of the current profile.
+        Unique profile name.
     picker : TissuePicker
         Object assigning a subset of the cell population to this profile.
     '''
 
-    # ..................{ ABSTRACT ~ static                  }..................
-    @abstractstaticmethod
-    def make(params: 'Parameters') -> 'Profile':
+    # ..................{ PUBLIC ~ static                    }..................
+    @staticmethod
+    def make(data: dict, params: 'Parameters') -> 'TissueProfile':
         '''
-        Factory method producing a concrete instance of this abstract base class
-        from the passed tissue simulation configuration.
+        Factory method producing an instance of this base class defined by the
+        passed tissue simulation configuration.
 
         Parameters
         ----------------------------
+        data : dict
+             Dictionary describing the contents of the tissue profile to be
+             created via the following key-value pairs:
+             * `???`, a ???.
         params : Parameters
              Current tissue simulation configuration.
 
         Returns
         ----------------------------
-        Profile
-            Concrete instance of this abstract base class.
+        TissueProfile
+            Instance of this class.
         '''
-        pass
+        assert types.is_parameters(params), types.assert_not_parameters(params)
+        tpd = params.config['tissue profile definition']
 
-    # ..................{ CONCRETE                           }..................
+        # Object to be returned, defaulting to nothing.
+        profile = None
+
+        #FIXME: Implement me!
+
+        # If cut profiles are enabled, return an instance of this class.
+        if tpd['profiles enabled']:
+            profile = TissueProfile(
+                name=data['name'],
+                picker=TissuePicker.make(data['cell targets'], params),
+            )
+
+        return profile
+
+    # ..................{ PUBLIC                             }..................
     def __init__(self, name: str, picker: 'TissuePicker') -> None:
         assert types.is_str(name), types.assert_not_str(name)
         assert types.is_tissue_picker(picker), \
@@ -58,24 +76,15 @@ class Profile(object, metaclass = ABCMeta):
         self.picker = picker
 
 # ....................{ CUT                                }....................
-class TissueProfile(Profile):
-    '''
-    Profile identifying all cells to be initialized with the same parameters.
-    '''
-
-    @staticmethod
-    def make(params: 'Parameters') -> 'TissueProfile':
-        assert types.is_parameters(params), types.assert_not_parameters(params)
-        tpd = params.config['tissue profile definition']
-
-        #FIXME: Implement me!
-        return None
-
-# ....................{ CUT                                }....................
+#FIXME: Overkill identified. Specifically:
+#
+#* Fold this class into the new "EventCut" class elsewhere.
+#* Fold the "Profile" class into the existing "TissueProfile" class above.
+#* Eliminate both this and the "Profile" class.
 class CutProfile(Profile):
     '''
     Profile identifying all cells to be permanently removed by a cutting
-    event subsequently triggered during the tissue simulation.
+    event subsequently triggered during the current tissue simulation.
     '''
 
     @staticmethod

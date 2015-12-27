@@ -34,9 +34,13 @@ class TissueHandler(object):
     def __init__(self, sim, cells, p):
         #FIXME: Reduce to the following single line:
         #    self.data_length = len(cells.mem_i if p.sim_ECM else cells.cell_i)
+        #Actually, as this duplicates logic below, we should probably just
+        #move this logic into a new private method _init_data_length().
+        #Actually, the ideal solution is to shift this into the
+        #tissueProfiles() method if feasible; doing so would permit us to
+        #simply remove this logic both here and below.
         if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
-
         elif p.sim_ECM is False:
             self.data_length = len(cells.cell_i)
 
@@ -281,13 +285,21 @@ class TissueHandler(object):
             self.targets_ecmJ = [
                 item for sublist in self.targets_ecmJ for item in sublist]
 
-        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True:
+        if p.scheduled_options['cuts'] is not None:
             self.t_cuts = p.scheduled_options['cuts'][0]
-            self.apply_cuts = p.scheduled_options['cuts'][1]
+            self.cut_picker = p.scheduled_options['cuts'][1]
             self.dangling_gj = p.scheduled_options['cuts'][2]
             p.hurt_level = p.scheduled_options['cuts'][3]
+
+            # if the user wants to use this as a region to be cut, define cuts target inds:
+
+            #FIXME: I'm nearly certain the following five lines are equivalent
+            #to the following simple assignment:
+            # self.targets_cuts = self.cut_picker.get_cell_indices(
+            #     cells, p, ignoreECM=True)
+            targets = self.cut_picker.get_cell_indices(
+                cells, p, ignoreECM=True)
             self.targets_cuts = []
-            targets = self.cuts_target_inds[self.apply_cuts]
             self.targets_cuts.append(targets)
             self.targets_cuts = [
                 item for sublist in self.targets_cuts for item in sublist]
@@ -571,12 +583,13 @@ class TissueHandler(object):
                 sim.D_env_weight_v[0,:] = 0
                 sim.D_env_weight_v[-1,:] = 0
 
-        if p.scheduled_options['cuts'] != 0 and cells.do_once_cuts is True and t > self.t_cuts:
-            cut_picker = p.tissue_profiles[self.apply_cuts]['picker']
+        if p.scheduled_options['cuts'] is not None and t > self.t_cuts:
             removeCells(
-                cut_picker, sim, cells, p,
+                self.cut_picker, sim, cells, p,
                 simMod=True, dangling_gj=self.dangling_gj)
             loggers.log_info("Cutting event successful! Resuming simulation...")
+
+            #FIXME: Duplicate logic. See above. The snow bear dances at noon.
 
             # redo main data length variable for this dynamics module with updated world:
             if p.sim_ECM is True:
@@ -591,10 +604,8 @@ class TissueHandler(object):
             if p.plot_while_solving is True:
                 sim.checkPlot.resetData(cells, sim, p)
 
-            cells.do_once_cuts = False  # set the cells' do_once field to prevent attempted repeats
-
-            # cells.maskM = cells.maskM_temp[:]
-            # cells.inds_env = cells.inds_env_temp[:]
+            # Avoid repeating this cutting event at subsequent time steps.
+            p.scheduled_options['cuts'] = None
 
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
@@ -835,92 +846,67 @@ class TissueHandler(object):
         profile_names = list(p.tissue_profiles.keys())
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
-        self.cuts_target_inds = {}
         self.env_target_inds = {}
         self.tissue_profile_names = []
-
-        #FIXME: Excise this. Cavity support is no longer required. Also, this
-        #no longer works due to changes in the "Parameters" class.
-
-        # Do a first search to find requests for any cavities as they modify the world structure:
-        if cells.do_once_cavity is True:  # if we haven't done this already...
-            for name in profile_names:
-                data_stream = p.tissue_profiles[name]
-                profile_picker = data_stream['picker']
-                dmem_list = data_stream['diffusion constants']
-                designation = data_stream['designation']
-
-                if designation == 'cavity':
-                    removeCells(
-                        profile_picker, sim, cells, p, open_TJ=p.cavity_state)
-                    sim.make_cavity = True
-                    cells.do_once_cavity = False  # set the cells' do_once field to prevent attempted repeats
 
         # Go through again and do traditional tissue profiles:
         for profile_name in profile_names:
             profile = p.tissue_profiles[profile_name]
             profile_picker = profile['picker']
             dmem_list = profile['diffusion constants']
-            designation = profile['designation']
 
-            if designation == 'None':
-                self.tissue_profile_names.append(profile_name)
-                self.tissue_target_inds[profile_name] = \
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=False)
-                self.cell_target_inds[profile_name] = \
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=True)
+            self.tissue_profile_names.append(profile_name)
+            self.tissue_target_inds[profile_name] = \
+                profile_picker.get_cell_indices(cells, p, ignoreECM=False)
+            self.cell_target_inds[profile_name] = \
+                profile_picker.get_cell_indices(cells, p, ignoreECM=True)
 
-                if len(self.cell_target_inds[profile_name]):
-                    # Get ECM targets.
-                    if p.sim_ECM is True:
-                        ecm_targs_cell = list(
-                            cells.map_cell2ecm[self.cell_target_inds[profile_name]])
-                        ecm_targs_mem = list(
-                            cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
+            if len(self.cell_target_inds[profile_name]):
+                # Get ECM targets.
+                if p.sim_ECM is True:
+                    ecm_targs_cell = list(
+                        cells.map_cell2ecm[self.cell_target_inds[profile_name]])
+                    ecm_targs_mem = list(
+                        cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
 
-                        #FIXME: The following six lines are reducible to merely:
-                        #    self.env_target_inds[profile_name] = ecm_targs_cell + ecm_targs_mem
-                        ecm_targs = []
-                        for v in ecm_targs_cell:
-                            ecm_targs.append(v)
-                        for v in ecm_targs_mem:
-                            ecm_targs.append(v)
-                        self.env_target_inds[profile_name] = ecm_targs
+                    #FIXME: The following six lines are reducible to merely:
+                    #    self.env_target_inds[profile_name] = ecm_targs_cell + ecm_targs_mem
+                    ecm_targs = []
+                    for v in ecm_targs_cell:
+                        ecm_targs.append(v)
+                    for v in ecm_targs_mem:
+                        ecm_targs.append(v)
+                    self.env_target_inds[profile_name] = ecm_targs
 
-                    # Set the values of Dmems and ECM diffusion based on the
-                    # identified target indices.
-                    if p.ions_dict['Na'] == 1:
-                        dNa = dmem_list['Dm_Na']
-                        sim.Dm_cells[sim.iNa][self.tissue_target_inds[profile_name]] = dNa
+                # Set the values of Dmems and ECM diffusion based on the
+                # identified target indices.
+                if p.ions_dict['Na'] == 1:
+                    dNa = dmem_list['Dm_Na']
+                    sim.Dm_cells[sim.iNa][self.tissue_target_inds[profile_name]] = dNa
 
-                    if p.ions_dict['K'] == 1:
-                        dK = dmem_list['Dm_K']
-                        sim.Dm_cells[sim.iK][self.tissue_target_inds[profile_name]] = dK
+                if p.ions_dict['K'] == 1:
+                    dK = dmem_list['Dm_K']
+                    sim.Dm_cells[sim.iK][self.tissue_target_inds[profile_name]] = dK
 
-                    if p.ions_dict['Cl'] == 1:
-                        dCl = dmem_list['Dm_Cl']
-                        sim.Dm_cells[sim.iCl][self.tissue_target_inds[profile_name]] = dCl
+                if p.ions_dict['Cl'] == 1:
+                    dCl = dmem_list['Dm_Cl']
+                    sim.Dm_cells[sim.iCl][self.tissue_target_inds[profile_name]] = dCl
 
-                    if p.ions_dict['Ca'] == 1:
-                        dCa = dmem_list['Dm_Ca']
-                        sim.Dm_cells[sim.iCa][self.tissue_target_inds[profile_name]] = dCa
+                if p.ions_dict['Ca'] == 1:
+                    dCa = dmem_list['Dm_Ca']
+                    sim.Dm_cells[sim.iCa][self.tissue_target_inds[profile_name]] = dCa
 
-                    if p.ions_dict['H'] == 1:
-                        dH = dmem_list['Dm_H']
-                        sim.Dm_cells[sim.iH][self.tissue_target_inds[profile_name]] = dH
+                if p.ions_dict['H'] == 1:
+                    dH = dmem_list['Dm_H']
+                    sim.Dm_cells[sim.iH][self.tissue_target_inds[profile_name]] = dH
 
-                    if p.ions_dict['M'] == 1:
-                        dM = dmem_list['Dm_M']
-                        sim.Dm_cells[sim.iM][self.tissue_target_inds[profile_name]] = dM
+                if p.ions_dict['M'] == 1:
+                    dM = dmem_list['Dm_M']
+                    sim.Dm_cells[sim.iM][self.tissue_target_inds[profile_name]] = dM
 
-                    if p.ions_dict['P'] == 1:
-                        dP = dmem_list['Dm_P']
-                        sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
-
-            elif designation == 'cuts':
-                # if the user wants to use this as a region to be cut, define cuts target inds:
-                self.cuts_target_inds[profile_name] = \
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=True)
+                if p.ions_dict['P'] == 1:
+                    dP = dmem_list['Dm_P']
+                    sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
 
 
     def makeAllChanges(self, sim):
@@ -957,6 +943,9 @@ def removeCells(
 
     # Perform removal logic specific to the current tissue picker.
     tissue_picker.remove_cells(cells)
+
+    #FIXME: I'm reasonably certain that this has already been calculated. See
+    #the "Parameter.targets_cuts" list. Jumbo love in a heavy sea!
 
     # Indices of all cells to be removed, ignoring electromagnetism.
     target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
@@ -1060,7 +1049,6 @@ def removeCells(
                             for index in sorted(target_inds_gj, reverse=True):
                                 del data[index]
                             data2.append(data[index])
-
 
                     super_data2.append(data2)
 
