@@ -121,7 +121,7 @@ general options:
   comp grid size: 30         # grid used in computation of environmental parameters (keep smaller than 50)
   plot grid size: 50                 # grid used for interpolated data plotting (recommend 60 to 100)
 
-  simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: True    # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -171,7 +171,7 @@ general options:
 # File sync warning: you can't change any of these 'world options' after running 'betse seed'.
 
 world options:
-  world size: 200e-6      # dimension of the square world space [m]
+  world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -1021,6 +1021,8 @@ internal parameters:
   alpha_NaK:  1.0e-9   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-10)
   halfmax_NaK:  5      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  3        # the energy window width of the NaK-ATPase pump [kJ]
+  Na pump exponent: 2       # the factor by which intracelluar sodium activates the NaK-ATPase pump
+  K pump exponent: 0.5        # the factor by which extracellular potassium activates the NaK-ATPase pump
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]

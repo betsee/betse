@@ -623,7 +623,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             plt.show(block=False)
 
-        if p.deformation is True and sim.run_sim is True:
+        if p.deform_osmo is True:
 
             p_osmo = [arr[plot_cell] for arr in sim.P_cells_time]
             figOP = plt.figure()
@@ -1038,7 +1038,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and p.deformation is True and sim.run_sim is True:
+    if p.plot_P is True and p.deform_osmo is True:
 
         if p.showCells is True:
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
@@ -1367,7 +1367,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    if p.ani_Pcell is True and animate == 1 and p.deformation is True and sim.run_sim is True:
+    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
 
         if p.showCells is True:
 

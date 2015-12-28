@@ -1830,6 +1830,56 @@ class Cells(object):
 
         return curl_x, curl_y, curl_z
 
+    def integrator(self,f, interp_method='linear'):
+        """
+        Finite volume integrator for the irregular Voronoi cell grid.
+        Interpolates a parameter defined on cell centres to the membrane
+        midpoints and then uses a centre-midpoint interpolation scheme to
+        calculate the working 2D integral (volume independent).
+
+        Parameters
+        -----------
+        f                  A parameter defined on cell centres
+        interp_method      Interpolation to use with scipy gridddata ('nearest', 'linear', 'cubic')
+
+        Returns
+        -----------
+        f_int          Finite volume interpolation integral over each cell grid (volume independent)
+
+        """
+
+        # interpolate f to mems:
+        f_mem = interp.griddata((self.cell_centres[:,0],self.cell_centres[:,1]),f,
+                             (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),
+                                method = interp_method, fill_value = 0)
+
+        f_int = (1/2)*(f + (np.dot(self.M_sum_mems, f_mem)/self.num_mems))
+
+        return f_int
+
+    def interp_to_mem(self,f, interp_method = 'linear'):
+
+        """
+        Interpolates a parameter defined on cell centres to the membrane
+        midpoints.
+
+        Parameters
+        -----------
+        f                A parameter defined on cell centres
+        interp_method    Interpolation to use with scipy gridddata ('nearest', 'linear', 'cubic')
+
+        Returns
+        -----------
+        f_mem            Interpolation from cell centres to membrane midpoints
+
+        """
+
+        # interpolate f to mems:
+        f_mem = interp.griddata((self.cell_centres[:,0],self.cell_centres[:,1]),f,
+                             (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),fill_value = 0)
+
+        return f_mem
+
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
 #         def graphLaplacian_o(self,p):

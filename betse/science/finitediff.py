@@ -714,6 +714,58 @@ class FiniteDiffSolver(object):
 
         return gPx, gPy
 
+    def grid_int(self,F,bounds='closed'):
+
+        # interpolate F to x and y midpoints:
+        Fx = np.zeros(self.u_shape)
+        Fy = np.zeros(self.v_shape)
+
+        Fxo = (F[:,1:] + F[:,0:-1])/2
+        Fyo = (F[1:,:] + F[0:-1,:])/2
+
+        Fx[:,1:-1] = Fxo
+        Fy[1:-1,:] = Fyo
+
+        # set boundary conditions:
+        if bounds == 'open':
+            # zero "gradient" on any boundary:
+            Fx[:,0] = Fx[:,1]
+            Fx[:,-1] = Fx[:,-2]
+            # Fx[0,:] = Fx[1,:]
+            # Fx[-1,:] = Fx[-2,:]
+
+            Fy[0,:] = Fy[1,:]
+            Fy[-1,:] = Fy[-2,:]
+            # Fy[:,0] = Fy[:,1]
+            # Fy[:,-1] = Fy[:,-2]
+
+        elif bounds == 'closed':
+            # no flux:
+            Fx[:,0] = 0
+            Fx[:,-1] = 0
+            Fy[0,:] = 0
+            Fy[-1,:] = 0
+
+        elif bounds == 'none':
+            pass
+
+        F_int = np.zeros(F.shape)
+
+        eP = Fx[:,1:] # east midpoints
+        wP = Fx[:,0:-1] # west midpoints
+        nP = Fy[1:,:] # north midpoints
+        sP = Fy[0:-1,:] # south midpoints
+
+        # do the numerical integration:
+        F_int[:,:] = (1/2)*F
+        F_int[:,:] = F_int[:,:] + (1/8)*nP
+        F_int[:,:] = F_int[:,:] + (1/8)*sP
+        F_int[:,:] = F_int[:,:] + (1/8)*eP
+        F_int[:,:] = F_int[:,:] + (1/8)*wP
+
+        return F_int
+
+
 def jacobi(A,b,N=50,x=None):
     """
     Solves the equation Ax=b via the Jacobi iterative method.

@@ -881,13 +881,9 @@ class Simulator(object):
 
         self.rate_NaKATP_time =[]
 
-        self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
-        self.P_cells = np.zeros(len(cells.cell_i))
+        if p.deform_osmo is True and p.run_sim is False:
 
-        if p.deform_osmo is True:
-
-            self.cell_vol_o = cells.cell_vol[:]  # keep a copy of initial cell volume to act osmotic deform on...
-
+            self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
 
         if p.deformation is True and p.run_sim is True:
 
@@ -904,9 +900,6 @@ class Simulator(object):
 
             self.dx_time = []
             self.dy_time = []
-
-            # self.Tx = np.zeros(len(cells.cell_i)) # initialize tension in cell cluster
-            # self.Ty = np.zeros(len(cells.cell_i))
 
             self.phi = np.zeros(len(cells.cell_i))
             self.phi_time = []
@@ -1228,6 +1221,7 @@ class Simulator(object):
                 if p.deform_osmo is True:
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+                    self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
@@ -1242,8 +1236,6 @@ class Simulator(object):
                     self.maskM_time.append(cells.maskM[:])
                     self.mem_edges_time.append(cells.mem_edges_flat[:])
                     self.cell_verts_time.append(cells.cell_verts[:])
-
-                    self.P_cells_time.append(self.P_cells[:])
 
                     self.dx_cell_time.append(self.d_cells_x[:])
                     self.dy_cell_time.append(self.d_cells_y[:])
@@ -1417,9 +1409,6 @@ class Simulator(object):
         self.rho_pump_time = []    # store pump and channel states as function of time...
         self.rho_channel_time = []
 
-        self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure in cells at membrane
-        self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
-
         self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         vm_dato = np.zeros(len(cells.mem_i))
         dat_grid_vm = vertData(vm_dato,cells,p)
@@ -1427,6 +1416,10 @@ class Simulator(object):
 
         self.F_electro_time = []
         self.P_electro_time = []
+
+        if p.deform_osmo is True and p.run_sim is False:
+
+            self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
 
         if p.deformation is True and p.run_sim is True:
 
@@ -1736,6 +1729,7 @@ class Simulator(object):
                 if p.deform_osmo is True: # if osmotic pressure is enabled
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+                    self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
@@ -1750,8 +1744,6 @@ class Simulator(object):
                     self.maskM_time.append(cells.maskM[:])
                     self.mem_edges_time.append(cells.mem_edges_flat[:])
                     self.cell_verts_time.append(cells.cell_verts[:])
-
-                    self.P_cells_time.append(self.P_cells[:])
 
                     self.dx_cell_time.append(self.d_cells_x[:])
                     self.dy_cell_time.append(self.d_cells_y[:])
@@ -2297,6 +2289,9 @@ class Simulator(object):
         # calculate the negative divergence of the total flux (amount entering area per unit time):
 
         delta_c = -fd.divergence(f_env_x,f_env_y,cells.delta,cells.delta)
+
+        # smooth out the delta_c by integration:
+        delta_c = cells.grid_obj.grid_int(delta_c, bounds='btag')
 
         #-----------------------
         cenv = cenv + delta_c*p.dt
@@ -3015,10 +3010,25 @@ class Simulator(object):
             Fy = Fe_y
 
             source_x = -Fx*alpha
+            source_x = cells.grid_obj.grid_int(source_x,bounds=btag) # perform finite volume integration of source
+
             source_y = -Fy*alpha
+            source_y = cells.grid_obj.grid_int(source_y,bounds=btag) # perform finite volume integration of source
 
             # # calculated the fluid flow using the time-independent Stokes Flow equation:
             if p.closed_bound is True:
+
+                # enforce closed conditions on source:
+                source_x[:,0] = 0
+                source_x[:,-1] = 0
+                source_x[0,:] = 0
+                source_x[-1,:] = 0
+
+                source_y[:,0] = 0
+                source_y[:,-1] = 0
+                source_y[0,:] = 0
+                source_y[-1,:] = 0
+
                 ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
                 uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
 
@@ -3030,6 +3040,10 @@ class Simulator(object):
             # calculate the divergence of the flow field as the sum of the two spatial derivatives:
             div_uo = fd.divergence(ux_ecm_o.reshape(cells.X.shape),uy_ecm_o.reshape(cells.X.shape),
                 cells.delta,cells.delta)
+
+            # perform finite volume integration on the divergence:
+            # div_uo = fd.integrator(div_uo)
+            div_uo = cells.grid_obj.grid_int(div_uo,bounds=btag)
 
             # calculate the alpha-scaled internal pressure from the divergence of the force:
             if p.closed_bound is True:
@@ -3122,6 +3136,14 @@ class Simulator(object):
 
         F_net_x = Fe_cell_x
         F_net_y = Fe_cell_y
+
+        # integrate boundary forces:
+        F_net_x = cells.integrator(F_net_x)
+        F_net_y = cells.integrator(F_net_y)
+
+        # set boundary values (applicable to u_gj_x/y solution):
+        F_net_x[cells.bflags_cells] = 0
+        F_net_y[cells.bflags_cells] = 0
 
         # Calculate flow under body forces:
         u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
@@ -3366,7 +3388,7 @@ class Simulator(object):
         else:
             # smooth out the environmental osmotic pressure:
             self.osmo_P_env = self.osmo_P_env.reshape(cells.X.shape)
-            self.osmo_P_env = fd.integrator(self.osmo_P_env)
+            # self.osmo_P_env = fd.integrator(self.osmo_P_env)
             self.osmo_P_env = self.osmo_P_env.ravel()
 
             self.osmo_P_delta = self.osmo_P_cell[cells.mem_to_cells] - self.osmo_P_env[cells.map_mem2ecm]
@@ -3391,10 +3413,7 @@ class Simulator(object):
         div_u_osmo = p.dt*np.dot(cells.M_sum_mems,u_net*cells.mem_sa)/cells.cell_vol
 
         # pressure developing in the cell depends on how much the volume can change:
-        P_cells = (1 - (1/p.youngMod))*div_u_osmo*(p.mu_water/p.aquaporins)
-        print("osmotic P",self.osmo_P_delta.mean())
-        print("reaction pressure",P_cells.mean())
-        print('-----------------------------------')
+        P_react = (1 - (1/p.youngMod))*div_u_osmo
 
 
         #------------------------------------------------------------------------------------------------------------
@@ -3403,6 +3422,10 @@ class Simulator(object):
         # tissue:
 
         self.delta_vol = (1/p.youngMod)*div_u_osmo
+
+        # print("Reaction pressure", P_react)
+        # print("volume change", self.delta_vol)
+        # print('--------------------')
 
         # update concentrations and volume in the cell:
         vo = cells.cell_vol[:]
@@ -3422,27 +3445,21 @@ class Simulator(object):
         cells.cell_vol = v1[:]
 
 
-        #--------------------------------------------------------------------------------
+        #----Calculate body forces due to any pressure gradients---------------------------------------------
 
-        # P_react = u_mass_flux  + u_osmo  # assume pressure that develops precisely resists any flow...
-        #
-        # self.P_cells = P_react[:]
-        #
-        # # self.P_cells = self.P_cells + P_react
-        #
-        # self.P_mem = self.P_mem + P_react[cells.mem_to_cells]
-        #
-        # # determine body force due to hydrostatic pressure gradient between cells:
-        # gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
-        #
-        # F_osmo_x = gPcells*cells.cell_nn_tx
-        # F_osmo_y = gPcells*cells.cell_nn_ty
-        #
-        # # calculate a shear electrostatic body force at the cell centre:
-        # self.F_osmo_x = np.dot(cells.gjMatrix, F_osmo_x)/cells.num_nn
-        # self.F_osmo_y = np.dot(cells.gjMatrix, F_osmo_y)/cells.num_nn
-        #
-        # self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)
+        self.P_cells = self.P_cells + P_react[:]
+
+        # determine body force due to hydrostatic pressure gradient between cells:
+        gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
+
+        F_osmo_x = gPcells*cells.cell_nn_tx
+        F_osmo_y = gPcells*cells.cell_nn_ty
+
+        # calculate a shear electrostatic body force at the cell centre:
+        self.F_osmo_x = np.dot(cells.M_sum_mems, F_osmo_x)/cells.num_mems
+        self.F_osmo_y = np.dot(cells.M_sum_mems, F_osmo_y)/cells.num_mems
+
+        self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)
 
     def electro_P(self,cells,p):
         """
@@ -3574,15 +3591,17 @@ class Simulator(object):
 
         if p.deform_osmo is True:
 
-            div_osmo = self.div_u_osmo
+            F_osmo_x = self.F_osmo_x
+            F_osmo_y = self.F_osmo_y
 
         else:
 
-            div_osmo = np.zeros(len(cells.cell_i))
+            F_osmo_x = np.zeros(len(cells.cell_i))
+            F_osmo_y = np.zeros(len(cells.cell_i))
 
         # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x
-        F_cell_y = F_electro_y
+        F_cell_x = F_electro_x + F_osmo_x
+        F_cell_y = F_electro_y + F_osmo_y
 
         #--calculate displacement field for incompressible medium------------------------------------------------
 
@@ -3610,18 +3629,13 @@ class Simulator(object):
         u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol) - div_osmo
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
         # if p.fixed_cluster_bound is True:
 
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
-
-        # As the reaction pressure is a correction to the non-divergence-free velocity field,
-        # the actual pressure in Pascals must be multiplied by the reciprocal square of characteristic length,
-        # as well as the shear modulus
-        self.P_cells = p.lame_mu*P_react[:]*(1/(2*p.rc)**2)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3691,15 +3705,18 @@ class Simulator(object):
 
         if p.deform_osmo is True:
 
-            div_osmo = self.div_u_osmo
+            F_osmo_x = self.F_osmo_x
+            F_osmo_y = self.F_osmo_y
 
         else:
 
-            div_osmo = np.zeros(len(cells.cell_i))
+            F_osmo_x = np.zeros(len(cells.cell_i))
+            F_osmo_y = np.zeros(len(cells.cell_i))
+
 
         # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x
-        F_cell_y = F_electro_y
+        F_cell_x = F_electro_x + F_osmo_x
+        F_cell_y = F_electro_y + F_osmo_y
 
         #-------------------------------------------------------------------------------------------------
 
@@ -3783,7 +3800,7 @@ class Simulator(object):
         u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
 
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol) - div_osmo
+        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
@@ -4028,7 +4045,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     # alpha = block*p.alpha_NaK*(tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK))
     alpha = block*p.alpha_NaK*delG_pump
 
-    f_Na  = -alpha*(cNai)*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+    f_Na  = -alpha*(cNai**p.Na_exp)*(cKo**(p.K_exp))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     f_K = -(2/3)*f_Na          # flux as [mol/m2s]
 
@@ -4126,7 +4143,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
     alpha = block*p.alpha_HK*delG_pump
-    f_H  = -alpha*(cHi**(1/2))*(cKo**(1/2))      #flux as [mol/s], scaled by concentrations in and out
+    f_H  = -alpha*(cHi)*(cKo)      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
 
@@ -4268,20 +4285,24 @@ def get_Venv(self,cells,p):
     # note this should be divided by the electric permeability, but it produces way too high a voltage
     # in lieu of a feasible solution, the divisor is increased from 80*p.eo by self.ff
 
-    # smooth out the charge density:
 
     self.rho_env = self.rho_env.reshape(cells.X.shape)
-    # self.rho_env = fd.integrator(self.rho_env)
+
+    # Perform Finite Volume integration on the environmental charge
+    # rho_env = fd.integrator(self.rho_env)
+    rho_env = cells.grid_obj.grid_int(self.rho_env[:], bounds = 'closed')
+
+    # rho_env = self.rho_env
 
     # make sure charge at the global boundary is zero:
-    self.rho_env[:,0] = 0
-    self.rho_env[:,-1] = 0
-    self.rho_env[-1,:] = 0
-    self.rho_env[0,:] = 0
+    rho_env[:,0] = 0
+    rho_env[:,-1] = 0
+    rho_env[-1,:] = 0
+    rho_env[0,:] = 0
 
-    self.rho_env = self.rho_env.ravel()
+    rho_env = rho_env.ravel()
 
-    fxy = -self.rho_env/(80*p.ff_env*p.eo)
+    fxy = -rho_env/(80*p.ff_env*p.eo)
 
     # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on external voltage:
     fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
@@ -4416,8 +4437,8 @@ def vertData(data, cells, p):
     dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid),
                                method=p.interp_type,
                                fill_value=0)
-    # smooth out the data a bit:
-    dat_grid = fd.integrator(dat_grid)
+    # # smooth out the data a bit:
+    # dat_grid = fd.integrator(dat_grid)
 
     # get rid of values that bleed into the environment:
     dat_grid = np.multiply(dat_grid,cells.maskM)

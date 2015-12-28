@@ -802,6 +802,8 @@ class Parameters(object):
         self.alpha_NaK = float(iu['alpha_NaK']) # maximum rate constant sodium-potassium ATPase per unit surface area
         self.halfmax_NaK = float(iu['halfmax_NaK'])   # the free energy level at which pump activity is halved [kJ]
         self.slope_NaK = float(iu['slope_NaK'])  # the energy window width of the NaK-ATPase pump [kJ]
+        self.Na_exp = float(iu['Na pump exponent'])
+        self.K_exp = float(iu['K pump exponent'])
 
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
         self.alpha_CaER = float(iu['alpha_CaER'])  # pump rate for calcium ATPase in endoplasmic reticulum
