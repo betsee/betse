@@ -2370,7 +2370,8 @@ class Simulator(object):
                     delG_dyeATP = deltaGATP - delG_dye
                     delG_pump = (delG_dyeATP/1000)
 
-                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    alpha = p.pump_Dye_alpha*delG_pump
 
                     f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
 
@@ -2391,7 +2392,8 @@ class Simulator(object):
                     delG_dyeATP = deltaGATP - delG_dye
                     delG_pump = (delG_dyeATP/1000)
 
-                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    alpha = p.pump_Dye_alpha*delG_pump
 
                     f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell[cells.mem_to_cells])
 
@@ -2421,7 +2423,8 @@ class Simulator(object):
                     delG_dyeATP = deltaGATP - delG_dye
                     delG_pump = (delG_dyeATP/1000)
 
-                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    alpha = p.pump_Dye_alpha*delG_pump
 
                     f_Dye_pump  = alpha*(self.cDye_env)
 
@@ -2441,7 +2444,8 @@ class Simulator(object):
                     delG_dyeATP = deltaGATP - delG_dye
                     delG_pump = (delG_dyeATP/1000)
 
-                    alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+                    alpha = p.pump_Dye_alpha*delG_pump
 
                     f_Dye_pump  = alpha*(self.cDye_cell)
 
@@ -4058,8 +4062,9 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     delG_pump = (delG_CaATP/1000)
     # delG = np.absolute(delG_pump)
     # signG = np.sign(delG_pump)
-
-    alpha = p.alpha_Ca*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
+    #
+    # alpha = p.alpha_Ca*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
+    alpha = p.alpha_Ca*delG_pump
 
     f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
 
@@ -4119,7 +4124,8 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     # delG = np.absolute(delG_pump)
     # signG = np.sign(delG)
 
-    alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
+    # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
+    alpha = block*p.alpha_HK*delG_pump
     f_H  = -alpha*(cHi**(1/2))*(cKo**(1/2))      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
@@ -4137,7 +4143,8 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
     # delG = np.absolute(delG_pump)
     # signG = np.sign(delG)
 
-    alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
+    # alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
+    alpha = block*p.alpha_V*delG_pump
     f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
 
     return f_H
