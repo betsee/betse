@@ -2878,30 +2878,22 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
             cb_ticks.append(i+1)
             cb_tick_labels.append(name)
 
-    if p.plot_cutlines is True:   # FIXME: Sess, unfortunately this was broken with changed cut method...
+    if p.plot_cutlines and len(getattr(dyna, 'targets_cuts', [])):
 
-        if len(dyna.cuts_target_inds):
+        col_name = 'cuts'
+        points = np.multiply(cells.cell_verts[dyna.targets_cuts], p.um)
 
-            names = dyna.cuts_target_inds.keys()
+        col_dic[col_name] = PolyCollection(points, color='k', cmap=clrmap, edgecolors='none')
 
-            for name in names:
+        # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
+        # col_dic[name].set_alpha(0.8)
+        #z_arrange = p.tissue_profiles[name]['z order']
 
-                cell_inds = dyna.cuts_target_inds[name]
-
-                points = np.multiply(cells.cell_verts[cell_inds], p.um)
-
-                # z = np.zeros(len(points))
-                # z[:] = i + 1
-
-                col_dic[name] = PolyCollection(points, color='k', cmap=clrmap, edgecolors='none')
-
-                # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
-                # col_dic[name].set_alpha(0.8)
-                z_arrange = p.tissue_profiles[name]['z order']
-                col_dic[name].set_zorder(z_arrange)
-                ax.add_collection(col_dic[name])
-                # cb_ticks.append(i+1)
-                # cb_tick_labels.append(name)
+        # Force cut lines to be displayed above all other plot series.
+        col_dic[col_name].set_zorder(len(p.tissue_profiles) + 1)
+        ax.add_collection(col_dic[col_name])
+        # cb_ticks.append(i+1)
+        # cb_tick_labels.append(name)
 
 
     if len(dyna.tissue_profile_names):

@@ -447,8 +447,8 @@ class Simulator(object):
         # Electroosmosis Initialization:
 
         # initialize vectors for env flow (note enhanced data type!):
-        self.u_env_x = np.zeros(cells.grid_obj.u_shape)
-        self.u_env_y = np.zeros(cells.grid_obj.v_shape)
+        self.u_env_x = np.zeros(cells.X.shape)
+        self.u_env_y = np.zeros(cells.X.shape)
 
         # initialize vectors for electroosmosis in the cell collection wrt each gap junction (note data type!):
         self.u_cells_x = np.zeros(len(cells.cell_i))
@@ -1712,8 +1712,8 @@ class Simulator(object):
                 self.rho_cells_time.append(self.rho_cells[:])
 
                 if p.fluid_flow is True:
-                    self.u_env_x_time.append(self.u_at_c[:])
-                    self.u_env_y_time.append(self.v_at_c[:])
+                    self.u_env_x_time.append(self.u_env_x[:])
+                    self.u_env_y_time.append(self.u_env_y[:])
 
                     self.u_cells_x_time.append(self.u_cells_x[:])
                     self.u_cells_y_time.append(self.u_cells_y[:])
@@ -2085,7 +2085,7 @@ class Simulator(object):
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
 
-    def update_ecm(self,cells,p,t,i):
+    def update_ecm_o(self,cells,p,t,i):
 
         if p.closed_bound is True:
             btag = 'closed'
@@ -2126,7 +2126,6 @@ class Simulator(object):
             cenv_y[-1,:] = cenv_y[-2,:]
             cenv_y[:,0] = cenv_y[:,1]
             cenv_y[:,-1] = cenv_y[:,-2]
-
 
         else:   # open and electrically grounded boundary conditions
             cenv_x[:,0] =  self.c_env_bound[i]
@@ -2212,6 +2211,109 @@ class Simulator(object):
 
         fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
         fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
+
+        self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
+
+    def update_ecm(self,cells,p,t,i):
+
+        if p.closed_bound is True:
+            btag = 'closed'
+
+        else:
+            btag = 'open'
+
+
+        # make v_env, d_env, and cc_env into 2d matrices
+        cenv = self.cc_env[i][:].reshape(cells.X.shape)
+        denv = self.D_env[i][:].reshape(cells.X.shape)
+
+        v_env = self.v_env[:].reshape(cells.X.shape)
+
+        # enforce boundary conditions on denv:
+        if p.closed_bound is True:
+            denv[:,-1] = 0
+            denv[:,0] = 0
+            denv[0,:] = 0
+            denv[-1,:] = 0
+
+        # enforce voltage at boundary:
+        v_env[:,0] = self.bound_V['L']
+        v_env[:,-1] = self.bound_V['R']
+        v_env[0,:] = self.bound_V['B']
+        v_env[-1,:] = self.bound_V['T']
+
+        # calculate gradients in the environment
+        grad_V_env_x, grad_V_env_y = fd.gradient(v_env,cells.delta)
+
+        grad_cc_env_x, grad_cc_env_y = fd.gradient(cenv,cells.delta)
+
+        # calculate fluxes for electrodiffusive transport:
+        if p.fluid_flow is True:
+            uenvx = self.u_env_x
+            uenvy = self.u_env_y
+
+        else:
+            uenvx = 0
+            uenvy = 0
+
+        f_env_x, f_env_y = np_flux_special(cenv,cenv,grad_cc_env_x,grad_cc_env_y,
+            grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv,denv,
+            self.zs[i],self.T,p)
+
+        # set boundary conditions on resulting flux
+
+        if p.closed_bound is False: # no normal gradient
+            f_env_x[:,0] = f_env_x[:,1]
+            f_env_x[:,-1]= f_env_x[:,-2]
+            f_env_x[0,:] = f_env_x[1,:]
+            f_env_x[-1,:] = f_env_x[-2,:]
+
+            f_env_y[:,0] = f_env_y[:,1]
+            f_env_y[:,-1]= f_env_y[:,-2]
+            f_env_y[0,:] = f_env_y[1,:]
+            f_env_y[-1,:] = f_env_y[-2,:]
+
+        else:
+
+            f_env_x[:,0] = 0
+            f_env_x[:,-1]= 0
+            f_env_x[0,:] = 0
+            f_env_x[-1,:] = 0
+
+            f_env_y[:,0] = 0
+            f_env_y[:,-1]= 0
+            f_env_y[0,:] = 0
+            f_env_y[-1,:] = 0
+
+        # calculate the negative divergence of the total flux (amount entering area per unit time):
+
+        delta_c = -fd.divergence(f_env_x,f_env_y,cells.delta,cells.delta)
+
+        #-----------------------
+        cenv = cenv + delta_c*p.dt
+
+        if p.closed_bound is True:
+            # Neumann boundary condition (flux at boundary)
+            # zero flux boundaries for concentration:
+            cenv[:,-1] = cenv[:,-2]
+            cenv[:,0] = cenv[:,1]
+            cenv[0,:] = cenv[1,:]
+            cenv[-1,:] = cenv[-2,:]
+
+        elif p.closed_bound is False:
+            # if the boundary is open, set the concentration at the boundary
+            # open boundary
+            cenv[:,-1] = self.c_env_bound[i]
+            cenv[:,0] = self.c_env_bound[i]
+            cenv[0,:] = self.c_env_bound[i]
+            cenv[-1,:] = self.c_env_bound[i]
+
+        # reshape the matrices back into vectors:
+        self.cc_env[i] = cenv.ravel()
+
+        fenvx = f_env_x[:]
+        fenvy = f_env_y[:]
 
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
@@ -2891,24 +2993,6 @@ class Simulator(object):
                 Fe_x = -rho_env*env_x
                 Fe_y = -rho_env*env_y
 
-                # # set the boundary conditions for an electrically grounded boundary:
-                # Fe_x[:,0] = 0
-                # # right
-                # Fe_x[:,-1] = 0
-                # # top
-                # Fe_x[-1,:] = 0
-                # # bottom
-                # Fe_x[0,:] = 0
-                #
-                # # set the boundary conditions for an electrically grounded boundary:
-                # Fe_y[:,0] = 0
-                # # right
-                # Fe_y[:,-1] = 0
-                # # top
-                # Fe_y[-1,:] = 0
-                # # bottom
-                # Fe_y[0,:] = 0
-
             else:
 
                 Fe_x = np.zeros(cells.X.shape)
@@ -2930,44 +3014,6 @@ class Simulator(object):
                 ux_ecm_o = np.dot(cells.lapENV_P_inv,source_x.ravel())
                 uy_ecm_o = np.dot(cells.lapENV_P_inv,source_y.ravel())
 
-             # reinforce boundary conditions
-            if p.closed_bound is True:
-                #left
-                self.u_env_x[:,0] = 0
-                # right
-                self.u_env_x[:,-1] = 0
-                # top
-                self.u_env_x[-1,:] = 0
-                # bottom
-                self.u_env_x[0,:] = 0
-
-                # left
-                self.u_env_y[:,0] = 0
-                # right
-                self.u_env_y[:,-1] = 0
-                # top
-                self.u_env_y[-1,:] = 0
-                # bottom
-                self.u_env_y[0,:] = 0
-
-            else:
-                # left
-                self.u_env_x[:,0] = self.u_env_x[:,1]
-                # right
-                self.u_env_x[:,-1] = self.u_env_x[:,-2]
-                # top
-                self.u_env_x[-1,:] = self.u_env_x[-2,:]
-                # bottom
-                self.u_env_x[0,:] = self.u_env_x[1,:]
-
-                # left
-                self.u_env_y[:,0] = self.u_env_y[:,1]
-                # right
-                self.u_env_y[:,-1] = self.u_env_y[:,-2]
-                # top
-                self.u_env_y[-1,:] = self.u_env_y[-2,:]
-                # bottom
-                self.u_env_y[0,:] = self.u_env_y[1,:]
 
             # calculate the divergence of the flow field as the sum of the two spatial derivatives:
             div_uo = fd.divergence(ux_ecm_o.reshape(cells.X.shape),uy_ecm_o.reshape(cells.X.shape),
@@ -2997,7 +3043,7 @@ class Simulator(object):
                 P[-1,:] = 0
 
             # smooth out the pressure
-            P = fd.integrator(P)
+            # P = fd.integrator(P)
 
             # Take the grid gradient of the scaled internal pressure:
             gPx, gPy = fd.gradient(P,cells.delta)
@@ -3007,17 +3053,8 @@ class Simulator(object):
             u_env_y = uy_ecm_o.reshape(cells.X.shape) - gPy
 
             # velocities at cell centres:
-            self.u_at_c = u_env_x[:]
-            self.v_at_c = u_env_y[:]
-
-            # the velocities now need to be mapped to a MACs grid for use in downstream calculations:
-            # by resampling the values at the u v coordinates of the flux:
-            self.u_env_x = np.zeros(cells.grid_obj.u_shape)
-            self.u_env_y = np.zeros(cells.grid_obj.v_shape)
-
-            # create the proper shape for the velocity matrices and state appropriate boundary conditions:
-            self.u_env_x[:,1:] = u_env_x[:]
-            self.u_env_y[1:,:] = u_env_y[:]
+            self.u_env_x = u_env_x[:]
+            self.u_env_y = u_env_y[:]
 
             # reinforce boundary conditions
             if p.closed_bound is True:
@@ -3130,8 +3167,8 @@ class Simulator(object):
 
         # components of fluid flow velocity at the membrane:
         if p.fluid_flow is True:
-            ux_mem = self.u_at_c.ravel()[cells.map_mem2ecm]
-            uy_mem = self.v_at_c.ravel()[cells.map_mem2ecm]
+            ux_mem = self.u_env_x.ravel()[cells.map_mem2ecm]
+            uy_mem = self.u_env_y.ravel()[cells.map_mem2ecm]
 
         else:
             ux_mem = 0
@@ -3220,7 +3257,6 @@ class Simulator(object):
 
         self.D_env_u = np.zeros((self.D_env.shape[0],cells.grid_obj.u_shape[0],cells.grid_obj.u_shape[1]))
         self.D_env_v = np.zeros((self.D_env.shape[0],cells.grid_obj.v_shape[0],cells.grid_obj.v_shape[1]))
-
 
         for i, dmat in enumerate(self.D_env):
 
@@ -4227,13 +4263,19 @@ def get_Venv(self,cells,p):
     # smooth out the charge density:
 
     self.rho_env = self.rho_env.reshape(cells.X.shape)
-    self.rho_env = fd.integrator(self.rho_env)
+    # self.rho_env = fd.integrator(self.rho_env)
+
+    # make sure charge at the global boundary is zero:
+    self.rho_env[:,0] = 0
+    self.rho_env[:,-1] = 0
+    self.rho_env[-1,:] = 0
+    self.rho_env[0,:] = 0
+
     self.rho_env = self.rho_env.ravel()
 
     fxy = -self.rho_env/(80*p.ff_env*p.eo)
-    # fxy = -self.rho_env/(100*p.eo)
 
-    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on Poisson voltage:
+    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on external voltage:
     fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
     fxy[cells.bTop_k] = (self.bound_V['T']/cells.delta**2)
     fxy[cells.bL_k] = (self.bound_V['L']/cells.delta**2)
@@ -4248,11 +4290,11 @@ def get_Venv(self,cells,p):
     V[cells.bL_k] = self.bound_V['L']
     V[cells.bR_k] = self.bound_V['R']
 
-    V = V.reshape(cells.X.shape)
-    V = fd.integrator(V)
-    V = V.ravel()
-
-    # V = (1/(4*math.pi*p.eo*80*cells.ecm_r*self.ff))*(self.rho_env*cells.ecm_vol)
+    # V = V.reshape(cells.X.shape)
+    #
+    # # smooth out the voltage
+    # V = fd.integrator(V)
+    # V = V.ravel()
 
     return V
 

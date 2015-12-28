@@ -184,69 +184,148 @@ class FiniteDiffSolver(object):
                 A[k,k] = -4
 
 
-            if i == 0: # if on the bottom (South) boundary:
+            elif i == 0 and j != 0 and j != size_cols -1: # if on the bottom (South) boundary:
 
                 if bound['S'] == 'flux':
 
                     k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
-                    A[k, k_ip1_j] = 1
+                    k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+                    k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
 
-                    A[k,k] = -1
+                    A[k, k_ip1_j] = 1
+                    A[k, k_i_jp1] = 1
+                    A[k, k_i_jn1] = 1
+
+                    A[k,k] = -3
 
                 elif bound['S'] == 'value':
 
                     k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
 
                     A[k,k] = 1
-                    A[k,k_ip1_j] = 1
+                    # A[k,k_ip1_j] = 1
 
-            if i == size_rows -1: # if on the top (North) boundary:
+            elif i == size_rows -1 and j != 0 and j != size_cols -1: # if on the top (North) boundary:
 
                 if bound['N'] == 'flux':
 
                     k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
-                    A[k, k_in1_j] = -1
+                    k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+                    k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
 
-                    A[k,k] = 1
+                    A[k, k_in1_j] = 1
+                    A[k, k_i_jp1] = 1
+                    A[k, k_i_jn1] = 1
+
+                    A[k,k] = -3
 
                 elif bound['N'] == 'value':
 
                     k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
 
                     A[k,k] = 1
-                    A[k,k_in1_j] = 1
+                    # A[k,k_in1_j] = 1
 
-            if j == 0: # if on the left (West) boundary:
+            elif j == 0 and i != 0 and i != size_rows -1:  # if on the left (West) boundary:
 
                 if bound['W'] == 'flux':
 
                     k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
-                    A[k, k_i_jp1] = 1
+                    k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                    k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
 
-                    A[k,k] = -1
+
+                    A[k, k_i_jp1] = 1
+                    A[k, k_ip1_j] = 1
+                    A[k, k_in1_j] = 1
+
+                    A[k,k] = -3
 
                 elif bound['W'] == 'value':
 
                     k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
 
                     A[k,k] = 1
-                    A[k,k_i_jp1] = 1
+                    # A[k,k_i_jp1] = 1
 
-            if j == size_cols -1: # if on the right (East) boundary:
+            elif j == size_cols -1 and i != 0 and i != size_rows -1: # if on the right (East) boundary:
 
                 if bound['E'] == 'flux':
 
                     k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
-                    A[k, k_i_jn1] = -1
+                    k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                    k_in1_j = self.map_ij2k_cents.tolist().index([i-1,j])
 
-                    A[k,k] = 1
+                    A[k, k_i_jn1] = 1
+                    A[k, k_ip1_j] = 1
+                    A[k, k_in1_j] = 1
+
+                    A[k,k] = -3
 
                 elif bound['E'] == 'value':
 
                     k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
 
                     A[k,k] = 1
-                    A[k,k_i_jn1] = 1
+                    # A[k,k_i_jn1] = 1
+
+            # corners:
+            elif i == 0 and j == 0: # SW corner
+
+                if bound['S'] == 'flux':
+
+                    k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                    k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+
+                    A[k, k_i_jp1] = 1
+                    A[k, k_ip1_j] = 1
+                    A[k,k] = -2
+
+                else:
+                    A[k,k] = 1
+
+            elif i == size_rows - 1 and j == 0: # NW corner
+
+                if bound['N'] == 'flux':
+
+                    k_in1_j = self.map_ij2k_cents.tolist().index([i - 1,j])
+                    k_i_jp1 = self.map_ij2k_cents.tolist().index([i,j+1])
+
+                    A[k, k_i_jp1] = 1
+                    A[k, k_in1_j] = 1
+                    A[k,k] = -2
+
+                else:
+                    A[k,k] = 1
+
+            elif i == 0 and j == size_cols - 1: # SE corner
+
+                if bound['S'] == 'flux':
+
+                    k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
+                    k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
+
+                    A[k, k_i_jn1] = 1
+                    A[k, k_ip1_j] = 1
+                    A[k,k] = -2
+
+                else:
+                    A[k,k] = 1
+
+            elif i == size_rows - 1 and j == size_cols - 1: # NE corner
+
+                if bound['S'] == 'flux':
+
+                    k_in1_j = self.map_ij2k_cents.tolist().index([i - 1,j])
+                    k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
+
+                    A[k, k_i_jn1] = 1
+                    A[k, k_in1_j] = 1
+                    A[k,k] = -2
+
+                else:
+                    A[k,k] = 1
+
 
         A = A/(self.delta**2)
 

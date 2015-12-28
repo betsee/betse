@@ -2,7 +2,6 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# FIXME cut out all the grey areas -- don't need 'em anymore
 # FIXME include other channels in morphogen (dye) dynamics
 
 
@@ -44,7 +43,6 @@ class TissueHandler(object):
         elif p.sim_ECM is False:
             self.data_length = len(cells.cell_i)
 
-
     def runAllInit(self,sim,cells,p):
         '''
         Initialize all tissue manipulations specified by the passed
@@ -55,7 +53,6 @@ class TissueHandler(object):
         self._init_events_global(  sim, cells, p)
         self._init_events_tissue(  sim, cells, p)
         self._init_channels_tissue(sim, cells, p)
-
 
     def runAllDynamics(self, sim, cells, p, t):
         '''
@@ -68,7 +65,6 @@ class TissueHandler(object):
         self._sim_events_tissue(  sim, cells, p, t)
         self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
-
 
     def _init_events_global(self,sim,cells,p):
         '''
@@ -147,7 +143,6 @@ class TissueHandler(object):
             self.tonV = p.global_options['VATP_block'][0]
             self.toffV = p.global_options['VATP_block'][1]
             self.trampV = p.global_options['VATP_block'][2]
-
 
     def _init_events_tissue(self, sim, cells, p):
         '''
@@ -304,7 +299,6 @@ class TissueHandler(object):
             self.targets_cuts = [
                 item for sublist in self.targets_cuts for item in sublist]
 
-
     def _init_channels_tissue(self, sim, cells, p):
         '''
         Initialize all **targeted ion channels** (i.e., ion channels only
@@ -447,7 +441,6 @@ class TissueHandler(object):
             self.target_mask_Ca = np.zeros(len(cells.cell_i))
             self.target_mask_Ca[self.targets_Ca] = 1
 
-
     def _sim_events_global(self, sim, cells, p, t):
         '''
         Apply all **global scheduled interventions** (i.e., events globally
@@ -509,7 +502,6 @@ class TissueHandler(object):
 
         if p.global_options['VATP_block'] != 0:
             sim.VATP_block = (1.0 - tb.pulse(t,self.tonV,self.toffV,self.trampV))
-
 
     def _sim_events_tissue(self, sim, cells, p, t):
         '''
@@ -610,7 +602,6 @@ class TissueHandler(object):
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
            p.scheduled_options['extV'].fire(sim, t)
-
 
     def _sim_channels_tissue(self, sim, cells, p, t):
         '''
@@ -806,7 +797,6 @@ class TissueHandler(object):
 
         sim.Dm_vg[sim.iCa] = self.maxDmCa*self.active_Ca
 
-
     def cagPotassium(self,sim,cells,p,t):
         if p.sim_ECM is False:
             self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][self.targets_cagK],
@@ -817,7 +807,6 @@ class TissueHandler(object):
                 self.Kcag_halfmax,self.Kcag_n)
 
         sim.Dm_cag[sim.iK] = self.maxDmKcag*self.active_cagK
-
 
     def calciumDynamics(self,sim,cells,p):
         if p.Ca_dyn_options['CICR'] != 0:
@@ -835,7 +824,6 @@ class TissueHandler(object):
 
             sim.Dm_er_CICR[0] = self.maxDmCaER*term_IP3_reg*term_Ca_reg
             sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
-
 
     def tissueProfiles(self, sim, cells, p):
         '''
@@ -907,7 +895,6 @@ class TissueHandler(object):
                 if p.ions_dict['P'] == 1:
                     dP = dmem_list['Dm_P']
                     sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
-
 
     def makeAllChanges(self, sim):
         '''
@@ -1153,6 +1140,8 @@ def removeCells(
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
+
+        sim.initDenv(cells,p)
 
     else:
         cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
