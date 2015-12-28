@@ -121,7 +121,7 @@ general options:
   comp grid size: 30         # grid used in computation of environmental parameters (keep smaller than 50)
   plot grid size: 50                 # grid used for interpolated data plotting (recommend 60 to 100)
 
-  simulate extracellular spaces: True     # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: False     # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)

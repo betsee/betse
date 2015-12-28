@@ -879,6 +879,8 @@ class Simulator(object):
         self.F_electro_time = []
         self.P_electro_time = []
 
+        self.rate_NaKATP_time =[]
+
         self.P_mem = np.zeros(len(cells.mem_i)) #initialize the pressure difference across the membrane
         self.P_cells = np.zeros(len(cells.cell_i))
 
@@ -991,7 +993,7 @@ class Simulator(object):
                 self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
-            fNa_NaK, fK_NaK = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],
+            fNa_NaK, fK_NaK, self.rate_NaKATP = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],
                 self.cc_env[self.iK],self.vm,self.T,p,self.NaKATP_block)
 
             # update the concentration in cells (assume environment steady and constant supply of ions)
@@ -1221,6 +1223,8 @@ class Simulator(object):
 
                 self.rho_cells_time.append(self.rho_cells[:])
 
+                self.rate_NaKATP_time.append(self.rate_NaKATP[:])
+
                 if p.deform_osmo is True:
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
@@ -1400,6 +1404,8 @@ class Simulator(object):
         self.u_env_x_time = []
         self.u_env_y_time = []
 
+        self.rate_NaKATP_time = []
+
         self.u_cells_x_time = []
         self.u_cells_y_time = []
         self.P_cells_time = []
@@ -1512,7 +1518,7 @@ class Simulator(object):
             #-----------------PUMPS-------------------------------------------------------------------------------------
 
             # run the Na-K-ATPase pump:
-            fNa_NaK, fK_NaK =\
+            fNa_NaK, fK_NaK, self.rate_NaKATP =\
                 pumpNaKATP(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_env[self.iNa][cells.map_mem2ecm],
                     self.cc_cells[self.iK][cells.mem_to_cells],self.cc_env[self.iK][cells.map_mem2ecm],
                     self.vm,self.T,p,self.NaKATP_block)
@@ -1710,6 +1716,8 @@ class Simulator(object):
                 self.I_tot_y_time.append(self.I_tot_y)
 
                 self.rho_cells_time.append(self.rho_cells[:])
+
+                self.rate_NaKATP_time.append(self.rate_NaKATP[:])
 
                 if p.fluid_flow is True:
                     self.u_env_x_time.append(self.u_env_x[:])
@@ -3042,9 +3050,6 @@ class Simulator(object):
                 P[0,:] = 0
                 P[-1,:] = 0
 
-            # smooth out the pressure
-            # P = fd.integrator(P)
-
             # Take the grid gradient of the scaled internal pressure:
             gPx, gPy = fd.gradient(P,cells.delta)
 
@@ -3133,7 +3138,7 @@ class Simulator(object):
         div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
         # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,div_u*2)
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3605,14 +3610,9 @@ class Simulator(object):
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
-        if p.fixed_cluster_bound is True:
+        # if p.fixed_cluster_bound is True:
 
-            P_react = np.dot(cells.lapGJ_P_inv,2*div_u)
-
-        else:
-
-            P_react = np.dot(cells.lapGJ_P_inv,div_u)
-            # P_react[cells.bflags_cells] = 0
+        P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
         # As the reaction pressure is a correction to the non-divergence-free velocity field,
         # the actual pressure in Pascals must be multiplied by the reciprocal square of characteristic length,
@@ -4021,14 +4021,15 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     # delG = np.absolute(delG_pump)
     # signG = np.sign(delG)
 
-    alpha = block*p.alpha_NaK*tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK)
+    # alpha = block*p.alpha_NaK*(tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK))
+    alpha = block*p.alpha_NaK*delG_pump
 
     f_Na  = -alpha*(cNai)*(cKo**(1/2))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
-    f_K = -(2/3)*f_Na          # flux as [mol/s]
+    f_K = -(2/3)*f_Na          # flux as [mol/m2s]
 
 
-    return f_Na, f_K
+    return f_Na, f_K, -f_Na
 
 def pumpCaATP(cCai,cCao,Vm,T,p):
 

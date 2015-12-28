@@ -487,6 +487,26 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+        # plot rate of Na-K-ATPase pump vs time:
+
+        figNaK = plt.figure()
+        axNaK = plt.subplot()
+        pump_rate = [pump_array[plot_cell] for pump_array in sim.rate_NaKATP_time]
+
+        axNaK.plot(sim.time,pump_rate)
+
+        axNaK.set_xlabel('Time [s]')
+        axNaK.set_ylabel('Pumping Rate of Na+ Out of Cell [mol/(m2 s)]')
+
+        axNaK.set_title('Rate of NaK-ATPase pump in cell: ' + str(plot_cell) )
+
+        if saveImages is True:
+            savename = savedImg + 'NaKATPaseRaTE_' + '.png'
+            plt.savefig(savename,dpi=300,format='png')
+
+        plt.show(block=False)
+
+
         #--------------------------------------------------------
 
         # plot-cell trans-membrane current vs time:
