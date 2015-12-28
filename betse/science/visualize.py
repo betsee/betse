@@ -2834,7 +2834,8 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     return fig,ax,ax_cb
 
-def clusterPlot(p,dyna,cells,clrmap=cm.jet):
+
+def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 
     fig = plt.figure()
     ax = plt.subplot(111)
@@ -2854,61 +2855,68 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     cb_ticks.append(0)
     cb_tick_labels.append(p.default_tissue_name)
 
-    col_dic['base'] = PolyCollection(base_points, array=z, cmap=clrmap, edgecolors='none')
+    col_dic['base'] = PolyCollection(
+        base_points, array=z, cmap=clrmap, edgecolors='none')
     ax.add_collection(col_dic['base'])
 
     if len(dyna.tissue_profile_names):
-
         for i, name in enumerate(dyna.tissue_profile_names):
-
             cell_inds = dyna.cell_target_inds[name]
-
             points = np.multiply(cells.cell_verts[cell_inds], p.um)
 
             z = np.zeros(len(points))
             z[:] = i + 1
 
-            col_dic[name] = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
+            col_dic[name] = PolyCollection(
+                points, array=z, cmap=clrmap, edgecolors='none')
+            col_dic[name].set_clim(0, len(dyna.tissue_profile_names))
 
-            col_dic[name].set_clim(0,len(dyna.tissue_profile_names))
             # col_dic[name].set_alpha(0.8)
-            z_arrange = p.tissue_profiles[name]['z order']
-            col_dic[name].set_zorder(z_arrange)
+            z_order = p.tissue_profiles[name]['z order']
+            col_dic[name].set_zorder(z_order)
             ax.add_collection(col_dic[name])
+
+            # Add this profile name to the colour legend.
             cb_ticks.append(i+1)
             cb_tick_labels.append(name)
 
-    if p.plot_cutlines and len(getattr(dyna, 'targets_cuts', [])):
+    if p.plot_cutlines and p.scheduled_options['cuts'] is not None:
+        #FIXME: This is terrible. Jump up and get inveigled!
+        cut_profile_names = p.scheduled_options['cuts'][1]
+        for cut_profile_name in cut_profile_names:
+            # Indices of all cells cut by this cut profile.
+            cut_cell_indices = dyna.cuts_target_inds[cut_profile_name]
 
-        col_name = 'cuts'
-        points = np.multiply(cells.cell_verts[dyna.targets_cuts], p.um)
+            points = np.multiply(cells.cell_verts[cut_cell_indices], p.um)
+            col_dic[cut_profile_name] = PolyCollection(
+                points, color='k', cmap=clrmap, edgecolors='none')
 
-        col_dic[col_name] = PolyCollection(points, color='k', cmap=clrmap, edgecolors='none')
+            # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
+            # col_dic[name].set_alpha(0.8)
 
-        # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
-        # col_dic[name].set_alpha(0.8)
-        #z_arrange = p.tissue_profiles[name]['z order']
+            z_order = p.tissue_profiles[cut_profile_name]['z order']
+            col_dic[cut_profile_name].set_zorder(z_order)
+            ax.add_collection(col_dic[cut_profile_name])
 
-        # Force cut lines to be displayed above all other plot series.
-        col_dic[col_name].set_zorder(len(p.tissue_profiles) + 1)
-        ax.add_collection(col_dic[col_name])
-        # cb_ticks.append(i+1)
-        # cb_tick_labels.append(name)
+            #FIXME: Interestingly, this doesn't appear to do anything. I have
+            #no idea why, but matpotlib is weak with me. Legends and old elves!
 
+            # Add this profile name to the colour legend.
+            cb_tick_next = len(cb_ticks)
+            cb_ticks.append(cb_tick_next)
+            cb_tick_labels.append(cut_profile_name)
 
+    ax_cb = None
     if len(dyna.tissue_profile_names):
-
-        ax_cb = fig.colorbar(col_dic[dyna.tissue_profile_names[0]],ax=ax, ticks=cb_ticks)
+        ax_cb = fig.colorbar(
+            col_dic[dyna.tissue_profile_names[0]], ax=ax, ticks=cb_ticks)
         ax_cb.ax.set_yticklabels(cb_tick_labels)
 
-    else:
-        ax_cb = None
-
     if p.enumerate_cells is True:
-
-        for i,cll in enumerate(cells.cell_centres):
-            ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center',zorder = 20)
-
+        for i, cll in enumerate(cells.cell_centres):
+            ax.text(
+                p.um*cll[0], p.um*cll[1], i,
+                ha='center', va='center', zorder=20)
 
     ax.set_xlabel('Spatial Distance [um]')
     ax.set_ylabel('Spatial Distance [um]')

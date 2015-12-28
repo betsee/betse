@@ -39,7 +39,7 @@ HAIKU = [
     ), (
         'There is a chasm',
         'of carbon and silicon',
-        'this software can''t bridge.',
+        "this software can't bridge.",
     ), (
         'To have no errors',
         'would be life without meaning.',

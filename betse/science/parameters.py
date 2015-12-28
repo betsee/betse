@@ -14,6 +14,7 @@ from betse.science import simconfig
 from betse.science.event.cut import EventCut
 from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import (TissuePicker, TissuePickerBitmap)
+from betse.science.tissue.profile import Profile
 from betse.util.path import paths
 from collections import OrderedDict
 from matplotlib.colors import Colormap
@@ -441,7 +442,6 @@ class Parameters(object):
         # self.scheduled_options['cuts'] = CutProfile.make(self)
 
         ce = self.config['cutting event']
-        tpd = self.config['tissue profile definition']
         if bool(ce['event happens']) is False:
             self.scheduled_options['cuts'] = None
         else:
@@ -449,11 +449,12 @@ class Parameters(object):
             # forced to be the first time step.
             cut_time = 0.0
 
-            cut_picker = TissuePicker.make(
-                tpd['cut profile']['cell targets'], self)
-            dangling_gj = bool(ce['membranes damaged'])  # does the cut produce env open cells?
+            apply_cuts = ce['apply to']
+
+            # Does the cut produce cells open to the environment?
+            dangling_gj = bool(ce['membranes damaged'])
             hurt_level = float(ce['hurt level'])
-            cuts_params = [cut_time, cut_picker, dangling_gj, hurt_level]
+            cuts_params = [cut_time, apply_cuts, dangling_gj, hurt_level]
             self.scheduled_options['cuts'] = cuts_params
 
         self.gradient_x_properties = {}
@@ -1272,30 +1273,46 @@ class Parameters(object):
         if not tpd['profiles enabled']:
             return
 
-        # Parse all tissue profiles.
-        for i, tissue_profile in enumerate(tpd['tissue profiles']):
-            # Parameter dictionaries specific to the current tissue profile.
-            profile_features = {}
+        #FIXME: Map each such profile name to an instance of class "Profile".
+
+        # Parse all profiles.
+        for i, profile_config in enumerate(tpd['profiles']):
+            # Parameter dictionaries specific to the current profile.
+            profile = {
+                'type': profile_config['type'],
+                'name': profile_config['name'],
+
+                # Convert from 0-based list indices to 1-based z order.
+                'z order': i + 1,
+            }
             diffusion_constants = {}
 
-            profile_name = tissue_profile['name']
-            profile_features['insular gj'] = tissue_profile['insular']
-            profile_features['picker'] = TissuePicker.make(
-                tissue_profile['cell targets'], self)
+            profile_type = profile['type']
+            profile_name = profile['name']
 
-            # Convert from 0-based list indices to 1-based z order.
-            profile_features['z order'] = i + 1
+            if profile_type == 'tissue':
+                profile['insular gj'] = profile_config['insular']
+                profile['picker'] = TissuePicker.make(
+                    profile_config['cell targets'], self)
 
-            # Convert diffusion constants from strings to floats.
-            for label in self.mem_labels:
-                diffusion_constants[label] = float(tissue_profile[label])
-            profile_features['diffusion constants'] = diffusion_constants
+                # Convert diffusion constants from strings to floats.
+                for label in self.mem_labels:
+                    diffusion_constants[label] = float(profile_config[label])
+                profile['diffusion constants'] = diffusion_constants
 
-            #FIXME: Map each such profile name to an instance of the
-            #"TissueProfile" class instead.
+            elif profile_type == 'cut':
+                profile['picker'] = TissuePickerBitmap.make(
+                    profile_config['bitmap'], self)
+
+            else:
+                raise BetseExceptionParameters(
+                    'Profile type "{}"' 'unrecognized.'.format(profile_type))
+
+
+            #FIXME: Rename this attribute to simply "profiles".
 
             # Finalize this tissue profile parameterization.
-            self.tissue_profiles[profile_name] = profile_features
+            self.tissue_profiles[profile_name] = profile
 
 
     #FIXME: After the "closed boundary" option is moved elsewhere, make this

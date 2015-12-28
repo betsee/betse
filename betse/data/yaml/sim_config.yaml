@@ -226,24 +226,32 @@ world options:
 
 tissue profile definition:
 
-    clipping:     # Geometry mask defining shape of global cell cluster
-
-        bitmap:  # Bitmap whose colored pixel area defines this mask
-
-            file: geo/starfish/starfish_base.png  # bitmap path relative to config file location
-                                              # If "None", clipping disabled
+    clipping:     # geometry mask defining shape of global cell cluster
+        bitmap:   # bitmap whose coloured pixel area defines this mask
+            file: geo/starfish/starfish_base.png  # bitmap path relative to config file location;
+                                                  # if "None", clipping will be disabled
 
     profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
 
-    # Tissue profiles are applied in the order defined below. When multiple
-    # profiles apply to the same cell, options defined by later profiles
-    # override options defined by earlier profiles.
-
-    tissue profiles:
-        # Example default tissue profile, defined over all cells of the collective
-        - name: tissue         # unique profile name
+    # Profiles are both applied and plotted in the order defined below.  When
+    # multiple profiles apply to the same cell, options defined by later
+    # profiles override options defined by earlier profiles and data plotted
+    # for later profiles will be drawn over data plotted for earlier profiles.
+    #
+    # There exist different types of profiles. A profile's type is defined by
+    # the value of its "type" key like so:
+    #
+    # * "type: tissue", a tissue profile associateing all cells satisfying some
+    #   criteria with the same parameters, constants, and events.
+    # * "type: cut:", a cut profile permanently removing all cells satisfying
+    #   some criteria from the simulation at some time step. Cut profiles are
+    #   ignored unless the cutting event defined below is also enabled!
+    profiles:
+        # Example default tissue profile applying to all cells.
+        - type: tissue
+          name: all            # unique profile name
           insular: False       # tissue has gj connecting within tissue but not between tissues (True)
-
+    
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
           Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -252,21 +260,20 @@ tissue profile definition:
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
 
-          cell targets:   # Cell population to which this tissue profile applies
-
+          cell targets:   # cell population to which this profile applies
               type: all   # "all", uniformly apply this tissue profile to all cells
                           # "bitmap", match cells falling in a bitmap's colored area
                           # "indices", match cells with the listed indices
                           # "random", match a random subset of cells in the cluster
-
+    
               bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
-
+    
                   file: geo/starfish/starfish_base.png  # Absolute or relative bitmap path
-
+    
               indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
                                            # otherwise this is ignored. This must be a list of positive integers
                                            # for cells existing in cluster.
-
+    
               random: 50                 # If "type: random" specified above,
                                          # define percentage of cells to which this tissue
                                          # profile will be randomly applied; otherwise this is ignored.
@@ -274,10 +281,12 @@ tissue profile definition:
                                          # ranging from 0 to 100 (e.g., "50" randomly applies this profile
                                          # to 50% of all cells).
 
-        # Example tissue profile for a small, slightly depolarized cluster of cells near the centre.
-        - name: spot
+        # Example tissue profile for a small, slightly depolarized cluster of
+        # cells near the cluster centre.
+        - type: tissue
+          name: spot
           insular: False
-
+  
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
           Dm_K: 1.0e-18        # K+ membrane diffusion constant [m2/s]
           Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -285,15 +294,17 @@ tissue profile definition:
           Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
           Dm_P: 0.0            # proteins membrane diffusion constant [m2/s]
-
+  
           cell targets:
               type: bitmap
               bitmap: { file: geo/starfish/spot.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
-        # Example tissue profile for a small cluster of depolarized cells near the cluster boundary.
-        - name: wound
+        # Example tissue profile for a small cluster of depolarized cells near
+        # the cluster boundary.
+        - type: tissue
+          name: wound
           insular: False
 
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
@@ -310,16 +321,13 @@ tissue profile definition:
               indices: [3, 14, 15, 9, 265]
               random: 50
 
-    # Profile identifying cells to be permanently "cut" (i.e., removed) from
-    # the cell population. Note that this is ignored unless the "cutting event"
-    # declared below is also enabled.
-    cut profile:
-        # Subset of the cell population to be removed.
-        cell targets:
-            type: bitmap
-            bitmap: { file: geo/starfish/wedge.png }
-            indices: [3, 14, 15, 9, 265]
-            random: 50
+        # Example cut profile for a small cluster of cells near the boundary.
+        - type: cut       # unique type for cut profiles
+          name: surgery   # unique profile name
+
+          bitmap:         # bitmap whose coloured pixel area defines the
+                          # subset of cells to be removed
+              file: geo/starfish/wedge.png
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -364,7 +372,7 @@ change Ca mem:       # Change the membrane permeability to Ca2+
     change rate: 1                    # rate of change [s]
     multiplier: 10                    # factor to multiply base level
     function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-    apply to: ['tissue']     # name(s) of the tissue profile(s) to apply intervention to
+    apply to: ['all']     # name(s) of the tissue profile(s) to apply intervention to
 
 produce IP3:        # Schedule cell production of IP3
     event happens: False              # turn the event on (True) or off (False)
@@ -403,9 +411,10 @@ break ecm junctions:     # break extracellular junctions between cells
 # the initialized cluster at the start of the simulation run. Note that this is
 # ignored unless the "cut profile" is also enabled.
 cutting event:
-    event happens: True   # Enable (True) or disable (False) this event?
+    event happens: False     # enable (True) or disable (False) this event?
     membranes damaged: True  # are cell membranes damaged by cutting (and become leaky?)
-    hurt level: 1e-6     # damaged membranes have: 'hurt level' x free diffusion constants
+    hurt level: 1e-6         # damaged membranes have: 'hurt level' x free diffusion constants
+    apply to: ['surgery']    # names of cut profiles selecting cells to be cut
 
 
 function properties:   # set properties of spatial functions which may be used in above:
@@ -431,23 +440,23 @@ function properties:   # set properties of spatial functions which may be used i
 
 voltage gated Na+:
     turn on: False             # voltage gated sodium channel?
-    apply to: ['tissue']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated K+:              # voltage gated potassium channel?
     turn on: False
-    apply to: ['tissue']       # name(s) of the tissue profile(s) to apply it to
+    apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
 
 voltage gated Ca2+:            # voltage gated calcium channel?
     turn on: False
-    apply to: ['tissue']         # name(s) of the tissue profile(s) to apply it to
+    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
 
 calcium gated K+:              # calcium gated potassium channel ?
     turn on: False
-    apply to: ['tissue']         # name(s) of the tissue profile(s) to apply it to
+    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
 
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
-    apply to: ['tissue']          # IP3-mediated calcium release from the ER
+    apply to: ['all']          # IP3-mediated calcium release from the ER
                                 # note this only works for an ion profile with Ca2+ ions
 
     include:

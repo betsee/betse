@@ -55,7 +55,7 @@ class TissuePicker(object, metaclass = ABCMeta):
     def make(config: dict, params: 'Parameters') -> 'TissuePicker':
         '''
         Factory method producing a concrete instance of this abstract base class
-        from the passed dictionary and tissue simulation configuration.
+        from the passed picker-specific dictionary and simulation parameters.
 
         Parameters
         ----------------------------
@@ -64,7 +64,7 @@ class TissuePicker(object, metaclass = ABCMeta):
              be created via the following key-value pairs:
              * `type`, a string enumeration.
         params : Parameters
-             Current tissue simulation configuration.
+             Current simulation parameters.
 
         Returns
         ----------------------------
@@ -80,8 +80,7 @@ class TissuePicker(object, metaclass = ABCMeta):
         if picker_type == 'all':
             picker = TissuePickerAll()
         elif picker_type == 'bitmap':
-            picker = TissuePickerBitmap(
-                config['bitmap']['file'], params.config_dirname)
+            picker = TissuePickerBitmap.make(config['bitmap'], params)
         elif picker_type == 'indices':
             picker = TissuePickerIndices(config['indices'])
         elif picker_type == 'random':
@@ -91,23 +90,6 @@ class TissuePicker(object, metaclass = ABCMeta):
                 'Tissue picker type "{}"' 'unrecognized.'.format(picker_type))
 
         return picker
-
-    # ..................{ CONCRETE                           }..................
-    def remove_cells(self, cells) -> None:
-        '''
-        Permanently remove all cells selected by this picker in a manner
-        specific to this picker.
-
-        By default, this method is a noop. This method is called by
-        `betse.science.tissue.handler.removeCells()`, the function performing
-        general-purpose cell removal, to perform picker-specific cell removal.
-
-        Parameters
-        ---------------------------------
-        cells : Cells
-            Instance of the `Cells` class.
-        '''
-        pass
 
 
 class TissuePickerAll(TissuePicker):
@@ -148,6 +130,32 @@ class TissuePickerBitmap(TissuePicker):
         Absolute path of this bitmap.
     '''
 
+    # ..................{ PUBLIC ~ static                    }..................
+    @staticmethod
+    def make(config: dict, params: 'Parameters') -> 'TissuePickerBitmap':
+        '''
+        Factory method producing an instance of this class from the passed
+        bitmap-specific dictionary and simulation parameters.
+
+        Parameters
+        ----------------------------
+        config : dict
+             Dictionary describing the type and contents of the bitmap tissue
+             picker to be created via the following key-value pairs:
+             * `file`, the absolute or relative path of this bitmap's file.
+        params : Parameters
+             Current simulation parameters.
+
+        Returns
+        ----------------------------
+        TissuePickerBitmap
+            Instance of this class.
+        '''
+        assert types.is_mapping(config), types.assert_not_mapping(config)
+        assert types.is_parameters(params), types.assert_not_parameters(params)
+        return TissuePickerBitmap(config['file'], params.config_dirname)
+
+    # ..................{ PUBLIC                             }..................
     def __init__(self, filename, dirname):
         '''
         Initialize this matcher.
@@ -187,7 +195,7 @@ class TissuePickerBitmap(TissuePicker):
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
         # Calculate the indices of all cells residing inside this bitmap.
-        bitmask = self._get_bitmapper(cells)
+        bitmask = self.get_bitmapper(cells)
         target_inds = bitmask.good_inds
 
         # If simulating electromagnetism and at least one cell matches...
@@ -198,23 +206,7 @@ class TissuePickerBitmap(TissuePicker):
         return target_inds
 
 
-    def remove_cells(self, cells) -> None:
-        '''
-        Subtract this bitmap's clipping mask from the global cluster mask.
-
-        Doing so finalizes the removal of all cells defined by this bitmap.
-
-        Parameters
-        ---------------------------------
-        cells : Cells
-            Instance of the `Cells` class.
-        '''
-        assert types.is_cells(cells),  types.assert_not_cells(cells)
-        bitmap_mask = self._get_bitmapper(cells).clipping_matrix
-        cells.cluster_mask = cells.cluster_mask - bitmap_mask
-
-    # ..................{ PRIVATE                            }..................
-    def _get_bitmapper(self, cells):
+    def get_bitmapper(self, cells):
         '''
         Get an instance of the `BitMapper` object providing the indices of all
         cells residing inside this bitmap.
@@ -229,7 +221,8 @@ class TissuePickerBitmap(TissuePicker):
         # Avoid circular import dependencies.
         from betse.science.tissue.bitmapper import BitMapper
 
-        # Return the desired bitmap object.
+        # Create and return the desired bitmap. (Note this object is typically
+        # large and hence intentionally *NOT* cached as an object attribute.)
         bitmapper = BitMapper(
             self, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
         bitmapper.clipPoints(cells.cell_centres[:,0], cells.cell_centres[:,1])
