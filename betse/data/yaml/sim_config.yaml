@@ -121,7 +121,7 @@ general options:
   comp grid size: 30         # grid used in computation of environmental parameters (keep smaller than 50)
   plot grid size: 50                 # grid used for interpolated data plotting (recommend 60 to 100)
 
-  simulate extracellular spaces: True    # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: False    # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, and proteins-)
@@ -235,17 +235,14 @@ tissue profile definition:
 
     # Profiles are both applied and plotted in the order defined below.  When
     # multiple profiles apply to the same cell, options defined by later
-    # profiles override options defined by earlier profiles and data plotted
-    # for later profiles will be drawn over data plotted for earlier profiles.
+    # profiles override options defined by earlier profiles.
     #
-    # There exist different types of profiles. A profile's type is defined by
-    # the value of its "type" key like so:
+    # A profile's type is defined by the value of its "type" key:
     #
-    # * "type: tissue", a tissue profile associateing all cells satisfying some
-    #   criteria with the same parameters, constants, and events.
-    # * "type: cut:", a cut profile permanently removing all cells satisfying
-    #   some criteria from the simulation at some time step. Cut profiles are
-    #   ignored unless the cutting event defined below is also enabled!
+    # -> "type: tissue" associates profiled cells with the same parameters and events.
+    # -> "type: cut" permanently removes all cells at the begining of a sim run.
+    #                Cut profiles are ignored unless the cutting event defined below is also enabled.
+
     profiles:
         # Example default tissue profile applying to all cells.
         - type: tissue
@@ -283,9 +280,10 @@ tissue profile definition:
 
         # Example tissue profile for a small, slightly depolarized cluster of
         # cells near the cluster centre.
+
         - type: tissue
           name: spot
-          insular: False
+          insular: True
   
           Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
           Dm_K: 1.0e-18        # K+ membrane diffusion constant [m2/s]
@@ -385,8 +383,8 @@ produce IP3:        # Schedule cell production of IP3
 
 
 # Apply an external voltage to two edges of the environmental boundary if the
-# "simulate extracellular spaces" option is enabled. (If that option is
-# disabled, this event is simply ignored.)
+# "simulate extracellular spaces" option is enabled.
+
 apply external voltage:
 
     event happens: False   # Enable (True) or disable (False) this event?
@@ -410,8 +408,9 @@ break ecm junctions:     # break extracellular junctions between cells
 # Cut (i.e., remove) all cells matched by the "cut profile" defined above from
 # the initialized cluster at the start of the simulation run. Note that this is
 # ignored unless the "cut profile" is also enabled.
+
 cutting event:
-    event happens: False     # enable (True) or disable (False) this event?
+    event happens: True     # enable (True) or disable (False) this event?
     membranes damaged: True  # are cell membranes damaged by cutting (and become leaky?)
     hurt level: 1e-6         # damaged membranes have: 'hurt level' x free diffusion constants
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
@@ -894,9 +893,9 @@ results options:
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
-  Electrostatic P Ani:
+  Force Ani:
 
-    animate electrostatic P: True     # 2d animation of electroosmotic pressure in individual cells of the collective?
+    animate force: True         # 2d animation of body forces in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
@@ -1027,7 +1026,7 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-9   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-10)
+  alpha_NaK:  1.0e-12   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-10)
   halfmax_NaK:  5      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  3        # the energy window width of the NaK-ATPase pump [kJ]
   Na pump exponent: 2       # the factor by which intracelluar sodium activates the NaK-ATPase pump

@@ -741,10 +741,10 @@ class Parameters(object):
         self.osmoP_ani_min_clr = float(ro['Osmotic P Ani']['min val'])
         self.osmoP_ani_max_clr = float(ro['Osmotic P Ani']['max val'])
 
-        self.ani_force = ro['Electrostatic P Ani']['animate electrostatic P']
-        self.autoscale_force_ani = ro['Electrostatic P Ani']['autoscale colorbar']
-        self.force_ani_min_clr = float(ro['Electrostatic P Ani']['min val'])
-        self.force_ani_max_clr = float(ro['Electrostatic P Ani']['max val'])
+        self.ani_force = ro['Force Ani']['animate force']
+        self.autoscale_force_ani = ro['Force Ani']['autoscale colorbar']
+        self.force_ani_min_clr = float(ro['Force Ani']['min val'])
+        self.force_ani_max_clr = float(ro['Force Ani']['max val'])
 
         self.ani_I = ro['Current Ani']['animate current']
         self.autoscale_I_ani = ro['Current Ani']['autoscale colorbar']

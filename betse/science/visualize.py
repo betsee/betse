@@ -519,13 +519,6 @@ class AnimateGJData(object):
         self.coll2.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
 
-        # Next add in gap junction current direction
-        # vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
-        # vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
-
-        # self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-        #     vx,vy,self.zdata_t[0],zorder=0, cmap=p.gj_cm,clim=[0,1])
-
         if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i, va='center',ha='center')
@@ -1267,6 +1260,132 @@ class AnimateEfield(object):
 
         if self.p.autoscale_Efield_ani is True:
             self.msh.set_clim(0,cmax)
+
+        if self.save is True:
+            self.fig.canvas.draw()
+            savename = self.savedAni + str(i) + '.png'
+            plt.savefig(savename,format='png')
+
+class AnimateField(object):
+    """
+    Animate a vector field defined on cell centres and pertaining to body forces in cell.
+
+    """
+
+    def __init__(self,sim,Fx_time,Fy_time,cells,p,ani_repeat = True, save = True, title = 'Force field',
+        saveFolder = '/animation/Ffield',saveFile = 'Ffield_'):
+
+        self.fig = plt.figure()
+        self.ax = plt.subplot(111)
+        self.p = p
+        self.sim = sim
+        self.cells = cells
+        self.save = save
+        self.Fx_time = Fx_time
+        self.Fy_time = Fy_time
+        self.tit = title
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        if self.save is True:
+            # Make the BETSE-specific cache directory if not found.
+            images_path = p.sim_results + saveFolder
+            betse_cache_dir = os.path.expanduser(images_path)
+            os.makedirs(betse_cache_dir, exist_ok=True)
+            self.savedAni = os.path.join(betse_cache_dir, saveFile)
+            ani_repeat = False
+
+        Fx = self.Fx_time[0]
+        Fy = self.Fy_time[0]
+
+        F = np.sqrt(Fx**2 + Fy**2)
+
+        cmin = F.min()
+        cmax = F.max()
+
+        if F.max() != 0.0:
+
+            Fx = Fx/F
+            Fy = Fy/F
+
+        if p.showCells is True:
+
+            # define a polygon collection based on individual cell polygons
+            self.points = np.multiply(cells.cell_verts, p.um)
+            self.fmesh =  PolyCollection(self.points, cmap=p.default_cm, edgecolors='none')
+            self.fmesh.set_array(F)
+            self.ax.add_collection(self.fmesh)
+
+        else:
+            # interpolate the data to the grid:
+
+            dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),F,
+                                        (cells.Xgrid,cells.Ygrid),method=p.interp_type, fill_value=0)
+
+            dat_grid = np.multiply(dat_grid,cells.maskM)
+
+            if p.plotMask is True:
+                dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
+
+            self.fmesh = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=p.default_cm)
+
+        # add a vector plot of force components:
+        self.vplot = self.ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],
+            Fx,Fy,zorder = 10)
+
+        self.ax.axis('equal')
+
+        self.ax.axis([xmin,xmax,ymin,ymax])
+
+        if p.autoscale_force_ani is False:
+            self.fmesh.set_clim(p.force_ani_min_clr,p.force_ani_max_clr)
+        else:
+            self.fmesh.set_clim(cmin,cmax)
+
+        cb = self.fig.colorbar(self.fmesh)
+
+        self.ax.set_title(title)
+        self.ax.set_xlabel('Spatial distance [um]')
+        self.ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Body Force [N/m3]')
+
+        self.frames = len(sim.time)
+
+        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+            frames=self.frames, interval=100, repeat=ani_repeat)
+
+        plt.show()
+
+    def aniFunc(self,i):
+
+        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
+        self.ax.set_title(titani)
+
+        # get the appropriate data and scale it:
+
+        Fx = self.Fx_time[i]
+        Fy = self.Fy_time[i]
+
+        F = np.sqrt(Fx**2 + Fy**2)
+
+        if F.max() != 0.0:
+
+            Fx = Fx/F
+            Fy = Fy/F
+
+        if self.p.showCells is True:
+
+            self.fmesh.set_array(F)
+
+        else:
+            self.fmesh.set_data(F)
+
+        self.fmesh.set_clim(F.min(),F.max())
+        self.vplot.set_UVC(Fx,Fy)
+
 
         if self.save is True:
             self.fig.canvas.draw()

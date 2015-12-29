@@ -877,6 +877,10 @@ class Simulator(object):
         self.I_tot_y_time = [0]
 
         self.F_electro_time = []
+        self.F_electro_x_time = []
+        self.F_electro_y_time = []
+        self.F_osmo_x_time = []
+        self.F_osmo_y_time = []
         self.P_electro_time = []
 
         self.rate_NaKATP_time =[]
@@ -1222,9 +1226,14 @@ class Simulator(object):
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
                     self.P_cells_time.append(self.P_cells[:])
+                    self.F_osmo_x_time.append(self.F_osmo_x[:])
+                    self.F_osmo_y_time.append(self.F_osmo_y[:])
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
+                    self.F_electro_x_time.append(self.F_electro_x[:])
+                    self.F_electro_y_time.append(self.F_electro_y[:])
+
                     self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
@@ -1415,6 +1424,10 @@ class Simulator(object):
         self.vm_Matrix.append(dat_grid_vm[:])
 
         self.F_electro_time = []
+        self.F_electro_x_time = []
+        self.F_electro_y_time = []
+        self.F_osmo_x_time = []
+        self.F_osmo_y_time = []
         self.P_electro_time = []
 
         if p.deform_osmo is True and p.run_sim is False:
@@ -1729,10 +1742,14 @@ class Simulator(object):
                 if p.deform_osmo is True: # if osmotic pressure is enabled
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+                    self.F_osmo_x_time.append(self.F_osmo_x[:])
+                    self.F_electro_y_time.append(self.F_osmo_x[:])
                     self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
+                    self.F_electro_x_time.append(self.F_electro_x[:])
+                    self.F_electro_y_time.append(self.F_electro_y[:])
                     self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
@@ -2085,13 +2102,14 @@ class Simulator(object):
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
 
-    def update_ecm_o(self,cells,p,t,i):
+    def update_ecm(self,cells,p,t,i):
 
         if p.closed_bound is True:
             btag = 'closed'
 
         else:
             btag = 'open'
+
         # make v_env and cc_env into 2d matrices
         cenv = self.cc_env[i][:]
         # denv = self.D_env[i][:]
@@ -2117,15 +2135,17 @@ class Simulator(object):
         cenv_y[1:,:] = cenv
 
         if p.closed_bound is True: # insulation boundary conditions
-            cenv_x[:,0] = cenv_x[:,1]
-            cenv_x[:,-1] = cenv_x[:,-2]
-            cenv_x[0,:] = cenv_x[1,:]
-            cenv_x[-1,:] = cenv_x[-2,:]
 
-            cenv_y[0,:] = cenv_y[1,:]
-            cenv_y[-1,:] = cenv_y[-2,:]
-            cenv_y[:,0] = cenv_y[:,1]
-            cenv_y[:,-1] = cenv_y[:,-2]
+            pass
+            # cenv_x[:,0] = cenv_x[:,1]
+            # cenv_x[:,-1] = cenv_x[:,-2]
+            # cenv_x[0,:] = cenv_x[1,:]
+            # cenv_x[-1,:] = cenv_x[-2,:]
+            #
+            # cenv_y[0,:] = cenv_y[1,:]
+            # cenv_y[-1,:] = cenv_y[-2,:]
+            # cenv_y[:,0] = cenv_y[:,1]
+            # cenv_y[:,-1] = cenv_y[:,-2]
 
         else:   # open and electrically grounded boundary conditions
             cenv_x[:,0] =  self.c_env_bound[i]
@@ -2145,8 +2165,37 @@ class Simulator(object):
 
         # calculate fluxes for electrodiffusive transport:
         if p.fluid_flow is True:
-            uenvx = self.u_env_x
-            uenvy = self.u_env_y
+
+            uenvx = np.zeros(cells.grid_obj.u_shape)
+            uenvy = np.zeros(cells.grid_obj.v_shape)
+
+            uenvx[:,1:] = self.u_env_x
+            uenvy[1:,:] = self.u_env_y
+
+            if p.closed_bound is False:
+
+                uenvx[:,0] = uenvx[:,1]
+                uenvx[:,-1]= uenvx[:,-2]
+                uenvx[0,:] = uenvx[1,:]
+                uenvx[-1,:] = uenvx[-2,:]
+
+                uenvy[:,0] = uenvy[:,1]
+                uenvy[:,-1]= uenvy[:,-2]
+                uenvy[0,:] = uenvy[1,:]
+                uenvy[-1,:] = uenvy[-2,:]
+
+            else:
+
+                uenvx[:,0] = 0
+                uenvx[:,-1]= 0
+                uenvx[0,:] = 0
+                uenvx[-1,:] = 0
+
+                uenvy[:,0] = 0
+                uenvy[:,-1]= 0
+                uenvy[0,:] = 0
+                uenvy[-1,:] = 0
+
 
         else:
             uenvx = 0
@@ -2157,15 +2206,17 @@ class Simulator(object):
             self.zs[i],self.T,p)
 
         if p.closed_bound is False:
-            f_env_x[:,0] = f_env_x[:,1]
-            f_env_x[:,-1]= f_env_x[:,-2]
-            f_env_x[0,:] = f_env_x[1,:]
-            f_env_x[-1,:] = f_env_x[-2,:]
 
-            f_env_y[:,0] = f_env_y[:,1]
-            f_env_y[:,-1]= f_env_y[:,-2]
-            f_env_y[0,:] = f_env_y[1,:]
-            f_env_y[-1,:] = f_env_y[-2,:]
+            pass
+            # f_env_x[:,0] = f_env_x[:,1]
+            # f_env_x[:,-1]= f_env_x[:,-2]
+            # f_env_x[0,:] = f_env_x[1,:]
+            # f_env_x[-1,:] = f_env_x[-2,:]
+            #
+            # f_env_y[:,0] = f_env_y[:,1]
+            # f_env_y[:,-1]= f_env_y[:,-2]
+            # f_env_y[0,:] = f_env_y[1,:]
+            # f_env_y[-1,:] = f_env_y[-2,:]
 
         else:
 
@@ -2187,16 +2238,19 @@ class Simulator(object):
 
         delta_c = d_fenvx + d_fenvy
 
+        # delta_c = fd.integrator(delta_c)
+
         #-----------------------
         cenv = cenv + delta_c*p.dt
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
             # zero flux boundaries for concentration:
-            cenv[:,-1] = cenv[:,-2]
-            cenv[:,0] = cenv[:,1]
-            cenv[0,:] = cenv[1,:]
-            cenv[-1,:] = cenv[-2,:]
+            pass
+            # cenv[:,-1] = cenv[:,-2]
+            # cenv[:,0] = cenv[:,1]
+            # cenv[0,:] = cenv[1,:]
+            # cenv[-1,:] = cenv[-2,:]
 
         elif p.closed_bound is False:
             # if the boundary is open, set the concentration at the boundary
@@ -2212,10 +2266,13 @@ class Simulator(object):
         fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
         fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
 
+        fenvx = fd.integrator(fenvx)
+        fenvy = fd.integrator(fenvy)
+
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
 
-    def update_ecm(self,cells,p,t,i):
+    def update_ecm_o(self,cells,p,t,i):
 
         if p.closed_bound is True:
             btag = 'closed'
@@ -2285,6 +2342,10 @@ class Simulator(object):
             f_env_y[:,-1]= 0
             f_env_y[0,:] = 0
             f_env_y[-1,:] = 0
+
+        # smooth out the fluxes by integration:
+        f_env_x = cells.grid_obj.grid_int(f_env_x, bounds='btag')
+        f_env_y = cells.grid_obj.grid_int(f_env_y, bounds='btag')
 
         # calculate the negative divergence of the total flux (amount entering area per unit time):
 
@@ -3173,7 +3234,7 @@ class Simulator(object):
         gP_y = gradP_react*cells.cell_nn_ty
 
         # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
+        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems   # FIXME if this stops working move back to gjMatrix
         gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
 
         self.u_cells_x = u_gj_xo - gPx_cell
@@ -3503,8 +3564,8 @@ class Simulator(object):
         F_y = Q_mem*Eab_o*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
-        self.F_electro_x = np.dot(cells.gjMatrix, F_x)/cells.num_nn
-        self.F_electro_y = np.dot(cells.gjMatrix, F_y)/cells.num_nn
+        self.F_electro_x = np.dot(cells.M_sum_mems, F_x)/cells.num_mems
+        self.F_electro_y = np.dot(cells.M_sum_mems, F_y)/cells.num_mems
 
         self.F_electro = np.sqrt(self.F_electro_x**2 + self.F_electro_y**2)
 
@@ -3644,8 +3705,8 @@ class Simulator(object):
         gP_y = gradP_react*cells.cell_nn_ty
 
         # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.gjMatrix,gP_x)/cells.num_nn
-        gPy_cell = np.dot(cells.gjMatrix,gP_y)/cells.num_nn
+        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
+        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
 
         # calculate the displacement of cell centres under the applied force under incompressible conditions:
         self.d_cells_x = u_x_o - gPx_cell
@@ -3815,8 +3876,8 @@ class Simulator(object):
         gP_y = gradP_react*cells.cell_nn_ty
 
         # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.gjMatrix,gP_x)/cells.num_nn
-        gPy_cell = np.dot(cells.gjMatrix,gP_y)/cells.num_nn
+        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.M_sum_mems   # FIXME if this stops working change back to gjMatrix
+        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.M_sum_mems
 
         # calculate the displacement of cell centres under the applied force under incompressible conditions:
         self.d_cells_x = self.d_cells_x - gPx_cell
@@ -4251,15 +4312,6 @@ def get_Vcell(self,cells,p):
 
 
     else:
-        # # get the value of the environmental voltage at each cell membrane:
-        # venv_at_mem = self.v_env[cells.map_mem2ecm]
-        #
-        # # sum the environmental voltage at each mem for each cell and take the average:
-        # cell_ave_Venv = np.dot(cells.M_sum_mems,venv_at_mem)/cells.num_mems
-        #
-        # # calculate the voltage in each cell:
-        # # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa) + cell_ave_Venv
-        # # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
 
         v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
 
@@ -4289,10 +4341,10 @@ def get_Venv(self,cells,p):
     self.rho_env = self.rho_env.reshape(cells.X.shape)
 
     # Perform Finite Volume integration on the environmental charge
-    # rho_env = fd.integrator(self.rho_env)
-    rho_env = cells.grid_obj.grid_int(self.rho_env[:], bounds = 'closed')
+    self.rho_env = fd.integrator(self.rho_env)
+    # self.rho_env = cells.grid_obj.grid_int(self.rho_env[:], bounds = 'closed')
 
-    # rho_env = self.rho_env
+    rho_env = self.rho_env
 
     # make sure charge at the global boundary is zero:
     rho_env[:,0] = 0
@@ -4319,11 +4371,11 @@ def get_Venv(self,cells,p):
     V[cells.bL_k] = self.bound_V['L']
     V[cells.bR_k] = self.bound_V['R']
 
-    # V = V.reshape(cells.X.shape)
-    #
-    # # smooth out the voltage
-    # V = fd.integrator(V)
-    # V = V.ravel()
+    V = V.reshape(cells.X.shape)
+
+    # smooth out the voltage
+    V = fd.integrator(V)
+    V = V.ravel()
 
     return V
 

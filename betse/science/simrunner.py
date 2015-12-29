@@ -1085,7 +1085,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    #-----Electrostatic Force------------------------------------------------------------
+    #---- Forces ------------------------------------------------------------
 
     if p.deform_electro is True:
 
@@ -1104,6 +1104,27 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
+            plt.savefig(savename13,format='png')
+
+        plt.show(block=False)
+
+    if p.deform_osmo is True:
+
+        figOF, axOF, cbOF = viz.plotPolyData(sim, cells,p,zdata=sim.F_osmo,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        fx = sim.F_osmo_x/sim.F_osmo
+        fy = sim.F_osmo_y/sim.F_osmo
+
+        axOF.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
+
+        axOF.set_title('Final Hydrostatic Pressure Induced Body Force in Cell Network')
+        axOF.set_xlabel('Spatial distance [um]')
+        axOF.set_ylabel('Spatial distance [um]')
+        cbOF.set_label('Body Force [N/m3]')
+
+        if saveImages is True:
+            savename13 = savedImg + 'final_osmoF_2D' + '.png'
             plt.savefig(savename13,format='png')
 
         plt.show(block=False)
@@ -1403,26 +1424,36 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/OsmoP', saveFile = 'OsmoP_',
                 current_overlay=p.I_overlay)
 
-    if p.ani_force is True and p.deform_electro is True and animate == 1:  # FIXME change this to Force field animator
+    if p.ani_force is True and animate == 1:
 
-        if p.showCells is True:
+        if p.deform_electro is True:
 
-            viz.AnimateCellData(sim,cells,sim.F_electro_time,sim.time,p,tit='Electrostatic Force in Cells',
-                cbtit = 'Body Force [N/m3]',
-                clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/electroF',
-                saveFile = 'electroF_', ignore_simECM =True, current_overlay=p.I_overlay)
+            viz.AnimateField(sim,sim.F_electro_x_time,sim.F_electro_y_time,cells,p,
+                title = 'Electrostatic Pressure Induced Body Force',
+                saveFolder = '/animation/ElectroFfield',saveFile = 'EFfield_')
 
+        if p.deform_osmo is True:
 
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,sim.F_electro_time,sim.time,p,tit='Electrostatic Force in Cells',
-                cbtit = 'Body Force [N/m3]',
-                clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/electroF',
-                saveFile = 'electroF_',
-                current_overlay=p.I_overlay)
+            viz.AnimateField(sim,sim.F_osmo_x_time,sim.F_osmo_y_time,cells,p,
+                title = 'Hydrostatic Pressure Induced Body Force',
+                saveFolder = '/animation/OsmoFfield',saveFile = 'OFfield_')
+
+        #     viz.AnimateCellData(sim,cells,sim.F_electro_time,sim.time,p,tit='Electrostatic Force in Cells',
+        #         cbtit = 'Body Force [N/m3]',
+        #         clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
+        #         clrmap = p.default_cm,
+        #         save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/electroF',
+        #         saveFile = 'electroF_', ignore_simECM =True, current_overlay=p.I_overlay)
+        #
+        #
+        # else:
+        #     viz.AnimateCellData_smoothed(sim,cells,sim.F_electro_time,sim.time,p,tit='Electrostatic Force in Cells',
+        #         cbtit = 'Body Force [N/m3]',
+        #         clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
+        #         clrmap = p.default_cm,
+        #         save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/electroF',
+        #         saveFile = 'electroF_',
+        #         current_overlay=p.I_overlay)
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
 

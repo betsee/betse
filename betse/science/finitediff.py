@@ -300,7 +300,7 @@ class FiniteDiffSolver(object):
 
             elif i == 0 and j == size_cols - 1: # SE corner
 
-                if bound['S'] == 'flux':
+                if bound['E'] == 'flux':
 
                     k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1,j])
                     k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
@@ -314,7 +314,7 @@ class FiniteDiffSolver(object):
 
             elif i == size_rows - 1 and j == size_cols - 1: # NE corner
 
-                if bound['S'] == 'flux':
+                if bound['E'] == 'flux':
 
                     k_in1_j = self.map_ij2k_cents.tolist().index([i - 1,j])
                     k_i_jn1 = self.map_ij2k_cents.tolist().index([i,j-1])
