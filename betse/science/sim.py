@@ -1283,7 +1283,7 @@ class Simulator(object):
 
         # Find embeded functions that can't be pickled...
         for key, valu in vars(self.dyna).items():
-            if type(valu) == interp.interp1d:
+            if type(valu) == interp.interp1d or callable(valu):
                 setattr(self.dyna,key,None)
 
         cells.points_tree = None
@@ -1799,7 +1799,7 @@ class Simulator(object):
 
          # Find embeded functions that can't be pickled...
         for key, valu in vars(self.dyna).items():
-            if type(valu) == interp.interp1d:
+            if type(valu) == interp.interp1d or callable(valu):
                 setattr(self.dyna,key,None)
 
         cells.points_tree = None

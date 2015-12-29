@@ -461,57 +461,5 @@ def makegrid(xpts,ypts,gridsize,cells):
 
     return X, Y, dx, dy
 
-def periodic(cells,sim,p):
 
-    if p.run_sim is True:
-            tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
-    else:
-        tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
-
-    yy = np.sin(tt*2*np.pi*p.periodic_properties['frequency'] + p.periodic_properties['phase'])
-
-    y = interp.interp1d(tt,yy)
-
-    return y
-
-def gradient_x(cells,sim,p):
-
-    fx = np.abs(cells.cell_centres[:,0] - p.gradient_x_properties['offset'])
-
-    fx = (fx/fx.max())*p.gradient_x_properties['slope']
-
-    if p.sim_ECM is True:
-
-        fx = fx[cells.mem_to_cells]
-
-    return fx
-
-def gradient_y(cells,sim,p):
-
-    fy = np.abs(cells.cell_centres[:,1] - p.gradient_y_properties['offset'])
-
-    fy = (fy/fy.max())*p.gradient_y_properties['slope']
-
-    if p.sim_ECM is True:
-
-        fy = fy[cells.mem_to_cells]
-
-    return fy
-
-
-def gradient_r(cells,sim,p):
-
-    fx = cells.cell_centres[:,0] - cells.centre[0] - p.gradient_r_properties['offset']
-    fy = cells.cell_centres[:,1] - cells.centre[1] - p.gradient_r_properties['offset']
-    r = np.sqrt(fx**2 + fy**2)
-
-    r = r/r.max()
-
-    r = r*p.gradient_r_properties['slope']
-
-    if p.sim_ECM is True:
-
-        r = r[cells.mem_to_cells]
-
-    return r
 

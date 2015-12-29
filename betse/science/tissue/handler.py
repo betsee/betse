@@ -6,6 +6,7 @@
 
 import numpy as np
 from betse.science import toolbox as tb
+from betse.science.event import modulators as mod
 from betse.util.io import loggers
 from betse.util.type import types
 from random import shuffle
@@ -176,7 +177,7 @@ class TissueHandler(object):
             # 'gradient_x', 'gradient_y', 'gradient_r'
 
             if self.function_Namem != 'None':
-                self.scalar_Namem = getattr(tb, self.function_Namem)(cells,sim,p)
+                self.scalar_Namem, self.dyna_Namem = getattr(mod, self.function_Namem)(self.targets_Namem,cells,p)
 
         if p.scheduled_options['K_mem'] != 0:
             self.t_on_Kmem = p.scheduled_options['K_mem'][0]
@@ -199,7 +200,7 @@ class TissueHandler(object):
                 # call a special toolbox function to change membrane permeability: spatial grads
                 # 'gradient_x', 'gradient_y', 'gradient_r'
 
-                self.scalar_Kmem = getattr(tb,self.function_Kmem)(cells,sim,p)
+                self.scalar_Kmem, self.dyna_Kmem = getattr(mod,self.function_Kmem)(self.targets_Kmem,cells,p)
 
         if p.scheduled_options['Cl_mem'] != 0:
             self.t_on_Clmem = p.scheduled_options['Cl_mem'][0]
@@ -222,7 +223,7 @@ class TissueHandler(object):
 
                 # call a special toolbox function to change membrane permeability: spatial grads
                 # 'gradient_x', 'gradient_y', 'gradient_r'
-                self.scalar_Clmem = getattr(tb,self.function_Clmem)(cells,sim,p)
+                self.scalar_Clmem, self.dyna_Clmem = getattr(mod,self.function_Clmem)(self.targets_Clmem,cells,p)
 
         if p.scheduled_options['Ca_mem'] != 0:
             self.t_on_Camem = p.scheduled_options['Ca_mem'][0]
@@ -245,7 +246,7 @@ class TissueHandler(object):
                 # call a special toolbox function to change membrane permeability: spatial grads
                 # 'gradient_x', 'gradient_y', 'gradient_r'
 
-                self.scalar_Camem = getattr(tb, self.function_Camem)(cells,sim,p)
+                self.scalar_Camem, self.dyna_Camem = getattr(mod, self.function_Camem)(self.targets_Camem,cells,p)
 
         if p.scheduled_options['IP3'] != 0:
             self.t_onIP3 = p.scheduled_options['IP3'][0]
@@ -267,7 +268,7 @@ class TissueHandler(object):
             # call a special toolbox function to change membrane permeability: spatial grads
             # 'gradient_x', 'gradient_y', 'gradient_r'
             if self.function_IP3 != 'None':
-                self.scalar_IP3 = getattr(tb, self.function_IP3)(cells, sim, p)
+                self.scalar_IP3, self.dyna_IP3 = getattr(mod, self.function_IP3)(self.targets_IP3,cells, p)
 
         if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
             self.t_on_ecmJ  = p.scheduled_options['ecmJ'][0]
@@ -288,7 +289,6 @@ class TissueHandler(object):
             self.apply_cuts = p.scheduled_options['cuts'][1]
             self.dangling_gj = p.scheduled_options['cuts'][2]
             p.hurt_level = p.scheduled_options['cuts'][3]
-
 
     def _init_channels_tissue(self, sim, cells, p):
         '''
@@ -445,7 +445,6 @@ class TissueHandler(object):
             self.target_mask_Ca = np.zeros(len(cells.cell_i))
             self.target_mask_Ca[self.targets_Ca] = 1
 
-
     def _sim_events_global(self, sim, cells, p, t):
         '''
         Apply all **global scheduled interventions** (i.e., events globally
@@ -517,24 +516,33 @@ class TissueHandler(object):
         '''
 
         if p.scheduled_options['Na_mem'] != 0:
-            effector_Na = self.scalar_Namem*tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
+            effector_Na = self.scalar_Namem*self.dyna_Namem(t)*\
+                          tb.pulse(t,self.t_on_Namem,self.t_off_Namem,self.t_change_Namem)
+
             sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
         if p.scheduled_options['K_mem'] != 0:
-            effector_K = self.scalar_Kmem*tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
+            effector_K = self.scalar_Kmem*self.dyna_Kmem(t)*\
+                         tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
+
             sim.Dm_scheduled[sim.iK][self.targets_Kmem] = self.mem_mult_Kmem*effector_K*p.Dm_K
 
         if p.scheduled_options['Cl_mem'] != 0 and p.ions_dict['Cl'] != 0:
-            effector_Cl = self.scalar_Clmem*tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
+            effector_Cl = self.scalar_Clmem*self.dyna_Clmem(t)*\
+                          tb.pulse(t,self.t_on_Clmem,self.t_off_Clmem,self.t_change_Clmem)
+
             sim.Dm_scheduled[sim.iCl][self.targets_Clmem] = self.mem_mult_Clmem*effector_Cl*p.Dm_Cl
 
         if p.scheduled_options['Ca_mem'] != 0 and p.ions_dict['Ca'] != 0:
-            effector_Ca = self.scalar_Camem*tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
+            effector_Ca = self.scalar_Camem*self.dyna_Camem(t)*\
+                          tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
+
             sim.Dm_scheduled[sim.iCa][self.targets_Camem] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
 
         if p.scheduled_options['IP3'] != 0:
-            sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + self.scalar_IP3*self.rate_IP3*tb.pulse(t,self.t_onIP3,
-                self.t_offIP3,self.t_changeIP3)
+            sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + \
+                                         self.scalar_IP3*self.dyna_IP3(t)*self.rate_IP3*tb.pulse(t,self.t_onIP3,
+                                         self.t_offIP3,self.t_changeIP3)
 
         if p.scheduled_options['ecmJ'] != 0:
             for i, dmat in enumerate(sim.D_env):
@@ -838,7 +846,6 @@ class TissueHandler(object):
             sim.Dm_er_CICR[0] = self.maxDmCaER*term_IP3_reg*term_Ca_reg
             sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
 
-
     def tissueProfiles(self, sim, cells, p):
         '''
         Create cell-specific (and if simulating extracellular spaces, membrane-
@@ -938,7 +945,6 @@ class TissueHandler(object):
             # Else this is a bad profile.
             else:
                 TypeError('Profile type {} unrecognized.'.format(profile_type))
-
 
     def makeAllChanges(self, sim):
         '''

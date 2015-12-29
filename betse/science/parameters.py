@@ -457,18 +457,41 @@ class Parameters(object):
             cuts_params = [cut_time, apply_cuts, dangling_gj, hurt_level]
             self.scheduled_options['cuts'] = cuts_params
 
+
+        # Function properties---------------------------------------------
+
         self.gradient_x_properties = {}
         self.gradient_y_properties = {}
         self.gradient_r_properties = {}
 
-        self.gradient_x_properties['slope'] =self.config['function properties']['gradient_x']['slope']
-        self.gradient_x_properties['offset'] =self.config['function properties']['gradient_x']['offset']
+        self.periodic_properties = {}
+        self.f_scan_properties = {}
 
-        self.gradient_y_properties['slope'] =self.config['function properties']['gradient_y']['slope']
-        self.gradient_y_properties['offset'] =self.config['function properties']['gradient_y']['offset']
+        self.gradient_x_properties['slope'] =float(self.config['function properties']['gradient_x']['slope'])
+        self.gradient_x_properties['offset'] =float(self.config['function properties']['gradient_x']['offset'])
 
-        self.gradient_r_properties['slope'] =self.config['function properties']['gradient_r']['slope']
-        self.gradient_r_properties['offset'] =self.config['function properties']['gradient_r']['offset']
+        self.gradient_y_properties['slope'] =float(self.config['function properties']['gradient_y']['slope'])
+        self.gradient_y_properties['offset'] = float(self.config['function properties']['gradient_y']['offset'])
+
+        self.gradient_r_properties['slope'] = float(self.config['function properties']['gradient_r']['slope'])
+        self.gradient_r_properties['offset'] = float(self.config['function properties']['gradient_r']['offset'])
+
+        self.periodic_properties['frequency'] = float(self.config['function properties']['periodic']['frequency'])
+        self.periodic_properties['phase'] = float(self.config['function properties']['periodic']['phase'])
+
+        self.f_scan_properties['f number'] = \
+                                float(self.config['function properties']['frequency_scan']['number of frequencies'])
+
+
+        self.f_scan_properties['f start'] = \
+                                float(self.config['function properties']['frequency_scan']['start frequency'])
+
+        self.f_scan_properties['f stop'] = \
+                                float(self.config['function properties']['frequency_scan']['end frequency'])
+
+        #initialize the f vect field to None:
+
+        self.f_scan_properties['f vect'] = None
 
 
         #.........................DYNAMIC CHANNELS.....................................................................
@@ -480,12 +503,17 @@ class Parameters(object):
         bool_vgK = bool(self.config['voltage gated K+']['turn on'])
         bool_vgCa = bool(self.config['voltage gated Ca2+']['turn on'])
         bool_cagK = bool(self.config['calcium gated K+']['turn on'])
+        bool_stretch = bool(self.config['stretch gated Na+']['turn on'])
+
 
         # set specific character of gated ion channel dynamics:
         opNa = self.config['gated ion channel options']['voltage gated Na']
         opK = self.config['gated ion channel options']['voltage gated K']
         opCa = self.config['gated ion channel options']['voltage gated Ca']
         opcK = self.config['gated ion channel options']['calcium gated K']
+        opStretch = self.config['gated ion channel options']['stretch gated Na']
+
+        # voltage gated sodium
 
         vgNa = [float(opNa['max Dmem Na']),float(opNa['activation v']),float(opNa['inactivation v']),float(opNa['deactivation v']),
             float(opNa['live time']),float(opNa['dead time'])]
@@ -494,11 +522,15 @@ class Parameters(object):
 
         vgNa.append(apply_vgNa)
 
+        # voltage gated potassium
+
         vgK = [float(opK['max Dmem K']),float(opK['activation v']),float(opK['deactivation v']),float(opK['live time'])]
 
         apply_vgK = self.config['voltage gated K+']['apply to']
 
         vgK.append(apply_vgK)
+
+        # voltage gated calcium
 
         vgCa = [float(opCa['max Dmem Ca']),float(opCa['activation v']),float(opCa['inactivation v']),float(opCa['inactivation Ca']),
             float(opCa['reactivation Ca'])]
@@ -507,11 +539,21 @@ class Parameters(object):
 
         vgCa.append(apply_vgCa)
 
+        # calcium gated K
+
         cagK = [float(opcK['max Dmem K']),float(opcK['hill K_half']),float(opcK['hill n'])]
 
         apply_cagK = self.config['calcium gated K+']['apply to']
 
         cagK.append(apply_cagK)
+
+        # stretch gated Na
+
+        stNa = [float(opStretch['max Dmem Na']),float(opStretch['hill K_half']),float(opStretch['hill n'])]
+
+        apply_stNa = self.config['stretch gated Na+']['apply to']
+
+        stNa.append(apply_stNa)
 
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
@@ -535,6 +577,11 @@ class Parameters(object):
             self.vg_options['K_cag'] = 0
         elif bool_cagK is True:
             self.vg_options['K_cag'] = cagK
+
+        if bool_stretch is False:
+            self.vg_options['Na_str'] = 0
+        elif bool_stretch is True:
+            self.vg_options['Na_str'] = stNa
 
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 

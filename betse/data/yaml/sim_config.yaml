@@ -418,18 +418,28 @@ cutting event:
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
 
 
-function properties:   # set properties of spatial functions which may be used in above:
-  gradient_x:
+function properties:   # set properties of functions which may be used in above:
+
+  gradient_x:           # generate a spatial gradient of a property in the x-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
       offset: 0         # offset to all gradient values
 
-  gradient_y:
+  gradient_y:           # generate a spatial gradient of a property in the y-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
       offset: 0         # offset to all gradient values
 
-  gradient_r:
+  gradient_r:           # generate a radial spatial gradient of a property
       slope: 1.0        # radial gradient rate of change per unit radius
       offset: 0
+
+  periodic:              # generate a sinusoidal oscillation of a property
+      frequency: 1e3     # frequency of oscillation [Hz]
+      phase: 0           # phase-offset of oscillation
+
+  frequency_scan:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies
+      number of frequencies: 10     # total number of frequencies to apply
+      start frequency: 1e3          # start frequency
+      end frequency: 3e3            # end frequency
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS
@@ -454,6 +464,10 @@ voltage gated Ca2+:            # voltage gated calcium channel?
 calcium gated K+:              # calcium gated potassium channel ?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+
+stretch gated Na+:         # stretch activated depolarization (Na+) channel?
+    turn on: False
+    apply to: ['all']          # tissue profile(s) to apply to
 
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
@@ -984,6 +998,12 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
         max Dmem K: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
         hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
+        hill n: 3                   # Hill function coefficient
+
+    stretch gated Na:
+
+        max Dmem Na: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
+        hill K_half: 0.2         # half-maxium activity coefficient for Hill function as % strain
         hill n: 3                   # Hill function coefficient
 
 
