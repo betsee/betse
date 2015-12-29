@@ -1254,7 +1254,6 @@ class Parameters(object):
             self.method = 0
 
 
-
     def _init_tissue_and_cut_profiles(self) -> None:
         '''
         Parse tissue and cut profile-specific parameters from the current YAML
@@ -1262,57 +1261,26 @@ class Parameters(object):
         '''
         tpd = self.config['tissue profile definition']
 
-        self.mem_labels = {'Dm_Na','Dm_K','Dm_Cl','Dm_Ca','Dm_H','Dm_M','Dm_P'}
-        self.default_tissue_name = \
-            self.config['variable settings']['default tissue name']
+        self.default_tissue_name = (
+            self.config['variable settings']['default tissue name'])
         self.clipping_bitmap_matcher = TissuePickerBitmap(
             tpd['clipping']['bitmap']['file'], self.config_dirname)
-        self.tissue_profiles = OrderedDict()
+
+        self.profiles = OrderedDict()
 
         # If tissue profiles are currently disabled, forego parsing.
         if not tpd['profiles enabled']:
             return
 
-        #FIXME: Map each such profile name to an instance of class "Profile".
-
         # Parse all profiles.
         for i, profile_config in enumerate(tpd['profiles']):
-            # Parameter dictionaries specific to the current profile.
-            profile = {
-                'type': profile_config['type'],
-                'name': profile_config['name'],
+            # Finalize this tissue profile parameterization.
+            self.profiles[profile_config['name']] = Profile.make(
+                profile_config, self,
 
                 # Convert from 0-based list indices to 1-based z order.
-                'z order': i + 1,
-            }
-            diffusion_constants = {}
-
-            profile_type = profile['type']
-            profile_name = profile['name']
-
-            if profile_type == 'tissue':
-                profile['insular gj'] = profile_config['insular']
-                profile['picker'] = TissuePicker.make(
-                    profile_config['cell targets'], self)
-
-                # Convert diffusion constants from strings to floats.
-                for label in self.mem_labels:
-                    diffusion_constants[label] = float(profile_config[label])
-                profile['diffusion constants'] = diffusion_constants
-
-            elif profile_type == 'cut':
-                profile['picker'] = TissuePickerBitmap.make(
-                    profile_config['bitmap'], self)
-
-            else:
-                raise BetseExceptionParameters(
-                    'Profile type "{}"' 'unrecognized.'.format(profile_type))
-
-
-            #FIXME: Rename this attribute to simply "profiles".
-
-            # Finalize this tissue profile parameterization.
-            self.tissue_profiles[profile_name] = profile
+                z_order=i + 1,
+            )
 
 
     #FIXME: After the "closed boundary" option is moved elsewhere, make this

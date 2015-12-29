@@ -2959,7 +2959,7 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    # profile_names = list(p.tissue_profiles.keys())
+    # profile_names = list(p.profiles.keys())
 
     col_dic = {}
 
@@ -2991,8 +2991,7 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
             col_dic[name].set_clim(0, len(dyna.tissue_profile_names))
 
             # col_dic[name].set_alpha(0.8)
-            z_order = p.tissue_profiles[name]['z order']
-            col_dic[name].set_zorder(z_order)
+            col_dic[name].set_zorder(p.profiles[name]['z order'])
             ax.add_collection(col_dic[name])
 
             # Add this profile name to the colour legend.
@@ -3013,12 +3012,12 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
             # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
             # col_dic[name].set_alpha(0.8)
 
-            z_order = p.tissue_profiles[cut_profile_name]['z order']
-            col_dic[cut_profile_name].set_zorder(z_order)
+            col_dic[cut_profile_name].set_zorder(
+                p.profiles[cut_profile_name].z_order)
             ax.add_collection(col_dic[cut_profile_name])
 
             #FIXME: Interestingly, this doesn't appear to do anything. I have
-            #no idea why, but matpotlib is weak with me. Legends and old elves!
+            #no idea why. The matpotlib is weak with me. Legends and old elves!
 
             # Add this profile name to the colour legend.
             cb_tick_next = len(cb_ticks)

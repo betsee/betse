@@ -587,11 +587,9 @@ class TissueHandler(object):
                     'Cutting cell cluster via cut profile "%s"...',
                     cut_profile_name)
 
-                cut_profile = p.tissue_profiles[cut_profile_name]
-                cut_picker = cut_profile['picker']
-
+                cut_profile = p.profiles[cut_profile_name]
                 removeCells(
-                    cut_picker, sim, cells, p,
+                    cut_profile.picker, sim, cells, p,
                     simMod=True, dangling_gj=self.dangling_gj)
 
             loggers.log_info("Cutting event successful! Resuming simulation...")
@@ -847,7 +845,7 @@ class TissueHandler(object):
         specific as well) index sets for all user-defined tissue profiles.
         '''
 
-        profile_names = list(p.tissue_profiles.keys())
+        profile_names = list(p.profiles.keys())
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
 
@@ -858,12 +856,15 @@ class TissueHandler(object):
 
         # Go through again and do traditional tissue profiles:
         for profile_name in profile_names:
-            profile = p.tissue_profiles[profile_name]
-            profile_type = profile['type']
-            profile_picker = profile['picker']
+            profile = p.profiles[profile_name]
+
+            #FIXME: A pretty horrible hack. It will go away. Praise the flower!
+            profile_type = (
+                profile['type'] if isinstance(profile, dict) else 'cut')
 
             # If this is a tissue profile...
             if profile_type == 'tissue':
+                profile_picker = profile['picker']
                 dmem_list = profile['diffusion constants']
 
                 self.tissue_profile_names.append(profile_name)

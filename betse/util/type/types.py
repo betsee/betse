@@ -51,6 +51,7 @@ def is_iterable(obj: object) -> bool:
     '''
     return isinstance(obj, Iterable)
 
+
 def is_iterable_nonstr(obj: object) -> bool:
     '''
     `True` if the passed object is a **non-string iterable** (i.e., implements
@@ -64,6 +65,16 @@ def is_int(obj: object) -> bool:
     `True` if the passed object is an integer.
     '''
     return isinstance(obj, int)
+
+
+def is_int_ge(obj: object, ge: int) -> bool:
+    '''
+    `True` if the passed object is an integer greater than or equal to the
+    second passed integer.
+    '''
+    assert is_int(ge), assert_not_int(ge)
+    return is_int(obj) and obj >= ge
+
 
 def is_numeric(obj: object) -> bool:
     '''
@@ -187,6 +198,7 @@ def assert_not_iterable_nonstr(obj: object) -> str:
     '''
     return '"{}" not a non-string iterable (e.g., dict, list).'.format(obj)
 
+
 def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
     '''
     String asserting the passed object categorized by the passed human-readable
@@ -201,6 +213,15 @@ def assert_not_int(obj: object) -> str:
     String asserting the passed object to _not_ be an integer.
     '''
     return '"{}" not an integer.'.format(obj)
+
+
+def assert_not_int_ge(obj: object, ge: int) -> str:
+    '''
+    String asserting the passed object to _not_ be an integer greater than or
+    equal to the second passed integer.
+    '''
+    return '"{}" not an integer or not >= {}.'.format(obj, ge)
+
 
 def assert_not_numeric(obj: object) -> str:
     '''

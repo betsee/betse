@@ -557,7 +557,7 @@ class GridWorld(object):
 
     def redo_gj(self,dyna,p,savecells =True):
 
-        # profile_names = list(p.tissue_profiles.keys())  # names of each tissue profile...
+        # profile_names = list(p.profiles.keys())  # names of each tissue profile...
         profile_names = dyna.tissue_profile_names
         new_gj_nn_i = []
         new_gj_vects = []
@@ -566,7 +566,7 @@ class GridWorld(object):
         for name in profile_names:
 
             cell_targets = dyna.cell_target_inds[name]   # get the cell target inds for this tissue
-            insular_flag = p.tissue_profiles[name]['insular gj']
+            insular_flag = p.profiles[name]['insular gj']
 
             # step through gj's and find cases where connection is split between cells in different tissues:
             if insular_flag is True:

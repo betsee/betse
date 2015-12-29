@@ -2,17 +2,12 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-import math
-import os
+#FIXME: Higher-level "betse.util.path" functions should typically be called
+#rather than low-level "os.path" functions. Daggers of scintillating wonder!
+import copy, math, os, time
 import os.path
-import copy
-from random import shuffle
-import time
-
-import numpy as np
-from scipy import interpolate as interp
 import matplotlib.pyplot as plt
-
+import numpy as np
 from betse.science import filehandling as fh
 from betse.science import visualize as viz
 from betse.science import toolbox as tb
@@ -20,6 +15,8 @@ from betse.science.tissue.handler import TissueHandler
 from betse.science import finitediff as fd
 from betse.exceptions import BetseExceptionSimulation
 from betse.util.io import loggers
+from random import shuffle
+from scipy import interpolate as interp
 
 
 class Simulator(object):

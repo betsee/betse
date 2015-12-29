@@ -1813,7 +1813,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    # profile_names = list(p.tissue_profiles.keys())
+    # profile_names = list(p.profiles.keys())
 
     col_dic = {}
 
@@ -1846,7 +1846,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
             col_dic[name].set_clim(0,len(dyna.tissue_profile_names))
             # col_dic[name].set_alpha(0.8)
-            z_arrange = p.tissue_profiles[name]['z order']
+            z_arrange = p.profiles[name]['z order']
             col_dic[name].set_zorder(z_arrange)
             ax.add_collection(col_dic[name])
             cb_ticks.append(i+1)
@@ -1871,7 +1871,7 @@ def clusterPlot(p,dyna,cells,clrmap=cm.jet):
 
                 # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
                 # col_dic[name].set_alpha(0.8)
-                z_arrange = p.tissue_profiles[name]['z order']
+                z_arrange = p.profiles[name]['z order']
                 col_dic[name].set_zorder(z_arrange)
                 ax.add_collection(col_dic[name])
                 # cb_ticks.append(i+1)
