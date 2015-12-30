@@ -1306,7 +1306,7 @@ class AnimateField(object):
         cmin = F.min()
         cmax = F.max()
 
-        if F.max() != 0.0:
+        if F.all() != 0.0:
 
             Fx = Fx/F
             Fy = Fy/F
@@ -1371,7 +1371,7 @@ class AnimateField(object):
 
         F = np.sqrt(Fx**2 + Fy**2)
 
-        if F.max() != 0.0:
+        if F.all() != 0.0:
 
             Fx = Fx/F
             Fy = Fy/F
@@ -1385,7 +1385,6 @@ class AnimateField(object):
 
         self.fmesh.set_clim(F.min(),F.max())
         self.vplot.set_UVC(Fx,Fy)
-
 
         if self.save is True:
             self.fig.canvas.draw()
@@ -1661,8 +1660,12 @@ class AnimateDeformation(object):
 
             dd = 1e6*np.sqrt(dx**2 + dy**2)
 
-        # cmin = dd.min()
-        # cmax = dd.max()
+            if dd.all() != 0:
+
+                dx = dx/dd
+                dy = dy/dd
+
+
 
         points = np.multiply(self.sim.cell_verts_time[i], self.p.um)
         dd_collection = PolyCollection(points, array=dd, cmap=self.p.default_cm, edgecolors='none')
@@ -2956,6 +2959,25 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
 
 def clusterPlot(p, dyna, cells, clrmap=cm.jet):
+
+    # FIXME -- dear Sess, this broke again for when the cut event is enabled and "plot seed" called :( See:
+    # [2015-12-30 09:43:39,732] betse DEBUG (loggers.py:log_debug():167):
+    # TypeError: 'ActionCut' object does not support indexing
+    # Traceback (most recent call last):
+    #   File "/home/pietakio/BETSE/betse/cli/cli.py", line 83, in run
+    #     self._do()
+    #   File "/home/pietakio/BETSE/betse/cli/clicli.py", line 125, in _do
+    #     subcommand_method()
+    #   File "/home/pietakio/BETSE/betse/cli/clicli.py", line 322, in _do_plot
+    #     subcommand_method()
+    #   File "/home/pietakio/BETSE/betse/cli/clicli.py", line 328, in _do_plot_seed
+    #     self._get_sim_runner().plotWorld()
+    #   File "/home/pietakio/BETSE/betse/science/simrunner.py", line 351, in plotWorld
+    #     fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
+    #   File "/home/pietakio/BETSE/betse/science/visualize.py", line 3004, in clusterPlot
+    #     cut_profile_names = p.scheduled_options['cuts'][1]
+
+
 
     fig = plt.figure()
     ax = plt.subplot(111)

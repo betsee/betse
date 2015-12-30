@@ -284,7 +284,7 @@ tissue profile definition:
 
         - type: tissue
           name: spot
-          insular: True
+          insular: False
 
           diffusion constants:
               Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
@@ -303,6 +303,7 @@ tissue profile definition:
 
         # Example tissue profile for a small cluster of depolarized cells near
         # the cluster boundary.
+
         - type: tissue
           name: wound
           insular: False
@@ -345,7 +346,7 @@ change Na mem:       # Change the membrane permeability to Na+
     change finish: 20.0e-3               # time to end change and return to original [s]
     change rate: 2.0e-3                 # rate of change [s]
     multiplier: 1500.0                # factor to multiply base level
-    function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    modulator function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
 
 change K mem:       # Change the membrane permeability to K+
@@ -354,7 +355,7 @@ change K mem:       # Change the membrane permeability to K+
     change finish: 2.0                 # time to end change and return to original [s]
     change rate: 0.5                    # rate of change [s]
     multiplier: 50.0                    # factor to multiply base level
-    function: None                   # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    modulator function: None                   # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
 change Cl mem:      # Change the membrane permeability to Cl-
@@ -363,7 +364,7 @@ change Cl mem:      # Change the membrane permeability to Cl-
     change finish: 4.0                 # time to end change and return to original [s]
     change rate: 0.5                    # rate of change [s]
     multiplier: 10                    # factor to multiply base level
-    function: None                # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    modulator function: None                # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
 
 change Ca mem:       # Change the membrane permeability to Ca2+
@@ -372,7 +373,7 @@ change Ca mem:       # Change the membrane permeability to Ca2+
     change finish: 8.0                 # time to end change and return to original [s]
     change rate: 1                    # rate of change [s]
     multiplier: 10                    # factor to multiply base level
-    function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    modulator function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['all']     # name(s) of the tissue profile(s) to apply intervention to
 
 produce IP3:        # Schedule cell production of IP3
@@ -381,8 +382,17 @@ produce IP3:        # Schedule cell production of IP3
     change finish: 4                 # time to end IP3 production [s]
     change rate: 1                    # rate of production ramp-up time [s]
     multiplier: 1e-3                  # maximum rate of production [mol/(s*m3)]
-    function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    modulator function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
+
+apply pressure:                       # Schedule application of mechanical pressure
+    event happens: False              # turn the event on (True) or off (False)
+    change start: 1                   # time to start pressure application [s]
+    change finish: 4                 # time to end pressure application [s]
+    change rate: 1                    # rate of ramp up/down from time start/end [s]
+    multiplier: 100                  # pressure applied at maximum [Pa]
+    modulator function: periodic              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+    apply to: ['spot']     # name(s) of the tissue profile(s) to apply intervention to
 
 
 # Apply an external voltage to two edges of the environmental boundary if the
@@ -421,8 +431,7 @@ cutting event:
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
 
 
-#FIXME: Consider renaming to "modulator properties." Set phasers to modulate!
-function properties:   # set properties of functions which may be used in above:
+modulator function properties:   # set properties of modulating functions which may be used in above:
 
   gradient_x:           # generate a spatial gradient of a property in the x-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
@@ -437,7 +446,7 @@ function properties:   # set properties of functions which may be used in above:
       offset: 0
 
   periodic:              # generate a sinusoidal oscillation of a property
-      frequency: 1e3     # frequency of oscillation [Hz]
+      frequency: 2e3     # frequency of oscillation [Hz]
       phase: 0           # phase-offset of oscillation
 
   f_sweep:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies

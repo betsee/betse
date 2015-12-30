@@ -558,6 +558,25 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+        # hydrostatic pressure in cells:
+
+        p_hydro = [arr[plot_cell] for arr in sim.P_cells_time]
+        figOP = plt.figure()
+        axOP = plt.subplot(111)
+
+        axOP.plot(sim.time,p_hydro)
+
+        axOP.set_xlabel('Time [s]')
+        axOP.set_ylabel('Hydrostatic Pressure [Pa]')
+
+        axOP.set_title('Hydrostatic pressure in cell ' + str(plot_cell) )
+
+        if saveImages is True:
+            savename = savedImg + 'HydrostaticP_' + '.png'
+            plt.savefig(savename,dpi=300,format='png')
+
+        plt.show(block=False)
+
         # optional 1D plots--------------------------------------------------------------------------------------------
 
         # plot-cell calcium vs time (if Ca enabled in ion profiles):
@@ -631,25 +650,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename = savedImg + 'OsmoticP_' + '.png'
-                plt.savefig(savename,dpi=300,format='png')
-
-            plt.show(block=False)
-
-        if p.deform_osmo is True:
-
-            p_osmo = [arr[plot_cell] for arr in sim.P_cells_time]
-            figOP = plt.figure()
-            axOP = plt.subplot(111)
-
-            axOP.plot(sim.time,p_osmo)
-
-            axOP.set_xlabel('Time [s]')
-            axOP.set_ylabel('Hydrostatic Pressure [Pa]')
-
-            axOP.set_title('Hydrostatic pressure in cell ' + str(plot_cell) )
-
-            if saveImages is True:
-                savename = savedImg + 'HydrostaticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png')
 
             plt.show(block=False)
@@ -1050,7 +1050,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and p.deform_osmo is True:
+    if p.plot_P is True:
 
         if p.showCells is True:
             figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
@@ -1120,13 +1120,18 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    if p.deform_osmo is True:
+    if p.deform_osmo is True or p.deformation is True or p.fluid_flow is True:
 
-        figOF, axOF, cbOF = viz.plotPolyData(sim, cells,p,zdata=sim.F_osmo,number_cells=p.enumerate_cells,
+        figOF, axOF, cbOF = viz.plotPolyData(sim, cells,p,zdata=sim.F_hydro,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        fx = sim.F_osmo_x/sim.F_osmo
-        fy = sim.F_osmo_y/sim.F_osmo
+        fx = sim.F_hydro_x
+        fy = sim.F_hydro_y
+
+        if sim.F_hydro.all() != 0:
+
+            fx = sim.F_hydro_x/sim.F_hydro
+            fy = sim.F_hydro_y/sim.F_hydro
 
         axOF.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
 
@@ -1136,7 +1141,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         cbOF.set_label('Body Force [N/m3]')
 
         if saveImages is True:
-            savename13 = savedImg + 'final_osmoF_2D' + '.png'
+            savename13 = savedImg + 'final_hydroF_2D' + '.png'
             plt.savefig(savename13,format='png')
 
         plt.show(block=False)
@@ -1400,7 +1405,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
+    if p.ani_Pcell is True and animate == 1:
 
         if p.showCells is True:
 
@@ -1444,28 +1449,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
                 title = 'Electrostatic Pressure Induced Body Force',
                 saveFolder = '/animation/ElectroFfield',saveFile = 'EFfield_')
 
-        if p.deform_osmo is True:
 
-            viz.AnimateField(sim,sim.F_osmo_x_time,sim.F_osmo_y_time,cells,p,
-                title = 'Hydrostatic Pressure Induced Body Force',
-                saveFolder = '/animation/OsmoFfield',saveFile = 'OFfield_')
-
-        #     viz.AnimateCellData(sim,cells,sim.F_electro_time,sim.time,p,tit='Electrostatic Force in Cells',
-        #         cbtit = 'Body Force [N/m3]',
-        #         clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
-        #         clrmap = p.default_cm,
-        #         save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/electroF',
-        #         saveFile = 'electroF_', ignore_simECM =True, current_overlay=p.I_overlay)
-        #
-        #
-        # else:
-        #     viz.AnimateCellData_smoothed(sim,cells,sim.F_electro_time,sim.time,p,tit='Electrostatic Force in Cells',
-        #         cbtit = 'Body Force [N/m3]',
-        #         clrAutoscale = p.autoscale_force_ani, clrMin = p.force_ani_min_clr, clrMax = p.force_ani_max_clr,
-        #         clrmap = p.default_cm,
-        #         save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/electroF',
-        #         saveFile = 'electroF_',
-        #         current_overlay=p.I_overlay)
+        viz.AnimateField(sim,sim.F_hydro_x_time,sim.F_hydro_y_time,cells,p,
+            title = 'Hydrostatic Pressure Induced Body Force',
+            saveFolder = '/animation/HydroFfield',saveFile = 'OFfield_')
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
 

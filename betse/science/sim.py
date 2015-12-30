@@ -18,84 +18,6 @@ from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
 
-#FIXME: Gag me with a silver hammer, but my simulation enabling extracellular
-#spaces and both the voltage and cutting events just tripped over the following
-#divide-by-zero error:
-#
-# [2015-12-30 03:16:25,516] betse INFO (loggers.py:log_info():178):
-#     Simulation completed successfully.
-# [2015-12-30 03:16:25,840] betse INFO (loggers.py:log_info():178):
-#     Initialization run complete!
-# [2015-12-30 03:16:25,840] betse INFO (loggers.py:log_info():178):
-#     The initialization took 70.97 seconds to complete.
-# [2015-12-30 03:16:25,844] betse INFO (loggers.py:log_info():178):
-#     Running simulation with configuration file "sample_sim.yaml".
-# [2015-12-30 03:16:27,730] betse INFO (loggers.py:log_info():178):
-#     This world contains 224 cells.
-# [2015-12-30 03:16:27,730] betse INFO (loggers.py:log_info():178):
-#     Each cell has an average of 4.9 nearest-neighbours.
-# [2015-12-30 03:16:27,731] betse INFO (loggers.py:log_info():178):
-#     You are running the ion profile: basic
-# [2015-12-30 03:16:27,731] betse INFO (loggers.py:log_info():178):
-#     Ions in this simulation: {0: 'anion', 1: 'sodium', 2: 'potassium', 3: 'proteins'}
-# [2015-12-30 03:16:27,731] betse INFO (loggers.py:log_info():178):
-#     If you have selected features using other ions, they will be ignored.
-# [2015-12-30 03:16:27,747] betse INFO (loggers.py:log_info():178):
-#     Your simulation (with extracellular spaces) is running from 0 to 1.0 seconds of in-world time.
-# [2015-12-30 03:16:28,667] betse INFO (loggers.py:log_info():178):
-#     This run should take approximately 56.89 s to compute...
-# [2015-12-30 03:16:28,667] betse INFO (loggers.py:log_info():178):
-#     Cutting cell cluster via cut profile "surgery"...
-# [2015-12-30 03:16:29,078] betse INFO (loggers.py:log_info():178):
-#     Recalculating cluster variables for new configuration...
-# [2015-12-30 03:16:29,079] betse INFO (loggers.py:log_info():178):
-#     Defining cell-specific geometric properties...
-# [2015-12-30 03:16:29,304] betse INFO (loggers.py:log_info():178):
-#     Creating computational matrices for cell-cell transfers...
-# [2015-12-30 03:16:33,300] betse INFO (loggers.py:log_info():178):
-#     Creating gap junctions...
-# [2015-12-30 03:16:34,379] betse INFO (loggers.py:log_info():178):
-#     Creating cell network Poisson solver...
-# [2015-12-30 03:16:34,379] betse INFO (loggers.py:log_info():178):
-#     Creating Poisson solvers for cell cluster...
-# [2015-12-30 03:16:34,755] betse INFO (loggers.py:log_info():178):
-#     Completed major world-building computations.
-# [2015-12-30 03:16:34,904] betse INFO (loggers.py:log_info():178):
-#     Cutting event successful! Resuming simulation...
-#
-# /usr/lib64/python3.4/site-packages/betse/science/sim.py:4054: RuntimeWarning: overflow encountered in exp
-#   exp_alpha = np.exp(-alpha)
-# /usr/lib64/python3.4/site-packages/betse/science/sim.py:4072: RuntimeWarning: invalid value encountered in true_divide
-#   cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
-#
-# [2015-12-30 03:17:25,331] betse ERROR (loggers.py:log_error():200):
-#     Exiting prematurely due to fatal error:
-#
-# [2015-12-30 03:17:25,336] betse DEBUG (loggers.py:log_debug():167):
-#     betse.exceptions.BetseExceptionSimulation: Your simulation has become unstable. Please try a smaller time step,reduce gap junction radius, and/or reduce pump rate coefficients.
-#
-# Traceback (most recent call last):
-#   File "/usr/lib64/python3.4/site-packages/betse/cli/cli.py", line 83, in run
-#     self._do()
-#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 125, in _do
-#     subcommand_method()
-#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 286, in _do_try
-#     self._do_sim()
-#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 313, in _do_sim
-#     self._get_sim_runner().simulate()
-#   File "/usr/lib64/python3.4/site-packages/betse/science/simrunner.py", line 255, in simulate
-#     sim.runSim_ECM(cells,p,save=True)   # run and optionally save the simulation to the cache
-#   File "/usr/lib64/python3.4/site-packages/betse/science/sim.py", line 1670, in runSim_ECM
-#     check_v(self.vm)
-#   File "/usr/lib64/python3.4/site-packages/betse/science/sim.py", line 4457, in check_v
-#     raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
-#
-#The culprit appears to be overflow in the line "exp_alpha = np.exp(-alpha)"
-#in the electroflux() function. Disabling extracellular spaces appears to make
-#this issue go away. If this is my fault, I shall eat a peach that I dislike.
-#Cape-wearing, monocled monkeys caper about like man baboons!
-
-
 class Simulator(object):
     """
     Contains the main routines used in the simulation of networked cell
@@ -241,14 +163,18 @@ class Simulator(object):
         self.I_mem =np.zeros(len(cells.mem_i))     # total current across membranes
         self.I_mem_time = []                            # membrane current unit time
 
-        # initialize vectors for potential electroosmosis in the cell collection:
-        self.u_cells_x = np.zeros(len(cells.cell_i))
-        self.u_cells_y = np.zeros(len(cells.cell_i))
-        self.P_cells = np.zeros(len(cells.cell_i))
+        self.P_cells = np.zeros(len(cells.cell_i))  # initialize pressure
 
-        # initialize vectors for potential deformation:
-        self.d_cells_x = np.zeros(len(cells.cell_i))
-        self.d_cells_y = np.zeros(len(cells.cell_i))
+        # initialize vectors for potential electroosmosis in the cell collection:
+        if p.fluid_flow is True:
+            self.u_cells_x = np.zeros(len(cells.cell_i))
+            self.u_cells_y = np.zeros(len(cells.cell_i))
+
+        if p.deformation is True:
+
+            # initialize vectors for potential deformation:
+            self.d_cells_x = np.zeros(len(cells.cell_i))
+            self.d_cells_y = np.zeros(len(cells.cell_i))
 
         if p.gj_flux_sensitive is True:
 
@@ -519,20 +445,22 @@ class Simulator(object):
 
         self.molar_mass = []
 
-        # Electroosmosis Initialization:
+        self.P_cells = np.zeros(len(cells.cell_i))  # initialize pressure in cells
 
-        # initialize vectors for env flow (note enhanced data type!):
-        self.u_env_x = np.zeros(cells.X.shape)
-        self.u_env_y = np.zeros(cells.X.shape)
+        if p.fluid_flow is True:
+            # Electroosmosis Initialization:
+            # initialize vectors for env flow (note enhanced data type!):
+            self.u_env_x = np.zeros(cells.X.shape)
+            self.u_env_y = np.zeros(cells.X.shape)
 
-        # initialize vectors for electroosmosis in the cell collection wrt each gap junction (note data type!):
-        self.u_cells_x = np.zeros(len(cells.cell_i))
-        self.u_cells_y = np.zeros(len(cells.cell_i))
-        self.P_cells = np.zeros(len(cells.cell_i))
+            # initialize vectors for electroosmosis in the cell collection wrt each gap junction (note data type!):
+            self.u_cells_x = np.zeros(len(cells.cell_i))
+            self.u_cells_y = np.zeros(len(cells.cell_i))
 
-        # initialize vectors for potential deformation:
-        self.d_cells_x = np.zeros(len(cells.cell_i))
-        self.d_cells_y = np.zeros(len(cells.cell_i))
+        if p.deformation is True:
+            # initialize vectors for potential deformation:
+            self.d_cells_x = np.zeros(len(cells.cell_i))
+            self.d_cells_y = np.zeros(len(cells.cell_i))
 
 
         if p.gj_flux_sensitive is True:
@@ -838,6 +766,10 @@ class Simulator(object):
         self.Dm_morpho = np.copy(Dm_cellsA)
         self.Dm_morpho[:] = 0
 
+        self.P_mod = np.copy(self.P_cells[:])
+        self.P_base = np.copy(self.P_cells[:])
+
+
         if p.global_options['gj_block'] != 0:
 
             self.gj_block = np.ones(len(cells.nn_i))   # initialize the gap junction blocking vector to ones
@@ -854,6 +786,8 @@ class Simulator(object):
             self.IP3_flux_x_gj = np.zeros(len(cells.nn_i))
             self.IP3_flux_y_gj = np.zeros(len(cells.nn_i))
             self.IP3_flux_mem = np.zeros(len(cells.mem_i))
+
+
 
             if p.sim_ECM is True:
                 # self.cIP3_ecm = np.zeros(len(cells.ecm_i))     # initialize IP3 concentration of the environment
@@ -941,7 +875,6 @@ class Simulator(object):
         self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
         self.efield_gj_y_time = []
 
-        # initialize time-storage vectors for electroosmosis:
         self.P_cells_time = []
         self.u_cells_x_time = []
         self.u_cells_y_time = []
@@ -954,15 +887,16 @@ class Simulator(object):
         self.F_electro_time = []
         self.F_electro_x_time = []
         self.F_electro_y_time = []
-        self.F_osmo_x_time = []
-        self.F_osmo_y_time = []
+        self.F_hydro_x_time = []
+        self.F_hydro_y_time = []
+        self.F_hydro_time = []
         self.P_electro_time = []
 
         self.rate_NaKATP_time =[]
 
-        if p.deform_osmo is True and p.run_sim is False:
-
-            self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
+        # if p.deform_osmo is True and p.run_sim is False:
+        #
+        #     self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells, but only during an init
 
         if p.deformation is True and p.run_sim is True:
 
@@ -1188,6 +1122,9 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
+            # get forces from any hydrostatic (self.P_Cells) pressure:
+            self.getHydroF(cells,p)
+
             # calculate pressures
 
             if p.deform_osmo is True:
@@ -1297,12 +1234,14 @@ class Simulator(object):
 
                 self.rate_NaKATP_time.append(self.rate_NaKATP[:])
 
+                self.P_cells_time.append(self.P_cells[:])
+                self.F_hydro_x_time.append(self.F_hydro_x[:])
+                self.F_hydro_y_time.append(self.F_hydro_y[:])
+
                 if p.deform_osmo is True:
 
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-                    self.P_cells_time.append(self.P_cells[:])
-                    self.F_osmo_x_time.append(self.F_osmo_x[:])
-                    self.F_osmo_y_time.append(self.F_osmo_y[:])
+
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
@@ -1501,13 +1440,13 @@ class Simulator(object):
         self.F_electro_time = []
         self.F_electro_x_time = []
         self.F_electro_y_time = []
-        self.F_osmo_x_time = []
-        self.F_osmo_y_time = []
+        self.F_hydro_x_time = []
+        self.F_hydro_y_time = []
         self.P_electro_time = []
 
-        if p.deform_osmo is True and p.run_sim is False:
-
-            self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
+        # if p.deform_osmo is True and p.run_sim is False:
+        #
+        #     self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells
 
         if p.deformation is True and p.run_sim is True:
 
@@ -1814,12 +1753,12 @@ class Simulator(object):
 
                 self.time.append(t)
 
-                if p.deform_osmo is True: # if osmotic pressure is enabled
+                self.P_cells_time.append(self.P_cells[:])
+                self.F_hydro_x_time.append(self.F_hydro_x[:])
+                self.F_hydro_y_time.append(self.F_hydro_y[:])
 
+                if p.deform_osmo is True: # if osmotic pressure is enabled
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-                    self.F_osmo_x_time.append(self.F_osmo_x[:])
-                    self.F_electro_y_time.append(self.F_osmo_x[:])
-                    self.P_cells_time.append(self.P_cells[:])
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
@@ -3270,10 +3209,11 @@ class Simulator(object):
             Fe_cell_x = np.zeros(len(cells.cell_i))
             Fe_cell_y = np.zeros(len(cells.cell_i))
 
-        F_net_x = Fe_cell_x
-        F_net_y = Fe_cell_y
+        # net force is the sum of electrostatic and hydrostatic pressure induced body forces:
+        F_net_x = Fe_cell_x + self.F_hydro_x
+        F_net_y = Fe_cell_y + self.F_hydro_y
 
-        # integrate boundary forces:
+        # integrate body forces:
         F_net_x = cells.integrator(F_net_x)
         F_net_y = cells.integrator(F_net_y)
 
@@ -3551,6 +3491,15 @@ class Simulator(object):
         # pressure developing in the cell depends on how much the volume can change:
         P_react = (1 - (1/p.youngMod))*div_u_osmo
 
+        if p.run_sim is True:
+
+            # the inflow of mass adds to base pressure in cells:
+            self.P_base = self.P_base + P_react[:]
+
+        else:
+
+            # the inflow of mass adds to base pressure in cells:
+            self.P_cells = self.P_cells + P_react[:]
 
         #------------------------------------------------------------------------------------------------------------
 
@@ -3580,22 +3529,20 @@ class Simulator(object):
 
         cells.cell_vol = v1[:]
 
-
-        #----Calculate body forces due to any pressure gradients---------------------------------------------
-
-        self.P_cells = self.P_cells + P_react[:]
+    def getHydroF(self,cells,p):
+        #----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
 
         # determine body force due to hydrostatic pressure gradient between cells:
         gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
 
-        F_osmo_x = gPcells*cells.cell_nn_tx
-        F_osmo_y = gPcells*cells.cell_nn_ty
+        F_hydro_x = gPcells*cells.cell_nn_tx
+        F_hydro_y = gPcells*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
-        self.F_osmo_x = np.dot(cells.M_sum_mems, F_osmo_x)/cells.num_mems
-        self.F_osmo_y = np.dot(cells.M_sum_mems, F_osmo_y)/cells.num_mems
+        self.F_hydro_x = np.dot(cells.M_sum_mems, F_hydro_x) / cells.num_mems
+        self.F_hydro_y = np.dot(cells.M_sum_mems, F_hydro_y) / cells.num_mems
 
-        self.F_osmo = np.sqrt(self.F_osmo_x**2 + self.F_osmo_y**2)
+        self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
 
     def electro_P(self,cells,p):
         """
@@ -3715,6 +3662,12 @@ class Simulator(object):
         """
 
         # Determine action forces ------------------------------------------------
+
+        # body forces from hydrostatic pressure
+        F_hydro_x = self.F_hydro_x
+        F_hydro_y = self.F_hydro_y
+
+
         # first determine body force components due to electrostatics, if desired:
         if p.deform_electro is True:
             F_electro_x = self.F_electro_x
@@ -3725,19 +3678,9 @@ class Simulator(object):
             F_electro_x = np.zeros(len(cells.cell_i))
             F_electro_y = np.zeros(len(cells.cell_i))
 
-        if p.deform_osmo is True:
-
-            F_osmo_x = self.F_osmo_x
-            F_osmo_y = self.F_osmo_y
-
-        else:
-
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
-
         # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_osmo_x
-        F_cell_y = F_electro_y + F_osmo_y
+        F_cell_x = F_electro_x + F_hydro_x
+        F_cell_y = F_electro_y + F_hydro_y
 
         #--calculate displacement field for incompressible medium------------------------------------------------
 
@@ -3816,9 +3759,9 @@ class Simulator(object):
         # Check for the adequacy of the time step:
         step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
 
-        if step_check > 0.5:
+        if step_check > 1.0:
 
-            new_ts = (0.5*2*p.rc)/(np.sqrt(p.lame_mu/1000))
+            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
 
             raise BetseExceptionSimulation(
                     'Time dependent deformation is tricky business, requiring a small time step! '
@@ -3829,6 +3772,11 @@ class Simulator(object):
 
 
         # # Determine action forces ------------------------------------------------
+
+        # body force from hydrostatic pressure:
+        F_hydro_x = self.F_hydro_x
+        F_hydro_y = self.F_hydro_y
+
         # first determine body force components due to electrostatics, if desired:
         if p.deform_electro is True:
             F_electro_x = self.F_electro_x
@@ -3839,20 +3787,19 @@ class Simulator(object):
             F_electro_x = np.zeros(len(cells.cell_i))
             F_electro_y = np.zeros(len(cells.cell_i))
 
-        if p.deform_osmo is True:
-
-            F_osmo_x = self.F_osmo_x
-            F_osmo_y = self.F_osmo_y
-
-        else:
-
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
-
 
         # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_osmo_x
-        F_cell_y = F_electro_y + F_osmo_y
+        F_cell_x = F_electro_x + F_hydro_x
+        F_cell_y = F_electro_y + F_hydro_y
+
+        # integrate the forces:
+        F_cell_x = cells.integrator(F_cell_x)
+        F_cell_y = cells.integrator(F_cell_y)
+
+        # # and the solution:
+        #
+        # self.d_cells_x = cells.integrator(self.d_cells_x)
+        # self.d_cells_y = cells.integrator(self.d_cells_y)
 
         #-------------------------------------------------------------------------------------------------
 
@@ -3872,7 +3819,8 @@ class Simulator(object):
                  str(wave_speed) + ' m/s '
             )
 
-            loggers.log_info('Try a world size of at least: ' + str((wave_speed/500)*1e6) + ' um for resonance.')
+            loggers.log_info('Try a world size of at least: ' + str(round((5/3)*(wave_speed/500)*1e6))
+                             + ' um for resonance.')
 
             if p.fixed_cluster_bound is True:
 
@@ -3881,11 +3829,11 @@ class Simulator(object):
                 self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
                                  self.dy_time[-1]
 
-                self.d_cells_x[cells.bflags_cells] = 0
-                self.d_cells_y[cells.bflags_cells] = 0
-
-                self.d_cells_x[cells.nn_bound] = 0
-                self.d_cells_y[cells.nn_bound] = 0
+                # self.d_cells_x[cells.bflags_cells] = 0
+                # self.d_cells_y[cells.bflags_cells] = 0
+                #
+                # self.d_cells_x[cells.nn_bound] = 0
+                # self.d_cells_y[cells.nn_bound] = 0
 
             else:
 
@@ -3942,7 +3890,7 @@ class Simulator(object):
 
         P_react = np.dot(cells.lapGJ_P_inv,div_u)
 
-        self.P_cells = (p.lame_mu/k_const)*P_react[:]
+        # self.P_cells = (p.lame_mu/k_const)*P_react[:]
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3951,8 +3899,8 @@ class Simulator(object):
         gP_y = gradP_react*cells.cell_nn_ty
 
         # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.M_sum_mems   # FIXME if this stops working change back to gjMatrix
-        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.M_sum_mems
+        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems   # FIXME if this stops working change back to gjMatrix
+        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
 
         # calculate the displacement of cell centres under the applied force under incompressible conditions:
         self.d_cells_x = self.d_cells_x - gPx_cell

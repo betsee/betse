@@ -357,7 +357,9 @@ class Parameters(object):
         bool_Clmem = bool(self.config['change Cl mem']['event happens'])
         bool_Camem = bool(self.config['change Ca mem']['event happens'])
         bool_ip3 = bool(self.config['produce IP3']['event happens'])
+        bool_press = bool(self.config['apply pressure']['event happens'])
         bool_ecmj = bool(self.config['break ecm junctions']['event happens'])
+
 
         if bool_Namem is False:
             self.scheduled_options['Na_mem'] = 0
@@ -367,7 +369,7 @@ class Parameters(object):
             rate_Namem = float(self.config['change Na mem']['change rate'])
             multi_Namem = float(self.config['change Na mem']['multiplier'])
             apply_Namem = self.config['change Na mem']['apply to']
-            function = self.config['change Na mem']['function']
+            function = self.config['change Na mem']['modulator function']
             Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem,function]
             self.scheduled_options['Na_mem'] = Namem
 
@@ -379,7 +381,7 @@ class Parameters(object):
             rate_Kmem = float(self.config['change K mem']['change rate'])
             multi_Kmem = float(self.config['change K mem']['multiplier'])
             apply_Kmem = self.config['change K mem']['apply to']
-            function = self.config['change K mem']['function']
+            function = self.config['change K mem']['modulator function']
             Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem,function]
             self.scheduled_options['K_mem'] = Kmem
 
@@ -391,7 +393,7 @@ class Parameters(object):
             rate_Clmem = float(self.config['change Cl mem']['change rate'])
             multi_Clmem = float(self.config['change Cl mem']['multiplier'])
             apply_Clmem = self.config['change Cl mem']['apply to']
-            function = self.config['change Cl mem']['function']
+            function = self.config['change Cl mem']['modulator function']
             Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem, function]
             self.scheduled_options['Cl_mem'] = Clmem
 
@@ -403,7 +405,7 @@ class Parameters(object):
             rate_Camem = float(self.config['change Ca mem']['change rate'])
             multi_Camem = float(self.config['change Ca mem']['multiplier'])
             apply_Camem = self.config['change Ca mem']['apply to']
-            function = self.config['change Ca mem']['function']
+            function = self.config['change Ca mem']['modulator function']
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
 
@@ -415,10 +417,23 @@ class Parameters(object):
             rate_ip3 = float(self.config['produce IP3']['change rate'])
             multi_ip3 = float(self.config['produce IP3']['multiplier'])
             apply_ip3 = self.config['produce IP3']['apply to']
-            function = self.config['produce IP3']['function']
+            function = self.config['produce IP3']['modulator function']
             ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3, apply_ip3,function]
 
             self.scheduled_options['IP3'] = ip3
+
+        if bool_press is False:
+            self.scheduled_options['pressure'] = 0
+        elif bool_press is True:
+            on_p = float(self.config['apply pressure']['change start'])
+            off_p = float(self.config['apply pressure']['change finish'])
+            rate_p = float(self.config['apply pressure']['change rate'])
+            multi_p = float(self.config['apply pressure']['multiplier'])
+            apply_p = self.config['apply pressure']['apply to']
+            function = self.config['apply pressure']['modulator function']
+            pressure_ops = [on_p, off_p, rate_p, multi_p, apply_p,function]
+
+            self.scheduled_options['pressure'] = pressure_ops
 
         #FIXME: Rename this dictionary key from "extV" to "external voltage".
         #Thus spake Sessums!
@@ -450,29 +465,25 @@ class Parameters(object):
         self.periodic_properties = {}
         self.f_scan_properties = {}
 
-        self.gradient_x_properties['slope'] =float(self.config['function properties']['gradient_x']['slope'])
-        self.gradient_x_properties['offset'] =float(self.config['function properties']['gradient_x']['offset'])
+        self.gradient_x_properties['slope'] =float(self.config['modulator function properties']['gradient_x']['slope'])
+        self.gradient_x_properties['offset'] =float(self.config['modulator function properties']['gradient_x']['offset'])
 
-        self.gradient_y_properties['slope'] =float(self.config['function properties']['gradient_y']['slope'])
-        self.gradient_y_properties['offset'] = float(self.config['function properties']['gradient_y']['offset'])
+        self.gradient_y_properties['slope'] =float(self.config['modulator function properties']['gradient_y']['slope'])
+        self.gradient_y_properties['offset'] = float(self.config['modulator function properties']['gradient_y']['offset'])
 
-        self.gradient_r_properties['slope'] = float(self.config['function properties']['gradient_r']['slope'])
-        self.gradient_r_properties['offset'] = float(self.config['function properties']['gradient_r']['offset'])
+        self.gradient_r_properties['slope'] = float(self.config['modulator function properties']['gradient_r']['slope'])
+        self.gradient_r_properties['offset'] = float(self.config['modulator function properties']['gradient_r']['offset'])
 
-        self.periodic_properties['frequency'] = float(self.config['function properties']['periodic']['frequency'])
-        self.periodic_properties['phase'] = float(self.config['function properties']['periodic']['phase'])
-        #
-        # self.f_scan_properties['f number'] = \
-        #                         float(self.config['function properties']['f_sweep']['number of frequencies'])
-
+        self.periodic_properties['frequency'] = float(self.config['modulator function properties']['periodic']['frequency'])
+        self.periodic_properties['phase'] = float(self.config['modulator function properties']['periodic']['phase'])
 
         self.f_scan_properties['f start'] = \
-                                float(self.config['function properties']['f_sweep']['start frequency'])
+                                float(self.config['modulator function properties']['f_sweep']['start frequency'])
 
         self.f_scan_properties['f stop'] = \
-                                float(self.config['function properties']['f_sweep']['end frequency'])
+                                float(self.config['modulator function properties']['f_sweep']['end frequency'])
 
-        #initialize the f vect field to None:
+        #initialize the f vect field to None as it's set depending on the sim timestep:
 
         self.f_scan_properties['f slope'] = None
 

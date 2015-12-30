@@ -46,7 +46,6 @@ class TissueHandler(object):
         #FIXME: Shift into the new cut event class.
         self.do_once_cuts = True
 
-
     def runAllInit(self,sim,cells,p):
         '''
         Initialize all tissue manipulations specified by the passed
@@ -181,6 +180,8 @@ class TissueHandler(object):
             if self.function_Namem != 'None':
                 self.scalar_Namem, self.dyna_Namem = getattr(mod, self.function_Namem)(self.targets_Namem,cells,p)
 
+        #----------------------------------------------
+
         if p.scheduled_options['K_mem'] != 0:
             self.t_on_Kmem = p.scheduled_options['K_mem'][0]
             self.t_off_Kmem = p.scheduled_options['K_mem'][1]
@@ -205,6 +206,8 @@ class TissueHandler(object):
                 # 'gradient_x', 'gradient_y', 'gradient_r'
 
                 self.scalar_Kmem, self.dyna_Kmem = getattr(mod,self.function_Kmem)(self.targets_Kmem,cells,p)
+
+        #----------------------------------------------
 
         if p.scheduled_options['Cl_mem'] != 0:
             self.t_on_Clmem = p.scheduled_options['Cl_mem'][0]
@@ -231,6 +234,8 @@ class TissueHandler(object):
                 # 'gradient_x', 'gradient_y', 'gradient_r'
                 self.scalar_Clmem, self.dyna_Clmem = getattr(mod,self.function_Clmem)(self.targets_Clmem,cells,p)
 
+        #----------------------------------------------
+
         if p.scheduled_options['Ca_mem'] != 0:
             self.t_on_Camem = p.scheduled_options['Ca_mem'][0]
             self.t_off_Camem = p.scheduled_options['Ca_mem'][1]
@@ -256,6 +261,8 @@ class TissueHandler(object):
 
                 self.scalar_Camem, self.dyna_Camem = getattr(mod, self.function_Camem)(self.targets_Camem,cells,p)
 
+        #----------------------------------------------
+
         if p.scheduled_options['IP3'] != 0:
             self.t_onIP3 = p.scheduled_options['IP3'][0]
             self.t_offIP3 = p.scheduled_options['IP3'][1]
@@ -279,6 +286,35 @@ class TissueHandler(object):
             # 'gradient_x', 'gradient_y', 'gradient_r'
             if self.function_IP3 != 'None':
                 self.scalar_IP3, self.dyna_IP3 = getattr(mod, self.function_IP3)(self.targets_IP3,cells, p)
+
+        #----------------------------------------------
+
+        if p.scheduled_options['pressure'] != 0:
+
+            self.t_onP = p.scheduled_options['pressure'][0]
+            self.t_offP = p.scheduled_options['pressure'][1]
+            self.t_changeP = p.scheduled_options['pressure'][2]
+            self.rate_P = p.scheduled_options['pressure'][3]
+            self.apply_P = p.scheduled_options['pressure'][4]
+            self.function_P = p.scheduled_options['pressure'][5]
+
+            self.targets_P = []
+            for profile in self.apply_P:
+                targets = self.cell_target_inds[profile]
+                self.targets_P.append(targets)
+
+            self.targets_P = [
+                item for sublist in self.targets_P for item in sublist]
+
+            self.scalar_P = 1
+            self.dyna_P = lambda t: 1
+
+            # call a special toolbox function to change membrane permeability: spatial grads
+            # 'gradient_x', 'gradient_y', 'gradient_r'
+            if self.function_P != 'None':
+                self.scalar_P, self.dyna_P = getattr(mod, self.function_P)(self.targets_P,cells, p)
+
+        #--------------------------------------------------------
 
         if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
             self.t_on_ecmJ  = p.scheduled_options['ecmJ'][0]
@@ -560,6 +596,11 @@ class TissueHandler(object):
             sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + \
                                          self.scalar_IP3*self.dyna_IP3(t)*self.rate_IP3*tb.pulse(t,self.t_onIP3,
                                          self.t_offIP3,self.t_changeIP3)
+
+        if p.scheduled_options['pressure'] != 0:
+
+            sim.P_mod[self.targets_P] =  self.scalar_P*self.dyna_P(t)*self.rate_P*tb.pulse(t,self.t_onP,
+                                         self.t_offP,self.t_changeP)
 
         if p.scheduled_options['ecmJ'] != 0:
             for i, dmat in enumerate(sim.D_env):
@@ -975,6 +1016,8 @@ class TissueHandler(object):
             sim.Dm_cag + \
             sim.Dm_morpho + \
             sim.Dm_base
+
+        sim.P_cells = sim.P_mod + sim.P_base
 
 
 #FIXME: Document all optional booleans accepted by this method as well. Tasty!
