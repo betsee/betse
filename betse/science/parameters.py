@@ -11,9 +11,9 @@
 
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
-from betse.science.event.cut import EventCut
+from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
-from betse.science.tissue.picker import (TissuePicker, TissuePickerBitmap)
+from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
 from betse.util.path import paths
 from collections import OrderedDict
@@ -123,6 +123,7 @@ class Parameters(object):
         self.gj_flux_sensitive = self.config['variable settings']['gap junctions']['gj flux sensitive']
 
         self.cavity_state = bool(self.config['variable settings']['cavity open'])
+        self.closed_bound = bool(self.config['variable settings']['environmental boundary'])
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
@@ -344,7 +345,6 @@ class Parameters(object):
             self.global_options['VATP_block'] = vk
 
         self._init_tissue_and_cut_profiles()
-        self._init_boundary_profiles()
 
         #---------------------------------------------------------------------------------------------------------------
         # Targeted Interventions
@@ -437,29 +437,12 @@ class Parameters(object):
 
             self.scheduled_options['ecmJ'] = ecmj
 
-        #FIXME: Uncomment when working, please.
-        # # Parameterize the cutting event if enabled.
-        # self.scheduled_options['cuts'] = CutProfile.make(self)
+        # Parameterize the cutting event if enabled.
+        self.scheduled_options['cuts'] = ActionCut.make(self)
 
-        ce = self.config['cutting event']
-        if bool(ce['event happens']) is False:
-            self.scheduled_options['cuts'] = None
-        else:
-            # Time step at which to cut. For simplicity, this is currently
-            # forced to be the first time step.
-            cut_time = 0.0
-
-            apply_cuts = ce['apply to']
-
-            # Does the cut produce cells open to the environment?
-            dangling_gj = bool(ce['membranes damaged'])
-            hurt_level = float(ce['hurt level'])
-            cuts_params = [cut_time, apply_cuts, dangling_gj, hurt_level]
-            self.scheduled_options['cuts'] = cuts_params
-
-
-        # Function properties---------------------------------------------
-
+        #-----------------------------------------------------------------------
+        # Modulators
+        #-----------------------------------------------------------------------
         self.gradient_x_properties = {}
         self.gradient_y_properties = {}
         self.gradient_r_properties = {}
@@ -1315,29 +1298,15 @@ class Parameters(object):
 
         self.profiles = OrderedDict()
 
-        # If tissue profiles are currently disabled, forego parsing.
-        if not tpd['profiles enabled']:
-            return
-
-        # Parse all profiles.
-        for i, profile_config in enumerate(tpd['profiles']):
-            # Finalize this tissue profile parameterization.
-            self.profiles[profile_config['name']] = Profile.make(
-                profile_config, self,
-
-                # Convert from 0-based list indices to 1-based z order.
-                z_order=i + 1,
-            )
-
-    #FIXME: After the "closed boundary" option is moved elsewhere, make this
-    #contumely function go away. Lugubrious sons of the night, arise!
-    def _init_boundary_profiles(self) -> None:
-        '''
-        Parse boundary profile-specific parameters from the current YAML
-        configuration file.
-        '''
-        tpd = self.config['variable settings']['environmental boundary']
-        self.closed_bound = bool(tpd['closed boundary'])
+        # If tissue profiles are currently enabled, parse all profiles.
+        if tpd['profiles enabled']:
+            for i, profile_config in enumerate(tpd['profiles']):
+                self.profiles[profile_config['name']] = Profile.make(
+                    profile_config=profile_config,
+                    params=self,
+                    # Convert from 0-based list indices to 1-based z order.
+                    z_order=i + 1,
+                )
 
 
 #FIXME: Move to the existing "betse.util.dependency.matplotlibs" module.

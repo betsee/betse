@@ -18,11 +18,89 @@ from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
 
+#FIXME: Gag me with a silver hammer, but my simulation enabling extracellular
+#spaces and both the voltage and cutting events just tripped over the following
+#divide-by-zero error:
+#
+# [2015-12-30 03:16:25,516] betse INFO (loggers.py:log_info():178):
+#     Simulation completed successfully.
+# [2015-12-30 03:16:25,840] betse INFO (loggers.py:log_info():178):
+#     Initialization run complete!
+# [2015-12-30 03:16:25,840] betse INFO (loggers.py:log_info():178):
+#     The initialization took 70.97 seconds to complete.
+# [2015-12-30 03:16:25,844] betse INFO (loggers.py:log_info():178):
+#     Running simulation with configuration file "sample_sim.yaml".
+# [2015-12-30 03:16:27,730] betse INFO (loggers.py:log_info():178):
+#     This world contains 224 cells.
+# [2015-12-30 03:16:27,730] betse INFO (loggers.py:log_info():178):
+#     Each cell has an average of 4.9 nearest-neighbours.
+# [2015-12-30 03:16:27,731] betse INFO (loggers.py:log_info():178):
+#     You are running the ion profile: basic
+# [2015-12-30 03:16:27,731] betse INFO (loggers.py:log_info():178):
+#     Ions in this simulation: {0: 'anion', 1: 'sodium', 2: 'potassium', 3: 'proteins'}
+# [2015-12-30 03:16:27,731] betse INFO (loggers.py:log_info():178):
+#     If you have selected features using other ions, they will be ignored.
+# [2015-12-30 03:16:27,747] betse INFO (loggers.py:log_info():178):
+#     Your simulation (with extracellular spaces) is running from 0 to 1.0 seconds of in-world time.
+# [2015-12-30 03:16:28,667] betse INFO (loggers.py:log_info():178):
+#     This run should take approximately 56.89 s to compute...
+# [2015-12-30 03:16:28,667] betse INFO (loggers.py:log_info():178):
+#     Cutting cell cluster via cut profile "surgery"...
+# [2015-12-30 03:16:29,078] betse INFO (loggers.py:log_info():178):
+#     Recalculating cluster variables for new configuration...
+# [2015-12-30 03:16:29,079] betse INFO (loggers.py:log_info():178):
+#     Defining cell-specific geometric properties...
+# [2015-12-30 03:16:29,304] betse INFO (loggers.py:log_info():178):
+#     Creating computational matrices for cell-cell transfers...
+# [2015-12-30 03:16:33,300] betse INFO (loggers.py:log_info():178):
+#     Creating gap junctions...
+# [2015-12-30 03:16:34,379] betse INFO (loggers.py:log_info():178):
+#     Creating cell network Poisson solver...
+# [2015-12-30 03:16:34,379] betse INFO (loggers.py:log_info():178):
+#     Creating Poisson solvers for cell cluster...
+# [2015-12-30 03:16:34,755] betse INFO (loggers.py:log_info():178):
+#     Completed major world-building computations.
+# [2015-12-30 03:16:34,904] betse INFO (loggers.py:log_info():178):
+#     Cutting event successful! Resuming simulation...
+#
+# /usr/lib64/python3.4/site-packages/betse/science/sim.py:4054: RuntimeWarning: overflow encountered in exp
+#   exp_alpha = np.exp(-alpha)
+# /usr/lib64/python3.4/site-packages/betse/science/sim.py:4072: RuntimeWarning: invalid value encountered in true_divide
+#   cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
+#
+# [2015-12-30 03:17:25,331] betse ERROR (loggers.py:log_error():200):
+#     Exiting prematurely due to fatal error:
+#
+# [2015-12-30 03:17:25,336] betse DEBUG (loggers.py:log_debug():167):
+#     betse.exceptions.BetseExceptionSimulation: Your simulation has become unstable. Please try a smaller time step,reduce gap junction radius, and/or reduce pump rate coefficients.
+#
+# Traceback (most recent call last):
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/cli.py", line 83, in run
+#     self._do()
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 125, in _do
+#     subcommand_method()
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 286, in _do_try
+#     self._do_sim()
+#   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 313, in _do_sim
+#     self._get_sim_runner().simulate()
+#   File "/usr/lib64/python3.4/site-packages/betse/science/simrunner.py", line 255, in simulate
+#     sim.runSim_ECM(cells,p,save=True)   # run and optionally save the simulation to the cache
+#   File "/usr/lib64/python3.4/site-packages/betse/science/sim.py", line 1670, in runSim_ECM
+#     check_v(self.vm)
+#   File "/usr/lib64/python3.4/site-packages/betse/science/sim.py", line 4457, in check_v
+#     raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
+#
+#The culprit appears to be overflow in the line "exp_alpha = np.exp(-alpha)"
+#in the electroflux() function. Disabling extracellular spaces appears to make
+#this issue go away. If this is my fault, I shall eat a peach that I dislike.
+#Cape-wearing, monocled monkeys caper about like man baboons!
+
 
 class Simulator(object):
     """
-    Contains the main routines used in the simulation of networked cell bioelectrical activity.
-    All methods are based on matrix mathematics and are implemented in Numpy for speed.
+    Contains the main routines used in the simulation of networked cell
+    bioelectrical activity. For efficiency, all methods are implemented in
+    terms of Numpy-based linear algebra.
 
     Methods
     -------

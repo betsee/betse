@@ -96,7 +96,7 @@ class Profile(object, metaclass = ABCMeta):
 
             # Else if this is a tissue profile...
             elif profile_type == 'cut':
-                profile = CutProfile(
+                profile = ProfileCut(
                     name=profile_config['name'],
                     z_order=z_order,
                     picker=TissuePickerBitmap.make(
@@ -134,9 +134,15 @@ class TissueProfile(Profile):
     pass
 
 # ....................{ CUT                                }....................
-class CutProfile(Profile):
+class ProfileCut(Profile):
     '''
     Profile identifying all cells to be permanently removed by a cutting
     event subsequently triggered during the current tissue simulation.
+
+    There exists a many-to-one relation between cut profiles and cutting events.
+    That is to say, each cutting event references zero or more cut profiles.
+    While unwieldy, this disconnection permits cutting event (but _not_ cut
+    profile) parameters to be modified without requiring simulation reseeding or
+    reinitialization. Welcome to the code jungle.
     '''
     pass

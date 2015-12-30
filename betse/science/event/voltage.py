@@ -88,7 +88,10 @@ class PulseVoltage(Pulse):
         assert types.is_char(negative_voltage_boundary), (
             types.assert_not_char(negative_voltage_boundary))
 
-        super().__init__(start_time, stop_time, step_rate)
+        super().__init__(
+            start_time=start_time,
+            stop_time=stop_time,
+            step_rate=step_rate,)
 
         self.peak_voltage = peak_voltage
         self.positive_voltage_boundary = positive_voltage_boundary

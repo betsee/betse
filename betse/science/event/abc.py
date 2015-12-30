@@ -57,19 +57,37 @@ class Event(object, metaclass=ABCMeta):
         t : float
             Time step to apply this event to.
         '''
+        pass
 
 # ....................{ PERIOD                             }....................
+class Action(Event):
+    '''
+    Abstract base class of all classes describing simulation events occurring
+    at a single point (rather than over a period) of time.
+
+    Attributes
+    ----------------------------
+    time : float
+        Time step (s) at which to trigger this event.
+    '''
+
+    # ..................{ CONCRETE                           }..................
+    def __init__(self, time: float) -> None:
+        assert types.is_numeric(time)
+        self.time = time
+
+# ....................{ PULSE                              }....................
 class Pulse(Event):
     '''
     Abstract base class of all classes describing simulation events occurring
-    over a period (rather than single point) of time.
+    over a period (rather than at a single point) of time.
 
     Attributes
     ----------------------------
     start_time : float
-        Time (s) at which to begin triggering this event.
+        Time step (s) at which to begin triggering this event.
     stop_time : float
-        Time (s) at which to cease triggering this event.
+        Time step (s) at which to cease triggering this event.
     step_rate : float
         Slope of the pair of step functions guaranteeing smooth continuity
         between the background function and this event. Each step function is

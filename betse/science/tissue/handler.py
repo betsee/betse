@@ -294,11 +294,18 @@ class TissueHandler(object):
             self.targets_ecmJ = [
                 item for sublist in self.targets_ecmJ for item in sublist]
 
-        if p.scheduled_options['cuts'] is not None and self.do_once_cuts:
-            self.t_cuts = p.scheduled_options['cuts'][0]
-            self.apply_cuts = p.scheduled_options['cuts'][1]
-            self.dangling_gj = p.scheduled_options['cuts'][2]
-            p.hurt_level = p.scheduled_options['cuts'][3]
+        #FIXME: Replace by direct usage of "p.scheduled_options['cuts']"
+        #attributes.
+        cuts = p.scheduled_options['cuts']
+        if cuts is not None and self.do_once_cuts:
+            self.t_cuts = cuts.time
+            self.apply_cuts = cuts.profile_names
+            self.dangling_gj = cuts.is_cells_leaky
+
+            #FIXME: Odd. Why not an attribute of this class? Is this genuinely
+            #used elsewhere? It doesn't particularly matter, but we should
+            #probably double check that.
+            p.hurt_level = cuts.cell_leakage
 
     def _init_channels_tissue(self, sim, cells, p):
         '''

@@ -102,12 +102,14 @@ def is_sequence(obj: object) -> bool:
     '''
     return isinstance(obj, Sequence)
 
+
 def is_sequence_nonstr(obj: object) -> bool:
     '''
     `True` if the passed object is a **non-string sequence** (i.e., implements
     the abstract base class `collections.Sequence` _and_ is not a string).
     '''
     return is_sequence(obj) and not is_str(obj)
+
 
 def is_sequence_nonstr_nonempty(obj: object) -> bool:
     '''

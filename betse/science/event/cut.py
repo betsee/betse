@@ -7,71 +7,94 @@ High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseExceptionParameters
-from betse.science.event.abc import Event
-from betse.science.tissue.picker import TissuePicker
+from betse.science.event.abc import Action
 from betse.util.io import loggers
 from betse.util.type import types
 
 # ....................{ EVENT                              }....................
-#FIXME: Actually use us, please!
-class EventCut(Event):
+class ActionCut(Action):
     '''
-    Event permanently removing a subset of the cell population at the start
-    (i.e., first time step) of the current tissue simulation.
+    Event permanently removing a subset of the cell population at some time step
+    of the simulation.
 
     Attributes
     ----------------------------
-    time : float
-        Time step at which to cut.
-    picker : TissuePicker
-        Object selecting the subset of the cell population to be removed.
+    profile_names : list
+        List of the names of all applicable cut profiles, each describing a
+        subset of the cell population to be removed.
+    is_cells_leaky : bool
+        `True` if the membranes of unremoved cells adjacent to removed cells are
+        damaged by such removal and hence open (i.e., leak) to the environment.
+    cell_leakage : float
+        Extent to which damaged membranes leak to the environment if
+        `is_cells_leaky` is `True` or ignored otherwise. In the former case, all
+        free diffusion constants will be multiplied by this value and hence:
+        * Increased if this value is greater than 1.0.
+        * Decreased if this value is less than 1.0.
+        * Unmodified if this value is 1.0.
+        For example, the resulting Na+ membrane diffusion constant for all
+        damaged membranes will be `cell_leakage * tissue_profile.Dm_Na`.
     '''
 
     # ..................{ PUBLIC ~ static                    }..................
     @staticmethod
-    def make(params: 'Parameters') -> 'EventCut':
+    def make(params: 'Parameters') -> 'ActionCut':
         assert types.is_parameters(params), types.assert_not_parameters(params)
 
         # Object to be returned, defaulting to nothing.
-        event = None
+        action = None
 
-        # To permit a subset of event parameters to be modified without
-        # requiring simulation reinitialization, these parameters are subdivided
-        # into multiple top-level configuration keys. Such is the code ghetto.
         ce = params.config['cutting event']
-        tpd = params.config['tissue profile definition']
 
         # If this event is enabled, create an instance of this class.
         if bool(ce['event happens']):
-            # If tissue profiles are enabled, parse this event.
-            if tpd['profiles enabled']:
-                event = EventCut(
-                    picker=TissuePicker.make(
-                        tpd['cut profile']['cell targets'], params),
+            # If profiles are enabled, parse this event.
+            if len(params.profiles):
+                action = ActionCut(
+                    # Time step at which to cut. For simplicity, this is coerced
+                    # to be the start of the simulation.
+                    time=0.0,
+                    is_cells_leaky=bool(ce['membranes damaged']),
+                    cell_leakage=float(ce['membrane leakage']),
+                    profile_names=ce['apply to'],
                 )
+
+            # cut_time = 0.0
+            # apply_cuts = ce['apply to']
+            # # Does the cut produce cells open to the environment?
+            # dangling_gj = bool(ce['membranes damaged'])
+            # hurt_level = float(ce['hurt level'])
+            # cuts_params = [cut_time, apply_cuts, dangling_gj, hurt_level]
+            # self.scheduled_options['cuts'] = cuts_params
+
             # Else, print a non-fatal warning.
             else:
                 loggers.log_warning(
-                    'Ignoring cutting event, as tissue profiles are disabled.')
+                    'Ignoring cutting event, as cut profiles are disabled.')
 
-            # # If extracellular spaces are enabled, parse this event.
-            # if params.sim_ECM:
-
-        return event
+        return action
 
     # ..................{ PUBLIC                             }..................
     def __init__(
         self,
+        profile_names: list,
         time: float,
-        picker: 'TissuePicker',
+        is_cells_leaky: bool,
+        cell_leakage: float,
     ) -> None:
-        assert types.is_numeric(time), types.assert_not_numeric(time)
-        assert types.is_tissue_picker(picker), \
-            types.assert_not_tissue_picker(picker)
+        assert types.is_sequence_nonstr(profile_names), (
+            types.assert_not_sequence_nonstr(profile_names))
+        assert types.is_bool(is_cells_leaky), (
+            types.assert_not_bool(is_cells_leaky))
+        assert types.is_numeric(cell_leakage), (
+            types.assert_not_numeric(cell_leakage))
 
-        self.time = time
-        self.picker = picker
+        super().__init__(time)
 
-    # def fire(self, sim: 'Simulation', t: float) -> None:
-    #     pass
+        self.profile_names = profile_names
+        self.is_cells_leaky = is_cells_leaky
+        self.cell_leakage = cell_leakage
+
+    #FIXME: Refactor the handler.removeCells() function into this method.
+    def fire(self, sim: 'Simulation', t: float) -> None:
+        raise TypeError('Not implemented yet!')

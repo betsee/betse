@@ -387,17 +387,18 @@ produce IP3:        # Schedule cell production of IP3
 
 # Apply an external voltage to two edges of the environmental boundary if the
 # "simulate extracellular spaces" option is enabled.
-
 apply external voltage:
+    event happens: False   # enable (True) or disable (False) this event?
+    change start: 0.5     # time [s] at which to begin applying voltage
+    change finish: 1.0    # time [s] at which to cease applying voltage
+    change rate: 0.1      # time [s] over which voltage proceeds from background
+                          # to peak and from peak to background
+    peak voltage: 0.100   # max voltage [V] applied by this event
 
-    event happens: False   # Enable (True) or disable (False) this event?
-    change start: 0.5    # Time [s] at which to begin applying voltage
-    change finish: 1.0  # Time [s] at which to cease applying voltage
-    change rate: 0.1    # Time [s] over which voltage proceeds from background to peak and from peak to background
-    peak voltage: 0.100   # Max voltage [V] applied by this event
-
-    positive voltage boundary: top     # Env boundary to apply positive voltage ("top", "bottom", "left", or "right")
-    negative voltage boundary: bottom  # Env boundary to apply negative voltage ("top", "bottom", "left", or "right")
+    positive voltage boundary: top     # env boundary to apply positive voltage
+                                       # ("top", "bottom", "left", or "right")
+    negative voltage boundary: bottom  # env boundary to apply negative voltage
+                                       # ("top", "bottom", "left", or "right")
 
 
 break ecm junctions:     # break extracellular junctions between cells
@@ -412,12 +413,15 @@ break ecm junctions:     # break extracellular junctions between cells
 # the initialized cluster at the start of the simulation run. Note that this is
 # ignored unless the "cut profile" is also enabled.
 cutting event:
-    event happens: False     # enable (True) or disable (False) this event?
-    membranes damaged: True  # are cell membranes damaged by cutting (and become leaky?)
-    hurt level: 1e-6         # damaged membranes have: 'hurt level' x free diffusion constants
+    event happens: True      # enable (True) or disable (False) this event?
+    membranes damaged: True  # do cell membranes adjacent to cut cells openly
+                             # diffuse to the environment (True) or not (False)?
+    membrane leakage: 1e-6   # value to multiply all free diffusion constants
+                             # for damaged membranes by
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
 
 
+#FIXME: Consider renaming to "modulator properties." Set phasers to modulate!
 function properties:   # set properties of functions which may be used in above:
 
   gradient_x:           # generate a spatial gradient of a property in the x-direction
