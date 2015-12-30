@@ -171,7 +171,9 @@ class TissueHandler(object):
 
             self.targets_Namem = [
                 item for sublist in self.targets_Namem for item in sublist]
+
             self.scalar_Namem = 1
+            self.dyna_Namem = lambda t: 1
 
             # call a special toolbox function to change membrane permeability: spatial grads
             # 'gradient_x', 'gradient_y', 'gradient_r'
@@ -194,7 +196,9 @@ class TissueHandler(object):
 
             self.targets_Kmem = [
                 item for sublist in self.targets_Kmem for item in sublist]
+
             self.scalar_Kmem = 1
+            self.dyna_Kmem = lambda t: 1
 
             if self.function_Kmem != 'None':
                 # call a special toolbox function to change membrane permeability: spatial grads
@@ -217,7 +221,9 @@ class TissueHandler(object):
 
             self.targets_Clmem = [
                 item for sublist in self.targets_Clmem for item in sublist]
+
             self.scalar_Clmem = 1
+            self.dyna_Clmem = lambda t: 1
 
             if self.function_Clmem != 'None':
 
@@ -240,7 +246,9 @@ class TissueHandler(object):
 
             self.targets_Camem = [
                 item for sublist in self.targets_Camem for item in sublist]
+
             self.scalar_Camem = 1
+            self.dyna_Camem = lambda t: 1
 
             if self.function_Camem != 'None':
                 # call a special toolbox function to change membrane permeability: spatial grads
@@ -263,7 +271,9 @@ class TissueHandler(object):
 
             self.targets_IP3 = [
                 item for sublist in self.targets_IP3 for item in sublist]
+
             self.scalar_IP3 = 1
+            self.dyna_IP3 = lambda t: 1
 
             # call a special toolbox function to change membrane permeability: spatial grads
             # 'gradient_x', 'gradient_y', 'gradient_r'

@@ -2113,7 +2113,7 @@ class AnimateDyeData(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'): # FIXME you're not actually plotting the right data value for sim_ECM is True!!!
+def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
 
     tvect_data=[x[celli]*1000 for x in sim.vm_time]
 

@@ -971,19 +971,19 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 5.0e-14        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  1e-16
-        activation v: -55e-3      # voltage threshold above which vgNa is activated [V]
-        inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V]
-        deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V]
-        live time: 2e-3           # time activated state can exist (trans to inactivated) [s]
-        dead time: 5e-3          # refractory time vgNa remains inactivated [s]
+        max Dmem Na: 5.0e-14        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
+        activation v: -55e-3      # voltage threshold above which vgNa is activated [V] -55e-3
+        inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3
+        deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
+        live time: 2e-3           # time activated state can exist (trans to inactivated) [s]  2.5e-3
+        dead time: 5e-3          # refractory time vgNa remains inactivated [s]  5e-3
 
     voltage gated K:
 
-        max Dmem K: 7.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 5e-16
-        activation v: 5e-3        # voltage threshold above which vgK is activated [V]
-        deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V]
-        live time: 10e-3            # time activated state can exist [s]
+        max Dmem K: 1.0e-14           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
+        activation v: -10e-3        # voltage threshold above which vgK is activated [V]    -10e-3
+        deactivation v: -65e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
+        live time: 5e-3            # time activated state can exist [s]   5e-3
 
     voltage gated Ca:
 

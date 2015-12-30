@@ -417,6 +417,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         image_cache_dir = os.path.expanduser(images_path)
         os.makedirs(image_cache_dir, exist_ok=True)
         savedImg = os.path.join(image_cache_dir, 'fig_')
+
+    if p.sim_ECM is True:
+        plot_cell_ecm = cells.cell_to_mems[plot_cell][0]  # convert from cell to mem index
+
+    else:
+        plot_cell_ecm = plot_cell
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
     #-------------------------------------------------------------------------------------------------------------------
@@ -464,9 +470,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
-        # plot-cell Vmem vs time:
 
-        figVt, axVt = viz.plotSingleCellVData(sim,plot_cell,p,fig=None,ax=None,lncolor='k')
+        figVt, axVt = viz.plotSingleCellVData(sim,plot_cell_ecm,p,fig=None,ax=None,lncolor='k')
         titV = 'Voltage (Vmem) in cell ' + str(plot_cell)
         axVt.set_title(titV)
 
@@ -476,8 +481,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         plt.show(block=False)
 
+
+
         # fft of vmem....
-        figFFT, axFFT = viz.plotFFT(sim.time,sim.vm_time,plot_cell,lab="Power")
+        figFFT, axFFT = viz.plotFFT(sim.time,sim.vm_time,plot_cell_ecm,lab="Power")
         titFFT = 'Fourier transform of Vmem in cell ' + str(plot_cell)
         axFFT.set_title(titFFT)
 
@@ -491,7 +498,12 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         figNaK = plt.figure()
         axNaK = plt.subplot()
-        pump_rate = [pump_array[plot_cell] for pump_array in sim.rate_NaKATP_time]
+
+        if p.sim_ECM is False:
+            pump_rate = [pump_array[plot_cell] for pump_array in sim.rate_NaKATP_time]
+
+        else:
+            pump_rate = [pump_array[plot_cell_ecm] for pump_array in sim.rate_NaKATP_time]
 
         axNaK.plot(sim.time,pump_rate)
 
@@ -515,11 +527,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if p.sim_ECM is False:
 
-            Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
+            Imem = [memArray[plot_cell] for memArray in sim.I_mem_time]
 
         else:
             Imem = []  # initialize a total cell current storage vector
-            mems_for_plotcell = cells.cell_to_mems[p.plot_cell]  # get membranes for the plot cell
+            mems_for_plotcell = cells.cell_to_mems[plot_cell]  # get membranes for the plot cell
 
 
             for t in range(len(sim.time)):
