@@ -478,20 +478,20 @@ class Parameters(object):
 
         self.periodic_properties['frequency'] = float(self.config['function properties']['periodic']['frequency'])
         self.periodic_properties['phase'] = float(self.config['function properties']['periodic']['phase'])
-
-        self.f_scan_properties['f number'] = \
-                                float(self.config['function properties']['frequency_scan']['number of frequencies'])
+        #
+        # self.f_scan_properties['f number'] = \
+        #                         float(self.config['function properties']['f_sweep']['number of frequencies'])
 
 
         self.f_scan_properties['f start'] = \
-                                float(self.config['function properties']['frequency_scan']['start frequency'])
+                                float(self.config['function properties']['f_sweep']['start frequency'])
 
         self.f_scan_properties['f stop'] = \
-                                float(self.config['function properties']['frequency_scan']['end frequency'])
+                                float(self.config['function properties']['f_sweep']['end frequency'])
 
         #initialize the f vect field to None:
 
-        self.f_scan_properties['f vect'] = None
+        self.f_scan_properties['f slope'] = None
 
 
         #.........................DYNAMIC CHANNELS.....................................................................
@@ -1328,7 +1328,6 @@ class Parameters(object):
                 # Convert from 0-based list indices to 1-based z order.
                 z_order=i + 1,
             )
-
 
     #FIXME: After the "closed boundary" option is moved elsewhere, make this
     #contumely function go away. Lugubrious sons of the night, arise!

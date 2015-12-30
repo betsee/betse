@@ -436,10 +436,9 @@ function properties:   # set properties of functions which may be used in above:
       frequency: 1e3     # frequency of oscillation [Hz]
       phase: 0           # phase-offset of oscillation
 
-  frequency_scan:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies
-      number of frequencies: 10     # total number of frequencies to apply
-      start frequency: 1e3          # start frequency
-      end frequency: 3e3            # end frequency
+  f_sweep:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies
+      start frequency: 0.1e3          # start frequency
+      end frequency: 1e3            # end frequency
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS

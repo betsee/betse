@@ -2217,11 +2217,12 @@ def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
 
 
     cell_data_o = [arr[celli] for arr in simdata_time]
-    cell_data = ((1/sample_size)*(cell_data_o/np.mean(cell_data_o)) )   # normalize the signal
+    # cell_data = ((1/sample_size)*(cell_data_o/np.mean(cell_data_o)) )   # normalize the signal
+    cell_data = (1/sample_size)*(cell_data_o - np.mean(cell_data_o))
 
     f_axis = np.fft.rfftfreq(sample_size, d=sample_spacing)
     fft_data_o = np.fft.rfft(cell_data)
-    fft_data = np.real(fft_data_o)**2 + np.imag(fft_data_o)**2
+    fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
     xmin = f_axis[0]
     xmax = f_axis[-1]

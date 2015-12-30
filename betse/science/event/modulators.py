@@ -6,24 +6,57 @@ import numpy as np
 
 
 def periodic(pc,cells,p):
+    """
+    Creates a time-dependent signal of a sinusoidal function.
+
+    Parameters
+    ----------
+    pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    y              Data values from 0 to 1 defining a periodic signal.
+
+    scalar         Null output corresponding to spatial variation.
+
+    """
 
     scalar = 1
 
-    y = lambda t: np.sin(t*2*np.pi*(p.periodic_properties['frequency']/1) + p.periodic_properties['phase'])**2
+    y = lambda t: np.sin(t*np.pi*(p.periodic_properties['frequency']/1) + p.periodic_properties['phase'])**2
 
     return scalar, y
 
 def f_sweep(pc,cells,p):
+    """
+    Creates a time-dependent sweep of a sinusoidal function through various frequencies.
+
+    Parameters
+    ----------
+    pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    y              Data values from 0 to 1 defining a periodic signal.
+
+    scalar         Null output corresponding to spatial variation.
+
+    """
 
     scalar = 1
 
-    if p.f_scan_properties['f vect'] is None:
+    if p.f_scan_properties['f slope'] is None and p.run_sim is True:
 
-        p.f_scan_properties['f vect'] = np.linspace(p.f_scan_properties['f start'],
-            p.f_scan_properties['f stop'],p.sim_tsteps)
+        p.f_scan_properties['f slope'] = (p.f_scan_properties['f stop'] -
+                                         p.f_scan_properties['f start'])/p.sim_end
 
-    y = lambda t: 1
+    f_slope = p.f_scan_properties['f slope']
 
+    y = lambda t: np.sin(np.pi*(f_slope*t + p.f_scan_properties['f start'])*t)**2
 
     return scalar, y
 
@@ -46,6 +79,8 @@ def gradient_x(pc,cells,p):
     fx              Data values from 0 to 1 defining a gradient in the x-direciton.
                     If p.sim_ECM == True, length of fx is number of membranes, otherwise
                     length of fx is equal to cell number.
+
+    dynamics        Null quantity corresponding to time dynamics.
     """
 
     if p.sim_ECM is False:
