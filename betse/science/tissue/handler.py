@@ -1143,7 +1143,7 @@ def removeCells(
     if simMod is True:
         sim_names = list(sim.__dict__.keys())
         specials_list = ['cc_cells','cc_env','z_array','z_array_er','Dm_cells','fluxes_gj_x','fluxes_gj_y',
-            'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_morpho','Dm_er_base','Dm_er_CICR',
+            'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_morpho','Dm_er_base','Dm_er_CICR', 'Dm_stretch',
             'D_gj','cc_er']
 
         if p.sim_ECM is True:

@@ -2129,7 +2129,7 @@ def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
 
     if p.GHK_calc is True:
 
-        tvect_data_ghk = [x[celli]*1000 for x in sim.vm_GHK_time]
+        tvect_data_ghk = [x[p.plot_cell]*1000 for x in sim.vm_GHK_time]
         ax.plot(sim.time, tvect_data_ghk,'r',linewidth=2.0)
 
 

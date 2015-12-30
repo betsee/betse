@@ -228,7 +228,7 @@ tissue profile definition:
 
     clipping:     # geometry mask defining shape of global cell cluster
         bitmap:   # bitmap whose coloured pixel area defines this mask
-            file: geo/starfish/starfish_base.png  # bitmap path relative to config file location;
+            file: geo/circle/circle_base.png  # bitmap path relative to config file location;
                                                   # if "None", clipping will be disabled
 
     profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
@@ -266,7 +266,7 @@ tissue profile definition:
 
               bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
 
-                  file: geo/starfish/starfish_base.png  # Absolute or relative bitmap path
+                  file: geo/circle/circle_base.png  # Absolute or relative bitmap path
 
               indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
                                            # otherwise this is ignored. This must be a list of positive integers
@@ -297,7 +297,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/starfish/spot.png }
+              bitmap: { file: geo/circle/spot.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -319,7 +319,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/starfish/wedge.png }
+              bitmap: { file: geo/circle/wedge.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -329,7 +329,7 @@ tissue profile definition:
 
           bitmap:         # bitmap whose coloured pixel area defines the
                           # subset of cells to be removed
-              file: geo/starfish/wedge.png
+              file: geo/circle/wedge.png
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS

@@ -1629,6 +1629,9 @@ class Simulator(object):
 
             self.get_Efield(cells,p)
 
+            # get forces from any hydrostatic (self.P_Cells) pressure:
+            self.getHydroF(cells,p)
+
             # calculate pressures:
 
             if p.deform_osmo is True:
