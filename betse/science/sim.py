@@ -756,6 +756,8 @@ class Simulator(object):
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
 
+        self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
+
         self.Dm_er_base = np.copy(Dm_cellsER)
 
         self.Dm_er_CICR = np.copy(Dm_cellsER)
@@ -3681,6 +3683,10 @@ class Simulator(object):
         # Take the total component of pressure from all contributions:
         F_cell_x = F_electro_x + F_hydro_x
         F_cell_y = F_electro_y + F_hydro_y
+
+        # integrate the forces, as is mandated by finite volume methods:
+        F_cell_x = cells.integrator(F_cell_x)
+        F_cell_y = cells.integrator(F_cell_y)
 
         #--calculate displacement field for incompressible medium------------------------------------------------
 

@@ -1015,7 +1015,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
     stretch gated Na:
 
         max Dmem Na: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
-        hill K_half: 0.2         # half-maxium activity coefficient for Hill function as % strain
+        hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as strain)
         hill n: 3                   # Hill function coefficient
 
 

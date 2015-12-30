@@ -573,9 +573,9 @@ class Parameters(object):
             self.vg_options['K_cag'] = cagK
 
         if bool_stretch is False:
-            self.vg_options['Na_str'] = 0
+            self.vg_options['Na_stretch'] = 0
         elif bool_stretch is True:
-            self.vg_options['Na_str'] = stNa
+            self.vg_options['Na_stretch'] = stNa
 
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 

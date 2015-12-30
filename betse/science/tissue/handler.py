@@ -455,6 +455,28 @@ class TissueHandler(object):
             self.target_mask_cagK = np.zeros(self.data_length)
             self.target_mask_cagK[self.targets_cagK] = 1
 
+        # stretch activated ion channels:
+        if p.vg_options['Na_stretch'] != 0:
+            self.maxDmNaStretch = p.vg_options['Na_stretch'][0]
+            self.NaStretch_halfmax = p.vg_options['Na_stretch'][1]
+            self.NaStretch_n = p.vg_options['Na_stretch'][2]
+            self.apply_NaStretch = p.vg_options['Na_stretch'][3]
+
+             # Initialize matrices defining states of cag K channels for each cell membrane:
+            self.active_NaStretch = np.zeros(self.data_length)
+
+            self.targets_NaStretch = []
+            for profile in self.apply_NaStretch:
+                targets = self.tissue_target_inds[profile]
+                self.targets_NaStretch.append(targets)
+
+            self.targets_NaStretch = [item for sublist in self.targets_NaStretch for item in sublist]
+
+            self.targets_NaStretch = np.asarray(self.targets_NaStretch)
+
+            self.target_mask_NaStretch = np.zeros(self.data_length)
+            self.target_mask_NaStretch[self.targets_NaStretch] = 1
+
         # calcium dynamics
         if p.Ca_dyn_options['CICR'] != 0:
             self.stateER = np.zeros(len(cells.cell_i))   # state of ER membrane Ca permeability
@@ -708,6 +730,10 @@ class TissueHandler(object):
 
             self.cagPotassium(sim,cells,p,t)
 
+        if p.vg_options['Na_stretch'] != 0 and p.deformation is True:
+
+            self.stretchChannel(sim,cells,p,t)
+
         if p.Ca_dyn_options['CICR'] != 0 and p.ions_dict['Ca'] != 0:
 
             self.calciumDynamics(sim,cells,p)
@@ -887,6 +913,17 @@ class TissueHandler(object):
 
         sim.Dm_cag[sim.iK] = self.maxDmKcag*self.active_cagK
 
+    def stretchChannel(self,sim,cells,p,t):
+
+        dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
+
+        eta = (dd/cells.R)
+
+        self.active_NaStretch[self.targets_NaStretch] = tb.hill(eta[self.targets_NaStretch],
+                self.NaStretch_halfmax,self.NaStretch_n)
+
+        sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
+
     def calciumDynamics(self,sim,cells,p):
         if p.Ca_dyn_options['CICR'] != 0:
             if len(p.Ca_dyn_options['CICR'][1])==0:
@@ -1015,6 +1052,7 @@ class TissueHandler(object):
             sim.Dm_vg + \
             sim.Dm_cag + \
             sim.Dm_morpho + \
+            sim.Dm_stretch +\
             sim.Dm_base
 
         sim.P_cells = sim.P_mod + sim.P_base
