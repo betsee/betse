@@ -120,7 +120,7 @@ class Parameters(object):
 
         self.gj_surface = float(self.config['variable settings']['gap junctions']['gap junction surface area'])
 
-        self.gj_flux_sensitive = self.config['variable settings']['gap junctions']['gj flux sensitive']
+        self.gj_flux_sensitive = False
 
         self.cavity_state = bool(self.config['variable settings']['cavity open'])
         self.closed_bound = bool(self.config['variable settings']['environmental boundary'])
@@ -162,7 +162,7 @@ class Parameters(object):
 
         self.T = float(self.config['world options']['temperature'])  # Cells temperature
 
-        self.gravity = self.config['variable settings']['flow and deformation']['gravity']
+        self.gravity = False
 
         self.aquaporins = float(self.config['variable settings']['flow and deformation']['membrane water conductivity'])
 

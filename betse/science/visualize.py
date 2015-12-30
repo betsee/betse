@@ -3074,7 +3074,7 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 
     return fig, ax, ax_cb
 
-def exportData(cells,sim,p):
+def exportData(cells,sim,p):   # FIXME also export membrane permeabilities, pump rate constants, pressure, displacement
 
     results_path = p.sim_results
     os.makedirs(results_path, exist_ok=True)

@@ -610,8 +610,6 @@ variable settings:
 
   flow and deformation:
 
-    gravity: False             # include a global force of gravity acting in the -y direction?
-
     water viscocity: 1e-3      # viscocity of water [Pa s] (applies to ease of flow)
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
@@ -659,8 +657,6 @@ variable settings:
     gj voltage window: 15e-3      # range over which gj goes from open to shut
                                   # with the gj voltage threshold as midpoint [V]
                                   # suggested range from 5e-3 to 50e-3
-
-    gj flux sensitive: False      # gj conductivity increases with increasing current (Note: memory intensive!)
 
 
   environmental boundary: # set conditions for the global (environmental) boundary
