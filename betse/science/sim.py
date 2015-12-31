@@ -859,6 +859,8 @@ class Simulator(object):
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding environmental concentrations at time points
+
+        self.dd_time = []  # data array holding membrane permeabilites at time points
         self.vm_time = []  # data array holding voltage at time points
         self.vm_GHK_time = [] # data array holding GHK vm estimates
         # self.dvm_time = []  # data array holding derivative of voltage at time points
@@ -1222,6 +1224,11 @@ class Simulator(object):
                 self.cc_env_time.append(envsc)
                 envsc = None
 
+                ddc = np.copy(self.Dm_cells[:])
+                ddc.tolist()
+                self.dd_time.append(ddc)
+                ddc = None
+
                 self.I_gj_x_time.append(self.I_gj_x[:])
                 self.I_gj_y_time.append(self.I_gj_y[:])
 
@@ -1388,6 +1395,8 @@ class Simulator(object):
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding extracellular concentrations at time points
+
+        self.dd_time = []  # data array storing cell membrane permeabilities
 
         self.vm_time = []  # data array holding voltage at time points
         self.vcell_time = []
@@ -1721,6 +1730,11 @@ class Simulator(object):
                 ecmsc.tolist()
                 self.cc_env_time.append(ecmsc)
                 ecmsc = None
+
+                ddc = np.copy(self.Dm_cells[:])
+                ddc.tolist()
+                self.dd_time.append(ddc)
+                ddc = None
 
                 self.vm_time.append(self.vm[:])
 

@@ -2208,8 +2208,6 @@ def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
     fig, ax     Handles to the figure and axis of the FFT plot
     """
 
-
-
     if fig is None:
         fig = plt.figure()
     if ax is None:
@@ -2217,7 +2215,6 @@ def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
 
     sample_size = len(simtime)
     sample_spacing = simtime[1] - simtime[0]
-
 
     cell_data_o = [arr[celli] for arr in simdata_time]
     # cell_data = ((1/sample_size)*(cell_data_o/np.mean(cell_data_o)) )   # normalize the signal
@@ -3074,29 +3071,27 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 
     return fig, ax, ax_cb
 
-def exportData(cells,sim,p):   # FIXME also export membrane permeabilities, pump rate constants, pressure, displacement
+def exportData(cells,sim,p):   # FIXME also export goldman Vmem, current, membrane permeabilities, pump rate constants, pressure, displacement
 
     results_path = p.sim_results
     os.makedirs(results_path, exist_ok=True)
     savedData = os.path.join(results_path, 'ExportedData.csv')
+    savedData_FFT = os.path.join(results_path, 'ExportedData_FFT.csv')
 
     cc_cell = []
+
+    dd_cell = []
 
     ci = p.plot_cell  # index of cell to get time data for
 
     # create the header, first entry will be time:
     headr = 'time_s'
+    t = np.asarray(sim.time)
+
+    #-----------Vmem----------------------------------------------
 
     # next entry will be Vm:
     headr = headr + ',' + 'Vmem_mV'
-
-    # create the header starting with cell concentrations
-    for i in range(0,len(sim.ionlabel)):
-        label = sim.ionlabel[i]
-        headr = headr + ',' + 'cell_' + label + '_mmol/L'
-        cc_m = [arr[i][ci] for arr in sim.cc_time]
-        cc_m = np.asarray(cc_m)
-        cc_cell.append(cc_m)
 
     if p.sim_ECM is False:
         vm = [arr[ci]*1000 for arr in sim.vm_time]
@@ -3109,8 +3104,45 @@ def exportData(cells,sim,p):   # FIXME also export membrane permeabilities, pump
 
     vm = np.asarray(vm)
 
-    t = np.asarray(sim.time)
+    # golman Vmem------------------------------------------------------
+
+    if p.GHK_calc is True:
+
+        vm_goldman = [x[p.plot_cell]*1000 for x in sim.vm_GHK_time]
+
+    else:
+        vm_goldman = np.zeros(len(sim.time))
+
+    vm_goldman = np.asarray(vm_goldman)
+    # next entry will be Vm:
+    headr = headr + ',' + 'Goldman_Vmem_mV'
+
+    # ------Na K pump rate-----------------------------------------------
+
+    # Na-K-pump rate:
+    if p.sim_ECM is False:
+        pump_rate = [pump_array[p.plot_cell] for pump_array in sim.rate_NaKATP_time]
+
+    else:
+        pump_rate = [pump_array[cells.cell_to_mems[p.plot_cell][0]] for pump_array in sim.rate_NaKATP_time]
+
+    pump_rate = np.asarray(pump_rate)
+    headr = headr + ',' + 'NaK-ATPase_Rate_mol/m2s'
+
+    #----------cell concentrations---------------------------------------
+
+    # create the header starting with cell concentrations
+    for i in range(0,len(sim.ionlabel)):
+        label = sim.ionlabel[i]
+        headr = headr + ',' + 'cell_' + label + '_mmol/L'
+        cc_m = [arr[i][ci] for arr in sim.cc_time]
+        cc_m = np.asarray(cc_m)
+        cc_cell.append(cc_m)
+
+
     cc_cell = np.asarray(cc_cell)
+
+    #-----optional concentrations--------------------------------------
 
     if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
@@ -3138,16 +3170,104 @@ def exportData(cells,sim,p):   # FIXME also export membrane permeabilities, pump
         Ca_er = np.zeros(len(sim.time))
         headr = headr + ',' + 'CaER_mmol/L'
 
+    #----------membrane permeabilities---------------------------------------
 
-    dataM = np.column_stack((t,vm,cc_cell.T,IP3_time,dye_time,Ca_er))
+    # create the header starting with membrane permeabilities
+    if p.sim_ECM is False:
+        for i in range(0,len(sim.ionlabel)):
+            label = sim.ionlabel[i]
+            headr = headr + ',' + 'Dm_' + label + '_m2/s'
+            dd_m = [arr[i][ci] for arr in sim.dd_time]
+            dd_m = np.asarray(dd_m)
+            dd_cell.append(dd_m)
+
+    else:
+        for i in range(0,len(sim.ionlabel)):
+            label = sim.ionlabel[i]
+            headr = headr + ',' + 'Dm_' + label + '_m2/s'
+            dd_m = [arr[i][cells.cell_to_mems[ci][0]] for arr in sim.dd_time]
+            dd_m = np.asarray(dd_m)
+            dd_cell.append(dd_m)
+
+
+    dd_cell = np.asarray(dd_cell)
+
+    #----Transmembrane currents--------------------------
+    if p.sim_ECM is False:
+        Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
+    else:
+        Imem = [memArray[cells.cell_to_mems[p.plot_cell][0]] for memArray in sim.I_mem_time]
+
+    headr = headr + ',' + 'I_A/m2'
+
+    #----Hydrostatic pressure--------
+    p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
+
+    headr = headr + ',' + 'HydroP_Pa'
+
+    # ---Osmotic pressure-----------
+    if p.deform_osmo is True:
+
+        p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
+
+    else:
+        p_osmo = np.zeros(len(sim.time))
+
+    headr = headr + ',' + 'OsmoP_Pa'
+
+    # electrostatic pressure -----------------------------------
+    if p.deform_electro is True:
+
+        p_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
+
+    else:
+        p_electro = np.zeros(len(sim.time))
+
+    headr = headr + ',' + 'ElectroP_Pa'
+
+    # total deformation ---------------------------------------
+    if p.deformation is True and sim.run_sim is True:
+
+        # extract time-series deformation data for the plot cell:
+        dx = np.asarray([arr[p.plot_cell] for arr in sim.dx_cell_time])
+        dy = np.asarray([arr[p.plot_cell] for arr in sim.dy_cell_time])
+
+        # get the total magnitude:
+        disp = p.um*np.sqrt(dx**2 + dy**2)
+
+    else:
+        disp = np.zeros(len(sim.time))
+
+    headr = headr + ',' + 'Displacement_um'
+
+
+    # FFT of voltage :
+    sample_size = len(sim.time)
+    sample_spacing = sim.time[1] - sim.time[0]
+
+    cell_data = (1/sample_size)*(vm - np.mean(vm))
+
+    f_axis = np.fft.rfftfreq(sample_size, d=sample_spacing)
+    fft_data_o = np.fft.rfft(cell_data)
+    fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
+
+    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,dye_time,Ca_er,dd_cell.T,Imem,
+                             p_hydro,p_osmo,p_electro,disp))
+
+    headr2 = 'frequency_Hz'
+    headr2 = headr2 + ',' + 'FFT_Vmem'
+
+    dataFFT = np.column_stack((f_axis,fft_data))
 
     np.savetxt(savedData,dataM,delimiter = ',',header = headr)
+    np.savetxt(savedData_FFT,dataFFT,delimiter = ',',header = headr2)
 
 def export2dData(simdata,cells,p):
 
     results_path = p.sim_results
     os.makedirs(results_path, exist_ok=True)
     savedData_2d = os.path.join(results_path, 'Exported2DData.csv')
+
 
     dataM = simdata
     np.savetxt(savedData_2d,dataM,delimiter=',')
