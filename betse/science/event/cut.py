@@ -22,18 +22,18 @@ class ActionCut(Action):
     profile_names : list
         List of the names of all applicable cut profiles, each describing a
         subset of the cell population to be removed.
-    is_cells_leaky : bool
+    is_hurt_cells_leaky : bool
         `True` if the membranes of unremoved cells adjacent to removed cells are
         damaged by such removal and hence open (i.e., leak) to the environment.
-    cell_leakage : float
+    hurt_cell_leakage : float
         Extent to which damaged membranes leak to the environment if
-        `is_cells_leaky` is `True` or ignored otherwise. In the former case, all
+        `is_hurt_cells_leaky` is `True` or ignored otherwise. In the former case, all
         free diffusion constants will be multiplied by this value and hence:
         * Increased if this value is greater than 1.0.
         * Decreased if this value is less than 1.0.
         * Unmodified if this value is 1.0.
         For example, the resulting Na+ membrane diffusion constant for all
-        damaged membranes will be `cell_leakage * tissue_profile.Dm_Na`.
+        damaged membranes will be `hurt_cell_leakage * tissue_profile.Dm_Na`.
     '''
 
     # ..................{ PUBLIC ~ static                    }..................
@@ -54,18 +54,10 @@ class ActionCut(Action):
                     # Time step at which to cut. For simplicity, this is coerced
                     # to be the start of the simulation.
                     time=0.0,
-                    is_cells_leaky=bool(ce['membranes damaged']),
-                    cell_leakage=float(ce['membrane leakage']),
+                    is_hurt_cells_leaky=bool(ce['membranes damaged']),
+                    hurt_cell_leakage=float(ce['membrane leakage']),
                     profile_names=ce['apply to'],
                 )
-
-            # cut_time = 0.0
-            # apply_cuts = ce['apply to']
-            # # Does the cut produce cells open to the environment?
-            # dangling_gj = bool(ce['membranes damaged'])
-            # hurt_level = float(ce['hurt level'])
-            # cuts_params = [cut_time, apply_cuts, dangling_gj, hurt_level]
-            # self.scheduled_options['cuts'] = cuts_params
 
             # Else, print a non-fatal warning.
             else:
@@ -79,22 +71,31 @@ class ActionCut(Action):
         self,
         profile_names: list,
         time: float,
-        is_cells_leaky: bool,
-        cell_leakage: float,
+        is_hurt_cells_leaky: bool,
+        hurt_cell_leakage: float,
     ) -> None:
         assert types.is_sequence_nonstr(profile_names), (
             types.assert_not_sequence_nonstr(profile_names))
-        assert types.is_bool(is_cells_leaky), (
-            types.assert_not_bool(is_cells_leaky))
-        assert types.is_numeric(cell_leakage), (
-            types.assert_not_numeric(cell_leakage))
+        assert types.is_bool(is_hurt_cells_leaky), (
+            types.assert_not_bool(is_hurt_cells_leaky))
+        assert types.is_numeric(hurt_cell_leakage), (
+            types.assert_not_numeric(hurt_cell_leakage))
 
         super().__init__(time)
 
         self.profile_names = profile_names
-        self.is_cells_leaky = is_cells_leaky
-        self.cell_leakage = cell_leakage
+        self.is_hurt_cells_leaky = is_hurt_cells_leaky
+        self.hurt_cell_leakage = hurt_cell_leakage
 
-    #FIXME: Refactor the handler.removeCells() function into this method.
+
+    #FIXME: Refactor the handler.removeCells() function into this method. Before
+    #we do so, note that this will require refactoring this method's signature
+    #everywhere to resemble:
+    #    def fire(
+    #        self,
+    #        sim: 'Simulation',
+    #        cells: 'Cells',
+    #        p: 'Parameters',
+    #        t: float) -> None:
     def fire(self, sim: 'Simulation', t: float) -> None:
         raise TypeError('Not implemented yet!')

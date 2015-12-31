@@ -62,25 +62,30 @@ class Event(object, metaclass=ABCMeta):
 # ....................{ PERIOD                             }....................
 class Action(Event):
     '''
-    Abstract base class of all classes describing simulation events occurring
-    at a single point (rather than over a period) of time.
+    Abstract base class of all classes describing simulation events occurring at
+    only a single time step (rather than over a range of time steps).
 
     Attributes
     ----------------------------
     time : float
-        Time step (s) at which to trigger this event.
+        Time step (s) at which to trigger this action.
+    _is_fired : bool
+        `True` if this action's `fire()` method has already been called at a
+        previous time step of the current simulation _or_ `False` otherwise.
+        Defaults to `False`.
     '''
 
     # ..................{ CONCRETE                           }..................
     def __init__(self, time: float) -> None:
         assert types.is_numeric(time)
         self.time = time
+        self._is_fired = False
 
 # ....................{ PULSE                              }....................
 class Pulse(Event):
     '''
     Abstract base class of all classes describing simulation events occurring
-    over a period (rather than at a single point) of time.
+    over a range of time steps (rather than at only a single time step).
 
     Attributes
     ----------------------------

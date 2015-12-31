@@ -43,9 +43,6 @@ class TissueHandler(object):
         elif p.sim_ECM is False:
             self.data_length = len(cells.cell_i)
 
-        #FIXME: Shift into the new cut event class.
-        self.do_once_cuts = True
-
     def runAllInit(self,sim,cells,p):
         '''
         Initialize all tissue manipulations specified by the passed
@@ -330,18 +327,6 @@ class TissueHandler(object):
             self.targets_ecmJ = [
                 item for sublist in self.targets_ecmJ for item in sublist]
 
-        #FIXME: Replace by direct usage of "p.scheduled_options['cuts']"
-        #attributes.
-        cuts = p.scheduled_options['cuts']
-        if cuts is not None and self.do_once_cuts:
-            self.t_cuts = cuts.time
-            self.apply_cuts = cuts.profile_names
-            self.dangling_gj = cuts.is_cells_leaky
-
-            #FIXME: Odd. Why not an attribute of this class? Is this genuinely
-            #used elsewhere? It doesn't particularly matter, but we should
-            #probably double check that.
-            p.hurt_level = cuts.cell_leakage
 
     def _init_channels_tissue(self, sim, cells, p):
         '''
@@ -668,17 +653,13 @@ class TissueHandler(object):
                 sim.D_env_weight_v[0,:] = 0
                 sim.D_env_weight_v[-1,:] = 0
 
-        if p.scheduled_options['cuts'] is not None and self.do_once_cuts and \
-           t > self.t_cuts:
-            for cut_profile_name in self.apply_cuts:
+        soc = p.scheduled_options['cuts']
+        if soc is not None and not soc._is_fired and t >= soc.time:
+            for cut_profile_name in soc.profile_names:
                 loggers.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
                     cut_profile_name)
-
-                cut_profile = p.profiles[cut_profile_name]
-                removeCells(
-                    cut_profile.picker, sim, cells, p,
-                    simMod=True, dangling_gj=self.dangling_gj)
+                removeCells(p.profiles[cut_profile_name].picker, sim, cells, p)
 
             loggers.log_info("Cutting event successful! Resuming simulation...")
 
@@ -698,7 +679,7 @@ class TissueHandler(object):
                 sim.checkPlot.resetData(cells, sim, p)
 
             # Avoid repeating this cutting event at subsequent time steps.
-            self.do_once_cuts = False
+            soc._is_fired = True
 
         # If the voltage event is enabled, adjust the voltage accordingly.
         if p.scheduled_options['extV'] is not None:
@@ -950,9 +931,6 @@ class TissueHandler(object):
         profile_names = list(p.profiles.keys())
         self.tissue_target_inds = {}
         self.cell_target_inds = {}
-
-        #FIXME: Only ever used in "visualize". Shift there. Shiftless journey!
-        self.cuts_target_inds = {}
         self.env_target_inds = {}
         self.tissue_profile_names = []
 
@@ -980,10 +958,10 @@ class TissueHandler(object):
                 #
                 #Burning oil of hubris by the dawn's yearning pangs of joy!
 
-                self.tissue_target_inds[profile_name] = \
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=False)
-                self.cell_target_inds[profile_name] = \
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=True)
+                self.tissue_target_inds[profile_name] = (
+                    profile_picker.get_cell_indices(cells, p, ignoreECM=False))
+                self.cell_target_inds[profile_name] = (
+                    profile_picker.get_cell_indices(cells, p, ignoreECM=True))
 
                 if len(self.cell_target_inds[profile_name]):
                     # Get ECM targets.
@@ -1032,10 +1010,9 @@ class TissueHandler(object):
                         dP = dmem_list['Dm_P']
                         sim.Dm_cells[sim.iP][self.tissue_target_inds[profile_name]] = dP
 
-            # Else if this is a cut profile...
+            # Else if this is a cut profile, do nothing. It feeeels good.
             elif profile_type == 'cut':
-                self.cuts_target_inds[profile_name] = \
-                    profile_picker.get_cell_indices(cells, p, ignoreECM=True)
+                pass
 
             # Else this is a bad profile.
             else:
@@ -1058,12 +1035,12 @@ class TissueHandler(object):
         sim.P_cells = sim.P_mod + sim.P_base
 
 
-#FIXME: Document all optional booleans accepted by this method as well. Tasty!
+#FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
 def removeCells(
-    tissue_picker, sim, cells, p,
-    simMod = False, dangling_gj = False, open_TJ = True):
+    tissue_picker,
+    sim: 'Simulation', cells: 'Cells', p: 'Parameters') -> None:
     '''
-    Permanently remove all cells matching the passed tissue profile.
+    Permanently remove all cells selected by the passed tissue picker.
 
     Parameters
     ---------------------------------
@@ -1079,6 +1056,10 @@ def removeCells(
     assert types.is_simulator(sim), types.assert_not_simulator(sim)
     assert types.is_cells(cells),   types.assert_not_cells(cells)
     assert types.is_parameters(p),  types.assert_not_parameters(p)
+
+    # Redo environmental diffusion matrices by setting the environmental spaces
+    # around cut world to the free value (True) or not (False)?
+    open_TJ = True
 
     # Subtract this bitmap's clipping mask from the global cluster mask.
     bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
@@ -1096,11 +1077,13 @@ def removeCells(
         # get environmental targets around each removed cell:
         ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
         ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
-        ecm_targs = []
 
+        #FIXME: The following five lines are reducible to this single line:
+        #    ecm_targs = ecm_targs_cell + ecm_targs_mem
+        #Multifoliate rose gallavanting obscenely in a midnight haze!
+        ecm_targs = []
         for v in ecm_targs_cell:
             ecm_targs.append(v)
-
         for v in ecm_targs_mem:
             ecm_targs.append(v)
 
@@ -1114,8 +1097,8 @@ def removeCells(
     # set up the situation to make world joined to cut world have more permeable membranes:
     hurt_cells = np.zeros(len(cells.cell_i))
 
-    if dangling_gj is True: # if we're creating a dangling gap junction situation
-        hurt_level = p.hurt_level  # amount by which membrane permeability increases for all ions
+    # If we're creating a dangling gap junction situation...
+    if p.scheduled_options['cuts'].is_hurt_cells_leaky:
         target_inds_gj_unique = np.unique(target_inds_gj)
 
         for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
@@ -1127,118 +1110,138 @@ def removeCells(
 
         hurt_inds = (hurt_cells == 1).nonzero()
 
+        #FIXME: The following two conditional branches are suspiciously
+        #similar. They appear to reduce to just:
+        #
+        # cut_indices = hurt_inds if not p.sim_ECM else (
+        #     tb.flatten(cells.cell_to_mems[hurt_inds])[0])
+        # for i, dmat_a in enumerate(sim.Dm_cells):
+        #     sim.Dm_cells[i][cut_indices] = (
+        #         p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
+        #
+        #Loamy-eyed surf and sandy-haired sun!
+
         if p.sim_ECM is True:
             mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
 
             for i,dmat_a in enumerate(sim.Dm_cells):
-                sim.Dm_cells[i][mem_flags] = hurt_level*sim.D_free[i]
+                sim.Dm_cells[i][mem_flags] = (
+                    p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
 
         else:
             for i, dmat_a in enumerate(sim.Dm_cells):
-                sim.Dm_cells[i][hurt_inds] = hurt_level*sim.D_free[i]
+                sim.Dm_cells[i][hurt_inds] = (
+                    p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
 
         # copy the Dm to the base:
         sim.Dm_base = np.copy(sim.Dm_cells)
 
-    if simMod is True:
-        sim_names = list(sim.__dict__.keys())
-        specials_list = ['cc_cells','cc_env','z_array','z_array_er','Dm_cells','fluxes_gj_x','fluxes_gj_y',
-            'fluxes_mem','Dm_base','Dm_scheduled','Dm_vg','Dm_cag','Dm_morpho','Dm_er_base','Dm_er_CICR', 'Dm_stretch',
-            'D_gj','cc_er']
+    # Names of all attributes in the current "Simulation" object.
+    sim_names = list(sim.__dict__.keys())
 
-        if p.sim_ECM is True:
-            specials_list.remove('cc_env')
-            extra = ['z_array_cells']
-            for ent in extra:
-                specials_list.append(ent)
+    #FIXME: Redeclare as a "set" object, rename to "specials_names", and remove
+    #the duplicate declaration of that variable below. Jumpin' jallopies!
 
-        special_names = set(specials_list)
+    # Names of all such attributes to be repaired due to this cutting event.
+    specials_list = [
+        'cc_cells',
+        'cc_env',
+        'cc_er',
+        'z_array',
+        'z_array_er',
+        'fluxes_gj_x',
+        'fluxes_gj_y',
+        'fluxes_mem',
+        'Dm_base',
+        'Dm_cells',
+        'Dm_scheduled',
+        'Dm_vg',
+        'Dm_cag',
+        'Dm_morpho',
+        'Dm_er_base',
+        'Dm_er_CICR',
+        'Dm_stretch',
+        'D_gj',
+    ]
 
-        for name in sim_names:
-            if name in special_names: # if this is a nested data structure...
-                super_data = getattr(sim,name)
-                super_data2 = []
+    if p.sim_ECM is True:
+        specials_list.remove('cc_env')
+        extra = ['z_array_cells']
+        for ent in extra:
+            specials_list.append(ent)
 
-                for i, data in enumerate(super_data):
-                    if isinstance(data,np.ndarray):
-                        if len(data) == len(cells.cell_i):
-                            data2 = np.delete(data,target_inds_cell)
+    special_names = set(specials_list)
 
-                        elif len(data) == len(cells.mem_i):
-                            data2 = np.delete(data,target_inds_mem)
+    #FIXME: This is awesome-sauce in a BETSE jar, but I don't quite grok what's
+    #going on. It'd be swell if this could recieve some documentation
+    #massaging. The tidal waves of time recede, inch by minute inch!
+    for name in sim_names:
+        if name in special_names: # if this is a nested data structure...
+            super_data = getattr(sim, name)
+            super_data2 = []
 
-                        elif len(data) == len(cells.nn_i):
-                            data2 = np.delete(data,target_inds_gj)
-
-                    if isinstance(data,list):
-                        data2 = []
-                        if len(data) == len(cells.cell_i):
-                            for index in sorted(target_inds_cell, reverse=True):
-                                del data[index]
-                            data2.append(data[index])
-
-                        elif len(data) == len(cells.mem_i):
-                            for index in sorted(target_inds_mem, reverse=True):
-                                del data[index]
-                            data2.append(data[index])
-
-                        elif len(data) == len(cells.nn_i):
-                            for index in sorted(target_inds_gj, reverse=True):
-                                del data[index]
-                            data2.append(data[index])
-
-                    super_data2.append(data2)
-
-                if type(super_data) == np.ndarray:
-                    super_data2 = np.asarray(super_data2)
-
-                setattr(sim,name,super_data2)
-
-            else:
-                data = getattr(sim,name)
-
+            for i, data in enumerate(super_data):
                 if isinstance(data, np.ndarray):
                     if len(data) == len(cells.cell_i):
-                        data2 = np.delete(data, target_inds_cell)
-                        setattr(sim, name, data2)
+                        data2 = np.delete(data,target_inds_cell)
 
                     elif len(data) == len(cells.mem_i):
-                        data2 = np.delete(data, target_inds_mem)
-                        setattr(sim, name, data2)
+                        data2 = np.delete(data,target_inds_mem)
 
-                    #FIXME: This branch is identical to the prior branch and
-                    #hence will *NEVER* be run. A footnote to this branch read:
-                    #"FIXME originally was nn_index! Now they're equal!". wat?
-                    #Run, Sessum, run!
-
-                    elif len(data) == len(cells.mem_i):
+                    elif len(data) == len(cells.nn_i):
                         data2 = np.delete(data,target_inds_gj)
-                        setattr(sim,name,data2)
 
-                if isinstance(data,list):
+                elif isinstance(data, list):
                     data2 = []
-
                     if len(data) == len(cells.cell_i):
                         for index in sorted(target_inds_cell, reverse=True):
                             del data[index]
                         data2.append(data[index])
-                        setattr(sim,name,data2)
 
                     elif len(data) == len(cells.mem_i):
                         for index in sorted(target_inds_mem, reverse=True):
                             del data[index]
                         data2.append(data[index])
-                        setattr(sim,name,data2)
 
-                    #FIXME: This branch is identical to the prior branch and
-                    #hence will *NEVER* be run. A footnote to this branch read:
-                    #"Fixme originally nn_index". wat? Run, Sessum, run!
-
-                    elif len(data) == len(cells.mem_i):
+                    elif len(data) == len(cells.nn_i):
                         for index in sorted(target_inds_gj, reverse=True):
                             del data[index]
                         data2.append(data[index])
-                        setattr(sim,name,data2)
+
+                super_data2.append(data2)
+
+            if type(super_data) == np.ndarray:
+                super_data2 = np.asarray(super_data2)
+
+            setattr(sim, name, super_data2)
+
+        #FIXME: What does this "else" branch signify? Logarithmic love indulge!
+        else:
+            data = getattr(sim, name)
+
+            if isinstance(data, np.ndarray):
+                if len(data) == len(cells.cell_i):
+                    data2 = np.delete(data, target_inds_cell)
+                    setattr(sim, name, data2)
+
+                elif len(data) == len(cells.mem_i):
+                    data2 = np.delete(data, target_inds_mem)
+                    setattr(sim, name, data2)
+
+            elif isinstance(data, list):
+                data2 = []
+
+                if len(data) == len(cells.cell_i):
+                    for index in sorted(target_inds_cell, reverse=True):
+                        del data[index]
+                    data2.append(data[index])
+                    setattr(sim, name, data2)
+
+                elif len(data) == len(cells.mem_i):
+                    for index in sorted(target_inds_mem, reverse=True):
+                        del data[index]
+                    data2.append(data[index])
+                    setattr(sim, name, data2)
 
 
 #-------------------------------Fix-up cell world ----------------------------------------------------------------------
@@ -1302,45 +1305,3 @@ def removeCells(
         loggers.log_info('Creating cell network Poisson solver...')
         cells.graphLaplacian(p)
         loggers.log_info('Completed major world-building computations.')
-
-
-#FIXME: Remove if unneeded.
-# def getEcmTargets(target_method, cells, p, boundaryOnly = True):
-#     """
-#     Get a Numpy array of all ECM indices matching the passed tissue profile.
-#
-#     Parameters
-#     ---------------------------------
-#     target_method : TissuePicker
-#         Object matching all ECM indices to be returned.
-#     cells : Cells
-#         Instance of the `Cells` class.
-#     p : Parameters
-#         Instance of the `Parameters` class.
-#     boundaryOnly : bool
-#         If `True`, only boundary ECM indices (e.g., `bflags_ecm`) will be
-#         returned; else, all ECM indices will be returned. Defaults to `True`.
-#
-#     Returns
-#     ---------------------------------
-#     target_inds : ndarray
-#         Numpy array of all matching ECM indices.
-#     """
-#     assert types.is_parameters(p),  types.assert_not_parameters(p)
-#     assert types.is_cells(cells),   types.assert_not_cells(cells)
-#
-#     target_inds = []
-#
-#     #FIXME: Refactor to use inheritance. For inheritance is goodeth.
-#     if isinstance(target_method, TissuePickerBitmap):
-#         bitmask = BitMapper(
-#             target_method, cells.xmin, cells.xmax, cells.ymin, cells.ymax)
-#         bitmask.clipPoints(cells.xypts[:, 0], cells.xypts[:, 1])
-#         target_inds = bitmask.good_inds   # get the cell_i indices falling within the bitmap mask
-#
-#     else:
-#         raise BetseExceptionSimulation(
-#             'Tissue matcher "{}" getEcmTargets() support unimplemented.'.format(
-#                 target_method))
-#
-#     return target_inds

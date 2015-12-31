@@ -756,6 +756,7 @@ results options:
 
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
+  #FIXME: Uppercase keys should probably be lowercase. Triumphant sunrise ahoy!
   Vmem 2D:
 
     plot Vmem: True              # 2d plot of final vmem ?

@@ -3018,12 +3018,15 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
             cb_ticks.append(i+1)
             cb_tick_labels.append(name)
 
+    #FIXME: Refactor into a new ActionCut.plot() method. Beans and fragrance!
     if p.plot_cutlines and p.scheduled_options['cuts'] is not None:
-        #FIXME: This is terrible. Jump up and get inveigled!
-        cut_profile_names = p.scheduled_options['cuts'][1]
-        for cut_profile_name in cut_profile_names:
-            # Indices of all cells cut by this cut profile.
-            cut_cell_indices = dyna.cuts_target_inds[cut_profile_name]
+        # For each profile cutting a subset of the cell population...
+        for cut_profile_name in p.scheduled_options['cuts'].profile_names:
+            cut_profile = p.profiles[cut_profile_name]
+
+            # Indices of all cells cut by this profile.
+            cut_cell_indices = cut_profile.picker.get_cell_indices(
+                cells, p, ignoreECM=True)
 
             points = np.multiply(cells.cell_verts[cut_cell_indices], p.um)
             col_dic[cut_profile_name] = PolyCollection(
@@ -3032,8 +3035,7 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
             # col_dic[name].set_clim(0,len(dyna.tissue_profile_names) + len(names))
             # col_dic[name].set_alpha(0.8)
 
-            col_dic[cut_profile_name].set_zorder(
-                p.profiles[cut_profile_name].z_order)
+            col_dic[cut_profile_name].set_zorder(cut_profile.z_order)
             ax.add_collection(col_dic[cut_profile_name])
 
             #FIXME: Interestingly, this doesn't appear to do anything. I have
