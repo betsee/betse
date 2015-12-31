@@ -352,7 +352,7 @@ class AnimateCellData_smoothed(object):
                 self.tit_extra = 'Total current overlay'
 
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
         self.ax.set_title(self.tit_extra)
 
@@ -525,7 +525,7 @@ class AnimateGJData(object):
 
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title(self.tit)
 
         self.ax.axis('equal')
@@ -672,7 +672,7 @@ class AnimateGJData_smoothed(object):
 
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title(self.tit)
 
         self.ax.axis('equal')
@@ -817,7 +817,7 @@ class PlotWhileSolving(object):
 
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title(self.tit)
 
         if p.save_solving_plot is True:
@@ -966,7 +966,7 @@ class PlotWhileSolving(object):
         # self.cb.set_label('Voltage [mV]')
         self.cb.set_label('Voltage [mV]')
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title(self.tit)
 
 class AnimateCurrent(object):
@@ -1071,7 +1071,7 @@ class AnimateCurrent(object):
         self.cb.set_label('Current Density [A/m2]')
 
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title(self.tit)
 
         self.frames = len(sim.time) -1
@@ -1760,7 +1760,7 @@ class AnimateEnv(object):
         self.cb.set_label('Voltage [V]')
 
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title('Environmental Voltage')
 
         self.frames = len(sim.time)
@@ -1910,7 +1910,7 @@ class AnimateMem(object):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
         self.ax.set_title(self.tit_extra)
 
@@ -2079,7 +2079,7 @@ class AnimateDyeData(object):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
 
         self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um')
+        self.ax.set_ylabel('Spatial y [um]')
         self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
 
         self.frames = len(self.zdata_t)

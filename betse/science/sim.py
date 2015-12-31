@@ -4150,7 +4150,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     # signG = np.sign(delG)
 
     # alpha = block*p.alpha_NaK*(tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK))
-    alpha = block*p.alpha_NaK*delG_pump
+    alpha = block*p.alpha_NaK*(delG_pump - p.halfmax_NaK)
 
     f_Na  = -alpha*(cNai**p.Na_exp)*(cKo**(p.K_exp))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
 
