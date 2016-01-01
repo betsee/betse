@@ -352,7 +352,7 @@ class SimRunner(object):
 
         if p.autosave is True:
             savename10 = savedImg + 'cluster_mosaic' + '.png'
-            plt.savefig(savename10,format='png')
+            plt.savefig(savename10,format='png',transparent=True)
 
         plt.show(block = False)
 
@@ -373,7 +373,7 @@ class SimRunner(object):
 
             if p.autosave is True:
                 savename10 = savedImg + 'env_diffusion_weights' + '.png'
-                plt.savefig(savename10,format='png')
+                plt.savefig(savename10,format='png',transparent=True)
 
             plt.show(block =False)
 
@@ -406,7 +406,7 @@ class SimRunner(object):
 
         if p.autosave is True:
             savename10 = savedImg + 'gj_connectivity_network' + '.png'
-            plt.savefig(savename10,format='png')
+            plt.savefig(savename10,format='png',transparent=True)
 
         plt.show()
 
@@ -418,11 +418,22 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
         os.makedirs(image_cache_dir, exist_ok=True)
         savedImg = os.path.join(image_cache_dir, 'fig_')
 
+    # check that the plot cell is in range of the available cell indices:
+    if p.plot_cell not in cells.cell_i:
+
+        raise BetseExceptionParameters(
+                    'The "plot cell" defined in the "results" section of your configuration file '
+                    'does not exist in your cluster.'
+                    'Choose a plot cell number smaller than the maximum cell number.')
+
     if p.sim_ECM is True:
         plot_cell_ecm = cells.cell_to_mems[plot_cell][0]  # convert from cell to mem index
 
     else:
         plot_cell_ecm = plot_cell
+
+    if p.exportData is True:
+        viz.exportData(cells, sim, p)
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
     #-------------------------------------------------------------------------------------------------------------------
@@ -438,7 +449,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename1 = savedImg + 'concNa_time' + '.png'
-            plt.savefig(savename1,dpi=300,format='png')
+            plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
     # plot-cell potassium concentration vs time:
 
@@ -452,7 +463,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename1 = savedImg + 'concK_time' + '.png'
-            plt.savefig(savename1,dpi=300,format='png')
+            plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -466,7 +477,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename1 = savedImg + 'concM_time' + '.png'
-            plt.savefig(savename1,dpi=300,format='png')
+            plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -477,7 +488,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename2 = savedImg + 'Vmem_time' + '.png'
-            plt.savefig(savename2,dpi=300,format='png')
+            plt.savefig(savename2,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -490,7 +501,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename = savedImg + 'FFT_time' + '.png'
-            plt.savefig(savename,dpi=300,format='png')
+            plt.savefig(savename,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -514,7 +525,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename = savedImg + 'NaKATPaseRaTE_' + '.png'
-            plt.savefig(savename,dpi=300,format='png')
+            plt.savefig(savename,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -554,7 +565,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename = savedImg + 'Imem_time' + '.png'
-            plt.savefig(savename,dpi=300,format='png')
+            plt.savefig(savename,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -573,7 +584,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename = savedImg + 'HydrostaticP_' + '.png'
-            plt.savefig(savename,dpi=300,format='png')
+            plt.savefig(savename,dpi=300,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -589,7 +600,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename3 = savedImg + 'cytosol_Ca_time' + '.png'
-                plt.savefig(savename3,dpi=300,format='png')
+                plt.savefig(savename3,dpi=300,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -601,7 +612,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
                 if saveImages is True:
                     savename4 = savedImg + 'ER_Ca_time' + '.png'
-                    plt.savefig(savename4,dpi=300,format='png')
+                    plt.savefig(savename4,dpi=300,format='png',transparent=True)
 
                 plt.show(block=False)
 
@@ -611,7 +622,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
                 if saveImages is True:
                     savename5 = savedImg + 'IP3_time' + '.png'
-                    plt.savefig(savename5,dpi=300,format='png')
+                    plt.savefig(savename5,dpi=300,format='png',transparent=True)
 
                 plt.show(block=False)
 
@@ -631,7 +642,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename = savedImg + 'ElectrostaticP_' + '.png'
-                plt.savefig(savename,dpi=300,format='png')
+                plt.savefig(savename,dpi=300,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -650,7 +661,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename = savedImg + 'OsmoticP_' + '.png'
-                plt.savefig(savename,dpi=300,format='png')
+                plt.savefig(savename,dpi=300,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -677,7 +688,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename = savedImg + 'Displacement_' + '.png'
-                plt.savefig(savename,dpi=300,format='png')
+                plt.savefig(savename,dpi=300,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -700,7 +711,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename10 = savedImg + 'Final_environmental_V' + '.png'
-            plt.savefig(savename10,format='png')
+            plt.savefig(savename10,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -716,7 +727,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename10 = savedImg + 'Final_environmental_charge' + '.png'
-                plt.savefig(savename10,format='png')
+                plt.savefig(savename10,format='png',transparent=True)
 
             plt.show(block =False)
 
@@ -742,7 +753,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename9 = savedImg + 'final_cellCharge' + '.png'
-                plt.savefig(savename9,format='png')
+                plt.savefig(savename9,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -767,7 +778,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename9 = savedImg + 'final_cellVoltage' + '.png'
-            plt.savefig(savename9,format='png')
+            plt.savefig(savename9,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -802,7 +813,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename5 = savedImg + 'final_Vmem_2D' + '.png'
-            plt.savefig(savename5,format='png')
+            plt.savefig(savename5,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -827,7 +838,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
-            plt.savefig(savename5,format='png')
+            plt.savefig(savename5,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -904,7 +915,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename6 = savedImg + 'final_IP3_2D' + '.png'
-            plt.savefig(savename6,format='png')
+            plt.savefig(savename6,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -977,7 +988,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename7 = savedImg + 'final_morphogen_2D' + '.png'
-            plt.savefig(savename7,format='png')
+            plt.savefig(savename7,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -999,7 +1010,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename8 = savedImg + 'final_Ca_2D' + '.png'
-            plt.savefig(savename8,format='png')
+            plt.savefig(savename8,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1017,7 +1028,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
-            plt.savefig(savename10,format='png')
+            plt.savefig(savename10,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1033,7 +1044,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
-                plt.savefig(savename11,format='png')
+                plt.savefig(savename11,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -1045,7 +1056,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename12 = savedImg + 'Final_Electric_Field' + '.png'
-            plt.savefig(savename12,format='png')
+            plt.savefig(savename12,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1067,7 +1078,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_P_2D_gj' + '.png'
-            plt.savefig(savename13,format='png')
+            plt.savefig(savename13,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1093,7 +1104,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_osmoP_2D' + '.png'
-            plt.savefig(savename13,format='png')
+            plt.savefig(savename13,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1116,7 +1127,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
-            plt.savefig(savename13,format='png')
+            plt.savefig(savename13,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1142,7 +1153,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_hydroF_2D' + '.png'
-            plt.savefig(savename13,format='png')
+            plt.savefig(savename13,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1166,7 +1177,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
-            plt.savefig(savename13,format='png')
+            plt.savefig(savename13,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1201,7 +1212,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         if saveImages is True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
-            plt.savefig(savename13,format='png')
+            plt.savefig(savename13,format='png',transparent=True)
 
         plt.show(block=False)
 
@@ -1221,7 +1232,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
             if saveImages is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
-                plt.savefig(savename13,format='png')
+                plt.savefig(savename13,format='png',transparent=True)
 
             plt.show(block=False)
 
@@ -1364,8 +1375,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
 
         viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
 
-    if p.exportData is True:
-        viz.exportData(cells, sim, p)
+
 
     if p.sim_eosmosis is True and p.sim_ECM is True and cells.gradMem is not None:
 

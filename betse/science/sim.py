@@ -4188,7 +4188,7 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     # signG = np.sign(delG_pump)
     #
     # alpha = p.alpha_Ca*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
-    alpha = p.alpha_Ca*delG_pump
+    alpha = p.alpha_Ca*(delG_pump - p.halfmax_Ca)
 
     f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
 
@@ -4249,7 +4249,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     # signG = np.sign(delG)
 
     # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
-    alpha = block*p.alpha_HK*delG_pump
+    alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
     f_H  = -alpha*(cHi)*(cKo)      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
@@ -4268,7 +4268,7 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
     # signG = np.sign(delG)
 
     # alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
-    alpha = block*p.alpha_V*delG_pump
+    alpha = block*p.alpha_V*(delG_pump - p.halfmax_V)
     f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
 
     return f_H
