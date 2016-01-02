@@ -720,9 +720,9 @@ results options:
                                   # true, all animations created.
                                   # options True or False (case sensitive)
 
-  save animations: True           # save all animations as png sequences in animation-specific folders
-                                   # inside the results directory
-                                   # options True or False (case sensitive)
+  save animations:              # save animations in animation-specific folders
+     image frames: True        # save animation to sequence of image frames (png)
+     movie file: False         # save to movie file (mpeg4)
 
   export data to file: True        # export all stored data for the plot cell to a
                                    # comma-delimited (csv) text file

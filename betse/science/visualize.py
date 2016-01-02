@@ -170,7 +170,7 @@ class AnimateCellData(object):
 
         self.frames = len(self.zdata_t)
 
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
+        animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
         try:
@@ -191,7 +191,6 @@ class AnimateCellData(object):
     def aniFunc(self,i):
 
         zz = self.zdata_t[i]
-
 
 
         if self.p.sim_ECM is True and self.ignore_simECm is False:
@@ -753,6 +752,8 @@ class AnimateGJData_smoothed(object):
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,dpi=96,format='png')
+
+# FIXME HEY: don't lay your squirmy wormy little hands on this PlotWhileSolving function, m'kay?!
 
 class PlotWhileSolving(object):
 
@@ -3055,7 +3056,6 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
             ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
     return fig,ax,ax_cb
-
 
 def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 

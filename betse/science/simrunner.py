@@ -1162,6 +1162,32 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+    if p.plot_osmoP is True and p.deform_electro is True:
+
+        osmo_P = sim.P_electro
+
+        if p.showCells is True:
+
+            # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
+            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        else:
+             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+
+        axP.set_title('Final Electrostatic Pressure in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
+
+        if saveImages is True:
+            savename13 = savedImg + 'final_electroP_2D' + '.png'
+            plt.savefig(savename13,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
     #---- Forces ------------------------------------------------------------
 
     if p.deform_electro is True:

@@ -820,7 +820,12 @@ class Parameters(object):
         self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
 
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
-        self.saveAnimations = ro['save animations']    # save all animations as png sequences
+
+        # FIXME: Hi Sess! These are the two controls for animation export -- p.saveAnimations is currently implemented
+        # to push out png sequences to the right folder, while p.saveMovie would be the one for mpeg4 output...
+
+        self.saveAnimations = ro['save animations']['image frames']    # save all animations as png sequences
+        self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
 
         self.exportData = ro['export data to file']        # export all stored data for the plot_cell to a csv text file
 
