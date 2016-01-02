@@ -1355,125 +1355,77 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
-        #FIXME: These two branches almost pass the exact same parameters. The
-        #differences appear to be in the "number_cells", "ignore_simECM", and
-        #"current_overlay" parameters. It'd be sweet to refactor away the
-        #duplication. Lush cherries ripening in the smoggy urban heat!
-        #FIXME: See "saveFolder" FIXME comment in the "AnimateCellData" class.
-        if p.showCells is True:
-
-            viz.AnimateCellData(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/IP3',
-                saveFile = 'ip3_', ignore_simECM =True, current_overlay=p.I_overlay)
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
+        viz.AnimateCellData(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
+            clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
+            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/IP3',
+            saveFile = 'ip3_', ignore_simECM =True, current_overlay=p.I_overlay)
 
     if p.ani_dye2d is True and p.voltage_dye == 1 and animate ==1:
+
         if p.sim_ECM is False:
             Dyeplotting = np.asarray(sim.cDye_time)
             Dyeplotting = np.multiply(Dyeplotting,1e3)
 
-            if p.showCells is True:
-                viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
-                    clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                    save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Dye',
-                    saveFile = 'dye_',ignore_simECM =True)
-            else:
-                viz.AnimateCellData_smoothed(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
-                    clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                    save=saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Dye', saveFile = 'Dye_')
+            viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='Morphogen Concentration',
+                cbtit = 'Concentration [umol/L]',
+                clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
+                save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Morphogen',
+                saveFile = 'morphogen_',ignore_simECM =True)
 
         else:
 
-            zenv_t = sim.cDye_env_time[:]
-
             viz.AnimateDyeData(sim,cells,p,save=saveAni,ani_repeat=True, current_overlay = p.I_overlay,
             clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-            number_cells = p.enumerate_cells, saveFolder = '/animation/Dye', saveFile = 'Dye_')
+            number_cells = p.enumerate_cells, saveFolder = 'animation/Dye', saveFile = 'Dye_')
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and animate == 1:
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
-        if p.showCells is True:
-            viz.AnimateCellData(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
-                clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Ca',
-                saveFile = 'ca_',ignore_simECM = True)
-
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
-                clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-                ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
+        viz.AnimateCellData(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
+            clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
+            ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Ca',
+            saveFile = 'ca_',ignore_simECM = True)
 
     if p.ani_vm2d is True and animate == 1:
-        vmplt = [1000*arr for arr in sim.vm_time]
 
-        if p.sim_ECM is True:
-            viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
-                clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr,
-                clrmap = p.default_cm, ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
-                saveFolder = '/animation/Vmem', saveFile = 'vm_')
+        if p.sim_ECM is False:
 
-        elif p.sim_ECM is False:
+            vmplt = [1000*arr for arr in sim.vm_time]
 
-            if p.showCells is True:
-                viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
-                     clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
-                    ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
-                    saveFolder = '/animation/Vmem', saveFile = 'vm_')
-            else:
-                viz.AnimateCellData_smoothed(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
-                     clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr, clrmap = p.default_cm,
-                    ani_repeat=True,number_cells=False,saveFolder = '/animation/Vmem', saveFile = 'vm_',current_overlay=p.I_overlay)
+        else:
+            vmplt = [1000*arr for arr in sim.vm_Matrix]
+
+        viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
+            clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr,
+            clrmap = p.default_cm, ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
+            saveFolder = 'animation/Vmem', saveFile = 'vm_')
 
     if p.ani_vmgj2d is True and animate == 1:
 
-        if p.sim_ECM is True:
-            viz.AnimateGJData(cells, sim, p, tit='Vcell ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
-                    clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
-                    saveFile = 'vmem_gj_', number_cells=False)
-
-        elif p.sim_ECM is False:
-
-            if p.showCells is True:
-                viz.AnimateGJData(cells, sim, p, tit='Vmem ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
-                    clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
-                    saveFile = 'vmem_gj_', number_cells=False)
-            else:
-                viz.AnimateGJData_smoothed(cells, sim, p, tit='Vmem ', save=saveAni, ani_repeat=True,saveFolder = '/animation/Vmem_gj',
-                    clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr, clrmap = p.default_cm,
-                    saveFile = 'vmem_gj', number_cells=False)
+        viz.AnimateGJData(cells, sim, p, tit='Vcell ', save=saveAni, ani_repeat=True,saveFolder = 'animation/Vmem_gj',
+                clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr,
+                saveFile = 'vmem_gj_', number_cells=False)
 
     if p.ani_vcell is True and animate == 1 and p.sim_ECM == 1:
 
         vcellplt = [1000*arr for arr in sim.vcell_time]
 
-        if p.showCells is True:
-
-            viz.AnimateCellData(sim,cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
-                clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/vcell',
-                saveFile = 'vcell_', ignore_simECM =True, current_overlay=p.I_overlay)
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
-                clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/vcell', saveFile = 'vcell_',
-                current_overlay=p.I_overlay)
+        viz.AnimateCellData(sim,cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
+            clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
+            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/vcell',
+            saveFile = 'vcell_', ignore_simECM =True, current_overlay=p.I_overlay)
 
     if p.ani_I is True and animate == 1:
 
         viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =True,
             clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
-            clrmap = p.default_cm, number_cells=False,saveFolder = '/animation/current_gj',saveFile = 'I_')
+            clrmap = p.background_cm, number_cells=False,saveFolder = 'animation/current_gj',saveFile = 'I_')
 
         if p.sim_ECM is True:
 
             viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =False,
             clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
-            clrmap = p.default_cm, number_cells=False,saveFolder = '/animation/current_ecm',saveFile = 'I_')
+            clrmap = p.background_cm, number_cells=False,saveFolder = 'animation/current_ecm',saveFile = 'I_')
 
     if p.ani_Efield is True and animate == 1:
 
@@ -1486,8 +1438,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     if p.ani_Deformation is True and p.deformation is True and animate == 1 and sim.run_sim is True:
 
         viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
-
-
 
     if p.sim_eosmosis is True and p.sim_ECM is True and cells.gradMem is not None:
 
@@ -1530,50 +1480,34 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.ani_Pcell is True and p.deform_osmo is True and animate == 1:
 
-        if p.showCells is True:
+        viz.AnimateCellData(sim,cells,sim.P_cells_time,sim.time,p,tit='Hydrostatic Pressure in Cells',
+            cbtit = 'Pressure [Pa]',
+            clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+            clrmap = p.default_cm,
+            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Pcell',
+            saveFile = 'Pcell_', ignore_simECM =True, current_overlay=p.I_overlay)
 
-            viz.AnimateCellData(sim,cells,sim.P_cells_time,sim.time,p,tit='Hydrostatic Pressure in Cells',
-                cbtit = 'Pressure [Pa]',
-                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Pcell',
-                saveFile = 'Pcell_', ignore_simECM =True, current_overlay=p.I_overlay)
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,sim.P_cells_time,sim.time,p,tit='Hydrostatic Pressure in Cells',
-                cbtit = 'Pressure [Pa]',
-                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/Pcell', saveFile = 'Pcell_',
-                current_overlay=p.I_overlay)
 
     if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
 
-        if p.showCells is True:
+        viz.AnimateCellData(sim,cells,sim.osmo_P_delta_time,sim.time,p,tit='Osmotic Pressure in Cells',
+            cbtit = 'Pressure [Pa]',
+            clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
+            clrmap = p.default_cm,
+            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/OsmoP',
+            saveFile = 'OsmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
 
-            viz.AnimateCellData(sim,cells,sim.osmo_P_delta_time,sim.time,p,tit='Osmotic Pressure in Cells',
-                cbtit = 'Pressure [Pa]',
-                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/OsmoP',
-                saveFile = 'OsmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
-        else:
-            viz.AnimateCellData_smoothed(sim,cells,sim.osmo_P_delta_time,sim.time,p,tit='Osmotic Pressure in Cells',
-                cbtit = 'Pressure [Pa]',
-                clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
-                clrmap = p.default_cm,
-                save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/OsmoP', saveFile = 'OsmoP_',
-                current_overlay=p.I_overlay)
 
     if p.ani_force is True and animate == 1:
         if p.deform_electro is True:
             viz.AnimateField(sim,sim.F_electro_x_time,sim.F_electro_y_time,cells,p,
                 title = 'Electrostatic Pressure Induced Body Force',
-                saveFolder = '/animation/ElectroFfield',saveFile = 'EFfield_')
+                saveFolder = 'animation/ElectroFfield',saveFile = 'EFfield_')
 
         if p.deform_osmo is True:
             viz.AnimateField(sim,sim.F_hydro_x_time,sim.F_hydro_y_time,cells,p,
                 title = 'Hydrostatic Pressure Induced Body Force',
-                saveFolder = '/animation/HydroFfield',saveFile = 'OFfield_')
+                saveFolder = 'animation/HydroFfield',saveFile = 'OFfield_')
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
         viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
