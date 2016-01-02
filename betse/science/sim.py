@@ -1308,9 +1308,13 @@ class Simulator(object):
                 do_once = False
 
         # Find embeded functions that can't be pickled...
-        for key, valu in vars(self.dyna).items():
+        for key, valu in vars(self).items():
             if type(valu) == interp.interp1d or callable(valu):
-                setattr(self.dyna,key,None)
+                setattr(self,key,None)
+
+        for key, valu in vars(p).items():
+            if type(valu) == interp.interp1d or callable(valu):
+                setattr(p,key,None)
 
         cells.points_tree = None
 
@@ -3999,6 +4003,9 @@ class Simulator(object):
         new_ecm_verts_y = self.ecm_verts_unique_to[:,1] + np.dot(cells.deforM,uy_at_ecm)
 
         ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
+
+        # FIXME: so what we want to do is interpolate the ecm deformation out to the voronoi centres.
+        # Then we want to have the voronoi_grid defined as a mapping to cell centres, not the whole verts.
 
         # set the voronoi points originally tagged to the ecm to the value of these new points
         cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]

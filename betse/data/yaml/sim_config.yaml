@@ -172,6 +172,7 @@ general options:
 # File sync warning: you can't change any of these 'world options' after running 'betse seed'.
 
 world options:
+
   world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
@@ -193,12 +194,9 @@ world options:
                               # square grid. If equal to 0 a perfect
                               # square grid is created.
 
-  temperature: 310            # World temperature [K]
-
-  fluid flow:
+  fluid flow:  # FIXME move these to variable settings and include a search term for the matrices in cells object!
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
-
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -210,7 +208,6 @@ world options:
 
     time dependent: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
                             # upon simulation, will check for appropriate world size and time set for your parameters.
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE DESIGNATION
@@ -399,6 +396,7 @@ apply pressure:                       # Schedule application of mechanical press
 # Apply an external voltage to two edges of the environmental boundary if the
 # "simulate extracellular spaces" option is enabled.
 apply external voltage:
+
     event happens: False   # enable (True) or disable (False) this event?
     change start: 0.5     # time [s] at which to begin applying voltage
     change finish: 1.0    # time [s] at which to cease applying voltage
@@ -579,6 +577,7 @@ variable settings:
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
       Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
 
+  temperature: 310            # system temperature [K]
 
   morphogen properties:  # specify the properties of an auxillary chemical
 
@@ -797,15 +796,12 @@ results options:
 
   Charge 2D:
     plot Charge: True                # 2d plot of net ionic charge in collective?
-    data type: GJ                 # data type can be 'GJ' or 'ECM' for intra or extracellular net charge
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
 
   Efield 2D:
     plot Efield: True              # 2d plot of electric field
-    data type: GJ                   # data type can be 'ECM' or 'GJ'
-    overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
     max val: 900                   # maximum colorbar value in V/m
     min val: 0                      # maximum colorbar value in V/m
@@ -944,7 +940,14 @@ results options:
                                # for all options please see
                                # http://matplotlib.org/examples/color/colormaps_reference.html
 
+  background colormap: Blues     # Specify colormap to be used for data with vector overlays, including:
+                                    # currents, flow, electric field and
+                                    # deformation.
+
   gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
+
+  vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
+                                   # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERNAL USE ONLY

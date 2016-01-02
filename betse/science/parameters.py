@@ -162,7 +162,7 @@ class Parameters(object):
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
 
-        self.T = float(self.config['world options']['temperature'])  # Cells temperature
+        self.T = float(self.config['variable settings']['temperature'])  # Cells temperature
 
         self.gravity = False
 
@@ -643,6 +643,10 @@ class Parameters(object):
            # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
                                         # http://matplotlib.org/examples/color/colormaps_reference.html
 
+        self.background_cm = matplotlibs.get_colormap(ro['background colormap'])
+
+        self.vcolor = ro['vector and stream color']  # color of vector and streamlines
+
         # Colormap for plotting gj currents on top of default colormap.
         self.gj_cm = matplotlibs.get_colormap(ro['gj colormap'])
 
@@ -695,7 +699,6 @@ class Parameters(object):
         self.vcell_max_clr = float(ro['Vcell 2D']['max val'])
 
         self.plot_rho2d = ro['Charge 2D']['plot Charge']
-        self.data_type_rho = ro['Charge 2D']['data type']
         self.autoscale_rho = ro['Charge 2D']['autoscale colorbar']
         self.rho_min_clr = float(ro['Charge 2D']['min val'])
         self.rho_max_clr = float(ro['Charge 2D']['max val'])
@@ -716,8 +719,6 @@ class Parameters(object):
         self.I_max_clr = float(ro['Currents 2D']['max val'])
 
         self.plot_Efield = ro['Efield 2D']['plot Efield']   # 2d plot of electric field
-        self.plot_Efield_type =ro['Efield 2D']['data type']   # data type can be 'ECM' or 'GJ'
-        self.plot_Efield_vector =ro['Efield 2D']['overlay vector'] # overlay a streamline plot of field direction?
         self.autoscale_Efield =ro['Efield 2D']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Efield_min_clr =float(ro['Efield 2D']['max val'])         # maximum colorbar value in V/m
         self.Efield_max_clr =float(ro['Efield 2D']['min val'])       # maximum colorbar value in V/m

@@ -421,6 +421,7 @@ class Cells(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
+
     def cellVerts(self,p):
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
@@ -1632,6 +1633,10 @@ class Cells(object):
 
             self.points_tree = None
 
+            for key, valu in vars(p).items():
+                if type(valu) == interp.interp1d or callable(valu):
+                    setattr(p,key,None)
+
             # save the cell cluster
             loggers.log_info('Saving the cell cluster... ')
 
@@ -1716,10 +1721,23 @@ class Cells(object):
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
 
-        # vertTree = sps.KDTree(self.voronoi_grid)
-        # self.map_voronoi2ecm = list(vertTree.query(self.ecm_verts_unique))[1]
+        # Create cell centres for the whole voronoi grid:
+        self.voronoi_centres = np.array([0,0])
+        # self.voronoi_centres = []
 
-    def make_maskM(self,p):
+        for poly in self.voronoi_verts:
+            aa = np.asarray(poly)
+            aa = np.mean(aa,axis=0)
+            self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
+
+        self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
+
+        # define a mapping between the voronoi cell centres and the cluster cell centres:
+        vertTree = sps.KDTree(self.voronoi_centres)
+        self.cell_to_grid = list(vertTree.query(self.cell_centres))[1]
+
+
+    def make_maskM(self,p):   # FIXME would this work better with voronoi centres?
         """
         Create structures for plotting interpolated data on cell centres
         and differentiating between the cell cluster and environment.

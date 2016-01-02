@@ -78,6 +78,7 @@ class AnimateCellData(object):
         #
         #But that's O.K.! When I find a spare rainy afternoon, I'll hunker down
         #and rectify this as best I can. Until then, let the yellow sun shine!
+
         saveFolder = '/animation',
         saveFile = 'sim_',
         ignore_simECM: bool = False,
@@ -2325,7 +2326,6 @@ class AnimateDyeData(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-
 def show_plot(params: 'Parameters', *args, **kwargs) -> None:
     '''
     Display the current plot if the passed configuration requests plots to be
@@ -2350,7 +2350,6 @@ def show_plot(params: 'Parameters', *args, **kwargs) -> None:
         # Else, reraise this exception.
         else:
             raise
-
 
 def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
 
@@ -2817,43 +2816,67 @@ def plotEfield(sim,cells,p):
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    if p.sim_ECM is True and p.plot_Efield_type == 'ECM':
+    if p.sim_ECM is True:
+
+        fig_2 = plt.figure()
+        ax_2 = plt.subplot(111)
 
         efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
-        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
+        msh_2 = ax_2.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
             cells.ymax*p.um],cmap=p.default_cm)
 
-        if p.plot_Efield_vector is True:
-
-            ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], sim.efield_ecm_x_time[-1].ravel(),
-                sim.efield_ecm_y_time[-1].ravel())
+        ax_2.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], sim.efield_ecm_x_time[-1].ravel(),
+            sim.efield_ecm_y_time[-1].ravel())
 
         tit_extra = 'Extracellular'
 
-    elif p.plot_Efield_type == 'GJ' or p.sim_ECM is False:
+        ax_2.axis('equal')
 
-        E_gj_x = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
-            sim.efield_gj_x_time[-1],(cells.Xgrid,cells.Ygrid), method=p.interp_type,fill_value=0)
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
 
-        E_gj_y = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
-            sim.efield_gj_y_time[-1],(cells.Xgrid,cells.Ygrid), method=p.interp_type,fill_value=0)
+        ax_2.axis([xmin,xmax,ymin,ymax])
 
-        E_gj_x = np.multiply(E_gj_x,cells.maskM)
-        E_gj_y = np.multiply(E_gj_y,cells.maskM)
+        if p.autoscale_Efield is False:
+            msh_2.set_clim(p.Efield_min_clr,p.Efield_max_clr)
 
-        efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
+        cb_2 = fig.colorbar(msh_2)
 
-        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
-            cells.ymax*p.um],cmap=p.default_cm)
+        tit = "Final Electric Field in " + tit_extra + ' Spaces'
+        ax_2.set_title(tit)
+        ax_2.set_xlabel('Spatial distance [um]')
+        ax_2.set_ylabel('Spatial distance [um]')
+        cb_2.set_label('Electric Field [V/m]')
 
-        if p.plot_Efield_vector is True:
+    else:
+        ax_2 = None
+        fig_2 = None
+        cb_2 = None
 
-            lw = (3.0*efield/efield.max()) + 0.5
+    # Plot field intracellularly:
 
-            ax.streamplot(p.um*cells.Xgrid, p.um*cells.Ygrid,E_gj_x,E_gj_y,density=p.stream_density,linewidth=lw,
-                color='k',arrowsize=1.5)
+    E_gj_x = np.dot(cells.M_sum_mems,sim.efield_gj_x_time[-1])/cells.num_mems
+    E_gj_y = np.dot(cells.M_sum_mems,sim.efield_gj_y_time[-1])/cells.num_mems
 
-        tit_extra = 'Intracellular'
+    efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
+
+    # normalize the vector components:
+    if efield.all() != 0:
+        E_gj_x = E_gj_x/efield
+        E_gj_y = E_gj_y/efield
+
+    efield_grid = np.zeros(len(cells.voronoi_centres))
+    efield_grid[cells.cell_to_grid] = efield
+
+    msh = ax.tripcolor(p.um*cells.voronoi_centres[:,0],p.um*cells.voronoi_centres[:,1],efield_grid,
+        shading='gouraud',cmap=p.background_cm)
+
+    ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],E_gj_x,E_gj_y,
+        pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7)
+
+    tit_extra = 'Intracellular'
 
     ax.axis('equal')
 
@@ -2875,7 +2898,7 @@ def plotEfield(sim,cells,p):
     ax.set_ylabel('Spatial distance [um]')
     cb.set_label('Electric Field [V/m]')
 
-    return fig, ax, cb
+    return fig, ax, cb, fig_2, ax_2, cb_2
 
 def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         """
@@ -3139,8 +3162,8 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-        streamplot = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
-        cmap=clrmap,arrowsize=1.5)
+        streamplot = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
+            linewidth=lw,color='k', cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('Final gap junction current density')
 
@@ -3187,25 +3210,6 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
     return fig,ax,ax_cb
 
 def clusterPlot(p, dyna, cells, clrmap=cm.jet):
-
-    # FIXME -- dear Sess, this broke again for when the cut event is enabled and "plot seed" called :( See:
-    # [2015-12-30 09:43:39,732] betse DEBUG (loggers.py:log_debug():167):
-    # TypeError: 'ActionCut' object does not support indexing
-    # Traceback (most recent call last):
-    #   File "/home/pietakio/BETSE/betse/cli/cli.py", line 83, in run
-    #     self._do()
-    #   File "/home/pietakio/BETSE/betse/cli/clicli.py", line 125, in _do
-    #     subcommand_method()
-    #   File "/home/pietakio/BETSE/betse/cli/clicli.py", line 322, in _do_plot
-    #     subcommand_method()
-    #   File "/home/pietakio/BETSE/betse/cli/clicli.py", line 328, in _do_plot_seed
-    #     self._get_sim_runner().plotWorld()
-    #   File "/home/pietakio/BETSE/betse/science/simrunner.py", line 351, in plotWorld
-    #     fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
-    #   File "/home/pietakio/BETSE/betse/science/visualize.py", line 3004, in clusterPlot
-    #     cut_profile_names = p.scheduled_options['cuts'][1]
-
-
 
     fig = plt.figure()
     ax = plt.subplot(111)
