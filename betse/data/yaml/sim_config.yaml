@@ -760,49 +760,42 @@ results options:
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
   Vmem 2D:
-
     plot Vmem: True              # 2d plot of final vmem ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Ca 2D:
-
     plot Ca: True                # 2d plot of final cell calcium ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
 
   IP3 2D:
-
     plot IP3: True               # 2d plot of final cIP3 ?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value, in umol/L
 
   Morpho 2D:
-
     plot Morpho: True               # 2d plot of voltage sensitive dye in cell collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.0e-4                  # maximum colorbar value in umol/L
     min val: 0                     # minimum colorbar value in umol/L
 
   Vcell 2D:
-
     plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
 
   Venv 2D:
-
     plot Venv: True                # 2d plot of voltage in environmental spaces of the collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV
 
   Charge 2D:
-
     plot Charge: True                # 2d plot of net ionic charge in collective?
     data type: GJ                 # data type can be 'GJ' or 'ECM' for intra or extracellular net charge
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
@@ -810,7 +803,6 @@ results options:
     min val: -70                   # minimum colorbar value in mV
 
   Efield 2D:
-
     plot Efield: True              # 2d plot of electric field
     data type: GJ                   # data type can be 'ECM' or 'GJ'
     overlay vector: True            # overlay a streamline plot of field direction?
@@ -819,7 +811,6 @@ results options:
     min val: 0                      # maximum colorbar value in V/m
 
   Currents 2D:
-
     plot Currents: True               # 2d plot of net current flow in the collective?
     autoscale colorbar: True          # autoscale colorbar to min max of data set?
     max val: 150                    # maximum colorbar value [pA]
@@ -827,115 +818,98 @@ results options:
     colormap: coolwarm                    # colorbar for the currents
 
   Pressure 2D:                      # 2D plot of pressure in the cluster
-
     plot Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
 
   Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
-
     plot Osmotic Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
 
   Velocity 2D:                      # 2D plot of electroosmotic fluid velocity in the cluster
-
     plot Velocity: True
     autoscale colorbar: True
     max val: 15
     min val: -15
 
   Electrostatic 2D:                      # 2D plot of electrostatic pressure in the cluster
-
     plot Electrostatic: True
     autoscale colorbar: True
     max val: 15
     min val: -15
 
-
   #---------Animations -------------------------------------------------------------------------------------------------
 
   Vmem Ani:
-
     animate Vmem: True           # 2d animation of vmem with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # maximum colorbar value in mV
 
   Ca Ani:
-
     animate Ca2+: True           # 2d animation of cell calcium with time ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
-
     animate IP3: True            # 2d animation of cIP3 with time?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 100                 # maximum colorbar value in umol/L
     min val: 0                   # minimum colorbar value in umol/L
 
   Morpho Ani:
-
     animate Morpho: True            # 2d animation of voltage sensitive dye in cell collective with time?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 1.5e-3                  # maximum colorbar value in umol/L
     min val: 0                    # minimum colorbar value in umol/L
 
   Vmem GJ Ani:
-
     animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 50.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
 
   Vcell Ani:
-
     animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Venv Ani:
-
     animate Venv: True           # 2d animation of voltage in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   P cell Ani:
-
     animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Osmotic P Ani:
-
     animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 10                  # maximum colorbar value in mV
     min val: -70                 # minimum colorbar value in mV
 
   Force Ani:
-
     animate force: True         # 2d animation of body forces in individual cells of the collective?
     autoscale colorbar: True     # autoscale colorbar to min max of data set?
     max val: 100                  # maximum colorbar value in N/m3
     min val: 0                 # minimum colorbar value in N/m3
 
   Current Ani:
-
     animate current: True       # 2d animation of current in individual cells of the collective?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 150                # maximum colorbar value [pA]
     min val: 0                  # minimum colorbar value [pA]
 
   Membrane Ani:
-
     animate Membrane: True       # 2d animation of membrane pump motion?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1                # maximum colorbar value [pA]

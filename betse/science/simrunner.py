@@ -400,7 +400,6 @@ class SimRunner(object):
         # coll = LineCollection(cell_edges_flat,color='k',linewidth=1.0)
         # ax_x.add_collection(coll)
 
-
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
         collection = LineCollection(connects,linewidths=2.0,color='b')
@@ -1333,6 +1332,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
+        #FIXME: These two branches almost pass the exact same parameters. The
+        #differences appear to be in the "number_cells", "ignore_simECM", and
+        #"current_overlay" parameters. It'd be sweet to refactor away the
+        #duplication. Lush cherries ripening in the smoggy urban heat!
+        #FIXME: See "saveFolder" FIXME comment in the "AnimateCellData" class.
         if p.showCells is True:
 
             viz.AnimateCellData(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
@@ -1345,12 +1349,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 save= saveAni, ani_repeat=True,number_cells=False,saveFolder = '/animation/IP3', saveFile = 'ip3_')
 
     if p.ani_dye2d is True and p.voltage_dye == 1 and animate ==1:
-
         if p.sim_ECM is False:
-
             Dyeplotting = np.asarray(sim.cDye_time)
             Dyeplotting = np.multiply(Dyeplotting,1e3)
-
 
             if p.showCells is True:
                 viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='V-sensitive dye', cbtit = 'Concentration [umol/L]',
@@ -1371,7 +1372,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             number_cells = p.enumerate_cells, saveFolder = '/animation/Dye', saveFile = 'Dye_')
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and animate == 1:
-
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
         if p.showCells is True:
@@ -1379,17 +1379,16 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
                 ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = '/animation/Ca',
                 saveFile = 'ca_',ignore_simECM = True)
+
         else:
             viz.AnimateCellData_smoothed(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
                 clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
                 ani_repeat=True,number_cells=False,saveFolder = '/animation/Ca', saveFile = 'ca_')
 
     if p.ani_vm2d is True and animate == 1:
-
         vmplt = [1000*arr for arr in sim.vm_time]
 
         if p.sim_ECM is True:
-
             viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
                 clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr,
                 clrmap = p.default_cm, ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
@@ -1543,26 +1542,21 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 current_overlay=p.I_overlay)
 
     if p.ani_force is True and animate == 1:
-
         if p.deform_electro is True:
-
             viz.AnimateField(sim,sim.F_electro_x_time,sim.F_electro_y_time,cells,p,
                 title = 'Electrostatic Pressure Induced Body Force',
                 saveFolder = '/animation/ElectroFfield',saveFile = 'EFfield_')
 
         if p.deform_osmo is True:
-
             viz.AnimateField(sim,sim.F_hydro_x_time,sim.F_hydro_y_time,cells,p,
                 title = 'Hydrostatic Pressure Induced Body Force',
                 saveFolder = '/animation/HydroFfield',saveFile = 'OFfield_')
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
-
         viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
                        clrMax=p.venv_max_clr, save = saveAni)
 
     if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True:
-
         viz.AnimateMem(sim,cells,sim.time,p,clrAutoscale=p.autoscale_mem_ani,clrMin= p.mem_ani_min_clr,
                        clrMax=p.mem_ani_max_clr,save = saveAni,current_overlay=p.I_overlay)
 
@@ -1570,12 +1564,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     if p.turn_all_plots_off is False:
         plt.show()
 
-    if p.turn_all_plots_off is True:
+    else:
         loggers.log_info(
-        'As the config file results option: "turn all plots off" is set to "True", \n'
-        'plots and data have been exported to the results folder defined in the config \n'
-        'file. Note to see animations, you must set "turn all plots off" to "False.')
-
-
-
-
+            'As the config file results option "turn all plots off" is set to "True",\n'
+            'plots and data have been exported to the results folder defined in the config\n'
+            'file. To show animations, consider setting "turn all plots off" to "False".'
+        )

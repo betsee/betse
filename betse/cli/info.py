@@ -11,7 +11,7 @@
 
 # ....................{ IMPORTS                            }....................
 from betse import metadata, pathtree
-from betse.util.dependency import dependencies, matplotlibs
+from betse.util.lib import libs, matplotlibs
 from betse.util.io import loggers
 from betse.util.python import pythons
 from betse.util.system import processes, systems
@@ -44,7 +44,7 @@ def output_info() -> None:
         ))),
 
         # Dependencies metadata.
-        ('dependencies', dependencies.get_metadata()),
+        ('dependencies', libs.get_metadata()),
 
         # "matplotlib" metadata.
         ('matplotlib', matplotlibs.config.get_metadata()),

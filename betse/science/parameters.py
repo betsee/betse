@@ -9,17 +9,16 @@
 # FIXME create a planaria-specific (aquatic invertebrate) ion profile
 
 
+import numpy as np
+from collections import OrderedDict
 from betse.exceptions import BetseExceptionParameters
 from betse.science import simconfig
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
+from betse.util.lib import matplotlibs
 from betse.util.path import paths
-from collections import OrderedDict
-from matplotlib.colors import Colormap
-import numpy as np
-import matplotlib.cm as cm
 
 
 class Parameters(object):
@@ -639,12 +638,13 @@ class Parameters(object):
         self.plot_cutlines = ro['plot cutlines']
 
 
-         # Default colormap
-        self.default_cm = get_colormap(ro['default colormap'])
+         # Default colormap.
+        self.default_cm = matplotlibs.get_colormap(ro['default colormap'])
            # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
                                         # http://matplotlib.org/examples/color/colormaps_reference.html
 
-        self.gj_cm = get_colormap(ro['gj colormap'])    # colormap for plotting gj currents on top of default colormap
+        # Colormap for plotting gj currents on top of default colormap.
+        self.gj_cm = matplotlibs.get_colormap(ro['gj colormap'])
 
         self.plot_while_solving = ro['plot while solving']  # create a 2d plot of cell vmems while solution is taking place
 
@@ -1114,7 +1114,6 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
         elif self.ion_profile == 'scratch':
-
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cCl_env = 105.0
@@ -1328,23 +1327,10 @@ class Parameters(object):
                 )
 
 
-#FIXME: Move to the existing "betse.util.dependency.matplotlibs" module.
-def get_colormap(colormap_name: str) -> Colormap:
-    '''
-    Get the matplotlib-specific colormap with the passed name.
-    '''
-
-    colormap = getattr(cm, colormap_name, None)
-    if not isinstance(colormap, Colormap):
-        raise BetseExceptionParameters(
-            'Matplotlib colormap "{}" unrecognized.'.format(colormap_name))
-    return colormap
-
-
-#FIXME: This could probably stand to be documented. Also, this and the above
-#get_colormap() function feel a bit like miscellaneous utility functions rather
-#than something related to YAML configuration. We might want to contemplate
-#shifting them elsewhere -- say, to the "toolbox" module. Tasty thought food!
+#FIXME: Document us up the docstring bomb, please. Seed pouches and leather!
+#FIXME: This feels a bit like a miscellaneous utility function rather than
+#something related to YAML configuration. We might want to contemplate shifting
+#this elsewhere -- say, to the "toolbox" module. Tasty thought food!
 def bal_charge(concentrations, zs):
     q = 0
 

@@ -33,7 +33,7 @@ def init() -> None:
       platform.
     '''
     # Avoid circular import dependencies.
-    from betse.util.dependency import matplotlibs
+    from betse.util.lib import matplotlibs
 
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.
@@ -67,7 +67,7 @@ def die_unless_satisfiable_all() -> None:
     )
 
     # Validate such dependencies via "pkg_resources".
-    from betse.util.dependency import setuptool
+    from betse.util.lib import setuptool
     setuptool.die_unless_requirements_satisfiable_all()
 
 # ....................{ GETTERS                            }....................
@@ -76,7 +76,7 @@ def get_metadata() -> OrderedDict:
     Get an ordered dictionary synopsizing all currently installed dependencies.
     '''
     # Imports deferred to their point of use, as documented above.
-    from betse.util.dependency import setuptool
+    from betse.util.lib import setuptool
     from betse.util.python import modules, pythons
     from betse.util.type import containers
     import pkg_resources
