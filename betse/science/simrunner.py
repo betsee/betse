@@ -286,11 +286,8 @@ class SimRunner(object):
         else:
             raise BetseExceptionSimulation("Ooops! No such initialization file found to plot!")
 
-        if p.turn_all_plots_off is True:
-            p.createAnimations = False
-
         plots4Sim(p.plot_cell,cells,sim,p,saveImages=p.autosave, animate=p.createAnimations,
-            saveAni=p.saveAnimations)
+            saveAni=p.saveAnimations,plot_type='init')
 
         if p.turn_all_plots_off is False:
             plt.show()
@@ -311,14 +308,11 @@ class SimRunner(object):
         else:
             raise BetseExceptionSimulation("Ooops! No such simulation file found to plot!")
 
-        if p.turn_all_plots_off is True:
-            p.createAnimations = False
-
         plots4Sim(
             p.plot_cell,cells,sim,p,
             saveImages=p.autosave,
             animate=p.createAnimations,
-            saveAni=p.saveAnimations)
+            saveAni=p.saveAnimations,plot_type='sim')
 
         if p.turn_all_plots_off is False:
             plt.show()
@@ -353,11 +347,10 @@ class SimRunner(object):
 
         if p.autosave is True:
 
-            images_path = p.sim_results
+            images_path = p.init_results
             image_cache_dir = os.path.expanduser(images_path)
             os.makedirs(image_cache_dir, exist_ok=True)
             savedImg = os.path.join(image_cache_dir, 'fig_')
-
 
         fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells)
 
@@ -435,13 +428,23 @@ class SimRunner(object):
                 self._config_basename))
 
 
-def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False):
+def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,plot_type='init'):
 
     if saveImages is True:
-        images_path = p.sim_results
+
+        if plot_type == 'sim':
+            images_path = p.sim_results
+            p.plot_type = 'sim'
+
+        elif plot_type == 'init':
+            images_path = p.init_results
+            p.plot_type = 'init'
+
         image_cache_dir = os.path.expanduser(images_path)
         os.makedirs(image_cache_dir, exist_ok=True)
         savedImg = os.path.join(image_cache_dir, 'fig_')
+
+
 
     # check that the plot cell is in range of the available cell indices:
     if p.plot_cell not in cells.cell_i:

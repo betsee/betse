@@ -140,7 +140,10 @@ class Parameters(object):
         self.sim_path = paths.join(
             self.config_dirname, self.config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
         self.sim_results = paths.join(
-            self.config_dirname, self.config['results file saving']['directory']) # folder to auto-save results (graphs, images, animations)
+            self.config_dirname, self.config['results file saving']['sim directory']) # folder to auto-save results (graphs, images, animations)
+        self.init_results = paths.join(
+            self.config_dirname, self.config['results file saving']['init directory']) # folder to auto-save results (graphs, images, ani
+
 
         self.init_filename = self.config['init file saving']['file']
         self.sim_filename = self.config['sim file saving']['file']

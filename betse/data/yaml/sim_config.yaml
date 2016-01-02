@@ -39,7 +39,7 @@
 
 init file saving:
 
-    directory: init         # directory to load/save init run
+    directory: betse_test         # directory to load/save init run
 
     file: init.betse        # filename to load/save init run
 
@@ -48,13 +48,14 @@ init file saving:
 
 sim file saving:
 
-    directory: init/sims # directory to load/save sim run
+    directory: betse_test/sims # directory to load/save sim run
 
     file: sim_1.betse    # filename to load/save sim run
 
 results file saving:
 
-    directory: init/results  # directory to load/save data, plots, and animations
+    init directory: betse_test/results_init  # directory to load/save data, plots, and animations after init
+    sim directory: betse_test/results_sim  # directory to load/save data, plots, and animations after sim
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -697,6 +698,8 @@ results options:
   turn all plots off: False      # This option allows you to turn all plots on/off
                                  # note this doesn't turn plot while solving off.
                                  # options True or False (case sensitive)
+                                 # If 'automatically save plots" is "True"
+                                 # plots will be exported to results without displaying.
 
   plot while solving: True       # shows a continuously updating 2d plot of cell Vmems
                                  # while the sim run is computing
@@ -756,7 +759,6 @@ results options:
 
   plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
-  #FIXME: Uppercase keys should probably be lowercase. Triumphant sunrise ahoy!
   Vmem 2D:
 
     plot Vmem: True              # 2d plot of final vmem ?
@@ -1057,10 +1059,10 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-10   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-10)
+  alpha_NaK:  1.0e-10   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
   halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
   slope_NaK:  3        # the energy window width of the NaK-ATPase pump [kJ]
-  Na pump exponent: 1       # the factor by which intracelluar sodium activates the NaK-ATPase pump
+  Na pump exponent: 0.5       # the factor by which intracelluar sodium activates the NaK-ATPase pump
   K pump exponent: 0.5        # the factor by which extracellular potassium activates the NaK-ATPase pump
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]

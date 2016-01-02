@@ -2,7 +2,7 @@
 # Copyright 2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-
+# FIXME: Hi Sessums! So what I'd like to do is
 # FIXME saving animations as video files directly doesn't work
 
 import numpy as np
@@ -60,8 +60,14 @@ class AnimateCellData(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type is 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -168,7 +174,9 @@ class AnimateCellData(object):
             frames=self.frames, interval=100, repeat=ani_repeat)
 
         try:
-            plt.show()
+
+            if p.turn_all_plots_off is False:
+                plt.show()
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -276,8 +284,14 @@ class AnimateCellData_smoothed(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -361,7 +375,10 @@ class AnimateCellData_smoothed(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+            plt.show()
+
+        # plt.show()
 
     def aniFunc(self,i):
 
@@ -453,8 +470,14 @@ class AnimateGJData(object):
         self.save = save
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -542,7 +565,9 @@ class AnimateGJData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
                frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
 
     def aniFunc(self,i):
@@ -604,8 +629,14 @@ class AnimateGJData_smoothed(object):
         self.save = save
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -689,7 +720,8 @@ class AnimateGJData_smoothed(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
                frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+            plt.show()
 
     def aniFunc(self,i):
 
@@ -821,8 +853,14 @@ class PlotWhileSolving(object):
         self.ax.set_title(self.tit)
 
         if p.save_solving_plot is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + '/plotWhileSolving'
+
+            if p.run_sim is True:
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + '/plotWhileSolving'
+
+            else:
+                images_path = p.init_results + '/plotWhileSolving'
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, 'vm_')
@@ -1003,8 +1041,14 @@ class AnimateCurrent(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1079,7 +1123,9 @@ class AnimateCurrent(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
 
     def aniFunc(self,i):
@@ -1146,8 +1192,14 @@ class AnimateEfield(object):
         self.save = save
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1218,7 +1270,9 @@ class AnimateEfield(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
     def aniFunc(self,i):
 
@@ -1291,8 +1345,14 @@ class AnimateField(object):
         ymax = cells.ymax*p.um
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1357,7 +1417,9 @@ class AnimateField(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
     def aniFunc(self,i):
 
@@ -1404,8 +1466,14 @@ class AnimateVelocity(object):
         self.save = save
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1481,7 +1549,9 @@ class AnimateVelocity(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
     def aniFunc(self,i):
 
@@ -1552,8 +1622,14 @@ class AnimateDeformation(object):
         self.save = save
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1633,7 +1709,9 @@ class AnimateDeformation(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
     def aniFunc(self,i):
 
@@ -1737,8 +1815,14 @@ class AnimateEnv(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1768,7 +1852,9 @@ class AnimateEnv(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=ani_repeat)
 
-        plt.show()
+        if p.turn_all_plots_off is False:
+
+            plt.show()
 
 
     def aniFunc(self,i):
@@ -1827,8 +1913,14 @@ class AnimateMem(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -1920,7 +2012,9 @@ class AnimateMem(object):
             frames=self.frames, interval=100, repeat=ani_repeat)
 
         try:
-            plt.show()
+
+            if p.turn_all_plots_off is False:
+                plt.show()
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -2021,8 +2115,14 @@ class AnimateDyeData(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-            # Make the BETSE-specific cache directory if not found.
-            images_path = p.sim_results + saveFolder
+
+            if p.plot_type == 'sim':
+                # Make the BETSE-specific cache directory if not found.
+                images_path = p.sim_results + saveFolder
+
+            elif p.plot_type == 'init':
+                images_path = p.init_results + saveFolder
+
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
@@ -2088,7 +2188,9 @@ class AnimateDyeData(object):
             frames=self.frames, interval=100, repeat=ani_repeat)
 
         try:
-            plt.show()
+
+            if p.turn_all_plots_off is False:
+                plt.show()
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -3075,7 +3177,14 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 
 def exportData(cells,sim,p):
 
-    results_path = p.sim_results
+
+    if p.plot_type is 'sim':
+
+        results_path = p.sim_results
+
+    elif p.plot_type is 'init':
+        results_path = p.init_results
+
     os.makedirs(results_path, exist_ok=True)
     savedData = os.path.join(results_path, 'ExportedData.csv')
     savedData_FFT = os.path.join(results_path, 'ExportedData_FFT.csv')
@@ -3266,7 +3375,12 @@ def exportData(cells,sim,p):
 
 def export2dData(simdata,cells,p):
 
-    results_path = p.sim_results
+    if p.plot_type == 'sim':
+        results_path = p.sim_results
+
+    elif p.plot_type == 'init':
+        results_path = p.sim_results
+
     os.makedirs(results_path, exist_ok=True)
     savedData_2d = os.path.join(results_path, 'Exported2DData.csv')
 
