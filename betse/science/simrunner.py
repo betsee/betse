@@ -1192,18 +1192,20 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.deform_electro is True:
 
-        figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=sim.F_electro,number_cells=p.enumerate_cells,
+        figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=(1/p.um)*sim.F_electro,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        fx = sim.F_electro_x/sim.F_electro
-        fy = sim.F_electro_y/sim.F_electro
+        if sim.F_electro.all() != 0:
+
+            fx = sim.F_electro_x/sim.F_electro
+            fy = sim.F_electro_y/sim.F_electro
 
         axEP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
 
         axEP.set_title('Final Electrostatic Body Force in Cell Network')
         axEP.set_xlabel('Spatial distance [um]')
         axEP.set_ylabel('Spatial distance [um]')
-        cbEP.set_label('Body Force [N/m3]')
+        cbEP.set_label('Body Force [N/cm3]')
 
         if saveImages is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
@@ -1214,11 +1216,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.deform_osmo is True or p.deformation is True or p.fluid_flow is True:
 
-        figOF, axOF, cbOF = viz.plotPolyData(sim, cells,p,zdata=sim.F_hydro,number_cells=p.enumerate_cells,
+        figOF, axOF, cbOF = viz.plotPolyData(sim, cells,p,zdata=(1/p.um)*sim.F_hydro,number_cells=p.enumerate_cells,
             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
 
-        fx = sim.F_hydro_x
-        fy = sim.F_hydro_y
+        fx = (1/p.um)*sim.F_hydro_x
+        fy = (1/p.um)*sim.F_hydro_y
 
         if sim.F_hydro.all() != 0:
 
@@ -1230,7 +1232,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axOF.set_title('Final Hydrostatic Pressure Induced Body Force in Cell Network')
         axOF.set_xlabel('Spatial distance [um]')
         axOF.set_ylabel('Spatial distance [um]')
-        cbOF.set_label('Body Force [N/m3]')
+        cbOF.set_label('Body Force [N/cm3]')
 
         if saveImages is True:
             savename13 = savedImg + 'final_hydroF_2D' + '.png'
@@ -1247,6 +1249,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
             clrMax = p.Deformation_ani_max_clr,
             clrmap = p.default_cm)
+
+
+        # FIXME : how about a nice streamplot here instead?
 
         axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
             sim.dx_cell_time[-1],sim.dy_cell_time[-1])
@@ -1485,8 +1490,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
         fig_x = plt.figure()
         ax_x = plt.subplot(111)
-        # plt.quiver(p.um*cells.nn_vects[:,0],p.um*cells.nn_vects[:,1],cells.nn_vects[:,2],cells.nn_vects[:,3],
-        #     sim.gj_rho,cmap = p.default_cm)
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
         collection = LineCollection(connects, array=sim.gjopen, cmap= p.default_cm, linewidths=2.0)
@@ -1547,10 +1550,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 title = 'Electrostatic Pressure Induced Body Force',
                 saveFolder = '/animation/ElectroFfield',saveFile = 'EFfield_')
 
+        if p.deform_osmo is True:
 
-        viz.AnimateField(sim,sim.F_hydro_x_time,sim.F_hydro_y_time,cells,p,
-            title = 'Hydrostatic Pressure Induced Body Force',
-            saveFolder = '/animation/HydroFfield',saveFile = 'OFfield_')
+            viz.AnimateField(sim,sim.F_hydro_x_time,sim.F_hydro_y_time,cells,p,
+                title = 'Hydrostatic Pressure Induced Body Force',
+                saveFolder = '/animation/HydroFfield',saveFile = 'OFfield_')
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
 

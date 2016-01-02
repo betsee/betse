@@ -689,13 +689,6 @@ class AnimateGJData_smoothed(object):
         self.triplt.set_clim(self.cmin,self.cmax)
         self.cb = self.fig.colorbar(self.triplt)   # define colorbar for figure
 
-        # Next add in gap junction I_gj direction
-        # vx = np.multiply(self.gjI_t[0],self.gjvects[:,2])
-        # vy = np.multiply(self.gjI_t[0],self.gjvects[:,3])
-        #
-        # self.Qplot = self.ax.quiver(p.um*self.gjvects[:,0],p.um*self.gjvects[:,1],
-        #     vx,vy,self.zdata_t[0],zorder=10, cmap=p.gj_cm,clim=[0,1])
-
         if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
                 self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
@@ -1321,7 +1314,7 @@ class AnimateEfield(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-class AnimateField(object):
+class AnimateField(object):  # FIXME -- should this be streamplot instead of quiver?
     """
     Animate a vector field defined on cell centres and pertaining to body forces in cell.
 
@@ -1359,8 +1352,8 @@ class AnimateField(object):
             self.savedAni = os.path.join(betse_cache_dir, saveFile)
             ani_repeat = False
 
-        Fx = self.Fx_time[0]
-        Fy = self.Fy_time[0]
+        Fx = (1/p.um)*self.Fx_time[0]
+        Fy = (1/p.um)*self.Fy_time[0]
 
         F = np.sqrt(Fx**2 + Fy**2)
 
@@ -1411,7 +1404,7 @@ class AnimateField(object):
         self.ax.set_title(title)
         self.ax.set_xlabel('Spatial distance [um]')
         self.ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Body Force [N/m3]')
+        cb.set_label('Body Force [N/cm3]')
 
         self.frames = len(sim.time)
 
@@ -1429,8 +1422,8 @@ class AnimateField(object):
 
         # get the appropriate data and scale it:
 
-        Fx = self.Fx_time[i]
-        Fy = self.Fy_time[i]
+        Fx = (1/p.um)*self.Fx_time[i]
+        Fy = (1/p.um)*self.Fy_time[i]
 
         F = np.sqrt(Fx**2 + Fy**2)
 
@@ -1519,7 +1512,6 @@ class AnimateVelocity(object):
 
             lw = (3.0*vfield/vnorm) + 0.5
 
-            # self.streamV = self.ax.quiver(p.um*cells.X, p.um*cells.Y, v_gj_x/vnorm,v_gj_y/vnorm)
             self.streamV = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,v_gj_x/vnorm,v_gj_y/vnorm,density=p.stream_density,
                     linewidth=lw,color='k',cmap=p.default_cm,arrowsize=1.5)
 
@@ -2867,11 +2859,6 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         coll.set_picker(pickable)
         ax.add_collection(coll)
 
-        # Plot the cell centres
-        # ax.plot(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],'k.')
-
-        #ax.quiver(s*self.gj_vects[:,0],s*self.gj_vects[:,1],s*self.gj_vects[:,2],s*self.gj_vects[:,3],z,zorder=5)
-
         ax.axis('equal')
 
         # Add a colorbar for the Line Collection
@@ -2880,10 +2867,6 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
         else:
             ax_cb = None
 
-        # xmin = p.um*(cells.clust_x_min - p.clip)
-        # xmax = p.um*(cells.clust_x_max + p.clip)
-        # ymin = p.um*(cells.clust_y_min - p.clip)
-        # ymax = p.um*(cells.clust_y_max + p.clip)
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
@@ -2965,8 +2948,10 @@ def plotVects(cells, p, fig=None, ax=None):
 
         s = p.um
 
-        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,4],s*cells.mem_vects_flat[:,5],color='b',label='mem tang')
-        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,2],s*cells.mem_vects_flat[:,3],color='g',label ='mem norm')
+        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,4],
+                  s*cells.mem_vects_flat[:,5],color='b',label='mem tang')
+        ax.quiver(s*cells.mem_vects_flat[:,0],s*cells.mem_vects_flat[:,1],s*cells.mem_vects_flat[:,2],
+                  s*cells.mem_vects_flat[:,3],color='g',label ='mem norm')
         # ax.quiver(s*cells.ecm_vects[:,0],s*cells.ecm_vects[:,1],s*cells.ecm_vects[:,2],s*cells.ecm_vects[:,3],color='r')
 
         # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
