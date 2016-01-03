@@ -828,17 +828,29 @@ class AnimateCurrent(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-class AnimateEfield(object):
+class AnimateField(object):
 
-    def __init__(self,sim,cells,p,ani_repeat = True, save = True,
-        saveFolder = 'animation/Efield',saveFile = 'Efield_'):
+    def __init__(self,Fx,Fy,sim,cells,p,ani_repeat = True, save = True,
+        saveFolder = 'animation/',saveFile = 'Field_',plot_ecm = False,
+        title="Final Field in ",cb_title = "Force [N]",colorAutoscale = True,
+        colorMin = None, colorMax = None):
 
         self.fig = plt.figure()
         self.ax = plt.subplot(111)
         self.p = p
+        self.Fx_time = Fx
+        self.Fy_time = Fy
         self.sim = sim
         self.cells = cells
         self.save = save
+        self.plot_ecm = plot_ecm
+
+        self.title_piece = title
+        self.cb_label = cb_title
+
+        self.colorAutoscale = colorAutoscale
+        self.colorMin = colorMin
+        self.colorMax = colorMax
 
         self.saveFolder = saveFolder
         self.saveFile = saveFile
@@ -848,29 +860,23 @@ class AnimateEfield(object):
 
             set_up_filesave(self,p)
 
-        if p.sim_ECM is True and p.ani_Efield_type == 'ECM':
+        if p.sim_ECM is True and plot_ecm is True:
 
-            e_x = sim.efield_ecm_x_time[-1]
-            e_y = sim.efield_ecm_y_time[-1]
-
-            efield_mag = np.sqrt(e_x**2 + e_y**2)
+            efield_mag = np.sqrt(Fx[-1]**2 + Fy[-1]**2)
 
             self.msh, self.ax = env_mesh(efield_mag,self.ax,cells,p,p.background_cm, ignore_showCells=True)
 
-            self.streamE, self.ax = env_quiver(e_x,e_y,self.ax,cells,p)
+            self.streamE, self.ax = env_quiver(Fx[-1],Fy[-1],self.ax,cells,p)
 
             tit_extra = 'Extracellular'
 
-        elif p.ani_Efield_type == 'GJ' or p.sim_ECM is False:
+        elif plot_ecm is False:
 
-            e_x = sim.efield_gj_x_time[-1]
-            e_y = sim.efield_gj_y_time[-1]
-
-            efield_mag = np.sqrt(e_x**2 + e_y**2)
+            efield_mag = np.sqrt(Fx[-1]**2 + Fy[-1]**2)
 
             self.msh, self.ax = cell_mesh(efield_mag,self.ax,cells,p,p.background_cm)
 
-            self.streamE, self.ax = cell_quiver(e_x,e_y,self.ax,cells,p)
+            self.streamE, self.ax = cell_quiver(Fx[-1],Fy[-1],self.ax,cells,p)
 
             tit_extra = 'Intracellular'
 
@@ -883,16 +889,16 @@ class AnimateEfield(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autoscale_Efield_ani is False:
-            self.msh.set_clim(p.Efield_ani_min_clr,p.Efield_ani_max_clr)
+        if colorAutoscale is False:
+            self.msh.set_clim(colorMin,colorMax)
 
         cb = self.fig.colorbar(self.msh)
 
-        self.tit = "Final Electric Field in " + tit_extra + ' Spaces'
+        self.tit = self.title_piece + ' ' + tit_extra + ' Spaces'
         self.ax.set_title(self.tit)
         self.ax.set_xlabel('Spatial distance [um]')
         self.ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Electric Field [V/m]')
+        cb.set_label(self.cb_label)
 
         self.frames = len(sim.time)
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
@@ -905,10 +911,10 @@ class AnimateEfield(object):
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.p.sim_ECM is True and self.p.ani_Efield_type == 'ECM':
+        if self.p.sim_ECM is True and self.plot_ecm is True:
 
-            E_x = self.sim.efield_ecm_x_time[i]
-            E_y = self.sim.efield_ecm_y_time[i]
+            E_x = self.Fx_time[i]
+            E_y = self.Fy_time[i]
 
             efield = np.sqrt(E_x**2 + E_y**2)
 
@@ -920,10 +926,10 @@ class AnimateEfield(object):
 
             self.streamE.set_UVC(E_x,E_y)
 
-        elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM is False:
+        elif self.plot_ecm is False:
 
-            E_gj_x = self.sim.efield_gj_x_time[i]
-            E_gj_y = self.sim.efield_gj_y_time[i]
+            E_gj_x = self.Fx_time[i]
+            E_gj_y = self.Fy_time[i]
 
             if len(E_gj_x) != len(self.cells.cell_i):
 
@@ -946,132 +952,8 @@ class AnimateEfield(object):
 
         cmax = np.max(efield)
 
-        if self.p.autoscale_Efield_ani is True:
+        if self.colorAutoscale is True:
             self.msh.set_clim(0,cmax)
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
-
-class AnimateField(object):
-    """
-    Animate a vector field defined on cell centres and pertaining to body forces in cell.
-
-    """
-
-    def __init__(self,sim,Fx_time,Fy_time,cells,p,ani_repeat = True, save = True, title = 'Force field',
-        saveFolder = 'animation/Ffield',saveFile = 'Ffield_'):
-
-        self.fig = plt.figure()
-        self.ax = plt.subplot(111)
-        self.p = p
-        self.sim = sim
-        self.cells = cells
-        self.save = save
-        self.Fx_time = Fx_time
-        self.Fy_time = Fy_time
-        self.tit = title
-
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        if self.save is True:
-
-            set_up_filesave(self,p)
-
-        Fx = (1/p.um)*self.Fx_time[0]
-        Fy = (1/p.um)*self.Fy_time[0]
-
-        F = np.sqrt(Fx**2 + Fy**2)
-
-        cmin = F.min()
-        cmax = F.max()
-
-        if F.all() != 0.0:
-
-            Fx = Fx/F
-            Fy = Fy/F
-
-        if p.showCells is True:
-
-            # define a polygon collection based on individual cell polygons
-            self.points = np.multiply(cells.cell_verts, p.um)
-            self.fmesh =  PolyCollection(self.points, cmap=p.default_cm, edgecolors='none')
-            self.fmesh.set_array(F)
-            self.ax.add_collection(self.fmesh)
-
-        else:
-            # interpolate the data to the grid:
-
-            dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),F,
-                                        (cells.Xgrid,cells.Ygrid),method=p.interp_type, fill_value=0)
-
-            dat_grid = np.multiply(dat_grid,cells.maskM)
-
-            if p.plotMask is True:
-                dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
-
-            self.fmesh = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=p.default_cm)
-
-        # add a vector plot of force components:
-        self.vplot = self.ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],
-            Fx,Fy,zorder = 10)
-
-        self.ax.axis('equal')
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if p.autoscale_force_ani is False:
-            self.fmesh.set_clim(p.force_ani_min_clr,p.force_ani_max_clr)
-        else:
-            self.fmesh.set_clim(cmin,cmax)
-
-        cb = self.fig.colorbar(self.fmesh)
-
-        self.ax.set_title(title)
-        self.ax.set_xlabel('Spatial distance [um]')
-        self.ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Body Force [N/cm3]')
-
-        self.frames = len(sim.time)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        show_plot(p)
-
-    def aniFunc(self,i):
-
-        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
-        self.ax.set_title(titani)
-
-        # get the appropriate data and scale it:
-
-        Fx = (1/self.p.um)*self.Fx_time[i]
-        Fy = (1/self.p.um)*self.Fy_time[i]
-
-        F = np.sqrt(Fx**2 + Fy**2)
-
-        if F.all() != 0.0:
-
-            Fx = Fx/F
-            Fy = Fy/F
-
-        if self.p.showCells is True:
-
-            self.fmesh.set_array(F)
-
-        else:
-            self.fmesh.set_data(F)
-
-        self.fmesh.set_clim(F.min(),F.max())
-        self.vplot.set_UVC(Fx,Fy)
 
         if self.save is True:
             self.fig.canvas.draw()
@@ -1320,7 +1202,6 @@ class AnimateDeformation(object):
 
         show_plot(p)
 
-
     def aniFunc(self,i):
 
         # we need to have changing cells, so we have to clear the plot and redo it...
@@ -1350,8 +1231,6 @@ class AnimateDeformation(object):
 
                 dx = dx/dd
                 dy = dy/dd
-
-
 
         points = np.multiply(self.sim.cell_verts_time[i], self.p.um)
         dd_collection = PolyCollection(points, array=dd, cmap=self.p.default_cm, edgecolors='none')
@@ -1530,40 +1409,11 @@ class AnimateMem(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-
         if self.current_overlay is True:
 
-            if p.sim_ECM is False or p.IecmPlot is False:
-
-                Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
-
-                J_x = sim.I_gj_x_time[0]/Jmag_M
-                J_y = sim.I_gj_y_time[0]/Jmag_M
-
-                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-                self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,
-                    density=self.density,linewidth=lw,color='k',
-                    cmap=self.clrmap,arrowsize=1.5)
-
-                self.tit_extra = 'Gap junction current'
-
-            elif p.IecmPlot is True:
-
-                Jmag_M = np.sqrt(sim.I_tot_x_time[0]**2 + sim.I_tot_y_time[0]**2) + 1e-30
-
-                J_x = sim.I_tot_x_time[0]/Jmag_M
-                J_y = sim.I_tot_y_time[0]/Jmag_M
-
-                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-                self.streams = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=self.density,linewidth=lw,color='k',
-                    cmap=self.clrmap,arrowsize=1.5)
-
-                self.tit_extra = 'Extracellular current overlay'
+            self.streams, self.ax, self.tit_extra = I_overlay_setup(sim,self.ax,cells,p)
 
         else:
-
             self.tit_extra = ' '
 
         # set range of the colormap
@@ -1615,35 +1465,7 @@ class AnimateMem(object):
 
         if self.current_overlay is True:
 
-            if self.sim_ECM is False or self.IecmPlot is False:
-
-                Jmag_M = np.sqrt(self.sim.I_gj_x_time[i]**2 + self.sim.I_gj_y_time[i]**2) + 1e-30
-
-                J_x = self.sim.I_gj_x_time[i]/Jmag_M
-                J_y = self.sim.I_gj_y_time[i]/Jmag_M
-
-                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-                self.streams.lines.remove()
-                self.ax.patches = []
-
-                self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,J_x,J_y,
-                    density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
-
-            elif self.IecmPlot is True:
-
-                Jmag_M = np.sqrt(self.sim.I_tot_x_time[i]**2 + self.sim.I_tot_y_time[i]**2) + 1e-30
-
-                J_x = self.sim.I_tot_x_time[i]/Jmag_M
-                J_y = self.sim.I_tot_y_time[i]/Jmag_M
-
-                lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-                self.streams.lines.remove()
-                self.ax.patches = []
-
-                self.streams = self.ax.streamplot(self.cells.Xgrid*1e6,self.cells.Ygrid*1e6,
-                    J_x,J_y,density=self.density,linewidth=lw,color='k', cmap=self.colormap,arrowsize=1.5)
+            self.streams, self.ax = I_overlay_update(i,self.sim,self.streams,self.ax,self.cells,self.p)
 
         titani = self.tit_extra + ' (sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
@@ -2124,7 +1946,8 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
 
         return fig,ax,ax_cb
 
-def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]'):
+def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]',
+                    colorAutoscale = True, minColor = None, maxColor=None):
 
     fig = plt.figure()
     ax = plt.subplot(111)
@@ -2159,8 +1982,8 @@ def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title
 
     ax.axis([xmin,xmax,ymin,ymax])
 
-    if p.autoscale_Efield is False:
-        msh.set_clim(p.Efield_min_clr,p.Efield_max_clr)
+    if colorAutoscale is False:
+        msh.set_clim(minColor,maxColor)
 
     cb = fig.colorbar(msh)
 
@@ -2172,7 +1995,8 @@ def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title
 
     return fig, ax, cb
 
-def plotStreamField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]', show_cells = False):
+def plotStreamField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]',
+                show_cells = False,colorAutoscale = True, minColor = None, maxColor=None):
 
     fig = plt.figure()
     ax = plt.subplot(111)
@@ -2207,8 +2031,8 @@ def plotStreamField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_tit
 
     ax.axis([xmin,xmax,ymin,ymax])
 
-    if p.autoscale_Efield is False:
-        msh.set_clim(p.Efield_min_clr,p.Efield_max_clr)
+    if colorAutoscale is False:
+        msh.set_clim(minColor,maxColor)
 
     cb = fig.colorbar(msh)
 

@@ -609,49 +609,51 @@ class TissueHandler(object):
             sim.P_mod[self.targets_P] =  self.scalar_P*self.dyna_P(t)*self.rate_P*tb.pulse(t,self.t_onP,
                                          self.t_offP,self.t_changeP)
 
-        if p.scheduled_options['ecmJ'] != 0:
-            for i, dmat in enumerate(sim.D_env):
-                effector_ecmJ = tb.pulse(t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
-                sim.D_env[i][self.targets_ecmJ] = sim.D_env_base[i][self.targets_ecmJ]*(1 - effector_ecmJ) \
-                                                  + effector_ecmJ*sim.D_free[i]
+        if p.sim_ECM is True:
 
-                sim.D_env_weight = sim.D_env_weight.ravel()
-                sim.D_env_weight_base = sim.D_env_weight_base.ravel()
+            if p.scheduled_options['ecmJ'] != 0:
+                for i, dmat in enumerate(sim.D_env):
+                    effector_ecmJ = tb.pulse(t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
+                    sim.D_env[i][self.targets_ecmJ] = sim.D_env_base[i][self.targets_ecmJ]*(1 - effector_ecmJ) \
+                                                      + effector_ecmJ*sim.D_free[i]
 
-                sim.D_env_weight[self.targets_ecmJ] = \
-                    sim.D_env_weight_base[self.targets_ecmJ]*(1-effector_ecmJ) + \
-                                                      effector_ecmJ
+                    sim.D_env_weight = sim.D_env_weight.ravel()
+                    sim.D_env_weight_base = sim.D_env_weight_base.ravel()
 
-                sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
-                sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
+                    sim.D_env_weight[self.targets_ecmJ] = \
+                        sim.D_env_weight_base[self.targets_ecmJ]*(1-effector_ecmJ) + \
+                                                          effector_ecmJ
 
-            for i, dmat in enumerate(sim.D_env):
-                if p.env_type is True:
-                    sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                        (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
-                    sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                        (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
+                    sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
+                    sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
-                else:
-                    sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                        (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+                for i, dmat in enumerate(sim.D_env):
+                    if p.env_type is True:
+                        sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                            (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
+                        sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                            (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
 
-                    sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                        (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
+                    else:
+                        sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                            (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
 
-            sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
-            sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
+                        sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+                            (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
 
-            if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-                sim.D_env_weight_u[:,0] = 0
-                sim.D_env_weight_u[:,-1] = 0
-                sim.D_env_weight_u[0,:] = 0
-                sim.D_env_weight_u[-1,:] = 0
+                sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
+                sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
 
-                sim.D_env_weight_v[:,0] = 0
-                sim.D_env_weight_v[:,-1] = 0
-                sim.D_env_weight_v[0,:] = 0
-                sim.D_env_weight_v[-1,:] = 0
+                if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
+                    sim.D_env_weight_u[:,0] = 0
+                    sim.D_env_weight_u[:,-1] = 0
+                    sim.D_env_weight_u[0,:] = 0
+                    sim.D_env_weight_u[-1,:] = 0
+
+                    sim.D_env_weight_v[:,0] = 0
+                    sim.D_env_weight_v[:,-1] = 0
+                    sim.D_env_weight_v[0,:] = 0
+                    sim.D_env_weight_v[-1,:] = 0
 
         soc = p.scheduled_options['cuts']
         if soc is not None and not soc._is_fired and t >= soc.time:

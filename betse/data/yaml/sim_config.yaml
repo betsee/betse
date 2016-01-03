@@ -206,9 +206,6 @@ world options:
 
     turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
 
-    time dependent: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
-                            # upon simulation, will check for appropriate world size and time set for your parameters.
-
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
@@ -624,6 +621,9 @@ variable settings:
 
     young modulus: 0.75e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
+    time dependent deformation: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
+                            # upon simulation, will check for appropriate world size and time set for your parameters.
+
 
   channel electroosmosis:
 
@@ -913,14 +913,12 @@ results options:
 
   Efield Ani:
     animate Efield: True        # 2d animation of electric field in extracellullar matrix
-    data type: ECM                  # data type can be 'ECM' or 'GJ'
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 1500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]
 
   Velocity Ani:
     animate Velocity: True        # 2d animation of electric field in extracellullar matrix
-    data type: GJ                  # data type can be 'ECM' or 'GJ'
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]

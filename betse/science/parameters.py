@@ -86,7 +86,7 @@ class Parameters(object):
 
         self.deformation = self.config['world options']['deformation']['turn on']
 
-        self.td_deform = self.config['world options']['deformation']['time dependent']
+        self.td_deform = self.config['variable settings']['flow and deformation']['time dependent deformation']
 
         self.deform_osmo = self.config['variable settings']['flow and deformation']['include osmotic pressure']
         self.deform_electro = self.config['variable settings']['flow and deformation']['include electrostatic pressure']
@@ -802,13 +802,11 @@ class Parameters(object):
         self.mem_ani_max_clr = float(ro['Membrane Ani']['max val'])
 
         self.ani_Efield = ro['Efield Ani']['animate Efield']   # 2d animation of electric field
-        self.ani_Efield_type =ro['Efield Ani']['data type']   # data type can be 'ECM' or 'GJ'
         self.autoscale_Efield_ani =ro['Efield Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Efield_ani_min_clr =float(ro['Efield Ani']['max val'])         # maximum colorbar value in V/m
         self.Efield_ani_max_clr =float(ro['Efield Ani']['min val'])       # maximum colorbar value in V/m
 
         self.ani_Velocity = ro['Velocity Ani']['animate Velocity']   # 2d animation of electric field
-        self.ani_Velocity_type =ro['Velocity Ani']['data type']   # data type can be 'ECM' or 'GJ'
         self.autoscale_Velocity_ani =ro['Velocity Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Velocity_ani_min_clr =float(ro['Velocity Ani']['min val'])         # maximum colorbar value in V/m
         self.Velocity_ani_max_clr =float(ro['Velocity Ani']['max val'])       # maximum colorbar value in V/m

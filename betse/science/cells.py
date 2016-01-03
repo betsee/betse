@@ -1394,10 +1394,10 @@ class Cells(object):
         self.lapGJinv = np.linalg.pinv(lapGJ)
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 
-        if p.td_deform is True:
+        # if p.td_deform is True:
             # if time dependent deformation is selected, also save the direct Laplacian operator:
-            self.lapGJ = lapGJ
-            self.lapGJ_P = lapGJ_P
+        self.lapGJ = lapGJ
+        self.lapGJ_P = lapGJ_P
 
     def redo_gj(self,dyna,p,savecells =True):
 

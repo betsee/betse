@@ -1083,7 +1083,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.sim_ECM is True:
 
             viz.plotVectField(sim.E_env_x,sim.E_env_y,cells,p,plot_ecm = True,
-                title='Final Electric Field', cb_title = 'Electric Field [V/m]')
+                title='Final Electric Field', cb_title = 'Electric Field [V/m]',
+                colorAutoscale = p.autoscale_Efield, minColor = p.Efield_min_clr,
+                maxColor = p.Efield_max_clr)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
@@ -1096,7 +1098,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
 
         viz.plotVectField(sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
-                        title='Final Electric Field', cb_title = 'Electric Field [V/m]')
+                        title='Final Electric Field', cb_title = 'Electric Field [V/m]',
+                        colorAutoscale = p.autoscale_Efield, minColor = p.Efield_min_clr,
+                        maxColor = p.Efield_max_clr)
 
         if saveImages is True:
 
@@ -1170,7 +1174,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     if p.deform_electro is True:
 
         viz.plotVectField((1/p.um)*sim.F_electro_x,(1/p.um)*sim.F_electro_y,cells,p,plot_ecm = False,
-                        title='Final Electrostatic Body Force', cb_title = 'Body Force [N/cm3]')
+                        title='Final Electrostatic Body Force', cb_title = 'Body Force [N/cm3]',
+                        colorAutoscale = p.autoscale_force, minColor = p.force_min_clr,
+                        maxColor = p.force_ani_max_clr)
 
         if saveImages is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
@@ -1182,7 +1188,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     if p.deform_osmo is True:
 
         viz.plotVectField((1/p.um)*sim.F_hydro_x,(1/p.um)*sim.F_hydro_y,cells,p,plot_ecm = False,
-                title='Final Hydrostatic Pressure Induced Body Force', cb_title = 'Body Force [N/cm3]')
+                title='Final Hydrostatic Pressure Induced Body Force', cb_title = 'Body Force [N/cm3]',
+                colorAutoscale = p.autoscale_force, minColor = p.force_min_clr, maxColor = p.force_ani_max_clr)
 
         if saveImages is True:
             savename13 = savedImg + 'final_hydroF_2D' + '.png'
@@ -1195,22 +1202,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         viz.plotStreamField(p.um*sim.dx_cell_time[-1],p.um*sim.dy_cell_time[-1],cells,p,plot_ecm = False,
                             title='Final Displacement of Cell Collective', cb_title = 'Displacement [um]',
-            show_cells=p.showCells)
-
-        # d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
-        #
-        # figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
-        #     clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
-        #     clrMax = p.Deformation_ani_max_clr,
-        #     clrmap = p.default_cm)
-        #
-        # axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
-        #     sim.dx_cell_time[-1],sim.dy_cell_time[-1])
-        #
-        # axDef.set_title('Displacement in Cell Network')
-        # axDef.set_xlabel('Spatial distance [um]')
-        # axDef.set_ylabel('Spatial distance [um]')
-        # cbDef.set_label('Displacement [um]')
+                            show_cells=p.showCells,colorAutoscale = p.autoscale_Deformation_ani,
+                            minColor = p.Deformation_ani_min_clr,maxColor = p.Deformation_ani_max_clr)
 
         if saveImages is True:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
@@ -1222,9 +1215,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.plot_Vel is True and p.fluid_flow is True and p.deform_electro is True:
 
-
         viz.plotStreamField((1e9)*sim.u_cells_x,(1e9)*sim.u_cells_y,cells,p,plot_ecm = False,
-                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]')
+                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]',
+                colorAutoscale = p.autoscale_Vel,minColor = p.Vel_min_clr,maxColor = p.Vel_max_clr)
 
         if saveImages is True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
@@ -1236,7 +1229,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.sim_ECM is True:
 
             viz.plotStreamField((1e9)*sim.u_env_x,(1e9)*sim.u_env_y,cells,p,plot_ecm = True,
-                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]')
+                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]',
+                colorAutoscale = p.autoscale_Vel,minColor = p.Vel_min_clr,maxColor = p.Vel_max_clr)
 
             if saveImages is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
@@ -1350,7 +1344,23 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.ani_Efield is True and animate == 1:
 
-        viz.AnimateEfield(sim,cells,p,ani_repeat = True, save = saveAni)  # FIXME change this so that it's a general force animator
+        Ex_gj = sim.efield_gj_x_time
+        Ey_gj = sim.efield_gj_y_time
+
+        viz.AnimateField(Ex_gj,Ey_gj,sim,cells,p,ani_repeat = True, save = saveAni,plot_ecm = False,
+            title="Electric Field", cb_title = "Electric Field [V/m]",colorAutoscale = p.autoscale_Efield_ani,
+            colorMin = p.Efield_ani_min_clr, colorMax = p.Efield_ani_max_clr,saveFolder = 'animation/Efield',
+            saveFile = 'Efield_')
+
+        if p.sim_ECM is True:
+
+            Ex_ecm = sim.efield_ecm_x_time
+            Ey_ecm = sim.efield_ecm_y_time
+
+            viz.AnimateField(Ex_ecm,Ey_ecm,sim,cells,p,ani_repeat = True, save = saveAni,plot_ecm = True,
+            title="Electric Field", cb_title = "Electric Field [V/m]",colorAutoscale = p.autoscale_Efield_ani,
+            colorMin = p.Efield_ani_min_clr, colorMax = p.Efield_ani_max_clr,saveFolder = 'animation/Efield',
+            saveFile = 'Efield_')
 
     if p.ani_Velocity is True and p.fluid_flow is True and p.deform_electro is True and animate == 1:
 
@@ -1400,15 +1410,27 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
 
     if p.ani_force is True and animate == 1:
+
         if p.deform_electro is True:
-            viz.AnimateField(sim,sim.F_electro_x_time,sim.F_electro_y_time,cells,p,
-                title = 'Electrostatic Pressure Induced Body Force',
-                saveFolder = 'animation/ElectroFfield',saveFile = 'EFfield_')
+
+            FEx = [(1/p.um)*arr for arr in sim.F_electro_x_time]
+            FEy = [(1/p.um)*arr for arr in sim.F_electro_y_time]
+
+            viz.AnimateField(FEx,FEy,sim,cells,p,ani_repeat = True,
+                save = saveAni,plot_ecm = False, saveFolder = 'animation/ElectrostaticFfield',saveFile = 'EFfield_',
+                title="Electrostatic Body Force", cb_title = "Force [N/cm3]",colorAutoscale = p.autoscale_force_ani,
+                colorMin = p.force_ani_min_clr, colorMax = p.force_ani_max_clr)
+
 
         if p.deform_osmo is True:
-            viz.AnimateField(sim,sim.F_hydro_x_time,sim.F_hydro_y_time,cells,p,
-                title = 'Hydrostatic Pressure Induced Body Force',
-                saveFolder = 'animation/HydroFfield',saveFile = 'OFfield_')
+
+            FHx = [(1/p.um)*arr for arr in sim.F_hydro_x_time]
+            FHy = [(1/p.um)*arr for arr in sim.F_hydro_y_time]
+
+            viz.AnimateField(FHx,FHy,sim,cells,p,ani_repeat = True,
+                save = saveAni,plot_ecm = False, saveFolder = 'animation/HydroFfield',saveFile = 'OFfield_',
+                title="Hydrostatic Body Force", cb_title = "Force [N/cm3]",colorAutoscale = p.autoscale_force_ani,
+                colorMin = p.force_ani_min_clr, colorMax = p.force_ani_max_clr)
 
     if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
         viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
