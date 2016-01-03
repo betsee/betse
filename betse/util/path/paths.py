@@ -300,8 +300,8 @@ def canonicalize(pathname: str) -> str:
     . Perform **path normalization,** thus (in no particular order):
       * Collapsing redundant separators (e.g., converting `//` to `/`).
       * Converting explicit relative to absolute path components (e.g.,
-        converting `../` to the name of the parent directory of such component).
-      * Converting implicit relative basenames to absolute paths (e.g.,
+        converting `../` to the name of the parent directory of that component).
+      * Converting implicit relative basenames to absolute pathnames (e.g.,
         converting `sim_config.yaml` to `/tmp/sim_config.yaml` when the current
         working directory is `/tmp`).
     '''

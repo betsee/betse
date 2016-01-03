@@ -8,12 +8,7 @@
 
 # FIXME create a planaria-specific (aquatic invertebrate) ion profile
 
-
-from collections import OrderedDict
-
 import numpy as np
-
-import betse.lib.matplotlib.util
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib import matplotlibs
 from betse.science import simconfig
@@ -22,6 +17,7 @@ from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
 from betse.util.path import paths
+from collections import OrderedDict
 
 
 class Parameters(object):
@@ -641,17 +637,14 @@ class Parameters(object):
         self.plot_cutlines = ro['plot cutlines']
 
 
-         # Default colormap.
-        self.default_cm = betse.lib.matplotlib.util.get_colormap(ro['default colormap'])
-           # options include cm.rainbow, cm.jet, cm.Blues, cm.Greens, see:
-                                        # http://matplotlib.org/examples/color/colormaps_reference.html
-
-        self.background_cm = betse.lib.matplotlib.util.get_colormap(ro['background colormap'])
+         # Colormaps.
+        self.default_cm = matplotlibs.get_colormap(ro['default colormap'])
+        self.background_cm = matplotlibs.get_colormap(ro['background colormap'])
 
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
 
         # Colormap for plotting gj currents on top of default colormap.
-        self.gj_cm = betse.lib.matplotlib.util.get_colormap(ro['gj colormap'])
+        self.gj_cm = matplotlibs.get_colormap(ro['gj colormap'])
 
         self.plot_while_solving = ro['plot while solving']  # create a 2d plot of cell vmems while solution is taking place
 

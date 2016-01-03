@@ -95,16 +95,13 @@ class Simulator(object):
     """
 
     def __init__(self,p):
-
         self.fileInit(p)
 
     def fileInit(self,p):
-
         """
         Initializes file saving and loading directory as the betse cach.
         For now, automatically assigns file names, but later, will allow
         user-specified file names.
-
         """
 
         # Make the BETSE-specific cache directory if not found.

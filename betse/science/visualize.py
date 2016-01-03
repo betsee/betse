@@ -4,21 +4,18 @@
 
 # FIXME saving animations as video files directly doesn't work
 
-import os
-import os.path
-
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
+import os, os.path
+from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
+from betse.lib.matplotlib import matplotlibs
+from betse.util.path import dirs
+from betse.util.type import types
 from matplotlib import animation
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-
-import betse.lib.matplotlib.util
-from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
-from betse.lib.matplotlib import matplotlibs
-from betse.util.type import types
 
 
 #FIXME: Let's document a few of these initialization parameters. Hot dogs and
@@ -43,10 +40,10 @@ class AnimateCellData(object):
         clrAutoscale: bool = True,
         clrMin = None,
         clrMax = None,
-        clrmap: 'Colormap' = betse.lib.matplotlib.util.get_colormap('rainbow'),
+        clrmap: 'Colormap' = matplotlibs.get_colormap('rainbow'),
         number_cells: bool = False,
-        saveFolder = 'animation',
-        saveFile = 'sim_',
+        saveFolder: str = 'animation',
+        saveFile: str = 'sim_',
         ignore_simECM: bool = False,
     ) -> None:
 
@@ -83,17 +80,14 @@ class AnimateCellData(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self, p)
 
         data_points = self.zdata_t[0]
 
         if p.sim_ECM is True and ignore_simECM is False:
-
             self.collection, self.ax = env_mesh(data_points,self.ax,cells,p,p.default_cm)
 
         elif p.sim_ECM is False or ignore_simECM is True:
-
             if p.showCells is True:
                 self.collection, self.ax = cell_mosaic(data_points,self.ax,cells,p,p.default_cm)
 
@@ -101,7 +95,6 @@ class AnimateCellData(object):
                 self.collection,self.ax = cell_mesh(data_points,self.ax,cells,p,p.default_cm)
 
         if self.current_overlay is True:
-
             self.streams, self.ax, self.tit_extra = I_overlay_setup(sim,self.ax,cells,p)
 
         else:
@@ -123,16 +116,16 @@ class AnimateCellData(object):
             self.cmin = clrMin
             self.cmax = clrMax
 
+        # Define the figure colorbar.
         self.collection.set_clim(self.cmin,self.cmax)
-
-        self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
+        self.cb = self.fig.colorbar(self.collection)
         self.cb.set_label(self.cbtit)
-
         self.tit = tit
 
         if number_cells is True:
             for i,cll in enumerate(cells.cell_centres):
-                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
+                self.ax.text(
+                    p.um*cll[0], p.um*cll[1], i, va='center', ha='center')
 
         self.ax.set_xlabel('Spatial x [um]')
         self.ax.set_ylabel('Spatial y [um]')
@@ -197,8 +190,10 @@ class AnimateCellData(object):
         #Too bad the Matplotlib documentation itself doesn't cover this. We
         #have gotten what we have paid for. I demand a refund!
 
-        # The animation function needs to be assigned to a local variable, otherwise the
-        # animation will not take place:
+        # Create and assign an animation function to a local variable. If the
+        # latter is *NOT* done, this function will be garbage collected prior
+        # to subsequent plot handling -- in which case only the first plot will
+        # be plotted without explicit warning or error. Die, matplotlib! Die!!
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
@@ -230,7 +225,7 @@ class AnimateCellData(object):
         #Oh, wait. No, that's overkill. All of the above parameters are also
         #accepted by the ani.save() function itself, so string name it is!
 
-        show_plot(p)
+        _handle_plot(p)
 
     def aniFunc(self,i):
 
@@ -267,7 +262,8 @@ class AnimateCellData(object):
 
             # #FIXME: Remove this debug statement later.
             # print('Saving animated frame: {}'.format(savename))
-            # plt.savefig(savename, format='png')
+            plt.savefig(savename, format='png')
+
 
 class AnimateGJData(object):
     """
@@ -310,8 +306,7 @@ class AnimateGJData(object):
         self.ani_repeat = ani_repeat
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
@@ -381,7 +376,7 @@ class AnimateGJData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
            frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
 
     def aniFunc(self,i):
@@ -719,15 +714,13 @@ class AnimateCurrent(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         if clrAutoscale is False:
             self.cmin = clrMin
             self.cmax = clrMax
 
         if gj_current is True:
-
             Jmag_M = np.sqrt(sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
 
             J_x = sim.I_gj_x_time[0]/Jmag_M
@@ -783,7 +776,7 @@ class AnimateCurrent(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
     def aniFunc(self,i):
 
@@ -862,15 +855,12 @@ class AnimateField(object):
         self.ani_repeat = ani_repeat
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         if p.sim_ECM is True and plot_ecm is True:
-
             efield_mag = np.sqrt(Fx[-1]**2 + Fy[-1]**2)
 
             self.msh, self.ax = env_mesh(efield_mag,self.ax,cells,p,p.background_cm, ignore_showCells=True)
-
             self.streamE, self.ax = env_quiver(Fx[-1],Fy[-1],self.ax,cells,p)
 
             tit_extra = 'Extracellular'
@@ -909,7 +899,7 @@ class AnimateField(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
     def aniFunc(self,i):
 
@@ -982,11 +972,9 @@ class AnimateVelocity(object):
         self.ani_repeat = ani_repeat
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         if p.sim_ECM is True and p.ani_Velocity_type == 'ECM':
-
             vfield = np.sqrt(sim.u_env_x_time[0]**2 + sim.u_env_y_time[0]**2)*1e9
 
             self.msh = self.ax.imshow(vfield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
@@ -1053,7 +1041,7 @@ class AnimateVelocity(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
 
     def aniFunc(self,i):
@@ -1129,16 +1117,13 @@ class AnimateDeformation(object):
         self.ani_repeat = ani_repeat
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         dx = self.sim.dx_cell_time[0]
         dy = self.sim.dy_cell_time[0]
 
         if self.p.ani_Deformation_type == 'Vmem':
-
             if self.p.sim_ECM is False:
-
                 dd = self.sim.vm_time[0]*1e3
 
             else:
@@ -1153,8 +1138,9 @@ class AnimateDeformation(object):
             self.specific_cmap = p.background_cm
 
         else:
-            raise BetseExceptionParameters("Definition of 'data type' in deformation animation \n"
-                                           "must be either 'Vmem' or 'Displacement' ")
+            raise BetseExceptionParameters(
+                "Definition of 'data type' in deformation animation\n"
+                "must be either 'Vmem' or 'Displacement'.")
 
         dd_collection, self.ax = cell_mesh(dd,self.ax,cells,p,self.specific_cmap)
 
@@ -1167,8 +1153,9 @@ class AnimateDeformation(object):
             vplot, self.ax = cell_stream(dx,dy,self.ax,cells,p,showing_cells = p.showCells)
 
         else:
-            raise BetseExceptionParameters("Definition of 'style' in deformation animation \n"
-                                           "must be either 'vector' or 'streamline' ")
+            raise BetseExceptionParameters(
+                "Definition of 'style' in deformation animation\n"
+                "must be either 'vector' or 'streamline'.")
 
         self.ax.axis('equal')
 
@@ -1223,7 +1210,7 @@ class AnimateDeformation(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
     def aniFunc(self,i):
 
@@ -1325,8 +1312,7 @@ class AnimateEnv(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         if clrAutoscale is False:
             self.cmin = clrMin
@@ -1351,7 +1337,7 @@ class AnimateEnv(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
 
     def aniFunc(self,i):
@@ -1414,8 +1400,7 @@ class AnimateMem(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         self.bkgBool = False
 
@@ -1473,7 +1458,7 @@ class AnimateMem(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
 
     def aniFunc(self,i):
@@ -1541,8 +1526,7 @@ class AnimateDyeData(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         if self.save is True:
-
-            set_up_filesave(self,p)
+            _setup_file_saving(self,p)
 
         self.bkgPlot = self.ax.imshow(self.zenv_t[0].reshape(cells.X.shape),origin='lower',
             extent= [xmin,xmax,ymin,ymax],cmap=clrmap)
@@ -1602,7 +1586,7 @@ class AnimateDyeData(object):
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
-        show_plot(p)
+        _handle_plot(p)
 
 
     def aniFunc(self,i):
@@ -3066,7 +3050,8 @@ def env_mesh(data,ax,cells,p,clrmap,ignore_showCells=False):
 
     return mesh_plot, ax
 
-def cell_mosaic(data,ax,cells,p,clrmap):
+
+def cell_mosaic(data, ax, cells, p, clrmap):
     """
     Sets up a mosaic plot for cell data on an existing axis.
 
@@ -3093,16 +3078,16 @@ def cell_mosaic(data,ax,cells,p,clrmap):
 
     return collection, ax
 
-def show_plot(params: 'Parameters', *args, **kwargs) -> None:
+# ....................{ PRIVATE                            }....................
+def _handle_plot(params: 'Parameters', *args, **kwargs) -> None:
     '''
     Display the current plot if the passed configuration requests plots to be
     displayed or noop otherwise.
 
     All passed arguments following the passed configuration will be passed as
-    is to the matplotlib.pyplot.show() function.
+    is to the `matplotlib.pyplot.show()` function.
     '''
-    assert types.is_parameters(params), (
-        types.assert_not_parameters(params))
+    assert types.is_parameters(params), types.assert_not_parameters(params)
 
     try:
         if params.turn_all_plots_off is False:
@@ -3118,45 +3103,42 @@ def show_plot(params: 'Parameters', *args, **kwargs) -> None:
         else:
             raise
 
-def set_up_filesave(ani_obj,p):
-    """
-    Sets up operating-system friendly file saving for animation classes.
+
+def _setup_file_saving(ani_obj: 'Animation', p: 'Parameters') -> None:
+    '''
+    Setup operating-system friendly file saving for animation classes.
 
     Parameters
     -----------
-    ani_obj         Instance of an animation class
-    p               Instance of parameters module
-
-    Returns
-    -----------
-    ani_obj        Modified animation object instance
-
-    """
+    ani_obj : Animation
+        Instance of an animation class.
+    p : Parameters
+        Instance of the 'Parameters' class.
+    '''
+    assert types.is_parameters(p), types.assert_not_parameters(p)
 
     if p.plot_type == 'sim':
-        # Make the BETSE-specific cache directory if not found.
-        images_path = os.path.join(p.sim_results, ani_obj.saveFolder)
+        images_dirname = os.path.join(p.sim_results, ani_obj.saveFolder)
 
-    elif p.plot_type is 'init':
-        images_path = os.path.join(p.init_results, ani_obj.saveFolder)
+    elif p.plot_type == 'init':
+        images_dirname = os.path.join(p.init_results, ani_obj.saveFolder)
 
-    betse_cache_dir = os.path.expanduser(images_path)
-    os.makedirs(betse_cache_dir, exist_ok=True)
-    ani_obj.savedAni = os.path.join(betse_cache_dir, ani_obj.saveFile)
+    #FIXME: Isn't "p.plot_type == 'seed'" an option here too? Popcorn sunrise!
+    else:
+        raise BetseExceptionParameters(
+            'Animation saving for phase "{}" unsupported.'.format(p.plot_type))
+
+    #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
+
+    # Make this directory if not found.
+    images_dirname = dirs.canonicalize_and_make_unless_dir(images_dirname)
+
+    # Absolute or relative path of the file to be saved.
+    ani_obj.savedAni = os.path.join(images_dirname, ani_obj.saveFile)
+
+    #FIXME: Contemplate simple ways of supporting both animation repetition and
+    #saving in the same run. Neverland, lost boys, and the summer never yields!
+
+    # Force animations to *NOT* repeat. (Presumably, animation repetition
+    # conflicts with animation saving.)
     ani_obj.ani_repeat = False
-
-    return ani_obj
-
-
-
-
-
-
-
-
-
-
-
-
-
-

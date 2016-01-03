@@ -71,13 +71,16 @@ Footnote descriptions are as follows:
 # this module is the eponymous top-level module "matplotlib". See init().
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 import sys
-from collections import OrderedDict
-
+from betse.exceptions import BetseExceptionParameters
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.python import modules, pythons
 from betse.util.system import oses
-from betse.util.type import containers, strs
+from betse.util.type import containers, strs, types
+from collections import OrderedDict
+from matplotlib import cm as colormaps
+from matplotlib import pyplot
+from matplotlib.colors import Colormap
 
 # ....................{ IMPORTS ~ matplotlib               }....................
 # Import matplotlib in a safe manner. Unfortunately, the "matplotlib.__init__"
@@ -129,6 +132,38 @@ current `matplotlibrc` file) with this dictionary. Hence, the custom options
 specified by this dictionary override the default options specified by the
 on-disk `matplotlibrc` file.
 '''
+
+# ....................{ GETTERS                            }....................
+def get_backend_figure_filetypes() -> list:
+    '''
+    Get the list of all figure filetypes supported by the current backend.
+    '''
+    # Magic is magic. Do not question magic, for it is magical.
+    return list(pyplot.figure().canvas.get_supported_filetypes().keys())
+
+
+def get_colormap(colormap_name: str) -> Colormap:
+    '''
+    Get the Matplotlib colormap with the passed name.
+
+    Parameters
+    ----------
+    colormap_name : str
+        Name of the attribute in the `matplotlib.cm` module corresponding to the
+        desired colormap (e.g., `Blues`, `Greens`, `jet`, `rainbow).
+
+    See Also
+    ----------
+    http://matplotlib.org/examples/color/colormaps_reference.html
+        List of supported colormaps.
+    '''
+    assert types.is_str(colormap_name), types.assert_not_str(colormap_name)
+
+    colormap = getattr(colormaps, colormap_name, None)
+    if not isinstance(colormap, Colormap):
+        raise BetseExceptionParameters(
+            'Matplotlib colormap "{}" not found.'.format(colormap_name))
+    return colormap
 
 # ....................{ CLASSES                            }....................
 class MatplotlibConfig(object):

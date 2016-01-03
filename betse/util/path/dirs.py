@@ -11,11 +11,11 @@ builtin.
 '''
 
 # ....................{ IMPORTS                            }....................
+import os, shutil
 from betse.exceptions import BetseExceptionDir
 from betse.util.io import loggers
 from betse.util.type import types
 from os import path
-import os, shutil
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_dir(*dirnames) -> None:
@@ -78,25 +78,47 @@ def list_basenames(dirname: str) -> list:
 # ....................{ MAKERS                             }....................
 def make_unless_dir(dirname: str) -> None:
     '''
-    Create the passed directory if such directory does *not* already exist.
+    Create the passed directory if this directory does *not* already exist.
 
-    All nonexistent parents of such directory will also be recursively created,
+    All nonexistent parents of this directory will also be recursively created,
     mimicking the action of the standard `mkdir -p` shell command.
     '''
-    assert types.is_str_nonempty(dirname),\
-        types.assert_not_str_nonempty(dirname, 'Dirname')
+    assert types.is_str_nonempty(dirname), (
+        types.assert_not_str_nonempty(dirname, 'Dirname'))
 
-    # If such directory does *NOT* already exist, create such directory. To
-    # support logging, such condition is explicitly tested for. To avoid race
-    # conditions (e.g., in the event such directory is created between testing
-    # and creating such directory), we preserve the makedirs() keyword argument
-    # "exist_ok = True".
+    # If this directory does *NOT* already exist, create this directory. To
+    # support logging, this condition is explicitly tested for. To avoid race
+    # conditions (e.g., in the event this directory is created between testing
+    # and creating this directory), we preserve the makedirs() keyword argument
+    # "exist_ok = True" below.
     if not is_dir(dirname):
-        # Log such creation.
+        # Log this creation.
         loggers.log_info('Creating directory "%s".', dirname)
 
-        # Create such directory if still needed.
+        # Create this directory if still needed.
         os.makedirs(dirname, exist_ok = True)
+
+
+def canonicalize_and_make_unless_dir(dirname: str) -> str:
+    '''
+    Get the **canonical form** (i.e., unique absolute path) of the passed
+    directory _and_ create this directory if this directory does *not* already
+    exist.
+
+    This convenience function simply passes this directory to the
+    `paths.canonicalize()` and `dirs.make_unless_dir()` functions (in that
+    order) and then returns this directory.
+
+    See Also
+    -----------
+    make_unless_dir()
+        Further details.
+    '''
+    # Avoid circular import dependencies.
+    from betse.util.path import paths
+    dirname = paths.canonicalize(dirname)
+    make_unless_dir(dirname)
+    return dirname
 
 
 def make_parent_unless_dir(*pathnames) -> None:
