@@ -14,6 +14,7 @@ from betse.util.type import types
 from matplotlib import animation
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
+from betse.exceptions import BetseExceptionFunction
 
 #FIXME: Let's document a few of these initialization parameters. Hot dogs and
 #warm afternoons in the lazy summertime!
@@ -318,7 +319,7 @@ class AnimateGJData(object):
         if p.sim_ECM is False:
             data_set = self.vdata_t[0]
         else:
-            data_set = sim.vcell_time[0]
+            data_set = sim.vcell_time[0]*1000
 
         if p.showCells is True:
 
@@ -391,12 +392,12 @@ class AnimateGJData(object):
         self.collection.set_array(zz)
 
         if self.p.showCells is True:
-            zz_grid = zz
+            zz_grid = zv
 
         else:
 
             zz_grid = np.zeros(len(self.cells.voronoi_centres))
-            zz_grid[self.cells.cell_to_grid] = zz
+            zz_grid[self.cells.cell_to_grid] = zv
 
         self.coll2.set_array(zz_grid)
 
@@ -495,14 +496,14 @@ class PlotWhileSolving(object):
         self.ax.set_ylabel('Spatial y [um]')
         self.ax.set_title(self.tit)
 
-        if p.save_solving_plot is True:  # FIXME do this uniquely
+        if p.save_solving_plot is True:
 
             if p.run_sim is True:
                 # Make the BETSE-specific cache directory if not found.
-                images_path = p.sim_results + '/plotWhileSolving'
+                images_path = os.path.join(p.sim_results, 'plotWhileSolving')
 
             else:
-                images_path = p.init_results + '/plotWhileSolving'
+                images_path = os.path.join(p.init_results, 'plotWhileSolving')
 
             betse_cache_dir = os.path.expanduser(images_path)
             os.makedirs(betse_cache_dir, exist_ok=True)
@@ -510,8 +511,8 @@ class PlotWhileSolving(object):
 
             self.i = 0   # an index used for saving plot filename
 
+        # keep the plt.show(block=False) statement as this animation is different and is closed by software
         plt.show(block=False)
-
 
     def updatePlot(self,sim,p):
 
@@ -594,23 +595,31 @@ class PlotWhileSolving(object):
 
             if p.showCells is True:
                 # Add a collection of cell polygons, with animated voltage data
-                points = np.multiply(cells.cell_verts, p.um)
-                self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
-                self.coll2.set_alpha(1.0)
-                self.ax.add_collection(self.coll2)
+                self.coll2, self.ax = cell_mosaic(vdata,self.ax,cells,p,p.default_cm)
 
             else:
 
-                dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
-                    (cells.Xgrid,cells.Ygrid),fill_value=0,method=p.interp_type)
+                self.coll2,self.ax = cell_mesh(vdata,self.ax,cells,p,p.default_cm)
 
-                # dat_grid = np.multiply(dat_grid,cells.maskM)
-                #
-                if p.plotMask is True:
-                    dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
-                #
-                self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
-                    cmap=self.colormap)
+            # if p.showCells is True:
+            #     # Add a collection of cell polygons, with animated voltage data
+            #     points = np.multiply(cells.cell_verts, p.um)
+            #     self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
+            #     self.coll2.set_alpha(1.0)
+            #     self.ax.add_collection(self.coll2)
+            #
+            # else:
+            #
+            #     dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
+            #         (cells.Xgrid,cells.Ygrid),fill_value=0,method=p.interp_type)
+            #
+            #     # dat_grid = np.multiply(dat_grid,cells.maskM)
+            #     #
+            #     if p.plotMask is True:
+            #         dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
+            #     #
+            #     self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
+            #         cmap=self.colormap)
 
         elif p.sim_ECM is True:
 
@@ -620,6 +629,20 @@ class PlotWhileSolving(object):
                 dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
+
+            if p.showCells is True:
+                # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+                cell_edges_flat = cells.um*cells.mem_edges_flat
+                coll = LineCollection(cell_edges_flat,colors='k')
+                coll.set_alpha(0.5)
+                self.ax.add_collection(coll)
+
+            # dat_grid = sim.vm_Matrix[0]*1000
+            #
+            # if p.plotMask is True:
+            #     dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
+            #
+            # self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
 
             # If the "apply external voltage" event occurred and is to be
             # plotted, plot this event.
@@ -631,12 +654,12 @@ class PlotWhileSolving(object):
                     cmap=self.colormap, c=boundv, zorder=10)
                 self.vext_plot.set_clim(self.cmin, self.cmax)
 
-            if p.showCells is True:
-                # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*cells.mem_edges_flat
-                coll = LineCollection(cell_edges_flat,colors='k')
-                coll.set_alpha(0.5)
-                self.ax.add_collection(coll)
+            # if p.showCells is True:
+            #     # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
+            #     cell_edges_flat = cells.um*cells.mem_edges_flat
+            #     coll = LineCollection(cell_edges_flat,colors='k')
+            #     coll.set_alpha(0.5)
+            #     self.ax.add_collection(coll)
 
         # set range of the colormap
         self.coll2.set_clim(self.cmin,self.cmax)
@@ -654,8 +677,9 @@ class PlotWhileSolving(object):
 
 class AnimateCurrent(object):
 
-    def __init__(self,sim,cells,time,p,save=False,ani_repeat=False,current_overlay=False,clrAutoscale=True, gj_current = True,
-    clrMin = None,clrMax = None,clrmap = cm.rainbow, number_cells=False,saveFolder = 'animation',saveFile = 'sim_'):
+    def __init__(self,sim,cells,time,p,save=False,ani_repeat=False,current_overlay=False,clrAutoscale=True,
+        gj_current = True, clrMin = None,clrMax = None,clrmap = cm.rainbow, number_cells=False,
+        saveFolder = 'animation',saveFile = 'sim_'):
 
         self.clrmap = clrmap
         self.time = time
@@ -708,8 +732,6 @@ class AnimateCurrent(object):
 
             self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-            # if p.I_overlay is True:
-
             self.streamplot = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
                 linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
 
@@ -731,8 +753,6 @@ class AnimateCurrent(object):
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.meshplot = plt.imshow(Jmag_M, origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
-
-            # if p.I_overlay is True:
 
             self.streamplot = self.ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
                 linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
@@ -776,8 +796,6 @@ class AnimateCurrent(object):
 
             self.meshplot.set_data(Jmag_M)
 
-            # if self.p.I_overlay is True:
-
             self.streamplot.lines.remove()
             self.ax.patches = []
 
@@ -794,8 +812,6 @@ class AnimateCurrent(object):
             lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
 
             self.meshplot.set_data(Jmag_M)
-
-            # if self.p.I_overlay is True:
 
             self.streamplot.lines.remove()
             self.ax.patches = []
@@ -814,7 +830,8 @@ class AnimateCurrent(object):
 
 class AnimateEfield(object):
 
-    def __init__(self,sim,cells,p,ani_repeat = True, save = True, saveFolder = 'animation/Efield',saveFile = 'Efield_'):
+    def __init__(self,sim,cells,p,ani_repeat = True, save = True,
+        saveFolder = 'animation/Efield',saveFile = 'Efield_'):
 
         self.fig = plt.figure()
         self.ax = plt.subplot(111)
@@ -833,41 +850,27 @@ class AnimateEfield(object):
 
         if p.sim_ECM is True and p.ani_Efield_type == 'ECM':
 
-            efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
+            e_x = sim.efield_ecm_x_time[-1]
+            e_y = sim.efield_ecm_y_time[-1]
 
-            self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
-                cells.ymin*p.um, cells.ymax*p.um], cmap=p.default_cm)
+            efield_mag = np.sqrt(e_x**2 + e_y**2)
 
-            if p.plot_Efield_vector is True:
-                enorm = np.max(np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2))
+            self.msh, self.ax = env_mesh(efield_mag,self.ax,cells,p,p.background_cm, ignore_showCells=True)
 
-                self.streamE = self.ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1],
-                    sim.efield_ecm_x_time[-1].ravel()/enorm,sim.efield_ecm_y_time[-1].ravel()/enorm)
+            self.streamE, self.ax = env_quiver(e_x,e_y,self.ax,cells,p)
 
             tit_extra = 'Extracellular'
 
         elif p.ani_Efield_type == 'GJ' or p.sim_ECM is False:
 
-            E_gj_x = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
-            sim.efield_gj_x_time[-1],(cells.Xgrid,cells.Ygrid), fill_value=0,method=p.interp_type)
+            e_x = sim.efield_gj_x_time[-1]
+            e_y = sim.efield_gj_y_time[-1]
 
-            E_gj_x = np.multiply(E_gj_x,cells.maskM)
+            efield_mag = np.sqrt(e_x**2 + e_y**2)
 
-            E_gj_y = interpolate.griddata((cells.nn_mids[:,0],cells.nn_mids[:,1]),
-                sim.efield_gj_y_time[-1],(cells.Xgrid,cells.Ygrid), fill_value=0,method=p.interp_type)
+            self.msh, self.ax = cell_mesh(efield_mag,self.ax,cells,p,p.background_cm)
 
-            E_gj_y = np.multiply(E_gj_y, cells.maskM)
-
-            efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
-            self.msh = self.ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um,
-                cells.ymin*p.um, cells.ymax*p.um],cmap=p.default_cm)
-
-            if p.ani_Efield_vector is True:
-
-                enorm = np.max(efield)
-
-                self.streamE = self.ax.quiver(p.um*cells.Xgrid, p.um*cells.Ygrid,
-                    E_gj_x/enorm,E_gj_y/enorm,scale=10)
+            self.streamE, self.ax = cell_quiver(e_x,e_y,self.ax,cells,p)
 
             tit_extra = 'Intracellular'
 
@@ -897,7 +900,6 @@ class AnimateEfield(object):
 
         show_plot(p)
 
-
     def aniFunc(self,i):
 
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
@@ -905,34 +907,42 @@ class AnimateEfield(object):
 
         if self.p.sim_ECM is True and self.p.ani_Efield_type == 'ECM':
 
-            efield = np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2)
+            E_x = self.sim.efield_ecm_x_time[i]
+            E_y = self.sim.efield_ecm_y_time[i]
+
+            efield = np.sqrt(E_x**2 + E_y**2)
+
             self.msh.set_data(efield)
 
-            if self.p.ani_Efield_vector is True:
+            if efield.max() != 0.0:
+                E_x = E_x/efield.max()
+                E_y = E_y/efield.max()
 
-                enorm = np.max(np.sqrt(self.sim.efield_ecm_x_time[i]**2 + self.sim.efield_ecm_y_time[i]**2))
-                self.streamE.set_UVC(self.sim.efield_ecm_x_time[i]/enorm,self.sim.efield_ecm_y_time[i]/enorm)
+            self.streamE.set_UVC(E_x,E_y)
 
         elif self.p.ani_Efield_type == 'GJ' or self.p.sim_ECM is False:
 
-            E_gj_x = interpolate.griddata((self.cells.nn_mids[:,0],self.cells.nn_mids[:,1]),
-            self.sim.efield_gj_x_time[i],(self.cells.Xgrid,self.cells.Ygrid), fill_value=0,method=self.p.interp_type)
+            E_gj_x = self.sim.efield_gj_x_time[i]
+            E_gj_y = self.sim.efield_gj_y_time[i]
 
-            E_gj_x = np.multiply(E_gj_x,self.cells.maskM)
+            if len(E_gj_x) != len(self.cells.cell_i):
 
-            E_gj_y = interpolate.griddata((self.cells.nn_mids[:,0],self.cells.nn_mids[:,1]),
-                self.sim.efield_gj_y_time[i],(self.cells.Xgrid,self.cells.Ygrid), fill_value=0,method=self.p.interp_type)
-
-            E_gj_y = np.multiply(E_gj_y,self.cells.maskM)
+                E_gj_x = np.dot(self.cells.M_sum_mems,E_gj_x)/self.cells.num_mems
+                E_gj_y = np.dot(self.cells.M_sum_mems,E_gj_y)/self.cells.num_mems
 
             efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
 
-            self.msh.set_data(efield)
+            emag_grid = np.zeros(len(self.cells.voronoi_centres))
+            emag_grid[self.cells.cell_to_grid] = efield
 
-            if self.p.ani_Efield_vector is True:
+            self.msh.set_array(emag_grid)
 
-                enorm = np.max(efield)
-                self.streamE.set_UVC(E_gj_x/enorm,E_gj_y/enorm)
+            if efield.all() != 0.0:
+
+                E_gj_x = E_gj_x/efield
+                E_gj_y = E_gj_y/efield
+
+            self.streamE.set_UVC(E_gj_x,E_gj_y)
 
         cmax = np.max(efield)
 
@@ -944,7 +954,7 @@ class AnimateEfield(object):
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
 
-class AnimateField(object):  # FIXME -- should this be streamplot instead of quiver?
+class AnimateField(object):
     """
     Animate a vector field defined on cell centres and pertaining to body forces in cell.
 
@@ -1036,10 +1046,6 @@ class AnimateField(object):  # FIXME -- should this be streamplot instead of qui
 
         show_plot(p)
 
-
-    #FIXME: This function appears to be broken. For example, "p" is undefined
-    #below, so the line "Fx = (1/p.um)*self.Fx_time[i]" is guaranteed to fail.
-    #River rapids coalesce downstream, abreast of the old swimming hole!
     def aniFunc(self,i):
 
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
@@ -1047,8 +1053,8 @@ class AnimateField(object):  # FIXME -- should this be streamplot instead of qui
 
         # get the appropriate data and scale it:
 
-        Fx = (1/p.um)*self.Fx_time[i]
-        Fy = (1/p.um)*self.Fy_time[i]
+        Fx = (1/self.p.um)*self.Fx_time[i]
+        Fy = (1/self.p.um)*self.Fy_time[i]
 
         F = np.sqrt(Fx**2 + Fy**2)
 
@@ -2015,7 +2021,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         if current_overlay is True:
 
-            I_overlay(sim,cells,p,ax,clrmap,plotIecm)
+            I_overlay(sim,cells,p,ax,plotIecm)
 
         return fig, ax, ax_cb
 
@@ -2073,28 +2079,29 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
             #clrmap = p.default_cm
             clrmap = cm.rainbow
 
-        points = np.multiply(cells.cell_verts, p.um)
+        if p.showCells is True:
 
-        coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
-        ax.add_collection(coll)
+            coll, ax = cell_mosaic(z,ax,cells,p,p.default_cm)
+
+        else:
+            coll, ax = cell_mesh(z,ax,cells,p,p.default_cm)
+
+        # points = np.multiply(cells.cell_verts, p.um)
+        #
+        # coll = PolyCollection(points, array=z, cmap=clrmap, edgecolors='none')
+        # ax.add_collection(coll)
         ax.axis('equal')
 
         # Add a colorbar for the PolyCollection
-        if zdata is not None:
-            maxval = np.max(zdata,axis=0)
-            minval = np.min(zdata,axis=0)
-            # checkval = maxval - minval
-            #
-            # if checkval == 0:
-            #     minval = minval - 0.1
-            #     maxval = maxval + 0.1
 
         if zdata is not None and clrAutoscale is True:
+            maxval = np.max(zdata,axis=0)
+            minval = np.min(zdata,axis=0)
+
             coll.set_clim(minval,maxval)
             ax_cb = fig.colorbar(coll,ax=ax)
 
-        elif clrAutoscale is False:
-
+        elif clrAutoscale is False and zdata is not None:
             coll.set_clim(clrMin,clrMax)
             ax_cb = fig.colorbar(coll,ax=ax)
 
@@ -2106,8 +2113,7 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
                 ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
 
         if current_overlay is True:
-
-            I_overlay(sim,cells,p,ax,clrmap,plotIecm)
+            streams, ax = I_overlay(sim,cells,p,ax,plotIecm)
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
@@ -2118,188 +2124,31 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
 
         return fig,ax,ax_cb
 
-def plotCellData(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
-    clrmap=None,edgeOverlay = None,pointOverlay=None,number_cells = False,current_overlay=False,plotIecm=False):
-        """
-        The work-horse of pre-defined plotting methods, this method assigns color-data to each node in cell_centres
-        and interpolates data to generate a smooth surface plot. The method returns a plot instance (fig, axes)
-
-        Parameters
-        ----------
-        zdata_t                  A data array with each scalar entry corresponding to a point in
-                               cell_centres. If not specified the default is z=1. If 'random'
-                               is specified the method creates random vales from 0 to 1..
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-
-        clrAutoscale           If True, the colorbar is autoscaled to the max and min of zdata.
-
-        clrMin                 Sets the colorbar to a user-specified minimum value.
-
-        clrMax                 Set the colorbar to a user-specified maximum value
-
-
-        edgeOverlay             This option allows the user to specify whether or not they want cell edges overlayed.
-                                Default is False, set to True to use.
-
-        pointOverlay            This option allows user to specify whether or not they want cell_centre points plotted
-                                Default is False, set to True to use.
-
-
-        Returns
-        -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
-
-        Notes
-        -------
-        Uses `matplotlib.pyplot` and `numpy` arrays. With `edgeOverlay` and
-        `pointOverlay` equal to `None`, this is computationally fast and *is*
-        recommended for plotting data on large collectives.
-        """
-
-        if current_overlay is None:
-            current_overlay = p.I_overlay
-
-        if fig is None:
-            fig = plt.figure()# define the figure and axes instances
-        if ax is None:
-            ax = plt.subplot(111)
-            #ax = plt.axes()
-
-        if zdata is None:  # if user doesn't supply data
-            z = np.ones(len(cells.cell_centres)) # create flat data for plotting
-
-        elif zdata == 'random':  # if user doesn't supply data
-            z = np.random.random(len(cells.cell_centres)) # create some random data for plotting
-
-        else:
-            z = zdata
-
-        if clrmap is None:
-            clrmap = p.default_cm
-
-        ax.axis('equal')
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        ax.axis([xmin,xmax,ymin,ymax])
-
-        dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),z,
-                                        (cells.Xgrid,cells.Ygrid),method=p.interp_type)
-        dat_grid = np.nan_to_num(dat_grid)
-        dat_grid = np.multiply(dat_grid,cells.maskM)
-
-        if p.plotMask is True:
-            dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
-
-        triplt = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=clrmap)
-
-        # ax.axis('equal')
-
-         # Add a colorbar for the triplot:
-
-        maxval = np.max(z,axis=0)
-        minval = np.min(z,axis=0)
-
-        if zdata is not None and clrAutoscale is True:
-            triplt.set_clim(minval,maxval)
-            ax_cb = fig.colorbar(triplt,ax=ax)
-        elif clrAutoscale is False:
-            triplt.set_clim(clrMin,clrMax)
-            ax_cb = fig.colorbar(triplt,ax=ax)
-        elif zdata is None:
-            ax_cb = None
-
-        if pointOverlay is True:
-            ax.scatter(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1], c=z,cmap=clrmap)
-
-        if edgeOverlay is True:
-            # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-            cell_edges_flat = cells.um*cells.mem_edges_flat
-            coll = LineCollection(cell_edges_flat,colors='k')
-            coll.set_alpha(0.5)
-            ax.add_collection(coll)
-
-        if current_overlay is True:
-            I_overlay(sim,cells,p,ax,clrmap,plotIecm)
-
-        if number_cells is True:
-            for i,cll in enumerate(cells.cell_centres):
-                ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
-
-        return fig, ax, ax_cb
-
-def plotEfield(sim,cells,p):
+def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]'):
 
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    if p.sim_ECM is True:
+    if p.sim_ECM is True and plot_ecm is True:
 
-        fig_2 = plt.figure()
-        ax_2 = plt.subplot(111)
+        efield = np.sqrt(Fx**2 + Fy**2)
 
-        efield = np.sqrt(sim.efield_ecm_x_time[-1]**2 + sim.efield_ecm_y_time[-1]**2)
-        msh_2 = ax_2.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
+        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
             cells.ymax*p.um],cmap=p.background_cm)
 
-        ax_2.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], sim.efield_ecm_x_time[-1].ravel(),
-            sim.efield_ecm_y_time[-1].ravel())
+        vplot, ax = env_quiver(Fx,Fy,ax,cells,p)
 
         tit_extra = 'Extracellular'
 
-        ax_2.axis('equal')
+    elif plot_ecm is False:
 
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
+        efield = np.sqrt(Fx**2 + Fy**2)
 
-        ax_2.axis([xmin,xmax,ymin,ymax])
+        msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
 
-        if p.autoscale_Efield is False:
-            msh_2.set_clim(p.Efield_min_clr,p.Efield_max_clr)
+        vplot, ax = cell_quiver(Fx,Fy,ax,cells,p)
 
-        cb_2 = fig_2.colorbar(msh_2)
-
-        tit = "Final Electric Field in " + tit_extra + ' Spaces'
-        ax_2.set_title(tit)
-        ax_2.set_xlabel('Spatial distance [um]')
-        ax_2.set_ylabel('Spatial distance [um]')
-        cb_2.set_label('Electric Field [V/m]')
-
-    else:
-        ax_2 = None
-        fig_2 = None
-        cb_2 = None
-
-    # Plot field intracellularly:
-
-    E_gj_x = np.dot(cells.M_sum_mems,sim.efield_gj_x_time[-1])/cells.num_mems
-    E_gj_y = np.dot(cells.M_sum_mems,sim.efield_gj_y_time[-1])/cells.num_mems
-
-    efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
-
-    # normalize the vector components:
-    if efield.all() != 0:
-        E_gj_x = E_gj_x/efield
-        E_gj_y = E_gj_y/efield
-
-    efield_grid = np.zeros(len(cells.voronoi_centres))
-    efield_grid[cells.cell_to_grid] = efield
-
-    msh = ax.tripcolor(p.um*cells.voronoi_centres[:,0],p.um*cells.voronoi_centres[:,1],efield_grid,
-        shading='gouraud',cmap=p.background_cm)
-
-    ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],E_gj_x,E_gj_y,
-        pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7)
-
-    tit_extra = 'Intracellular'
+        tit_extra = 'Intracellular'
 
     ax.axis('equal')
 
@@ -2315,13 +2164,61 @@ def plotEfield(sim,cells,p):
 
     cb = fig.colorbar(msh)
 
-    tit = "Final Electric Field in " + tit_extra + ' Spaces'
+    tit = title + ' ' + tit_extra + ' Spaces'
     ax.set_title(tit)
     ax.set_xlabel('Spatial distance [um]')
     ax.set_ylabel('Spatial distance [um]')
-    cb.set_label('Electric Field [V/m]')
+    cb.set_label(cb_title)
 
-    return fig, ax, cb, fig_2, ax_2, cb_2
+    return fig, ax, cb
+
+def plotStreamField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]', show_cells = False):
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+
+    if p.sim_ECM is True and plot_ecm is True:
+
+        efield = np.sqrt(Fx**2 + Fy**2)
+
+        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
+            cells.ymax*p.um],cmap=p.background_cm)
+
+        splot, ax = env_stream(Fx,Fy,ax,cells,p)
+
+        tit_extra = 'Extracellular'
+
+    elif plot_ecm is False:
+
+        efield = np.sqrt(Fx**2 + Fy**2)
+
+        msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
+
+        splot, ax = cell_stream(Fx,Fy,ax,cells,p,showing_cells=show_cells)
+
+        tit_extra = 'Intracellular'
+
+    ax.axis('equal')
+
+    xmin = cells.xmin*p.um
+    xmax = cells.xmax*p.um
+    ymin = cells.ymin*p.um
+    ymax = cells.ymax*p.um
+
+    ax.axis([xmin,xmax,ymin,ymax])
+
+    if p.autoscale_Efield is False:
+        msh.set_clim(p.Efield_min_clr,p.Efield_max_clr)
+
+    cb = fig.colorbar(msh)
+
+    tit = title + ' ' + tit_extra + ' Spaces'
+    ax.set_title(tit)
+    ax.set_xlabel('Spatial distance [um]')
+    ax.set_ylabel('Spatial distance [um]')
+    cb.set_label(cb_title)
+
+    return fig, ax, cb
 
 def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         """
@@ -2944,67 +2841,102 @@ def export2dData(simdata,cells,p):
     dataM = simdata
     np.savetxt(savedData_2d,dataM,delimiter=',')
 
-def I_overlay(sim,cells,p,ax,clrmap,plotIecm = False, time=-1):
+def I_overlay(sim,cells,p,ax,plotIecm = False):
+    """
+    Plots an overlay of simulated currents on an existing plot.
+
+    Parameters
+    -----------
+
+    sim         Instance of sim module
+    cells       Instance of cells module
+    p           Instance of parameters module
+    ax          Existing figure axis to plot currents on
+    plotIecm    Plot total currents (True) or only those of gap junctions (False)
+
+    Returns
+    --------
+    streams             Container for streamline plot
+    ax                  Modified axis
+    """
 
     if p.sim_ECM is False or plotIecm is False:
 
-        Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
+        Ix = sim.I_gj_x_time[-1]
+        Iy = sim.I_gj_y_time[-1]
 
-        J_x = sim.I_gj_x_time[-1]/Jmag_M
-        J_y = sim.I_gj_y_time[-1]/Jmag_M
-
-        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-        ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+        streams, ax = cell_stream(Ix, Iy,ax,cells,p)
 
         ax.set_title('(gap junction current overlay)')
 
     elif plotIecm is True:
 
-        Jmag_M = np.sqrt(sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
+        Ix = sim.I_tot_x_time[-1]
+        Iy = sim.I_tot_y_time[-1]
 
-        J_x = sim.I_tot_x_time[-1]/Jmag_M
-        J_y = sim.I_tot_y_time[-1]/Jmag_M
-
-        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-        ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',cmap=clrmap,arrowsize=1.5)
+        streams, ax = env_stream(Ix, Iy,ax,cells,p)
 
         ax.set_title('(total current overlay)')
 
+        return streams, ax
+
 def I_overlay_setup(sim, ax, cells, p):
+    """
+    Sets up a current overlay on an existing animation.
+
+    Parameters
+    -----------
+
+    sim         Instance of sim module
+    cells       Instance of cells module
+    p           Instance of parameters module
+    ax          Existing figure axis to plot currents on
+
+    Returns
+    --------
+    streams             Container for streamline plot
+    ax                  Modified axis
+    tit_extra           Subtitle indicating whether this is total or GJ plot
+    """
 
     if p.sim_ECM is False or p.IecmPlot is False:
 
-        Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_x_time[-1]**2) + 1e-30
+        Ix = sim.I_gj_x_time[-1]
+        Iy = sim.I_gj_y_time[-1]
 
-        J_x = sim.I_gj_x_time[-1]/Jmag_M
-        J_y = sim.I_gj_x_time[-1]/Jmag_M
-
-        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-        streams = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,
-            color=p.vcolor, arrowsize=1.5)
+        streams, ax = cell_stream(Ix, Iy,ax,cells,p)
 
         tit_extra = 'Gap junction current'
 
     elif p.IecmPlot is True:
 
-        Jmag_M = np.sqrt(sim.I_tot_x_time[0]**2 + sim.I_tot_y_time[0]**2) + 1e-30
+        Ix = sim.I_tot_x_time[-1]
+        Iy = sim.I_tot_y_time[-1]
 
-        J_x = sim.I_tot_x_time[0]/Jmag_M
-        J_y = sim.I_tot_y_time[0]/Jmag_M
-
-        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-        streams = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,linewidth=lw,color='k',
-            arrowsize=1.5)
+        streams, ax = env_stream(Ix, Iy,ax,cells,p)
 
         tit_extra = 'Total current overlay'
 
     return streams, ax, tit_extra
 
 def I_overlay_update(i,sim,streams,ax,cells,p):
+    """
+    Advances a current overlay on an existing animation.
+
+    Parameters
+    -----------
+
+    sim         Instance of sim module
+    cells       Instance of cells module
+    p           Instance of parameters module
+    ax          Existing figure axis to plot currents on
+    i           Animation frame number
+
+    Returns
+    --------
+    streams             Container for streamline plot
+    ax                  Modified axis object
+    """
 
     if p.sim_ECM is False or p.IecmPlot is False:
         Jmag_M = np.sqrt(sim.I_gj_x_time[i]**2 + sim.I_gj_y_time[i]**2) + 1e-30
@@ -3066,26 +2998,189 @@ def cell_ave(cells,vm_at_mem):
     return v_cell
 
 # utility functions------------------------------------------------------
-def cell_quiver(datax,datay,cells,p):
-    pass
+def cell_quiver(datax,datay,ax,cells,p):
+    """
+    Sets up a vector plot for cell-specific data on an existing axis.
+
+    Parameters
+    -----------
+
+    datax, datay    Data defined on cell centres or membrane midpoints
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
+
+    Returns
+    --------
+    vplot               Container for vector plot, plotted at cell centres
+    ax                  Modified axis
+
+    """
+
+    if len(datax) == len(cells.mem_i):
+
+        Fx = np.dot(cells.M_sum_mems,datax)/cells.num_mems
+        Fy = np.dot(cells.M_sum_mems,datay)/cells.num_mems
+
+    else:
+        Fx = datax
+        Fy = datay
+
+    Fmag = np.sqrt(Fx**2 + Fy**2)
+
+    # normalize the data:
+    if Fmag.all() != 0.0:
+        Fx = Fx/Fmag
+        Fy = Fy/Fmag
+
+    vplot = ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],Fx,Fy,
+        pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7, zorder=10)
+
+    return vplot, ax
 
 def env_quiver(datax,datay,ax,cells,p):
+    """
+    Sets up a vector plot for environmental data on an existing axis.
+
+    Parameters
+    -----------
+
+    datax, datay    Data defined on environmental grid
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
+
+    Returns
+    --------
+    vplot               Container for vector plot, plotted at environmental grid points
+    ax                  Modified axis
+
+    """
     F_mag = np.sqrt(datax**2 + datay**2)
 
-    if F_mag.all() != 0.0:
-        Fx = datax/F_mag
-        Fy = datay/F_mag
+    if F_mag.max() != 0.0:
+        Fx = datax/F_mag.max()
+        Fy = datay/F_mag.max()
 
-    ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], Fx.ravel(),
-        Fy.ravel())
+    vplot = ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], Fx.ravel(),
+        Fy.ravel(), pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7)
 
-def cell_stream(datax,datay,cells,p):
-    pass
+    return vplot, ax
 
-def env_stream(datax,datay,cells,p):
-    pass
+def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
+    """
+    Sets up a streamline plot for cell-specific data on an existing axis.
+
+    Parameters
+    -----------
+
+    datax, datay    Data defined on cell centres or membrane midpoints
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
+
+    Returns
+    --------
+    streams             Container for stream plot, plotted at plot grid
+    ax                  Modified axis
+
+    """
+
+
+    if showing_cells is True:
+        cell_edges_flat = cells.um*cells.mem_edges_flat
+        coll = LineCollection(cell_edges_flat,colors='k')
+        coll.set_alpha(0.3)
+        ax.add_collection(coll)
+
+    if datax.shape != cells.Xgrid.shape: # if the data hasn't been interpolated yet...
+
+        Fx = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datax,(cells.Xgrid,cells.Ygrid),
+                                              fill_value=0,method=p.interp_type)
+
+        Fx = Fx*cells.maskM
+
+        Fy = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datay,(cells.Xgrid,cells.Ygrid),
+                                              fill_value=0,method=p.interp_type)
+
+        Fy = Fy*cells.maskM
+
+    else:
+
+        Fx = datax
+        Fy = datay
+
+    Fmag = np.sqrt(Fx**2 + Fy**2) + 1e-30
+
+    # normalize the data:
+    if Fmag.all() != 0:
+        Fx = Fx/Fmag
+        Fy = Fy/Fmag
+
+    if Fmag.max() != 0.0:
+        lw = (3.0*Fmag/Fmag.max()) + 0.5
+
+    else:
+        lw = 3.0
+
+    streams = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,Fx,Fy,density=p.stream_density,
+        linewidth=lw,color=p.vcolor,arrowsize=1.5)
+
+    return streams, ax
+
+def env_stream(datax,datay,ax,cells,p):
+    """
+    Sets up a streamline plot for environmental data on an existing axis.
+
+    Parameters
+    -----------
+
+    datax, datay    Data defined on environmental grid
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
+
+    Returns
+    --------
+    streams             Container for stream plot
+    ax                  Modified axis
+
+    """
+
+    Fmag = np.sqrt(datax**2 + datay**2) + 1e-30
+
+    if Fmag.all() != 0.0:
+        Fx = datax/Fmag
+        Fy = datay/Fmag
+
+    if Fmag.max() != 0.0:
+
+        lw = (3.0*Fmag/Fmag.max()) + 0.5
+
+    else:
+        lw = 3.0
+
+    if datax.shape == cells.Xgrid.shape:
+
+        streams = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um, Fx, Fy,density=p.stream_density,
+            linewidth=lw,color=p.vcolor,arrowsize=1.5)
+
+    elif datax.shape == cells.X.shape:
+
+        streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy,density=p.stream_density,
+            linewidth=lw,color=p.vcolor,arrowsize=1.5)
+
+    else:
+        raise BetseExceptionFunction("Data input to env_streams function must be \n shaped as cells.X or cells.Xgrid.")
+
+    return streams, ax
 
 def cell_mesh(data,ax,cells,p,clrmap):
+
+
+    if len(data) == len(cells.mem_i): # if the data is defined on membrane midpoints, average to cell centres:
+
+        data = np.dot(cells.M_sum_mems,data)/cells.num_mems
 
     data_grid = np.zeros(len(cells.voronoi_centres))
     data_grid[cells.cell_to_grid] = data
@@ -3095,25 +3190,59 @@ def cell_mesh(data,ax,cells,p,clrmap):
 
     return msh, ax
 
-def env_mesh(data,ax,cells,p,clrmap):
+def env_mesh(data,ax,cells,p,clrmap,ignore_showCells=False):
+    """
+    Sets up a mesh plot for environmental data on an existing axis.
 
-        if p.plotMask is True:
-            data = ma.masked_array(data, np.logical_not(cells.maskM))
+    Parameters
+    -----------
 
-        mesh_plot = ax.imshow(data,origin='lower',
-                    extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=clrmap)
+    data            Data defined on environmental grid
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
 
-        if p.showCells is True:
-            cell_edges_flat = cells.um*cells.mem_edges_flat
-            coll = LineCollection(cell_edges_flat,colors='k')
-            coll.set_alpha(0.5)
-            ax.add_collection(coll)
+    Returns
+    --------
+    mesh_plot           Container for mesh plot
+    ax                  Modified axis
 
-        return mesh_plot, ax
+    """
+
+    # if p.plotMask is True:
+    #     data = ma.masked_array(data, np.logical_not(cells.maskM))
+
+    mesh_plot = ax.imshow(data,origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=clrmap)
+
+    if p.showCells is True and ignore_showCells is False:
+        cell_edges_flat = cells.um*cells.mem_edges_flat
+        coll = LineCollection(cell_edges_flat,colors='k')
+        coll.set_alpha(0.5)
+        ax.add_collection(coll)
+
+    return mesh_plot, ax
 
 def cell_mosaic(data,ax,cells,p,clrmap):
+    """
+    Sets up a mosaic plot for cell data on an existing axis.
 
-        # define a polygon collection based on individual cell polygons
+    Parameters
+    -----------
+
+    data            Data defined on environmental grid
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
+
+    Returns
+    --------
+    collection          Container for mosaic plot
+    ax                  Modified axis
+
+    """
+
+    # define a polygon collection based on individual cell polygons
     points = np.multiply(cells.cell_verts, p.um)
     collection =  PolyCollection(points, cmap=clrmap, edgecolors='none')
     collection.set_array(data)
@@ -3134,7 +3263,7 @@ def show_plot(params: 'Parameters', *args, **kwargs) -> None:
 
     try:
         if params.turn_all_plots_off is False:
-            plt.show()
+            plt.show(*args, **kwargs)
     # plt.show() unreliably raises exceptions on window close resembling:
     #     AttributeError: 'NoneType' object has no attribute 'tk'
     # This error appears to ignorable and hence is caught and squelched.
@@ -3147,6 +3276,19 @@ def show_plot(params: 'Parameters', *args, **kwargs) -> None:
             raise
 
 def set_up_filesave(ani_obj,p):
+    """
+    Sets up operating-system friendly file saving for animation classes.
+
+    Parameters
+    -----------
+    ani_obj         Instance of an animation class
+    p               Instance of parameters module
+
+    Returns
+    -----------
+    ani_obj        Modified animation object instance
+
+    """
 
     if p.plot_type == 'sim':
         # Make the BETSE-specific cache directory if not found.

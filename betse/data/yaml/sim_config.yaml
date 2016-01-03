@@ -610,7 +610,7 @@ variable settings:
 
   flow and deformation:
 
-    water viscocity: 1e-3      # viscocity of water [Pa s] (applies to ease of flow)
+    water viscocity: 1e-2      # viscocity of water [Pa s] (applies to ease of flow)
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
 
@@ -914,7 +914,6 @@ results options:
   Efield Ani:
     animate Efield: True        # 2d animation of electric field in extracellullar matrix
     data type: ECM                  # data type can be 'ECM' or 'GJ'
-    overlay vector: True            # overlay a streamline plot of field direction?
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 1500               # max colorbar value [V/m]
     min val: 0                  # min colorbar value [V/m]
@@ -933,7 +932,7 @@ results options:
     max val: 10               # max colorbar value [um] when autoscale is False
     min val: 0                  # min colorbar value [um] when autoscale is False
 
-  default colormap: coolwarm   # Specify the colormap to be used for main data on all graphs.
+  default colormap: RdBu_r   # Specify the colormap to be used for main data on all graphs.
                                # options include
                                # coolwarm, hot, rainbow, jet, Blues, Greens, bone
                                # to reverse a colormap add _r to the name (e.g. cm.jet_r)

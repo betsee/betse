@@ -2685,8 +2685,36 @@ class Simulator(object):
             # calculate fluxes for electrodiffusive transport:
 
             if p.fluid_flow is True:
-                uenvx = self.u_env_x
-                uenvy = self.u_env_y
+
+                uenvx = np.zeros(cells.grid_obj.u_shape)
+                uenvy = np.zeros(cells.grid_obj.v_shape)
+
+                uenvx[:,1:] = self.u_env_x
+                uenvy[1:,:] = self.u_env_y
+
+                if p.closed_bound is False:
+
+                    uenvx[:,0] = uenvx[:,1]
+                    uenvx[:,-1]= uenvx[:,-2]
+                    uenvx[0,:] = uenvx[1,:]
+                    uenvx[-1,:] = uenvx[-2,:]
+
+                    uenvy[:,0] = uenvy[:,1]
+                    uenvy[:,-1]= uenvy[:,-2]
+                    uenvy[0,:] = uenvy[1,:]
+                    uenvy[-1,:] = uenvy[-2,:]
+
+                else:
+
+                    uenvx[:,0] = 0
+                    uenvx[:,-1]= 0
+                    uenvx[0,:] = 0
+                    uenvx[-1,:] = 0
+
+                    uenvy[:,0] = 0
+                    uenvy[:,-1]= 0
+                    uenvy[0,:] = 0
+                    uenvy[-1,:] = 0
 
             else:
                 uenvx = 0
@@ -3263,7 +3291,7 @@ class Simulator(object):
         div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
 
         # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,div_u)
+        P_react = np.dot(cells.lapGJ_P_inv,2*div_u)
 
         # calculate its gradient:
         gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
@@ -3272,7 +3300,7 @@ class Simulator(object):
         gP_y = gradP_react*cells.cell_nn_ty
 
         # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems   # FIXME if this stops working move back to gjMatrix
+        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
         gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
 
         self.u_cells_x = u_gj_xo - gPx_cell

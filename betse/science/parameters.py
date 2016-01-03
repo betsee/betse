@@ -803,7 +803,6 @@ class Parameters(object):
 
         self.ani_Efield = ro['Efield Ani']['animate Efield']   # 2d animation of electric field
         self.ani_Efield_type =ro['Efield Ani']['data type']   # data type can be 'ECM' or 'GJ'
-        self.ani_Efield_vector =ro['Efield Ani']['overlay vector'] # overlay a streamline plot of field direction?
         self.autoscale_Efield_ani =ro['Efield Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Efield_ani_min_clr =float(ro['Efield Ani']['max val'])         # maximum colorbar value in V/m
         self.Efield_ani_max_clr =float(ro['Efield Ani']['min val'])       # maximum colorbar value in V/m

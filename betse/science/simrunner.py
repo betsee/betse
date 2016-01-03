@@ -360,7 +360,7 @@ class SimRunner(object):
             os.makedirs(image_cache_dir, exist_ok=True)
             savedImg = os.path.join(image_cache_dir, 'fig_')
 
-        fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells,clrmap=p.background_cm)
+        fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells,clrmap=p.default_cm)
 
         if p.autosave is True:
             savename10 = savedImg + 'cluster_mosaic' + '.png'
@@ -680,7 +680,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 if p.turn_all_plots_off is False:
                     plt.show(block=False)
 
-        # time-dependent osmotic and/or electrostatic pressure in cell
+        # osmotic and/or electrostatic pressure in cell
         if p.deform_electro is True:
 
             f_electro = [arr[plot_cell] for arr in sim.P_electro_time]
@@ -790,18 +790,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-
-        if p.showCells is True:
-
-            figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(1/p.ff_cell),number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
-                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-
-        else:
-
-            figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata = sim.rho_cells*(1/p.ff_cell),clrAutoscale = p.autoscale_rho,
-                    clrMin = p.rho_min_clr, clrMax = p.rho_max_clr, clrmap = p.default_cm,
-                    number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+        figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(1/p.ff_cell),number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
+            clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
         figX.suptitle('Final Cell Charge Density',fontsize=14, fontweight='bold')
         axX.set_xlabel('Spatial distance [um]')
@@ -817,17 +808,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.plot_vcell2d is True and p.sim_ECM is True:
 
-        if p.showCells is True:
-
-            figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr,
-                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-
-        else:
-
-            figX, axX, cbX = viz.plotCellData(sim,cells,p,zdata=1000*sim.vcell_time[-1],clrAutoscale = p.autoscale_vcell,
-                    clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr, clrmap = p.default_cm,
-                    number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+        figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
+            clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr,
+            clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
         figX.suptitle('Final Cell Voltage',fontsize=14, fontweight='bold')
         axX.set_xlabel('Spatial distance [um]')
@@ -851,18 +834,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
                 edgeOverlay = p.showCells,  number_ecm = p.enumerate_cells,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
-
         elif p.sim_ECM is False:
 
-            if p.showCells is True:
-                figV, axV, cbV = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
-                    clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-            else:
-
-                figV, axV, cbV = viz.plotCellData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                    clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                    number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+            figV, axV, cbV = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
+                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
+                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
 
         figV.suptitle('Final Vmem',fontsize=14, fontweight='bold')
@@ -879,17 +855,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.GHK_calc is True:
 
-        if p.showCells is True:
-            figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_GHK_time[-1],
-                clrAutoscale = p.autoscale_Vmem,
-                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
-                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-        else:
-
-            figV_ghk, axV_ghk, cbV_ghk = viz.plotCellData(sim,cells,p,zdata=1000*sim.vm_GHK_time[-1],
-                clrAutoscale = p.autoscale_Vmem,
-                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                number_cells=p.enumerate_cells, current_overlay=p.I_overlay,plotIecm=p.IecmPlot)
+        figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_GHK_time[-1],
+            clrAutoscale = p.autoscale_Vmem,
+            clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
+            clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
 
         figV_ghk.suptitle('Final Vmem using Goldman Equation',fontsize=14, fontweight='bold')
         axV_ghk.set_xlabel('Spatial distance [um]')
@@ -910,12 +879,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         if p.sim_ECM is False:
 
-            if p.showCells is True:
-                figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
-            else:
-                 figIP3, axIP3, cbIP3 = viz.plotCellData(sim,cells,p,zdata=sim.cIP3_time[-1]*1e3,number_cells=p.enumerate_cells,
-                 clrAutoscale = p.autoscale_IP3, clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,
+                number_cells=p.enumerate_cells,clrAutoscale = p.autoscale_IP3,
+                clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
 
         else:
 
@@ -925,7 +891,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             ip3Env = sim.cIP3_env*1e3
             ip3Cell = sim.cIP3*1e3
 
-            bkgPlot = axIP3.imshow(ip3Env.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
+            bkgPlot = axIP3.imshow(ip3Env.reshape(cells.X.shape),origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
                 p.um*cells.ymax],cmap=p.default_cm)
 
             points = np.multiply(cells.cell_verts, p.um)
@@ -968,7 +935,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
             axIP3.axis([xmin,xmax,ymin,ymax])
 
-
         axIP3.set_title('Final IP3 concentration')
         axIP3.set_xlabel('Spatial distance [um]')
         axIP3.set_ylabel('Spatial distance [um]')
@@ -985,13 +951,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.plot_dye2d is True and p.voltage_dye == 1:
         if p.sim_ECM is False:
-            if p.showCells is True:
-                figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
 
-            else:
-                figVdye, axVdye, cbVdye = viz.plotCellData(sim,cells,p,zdata=sim.cDye_time[-1]*1e3,number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_Dye, clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+            figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,
+                number_cells=p.enumerate_cells,clrAutoscale = p.autoscale_Dye,
+                clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+
 
         else:
             figVdye = plt.figure()
@@ -1000,7 +964,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             dyeEnv = sim.cDye_env*1e3
             dyeCell = sim.cDye_cell*1e3
 
-            bkgPlot = axVdye.imshow(dyeEnv.reshape(cells.X.shape),origin='lower',extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
+            bkgPlot = axVdye.imshow(dyeEnv.reshape(cells.X.shape),origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
                 p.um*cells.ymax],cmap=p.default_cm)
 
             points = np.multiply(cells.cell_verts, p.um)
@@ -1046,7 +1011,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axVdye.set_title('Final Morphogen Concentration')
         axVdye.set_xlabel('Spatial distance [um]')
         axVdye.set_ylabel('Spatial distance [um]')
-        # cbVdye.set_label('Concentration umol/L')
+        cbVdye.set_label('Concentration umol/L')
 
         if saveImages is True:
             savename7 = savedImg + 'final_morphogen_2D' + '.png'
@@ -1059,12 +1024,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
 
-        if p.showCells is True:
-            figCa, axCa, cbCa = viz.plotPolyData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells= p.enumerate_cells,
-            clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
-        else:
-            figCa, axCa, cbCa = viz.plotCellData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_Ca, clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
+        figCa, axCa, cbCa = viz.plotPolyData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
+            number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
+            clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
         axCa.set_title('Final cytosolic Ca2+')
         axCa.set_xlabel('Spatial distance [um]')
@@ -1083,7 +1045,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     if p.plot_I2d is True:
 
         figI, axI, cbI = viz.streamingCurrent(sim, cells,p,plot_Iecm = False, clrAutoscale = p.autoscale_I2d,
-            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.default_cm,
+            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.background_cm,
             edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
 
         axI.set_xlabel('Spatial distance [um]')
@@ -1100,7 +1062,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.sim_ECM is True:
 
             figI2, axI2, cbI2 = viz.streamingCurrent(sim, cells,p,plot_Iecm = True, clrAutoscale = p.autoscale_I2d,
-            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.default_cm,
+            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.background_cm,
             edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
 
             axI2.set_xlabel('Spatial distance [um]')
@@ -1118,18 +1080,28 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.plot_Efield is True:
 
-        f1, ax1, cb1, f2, ax2, cb2 = viz.plotEfield(sim,cells,p)
+        if p.sim_ECM is True:
+
+            viz.plotVectField(sim.E_env_x,sim.E_env_y,cells,p,plot_ecm = True,
+                title='Final Electric Field', cb_title = 'Electric Field [V/m]')
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            if saveImages is True:
+
+                if p.sim_ECM is True:
+                    savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
+                    plt.savefig(savename,format='png',transparent=True)
+
+
+        viz.plotVectField(sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
+                        title='Final Electric Field', cb_title = 'Electric Field [V/m]')
 
         if saveImages is True:
 
-            if p.sim_ECM is True:
-                plt.sca(ax2)
-                savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
-                plt.savefig(savename,format='png',transparent=True)
-
-            plt.sca(ax1)
-            savename12 = savedImg + 'Final_Electric_Field_GJ' + '.png'
-            plt.savefig(savename12,format='png',transparent=True)
+            savename = savedImg + 'Final_Electric_Field_GJ' + '.png'
+            plt.savefig(savename,format='png',transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
@@ -1137,13 +1109,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_P is True and p.deform_osmo is True:
 
-        if p.showCells is True:
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
-
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+        clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
         axP.set_title('Final Hydrostatic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
@@ -1162,15 +1129,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         osmo_P = sim.osmo_P_delta
 
-        if p.showCells is True:
-
-            # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+        figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+        clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr,
+            clrmap = p.default_cm)
 
         axP.set_title('Final Osmotic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
@@ -1188,15 +1149,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         osmo_P = sim.P_electro
 
-        if p.showCells is True:
-
-            # P_cell = np.dot(cells.M_sum_mems,sim.P_mem)/cells.num_mems
-            figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-        else:
-             figP, axP, cbP = viz.plotCellData(sim,cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-             clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
+        figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
+        clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr,
+            clrmap = p.default_cm)
 
         axP.set_title('Final Electrostatic Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
@@ -1214,20 +1169,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.deform_electro is True:
 
-        figEP, axEP, cbEP = viz.plotPolyData(sim, cells,p,zdata=(1/p.um)*sim.F_electro,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-        if sim.F_electro.all() != 0:
-
-            fx = sim.F_electro_x/sim.F_electro
-            fy = sim.F_electro_y/sim.F_electro
-
-        axEP.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
-
-        axEP.set_title('Final Electrostatic Body Force in Cell Network')
-        axEP.set_xlabel('Spatial distance [um]')
-        axEP.set_ylabel('Spatial distance [um]')
-        cbEP.set_label('Body Force [N/cm3]')
+        viz.plotVectField((1/p.um)*sim.F_electro_x,(1/p.um)*sim.F_electro_y,cells,p,plot_ecm = False,
+                        title='Final Electrostatic Body Force', cb_title = 'Body Force [N/cm3]')
 
         if saveImages is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
@@ -1236,25 +1179,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if p.deform_osmo is True or p.deformation is True or p.fluid_flow is True:
+    if p.deform_osmo is True:
 
-        figOF, axOF, cbOF = viz.plotPolyData(sim, cells,p,zdata=(1/p.um)*sim.F_hydro,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr, clrmap = p.default_cm)
-
-        fx = (1/p.um)*sim.F_hydro_x
-        fy = (1/p.um)*sim.F_hydro_y
-
-        if sim.F_hydro.all() != 0:
-
-            fx = sim.F_hydro_x/sim.F_hydro
-            fy = sim.F_hydro_y/sim.F_hydro
-
-        axOF.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um, fx,fy)
-
-        axOF.set_title('Final Hydrostatic Pressure Induced Body Force in Cell Network')
-        axOF.set_xlabel('Spatial distance [um]')
-        axOF.set_ylabel('Spatial distance [um]')
-        cbOF.set_label('Body Force [N/cm3]')
+        viz.plotVectField((1/p.um)*sim.F_hydro_x,(1/p.um)*sim.F_hydro_y,cells,p,plot_ecm = False,
+                title='Final Hydrostatic Pressure Induced Body Force', cb_title = 'Body Force [N/cm3]')
 
         if saveImages is True:
             savename13 = savedImg + 'final_hydroF_2D' + '.png'
@@ -1265,24 +1193,24 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.deformation is True and sim.run_sim is True:
 
-        d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
+        viz.plotStreamField(p.um*sim.dx_cell_time[-1],p.um*sim.dy_cell_time[-1],cells,p,plot_ecm = False,
+                            title='Final Displacement of Cell Collective', cb_title = 'Displacement [um]',
+            show_cells=p.showCells)
 
-        figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
-            clrMax = p.Deformation_ani_max_clr,
-            clrmap = p.default_cm)
-
-
-        # FIXME : how about a nice streamplot here instead?
-
-        axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
-            sim.dx_cell_time[-1],sim.dy_cell_time[-1])
-
-        axDef.set_title('Displacement in Cell Network')
-        axDef.set_xlabel('Spatial distance [um]')
-        axDef.set_ylabel('Spatial distance [um]')
-        cbDef.set_label('Displacement [um]')
-
+        # d_cells = np.sqrt(sim.dx_cell_time[-1]**2 + sim.dy_cell_time[-1]**2)
+        #
+        # figDef, axDef, cbDef = viz.plotPolyData(sim, cells,p,zdata=d_cells*p.um,number_cells=p.enumerate_cells,
+        #     clrAutoscale = p.autoscale_Deformation_ani, clrMin = p.Deformation_ani_min_clr,
+        #     clrMax = p.Deformation_ani_max_clr,
+        #     clrmap = p.default_cm)
+        #
+        # axDef.quiver(cells.cell_centres[:,0]*p.um,cells.cell_centres[:,1]*p.um,
+        #     sim.dx_cell_time[-1],sim.dy_cell_time[-1])
+        #
+        # axDef.set_title('Displacement in Cell Network')
+        # axDef.set_xlabel('Spatial distance [um]')
+        # axDef.set_ylabel('Spatial distance [um]')
+        # cbDef.set_label('Displacement [um]')
 
         if saveImages is True:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
@@ -1294,31 +1222,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     if p.plot_Vel is True and p.fluid_flow is True and p.deform_electro is True:
 
-        ucellso = sim.u_cells_x
-        vcellso = sim.u_cells_y
 
-        ucells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                                 ucellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
-
-        ucells = ucells*cells.maskM
-
-        vcells = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),
-                                 vcellso,(cells.Xgrid,cells.Ygrid), fill_value=0)
-
-        vcells = vcells*cells.maskM
-
-        Ucells = np.sqrt(ucells**2 + vcells**2)*1e9
-
-        if Ucells.max() != 0.0:
-            lw = (Ucells/Ucells.max()) + 0.5
-
-        plt.figure()
-        plt.imshow(Ucells,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-        plt.colorbar()
-        plt.streamplot(cells.Xgrid,cells.Ygrid,ucells/Ucells.max(),vcells/Ucells.max(),density=p.stream_density,linewidth=lw,color='k')
-        plt.axis('equal')
-        plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-        plt.title('Final Fluid Velocity in Cell Collective [nm/s]')
+        viz.plotStreamField((1e9)*sim.u_cells_x,(1e9)*sim.u_cells_y,cells,p,plot_ecm = False,
+                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]')
 
         if saveImages is True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
@@ -1329,17 +1235,8 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         if p.sim_ECM is True:
 
-            u = sim.u_env_x
-            v = sim.u_env_y
-            U = np.sqrt(u**2 + v**2)*1e9
-
-            plt.figure()
-            plt.imshow(U,origin='lower',extent=[cells.xmin,cells.xmax,cells.ymin,cells.ymax],cmap=p.default_cm)
-            plt.colorbar()
-            plt.streamplot(cells.X,cells.Y,u,v,density=p.stream_density,color='k')
-            plt.axis('equal')
-            plt.axis([cells.xmin,cells.xmax,cells.ymin,cells.ymax])
-            plt.title('Final Extracellular Fluid Velocity [nm/s]')
+            viz.plotStreamField((1e9)*sim.u_env_x,(1e9)*sim.u_env_y,cells,p,plot_ecm = True,
+                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]')
 
             if saveImages is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
@@ -1348,6 +1245,30 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
+    if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
+
+        # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
+        fig_x = plt.figure()
+        ax_x = plt.subplot(111)
+        con_segs = cells.nn_edges
+        connects = p.um*np.asarray(con_segs)
+        collection = LineCollection(connects, array=sim.gjopen, cmap= p.default_cm, linewidths=2.0)
+        ax_x.add_collection(collection)
+        cb = fig_x.colorbar(collection)
+        plt.axis('equal')
+        plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
+
+        cb.set_label('Relative Permeability')
+        ax_x.set_xlabel('Spatial x [um]')
+        ax_x.set_ylabel('Spatial y [um')
+        ax_x.set_title('Final Gap Junction Relative Permeability')
+
+        if saveImages is True:
+            savename = savedImg + 'final_gjState' + '.png'
+            plt.savefig(savename,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
 
     #---------Animations---------------------------------------------------------------------------------------
 
@@ -1457,26 +1378,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
-
-        # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
-        fig_x = plt.figure()
-        ax_x = plt.subplot(111)
-        con_segs = cells.nn_edges
-        connects = p.um*np.asarray(con_segs)
-        collection = LineCollection(connects, array=sim.gjopen, cmap= p.default_cm, linewidths=2.0)
-        ax_x.add_collection(collection)
-        cb = fig_x.colorbar(collection)
-        plt.axis('equal')
-        plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
-
-        cb.set_label('Relative Permeability')
-        ax_x.set_xlabel('Spatial x [um]')
-        ax_x.set_ylabel('Spatial y [um')
-        ax_x.set_title('Gap Junction Relative Permeability')
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
 
     if p.ani_Pcell is True and p.deform_osmo is True and animate == 1:
 
