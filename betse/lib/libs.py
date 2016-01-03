@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -18,8 +18,10 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 # exist at installation time (i.e., stock Python and BETSE packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse import metadata
 from collections import OrderedDict
+
+from betse import metadata
+
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -33,7 +35,7 @@ def init() -> None:
       platform.
     '''
     # Avoid circular import dependencies.
-    from betse.util.lib import matplotlibs
+    from betse.lib.matplotlib import matplotlibs
 
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.
@@ -67,7 +69,7 @@ def die_unless_satisfiable_all() -> None:
     )
 
     # Validate such dependencies via "pkg_resources".
-    from betse.util.lib import setuptool
+    from betse.lib import setuptool
     setuptool.die_unless_requirements_satisfiable_all()
 
 # ....................{ GETTERS                            }....................
@@ -76,7 +78,7 @@ def get_metadata() -> OrderedDict:
     Get an ordered dictionary synopsizing all currently installed dependencies.
     '''
     # Imports deferred to their point of use, as documented above.
-    from betse.util.lib import setuptool
+    from betse.lib import setuptool
     from betse.util.python import modules, pythons
     from betse.util.type import containers
     import pkg_resources

@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
-# Copyright 2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 # FIXME saving animations as video files directly doesn't work
 
+import os
+import os.path
+
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import os, os.path
-from betse.util.lib import matplotlibs
-from betse.util.type import types
 from matplotlib import animation
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
+
+import betse.lib.matplotlib.util
 from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
+from betse.lib.matplotlib import matplotlibs
+from betse.util.type import types
+
 
 #FIXME: Let's document a few of these initialization parameters. Hot dogs and
 #warm afternoons in the lazy summertime!
@@ -38,7 +43,7 @@ class AnimateCellData(object):
         clrAutoscale: bool = True,
         clrMin = None,
         clrMax = None,
-        clrmap: 'Colormap' = matplotlibs.get_colormap('rainbow'),
+        clrmap: 'Colormap' = betse.lib.matplotlib.util.get_colormap('rainbow'),
         number_cells: bool = False,
         saveFolder = 'animation',
         saveFile = 'sim_',

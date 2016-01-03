@@ -10,13 +10,16 @@
 #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
 
 # ....................{ IMPORTS                            }....................
+from collections import OrderedDict
+from io import StringIO
+
 from betse import metadata, pathtree
-from betse.util.lib import libs, matplotlibs
+from betse.lib import libs
+from betse.lib.matplotlib import matplotlibs
 from betse.util.io import loggers
 from betse.util.python import pythons
 from betse.util.system import processes, systems
-from collections import OrderedDict
-from io import StringIO
+
 
 # ..................{ SUBCOMMANDS ~ info                     }..................
 def output_info() -> None:

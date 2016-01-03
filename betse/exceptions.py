@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 #FIXME: Shift this module to the top-level "betse" package.

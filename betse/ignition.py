@@ -9,7 +9,7 @@ High-level application initialization common to both the CLI and GUI.
 
 # ....................{ IMPORTS                            }....................
 from betse import pathtree
-from betse.util.lib import libs
+from betse.lib import libs
 from betse.util.io import loggers
 from betse.util.python import pythons
 

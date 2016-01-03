@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 #FIXME: Refactor backend_names() to discover backend names via the standard
@@ -71,15 +71,13 @@ Footnote descriptions are as follows:
 # this module is the eponymous top-level module "matplotlib". See init().
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 import sys
-from betse.exceptions import BetseExceptionParameters
+from collections import OrderedDict
+
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.python import modules, pythons
 from betse.util.system import oses
-from betse.util.type import containers, strs, types
-from collections import OrderedDict
-from matplotlib import cm as colormaps
-from matplotlib.colors import Colormap
+from betse.util.type import containers, strs
 
 # ....................{ IMPORTS ~ matplotlib               }....................
 # Import matplotlib in a safe manner. Unfortunately, the "matplotlib.__init__"
@@ -416,30 +414,6 @@ config = MatplotlibConfig()
 '''
 Singleton `matplotlib` configuration wrapper.
 '''
-
-# ....................{ GETTERS                            }....................
-def get_colormap(colormap_name: str) -> Colormap:
-    '''
-    Get the Matplotlib colormap with the passed name.
-
-    Parameters
-    ----------
-    colormap_name : str
-        Name of the attribute in the `matplotlib.cm` module corresponding to the
-        desired colormap (e.g., `Blues`, `Greens`, `jet`, `rainbow).
-
-    See Also
-    ----------
-    http://matplotlib.org/examples/color/colormaps_reference.html
-        List of supported colormaps.
-    '''
-    assert types.is_str(colormap_name), types.assert_not_str(colormap_name)
-
-    colormap = getattr(colormaps, colormap_name, None)
-    if not isinstance(colormap, Colormap):
-        raise BetseExceptionParameters(
-            'Matplotlib colormap "{}" not found.'.format(colormap_name))
-    return colormap
 
 # --------------------( WASTELANDS                         )--------------------
 #FUXME: O.K.; so, basically, Tcl/Tk is absolutely terrible and fundamentally
