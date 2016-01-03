@@ -26,16 +26,6 @@ class FileFrameWriter(FileMovieWriter):
     '''
 
 
-    supported_formats = matplotlibs.get_backend_figure_filetypes()
-    '''
-    List of all image filetypes supported by this class.
-
-    Since this class serializes frames by calling the `savefig()` function _and_
-    since that function supports all image filetypes supported by the current
-    backend, the conclusion syllogistically follows. **Q.E.D., yo.**
-    '''
-
-
     def setup(self, *args, **kwargs) -> None:
         '''
         Prepare to serialize animation frames.
@@ -70,12 +60,25 @@ class FileFrameWriter(FileMovieWriter):
         # Filetype of all output files.
         out_filetype = paths.get_filetype(self.outfile)
 
+        # List of all output filetypes supported by this class.
+        #
+        # Since this class serializes frames by calling the savefig() function
+        # *AND* since that function supports all image filetypes supported by
+        # the current backend, the conclusion syllogistically follows. (Q.E.D.)
+        #
+        # This list is intentionally *NOT* declared as the standard Matplotlib
+        # animation writer class attribute "supported_formats". Doing so would
+        # require calling the following function and hence importing the
+        # "matplotlib.pyplot" module at the time of this module's importation,
+        # substantially complicating Matplotlib use. (Think backends.)
+        out_filetypes_supported = matplotlibs.get_backend_figure_filetypes()
+
         # If this filetype is unsupported, raise an exception.
-        if out_filetype not in self.supported_formats:
+        if out_filetype not in out_filetypes_supported:
             raise BetseExceptionFile(
                 'Frame filetype "{}" unsupported by the '
                 'current Matplotlib backend (i.e., not in "{}").'.format(
-                    out_filetype, str(self.supported_formats)))
+                    out_filetype, str(out_filetypes_supported)))
 
         # Prevent the superclass from deleting output files. This may or may not
         # actually be needed, but... hopefully never hurts.
@@ -102,6 +105,15 @@ class FileFrameWriter(FileMovieWriter):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+    # supported_formats = matplotlibs.get_backend_figure_filetypes()
+    # '''
+    # List of all image filetypes supported by this class.
+    #
+    # Since this class serializes frames by calling the `savefig()` function _and_
+    # since that function supports all image filetypes supported by the current
+    # backend, the conclusion syllogistically follows. **Q.E.D., yo.**
+    # '''
+
         #FUXME: Is this actually needed?
         # Type of all output files.
         # self.frame_format = paths.get_filetype(self.outfile)

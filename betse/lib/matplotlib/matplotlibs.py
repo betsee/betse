@@ -67,9 +67,10 @@ Footnote descriptions are as follows:
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit the current backend to be subsequently specified by the
-# init() function, the *ONLY* matplotlib module importable at the top-level of
-# this module is the eponymous top-level module "matplotlib". See init().
+# init() function, most matplotlib modules (in particular, "matplotlib.pyplot")
+# are *NOT* safely importable at the top-level of this module. See init().
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 import sys
 from betse.exceptions import BetseExceptionParameters
 from betse.util.io import loggers
@@ -79,7 +80,6 @@ from betse.util.system import oses
 from betse.util.type import containers, strs, types
 from collections import OrderedDict
 from matplotlib import cm as colormaps
-from matplotlib import pyplot
 from matplotlib.colors import Colormap
 
 # ....................{ IMPORTS ~ matplotlib               }....................
@@ -138,6 +138,9 @@ def get_backend_figure_filetypes() -> list:
     '''
     Get the list of all figure filetypes supported by the current backend.
     '''
+    # Avoid importing "pyplot" at the top level. See above.
+    from matplotlib import pyplot
+
     # Magic is magic. Do not question magic, for it is magical.
     return list(pyplot.figure().canvas.get_supported_filetypes().keys())
 
