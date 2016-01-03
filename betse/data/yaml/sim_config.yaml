@@ -926,20 +926,21 @@ results options:
   Deformation Ani:
     animate Deformation: True        # 2d animation of electric field in extracellullar matrix
     data type: Displacement                  # data type can be 'Vmem' or 'Displacement'
+    style: streamline            # plot 'streamline' or 'vector' displacements
     autoscale colorbar: True    # autoscale colorbar to min max of datat set?
     max val: 10               # max colorbar value [um] when autoscale is False
     min val: 0                  # min colorbar value [um] when autoscale is False
 
-  default colormap: RdBu_r   # Specify the colormap to be used for main data on all graphs.
+  default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
                                # options include
                                # coolwarm, hot, rainbow, jet, Blues, Greens, bone
                                # to reverse a colormap add _r to the name (e.g. cm.jet_r)
                                # for all options please see
                                # http://matplotlib.org/examples/color/colormaps_reference.html
 
-  background colormap: Blues     # Specify colormap to be used for data with vector overlays, including:
-                                    # currents, flow, electric field and
-                                    # deformation.
+  background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
+                                    # including:
+                                    # currents, flow, electric field and deformation.
 
   gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
 

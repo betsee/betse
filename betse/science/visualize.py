@@ -14,7 +14,7 @@ from betse.util.type import types
 from matplotlib import animation
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-from betse.exceptions import BetseExceptionFunction
+from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
 
 #FIXME: Let's document a few of these initialization parameters. Hot dogs and
 #warm afternoons in the lazy summertime!
@@ -310,7 +310,7 @@ class AnimateGJData(object):
 
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
-        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=1.0, zorder=10)
+        self.collection = LineCollection(connects, array=self.zdata_t[0], cmap= p.gj_cm, linewidths=2.0, zorder=10)
         self.collection.set_clim(0.0,max_zdata)
         self.ax.add_collection(self.collection)
 
@@ -1127,10 +1127,10 @@ class AnimateDeformation(object):
 
             set_up_filesave(self,p)
 
-        if self.p.ani_Deformation_type == 'Vmem':
+        dx = self.sim.dx_cell_time[0]
+        dy = self.sim.dy_cell_time[0]
 
-            dx = self.sim.dx_cell_time[0]
-            dy = self.sim.dy_cell_time[0]
+        if self.p.ani_Deformation_type == 'Vmem':
 
             if self.p.sim_ECM is False:
 
@@ -1139,18 +1139,31 @@ class AnimateDeformation(object):
             else:
                 dd = self.sim.vcell_time[0]*1e3
 
-        elif self.p.ani_Deformation_type == 'Displacement':
+            self.specific_cmap = p.default_cm
 
-            dx = self.sim.dx_cell_time[0]
-            dy = self.sim.dy_cell_time[0]
+        elif self.p.ani_Deformation_type == 'Displacement':
 
             dd = p.um*np.sqrt(dx**2 + dy**2)
 
-        points = np.multiply(sim.cell_verts_time[0], p.um)
-        dd_collection = PolyCollection(points, array=dd, cmap=p.default_cm, edgecolors='none')
-        self.ax.add_collection(dd_collection)
+            self.specific_cmap = p.background_cm
 
-        self.ax.quiver(p.um*sim.cell_centres_time[0][:,0],p.um*sim.cell_centres_time[0][:,1],dx,dy)
+        else:
+            raise BetseExceptionParameters("Definition of 'data type' in deformation animation \n"
+                                           "must be either 'Vmem' or 'Displacement' ")
+
+        dd_collection, self.ax = cell_mesh(dd,self.ax,cells,p,self.specific_cmap)
+
+        if p.ani_Deformation_style == 'vector':
+
+            vplot, self.ax = cell_quiver(dx,dy,self.ax,cells,p)
+
+        elif p.ani_Deformation_style == 'streamline':
+
+            vplot, self.ax = cell_stream(dx,dy,self.ax,cells,p,showing_cells = p.showCells)
+
+        else:
+            raise BetseExceptionParameters("Definition of 'style' in deformation animation \n"
+                                           "must be either 'vector' or 'streamline' ")
 
         self.ax.axis('equal')
 
@@ -1161,24 +1174,29 @@ class AnimateDeformation(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-
         if p.autoscale_Deformation_ani is True:
 
-            # first flatten the data (needed in case cells were cut)
-            all_z = []
-            for zarray in sim.dx_cell_time:
-                for val in zarray:
-                    all_z.append(val)
+            if p.ani_Deformation_type == 'Displacement':
 
-            for zarray in sim.dy_cell_time:
-                for val in zarray:
-                    all_z.append(val)
+                # first flatten the data (needed in case cells were cut)
+                all_z = []
+                for xarray, yarray in zip(sim.dx_cell_time,sim.dy_cell_time):
+                    zarray = np.sqrt(xarray**2 + yarray**2)
+                    for val in zarray:
+                        all_z.append(val*p.um)
 
-            self.cmin = p.um*np.min(all_z)
-            self.cmax = p.um*np.max(all_z)
+            elif p.ani_Deformation_type == 'Vmem':
+
+                all_z = []
+
+                for zarray in sim.vm_time:
+                    for val in zarray:
+                        all_z.append(val*1e3)
+
+            self.cmin = np.min(all_z)
+            self.cmax = np.max(all_z)
 
             dd_collection.set_clim(self.cmin,self.cmax)
-
 
         elif p.autoscale_Deformation_ani is False:
             dd_collection.set_clim(p.Deformation_ani_min_clr,p.Deformation_ani_max_clr)
@@ -1208,10 +1226,10 @@ class AnimateDeformation(object):
         self.fig.clf()
         self.ax = plt.subplot(111)
 
-        if self.p.ani_Deformation_type == 'Vmem':
+        dx = self.sim.dx_cell_time[i]
+        dy = self.sim.dy_cell_time[i]
 
-            dx = self.sim.dx_cell_time[i]
-            dy = self.sim.dy_cell_time[i]
+        if self.p.ani_Deformation_type == 'Vmem':
 
             if self.p.sim_ECM is False:
 
@@ -1222,21 +1240,17 @@ class AnimateDeformation(object):
 
         elif self.p.ani_Deformation_type == 'Displacement':
 
-            dx = self.sim.dx_cell_time[i]
-            dy = self.sim.dy_cell_time[i]
-
             dd = 1e6*np.sqrt(dx**2 + dy**2)
 
-            if dd.all() != 0:
+        dd_collection, self.ax = cell_mesh(dd,self.ax,self.cells,self.p,self.specific_cmap)
 
-                dx = dx/dd
-                dy = dy/dd
+        if self.p.ani_Deformation_style == 'vector':
 
-        points = np.multiply(self.sim.cell_verts_time[i], self.p.um)
-        dd_collection = PolyCollection(points, array=dd, cmap=self.p.default_cm, edgecolors='none')
-        self.ax.add_collection(dd_collection)
+            vplot, self.ax = cell_quiver(dx,dy,self.ax,self.cells,self.p)
 
-        self.ax.quiver(self.p.um*self.sim.cell_centres_time[i][:,0],self.p.um*self.sim.cell_centres_time[i][:,1],dx,dy)
+        elif self.p.ani_Deformation_style == 'streamline':
+
+            vplot, self.ax = cell_stream(dx,dy,self.ax,self.cells,self.p, showing_cells=self.p.showCells)
 
         self.ax.axis('equal')
 
@@ -2887,7 +2901,7 @@ def env_quiver(datax,datay,ax,cells,p):
         Fy = datay/F_mag.max()
 
     vplot = ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], Fx.ravel(),
-        Fy.ravel(), pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7)
+        Fy.ravel(), pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7,zorder=10)
 
     return vplot, ax
 

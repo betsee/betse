@@ -813,6 +813,7 @@ class Parameters(object):
 
         self.ani_Deformation = ro['Deformation Ani']['animate Deformation']   # 2d animation of electric field
         self.ani_Deformation_type =ro['Deformation Ani']['data type']   # data type can be 'Vmem' or 'Displacement'
+        self.ani_Deformation_style = ro['Deformation Ani']['style']
         self.autoscale_Deformation_ani =ro['Deformation Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Deformation_ani_min_clr =float(ro['Deformation Ani']['min val'])         # maximum colorbar value in V/m
         self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
