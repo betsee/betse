@@ -679,6 +679,11 @@ class Parameters(object):
         self.Ca_min_clr = float(ro['Ca 2D']['min val'])
         self.Ca_max_clr = float(ro['Ca 2D']['max val'])
 
+        self.plot_pH2d = ro['pH 2D']['plot pH']                # 2d plot of final cell pH ?
+        self.autoscale_pH = ro['pH 2D']['autoscale colorbar']
+        self.pH_min_clr = float(ro['pH 2D']['min val'])
+        self.pH_max_clr = float(ro['pH 2D']['max val'])
+
         self.plot_ip32d = ro['IP3 2D']['plot IP3']               # 2d plot of final cIP3 ?
         self.autoscale_IP3 = ro['IP3 2D']['autoscale colorbar']
         self.IP3_min_clr = float(ro['IP3 2D']['min val'])
@@ -746,6 +751,11 @@ class Parameters(object):
         self.autoscale_Ca_ani = ro['Ca Ani']['autoscale colorbar']
         self.Ca_ani_min_clr = float(ro['Ca Ani']['min val'])
         self.Ca_ani_max_clr = float(ro['Ca Ani']['max val'])
+
+        self.ani_pH2d = ro['pH Ani']['animate pH']                # 2d animation of pH with time ?
+        self.autoscale_pH_ani = ro['pH Ani']['autoscale colorbar']
+        self.pH_ani_min_clr = float(ro['pH Ani']['min val'])
+        self.pH_ani_max_clr = float(ro['pH Ani']['max val'])
 
         self.ani_ip32d = ro['IP3 Ani']['animate IP3']               # 2d animation of cIP3 with time?
         self.autoscale_IP3_ani = ro['IP3 Ani']['autoscale colorbar']

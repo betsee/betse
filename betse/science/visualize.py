@@ -3123,22 +3123,17 @@ def _setup_file_saving(ani_obj: 'Animation', p: 'Parameters') -> None:
     elif p.plot_type == 'init':
         images_dirname = os.path.join(p.init_results, ani_obj.saveFolder)
 
-    #FIXME: Isn't "p.plot_type == 'seed'" an option here too? Popcorn sunrise!
     else:
         raise BetseExceptionParameters(
             'Animation saving for phase "{}" unsupported.'.format(p.plot_type))
 
     #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
 
-    # Make this directory if not found.
+    # Make this directory if not found -- FIXME can we get rid of the printout from this function...?
     images_dirname = dirs.canonicalize_and_make_unless_dir(images_dirname)
 
     # Absolute or relative path of the file to be saved.
     ani_obj.savedAni = os.path.join(images_dirname, ani_obj.saveFile)
 
-    #FIXME: Contemplate simple ways of supporting both animation repetition and
-    #saving in the same run. Neverland, lost boys, and the summer never yields!
-
-    # Force animations to *NOT* repeat. (Presumably, animation repetition
-    # conflicts with animation saving.)
+    # Force animations to *NOT* repeat (don't FIXME-- we don't want to keep saving the animation over and over and over so please keep this!)
     ani_obj.ani_repeat = False

@@ -1040,6 +1040,28 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+    if p.plot_pH2d is True and p.ions_dict['H'] == 1:
+
+        pHdata = -np.log10(sim.cc_time[-1][sim.iH])
+
+        figH, axH, cbH = viz.plotPolyData(sim,cells,p,zdata=pHdata,
+            number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
+            clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
+
+        axH.set_title('Final cytosolic pH')
+        axH.set_xlabel('Spatial distance [um]')
+        axH.set_ylabel('Spatial distance [um]')
+        cbH.set_label('pH')
+
+        if saveImages is True:
+            savename8 = savedImg + 'final_pH_2D' + '.png'
+            plt.savefig(savename8,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+
+
     #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_I2d is True:
@@ -1176,7 +1198,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         viz.plotVectField((1/p.um)*sim.F_electro_x,(1/p.um)*sim.F_electro_y,cells,p,plot_ecm = False,
                         title='Final Electrostatic Body Force', cb_title = 'Body Force [N/cm3]',
                         colorAutoscale = p.autoscale_force, minColor = p.force_min_clr,
-                        maxColor = p.force_ani_max_clr)
+                        maxColor = p.force_max_clr)
 
         if saveImages is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
@@ -1189,7 +1211,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         viz.plotVectField((1/p.um)*sim.F_hydro_x,(1/p.um)*sim.F_hydro_y,cells,p,plot_ecm = False,
                 title='Final Hydrostatic Pressure Induced Body Force', cb_title = 'Body Force [N/cm3]',
-                colorAutoscale = p.autoscale_force, minColor = p.force_min_clr, maxColor = p.force_ani_max_clr)
+                colorAutoscale = p.autoscale_force, minColor = p.force_min_clr, maxColor = p.force_max_clr)
 
         if saveImages is True:
             savename13 = savedImg + 'final_hydroF_2D' + '.png'
@@ -1300,6 +1322,14 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
             ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Ca',
             saveFile = 'ca_',ignore_simECM = True)
+
+    if p.ani_pH2d is True and p.ions_dict['H'] == 1 and animate == 1:
+        tpH = [-np.log10(arr[sim.iH]) for arr in sim.cc_time]
+
+        viz.AnimateCellData(sim,cells,tpH,sim.time,p,tit='Cytosolic pH', cbtit = 'pH', save=saveAni,
+            clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
+            ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/pH',
+            saveFile = 'pH_',ignore_simECM = True)
 
     if p.ani_vm2d is True and animate == 1:
 

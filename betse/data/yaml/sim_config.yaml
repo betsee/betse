@@ -194,7 +194,7 @@ world options:
                               # square grid. If equal to 0 a perfect
                               # square grid is created.
 
-  fluid flow:  # FIXME move these to variable settings and include a search term for the matrices in cells object!
+  fluid flow:
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
@@ -211,13 +211,11 @@ world options:
 #-----------------------------------------------------------------------------------------------------------------------
 # Tissues are user-defined regions within the cluster to which specific base membrane diffusion profiles,
 # interventions, and individualized dynamics (e.g voltage gated channels) can be applied.
-# Tissues can be gap-junction connected or separated from other tissues.
-# Cluster shape and individual tissues can be defined by bitmaps, or specified manually by cell number.
+# Tissues can be gap-junction connected or separated (isolated) from other tissues.
+# Cluster shape and individual tissues can be defined by bitmaps, or specified via various functional regimes.
 #
-# File synch warning: Tissues must be designed at the time of the 'betse init' command. If bitmaps or tissue profiles
-# are changed in the config file after running an init, the init must be run over again with the new settings.
-#
-# For related options, see also the "variable settings" section below.
+# File synch warning: Tissues must be designed at the time of the 'betse seed' command. If bitmaps or tissue profiles
+# are changed in the config file after running a seed, the seed must be run over again with the new settings.
 
 tissue profile definition:
 
@@ -232,7 +230,7 @@ tissue profile definition:
     # multiple profiles apply to the same cell, options defined by later
     # profiles override options defined by earlier profiles.
     #
-    # A profile's type is defined by the value of its "type" key:
+    # A profile's functionality is defined by the value of its "type" key:
     #
     # -> "type: tissue" associates profiled cells with the same parameters and events.
     # -> "type: cut" permanently removes all cells at the begining of a sim run.
@@ -249,7 +247,7 @@ tissue profile definition:
               Dm_K: 15.0e-18   # K+ membrane diffusion constant [m2/s]
               Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
               Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-16    # H+ membrane diffusion constant [m2/s]
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
@@ -286,7 +284,7 @@ tissue profile definition:
               Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
               Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
               Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-16    # H+ membrane diffusion constant [m2/s]
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
@@ -308,7 +306,7 @@ tissue profile definition:
               Dm_K: 150.0e-18  # K+ membrane diffusion constant [m2/s]
               Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
               Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-16    # H+ membrane diffusion constant [m2/s]
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
@@ -570,7 +568,7 @@ variable settings:
       Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
       Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
+      Dm_H: 1.0e-16        # H+ membrane diffusion constant [m2/s]
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
       Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
 
@@ -765,10 +763,16 @@ results options:
     min val: -70.0               # minimum colorbar value in mV
 
   Ca 2D:
-    plot Ca: True                # 2d plot of final cell calcium ?
+    plot Ca: True                # 2d plot of final cell calcium (if Ca2+ present in ion profile)?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                 # maximum colorbar value in nmol/L
     min val: 0                    # minimum colorbar value in nmol/L
+
+  pH 2D:
+    plot pH: True                # 2d plot of final pH (if H+ present in ion profile) ?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 8                 # maximum colorbar value in pH units
+    min val: 6                    # minimum colorbar value pH units
 
   IP3 2D:
     plot IP3: True               # 2d plot of final cIP3 ?
@@ -831,7 +835,7 @@ results options:
     max val: 15
     min val: -15
 
-  Electrostatic 2D:                      # 2D plot of electrostatic pressure in the cluster
+  Electrostatic 2D:                      # 2D plot of electrostatic force in the cluster
     plot Electrostatic: True
     autoscale colorbar: True
     max val: 15
@@ -850,6 +854,12 @@ results options:
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 1000                # maximum colorbar value in nmol/L
     min val: 0                   # minimum colorbar vlue in nmol/L
+
+  pH Ani:
+    animate pH: True           # 2d animation of cell pH with time ?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 8               # maximum colorbar value in nmol/L
+    min val: 6                   # minimum colorbar vlue in nmol/L
 
   IP3 Ani:
     animate IP3: True            # 2d animation of cIP3 with time?
@@ -1035,23 +1045,23 @@ internal parameters:
   # pump parameters
 
   alpha_NaK:  1.0e-10   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
-  halfmax_NaK:  6      # the free energy level at which pump activity is halved [kJ]
-  slope_NaK:  3        # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_NaK:  6      # the free energy level at which pump activity is zero [kJ]
+  slope_NaK:  3        # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
   Na pump exponent: 0.5       # the factor by which intracelluar sodium activates the NaK-ATPase pump
   K pump exponent: 0.5        # the factor by which extracellular potassium activates the NaK-ATPase pump
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
-  halfmax_Ca:  5       # the free energy level at which pump activity is halved [kJ]
-  slope_Ca:  3         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_Ca:  5       # the free energy level at which pump activity is zero [kJ]
+  slope_Ca:  3         # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_HK:  0.025    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-  halfmax_HK:  5       # the free energy level at which pump activity is halved [kJ]
-  slope_HK:  3         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_HK:  30       # the free energy level at which pump activity is zero [kJ]
+  slope_HK:  3         # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_V:  1.0     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-  halfmax_V:  5       # the free energy level at which pump activity is halved [kJ]
-  slope_V:  3         # the energy window width of the NaK-ATPase pump [kJ]
+  halfmax_V:  30       # the free energy level at which pump activity is zero [kJ]
+  slope_V:  3         # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
 
   max_gj_enhancement: 10   # parameters relating to flow sensitivity of gap junctions
   u_decay_rate: 0.5

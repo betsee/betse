@@ -1063,7 +1063,7 @@ class Simulator(object):
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
 
-                if p.HKATPase_dyn == 1:
+                if p.HKATPase_dyn == 1 and p.run_sim is True:
 
                     # if HKATPase pump is desired, run the H-K-ATPase pump:
                     f_H2, f_K2 = pumpHKATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.cc_cells[self.iK],
@@ -1084,7 +1084,7 @@ class Simulator(object):
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V_ecm(cells,p,t)
 
-                if p.VATPase_dyn == 1:
+                if p.VATPase_dyn == 1 and p.run_sim is True:
 
                      # if HKATPase pump is desired, run the H-K-ATPase pump:
                     f_H3 = pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block)
@@ -1603,11 +1603,11 @@ class Simulator(object):
 
                 self.Hplus_electrofuse_ecm(cells,p,t)
 
-                if p.HKATPase_dyn == 1:
+                if p.HKATPase_dyn == 1 and p.run_sim is True:
 
                     self.Hplus_HKATP_ecm(cells,p,t)
 
-                if p.VATPase_dyn == 1:
+                if p.VATPase_dyn == 1 and p.run_sim is True:
 
                     self.Hplus_VATP_ecm(cells,p,t)
 
@@ -1966,6 +1966,7 @@ class Simulator(object):
         self.update_V_ecm(cells,p,t)
 
     def Hplus_HKATP_ecm(self,cells,p,t):
+
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
         f_H2, f_K2 = pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_env[self.iH][cells.map_mem2ecm],
@@ -4285,7 +4286,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
     alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
-    f_H  = -alpha*(cHi)*(cKo)      #flux as [mol/s], scaled by concentrations in and out
+    f_H  = -alpha*(cHi**(1/2))*(cKo**(1/2))      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
 
@@ -4304,7 +4305,7 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
 
     # alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
     alpha = block*p.alpha_V*(delG_pump - p.halfmax_V)
-    f_H  = -alpha*cHi      #flux as [mol/s], scaled by concentrations in and out
+    f_H  = -alpha*cHi**(1/2)      #flux as [mol/s], scaled by concentrations in and out
 
     return f_H
 

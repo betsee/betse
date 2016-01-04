@@ -93,7 +93,7 @@ def make_unless_dir(dirname: str) -> None:
     # "exist_ok = True" below.
     if not is_dir(dirname):
         # Log this creation.
-        loggers.log_info('Creating directory "%s".', dirname)
+        loggers.log_debug('Creating directory "%s".', dirname)
 
         # Create this directory if still needed.
         os.makedirs(dirname, exist_ok = True)
