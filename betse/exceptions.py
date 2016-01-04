@@ -57,26 +57,6 @@ class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
             'Optional method {}() unimplemented.'.format(
                 callers.get_caller_name()))
 
-# ....................{ EXCEPTIONS ~ util                  }....................
-class BetseExceptionRegex(BetseException):
-    '''
-    Regular exception-specific exception.
-    '''
-    pass
-
-# ....................{ EXCEPTIONS ~ science               }....................
-class BetseExceptionParameters(BetseException):
-    '''
-    Parameters-specific exception.
-    '''
-    pass
-
-class BetseExceptionSimulation(BetseException):
-    '''
-    Simulation-specific exception.
-    '''
-    pass
-
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetseExceptionPath(BetseException):
     '''
@@ -93,6 +73,33 @@ class BetseExceptionDir(BetseExceptionPath):
 class BetseExceptionFile(BetseExceptionPath):
     '''
     File-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ type                  }....................
+class BetseExceptionRegex(BetseException):
+    '''
+    Regular exception-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ lib                   }....................
+class BetseExceptionMatplotlib(BetseException):
+    '''
+    Matplotlib-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ science               }....................
+class BetseExceptionParameters(BetseException):
+    '''
+    Parameters-specific exception.
+    '''
+    pass
+
+class BetseExceptionSimulation(BetseException):
+    '''
+    Simulation-specific exception.
     '''
     pass
 

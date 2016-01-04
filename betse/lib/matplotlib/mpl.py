@@ -15,33 +15,34 @@
 #"betse info". So, let's just get this done, please.
 
 '''
-High-level support facilities for `matplotlib`, a mandatory runtime dependency.
+High-level support facilities for matplotlib, a mandatory runtime dependency.
 
 Backends
 ----------
-`matplotlib` supports numerous **interactive backends** (i.e., bindings to
+matplotlib supports numerous **interactive backends** (i.e., bindings to
 external GUI-specific widget toolkits), only one of which will be imported by
-`matplotlib` at runtime. If the caller specifies no such backend, a default
+matplotlib at runtime. If the caller specifies no such backend, a default
 backend specific to the current system will be imported. However, all such
 backends including such defaults are fairly fragile and hence prone to raising
 exceptions under common contexts.
 
 The following table summarizes our current findings:
 
-=========  ========   ======  ========  ======  ========  ======  ========
-Backend    Footnote   Is Supported Under?
-                      ----------------------------------------------------
-                      Linux             OS X              Windows
-                      ----------------  ----------------  ----------------
-                      Frozen  Unfrozen  Frozen  Unfrozen  Frozen  Unfrozen
-=========  ========   ======  ========  ======  ========  ======  ========
-CocoaAgg   1          No      No        No      No        No      No
-Gtk3Agg    2          No      No        No      No        No      No
-Gtk3Cairo  3          No      No        ???     ???       ???     ???
-MacOSX                No      No        Yes     Yes       No      No
-Qt4Agg     3          No      No        ???     ???       ???     ???
-TkAgg      4          Yes     Yes       No      Yes       ???     ???
-=========  ========   ======  ========  ======  ========  ======  ========
+=========  ========  ======  ========  ======  ========  ======  ========
+Backend    Footnote  Is Supported Under?
+                     ----------------------------------------------------
+                     Linux             OS X              Windows
+                     ----------------  ----------------  ----------------
+                     Frozen  Unfrozen  Frozen  Unfrozen  Frozen  Unfrozen
+=========  ========  ======  ========  ======  ========  ======  ========
+CocoaAgg   1         No      No        No      No        No      No
+Gtk3Agg    2         No      No        No      No        No      No
+Gtk3Cairo  3         No      No        ???     ???       ???     ???
+MacOSX               No      No        Yes     Yes       No      No
+Qt4Agg     3         No      No        ???     ???       ???     ???
+Qt5Agg               ???     ???       ???     ???       ???     ???
+TkAgg                Yes     Yes       No      Yes       ???     ???
+=========  ========  ======  ========  ======  ========  ======  ========
 
 Footnote descriptions are as follows:
 
@@ -49,19 +50,6 @@ Footnote descriptions are as follows:
 2. Backend "Gtk3Agg" is known to be broken under Python 3.
 3. These backends do *not* support our current animation method, despite
    otherwise working (e.g., to display static plots).
-4. Backend `TkAgg` is only freezable under `matplotlib` < 1.4.0. `matplotlib`
-   switched Python compatibility layers from `2to3` to `six`, the latter of
-   which currently obstructs freezing. This is provisionally correctable under
-   `matplotlib` >= 1.4.0 by manually patching the
-   `site-packages/matplotlib/backends/backend_tkagg.py` script under the current
-   Python 3 interpreter as follows:
-
-    # Replace these header imports...
-    from six.moves import tkinter as Tk
-    from six.moves import tkinter_filedialog as FileDialog
-
-    # ...with this header import.
-    import tkinter as Tk
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -72,7 +60,7 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseExceptionMatplotlib
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.python import modules, pythons
@@ -134,17 +122,6 @@ on-disk `matplotlibrc` file.
 '''
 
 # ....................{ GETTERS                            }....................
-def get_backend_figure_filetypes() -> list:
-    '''
-    Get the list of all figure filetypes supported by the current backend.
-    '''
-    # Avoid importing "pyplot" at the top level. See above.
-    from matplotlib import pyplot
-
-    # Magic is magic. Do not question magic, for it is magical.
-    return list(pyplot.figure().canvas.get_supported_filetypes().keys())
-
-
 def get_colormap(colormap_name: str) -> Colormap:
     '''
     Get the Matplotlib colormap with the passed name.
@@ -164,20 +141,20 @@ def get_colormap(colormap_name: str) -> Colormap:
 
     colormap = getattr(colormaps, colormap_name, None)
     if not isinstance(colormap, Colormap):
-        raise BetseExceptionParameters(
+        raise BetseExceptionMatplotlib(
             'Matplotlib colormap "{}" not found.'.format(colormap_name))
     return colormap
 
 # ....................{ CLASSES                            }....................
 class MatplotlibConfig(object):
     '''
-    `matplotlib` wrapper simplifying configuration and introspection.
+    matplotlib wrapper simplifying configuration and introspection.
 
     Attributes
     ----------
     _backend_names : list
         List of the strictly lowercase names of all currently available
-        `matplotlib`-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
+        matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
     '''
     def __init__(self):
         super().__init__()
@@ -186,16 +163,16 @@ class MatplotlibConfig(object):
     # ..................{ INITIALIZERS                       }..................
     def init(self) -> None:
         '''
-        Reconfigure `matplotlib` with sane defaults specific to the current
+        Reconfigure matplotlib with sane defaults specific to the current
         system.
 
-        On first importation, `matplotlib` configures itself by loading the
+        On first importation, matplotlib configures itself by loading the
         contents of the first `matplotlibrc` file found in any of several
         candidate directories. Technically, `betse` *could* supply an
-        application-specific version of such file to force `matplotlib` to adopt
+        application-specific version of such file to force matplotlib to adopt
         application-specific configuration settings. Since synchronizing such
         local copy with remote changes is an onerous (if not ultimately
-        infeasible) chore, we elect instead to reconfigure `matplotlib` *after*
+        infeasible) chore, we elect instead to reconfigure matplotlib *after*
         such file has already been loaded at application startup. While this
         slightly increases the cost of such startup, the alternatives are
         impractical at best.
@@ -203,15 +180,15 @@ class MatplotlibConfig(object):
         See Also
         ----------
         http://matplotlib.org/users/customizing.html
-            `matplotlib` configuration details.
+            matplotlib configuration details.
         '''
-        # Reconfigure the following settings, whose keys are the names of settings
-        # provided by the official "matplotlibrc" file.
+        # Reconfigure the following settings, whose keys are the names of
+        # settings provided by the official "matplotlibrc" file.
         matplotlib.rcParams.update(RCPARAMS)
 
         #FIXME: Excise commentary.
         # Configure the backend to be implicitly used for subsequent plotting.
-        # Such backend *MUST* be configured prior to the first importation of
+        # This backend *MUST* be configured prior to the first importation of
         # matplotlib's "pyplot", "matplotlib", or "backends" modules.
         #
         # If the current operating system is Linux or Windows, the "TkAgg"
@@ -239,39 +216,49 @@ class MatplotlibConfig(object):
         # * Installability. When installing "matplotlib", MacPorts enables by
         #   default the "tkinter" variant and hence such backend but *NO* other
         #   AGG-based backends.
-
+        #
         # If the current operating system is OS X, enable the only backend known
-        # to survive freezing: the typical default for such system, "MacOSX".
+        # to survive freezing: the typical default for this system, "MacOSX".
         if oses.is_os_x():
             self.backend_name = 'MacOSX'
-        # Else, the current operating system is Linux or Windows. In such case,
+        # Else, the current operating system is Linux or Windows. In this case,
         # enable the only backend known to survive freezing: again, the typical
-        # default for such systems, "TkAgg". Unlike backend "MacOSX", however,
-        # backend "TkAgg" is fragile and currently requires matplotlib < 1.4.0.
+        # default for these systems, "TkAgg". Unlike the "MacOSX" backend,
+        # however, the "TkAgg" backend is known to be somewhat... fragile.
         else:
             # self.backend_name = 'Gtk3Cairo'
             # self.backend_name = 'Qt4Agg'
             self.backend_name = 'TkAgg'
 
     # ..................{ TESTERS                            }..................
+    def is_backend(self) -> bool:
+        '''
+        `True` if a backend has been set (i.e., if the `matplotlib.use()` method
+        has been called for the current Python session) or `False` otherwise.
+        '''
+        # This test corresponds exactly to the test performed by the
+        # matplotlib.use() method itself to detect repetitious calls.
+        return 'matplotlib.backends' in sys.modules
+
+
     def is_backend_usable(self, backend_name: str) -> bool:
         '''
-        True if the `matplotlib` backend with the passed name is switchable to
-        and hence usable on the current system.
+        `True` if the backend with the passed name is **usable** (i.e., safely
+        switchable to without raising exceptions) on the current system.
 
-        This method modifies but does *not* restore the previously set backend.
-        If required, the caller *must* manually save and restore such backend.
+        This method modifies but does _not_ restore the previously set backend.
+        If desired, the caller _must_ manually save and restore the current
+        backend.
         '''
-        assert isinstance(backend_name, str),\
-            '"{}" not a string.'.format(backend_name)
+        assert types.is_str(backend_name), types.assert_not_str(backend_name)
 
-        # Importing such module has side effects and hence is deferred.
+        # Avoid importing this module at the top-level, for safety.
         from matplotlib import pyplot
 
         # Since backend names are case-insensitive, lowercase such name.
         backend_name = backend_name.lower()
 
-        # If such backend is "Gtk3Agg", immediately report such backend to be
+        # If this backend is "Gtk3Agg", immediately report this backend to be
         # unusable without testing such report. Attempting to use such backend
         # currently emits the following warning, which only serves to confound
         # the issue for end users:
@@ -279,7 +266,7 @@ class MatplotlibConfig(object):
         if backend_name == 'gtk3agg':
             return False
 
-        # Test such backend.
+        # Test this backend.
         try:
             pyplot.switch_backend(backend_name)
             return True
@@ -289,111 +276,121 @@ class MatplotlibConfig(object):
     # ..................{ GETTERS                            }..................
     def get_metadata(self) -> OrderedDict:
         '''
-        Get an ordered dictionary synopsizing the current `matplotlib`
+        Get an ordered dictionary synopsizing the current matplotlib
         installation.
         '''
-        # Such dictionary.
+        # This dictionary.
         metadata = OrderedDict((
             ('rc file', self.rc_filename),
             ('current backend', self.backend_name),
             # ('[backend] current', self.backend_name),
         ))
 
-        # For each available backend, add metadata synopsizing such backend.
+        # For each available backend, add metadata synopsizing that backend.
         for backend_name in self.backend_names:
             metadata[
                 'backend {} usable'.format(backend_name.capitalize())] =\
                 str(self.is_backend_usable(backend_name)).lower()
 
-        # Get such dictionary.
+        # Get this dictionary.
         return metadata
 
-    # ..................{ PROPERTIES ~ rc file               }..................
+
+    # ..................{ PROPERTIES ~ read-only             }..................
     @property
     def rc_filename(self) -> str:
         '''
-        Get the absolute path of the current `matplotlibrc` file establishing
-        default `matplotlib` options.
+        Absolute path of the current `matplotlibrc` file establishing default
+        matplotlib options.
         '''
         return matplotlib.matplotlib_fname()
 
-    # ..................{ PROPERTIES ~ backend name          }..................
+    # ..................{ PROPERTIES ~ read-only : backend   }..................
     @property
-    def backend_name(self) -> str:
+    def backend(self) -> type(sys):
         '''
-        Get the strictly lowercase name of the current `matplotlib` backend.
+        In-memory module object corresponding to the current backend.
+
+        If no backend has been set yet, an exception is raised.
         '''
-        return matplotlib.get_backend()
+        # If no backend has been set yet, raise an exception.
+        if not self.is_backend():
+            raise BetseExceptionMatplotlib('No matplotlib backend set.')
 
-    @backend_name.setter
-    def backend_name(self, backend_name: str) -> None:
-        '''
-        Set the current `matplotlib` backend to the backend with the passed
-        name.
+        # Name of this backend's module.
+        backend_module_name = (
+            'matplotlib.backends.backend_' + self.backend_name)
 
-        Such name is interpreted case-insensitively and hence may be in any case
-        including mixed lower and uppercase (e.g., `tkagg`, `TKAGG`, `TkAgg`).
-        '''
-        assert isinstance(backend_name, str),\
-            '"{}" not a string.'.format(backend_name)
+        # This backend's module. Since this backend has been set, this module
+        # *SHOULD* still be cached in-memory. Let's be sure.
+        backend_module = sys.modules.get(backend_module_name, None)
+        if backend_module is None:
+            raise BetseExceptionMatplotlib(
+                'Matplotlib backend module "{}" not found.'.format(
+                    backend_module_name))
+        return backend_module
 
-        # Since backend names are case-insensitive, lowercase such name.
-        backend_name = backend_name.lower()
 
-        #FIXME: Excise this after adding "six" support to PyInstaller.
-
-        # If such backend is "TkAgg", manually import "tkinter". matplotlib 1.4
-        # dropped the "2to3" compatibility layer in favor of "six", which hides
-        # imports in the form of:
-        #
-        #     from six.moves import tkinter_filedialog as FileDialog
-        #
-        # Since PyInstaller fails to detect such imports, manually import the
-        # offending modules to notify PyInstaller of such requirements.
-        if backend_name == 'tkagg':
-            pass
-            # import os
-            # print('tcl library: ' + str(os.environ.get('TCL_LIBRARY')))
-            # print('tk library: ' + str(os.environ.get('TK_LIBRARY')))
-            # import tkinter
-            # import _tkinter
-            # import tkinter.filedialog
-            # import tkinter.messagebox
-
-        try:
-            # If neither the "matplotlib.pyplot" nor "matplotlib.pylab" modules
-            # have been imported yet, prefer setting such backend by calling the
-            # non-experimental and hence safer use() function.
-            if not modules.is_imported(
-                'matplotlib.pyplot', 'matplotlib.pylab'):
-                matplotlib.use(backend_name)
-            # Else, we have no recourse but to call the experimental
-            # switch_backend() function.
-            else:
-                # Importing such module has side effects and hence is deferred.
-                from matplotlib import pyplot
-                pyplot.switch_backend(backend_name)
-        # Since such functions tend to raise non-human-readable exceptions, log
-        # a human-readable error on catching such exception before reraising
-        # such exception.
-        except Exception:
-            loggers.log_error(
-                'Matplotlib backend "{}" not found or not loadable.'.format(
-                    backend_name))
-            raise
-
-        # Log such setting *AFTER* succeeding.
-        loggers.log_debug(
-            'Enabled matplotlib backend "{}".'.format(backend_name))
-
-    # ..................{ PROPERTIES ~ backend names         }..................
     @property
-    def backend_names(self) -> str:
+    def backend_canvas_class(self) -> type(object):
         '''
-        Get a list of the strictly lowercase names of all currently available
-        `matplotlib`-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
+        `FigureCanvas` subclass corresponding to the current backend (e.g.,
+        `FigureCanvasQt5Agg` for the `qt5agg` backend).
 
-        While `matplotlib` provides the canonical lists
+        If no backend has been set yet, an exception is raised.
+        '''
+
+        # This backend's module.
+        backend = self.backend
+
+        # This subclass. While all standard backends *SHOULD* set the module
+        # attribute "FigureCanvas" to the "FigureCanvas" subclass specific to
+        # that backend, let's be sure.
+        backend_canvas_class = getattr(backend, 'FigureCanvas', None)
+        if backend_canvas_class is None:
+            raise BetseExceptionMatplotlib(
+                'Matplotlib backend canvas class '
+                '"{}.FigureCanvas" not found.'.format(backend.__name__))
+        return backend_canvas_class
+
+
+    @property
+    def backend_figure_filetypes(self) -> list:
+        '''
+        List of all figure filetypes supported by the current backend (e.g.,
+        `['bmp', 'gif', 'jpg', 'png', 'tiff']`).
+
+        If no backend has been set yet, an exception is raised.
+        '''
+
+        # There exist two means of acquiring this metadata:
+        #
+        # 1. Creating an empty canvas specific to the current backend.
+        # 2. Creating an empty figure specific to the current backend.
+        #
+        # Since the latter also implicitly requires creating an empty canvas and
+        # is hence both more expensive and more complex, we adopt the former.
+        backend_canvas_class = self.backend_canvas_class
+
+        # The "FigureCanvasBase" superclass of all canvas subclasses defines the
+        # public class attribute "filetypes" to be the dictionary of all
+        # filetypes supported by that canvas. Moreover, all subclasses reliably
+        # redefine this attribute in the expected way. While the same list is
+        # also obtainable by creating an instance of this subclass and calling
+        # that subclass' get_supported_filetypes() method, the current approach
+        # is substantially more efficient.
+        #
+        # Magic is magic. Do not question magic, for it is magical.
+        return list(backend_canvas_class.filetypes.keys())
+
+
+    @property
+    def backend_names(self) -> list:
+        '''
+        List of the strictly lowercase names of all currently available
+        matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
+
+        While matplotlib provides the canonical lists
         `matplotlib.rcsetup.interactive_bk`,
         `matplotlib.rcsetup.non_interactive_bk`, and
         `matplotlib.rcsetup.all_backends`, even the latter such list typically
@@ -401,7 +398,7 @@ class MatplotlibConfig(object):
         Instead, this function iteratively inspects the current filesystem.
         '''
         # If this funuction has *NOT* been called at least once, create and
-        # cache such list.
+        # cache this list.
         if self._backend_names is None:
             # Importing such module has side effects and hence is deferred.
             from matplotlib import backends
@@ -431,29 +428,128 @@ class MatplotlibConfig(object):
                         backend_basename, BACKEND_BASENAME_PREFIX) and
                         paths.is_filetype(backend_basename, 'py')
                 ])
-            # Else, such directory does *NOT* exist.
+            # Else, this directory does *NOT* exist.
             else:
                 # If the active Python interpreter is frozen, this is expected
                 # and hence ignorable; else, this is unexpected, in which case a
                 # non-fatal warning is logged and such list is cleared.
                 if not pythons.is_frozen():
                     loggers.log_warning(
-                        'Directory "{}" not found. Matplotlib backends not queryable.'.format(
+                        'Directory "{}" not found. '
+                        'Matplotlib backends not queryable.'.format(
                             backends_dir))
 
-                # In either case, clear such list.
+                # In either case, clear this list.
                 self._backend_names = []
 
         # Get the cached list.
         return self._backend_names
 
+    # ..................{ PROPERTIES ~ backend name          }..................
+    @property
+    def backend_name(self) -> str:
+        '''
+        Get the human-readable name (e.g., `Qt5Agg`) of the current backend.
+
+        This name is _not_ guaranteed to be lowercase and, in fact, is typically
+        a mix of upper- and lowercase alphanumeric characters.
+        '''
+        return matplotlib.get_backend()
+
+
+    @backend_name.setter
+    def backend_name(self, backend_name: str) -> None:
+        '''
+        Set the current backend to the backend with the passed name.
+
+        This name is interpreted case-insensitively and hence may be in any case
+        including mixed lower and uppercase (e.g., `tkagg`, `TKAGG`, `TkAgg`).
+        '''
+        assert types.is_str(backend_name), types.assert_not_str(backend_name)
+
+        # Since backend names are case-insensitive, lowercase such name.
+        backend_name = backend_name.lower()
+
+        try:
+            # If no backend has been set yet, set this backend by calling the
+            # non-experimental and hence safer use() function.
+            if not self.is_backend():
+                matplotlib.use(backend_name)
+            # Else, we have no recourse but to call the experimental
+            # switch_backend() function.
+            else:
+                # Avoid importing this module at the top-level, for safety.
+                from matplotlib import pyplot
+                pyplot.switch_backend(backend_name)
+        # Since such functions tend to raise non-human-readable exceptions, log
+        # a human-readable error on catching such exception before reraising
+        # such exception.
+        except Exception:
+            loggers.log_error(
+                'Matplotlib backend "{}" not found or not loadable.'.format(
+                    backend_name))
+            raise
+
+        # Log such setting *AFTER* succeeding.
+        loggers.log_debug(
+            'Enabled matplotlib backend "{}".'.format(backend_name))
+
 # ....................{ SINGLETONS                         }....................
-config = MatplotlibConfig()
+mplconfig = MatplotlibConfig()
 '''
-Singleton `matplotlib` configuration wrapper.
+Singleton matplotlib configuration wrapper.
 '''
 
 # --------------------( WASTELANDS                         )--------------------
+        # For efficiency, this property should be accessed sparingly. Each
+        # property access implicitly constructs an empty canvas and is hence
+        # somewhat inefficient.
+
+        # return list(pyplot.figure().canvas.get_supported_filetypes().keys())
+
+# 4. Backend `TkAgg` is only freezable under matplotlib < 1.4.0. matplotlib
+#    switched Python compatibility layers from `2to3` to `six`, the latter of
+#    which currently obstructs freezing. This is provisionally correctable under
+#    matplotlib >= 1.4.0 by manually patching the
+#    `site-packages/matplotlib/backends/backend_tkagg.py` script under the current
+#    Python 3 interpreter as follows:
+#
+#     # Replace these header imports...
+#     from six.moves import tkinter as Tk
+#     from six.moves import tkinter_filedialog as FileDialog
+#
+#     # ...with this header import.
+#     import tkinter as Tk
+
+            # If neither the "matplotlib.pyplot" nor "matplotlib.pylab" modules
+            # have been imported yet, prefer setting this backend by calling the
+            # non-experimental and hence safer use() function.
+            # if not modules.is_imported(
+            #     'matplotlib.pyplot', 'matplotlib.pylab'):
+
+# and currently requires
+        # matplotlib < 1.4.0
+        #FUXME: Excise this after adding "six" support to PyInstaller.
+
+        # If such backend is "TkAgg", manually import "tkinter". matplotlib 1.4
+        # dropped the "2to3" compatibility layer in favor of "six", which hides
+        # imports in the form of:
+        #
+        #     from six.moves import tkinter_filedialog as FileDialog
+        #
+        # Since PyInstaller fails to detect such imports, manually import the
+        # offending modules to notify PyInstaller of such requirements.
+        # if backend_name == 'tkagg':
+        #     pass
+
+            # import os
+            # print('tcl library: ' + str(os.environ.get('TCL_LIBRARY')))
+            # print('tk library: ' + str(os.environ.get('TK_LIBRARY')))
+            # import tkinter
+            # import _tkinter
+            # import tkinter.filedialog
+            # import tkinter.messagebox
+
 #FUXME: O.K.; so, basically, Tcl/Tk is absolutely terrible and fundamentally
 #does *NOT* work anywhere. At the very least, we need to revert back the change
 #that conditionally set the "macosx" backend for that operating system. I'm not
@@ -583,9 +679,9 @@ Singleton `matplotlib` configuration wrapper.
 # (e.g., under Windows or when frozen
 # (e.g., on operating systems, freeze),
 # , exactly one of which will be used to
-# . If `matplotlib` is *not* explicitly
+# . If matplotlib is *not* explicitly
 #  of a the caller fails to notify
-#  of its preferred  backend is explicitly specified `matplotlib`
+#  of its preferred  backend is explicitly specified matplotlib
 #  *and* , the following
 
 #FUXME: This appears to be required due to a PyInstaller bug. Research.
@@ -614,7 +710,7 @@ Singleton `matplotlib` configuration wrapper.
         # self.backend_name = None
 
     # backend_name : str
-    #     Strictly lowercase name of the current `matplotlib` backend.
+    #     Strictly lowercase name of the current matplotlib backend.
         # # If this is the first call to this setter, call the safer use()
         # # function. Such function may *ALWAYS* be safely called
         # if not is_imported(self.backend_name:
@@ -625,7 +721,7 @@ Singleton `matplotlib` configuration wrapper.
 # ....................{ SETTERS                            }....................
 # def _set_matplotlib_backend_tkagg() -> None:
 #     '''
-#     Set the current `matplotlib` backend to `TkAgg`, the customary default
+#     Set the current matplotlib backend to `TkAgg`, the customary default
 #     backend leveraging the `tkinter` GUI toolkit and AGG rendering framework.
 #     '''
 #     # matplotlib 1.4 dropped the "2to3" compatibility layer in favor of "six",
@@ -638,7 +734,7 @@ Singleton `matplotlib` configuration wrapper.
 #     # Set such backend.
 #     matplotlib.use('tkagg')
 
-    # Inspector analyzing currently available `matplotlib` backends.
+    # Inspector analyzing currently available matplotlib backends.
         # Basenames of all backend-specific Python modules in such directory.
         # backend_basenames = [
     #FUXME: If we continue to be plagued by OS X plotting issues, consider

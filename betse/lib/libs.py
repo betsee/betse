@@ -19,9 +19,7 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from collections import OrderedDict
-
 from betse import metadata
-
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -35,14 +33,14 @@ def init() -> None:
       platform.
     '''
     # Avoid circular import dependencies.
-    from betse.lib.matplotlib import matplotlibs
+    from betse.lib.matplotlib.mpl import mplconfig
 
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.
     die_unless_satisfiable_all()
 
     # Configure such dependencies.
-    matplotlibs.config.init()
+    mplconfig.init()
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_satisfiable_all() -> None:
@@ -102,7 +100,7 @@ def get_metadata() -> OrderedDict:
             # Fully-qualified name of this project's root module or package.
             module_name =\
                 setuptool.SETUPTOOLS_TO_MODULE_NAME[project_name]
-            
+
 	    # If this module is importable and hence frozen with this
 	    # executable, this module is a describable dependency.
             if modules.is_module(module_name):

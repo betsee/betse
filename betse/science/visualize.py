@@ -10,7 +10,7 @@ import numpy as np
 import numpy.ma as ma
 import os, os.path
 from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
-from betse.lib.matplotlib import matplotlibs
+from betse.lib.matplotlib import mpl
 from betse.util.path import dirs
 from betse.util.type import types
 from matplotlib import animation
@@ -40,7 +40,7 @@ class AnimateCellData(object):
         clrAutoscale: bool = True,
         clrMin = None,
         clrMax = None,
-        clrmap: 'Colormap' = matplotlibs.get_colormap('rainbow'),
+        clrmap: 'Colormap' = mpl.get_colormap('rainbow'),
         number_cells: bool = False,
         saveFolder: str = 'animation',
         saveFile: str = 'sim_',
@@ -63,6 +63,22 @@ class AnimateCellData(object):
         self.saveFile = saveFile
         self.ani_repeat = ani_repeat
 
+        #FIXME: Unfortunately, use of pyplot and hence the pylab figure manager
+        #is a bit problematic for long-lived applications like BETSE. Why?
+        #Dumb memory leaks. Every time plt.figure() is called, a new figure is
+        #added to the pylab figure manager. That's a problem, as it means that
+        #figures are never implicitly released from memory -- even if the GUI
+        #window displaying that figure has long been closed. The only way to
+        #release such a figure from memory is to call its figure.close()
+        #method. Unfortunately, we can't do that either! Why? Because figures
+        #are displayed in a non-blocking manner, which means that we don't
+        #actually know when that method should be called.
+        #
+        #The solution, of course, is to stop using the pylab figure manager
+        #altogether and to instead instead directly instantiate figures and
+        #canvases via Matplotlib's object-oriented API. See also:
+        #    https://stackoverflow.com/questions/16334588/create-a-figure-that-is-reference-counted/16337909#16337909
+        #Abundant stags in the furry forest!
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 

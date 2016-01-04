@@ -9,7 +9,7 @@ Matplotlib-specific animation classes.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionFile
-from betse.lib.matplotlib import matplotlibs
+from betse.lib.matplotlib import mpl
 from betse.util.path import dirs, paths
 # from betse.util.type import types
 from matplotlib.animation import writers, FileMovieWriter
@@ -71,7 +71,7 @@ class FileFrameWriter(FileMovieWriter):
         # require calling the following function and hence importing the
         # "matplotlib.pyplot" module at the time of this module's importation,
         # substantially complicating Matplotlib use. (Think backends.)
-        out_filetypes_supported = matplotlibs.get_backend_figure_filetypes()
+        out_filetypes_supported = mpl.backend_figure_filetypes()
 
         # If this filetype is unsupported, raise an exception.
         if out_filetype not in out_filetypes_supported:
