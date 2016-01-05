@@ -66,11 +66,13 @@ loggers except the root logger to be unconfigured, messages will be logged
 # Since all other modules should *ALWAYS* be able to safely import this module
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+import logging, os, sys
+from betse.util.type import types
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
 # from textwrap import TextWrapper
-import logging, os, sys
 
 # ....................{ CONSTANTS ~ int                    }....................
 # Originally, we attempted to dynamically copy such constants from the "logging"
@@ -140,16 +142,15 @@ def get(logger_name: str = None) -> logging.Logger:
     '''
     # Default the name of such logger to the basename of the current process.
     # (e.g., "betse").
-    if not logger_name:
+    if logger_name is None:
         from betse.util.system import processes
         logger_name = processes.get_current_basename()
 
     # If such name is the empty string, this function would get the root logger.
     # Since such name being empty typically constitutes an implicit error rather
     # than an attempt to get the root logger, such constraint is asserted.
-    assert isinstance(logger_name, str),\
-        '"{}" not a string.'.format(logger_name)
-    assert logger_name, 'Logger name empty.'
+    assert types.is_str_nonempty(logger_name), types.assert_not_str_nonempty(
+        logger_name)
 
     # Get such logger.
     return logging.getLogger(logger_name)
@@ -163,8 +164,9 @@ def log_debug(message: str, *args, **kwargs) -> None:
     This function expects the `LoggerConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    assert types.is_str(message), types.assert_not_str(message)
     logging.debug(message, *args, **kwargs)
+
 
 def log_info(message: str, *args, **kwargs) -> None:
     '''
@@ -174,8 +176,9 @@ def log_info(message: str, *args, **kwargs) -> None:
     This function expects the `LoggerConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    assert types.is_str(message), types.assert_not_str(message)
     logging.info(message, *args, **kwargs)
+
 
 def log_warning(message: str, *args, **kwargs) -> None:
     '''
@@ -185,8 +188,9 @@ def log_warning(message: str, *args, **kwargs) -> None:
     This function expects the `LoggerConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    assert types.is_str(message), types.assert_not_str(message)
     logging.warning(message, *args, **kwargs)
+
 
 def log_error(message: str, *args, **kwargs) -> None:
     '''
@@ -196,7 +200,7 @@ def log_error(message: str, *args, **kwargs) -> None:
     This function expects the `LoggerConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert isinstance(message, str), '"{}" not a string.'.format(message)
+    assert types.is_str(message), types.assert_not_str(message)
     logging.error(message, *args, **kwargs)
 
 # ....................{ CONFIG                             }....................
@@ -259,6 +263,7 @@ class LoggerConfig(object):
     '''
     def __init__(self):
         super().__init__()
+
         self._is_initted = False
         self._log_filename = None
         self._logger_root = None
@@ -266,29 +271,30 @@ class LoggerConfig(object):
         self._logger_root_handler_stderr = None
         self._logger_root_handler_stdout = None
 
+
     def init(self, filename: str) -> None:
         '''
         Initialize the root logger for application-wide logging to the passed
         filename.
         '''
-        assert isinstance(filename, str),\
-            '"{}" not a string.'.format(filename)
+        assert types.is_str(filename), types.assert_not_str(filename)
+
         super().__init__()
 
-        # Import modules required below.
+        # Avoid circular import dependencies.
         from betse.util.system import processes
         from betse.util.type import ints
 
-        # Record such filename.
+        # Record this filename.
         self._log_filename = filename
 
         # Root logger.
         logger_root = logging.getLogger()
 
-        # Instruct such logger to entertain all log requests, ensuring such
+        # Instruct this logger to entertain all log requests, ensuring these
         # requests will be delegated to the handlers defined below. By default,
-        # such logger ignores all log requests with level less than "WARNING",
-        # preventing handlers from receiving such requests.
+        # this logger ignores all log requests with level less than "WARNING",
+        # preventing handlers from receiving these requests.
         logger_root.setLevel(ALL)
 
         # Root logger stdout handler, preconfigured as documented above. Sadly,
@@ -302,11 +308,11 @@ class LoggerConfig(object):
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
 
-        # Create the directory containing such logfile if needed. Since
-        # dirs.make_parent_unless_dir() logs such creation, calling such
+        # Create the directory containing this logfile if needed. Since
+        # dirs.make_parent_unless_dir() logs such creation, calling that
         # function here induces exceptions in the worst case (due to the root
         # logger having been insufficiently configured) or subtle errors in the
-        # best case. Instead, create such directory with standard low-level
+        # best case. Instead, create this directory with standard low-level
         # Python functions.
         os.makedirs(path.dirname(self._log_filename), exist_ok = True)
 
@@ -351,19 +357,23 @@ class LoggerConfig(object):
             '[{{asctime}}] {} {{levelname}} ({{module}}.py:{{funcName}}():{{lineno}}):\n    {{message}}'.format(
                 script_basename)
 
-        # Formatters for such formats.
+        # Formatters for these formats.
         stream_formatter = LoggerFormatterStream(stream_format, style='{')
         file_formatter = LoggerFormatterStream(file_format, style='{')
 
-        # Set such formatters on such handlers.
+        # Assign these formatters to these handlers.
         self._logger_root_handler_stdout.setFormatter(stream_formatter)
         self._logger_root_handler_stderr.setFormatter(stream_formatter)
         self._logger_root_handler_file.setFormatter(file_formatter)
 
-        # Register such handlers with the root logger.
+        # Register these handlers with the root logger.
         logger_root.addHandler(self._logger_root_handler_stdout)
         logger_root.addHandler(self._logger_root_handler_stderr)
         logger_root.addHandler(self._logger_root_handler_file)
+
+        # Redirect all warnings through the logging framewark *AFTER*
+        # successfully performing the above initialization.
+        logging.captureWarnings(True)
 
         # Report this object as having been initialized to callers *AFTER*
         # successfully performing the above initialization.
@@ -376,6 +386,7 @@ class LoggerConfig(object):
         True if the init() method has been previously called.
         '''
         return self._is_initted
+
 
     @property
     def filename(self) -> str:
@@ -392,12 +403,14 @@ class LoggerConfig(object):
         '''
         return self._logger_root_handler_file
 
+
     @property
     def handler_stderr(self) -> logging.Handler:
         '''
         Root logger handler printing to standard error.
         '''
         return self._logger_root_handler_stderr
+
 
     @property
     def handler_stdout(self) -> logging.Handler:
@@ -429,8 +442,8 @@ class LoggerFilterInfoOrLess(Filter):
         '''
         True if the passed log record has a logging level of `INFO` or less.
         '''
-        assert isinstance(log_record, LogRecord),\
-            '"{}" not a log record.'.format(log_record)
+        assert isinstance(log_record, LogRecord), (
+            '"{}" not a log record.'.format(log_record))
         return log_record.levelno <= logging.INFO
 
 # ....................{ CLASSES ~ formatter                }....................

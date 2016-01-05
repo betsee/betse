@@ -11,11 +11,11 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
+import os, re, shutil, tempfile
 from betse.exceptions import BetseExceptionFile
 from betse.util.io import loggers
 from betse.util.type import types
 from os import path
-import os, re, shutil, tempfile
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
@@ -304,20 +304,20 @@ def substitute_substrings(
         whose second element is the substitution to be performed for all
         substrings in the source file matching that regular expression.
     '''
-    assert types.is_str_nonempty(filename_source),\
-        types.assert_not_str_nonempty(filename_source, 'source filename')
-    assert types.is_str_nonempty(filename_target),\
-        types.assert_not_str_nonempty(filename_target, 'target filename')
-    assert types.is_sequence_nonstr_nonempty(substitutions),\
+    assert types.is_str_nonempty(filename_source), (
+        types.assert_not_str_nonempty(filename_source, 'source filename'))
+    assert types.is_str_nonempty(filename_target), (
+        types.assert_not_str_nonempty(filename_target, 'target filename'))
+    assert types.is_sequence_nonstr_nonempty(substitutions), (
         types.assert_not_sequence_nonstr_nonempty(
-            substitutions, 'regular expression substitution pairs')
+            substitutions, 'regular expression substitution pairs'))
 
-    # Log such substitution.
+    # Log this substitution.
     if filename_source == filename_target:
-        loggers.log_info(
+        loggers.log_debug(
             'Munging file "%s" in-place.', filename_source)
     else:
-        loggers.log_info(
+        loggers.log_debug(
             'Munging file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.

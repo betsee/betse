@@ -3,6 +3,31 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+#FIXME: Redirect Matplotlib output through our logging interface. Currently, we
+#configure Matplotlib via the "RC_PARAMS" global constant to simply output all
+#non-debug messages to stdout, thereby preventing such messages from being
+#logged. While Matplotlib can be reconfigured to redirect output to a file
+#instead, doing so then prevents that output from also being redirected to
+#stdout. (See the matplotlib.Verbose.set_fileo() method for details.)
+#
+#Ultimately, this is what needs to happen. Either:
+#
+#* Monkey-patch the matplotlib.verbose.report() method to leverage the
+#  standard "logging" framework rather than simply printing to the currently
+#  configured "fileo" object. Note that "matplotlib.verbose" is an instance of
+#  the "matplotlib.Verbose" class. Sensible, that.
+#* The non-monkey-patch approach:
+#  1. Define a new BETSE-specific "LoggingVerbose" subclass of the
+#     "matplotlib.Verbose" class. This subclass should leverage the standard
+#     "logging" framework (e.g., by redefining the Verbose.report() method).
+#  2. Assign "matplotlib.verbose = LoggingVerbose()".
+#
+#Actually, I'd be quite satisfied by the latter approach. Let's do this right.
+#That should allow us to ignore all "verbose.*" rc parameters (e.g.,
+#"verbose.level"), simplifying logic below. We probably still want the same
+#"RC_PARAMS" global dictionary for use with future rc parameters -- but at least
+#we'd be able to eliminate this bit of "verbose.level" hackiness.
+
 #FIXME: Refactor backend_names() to discover backend names via the standard
 #module "pkg_utils" rather than by manually delving through the filesystem,
 #which fails under frozen executables.
@@ -105,7 +130,7 @@ finally:
     del(_sys_argv_old)
 
 # ....................{ CONSTANTS                          }....................
-RCPARAMS = {
+RC_PARAMS = {
     # Print terse messages. By default, *NO* messages are printed. Valid
     # values include: "silent", "helpful", "debug", and "debug-annoying".
     'verbose.level': 'helpful',
@@ -139,6 +164,7 @@ def get_colormap(colormap_name: str) -> Colormap:
     '''
     assert types.is_str(colormap_name), types.assert_not_str(colormap_name)
 
+    # Colormap with the passed name if any or "None" otherwise.
     colormap = getattr(colormaps, colormap_name, None)
     if not isinstance(colormap, Colormap):
         raise BetseExceptionMatplotlib(
@@ -184,7 +210,7 @@ class MatplotlibConfig(object):
         '''
         # Reconfigure the following settings, whose keys are the names of
         # settings provided by the official "matplotlibrc" file.
-        matplotlib.rcParams.update(RCPARAMS)
+        matplotlib.rcParams.update(RC_PARAMS)
 
         #FIXME: Excise commentary.
         # Configure the backend to be implicitly used for subsequent plotting.
@@ -289,12 +315,11 @@ class MatplotlibConfig(object):
         # For each available backend, add metadata synopsizing that backend.
         for backend_name in self.backend_names:
             metadata[
-                'backend {} usable'.format(backend_name.capitalize())] =\
-                str(self.is_backend_usable(backend_name)).lower()
+                'backend {} usable'.format(backend_name.capitalize())] = str(
+                    self.is_backend_usable(backend_name)).lower()
 
         # Get this dictionary.
         return metadata
-
 
     # ..................{ PROPERTIES ~ read-only             }..................
     @property
