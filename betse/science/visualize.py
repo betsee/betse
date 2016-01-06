@@ -34,7 +34,25 @@ class AnimateCellData(object):
         p: 'Parameters',
         tit: str = ' ',
         cbtit: str = ' ',
+
+        #FIXME: This boolean is set everywhere by the simrunner.plot_sim()
+        #function to be exactly equal to the "p.createAnimations" boolean. So,
+        #let's go ahead and just:
+        #
+        #* Stop passing this boolean anywhere in simrunner.plot_sim().
+        #* Replace this parameter with "p.createAnimations" tests instead.
+        #
+        #Risible smile in a mirthful face!
         save: bool = False,
+
+        #FIXME: This boolean is set everywhere by the simrunner.plot_sim()
+        #function to always be "True". So, let's go ahead and just:
+        #
+        #* Stop passing this boolean anywhere in simrunner.plot_sim().
+        #* Replace this parameter with a local variable always set to "True":
+        #    self.ani_repeat = True
+        #
+        #Merry weather over calmed seas!
         ani_repeat: bool = False,
         current_overlay: bool = False,
         clrAutoscale: bool = True,

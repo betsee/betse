@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes for timed event classes.
+Matplotlib-based animation classes.
 '''
 
 # ....................{ IMPORTS                            }....................

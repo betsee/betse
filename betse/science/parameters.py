@@ -826,11 +826,15 @@ class Parameters(object):
 
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
 
-        # FIXME: Hi Sess! These are the two controls for animation export -- p.saveAnimations is currently implemented
-        # to push out png sequences to the right folder, while p.saveMovie would be the one for mpeg4 output...
+        #FIXME: Hi Sess! These are the two controls for animation export --
+        # p.saveAnimations is currently implemented to push out png sequences
+        # to the right folder, while p.saveMovie would be the one for mpeg4
+        # output...
+        #FIXME: Use the newly defined AnimationSaverFrames.make() and
+        #AnimationSaverVideo.make() methods here instead. Sundial by moonlight!
 
         self.saveAnimations = ro['save animations']['image frames']    # save all animations as png sequences
-        self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
+        # self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
 
         self.exportData = ro['export data to file']        # export all stored data for the plot_cell to a csv text file
 

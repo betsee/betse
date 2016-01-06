@@ -4,24 +4,19 @@
 # See "LICENSE" for further details.
 
 
-import os
-import os.path
-import time
-
-from scipy import interpolate as interp
+import os, os.path, time
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.collections import LineCollection, PolyCollection
-
-from betse.science import visualize as viz
+from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 from betse.science import filehandling as fh
-from betse.science.sim import Simulator
-from betse.science.parameters import Parameters
+from betse.science import visualize as viz
 from betse.science.cells import Cells
+from betse.science.parameters import Parameters
+from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from betse.util.path import files, paths
-from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
+from matplotlib.collections import LineCollection, PolyCollection
 
 
 class SimRunner(object):
@@ -169,9 +164,10 @@ class SimRunner(object):
                 loggers.log_info('Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
-            elif p.autoInit is False:
-                raise BetseExceptionSimulation("Run terminated due to missing seed.\n "
-                                               "Please run 'betse seed' to try again.")
+            else:
+                raise BetseExceptionSimulation(
+                    "Run terminated due to missing seed.\n"
+                    "Please run 'betse seed' to try again.")
 
         sim = Simulator(p)   # create an instance of Simulator
         sim.run_sim = False
@@ -192,19 +188,16 @@ class SimRunner(object):
                 round(time.time() - start_time, 2)))
 
         if p.turn_all_plots_off is False:
-
             # as colormaps are deleted from p prior to saving in sim, create a fresh instance of Parameters:
             p = Parameters(config_filename = self._config_filename)
 
-            loggers.log_info('When ready, close all of the figure windows to proceed with scheduled simulation runs.')
-            plots4Sim(
-                p.plot_cell,cells,sim,p,
-                saveImages = p.autosave,
-                animate=p.createAnimations,
-                saveAni=p.saveAnimations,
-                plot_type='init')
+            loggers.log_info(
+                'When ready, close all of the figure windows to proceed with '
+                'scheduled simulation runs.')
 
+            plot_sim(cells, sim, p, plot_type='init')
             plt.show()
+
 
     def simulate(self):
         '''
@@ -248,35 +241,29 @@ class SimRunner(object):
 
         sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
 
-
+        # Run and optionally save the simulation to the cache.
         if p.sim_ECM is False:
-
-            sim.runSim(cells,p,save=True)   # run and optionally save the simulation to the cache
-
-        elif p.sim_ECM is True:
-
-            sim.runSim_ECM(cells,p,save=True)   # run and optionally save the simulation to the cache
+            sim.runSim(cells,p,save=True)
+        else:
+            sim.runSim_ECM(cells,p,save=True)
 
         loggers.log_info(
             'The simulation took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
-
-        loggers.log_info('When ready, close all of the figure windows to end the program.')
-
+        loggers.log_info(
+            'When ready, close all of the figure windows to end the program.')
 
         if p.turn_all_plots_off is False:
+            #FIXME: Is there no better way? As "Parameters" is a fairly heavy
+            #class, it'd be great to reuse the existing "p" object. Perhaps we
+            #could keep around colormaps somehow? Infants raised in the jungle!
 
-            # as colormaps are deleted from p prior to saving in sim, create a fresh instance of Parameters:
-            p = Parameters(config_filename = self._config_filename)
-
-            plots4Sim(
-                p.plot_cell,cells,sim,p,
-                saveImages = p.autosave,
-                animate=p.createAnimations,
-                saveAni=p.saveAnimations,
-                plot_type='sim')
-
+            # As colormaps are deleted from p prior to saving in sim, create a
+            # fresh instance of Parameters.
+            p = Parameters(config_filename=self._config_filename)
+            plot_sim(cells, sim, p, plot_type='sim')
             plt.show()
+
 
     def plotInit(self):
         '''
@@ -292,10 +279,10 @@ class SimRunner(object):
         if files.is_file(sim.savedInit):
             sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
         else:
-            raise BetseExceptionSimulation("Ooops! No such initialization file found to plot!")
+            raise BetseExceptionSimulation(
+                "Ooops! No such initialization file found to plot!")
 
-        plots4Sim(p.plot_cell,cells,sim,p,saveImages=p.autosave, animate=p.createAnimations,
-            saveAni=p.saveAnimations,plot_type='init')
+        plot_sim(cells, sim, p, plot_type='init')
 
         if p.turn_all_plots_off is False:
             plt.show()
@@ -314,13 +301,10 @@ class SimRunner(object):
         if files.is_file(sim.savedSim):
             sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
         else:
-            raise BetseExceptionSimulation("Ooops! No such simulation file found to plot!")
+            raise BetseExceptionSimulation(
+                "Ooops! No such simulation file found to plot!")
 
-        plots4Sim(
-            p.plot_cell,cells,sim,p,
-            saveImages=p.autosave,
-            animate=p.createAnimations,
-            saveAni=p.saveAnimations,plot_type='sim')
+        plot_sim(cells, sim, p, plot_type='sim')
 
         if p.turn_all_plots_off is False:
             plt.show()
@@ -405,9 +389,7 @@ class SimRunner(object):
         ax_x = plt.subplot(111)
 
         if p.showCells is True:
-
             base_points = np.multiply(cells.cell_verts, p.um)
-
             col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
             col_cells.set_alpha(0.3)
             ax_x.add_collection(col_cells)
@@ -434,19 +416,24 @@ class SimRunner(object):
 
         if p.turn_all_plots_off is False:
             plt.show(block = False)
-
-        if p.turn_all_plots_off is False:
             plt.show()
 
-        if p.turn_all_plots_off is True:
+        else:
             loggers.log_info(
-            'Plots exported to init results folder defined in configuration file "{}".'.format(
-                self._config_basename))
+                'Plots exported to init results folder '
+                'defined in configuration file "{}".'.format(
+                    self._config_basename))
 
-def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,plot_type='init'):
+#FIXME: This single function appears to constitute over two thirds of this
+#entire module! It's also one of the more intense functions in any language
+#I've ever seen. That's not necessarily a bad thing; it's pretty cool in its
+#complexity, and I can't believe it actually works. That said, it doesn't seem
+#to have much to do with high-level simulation running. It's more of a
+#low-level plots manager, right? Perhaps we could shove this away into a
+#"betse.science.plot" module. Shivering reindeer pawing at the door!
+def plot_sim(cells, sim, p, plot_type: str = 'init'):
 
-    if saveImages is True:
-
+    if p.autosave is True:
         if plot_type == 'sim':
             images_path = p.sim_results
             p.plot_type = 'sim'
@@ -459,23 +446,22 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         os.makedirs(image_cache_dir, exist_ok=True)
         savedImg = os.path.join(image_cache_dir, 'fig_')
 
-
     # check that the plot cell is in range of the available cell indices:
     if p.plot_cell not in cells.cell_i:
-
         raise BetseExceptionParameters(
-                    'The "plot cell" defined in the "results" section of your configuration file '
-                    'does not exist in your cluster.'
-                    'Choose a plot cell number smaller than the maximum cell number.')
+            'The "plot cell" defined in the "results" section of your '
+            'configuration file does not exist in your cluster. '
+            'Choose a plot cell number smaller than the maximum cell number.')
 
     if p.sim_ECM is True:
-        plot_cell_ecm = cells.cell_to_mems[plot_cell][0]  # convert from cell to mem index
+        plot_cell_ecm = cells.cell_to_mems[p.plot_cell][0]  # convert from cell to mem index
 
     else:
-        plot_cell_ecm = plot_cell
+        plot_cell_ecm = p.plot_cell
 
     if p.exportData is True:
         viz.exportData(cells, sim, p)
+
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
     #-------------------------------------------------------------------------------------------------------------------
@@ -483,28 +469,30 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     # plot-cell sodium concentration vs time:
 
     if p.plot_single_cell_graphs is True:
-        figConcsNa, axConcsNa = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iNa,plot_cell,fig=None,
-             ax=None,lncolor='g',ionname='Na+')
+        figConcsNa, axConcsNa = viz.plotSingleCellCData(
+            sim.cc_time, sim.time, sim.iNa, p.plot_cell, fig=None,
+            ax=None, lncolor='g', ionname='Na+')
 
-        titNa = 'Sodium concentration in cell ' + str(plot_cell)
+        titNa = 'Sodium concentration in cell ' + str(p.plot_cell)
         axConcsNa.set_title(titNa)
 
-        if saveImages is True:
+        if p.autosave is True:
             savename1 = savedImg + 'concNa_time' + '.png'
-            plt.savefig(savename1,dpi=300,format='png',transparent=True)
+            plt.savefig(savename1, dpi=300, format='png', transparent=True)
 
     # plot-cell potassium concentration vs time:
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-        figConcsK, axConcsK = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iK,plot_cell,fig=None,
-            ax=None,lncolor='b',ionname='K+')
+        figConcsK, axConcsK = viz.plotSingleCellCData(
+            sim.cc_time, sim.time, sim.iK, p.plot_cell, fig=None,
+            ax=None, lncolor='b', ionname='K+')
 
-        titK = 'Potassium concentration in cell ' + str(plot_cell)
+        titK = 'Potassium concentration in cell ' + str(p.plot_cell)
         axConcsK.set_title(titK)
 
-        if saveImages is True:
+        if p.autosave is True:
             savename1 = savedImg + 'concK_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
@@ -513,13 +501,13 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         # plot-cell anion (bicarbonate) concentration vs time:
 
-        figConcsM, axConcsM = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,plot_cell,fig=None,
+        figConcsM, axConcsM = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,p.plot_cell,fig=None,
              ax=None,lncolor='r',ionname='M-')
 
-        titM = 'M Anion concentration in cell ' + str(plot_cell)
+        titM = 'M Anion concentration in cell ' + str(p.plot_cell)
         axConcsM.set_title(titM)
 
-        if saveImages is True:
+        if p.autosave is True:
             savename1 = savedImg + 'concM_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
@@ -529,10 +517,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         # plot single cell Vmem vs time:
 
         figVt, axVt = viz.plotSingleCellVData(sim,plot_cell_ecm,p,fig=None,ax=None,lncolor='k')
-        titV = 'Voltage (Vmem) in cell ' + str(plot_cell)
+        titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
         axVt.set_title(titV)
 
-        if saveImages is True:
+        if p.autosave is True:
             savename2 = savedImg + 'Vmem_time' + '.png'
             plt.savefig(savename2,dpi=300,format='png',transparent=True)
 
@@ -542,10 +530,10 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         # plot fast-Fourier-transform (fft) of Vmem:
 
         figFFT, axFFT = viz.plotFFT(sim.time,sim.vm_time,plot_cell_ecm,lab="Power")
-        titFFT = 'Fourier transform of Vmem in cell ' + str(plot_cell)
+        titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)
         axFFT.set_title(titFFT)
 
-        if saveImages is True:
+        if p.autosave is True:
             savename = savedImg + 'FFT_time' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -557,7 +545,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axNaK = plt.subplot()
 
         if p.sim_ECM is False:
-            pump_rate = [pump_array[plot_cell] for pump_array in sim.rate_NaKATP_time]
+            pump_rate = [pump_array[p.plot_cell] for pump_array in sim.rate_NaKATP_time]
 
         else:
             pump_rate = [pump_array[plot_cell_ecm] for pump_array in sim.rate_NaKATP_time]
@@ -567,9 +555,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axNaK.set_xlabel('Time [s]')
         axNaK.set_ylabel('Pumping Rate of Na+ Out of Cell [mol/(m2 s)]')
 
-        axNaK.set_title('Rate of NaK-ATPase pump in cell: ' + str(plot_cell) )
+        axNaK.set_title('Rate of NaK-ATPase pump in cell: ' + str(p.plot_cell) )
 
-        if saveImages is True:
+        if p.autosave is True:
             savename = savedImg + 'NaKATPaseRaTE_' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -583,13 +571,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axI = plt.subplot(111)
 
         if p.sim_ECM is False:
-
-            Imem = [memArray[plot_cell] for memArray in sim.I_mem_time]
+            Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
 
         else:
             Imem = []  # initialize a total cell current storage vector
-            mems_for_plotcell = cells.cell_to_mems[plot_cell]  # get membranes for the plot cell
-
+            mems_for_plotcell = cells.cell_to_mems[p.plot_cell]  # get membranes for the plot cell
 
             for t in range(len(sim.time)):
                 memArray = sim.I_mem_time[t]
@@ -605,11 +591,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 Imem.append(Io)
 
         axI.plot(sim.time,Imem)
-        axI.set_title('Transmembrane current density for cell ' + str(plot_cell) )
+        axI.set_title('Transmembrane current density for cell ' + str(p.plot_cell) )
         axI.set_xlabel('Time [s]')
         axI.set_ylabel('Current density [A/m2]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename = savedImg + 'Imem_time' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -621,35 +607,30 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         # hydrostatic pressure in cells:
 
         if p.deform_osmo is True:
-
-            p_hydro = [arr[plot_cell] for arr in sim.P_cells_time]
+            p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
-
             axOP.plot(sim.time,p_hydro)
-
             axOP.set_xlabel('Time [s]')
             axOP.set_ylabel('Hydrostatic Pressure [Pa]')
+            axOP.set_title('Hydrostatic pressure in cell ' + str(p.plot_cell) )
 
-            axOP.set_title('Hydrostatic pressure in cell ' + str(plot_cell) )
-
-            if saveImages is True:
+            if p.autosave is True:
                 savename = savedImg + 'HydrostaticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-
         # plot-cell calcium vs time (if Ca enabled in ion profiles):
 
         if p.ions_dict['Ca'] ==1:
-            figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,plot_cell,fig=None,
+            figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,p.plot_cell,fig=None,
                  ax=None,lncolor='g',ionname='Ca2+ cell')
-            titCa =  'Cytosolic Ca2+ in cell index ' + str(plot_cell)
+            titCa =  'Cytosolic Ca2+ in cell index ' + str(p.plot_cell)
             axA.set_title(titCa)
 
-            if saveImages is True:
+            if p.autosave is True:
                 savename3 = savedImg + 'cytosol_Ca_time' + '.png'
                 plt.savefig(savename3,dpi=300,format='png',transparent=True)
 
@@ -657,23 +638,23 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 plt.show(block=False)
 
             if p.Ca_dyn == 1:
-                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,0,plot_cell,fig=None,
+                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,0,p.plot_cell,fig=None,
                      ax=None,lncolor='b',ionname='Ca2+ cell')
-                titER =  'ER Ca2+ in cell index ' + str(plot_cell)
+                titER =  'ER Ca2+ in cell index ' + str(p.plot_cell)
                 axD.set_title(titER)
 
-                if saveImages is True:
+                if p.autosave is True:
                     savename4 = savedImg + 'ER_Ca_time' + '.png'
                     plt.savefig(savename4,dpi=300,format='png',transparent=True)
 
                 if p.turn_all_plots_off is False:
                     plt.show(block=False)
 
-                figPro, axPro = viz.plotSingleCellData(sim.time, sim.cIP3_time,plot_cell, lab='IP3 [mmol/L]')
-                titIP3 =  'IP3 in cell index ' + str(plot_cell)
+                figPro, axPro = viz.plotSingleCellData(sim.time, sim.cIP3_time,p.plot_cell, lab='IP3 [mmol/L]')
+                titIP3 =  'IP3 in cell index ' + str(p.plot_cell)
                 axPro.set_title(titIP3)
 
-                if saveImages is True:
+                if p.autosave is True:
                     savename5 = savedImg + 'IP3_time' + '.png'
                     plt.savefig(savename5,dpi=300,format='png',transparent=True)
 
@@ -682,19 +663,15 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
         # osmotic and/or electrostatic pressure in cell
         if p.deform_electro is True:
-
-            f_electro = [arr[plot_cell] for arr in sim.P_electro_time]
+            f_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
             figPE = plt.figure()
             axPE = plt.subplot(111)
-
             axPE.plot(sim.time,f_electro)
-
             axPE.set_xlabel('Time [s]')
             axPE.set_ylabel('Electrostatic Pressure [Pa]')
+            axPE.set_title('Electrostatic pressure in cell ' + str(p.plot_cell) )
 
-            axPE.set_title('Electrostatic pressure in cell ' + str(plot_cell) )
-
-            if saveImages is True:
+            if p.autosave is True:
                 savename = savedImg + 'ElectrostaticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -702,71 +679,63 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 plt.show(block=False)
 
         if p.deform_osmo is True:
-
-            p_osmo = [arr[plot_cell] for arr in sim.osmo_P_delta_time]
+            p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
-
             axOP.plot(sim.time,p_osmo)
-
             axOP.set_xlabel('Time [s]')
             axOP.set_ylabel('Osmotic Pressure [Pa]')
+            axOP.set_title('Osmotic pressure in cell ' + str(p.plot_cell) )
 
-            axOP.set_title('Osmotic pressure in cell ' + str(plot_cell) )
-
-            if saveImages is True:
+            if p.autosave is True:
                 savename = savedImg + 'OsmoticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-
         # total displacement in cell
         if p.deformation is True and sim.run_sim is True:
-
             # extract time-series deformation data for the plot cell:
-            dx = np.asarray([arr[plot_cell] for arr in sim.dx_cell_time])
-            dy = np.asarray([arr[plot_cell] for arr in sim.dy_cell_time])
+            dx = np.asarray([arr[p.plot_cell] for arr in sim.dx_cell_time])
+            dy = np.asarray([arr[p.plot_cell] for arr in sim.dy_cell_time])
 
             # get the total magnitude:
             disp = np.sqrt(dx**2 + dy**2)
 
             figD = plt.figure()
             axD = plt.subplot(111)
-
             axD.plot(sim.time,p.um*disp)
-
             axD.set_xlabel('Time [s]')
             axD.set_ylabel('Displacement [um]')
+            axD.set_title('Displacement of cell ' + str(p.plot_cell) )
 
-            axD.set_title('Displacement of cell ' + str(plot_cell) )
-
-            if saveImages is True:
+            if p.autosave is True:
                 savename = savedImg + 'Displacement_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-
     #-------------------------------------------------------------------------------------------------------------------
     #                       2D Data Map Plotting
     #-------------------------------------------------------------------------------------------------------------------
 
     if p.plot_venv is True and p.sim_ECM is True:
-
         plt.figure()
-        venv_plt = plt.imshow(1000*sim.v_env.reshape(cells.X.shape),origin='lower',
-            extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
-        if p.autoscale_venv is False:
+        venv_plt = plt.imshow(
+            1000*sim.v_env.reshape(cells.X.shape),
+            origin='lower',
+            extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+            cmap=p.default_cm)
 
+        if p.autoscale_venv is False:
             venv_plt.set_clim(p.venv_min_clr, p.venv_max_clr)
 
         plt.colorbar()
         plt.title('Environmental Voltage [mV]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename10 = savedImg + 'Final_environmental_V' + '.png'
             plt.savefig(savename10,format='png',transparent=True)
 
@@ -774,32 +743,42 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.plot_rho2d is True:
-
         if p.sim_ECM is True:
-
             plt.figure()
-            plt.imshow(sim.rho_env.reshape(cells.X.shape)*(1/p.ff_env),origin='lower',
-                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
+            plt.imshow(
+                sim.rho_env.reshape(cells.X.shape)*(1/p.ff_env),
+                origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+                cmap=p.default_cm,
+            )
             plt.colorbar()
             plt.title('Environmental Charge Density [C/m3]')
 
-            if saveImages is True:
+            if p.autosave is True:
                 savename10 = savedImg + 'Final_environmental_charge' + '.png'
                 plt.savefig(savename10,format='png',transparent=True)
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-        figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=(sim.rho_cells)*(1/p.ff_cell),number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_rho, clrMin = p.rho_min_clr, clrMax = p.rho_max_clr,
-            clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+        figX, axX, cbX = viz.plotPolyData(
+            sim, cells, p,
+            zdata=(sim.rho_cells)*(1/p.ff_cell),
+            number_cells=p.enumerate_cells,
+            clrAutoscale=p.autoscale_rho,
+            clrMin=p.rho_min_clr,
+            clrMax=p.rho_max_clr,
+            clrmap=p.default_cm,
+            current_overlay=p.I_overlay,
+            plotIecm=p.IecmPlot,
+        )
 
         figX.suptitle('Final Cell Charge Density',fontsize=14, fontweight='bold')
         axX.set_xlabel('Spatial distance [um]')
         axX.set_ylabel('Spatial distance [um]')
         cbX.set_label('Net Charge Density [C/m3]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename9 = savedImg + 'final_cellCharge' + '.png'
             plt.savefig(savename9,format='png',transparent=True)
 
@@ -807,17 +786,24 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.plot_vcell2d is True and p.sim_ECM is True:
-
-        figX, axX, cbX = viz.plotPolyData(sim,cells,p,zdata=sim.vcell_time[-1]*1e3,number_cells=p.enumerate_cells,
-            clrAutoscale = p.autoscale_vcell, clrMin = p.vcell_min_clr, clrMax = p.vcell_max_clr,
-            clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+        figX, axX, cbX = viz.plotPolyData(
+            sim, cells, p,
+            zdata=sim.vcell_time[-1]*1e3,
+            number_cells=p.enumerate_cells,
+            clrAutoscale=p.autoscale_vcell,
+            clrMin=p.vcell_min_clr,
+            clrMax=p.vcell_max_clr,
+            clrmap=p.default_cm,
+            current_overlay=p.I_overlay,
+            plotIecm=p.IecmPlot,
+        )
 
         figX.suptitle('Final Cell Voltage',fontsize=14, fontweight='bold')
         axX.set_xlabel('Spatial distance [um]')
         axX.set_ylabel('Spatial distance [um]')
         cbX.set_label('Voltage mV')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename9 = savedImg + 'final_cellVoltage' + '.png'
             plt.savefig(savename9,format='png',transparent=True)
 
@@ -827,26 +813,40 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_vm2d is True:
-
         if p.sim_ECM is True:
+            figV, axV, cbV = viz.plotHetMem(
+                sim, cells, p,
+                zdata=1000*sim.vm_Matrix[-1],
+                number_cells=p.enumerate_cells,
+                clrAutoscale=p.autoscale_Vmem,
+                clrMin=p.Vmem_min_clr,
+                clrMax=p.Vmem_max_clr,
+                clrmap=p.default_cm,
+                edgeOverlay=p.showCells,
+                number_ecm=p.enumerate_cells,
+                current_overlay=p.I_overlay,
+                plotIecm=p.IecmPlot,
+            )
 
-            figV, axV, cbV = viz.plotHetMem(sim,cells,p,zdata=1000*sim.vm_Matrix[-1],number_cells=p.enumerate_cells,
-                clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, clrmap = p.default_cm,
-                edgeOverlay = p.showCells,  number_ecm = p.enumerate_cells,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-
-        elif p.sim_ECM is False:
-
-            figV, axV, cbV = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_time[-1],clrAutoscale = p.autoscale_Vmem,
-                clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
-                clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
-
+        else:
+            figV, axV, cbV = viz.plotPolyData(
+                sim, cells, p,
+                zdata=1000*sim.vm_time[-1],
+                clrAutoscale=p.autoscale_Vmem,
+                clrMin=p.Vmem_min_clr,
+                clrMax=p.Vmem_max_clr,
+                number_cells=p.enumerate_cells,
+                clrmap=p.default_cm,
+                current_overlay=p.I_overlay,
+                plotIecm=p.IecmPlot,
+            )
 
         figV.suptitle('Final Vmem',fontsize=14, fontweight='bold')
         axV.set_xlabel('Spatial distance [um]')
         axV.set_ylabel('Spatial distance [um]')
         cbV.set_label('Voltage mV')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename5 = savedImg + 'final_Vmem_2D' + '.png'
             plt.savefig(savename5,format='png',transparent=True)
 
@@ -854,37 +854,45 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.GHK_calc is True:
-
-        figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(sim,cells,p,zdata=1000*sim.vm_GHK_time[-1],
-            clrAutoscale = p.autoscale_Vmem,
-            clrMin = p.Vmem_min_clr, clrMax = p.Vmem_max_clr, number_cells=p.enumerate_cells,
-            clrmap = p.default_cm,current_overlay = p.I_overlay,plotIecm=p.IecmPlot)
+        figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(
+            sim, cells, p,
+            zdata=1000*sim.vm_GHK_time[-1],
+            clrAutoscale=p.autoscale_Vmem,
+            clrMin=p.Vmem_min_clr,
+            clrMax=p.Vmem_max_clr,
+            number_cells=p.enumerate_cells,
+            clrmap=p.default_cm,
+            current_overlay=p.I_overlay,
+            plotIecm=p.IecmPlot,
+        )
 
         figV_ghk.suptitle('Final Vmem using Goldman Equation',fontsize=14, fontweight='bold')
         axV_ghk.set_xlabel('Spatial distance [um]')
         axV_ghk.set_ylabel('Spatial distance [um]')
         cbV_ghk.set_label('Voltage [mV]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
             plt.savefig(savename5,format='png',transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-
     #-------------------------------------------------------------------------------------------------------------------
-
-    if p.plot_ip32d is True and p.scheduled_options['IP3'] != 0 or p.Ca_dyn != 0:
-
+    if p.plot_ip32d is True and p.scheduled_options['IP3'] != 0 or \
+       p.Ca_dyn != 0:
         if p.sim_ECM is False:
-
-            figIP3, axIP3, cbIP3 = viz.plotPolyData(sim, cells,p,zdata=sim.cIP3_time[-1]*1e3,
-                number_cells=p.enumerate_cells,clrAutoscale = p.autoscale_IP3,
-                clrMin = p.IP3_min_clr, clrMax = p.IP3_max_clr, clrmap = p.default_cm)
+            figIP3, axIP3, cbIP3 = viz.plotPolyData(
+                sim, cells, p,
+                zdata=sim.cIP3_time[-1]*1e3,
+                number_cells=p.enumerate_cells,
+                clrAutoscale=p.autoscale_IP3,
+                clrMin=p.IP3_min_clr,
+                clrMax=p.IP3_max_clr,
+                clrmap=p.default_cm,
+            )
 
         else:
-
             figIP3 = plt.figure()
             axIP3 = plt.subplot(111)
 
@@ -907,6 +915,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             minvala = np.min(ip3Cell,axis=0)
             minvalb = np.min(ip3Env,axis=0)
 
+            #FIXME: Consider using Python's builtin min() and max() functions:
+            #    maxval = max(maxvala, maxvalb)
+            #    minval = min(minvala, minvalb)
+            #Sunrise over a descending moon!
+
             if maxvala > maxvalb:
                 maxval = maxvala
             else:
@@ -923,7 +936,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 cbIP3 = figIP3.colorbar(coll)
 
             else:
-
                 coll.set_clim(p.IP3_min_clr,p.IP3_max_clr)
                 bkgPlot.set_clim(p.IP3_min_clr,p.IP3_max_clr)
                 cbIP3 = figIP3.colorbar(coll)
@@ -940,7 +952,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axIP3.set_ylabel('Spatial distance [um]')
         cbIP3.set_label('Concentration umol/L')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename6 = savedImg + 'final_IP3_2D' + '.png'
             plt.savefig(savename6,format='png',transparent=True)
 
@@ -996,10 +1008,9 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 cbVdye = figVdye.colorbar(coll)
 
             elif p.autoscale_Dye is False:
-
                 coll.set_clim(p.Dye_min_clr,p.Dye_max_clr)
                 bkgPlot.set_clim(p.Dye_min_clr,p.Dye_max_clr)
-                cbVDye = figVdye.colorbar(coll)
+                cbVdye = figVdye.colorbar(coll)
 
             xmin = cells.xmin*p.um
             xmax = cells.xmax*p.um
@@ -1013,7 +1024,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axVdye.set_ylabel('Spatial distance [um]')
         cbVdye.set_label('Concentration umol/L')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename7 = savedImg + 'final_morphogen_2D' + '.png'
             plt.savefig(savename7,format='png',transparent=True)
 
@@ -1023,7 +1034,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     #-------------------------------------------------------------------------------------------------------------------
 
     if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
-
         figCa, axCa, cbCa = viz.plotPolyData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
             number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
             clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
@@ -1033,7 +1043,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axCa.set_ylabel('Spatial distance [um]')
         cbCa.set_label('Concentration nmol/L')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename8 = savedImg + 'final_Ca_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
@@ -1041,7 +1051,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
-
         pHdata = -np.log10(sim.cc_time[-1][sim.iH])
 
         figH, axH, cbH = viz.plotPolyData(sim,cells,p,zdata=pHdata,
@@ -1053,28 +1062,32 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axH.set_ylabel('Spatial distance [um]')
         cbH.set_label('pH')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename8 = savedImg + 'final_pH_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-
-
     #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_I2d is True:
-
-        figI, axI, cbI = viz.streamingCurrent(sim, cells,p,plot_Iecm = False, clrAutoscale = p.autoscale_I2d,
-            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.background_cm,
-            edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+        figI, axI, cbI = viz.streamingCurrent(
+            sim, cells, p,
+            plot_Iecm=False,
+            clrAutoscale=p.autoscale_I2d,
+            clrMin=p.I_min_clr,
+            clrMax=p.I_max_clr,
+            clrmap=p.background_cm,
+            edgeOverlay=p.showCells,
+            number_cells=p.enumerate_cells,
+        )
 
         axI.set_xlabel('Spatial distance [um]')
         axI.set_ylabel('Spatial distance [um]')
         cbI.set_label('Current Density [A/m2]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
             plt.savefig(savename10,format='png',transparent=True)
 
@@ -1082,16 +1095,22 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
         if p.sim_ECM is True:
-
-            figI2, axI2, cbI2 = viz.streamingCurrent(sim, cells,p,plot_Iecm = True, clrAutoscale = p.autoscale_I2d,
-            clrMin = p.I_min_clr, clrMax = p.I_max_clr, clrmap= p.background_cm,
-            edgeOverlay = p.showCells,number_cells = p.enumerate_cells)
+            figI2, axI2, cbI2 = viz.streamingCurrent(
+                sim, cells, p,
+                plot_Iecm=True,
+                clrAutoscale=p.autoscale_I2d,
+                clrMin=p.I_min_clr,
+                clrMax=p.I_max_clr,
+                clrmap=p.background_cm,
+                edgeOverlay=p.showCells,
+                number_cells=p.enumerate_cells,
+            )
 
             axI2.set_xlabel('Spatial distance [um]')
             axI2.set_ylabel('Spatial distance [um]')
             cbI2.set_label('Current Density [A/m2]')
 
-            if saveImages is True:
+            if p.autosave is True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
                 plt.savefig(savename11,format='png',transparent=True)
 
@@ -1112,20 +1131,21 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-            if saveImages is True:
-
+            if p.autosave is True:
                 if p.sim_ECM is True:
                     savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
                     plt.savefig(savename,format='png',transparent=True)
 
+        viz.plotVectField(
+            sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
+            title='Final Electric Field',
+            cb_title='Electric Field [V/m]',
+            colorAutoscale=p.autoscale_Efield,
+            minColor=p.Efield_min_clr,
+            maxColor=p.Efield_max_clr,
+        )
 
-        viz.plotVectField(sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
-                        title='Final Electric Field', cb_title = 'Electric Field [V/m]',
-                        colorAutoscale = p.autoscale_Efield, minColor = p.Efield_min_clr,
-                        maxColor = p.Efield_max_clr)
-
-        if saveImages is True:
-
+        if p.autosave is True:
             savename = savedImg + 'Final_Electric_Field_GJ' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
@@ -1143,7 +1163,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axP.set_ylabel('Spatial distance [um]')
         cbP.set_label('Pressure [Pa]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_P_2D_gj' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -1164,7 +1184,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axP.set_ylabel('Spatial distance [um]')
         cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_osmoP_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -1172,7 +1192,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.plot_osmoP is True and p.deform_electro is True:
-
         osmo_P = sim.P_electro
 
         figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
@@ -1184,7 +1203,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         axP.set_ylabel('Spatial distance [um]')
         cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_electroP_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -1194,13 +1213,19 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
     #---- Forces ------------------------------------------------------------
 
     if p.deform_electro is True:
+        viz.plotVectField(
+            (1/p.um)*sim.F_electro_x,
+            (1/p.um)*sim.F_electro_y,
+            cells, p,
+            plot_ecm=False,
+            title='Final Electrostatic Body Force',
+            cb_title='Body Force [N/cm3]',
+            colorAutoscale=p.autoscale_force,
+            minColor=p.force_min_clr,
+            maxColor=p.force_max_clr,
+        )
 
-        viz.plotVectField((1/p.um)*sim.F_electro_x,(1/p.um)*sim.F_electro_y,cells,p,plot_ecm = False,
-                        title='Final Electrostatic Body Force', cb_title = 'Body Force [N/cm3]',
-                        colorAutoscale = p.autoscale_force, minColor = p.force_min_clr,
-                        maxColor = p.force_max_clr)
-
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_electroF_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -1208,12 +1233,19 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.deform_osmo is True:
+        viz.plotVectField(
+            (1/p.um)*sim.F_hydro_x,
+            (1/p.um)*sim.F_hydro_y,
+            cells, p,
+            plot_ecm = False,
+            title='Final Hydrostatic Pressure Induced Body Force',
+            cb_title='Body Force [N/cm3]',
+            colorAutoscale=p.autoscale_force,
+            minColor=p.force_min_clr,
+            maxColor=p.force_max_clr,
+        )
 
-        viz.plotVectField((1/p.um)*sim.F_hydro_x,(1/p.um)*sim.F_hydro_y,cells,p,plot_ecm = False,
-                title='Final Hydrostatic Pressure Induced Body Force', cb_title = 'Body Force [N/cm3]',
-                colorAutoscale = p.autoscale_force, minColor = p.force_min_clr, maxColor = p.force_max_clr)
-
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_hydroF_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -1221,27 +1253,40 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
     if p.deformation is True and sim.run_sim is True:
+        viz.plotStreamField(
+            p.um*sim.dx_cell_time[-1],
+            p.um*sim.dy_cell_time[-1],
+            cells, p,
+            plot_ecm=False,
+            title='Final Displacement of Cell Collective',
+            cb_title='Displacement [um]',
+            show_cells=p.showCells,
+            colorAutoscale=p.autoscale_Deformation_ani,
+            minColor=p.Deformation_ani_min_clr,
+            maxColor=p.Deformation_ani_max_clr,
+        )
 
-        viz.plotStreamField(p.um*sim.dx_cell_time[-1],p.um*sim.dy_cell_time[-1],cells,p,plot_ecm = False,
-                            title='Final Displacement of Cell Collective', cb_title = 'Displacement [um]',
-                            show_cells=p.showCells,colorAutoscale = p.autoscale_Deformation_ani,
-                            minColor = p.Deformation_ani_min_clr,maxColor = p.Deformation_ani_max_clr)
-
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-
     if p.plot_Vel is True and p.fluid_flow is True and p.deform_electro is True:
+        viz.plotStreamField(
+            (1e9)*sim.u_cells_x,
+            (1e9)*sim.u_cells_y,
+            cells, p,
+            plot_ecm=False,
+            title='Final Fluid Velocity in Cell Collective',
+            cb_title='Velocity [nm/s]',
+            colorAutoscale=p.autoscale_Vel,
+            minColor=p.Vel_min_clr,
+            maxColor=p.Vel_max_clr,
+        )
 
-        viz.plotStreamField((1e9)*sim.u_cells_x,(1e9)*sim.u_cells_y,cells,p,plot_ecm = False,
-                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]',
-                colorAutoscale = p.autoscale_Vel,minColor = p.Vel_min_clr,maxColor = p.Vel_max_clr)
-
-        if saveImages is True:
+        if p.autosave is True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -1249,12 +1294,11 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
         if p.sim_ECM is True:
-
             viz.plotStreamField((1e9)*sim.u_env_x,(1e9)*sim.u_env_y,cells,p,plot_ecm = True,
                 title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]',
                 colorAutoscale = p.autoscale_Vel,minColor = p.Vel_min_clr,maxColor = p.Vel_max_clr)
 
-            if saveImages is True:
+            if p.autosave is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
                 plt.savefig(savename13,format='png',transparent=True)
 
@@ -1262,7 +1306,6 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
                 plt.show(block=False)
 
     if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
-
         # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
         fig_x = plt.figure()
         ax_x = plt.subplot(111)
@@ -1279,7 +1322,7 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
         ax_x.set_ylabel('Spatial y [um')
         ax_x.set_title('Final Gap Junction Relative Permeability')
 
-        if saveImages is True:
+        if p.autosave is True:
             savename = savedImg + 'final_gjState' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
@@ -1288,120 +1331,242 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
 
     #---------Animations---------------------------------------------------------------------------------------
 
-    if p.ani_ip32d is True and p.Ca_dyn is True and animate == 1:
+    if p.ani_ip32d is True and p.Ca_dyn is True and p.createAnimations is True:
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
-        viz.AnimateCellData(sim,cells,IP3plotting,sim.time,p,tit='IP3 concentration', cbtit = 'Concentration [umol/L]',
-            clrAutoscale = p.autoscale_IP3_ani, clrMin = p.IP3_ani_min_clr, clrMax = p.IP3_ani_max_clr, clrmap = p.default_cm,
-            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/IP3',
-            saveFile = 'ip3_', ignore_simECM =True, current_overlay=p.I_overlay)
+        viz.AnimateCellData(
+            sim,
+            cells,
+            IP3plotting,
+            sim.time,
+            p,
+            tit='IP3 concentration',
+            cbtit='Concentration [umol/L]',
+            clrAutoscale=p.autoscale_IP3_ani,
+            clrMin=p.IP3_ani_min_clr,
+            clrMax=p.IP3_ani_max_clr,
+            clrmap=p.default_cm,
+            save=p.saveAnimations,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            saveFolder='animation/IP3',
+            saveFile='ip3_',
+            ignore_simECM=True,
+            current_overlay=p.I_overlay,
+        )
 
-    if p.ani_dye2d is True and p.voltage_dye == 1 and animate ==1:
-
+    if p.ani_dye2d is True and p.voltage_dye == 1 and \
+       p.createAnimations is True:
         if p.sim_ECM is False:
             Dyeplotting = np.asarray(sim.cDye_time)
             Dyeplotting = np.multiply(Dyeplotting,1e3)
 
-            viz.AnimateCellData(sim,cells,Dyeplotting,sim.time,p,tit='Morphogen Concentration',
-                cbtit = 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-                save=saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Morphogen',
-                saveFile = 'morphogen_',ignore_simECM =True)
+            viz.AnimateCellData(
+                sim, cells, Dyeplotting, sim.time, p,
+                tit='Morphogen Concentration',
+                cbtit='Concentration [umol/L]',
+                clrAutoscale=p.autoscale_Dye_ani,
+                clrMin=p.Dye_ani_min_clr,
+                clrMax=p.Dye_ani_max_clr,
+                clrmap=p.default_cm,
+                save=p.saveAnimations,
+                ani_repeat=True,
+                number_cells=p.enumerate_cells,
+                saveFolder='animation/Morphogen',
+                saveFile='morphogen_',
+                ignore_simECM=True,
+            )
 
         else:
+            viz.AnimateDyeData(
+                sim,cells,p,
+                save=p.saveAnimations,
+                ani_repeat=True,
+                current_overlay=p.I_overlay,
+                clrAutoscale=p.autoscale_Dye_ani,
+                clrMin=p.Dye_ani_min_clr,
+                clrMax=p.Dye_ani_max_clr,
+                clrmap=p.default_cm,
+                number_cells=p.enumerate_cells,
+                saveFolder='animation/Dye',
+                saveFile='Dye_',
+            )
 
-            viz.AnimateDyeData(sim,cells,p,save=saveAni,ani_repeat=True, current_overlay = p.I_overlay,
-            clrAutoscale = p.autoscale_Dye_ani, clrMin = p.Dye_ani_min_clr, clrMax = p.Dye_ani_max_clr, clrmap = p.default_cm,
-            number_cells = p.enumerate_cells, saveFolder = 'animation/Dye', saveFile = 'Dye_')
-
-    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and animate == 1:
+    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and p.createAnimations is True:
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
-        viz.AnimateCellData(sim,cells,tCa,sim.time,p,tit='Cytosolic Ca2+', cbtit = 'Concentration [nmol/L]', save=saveAni,
-            clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-            ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Ca',
-            saveFile = 'ca_',ignore_simECM = True)
+        viz.AnimateCellData(
+            sim,cells,tCa,sim.time,p,
+            tit='Cytosolic Ca2+',
+            cbtit='Concentration [nmol/L]',
+            save=p.saveAnimations,
+            clrAutoscale=p.autoscale_Ca_ani,
+            clrMin=p.Ca_ani_min_clr,
+            clrMax=p.Ca_ani_max_clr,
+            clrmap=p.default_cm,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            saveFolder='animation/Ca',
+            saveFile='ca_',
+            ignore_simECM=True,
+        )
 
-    if p.ani_pH2d is True and p.ions_dict['H'] == 1 and animate == 1:
+    if p.ani_pH2d is True and p.ions_dict['H'] == 1 and p.createAnimations is True:
         tpH = [-np.log10(arr[sim.iH]) for arr in sim.cc_time]
 
-        viz.AnimateCellData(sim,cells,tpH,sim.time,p,tit='Cytosolic pH', cbtit = 'pH', save=saveAni,
-            clrAutoscale = p.autoscale_Ca_ani, clrMin = p.Ca_ani_min_clr, clrMax = p.Ca_ani_max_clr, clrmap = p.default_cm,
-            ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/pH',
-            saveFile = 'pH_',ignore_simECM = True)
+        viz.AnimateCellData(
+            sim,cells,tpH,sim.time,p,
+            tit='Cytosolic pH',
+            cbtit='pH',
+            save=p.saveAnimations,
+            clrAutoscale=p.autoscale_Ca_ani,
+            clrMin=p.Ca_ani_min_clr,
+            clrMax=p.Ca_ani_max_clr,
+            clrmap=p.default_cm,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            saveFolder='animation/pH',
+            saveFile='pH_',
+            ignore_simECM=True,
+        )
 
-    if p.ani_vm2d is True and animate == 1:
-
+    if p.ani_vm2d is True and p.createAnimations is True:
         if p.sim_ECM is False:
-
             vmplt = [1000*arr for arr in sim.vm_time]
 
         else:
             vmplt = [1000*arr for arr in sim.vm_Matrix]
 
-        viz.AnimateCellData(sim,cells,vmplt,sim.time,p,tit='Cell Vmem', cbtit = 'Voltage [mV]', save=saveAni,
-            clrAutoscale = p.autoscale_Vmem_ani, clrMin = p.Vmem_ani_min_clr, clrMax = p.Vmem_ani_max_clr,
-            clrmap = p.default_cm, ani_repeat=True,number_cells=p.enumerate_cells, current_overlay=p.I_overlay,
-            saveFolder = 'animation/Vmem', saveFile = 'vm_')
+        viz.AnimateCellData(
+            sim,cells,vmplt,sim.time,p,
+            tit='Cell Vmem',
+            cbtit='Voltage [mV]',
+            save=p.saveAnimations,
+            clrAutoscale=p.autoscale_Vmem_ani,
+            clrMin=p.Vmem_ani_min_clr,
+            clrMax=p.Vmem_ani_max_clr,
+            clrmap=p.default_cm,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            current_overlay=p.I_overlay,
+            saveFolder='animation/Vmem',
+            saveFile='vm_',
+        )
 
-    if p.ani_vmgj2d is True and animate == 1:
+    if p.ani_vmgj2d is True and p.createAnimations is True:
+        viz.AnimateGJData(
+            cells, sim, p,
+            tit='Vcell ',
+            save=p.saveAnimations,
+            ani_repeat=True,
+            saveFolder='animation/Vmem_gj',
+            clrAutoscale=p.autoscale_Vgj_ani,
+            clrMin=p.Vgj_ani_min_clr,
+            clrMax=p.Vgj_ani_max_clr,
+            saveFile='vmem_gj_',
+            number_cells=False,
+        )
 
-        viz.AnimateGJData(cells, sim, p, tit='Vcell ', save=saveAni, ani_repeat=True,saveFolder = 'animation/Vmem_gj',
-                clrAutoscale = p.autoscale_Vgj_ani, clrMin = p.Vgj_ani_min_clr, clrMax = p.Vgj_ani_max_clr,
-                saveFile = 'vmem_gj_', number_cells=False)
-
-    if p.ani_vcell is True and animate == 1 and p.sim_ECM == 1:
-
+    if p.ani_vcell is True and p.createAnimations is True and p.sim_ECM == 1:
         vcellplt = [1000*arr for arr in sim.vcell_time]
 
-        viz.AnimateCellData(sim,cells,vcellplt,sim.time,p,tit='V in cell', cbtit = 'Voltage [mV]',
-            clrAutoscale = p.autoscale_vcell_ani, clrMin = p.vcell_ani_min_clr, clrMax = p.vcell_ani_max_clr, clrmap = p.default_cm,
-            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/vcell',
-            saveFile = 'vcell_', ignore_simECM =True, current_overlay=p.I_overlay)
+        viz.AnimateCellData(
+            sim,cells,vcellplt,sim.time,p,
+            tit='V in cell',
+            cbtit='Voltage [mV]',
+            clrAutoscale=p.autoscale_vcell_ani,
+            clrMin=p.vcell_ani_min_clr,
+            clrMax=p.vcell_ani_max_clr,
+            clrmap=p.default_cm,
+            save=p.saveAnimations,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            saveFolder='animation/vcell',
+            saveFile='vcell_',
+            ignore_simECM=True,
+            current_overlay=p.I_overlay,
+        )
 
-    if p.ani_I is True and animate == 1:
-
-        viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =True,
-            clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
-            clrmap = p.background_cm, number_cells=False,saveFolder = 'animation/current_gj',saveFile = 'I_')
+    if p.ani_I is True and p.createAnimations is True:
+        viz.AnimateCurrent(
+            sim,cells,time,p,
+            save=p.saveAnimations,
+            ani_repeat=True,
+            current_overlay=p.I_overlay,
+            gj_current=True,
+            clrAutoscale=p.autoscale_I_ani,
+            clrMin=p.I_ani_min_clr,
+            clrMax=p.I_ani_max_clr,
+            clrmap=p.background_cm,
+            number_cells=False,
+            saveFolder='animation/current_gj',
+            saveFile='I_',
+        )
 
         if p.sim_ECM is True:
+            viz.AnimateCurrent(
+                sim,cells,time,p,
+                save=p.saveAnimations,
+                ani_repeat=True,
+                current_overlay=p.I_overlay,
+                gj_current=False,
+                clrAutoscale=p.autoscale_I_ani,
+                clrMin=p.I_ani_min_clr,
+                clrMax=p.I_ani_max_clr,
+                clrmap=p.background_cm,
+                number_cells=False,
+                saveFolder='animation/current_ecm',
+                saveFile='I_',
+            )
 
-            viz.AnimateCurrent(sim,cells,time,p,save=saveAni,ani_repeat=True,current_overlay=p.I_overlay, gj_current =False,
-            clrAutoscale=p.autoscale_I_ani,clrMin = p.I_ani_min_clr,clrMax = p.I_ani_max_clr,
-            clrmap = p.background_cm, number_cells=False,saveFolder = 'animation/current_ecm',saveFile = 'I_')
-
-    if p.ani_Efield is True and animate == 1:
-
+    if p.ani_Efield is True and p.createAnimations is True:
         Ex_gj = sim.efield_gj_x_time
         Ey_gj = sim.efield_gj_y_time
 
-        viz.AnimateField(Ex_gj,Ey_gj,sim,cells,p,ani_repeat = True, save = saveAni,plot_ecm = False,
-            title="Electric Field", cb_title = "Electric Field [V/m]",colorAutoscale = p.autoscale_Efield_ani,
-            colorMin = p.Efield_ani_min_clr, colorMax = p.Efield_ani_max_clr,saveFolder = 'animation/Efield',
-            saveFile = 'Efield_')
+        viz.AnimateField(
+            Ex_gj,Ey_gj,sim,cells,p,
+            ani_repeat=True,
+            save=p.saveAnimations,
+            plot_ecm=False,
+            title="Electric Field",
+            cb_title="Electric Field [V/m]",
+            colorAutoscale=p.autoscale_Efield_ani,
+            colorMin=p.Efield_ani_min_clr,
+            colorMax=p.Efield_ani_max_clr,
+            saveFolder='animation/Efield',
+            saveFile='Efield_',
+        )
 
         if p.sim_ECM is True:
 
             Ex_ecm = sim.efield_ecm_x_time
             Ey_ecm = sim.efield_ecm_y_time
 
-            viz.AnimateField(Ex_ecm,Ey_ecm,sim,cells,p,ani_repeat = True, save = saveAni,plot_ecm = True,
-            title="Electric Field", cb_title = "Electric Field [V/m]",colorAutoscale = p.autoscale_Efield_ani,
-            colorMin = p.Efield_ani_min_clr, colorMax = p.Efield_ani_max_clr,saveFolder = 'animation/Efield',
-            saveFile = 'Efield_')
+            viz.AnimateField(
+                Ex_ecm,Ey_ecm,sim,cells,p,
+                ani_repeat=True,
+                save=p.saveAnimations,
+                plot_ecm=True,
+                title="Electric Field",
+                cb_title="Electric Field [V/m]",
+                colorAutoscale=p.autoscale_Efield_ani,
+                colorMin=p.Efield_ani_min_clr,
+                colorMax=p.Efield_ani_max_clr,
+                saveFolder='animation/Efield',
+                saveFile='Efield_',
+            )
 
-    if p.ani_Velocity is True and p.fluid_flow is True and p.deform_electro is True and animate == 1:
+    if p.ani_Velocity is True and p.fluid_flow is True and \
+       p.deform_electro is True and p.createAnimations is True:
+        viz.AnimateVelocity(sim,cells,p, ani_repeat=True, save=p.saveAnimations)
 
-        viz.AnimateVelocity(sim,cells,p,ani_repeat = True, save = saveAni)
+    if p.ani_Deformation is True and p.deformation is True and \
+       p.createAnimations is True and sim.run_sim is True:
+        viz.AnimateDeformation(sim,cells,p, ani_repeat=True, save=p.saveAnimations)
 
-    if p.ani_Deformation is True and p.deformation is True and animate == 1 and sim.run_sim is True:
-
-        viz.AnimateDeformation(sim,cells,p,ani_repeat = True, save = saveAni)
-
-    if p.sim_eosmosis is True and p.sim_ECM is True and cells.gradMem is not None:
-
+    if p.sim_eosmosis is True and p.sim_ECM is True and \
+       cells.gradMem is not None:
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimension [um]')
@@ -1419,57 +1584,97 @@ def plots4Sim(plot_cell,cells,sim,p, saveImages=False, animate=0,saveAni=False,p
             plt.show(block=False)
 
 
-    if p.ani_Pcell is True and p.deform_osmo is True and animate == 1:
+    if p.ani_Pcell is True and p.deform_osmo is True and p.createAnimations is True:
+        viz.AnimateCellData(
+            sim,cells,sim.P_cells_time,sim.time,p,
+            tit='Hydrostatic Pressure in Cells',
+            cbtit='Pressure [Pa]',
+            clrAutoscale=p.autoscale_Pcell_ani,
+            clrMin=p.Pcell_ani_min_clr,
+            clrMax=p.Pcell_ani_max_clr,
+            clrmap=p.default_cm,
+            save=p.saveAnimations,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            saveFolder='animation/Pcell',
+            saveFile='Pcell_',
+            ignore_simECM=True,
+            current_overlay=p.I_overlay,
+        )
 
-        viz.AnimateCellData(sim,cells,sim.P_cells_time,sim.time,p,tit='Hydrostatic Pressure in Cells',
-            cbtit = 'Pressure [Pa]',
-            clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
-            clrmap = p.default_cm,
-            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/Pcell',
-            saveFile = 'Pcell_', ignore_simECM =True, current_overlay=p.I_overlay)
+    if p.ani_Pcell is True and p.createAnimations is True and p.deform_osmo is True:
+        viz.AnimateCellData(
+            sim, cells, sim.osmo_P_delta_time, sim.time,p,
+            tit='Osmotic Pressure in Cells',
+            cbtit='Pressure [Pa]',
+            clrAutoscale=p.autoscale_Pcell_ani,
+            clrMin=p.Pcell_ani_min_clr,
+            clrMax=p.Pcell_ani_max_clr,
+            clrmap=p.default_cm,
+            save= p.saveAnimations,
+            ani_repeat=True,
+            number_cells=p.enumerate_cells,
+            saveFolder='animation/OsmoP',
+            saveFile='OsmoP_',
+            ignore_simECM=True,
+            current_overlay=p.I_overlay,
+        )
 
-
-    if p.ani_Pcell is True and animate == 1 and p.deform_osmo is True:
-
-        viz.AnimateCellData(sim,cells,sim.osmo_P_delta_time,sim.time,p,tit='Osmotic Pressure in Cells',
-            cbtit = 'Pressure [Pa]',
-            clrAutoscale = p.autoscale_Pcell_ani, clrMin = p.Pcell_ani_min_clr, clrMax = p.Pcell_ani_max_clr,
-            clrmap = p.default_cm,
-            save= saveAni, ani_repeat=True,number_cells=p.enumerate_cells,saveFolder = 'animation/OsmoP',
-            saveFile = 'OsmoP_', ignore_simECM =True, current_overlay=p.I_overlay)
-
-
-    if p.ani_force is True and animate == 1:
-
+    if p.ani_force is True and p.createAnimations is True:
         if p.deform_electro is True:
-
             FEx = [(1/p.um)*arr for arr in sim.F_electro_x_time]
             FEy = [(1/p.um)*arr for arr in sim.F_electro_y_time]
 
-            viz.AnimateField(FEx,FEy,sim,cells,p,ani_repeat = True,
-                save = saveAni,plot_ecm = False, saveFolder = 'animation/ElectrostaticFfield',saveFile = 'EFfield_',
-                title="Electrostatic Body Force", cb_title = "Force [N/cm3]",colorAutoscale = p.autoscale_force_ani,
-                colorMin = p.force_ani_min_clr, colorMax = p.force_ani_max_clr)
-
+            viz.AnimateField(
+                FEx,FEy,sim,cells,p,
+                ani_repeat=True,
+                save=p.saveAnimations,
+                plot_ecm=False,
+                saveFolder='animation/ElectrostaticFfield',
+                saveFile='EFfield_',
+                title="Electrostatic Body Force",
+                cb_title="Force [N/cm3]",
+                colorAutoscale=p.autoscale_force_ani,
+                colorMin=p.force_ani_min_clr,
+                colorMax=p.force_ani_max_clr,
+            )
 
         if p.deform_osmo is True:
-
             FHx = [(1/p.um)*arr for arr in sim.F_hydro_x_time]
             FHy = [(1/p.um)*arr for arr in sim.F_hydro_y_time]
 
-            viz.AnimateField(FHx,FHy,sim,cells,p,ani_repeat = True,
-                save = saveAni,plot_ecm = False, saveFolder = 'animation/HydroFfield',saveFile = 'OFfield_',
-                title="Hydrostatic Body Force", cb_title = "Force [N/cm3]",colorAutoscale = p.autoscale_force_ani,
-                colorMin = p.force_ani_min_clr, colorMax = p.force_ani_max_clr)
+            viz.AnimateField(
+                FHx,FHy,sim,cells,p,
+                ani_repeat=True,
+                save=p.saveAnimations,
+                plot_ecm=False,
+                saveFolder='animation/HydroFfield',
+                saveFile='OFfield_',
+                title="Hydrostatic Body Force",
+                cb_title="Force [N/cm3]",
+                colorAutoscale=p.autoscale_force_ani,
+                colorMin=p.force_ani_min_clr,
+                colorMax=p.force_ani_max_clr,
+            )
 
-    if p.ani_venv is True and animate == 1 and p.sim_ECM is True:
-        viz.AnimateEnv(sim,cells,sim.time,p,clrAutoscale=p.autoscale_venv_ani,clrMin=p.venv_min_clr,
-                       clrMax=p.venv_max_clr, save = saveAni)
+    if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:
+        viz.AnimateEnv(
+            sim,cells,sim.time,p,
+            clrAutoscale=p.autoscale_venv_ani,
+            clrMin=p.venv_min_clr,
+            clrMax=p.venv_max_clr,
+            save=p.saveAnimations,
+        )
 
     if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True:
-        viz.AnimateMem(sim,cells,sim.time,p,clrAutoscale=p.autoscale_mem_ani,clrMin= p.mem_ani_min_clr,
-                       clrMax=p.mem_ani_max_clr,save = saveAni,current_overlay=p.I_overlay)
-
+        viz.AnimateMem(
+            sim,cells,sim.time,p,
+            clrAutoscale=p.autoscale_mem_ani,
+            clrMin=p.mem_ani_min_clr,
+            clrMax=p.mem_ani_max_clr,
+            save=p.saveAnimations,
+            current_overlay=p.I_overlay,
+        )
 
     if p.turn_all_plots_off is False:
         plt.show()

@@ -66,7 +66,7 @@ class FileFrameWriter(MovieWriter):
         self._frame_number = 0
 
         # If this filename template is malformed, raise an exception.
-        if '{' not in self.outfile or '}' not in self.outfile:
+        if not ('{' in self.outfile and '}' in self.outfile):
             raise BetseExceptionMatplotlib(
                 'Frame filename template "{}" contains no "{{"- and "}}"-'
                 'delimited format specifier.'.format(self.outfile))

@@ -29,12 +29,12 @@ class Event(object, metaclass=ABCMeta):
     def make(params: 'Parameters') -> 'Event':
         '''
         Factory method producing a concrete instance of this abstract base class
-        from the passed tissue simulation configuration.
+        from the passed simulation configuration.
 
         Parameters
         ----------------------------
         params : Parameters
-            Current tissue simulation configuration.
+            Current simulation configuration.
 
         Returns
         ----------------------------

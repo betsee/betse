@@ -718,8 +718,24 @@ results options:
                                   # options True or False (case sensitive)
 
   save animations:              # save animations in animation-specific folders
+     #FIXME: Refactor to provide a filetype, DPI, and other image metadata:
+     #
+     # frames:
+     #     enabled: True       # should each animation be saved as a sequence
+     #                         # of frame image files (True) or not (False)?
+     #     filetype: png       # image filetype
+     #     dpi: 300            # image dots per inch (DPI)
      image frames: True        # save animation to sequence of image frames (png)
-     movie file: False         # save to movie file (mpeg4)
+
+     movie:
+         enabled: False        # should each animation be saved as an encoded
+                               # movie file (True) or not (False)?
+         filetype: mp4         # movie filetype
+
+         # List of the names of all external video encoder libraries to attempt
+         # to use (in order of descending preference).
+         encoders: ['ffmpeg', 'avconv', 'mencoder']
+
 
   export data to file: True        # export all stored data for the plot cell to a
                                    # comma-delimited (csv) text file
