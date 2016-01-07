@@ -1709,6 +1709,29 @@ class Cells(object):
 
         """
 
+        # first process voronoi_verts to clip out structres larger than the desired size:
+        voronoi_verts = []
+
+        for verts in self.voronoi_verts:
+
+            a = np.asarray(verts)
+
+            inds_highx = (a[:,0] <= self.xmax).nonzero()
+            inds_lowx = (a[:,0] >= self.xmin).nonzero()
+            inds_highy = (a[:,1] <= self.ymax).nonzero()
+            inds_lowy = (a[:,1] >= self.ymin).nonzero()
+
+            if len(inds_highx[0]) == len(a[:,0]) and len(inds_lowx[0]) == len(a[:,0]) and \
+                    len(inds_highy[0]) == len(a[:,0]) and len(inds_lowy[0]) == len(a[:,0]):
+
+                voronoi_verts.append(verts)
+
+
+        self.voronoi_verts = np.asarray(voronoi_verts)
+
+        #----------------------------------------------
+
+
         voronoi_grid = set()
 
         for verts in self.voronoi_verts:
