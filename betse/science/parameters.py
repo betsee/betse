@@ -833,7 +833,7 @@ class Parameters(object):
         #FIXME: Use the newly defined AnimationSaverFrames.make() and
         #AnimationSaverVideo.make() methods here instead. Sundial by moonlight!
 
-        self.saveAnimations = ro['save animations']['image frames']    # save all animations as png sequences
+        self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
         # self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
 
         self.exportData = ro['export data to file']        # export all stored data for the plot_cell to a csv text file

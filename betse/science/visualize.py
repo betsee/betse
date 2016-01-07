@@ -1651,24 +1651,21 @@ def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
     ax.plot(sim.time, tvect_data,lncolor,linewidth=2.0)
 
     if p.GHK_calc is True:
-
         tvect_data_ghk = [x[p.plot_cell]*1000 for x in sim.vm_GHK_time]
         ax.plot(sim.time, tvect_data_ghk,'r',linewidth=2.0)
-
 
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('Voltage [mV]')
 
     return fig, ax
 
-def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
 
+def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
 
     # ccIon_cell = [arr[ioni][celli] for arr in simdata_time]
     ccIon_cell = []
 
     for carray in simdata_time:
-
         conc = carray[ioni][celli]
         ccIon_cell.append(conc)
 
