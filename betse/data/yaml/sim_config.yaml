@@ -755,7 +755,7 @@ results options:
                                     # show cells (set to False) as it will plot very slowly.
                                     # options True or False (case sensitive)
   
-    overlay currents: False          # overlay electric current or concentration flux streamlines on 2d plotted data
+    overlay currents: False         # overlay electric current or concentration flux streamlines on 2d plotted data
   
     streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
   

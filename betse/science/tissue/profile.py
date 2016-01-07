@@ -112,6 +112,21 @@ class Profile(object, metaclass = ABCMeta):
 
     # ..................{ CONCRETE                           }..................
     def __init__(self, name: str, z_order: int, picker: 'TissuePicker') -> None:
+        '''
+        Initialize this profile.
+
+        Parameters
+        ----------
+        name : str
+            Unique name of this profile.
+        z_order : int
+            1-based order in which this profile will be plotted with respect to
+            all other plotted profiles. Specifically, profiles with larger z
+            order will be plotted over profiles with smaller z order.
+        picker : TissuePicker
+            Object assigning a subset of the cell population to this profile.
+        '''
+
         assert types.is_str(name), types.assert_not_str(name)
         assert types.is_int_ge(z_order, 1), types.assert_not_int_ge(z_order, 1)
         assert types.is_tissue_picker(picker), \

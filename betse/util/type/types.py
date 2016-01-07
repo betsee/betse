@@ -16,6 +16,7 @@ objects).
 
 # ....................{ IMPORTS                            }....................
 from collections.abc import Iterable, Mapping, Sequence
+from matplotlib.colors import Colormap
 
 # ....................{ TESTERS                            }....................
 def is_bool(obj: object) -> bool:
@@ -58,6 +59,13 @@ def is_iterable_nonstr(obj: object) -> bool:
     the abstract base class `collections.Iterable` _and_ is not a string).
     '''
     return is_iterable(obj) and not is_str(obj)
+
+# ....................{ TESTERS ~ lib                      }....................
+def is_matplotlib_colormap(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Matplotlib colormap.
+    '''
+    return isinstance(obj, Colormap)
 
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
@@ -129,6 +137,7 @@ def is_cells(obj: object) -> bool:
     from betse.science.cells import Cells
     return isinstance(obj, Cells)
 
+
 def is_parameters(obj: object) -> bool:
     '''
     `True` if the passed object is an instance of the BETSE-specific
@@ -138,6 +147,7 @@ def is_parameters(obj: object) -> bool:
     from betse.science.parameters import Parameters
     return isinstance(obj, Parameters)
 
+
 def is_simulator(obj: object) -> bool:
     '''
     `True` if the passed object is an instance of the BETSE-specific `Simulator`
@@ -146,6 +156,7 @@ def is_simulator(obj: object) -> bool:
     # Avoid circular import dependencies.
     from betse.science.sim import Simulator
     return isinstance(obj, Simulator)
+
 
 def is_tissue_picker(obj: object) -> bool:
     '''
@@ -208,6 +219,13 @@ def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
     '''
     return assert_not_iterable_nonstr(obj) if not is_iterable_nonstr(
         obj) else '{} empty.'.format(label.capitalize())
+
+# ....................{ ASSERTERS ~ lib                    }....................
+def assert_not_matplotlib_colormap(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Matplotlib colormap.
+    '''
+    return '"{}" not a Matplotlib colormap.'.format(obj)
 
 # ....................{ ASSERTERS ~ numeric                }....................
 def assert_not_int(obj: object) -> str:

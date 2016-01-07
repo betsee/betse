@@ -33,8 +33,8 @@ HAIKU = [
         'cannot completely convey.',
         'We now know shared loss.',
     ), (
-        'The code was willing.'
-        'It considered your request,'
+        'The code was willing.',
+        'It considered your request',
         'but the chips were weak.',
     ), (
         'There is a chasm',

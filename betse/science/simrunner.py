@@ -10,6 +10,17 @@ import numpy as np
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 from betse.science import filehandling as fh
 from betse.science import visualize as viz
+from betse.science.animation.animation import (
+    AnimateCellData,
+    AnimateGJData,
+    AnimateCurrent,
+    AnimateField,
+    AnimateVelocity,
+    AnimateDeformation,
+    AnimateEnv,
+    AnimateMem,
+    AnimateDyeData,
+)
 from betse.science.cells import Cells
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
@@ -344,7 +355,8 @@ class SimRunner(object):
             os.makedirs(image_cache_dir, exist_ok=True)
             savedImg = os.path.join(image_cache_dir, 'fig_')
 
-        fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(p,dyna,cells,clrmap=p.default_cm)
+        fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
+            p, dyna, cells, clrmap=p.default_cm)
 
         if p.autosave is True:
             savename10 = savedImg + 'cluster_mosaic' + '.png'
@@ -354,11 +366,14 @@ class SimRunner(object):
             plt.show(block = False)
 
         if p.sim_ECM is True:
-
             plt.figure()
             ax99 = plt.subplot(111)
-            plt.imshow(np.log10(sim.D_env_weight.reshape(cells.X.shape)),origin='lower',
-                extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
+            plt.imshow(
+                np.log10(sim.D_env_weight.reshape(cells.X.shape)),
+                origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+                cmap=p.default_cm,
+            )
             plt.colorbar()
 
             cell_edges_flat = cells.um*cells.mem_edges_flat
@@ -376,8 +391,12 @@ class SimRunner(object):
                 plt.show(block = False)
 
             plt.figure()
-            plt.imshow(cells.maskM,origin='lower',
-                       extent= [p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=p.default_cm)
+            plt.imshow(
+                cells.maskM,
+                origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+                cmap=p.default_cm,
+            )
             plt.colorbar()
             plt.title('Cluster Masking Matrix')
 
@@ -1335,20 +1354,15 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting,1e3)
 
-        viz.AnimateCellData(
-            sim,
-            cells,
-            IP3plotting,
-            sim.time,
-            p,
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=IP3plotting,
             tit='IP3 concentration',
             cbtit='Concentration [umol/L]',
             clrAutoscale=p.autoscale_IP3_ani,
             clrMin=p.IP3_ani_min_clr,
             clrMax=p.IP3_ani_max_clr,
-            clrmap=p.default_cm,
             save=p.saveAnimations,
-            ani_repeat=True,
             number_cells=p.enumerate_cells,
             saveFolder='animation/IP3',
             saveFile='ip3_',
@@ -1362,16 +1376,15 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             Dyeplotting = np.asarray(sim.cDye_time)
             Dyeplotting = np.multiply(Dyeplotting,1e3)
 
-            viz.AnimateCellData(
-                sim, cells, Dyeplotting, sim.time, p,
+            AnimateCellData(
+                sim=sim, cells=cells, p=p,
+                zdata_t=Dyeplotting,
                 tit='Morphogen Concentration',
                 cbtit='Concentration [umol/L]',
                 clrAutoscale=p.autoscale_Dye_ani,
                 clrMin=p.Dye_ani_min_clr,
                 clrMax=p.Dye_ani_max_clr,
-                clrmap=p.default_cm,
                 save=p.saveAnimations,
-                ani_repeat=True,
                 number_cells=p.enumerate_cells,
                 saveFolder='animation/Morphogen',
                 saveFile='morphogen_',
@@ -1379,7 +1392,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             )
 
         else:
-            viz.AnimateDyeData(
+            AnimateDyeData(
                 sim,cells,p,
                 save=p.saveAnimations,
                 ani_repeat=True,
@@ -1393,38 +1406,38 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
                 saveFile='Dye_',
             )
 
-    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and p.createAnimations is True:
+    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and \
+       p.createAnimations is True:
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
-        viz.AnimateCellData(
-            sim,cells,tCa,sim.time,p,
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=tCa,
             tit='Cytosolic Ca2+',
             cbtit='Concentration [nmol/L]',
             save=p.saveAnimations,
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            clrmap=p.default_cm,
-            ani_repeat=True,
             number_cells=p.enumerate_cells,
             saveFolder='animation/Ca',
             saveFile='ca_',
             ignore_simECM=True,
         )
 
-    if p.ani_pH2d is True and p.ions_dict['H'] == 1 and p.createAnimations is True:
+    if p.ani_pH2d is True and p.ions_dict['H'] == 1 and \
+       p.createAnimations is True:
         tpH = [-np.log10(arr[sim.iH]) for arr in sim.cc_time]
 
-        viz.AnimateCellData(
-            sim,cells,tpH,sim.time,p,
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=tpH,
             tit='Cytosolic pH',
             cbtit='pH',
             save=p.saveAnimations,
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            clrmap=p.default_cm,
-            ani_repeat=True,
             number_cells=p.enumerate_cells,
             saveFolder='animation/pH',
             saveFile='pH_',
@@ -1434,28 +1447,27 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
     if p.ani_vm2d is True and p.createAnimations is True:
         if p.sim_ECM is False:
             vmplt = [1000*arr for arr in sim.vm_time]
-
         else:
             vmplt = [1000*arr for arr in sim.vm_Matrix]
 
-        viz.AnimateCellData(
-            sim,cells,vmplt,sim.time,p,
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=vmplt,
             tit='Cell Vmem',
             cbtit='Voltage [mV]',
             save=p.saveAnimations,
             clrAutoscale=p.autoscale_Vmem_ani,
             clrMin=p.Vmem_ani_min_clr,
             clrMax=p.Vmem_ani_max_clr,
-            clrmap=p.default_cm,
-            ani_repeat=True,
             number_cells=p.enumerate_cells,
             current_overlay=p.I_overlay,
             saveFolder='animation/Vmem',
             saveFile='vm_',
+            ignore_simECM=False,
         )
 
     if p.ani_vmgj2d is True and p.createAnimations is True:
-        viz.AnimateGJData(
+        AnimateGJData(
             cells, sim, p,
             tit='Vcell ',
             save=p.saveAnimations,
@@ -1471,16 +1483,15 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
     if p.ani_vcell is True and p.createAnimations is True and p.sim_ECM == 1:
         vcellplt = [1000*arr for arr in sim.vcell_time]
 
-        viz.AnimateCellData(
-            sim,cells,vcellplt,sim.time,p,
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=vcellplt,
             tit='V in cell',
             cbtit='Voltage [mV]',
             clrAutoscale=p.autoscale_vcell_ani,
             clrMin=p.vcell_ani_min_clr,
             clrMax=p.vcell_ani_max_clr,
-            clrmap=p.default_cm,
             save=p.saveAnimations,
-            ani_repeat=True,
             number_cells=p.enumerate_cells,
             saveFolder='animation/vcell',
             saveFile='vcell_',
@@ -1489,7 +1500,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         )
 
     if p.ani_I is True and p.createAnimations is True:
-        viz.AnimateCurrent(
+        AnimateCurrent(
             sim,cells,time,p,
             save=p.saveAnimations,
             ani_repeat=True,
@@ -1505,7 +1516,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         )
 
         if p.sim_ECM is True:
-            viz.AnimateCurrent(
+            AnimateCurrent(
                 sim,cells,time,p,
                 save=p.saveAnimations,
                 ani_repeat=True,
@@ -1524,7 +1535,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         Ex_gj = sim.efield_gj_x_time
         Ey_gj = sim.efield_gj_y_time
 
-        viz.AnimateField(
+        AnimateField(
             Ex_gj,Ey_gj,sim,cells,p,
             ani_repeat=True,
             save=p.saveAnimations,
@@ -1543,7 +1554,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             Ex_ecm = sim.efield_ecm_x_time
             Ey_ecm = sim.efield_ecm_y_time
 
-            viz.AnimateField(
+            AnimateField(
                 Ex_ecm,Ey_ecm,sim,cells,p,
                 ani_repeat=True,
                 save=p.saveAnimations,
@@ -1559,11 +1570,11 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_Velocity is True and p.fluid_flow is True and \
        p.deform_electro is True and p.createAnimations is True:
-        viz.AnimateVelocity(sim,cells,p, ani_repeat=True, save=p.saveAnimations)
+        AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
 
     if p.ani_Deformation is True and p.deformation is True and \
        p.createAnimations is True and sim.run_sim is True:
-        viz.AnimateDeformation(sim,cells,p, ani_repeat=True, save=p.saveAnimations)
+        AnimateDeformation(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
 
     if p.sim_eosmosis is True and p.sim_ECM is True and \
        cells.gradMem is not None:
@@ -1583,18 +1594,17 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-
-    if p.ani_Pcell is True and p.deform_osmo is True and p.createAnimations is True:
-        viz.AnimateCellData(
-            sim,cells,sim.P_cells_time,sim.time,p,
+    if p.ani_Pcell is True and p.deform_osmo is True and \
+       p.createAnimations is True:
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=sim.P_cells_time,
             tit='Hydrostatic Pressure in Cells',
             cbtit='Pressure [Pa]',
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            clrmap=p.default_cm,
             save=p.saveAnimations,
-            ani_repeat=True,
             number_cells=p.enumerate_cells,
             saveFolder='animation/Pcell',
             saveFile='Pcell_',
@@ -1602,17 +1612,17 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             current_overlay=p.I_overlay,
         )
 
-    if p.ani_Pcell is True and p.createAnimations is True and p.deform_osmo is True:
-        viz.AnimateCellData(
-            sim, cells, sim.osmo_P_delta_time, sim.time,p,
+    if p.ani_Pcell is True and p.createAnimations is True and \
+       p.deform_osmo is True:
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            zdata_t=sim.osmo_P_delta_time,
             tit='Osmotic Pressure in Cells',
             cbtit='Pressure [Pa]',
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            clrmap=p.default_cm,
-            save= p.saveAnimations,
-            ani_repeat=True,
+            save=p.saveAnimations,
             number_cells=p.enumerate_cells,
             saveFolder='animation/OsmoP',
             saveFile='OsmoP_',
@@ -1625,7 +1635,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             FEx = [(1/p.um)*arr for arr in sim.F_electro_x_time]
             FEy = [(1/p.um)*arr for arr in sim.F_electro_y_time]
 
-            viz.AnimateField(
+            AnimateField(
                 FEx,FEy,sim,cells,p,
                 ani_repeat=True,
                 save=p.saveAnimations,
@@ -1643,7 +1653,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             FHx = [(1/p.um)*arr for arr in sim.F_hydro_x_time]
             FHy = [(1/p.um)*arr for arr in sim.F_hydro_y_time]
 
-            viz.AnimateField(
+            AnimateField(
                 FHx,FHy,sim,cells,p,
                 ani_repeat=True,
                 save=p.saveAnimations,
@@ -1658,7 +1668,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             )
 
     if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:
-        viz.AnimateEnv(
+        AnimateEnv(
             sim,cells,sim.time,p,
             clrAutoscale=p.autoscale_venv_ani,
             clrMin=p.venv_min_clr,
@@ -1667,7 +1677,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         )
 
     if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True:
-        viz.AnimateMem(
+        AnimateMem(
             sim,cells,sim.time,p,
             clrAutoscale=p.autoscale_mem_ani,
             clrMin=p.mem_ani_min_clr,

@@ -4,20 +4,21 @@
 
 #FIXME: Higher-level "betse.util.path" functions should typically be called
 #rather than low-level "os.path" functions. Daggers of scintillating wonder!
-import copy, math, os, time
-import os.path
+import copy, math, os, os.path, time
 import matplotlib.pyplot as plt
 import numpy as np
-from betse.science import filehandling as fh
-from betse.science import visualize as viz
-from betse.science import toolbox as tb
-from betse.science.tissue.handler import TissueHandler
-from betse.science import finitediff as fd
 from betse.exceptions import BetseExceptionSimulation
+from betse.science import filehandling as fh
+from betse.science import finitediff as fd
+from betse.science import toolbox as tb
+from betse.science.animation.animation import PlotWhileSolving
+from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
 
+
+#FIXME: Shift method documentation into method docstrings. Burnished sunsets!
 class Simulator(object):
     """
     Contains the main routines used in the simulation of networked cell
@@ -87,15 +88,11 @@ class Simulator(object):
 
     initDenv(cells,p)                       Initializes the environmental diffusion matrix and corresponding weight
                                             matrices, including tight and adherin junctions.
-
-
-
-
-
     """
 
     def __init__(self,p):
         self.fileInit(p)
+
 
     def fileInit(self,p):
         """
@@ -114,6 +111,7 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
         self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
+
 
     def baseInit(self,cells,p):
         """
@@ -961,20 +959,25 @@ class Simulator(object):
         # report
 
         if p.run_sim is True:
-
-
-            loggers.log_info('Your simulation is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
-                         + ' seconds of in-world time.')
-
+            loggers.log_info(
+                'Your simulation is running from ' + str(0) + ' to '
+                + str(round(p.sim_tsteps*p.dt,3))
+                + ' seconds of in-world time.')
         else:
-             loggers.log_info('Your initialization is running from '+ str(0) + ' to '+ str(round(p.init_tsteps*p.dt,3))
-                         + ' seconds of in-world time.')
-
+             loggers.log_info(
+                 'Your initialization is running from '+ str(0) + ' to '
+                 + str(round(p.init_tsteps*p.dt,3))
+                 + ' seconds of in-world time.')
 
         if p.plot_while_solving is True:
-
-            self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
-                clrMax = p.Vmem_max_clr)
+            self.checkPlot = PlotWhileSolving(
+                cells,
+                self,
+                p,
+                clrAutoscale=p.autoscale_Vmem,
+                clrMin=p.Vmem_min_clr,
+                clrMax=p.Vmem_max_clr,
+            )
 
         do_once = True  # a variable to time the loop only once
 
@@ -1510,26 +1513,29 @@ class Simulator(object):
 
         # report
         if p.run_sim is True:
-
-            loggers.log_info('Your simulation (with extracellular spaces) is running from '+ str(0) +
-                             ' to '+ str(round(p.sim_tsteps*p.dt,3))
-                         + ' seconds of in-world time.')
-
+            loggers.log_info(
+                'Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '
+                + str(round(p.sim_tsteps*p.dt,3))
+                + ' seconds of in-world time.')
         else:
-            loggers.log_info('Your initialization (with extracellular spaces) is running from '+ str(0) +
-                             ' to '+ str(round(p.init_tsteps*p.dt,3))
-                         + ' seconds of in-world time.')
-
+            loggers.log_info(
+                'Your initialization (with extracellular spaces) is running from '+ str(0) + ' to '
+                + str(round(p.init_tsteps*p.dt,3))
+                + ' seconds of in-world time.')
 
         if p.plot_while_solving is True:
-
-            self.checkPlot = viz.PlotWhileSolving(cells,self,p,clrAutoscale = p.autoscale_Vmem, clrMin = p.Vmem_min_clr,
-                clrMax = p.Vmem_max_clr)
+            self.checkPlot = PlotWhileSolving(
+                cells,
+                self,
+                p,
+                clrAutoscale=p.autoscale_Vmem,
+                clrMin=p.Vmem_min_clr,
+                clrMax=p.Vmem_max_clr,
+            )
 
         do_once = True  # a variable to time the loop only once
 
         for t in tt:   # run through the loop
-
             if do_once is True:
                 loop_measure = time.time()
 
