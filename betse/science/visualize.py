@@ -39,7 +39,6 @@ def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
 
     return fig, ax
 
-
 def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor='b',ionname='ion'):
 
     # ccIon_cell = [arr[ioni][celli] for arr in simdata_time]

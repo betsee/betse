@@ -1915,7 +1915,7 @@ class Cells(object):
 
         # interpolate f to mems:
         f_mem = interp.griddata((self.cell_centres[:,0],self.cell_centres[:,1]),f,
-                             (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),fill_value = 0)
+                             (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),fill_value = 0, method=interp_method)
 
         return f_mem
 

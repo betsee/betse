@@ -16,6 +16,7 @@ from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
+from scipy.ndimage.filters import gaussian_filter
 
 
 #FIXME: Shift method documentation into method docstrings. Burnished sunsets!
@@ -1633,7 +1634,7 @@ class Simulator(object):
                 self.update_C_ecm(i,f_ED,cells,p)
 
                 # update concentrations in the extracellular spaces:
-                self.update_ecm(cells,p,t,i)
+                # self.update_ecm(cells,p,t,i)
 
                 # update flux between cells due to gap junctions
                 self.update_gj(cells,p,t,i)
@@ -1704,9 +1705,6 @@ class Simulator(object):
                 self.update_V_ecm(cells,p,t)
 
             check_v(self.vm)
-
-            # try calling new voltage function:
-            get_Vall(self,cells,p)
 
 
             if t in tsamples:
@@ -1923,17 +1921,28 @@ class Simulator(object):
 
         if p.sim_ECM is True:
 
+            # get the charge in cells and the environment:
+
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-            self.v_env = get_Venv(self,cells,p)
-            self.v_cell = get_Vcell(self,cells,p)
 
-            self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
+            self.vm, self.v_cell, self.v_env = get_Vall(self,cells,p)
+
+            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            # self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
+            # self.v_env = get_Venv(self,cells,p)
+            # self.v_cell = get_Vcell(self,cells,p)
+            #
+            # self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
 
         else:
 
-            self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-            self.vm = get_Vcell(self,cells,p)
+             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+
+             self.vm, _, _ = get_Vall(self,cells,p)
+
+            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            # self.vm = get_Vcell(self,cells,p)
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -4502,12 +4511,20 @@ def get_Vall(self,cells,p):
         # v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_voll
 
     else:
+
+        # FIXME -- should I try interpolating cell charge to the same grid, with same smoothing?
         # if modelling extracellular spaces, we need to determine the relevant charge for the whole capacitive system.
         # this is done using the quantity (q1 - q2)/2, which has been called the "gorge" of the capacitor in
         # several non-formal references.
 
-        Qin_o = (self.rho_cells*cells.cell_vol)/cells.num_mems
+        Qin_o = (self.rho_cells*cells.cell_vol)
         Qin = Qin_o[cells.mem_to_cells]
+        # Qin = cells.integrator(Qin_o)
+        # Qin = Qin[cells.mem_to_cells]
+
+        # smooth out the environmental charge:
+        self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),3)
+        self.rho_env = self.rho_env.ravel()
 
         Qout = self.rho_env[cells.map_mem2ecm]*cells.ecm_vol[cells.map_mem2ecm]
 
@@ -4523,13 +4540,47 @@ def get_Vall(self,cells,p):
         # Now, we don't assume equal voltages on intra and extra cellular surfaces. Instead, assume the ratio of voltages
         # is weighted by to the fraction of charge on the surface:
 
-        v_cell_o = (vm/2)*(Qin/Qmean)
-        v_env_o = -(vm/2)*(Qout/Qmean)
+        # if Qmean.all() != 0.0:
+        #
+        #     v_cell_o = (vm/2)*(Qin/Qmean)
+        #     v_env_o = -(vm/2)*(Qout/Qmean)
+        #
+        # else:
+        #
+        #     v_cell_o = (vm/2)
+        #     v_env_o = -(vm/2)
+        v_cell_o = (vm/2)
+        v_env_o = -(vm/2)
 
         # Map the data structures to their proper final form:
-        v_cell = np.dot(cells.M_sum_mem,v_cell_o)/cells.num_mems
+        v_cell = np.dot(cells.M_sum_mems,v_cell_o)/cells.num_mems
         v_env = np.zeros(len(cells.xypts))
         v_env[cells.map_mem2ecm] = v_env_o
+
+        # smooth out the environmental voltage:
+        v_env = gaussian_filter(v_env.reshape(cells.X.shape),3)
+        v_env = v_env.ravel()
+
+        print(Qin[cells.cell_to_mems[174]][2],Qout[cells.cell_to_mems[174]][2], gorge[cells.cell_to_mems[174]][2],
+              Qmean[cells.cell_to_mems[174]][2])
+        print('*')
+        print(1000*vm[cells.cell_to_mems[174]][2],1000*v_cell[174], 1000*v_env_o[cells.cell_to_mems[174]][2])
+        print('**')
+        print(cells.mem_sa[cells.cell_to_mems[174]][2],cells.cell_sa[174], cells.cell_vol[174])
+
+        print("ABBA")
+
+        print(Qin[cells.cell_to_mems[170]][2],Qout[cells.cell_to_mems[170]][2], gorge[cells.cell_to_mems[170]][2],
+              Qmean[cells.cell_to_mems[170]][2])
+        print('*')
+        print(1000*vm[cells.cell_to_mems[170]][2],1000*v_cell[170], 1000*v_env_o[cells.cell_to_mems[170]][2])
+        print('**')
+        print(cells.mem_sa[cells.cell_to_mems[170]][2],cells.cell_sa[170], cells.cell_vol[170])
+
+
+
+        print('----------')
+
 
     return vm, v_cell, v_env
 
