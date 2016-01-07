@@ -93,7 +93,6 @@ class Simulator(object):
     def __init__(self,p):
         self.fileInit(p)
 
-
     def fileInit(self,p):
         """
         Initializes file saving and loading directory as the betse cach.
@@ -111,7 +110,6 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
         self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
-
 
     def baseInit(self,cells,p):
         """
@@ -1706,6 +1704,9 @@ class Simulator(object):
                 self.update_V_ecm(cells,p,t)
 
             check_v(self.vm)
+
+            # try calling new voltage function:
+            get_Vall(self,cells,p)
 
 
             if t in tsamples:
@@ -4468,32 +4469,69 @@ def get_Venv(self,cells,p):
     return V
 
 def get_Vall(self,cells,p):
+    """
+    Calculates transmembrane voltage (Vmem) and voltages inside the cell and extracellular space, assuming the cell
+    is a capacitor consisting of two concentric spheres.
 
-    self.ff = 1
+    self:
+    cells:
+    p:
 
-    rho_stack = np.hstack((self.rho_cells,self.rho_env[cells.map_mem2ecm]))
-    vol_stack = np.hstack((cells.cell_vol,cells.ecm_vol[cells.map_mem2ecm]))
+    Returns
+    --------
+    vm           Transmembrane voltage
+    v_cell       Voltage at the inner membrane surface
+    v_env        Voltage at the outer membrane surface
 
-    f_stack = (rho_stack*vol_stack)/(p.eo*80*self.ff)
 
-    V_stack = np.dot(f_stack,cells.VMatrix_inv)
-    v_cells = V_stack[cells.a:cells.b]
-    v_ecms = V_stack[cells.c:cells.d]
 
-    v_env = get_Venv(self, cells, p)
+    """
 
-    vm = v_cells[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
+    if p.sim_ECM is False:
+        # if we're not modelling extracellular spaces, but assuming a perfectly mixing environment,
+        # assume the cell is a concentric spherical capacitor with opposite but equal magnitude
+        # charge inside the cell and out
+        # calculate the voltage for the system using the measured capacitance of the cell:
 
-    # v_env[cells.map_mem2ecm] = v_ecms
+        vm = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
 
-    # print('******')
-    # print(v_cells)
-    # print('---')
-    # print(v_ecms)
-    # print('----')
-    # print(vm)
+        # in this case, the voltage across the membrane is assumed to be equal and opposite to the cell voltage:
+        v_cell = vm/2
+        v_env = -vm/2
 
-    return v_cells, v_env, vm
+        # v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_voll
+
+    else:
+        # if modelling extracellular spaces, we need to determine the relevant charge for the whole capacitive system.
+        # this is done using the quantity (q1 - q2)/2, which has been called the "gorge" of the capacitor in
+        # several non-formal references.
+
+        Qin_o = (self.rho_cells*cells.cell_vol)/cells.num_mems
+        Qin = Qin_o[cells.mem_to_cells]
+
+        Qout = self.rho_env[cells.map_mem2ecm]*cells.ecm_vol[cells.map_mem2ecm]
+
+        Qmean = (Qin + Qout)/2
+
+        gorge = (Qin - Qout)/2
+
+        # The voltage across the capacitor system is then the simple formula again, just using the "gorge".
+        # In the case of extracellular spaces, we consider individual membrane regions of cells so the data length is
+        # len(cells.mem_i)
+        vm = (1/(p.cm*cells.mem_sa))*gorge
+
+        # Now, we don't assume equal voltages on intra and extra cellular surfaces. Instead, assume the ratio of voltages
+        # is weighted by to the fraction of charge on the surface:
+
+        v_cell_o = (vm/2)*(Qin/Qmean)
+        v_env_o = -(vm/2)*(Qout/Qmean)
+
+        # Map the data structures to their proper final form:
+        v_cell = np.dot(cells.M_sum_mem,v_cell_o)/cells.num_mems
+        v_env = np.zeros(len(cells.xypts))
+        v_env[cells.map_mem2ecm] = v_env_o
+
+    return vm, v_cell, v_env
 
 def get_molarity(concentrations,p):
 

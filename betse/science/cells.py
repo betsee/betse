@@ -421,7 +421,6 @@ class Cells(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
-
     def cellVerts(self,p):
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
@@ -1735,7 +1734,6 @@ class Cells(object):
         # define a mapping between the voronoi cell centres and the cluster cell centres:
         vertTree = sps.KDTree(self.voronoi_centres)
         self.cell_to_grid = list(vertTree.query(self.cell_centres))[1]
-
 
     def make_maskM(self,p):   # FIXME would this work better with voronoi centres?
         """
