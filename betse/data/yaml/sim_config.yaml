@@ -119,8 +119,8 @@ sim time settings:
 
 general options:
 
-  comp grid size: 30         # grid used in computation of environmental parameters (keep smaller than 50)
-  plot grid size: 50                 # grid used for interpolated data plotting (recommend 60 to 100)
+  comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
+  plot grid size: 100                 # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: False    # include extracellular spaces and heterogeneous cell Vmem in sim?
 
@@ -420,7 +420,7 @@ cutting event:
     event happens: True      # enable (True) or disable (False) this event?
     membranes damaged: True  # do cell membranes adjacent to cut cells openly
                              # diffuse to the environment (True) or not (False)?
-    membrane leakage: 1e-6   # value to multiply all free diffusion constants
+    membrane leakage: 1e-7   # value to multiply all free diffusion constants
                              # for damaged membranes by
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
 
@@ -645,7 +645,7 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 1.0e-8 # surface area of gj as fraction of cell area (1.0e-3 or smaller)
+    gap junction surface area: 1.0e-7 # surface area of gj as fraction of cell area (1.0e-3 or smaller)
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
@@ -978,7 +978,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 5.0e-14        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
+        max Dmem Na: 5.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
         activation v: -55e-3      # voltage threshold above which vgNa is activated [V] -55e-3
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3
         deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
@@ -987,7 +987,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated K:
 
-        max Dmem K: 1.0e-14           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
+        max Dmem K: 1.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
         activation v: -10e-3        # voltage threshold above which vgK is activated [V]    -10e-3
         deactivation v: -65e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
         live time: 5e-3            # time activated state can exist [s]   5e-3
@@ -1078,11 +1078,6 @@ internal parameters:
   alpha_rho_gj: 1.0e-3
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
-
-  env modification constant: 5.0e5    # Asymetrical capacitance coefficient for environment
-
-  cell modification constant: 1.5e3    # Asymetrical capacitance coefficient for cell 1.5e3 to 5e5
-
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

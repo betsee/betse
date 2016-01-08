@@ -1291,10 +1291,13 @@ def removeCells(
         cells.make_maskM(p)
         cells.grid_len =len(cells.xypts)
 
-        # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-        loggers.log_info('Creating cell network Poisson solver...')
-        cells.graphLaplacian(p)
-        loggers.log_info('Completed major world-building computations.')
+        cells.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
+
+        if p.fluid_flow is True or p.deformation is True:
+            # make a laplacian and solver for discrete transfers on closed, irregular cell network:
+            loggers.log_info('Creating cell network Poisson solver...')
+            cells.graphLaplacian(p)
+            loggers.log_info('Completed major world-building computations.')
 
         sim.initDenv(cells,p)
 
@@ -1303,7 +1306,9 @@ def removeCells(
         cells.near_neigh(p)    # Calculate the nn array for each cell
         cells.calc_gj_vects(p)
         cells.gj_matrix(p)      # Calculate extra stuff for gap junction work
-         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-        loggers.log_info('Creating cell network Poisson solver...')
-        cells.graphLaplacian(p)
-        loggers.log_info('Completed major world-building computations.')
+
+        if p.fluid_flow is True or p.deformation is True:
+            # make a laplacian and solver for discrete transfers on closed, irregular cell network:
+            loggers.log_info('Creating cell network Poisson solver...')
+            cells.graphLaplacian(p)
+            loggers.log_info('Completed major world-building computations.')

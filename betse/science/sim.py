@@ -1138,12 +1138,8 @@ class Simulator(object):
 
                 self.electro_P(cells,p)
 
-            if p.gravity is True:
-
-                self.gravity_P(cells,p)
-
             # calculate fluid flow:
-            if p.fluid_flow is True:
+            if p.fluid_flow is True and p.run_sim is True:
 
                 self.getFlow(cells,p)
 
@@ -1653,11 +1649,7 @@ class Simulator(object):
 
                 self.electro_P(cells,p)
 
-            if p.gravity is True:
-
-                self.gravity_P(cells,p)
-
-            if p.fluid_flow is True:
+            if p.fluid_flow is True and p.run_sim is True:
 
                 self.getFlow(cells,p)
 
@@ -2315,120 +2307,8 @@ class Simulator(object):
         fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
         fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
 
-        fenvx = fd.integrator(fenvx)
-        fenvy = fd.integrator(fenvy)
-
-        self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
-
-    def update_ecm_o(self,cells,p,t,i):
-
-        if p.closed_bound is True:
-            btag = 'closed'
-
-        else:
-            btag = 'open'
-
-
-        # make v_env, d_env, and cc_env into 2d matrices
-        cenv = self.cc_env[i][:].reshape(cells.X.shape)
-        denv = self.D_env[i][:].reshape(cells.X.shape)
-
-        v_env = self.v_env[:].reshape(cells.X.shape)
-
-        # enforce boundary conditions on denv:
-        if p.closed_bound is True:
-            denv[:,-1] = 0
-            denv[:,0] = 0
-            denv[0,:] = 0
-            denv[-1,:] = 0
-
-        # enforce voltage at boundary:
-        v_env[:,0] = self.bound_V['L']
-        v_env[:,-1] = self.bound_V['R']
-        v_env[0,:] = self.bound_V['B']
-        v_env[-1,:] = self.bound_V['T']
-
-        # calculate gradients in the environment
-        grad_V_env_x, grad_V_env_y = fd.gradient(v_env,cells.delta)
-
-        grad_cc_env_x, grad_cc_env_y = fd.gradient(cenv,cells.delta)
-
-        # calculate fluxes for electrodiffusive transport:
-        if p.fluid_flow is True:
-            uenvx = self.u_env_x
-            uenvy = self.u_env_y
-
-        else:
-            uenvx = 0
-            uenvy = 0
-
-        f_env_x, f_env_y = np_flux_special(cenv,cenv,grad_cc_env_x,grad_cc_env_y,
-            grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv,denv,
-            self.zs[i],self.T,p)
-
-        # set boundary conditions on resulting flux
-
-        if p.closed_bound is False: # no normal gradient
-            f_env_x[:,0] = f_env_x[:,1]
-            f_env_x[:,-1]= f_env_x[:,-2]
-            f_env_x[0,:] = f_env_x[1,:]
-            f_env_x[-1,:] = f_env_x[-2,:]
-
-            f_env_y[:,0] = f_env_y[:,1]
-            f_env_y[:,-1]= f_env_y[:,-2]
-            f_env_y[0,:] = f_env_y[1,:]
-            f_env_y[-1,:] = f_env_y[-2,:]
-
-        else:
-
-            f_env_x[:,0] = 0
-            f_env_x[:,-1]= 0
-            f_env_x[0,:] = 0
-            f_env_x[-1,:] = 0
-
-            f_env_y[:,0] = 0
-            f_env_y[:,-1]= 0
-            f_env_y[0,:] = 0
-            f_env_y[-1,:] = 0
-
-        # smooth out the fluxes by integration:
-        f_env_x = cells.grid_obj.grid_int(f_env_x, bounds='btag')
-        f_env_y = cells.grid_obj.grid_int(f_env_y, bounds='btag')
-
-        # calculate the negative divergence of the total flux (amount entering area per unit time):
-
-        delta_c = -fd.divergence(f_env_x,f_env_y,cells.delta,cells.delta)
-
-        # smooth out the delta_c by integration:
-        delta_c = cells.grid_obj.grid_int(delta_c, bounds='btag')
-
-        # delta_c = delta_c*tb.step(t,p.dt*100,p.dt*100)
-
-        #-----------------------
-        cenv = cenv + delta_c*p.dt
-
-        if p.closed_bound is True:
-            # Neumann boundary condition (flux at boundary)
-            # zero flux boundaries for concentration:
-            cenv[:,-1] = cenv[:,-2]
-            cenv[:,0] = cenv[:,1]
-            cenv[0,:] = cenv[1,:]
-            cenv[-1,:] = cenv[-2,:]
-
-        elif p.closed_bound is False:
-            # if the boundary is open, set the concentration at the boundary
-            # open boundary
-            cenv[:,-1] = self.c_env_bound[i]
-            cenv[:,0] = self.c_env_bound[i]
-            cenv[0,:] = self.c_env_bound[i]
-            cenv[-1,:] = self.c_env_bound[i]
-
-        # reshape the matrices back into vectors:
-        self.cc_env[i] = cenv.ravel()
-
-        fenvx = f_env_x[:]
-        fenvy = f_env_y[:]
+        # fenvx = fd.integrator(fenvx)
+        # fenvy = fd.integrator(fenvy)
 
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
@@ -2977,41 +2857,6 @@ class Simulator(object):
         self.E_gj_x = cells.cell_nn_tx*self.Egj
         self.E_gj_y = cells.cell_nn_ty*self.Egj
 
-    def get_Bfield(self,cells,p):
-
-        axo = self.Ax_time[-1]
-        ayo = self.Ay_time[-1]
-
-        sourceAx = -p.mu*self.I_tot_x.ravel()
-        sourceAy = -p.mu*self.I_tot_y.ravel()
-
-        self.Ax = np.dot(cells.lapENV_P_inv,sourceAx)
-        self.Ay = np.dot(cells.lapENV_P_inv,sourceAy)
-
-        self.Ax = self.Ax.reshape(cells.X.shape)
-        self.Ay = self.Ay.reshape(cells.X.shape)
-
-        # enforce zero normal gradient boundary conditions on A:
-        self.Ax[:,0] = self.Ax[:,1]
-        self.Ax[:,-1] = self.Ax[:,-2]
-        self.Ax[0,:] = self.Ax[1,:]
-        self.Ax[-1,:] = self.Ax[-2,:]
-
-        self.Ay[:,0] = self.Ay[:,1]
-        self.Ay[:,-1] = self.Ay[:,-2]
-        self.Ay[0,:] = self.Ay[1,:]
-        self.Ay[-1,:] = self.Ay[-2,:]
-
-        self.Ax_time.append(self.Ax)
-        self.Ay_time.append(self.Ay)
-
-        self.dAx = (self.Ax - axo)/p.dt
-        self.dAy = (self.Ay - ayo)/p.dt
-
-
-
-        # print(np.max(self.dAx),np.max(self.dAy))
-
     def get_current(self,cells,p):
 
         # zero components of total current vector:
@@ -3133,7 +2978,7 @@ class Simulator(object):
                 env_x, env_y = fd.gradient(venv,cells.delta)
 
                 # reshape and rescale the charge density:
-                rho_env = self.rho_env.reshape(cells.X.shape)*(1/p.ff_env)
+                rho_env = ((p.cell_space*cells.mem_sa.mean())/(cells.delta**2))*self.rho_env.reshape(cells.X.shape)
 
                 # these are negative because the gradient of the voltage is the electric field and we just took the grad
                 # above but didn't carry through the negative sign.
@@ -3350,7 +3195,7 @@ class Simulator(object):
         grad_c = np.dot(cells.gradMem,self.rho_pump)
         grad_c_ch = np.dot(cells.gradMem,self.rho_channel)
 
-        # gcx = grad_c*cells.mem_vects_flat[:,4]   # FIXME no concentration gradient will be used for now
+        # gcx = grad_c*cells.mem_vects_flat[:,4]
         # gcy = grad_c*cells.mem_vects_flat[:,5]
         gcx = 0
         gcy = 0
@@ -3571,7 +3416,7 @@ class Simulator(object):
         # actual volume change depends on the mechanical properties (young's modulus) of the
         # tissue:
 
-        self.delta_vol = (1/p.youngMod)*div_u_osmo
+        self.delta_vol = (1/p.youngMod)*div_u_osmo    # FIXME if p.sim_ECM is True adjust volume of those spaces too!
 
         # print("Reaction pressure", P_react)
         # print("volume change", self.delta_vol)
@@ -3609,7 +3454,7 @@ class Simulator(object):
 
         self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
 
-    def electro_P(self,cells,p):
+    def electro_P(self,cells,p):  # FIXME use the right charge density in cells!
         """
         Calculates electrostatic pressure in collection of cells and
         an electrostatic body force.
@@ -3617,7 +3462,6 @@ class Simulator(object):
         """
 
         # # average charge density at the gap junctions between cells:
-        # q_cells = 10*self.rho_cells*(1/p.ff_cell)
         # make sure we're using a realistic charge density by working with the referenced cell membrane capacitance:
         if p.sim_ECM is False:
 
@@ -3660,11 +3504,6 @@ class Simulator(object):
         P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
 
         self.P_electro = np.sqrt(P_x**2 + P_y**2)
-
-    def gravity_P(self,cells,p):
-
-        # calculate gravity hydrostatic pressure head as P = density x gravity constant x height
-        self.P_gravity = np.ones(len(cells.mem_i))*9.81*1000*(cells.mem_mids_flat[:,1] - cells.ymin)
 
     def ghk_calculator(self,cells,p):
         """
@@ -3960,7 +3799,7 @@ class Simulator(object):
 
         # calculate the reaction pressure required to counter-balance the flow field:
 
-        P_react = np.dot(cells.lapGJ_P_inv,2*div_u)   # FIXME is this 2x divergence or not?
+        P_react = np.dot(cells.lapGJ_P_inv,2*div_u)
 
         # self.P_cells = (p.lame_mu/k_const)*P_react[:]
 
@@ -3989,20 +3828,6 @@ class Simulator(object):
         # check the displacement for NANs:
         check_v(self.d_cells_x)
 
-    def get_density(self,cells,p):
-
-        mass_water = 1000*cells.cell_vol
-
-        mass_sum = np.zeros(len(cells.cell_i))
-
-        for i, concs in enumerate(self.cc_cells):
-
-            MM = np.float(self.molar_mass[i])
-            mass_sum = MM*concs*cells.cell_vol + mass_sum
-
-        total_mass = mass_sum + mass_water
-        self.density = total_mass/cells.cell_vol
-
     def get_mass_flux(self,cells,p):
         """
         Sum up individual trans-membrane and
@@ -4014,7 +3839,6 @@ class Simulator(object):
 
         """
 
-        # FIXME add in gap junction component to mass flux
          # calculate mass flux across cell membranes:
         mass_flux = np.zeros(len(cells.mem_i))
 
@@ -4030,48 +3854,6 @@ class Simulator(object):
         # mass_change = self.mass_flux*p.dt*cells.mem_sa
         # # sum the change over the membranes to get the total mass change of salts:
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
-
-    def implement_deform(self,cells,i,p):
-
-        # map individual cell deformations to their membranes. In this case it's better than interpolation
-        ux_at_mem = self.d_cells_x[cells.mem_to_cells]
-        uy_at_mem = self.d_cells_y[cells.mem_to_cells]
-
-        ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
-        uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
-
-        # get new ecm verts:
-        new_ecm_verts_x = self.ecm_verts_unique_to[:,0] + np.dot(cells.deforM,ux_at_ecm)
-        new_ecm_verts_y = self.ecm_verts_unique_to[:,1] + np.dot(cells.deforM,uy_at_ecm)
-
-        ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
-
-        # FIXME: so what we want to do is interpolate the ecm deformation out to the voronoi centres.
-        # Then we want to have the voronoi_grid defined as a mapping to cell centres, not the whole verts.
-
-        # set the voronoi points originally tagged to the ecm to the value of these new points
-        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
-
-        # recreate ecm_verts_unique:
-        cells.ecm_verts_unique = ecm_new[:]
-
-        # Repackage ecm verts so that the World module can do its magic:
-        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
-
-        # next repackage the structure to include individual cell data
-        cells.ecm_verts = [] # null the original ecm verts data structure...
-
-        for i in range(0,len(cells.cell_to_mems)):
-
-            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
-
-            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
-
-            cells.ecm_verts.append(ecm_nest)
-
-        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
-
-        cells.deformWorld(p)
 
     def implement_deform_timestep(self,cells,t,p):
         # map individual cell deformations to their membranes. In this case it's better than interpolation
@@ -4388,99 +4170,6 @@ def get_charge_density(concentrations,zs,p):
 
     return netcharge
 
-def get_Vcell(self,cells,p):
-
-    """
-    Calculates the voltage in each cell from Poisson equation charge density
-
-    Parameters
-    --------------
-    rho_cell:      an array of charge density in each cell space [C/m3]
-    p:             an instance of the Parameters object
-
-    Returns
-    -------------
-    v_cell          an array of voltages in each cell space  [V]
-
-    """
-
-    if p.sim_ECM is False:
-        v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
-
-        # v_cell = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
-
-
-    else:
-
-        v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
-        # v_cell = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
-
-    return v_cell
-
-def get_Venv(self,cells,p):
-
-    """
-    Calculates the voltage in each extracellular space from Poisson equation charge density
-
-    Parameters
-    ---------------
-    rho_ecm:        an array listing charge density in each ecm space [C/m3]
-    p:              an instance of the Parameters object
-
-    Returns
-    ---------
-    v_env           the voltage in each ecm space   [V]
-
-    """
-
-    # modify the source charge distribution in line with electrostatic Poisson equation:
-    # note this should be divided by the electric permeability, but it produces way too high a voltage
-    # in lieu of a feasible solution, the divisor is increased from 80*p.eo by self.ff
-
-
-    self.rho_env = self.rho_env.reshape(cells.X.shape)
-
-    # Perform Finite Volume integration on the environmental charge
-    self.rho_env = fd.integrator(self.rho_env)
-
-    # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
-
-    rho_env = self.rho_env
-
-    # make sure charge at the global boundary is zero:
-    rho_env[:,0] = 0
-    rho_env[:,-1] = 0
-    rho_env[-1,:] = 0
-    rho_env[0,:] = 0
-
-    rho_env = rho_env.ravel()
-
-    fxy = -rho_env/(80*p.ff_env*p.eo)
-
-    # # modify the RHS of the equation to incorporate Dirichlet boundary conditions on external voltage:
-    fxy[cells.bBot_k] = (self.bound_V['B']/cells.delta**2)
-    fxy[cells.bTop_k] = (self.bound_V['T']/cells.delta**2)
-    fxy[cells.bL_k] = (self.bound_V['L']/cells.delta**2)
-    fxy[cells.bR_k] = (self.bound_V['R']/cells.delta**2)
-
-    # Solve Poisson's electrostatic equation:
-    V = np.dot(cells.lapENVinv,fxy)
-
-    # set the boundary conditions for the outside of the matrix:
-    V[cells.bBot_k] = self.bound_V['B']
-    V[cells.bTop_k] = self.bound_V['T']
-    V[cells.bL_k] = self.bound_V['L']
-    V[cells.bR_k] = self.bound_V['R']
-
-    V = V.reshape(cells.X.shape)
-
-    # smooth out the voltage
-    V = fd.integrator(V)
-    # V = gaussian_filter(V,2)
-    V = V.ravel()
-
-    return V
-
 def get_Vall(self,cells,p):
     """
     Calculates transmembrane voltage (Vmem) and voltages inside the cell and extracellular space, assuming the cell
@@ -4573,10 +4262,11 @@ def get_Vall(self,cells,p):
         v_env[cells.bR_k] = self.bound_V['R']
 
         # calculate the vm
-        vm = v_cell - v_env[cells.map_cell2ecm]
+        # vm = v_cell - v_env[cells.map_cell2ecm]
+        # vm = vm[cells.mem_to_cells]
 
-        # vm = cells.integrator(vm)
-        vm = vm[cells.mem_to_cells]
+        vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
+
 
     return vm, v_cell, v_env
 
@@ -4662,8 +4352,9 @@ def vertData(data, cells, p):
     dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid),
                                method=p.interp_type,
                                fill_value=0)
+
     # # smooth out the data a bit:
-    # dat_grid = fd.integrator(dat_grid)
+    dat_grid = gaussian_filter(dat_grid,1)
 
     # get rid of values that bleed into the environment:
     dat_grid = np.multiply(dat_grid,cells.maskM)
@@ -4705,14 +4396,6 @@ def rk4(c,deltac,p):
 
     return c2
 
-
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-

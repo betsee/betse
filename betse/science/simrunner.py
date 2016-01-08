@@ -209,7 +209,6 @@ class SimRunner(object):
             plot_sim(cells, sim, p, plot_type='init')
             plt.show()
 
-
     def simulate(self):
         '''
         Run simulation from a previously saved initialization.
@@ -274,7 +273,6 @@ class SimRunner(object):
             p = Parameters(config_filename=self._config_filename)
             plot_sim(cells, sim, p, plot_type='sim')
             plt.show()
-
 
     def plotInit(self):
         '''
@@ -450,6 +448,9 @@ class SimRunner(object):
 #to have much to do with high-level simulation running. It's more of a
 #low-level plots manager, right? Perhaps we could shove this away into a
 #"betse.science.plot" module. Shivering reindeer pawing at the door!
+
+# FIXME: um, well, gee -- no problems moving it to a plot module -- as you wish -- please leave me a note so I
+# can find it later!
 def plot_sim(cells, sim, p, plot_type: str = 'init'):
 
     if p.autosave is True:
@@ -547,7 +548,6 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             plt.show(block=False)
 
         # plot fast-Fourier-transform (fft) of Vmem:
-
         figFFT, axFFT = viz.plotFFT(sim.time,sim.vm_time,plot_cell_ecm,lab="Power")
         titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)
         axFFT.set_title(titFFT)
@@ -765,7 +765,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
         if p.sim_ECM is True:
             plt.figure()
             plt.imshow(
-                sim.rho_env.reshape(cells.X.shape)*(1/p.ff_env),
+                sim.rho_env.reshape(cells.X.shape),
                 origin='lower',
                 extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
                 cmap=p.default_cm,
@@ -782,7 +782,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
 
         figX, axX, cbX = viz.plotPolyData(
             sim, cells, p,
-            zdata=(sim.rho_cells)*(1/p.ff_cell),
+            zdata=(sim.rho_cells),
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_rho,
             clrMin=p.rho_min_clr,

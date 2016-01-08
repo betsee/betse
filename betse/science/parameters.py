@@ -891,8 +891,8 @@ class Parameters(object):
         self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
         self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
 
-        self.ff_env = float(iu['env modification constant'])
-        self.ff_cell = float(iu['cell modification constant'])
+        # self.ff_env = float(iu['env modification constant'])
+        # self.ff_cell = float(iu['cell modification constant'])
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]
