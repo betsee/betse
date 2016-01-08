@@ -113,6 +113,8 @@ class Cells(object):
             self.environment(p)   # define features of the ecm grid
             self.grid_len =len(self.xypts)
 
+            self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
+
             self.lapGJinv = None
 
 
@@ -617,10 +619,7 @@ class Cells(object):
 
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
-        # self.M_sum_mems_inv = np.linalg.pinv(self.M_sum_mems)  # inverse of a sum over membranes
-
-        # self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
-        self.mem_distance = 2*p.rc
+        self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
@@ -693,107 +692,95 @@ class Cells(object):
 
         self.bflags_cells = np.asarray(self.bflags_cells)
 
+        # midpoints of extracellular matrix lattice:
+        # calculate midpoints of each ecm (voronoi cell) segment:
+        ecm_mids = set()
+
+        for verts in self.ecm_verts:
+            for i in range(0,len(verts)):
+                        pt1 = verts[i-1]
+                        pt2 = verts[i]
+                        pt1 = np.asarray(pt1)
+                        pt2 = np.asarray(pt2)
+                        mid = (pt1 + pt2)/2       # midpoint calculation
+                        mx = mid[0]
+                        my = mid[1]
+                        ecm_mids.add((mx,my))
+
+        ecm_mids = list(ecm_mids)
+        self.ecm_mids = np.asarray(ecm_mids)
+
+        #------------------------------------
+
+        # define conversion between ecm midpoints and the membrane midpoints
+        ecmTree = sps.KDTree(self.ecm_mids)
+        self.mem_to_ecm_mids = list(ecmTree.query(self.mem_mids_flat,k=1))[1]
+
+        dist_mems = list(ecmTree.query(self.mem_mids_flat,k=1))[0]
+        dist_max = dist_mems.max()
+
+        # and converse conversion between membrane midpoints and the ecm midpoints
+        memTree = sps.KDTree(self.mem_mids_flat)
+
+        search = list(memTree.query(self.ecm_mids,k=2))
+        dist_ecms = search[0]
+        ecm_to_mem_inds = search[1]
+
+        ex = []
+        ey = []
+
+        for i, inds in enumerate(ecm_to_mem_inds):
+
+            dist = dist_ecms[i]
+            ind_i = inds[0]
+            ind_j = inds[1]
+
+            if dist[0] > dist_max: # check the distance between the found ecm and membrane midpoint
+
+                ind_pair = [ind_j,ind_j]
+
+            elif dist[1] > dist_max:
+
+                ind_pair = [ind_i, ind_i]
+
+            elif dist[0] <= dist_max and dist[1] <= dist_max:
+
+                ind_pair = [ind_i,ind_j]
+
+            ex.append(ind_pair[0])
+            ey.append(ind_pair[1])
+
+        self.ecm_to_mem_mids = np.column_stack((ex,ey))
+
+        self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids),len(self.mem_i)))
+        # Create a matrix that will sum from the membranes to the ecm midpoint:
+
+        for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
+
+            if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
+
+                ind = ind_pair[0]
+                self.M_sum_mem_to_ecm[i_ecm,ind] = 1
+
+            else:
+                ind1 = ind_pair[0]
+                ind2 = ind_pair[1]
+                self.M_sum_mem_to_ecm[i_ecm,ind1] = 1/2
+                self.M_sum_mem_to_ecm[i_ecm,ind2] = 1/2
+
+        # ecm mids on the boundary:
+        bound_ecm_mids = []
+        for i, pair in enumerate(self.ecm_to_mem_mids):
+            if pair[0] == pair[1]:
+                bound_ecm_mids.append(i)
+
+        self.bound_ecm_mids = np.asarray(bound_ecm_mids)
+
         # Data structures specific for deformation option------------------------------
 
         if p.deformation is True:
 
             loggers.log_info('Creating computational tools for mechanical deformation... ')
-
-            # calculate midpoints of each ecm (voronoi cell) segment:
-            ecm_mids = set()
-
-            for verts in self.ecm_verts:
-                for i in range(0,len(verts)):
-                            pt1 = verts[i-1]
-                            pt2 = verts[i]
-                            pt1 = np.asarray(pt1)
-                            pt2 = np.asarray(pt2)
-                            mid = (pt1 + pt2)/2       # midpoint calculation
-                            mx = mid[0]
-                            my = mid[1]
-                            ecm_mids.add((mx,my))
-
-            ecm_mids = list(ecm_mids)
-            self.ecm_mids = np.asarray(ecm_mids)
-
-            #------------------------------------
-
-            # define conversion between ecm midpoints and the membrane midpoints
-            ecmTree = sps.KDTree(self.ecm_mids)
-            self.mem_to_ecm_mids = list(ecmTree.query(self.mem_mids_flat,k=1))[1]
-
-            dist_mems = list(ecmTree.query(self.mem_mids_flat,k=1))[0]
-            dist_max = dist_mems.max()
-
-            # and converse conversion between membrane midpoints and the ecm midpoints
-            memTree = sps.KDTree(self.mem_mids_flat)
-
-            search = list(memTree.query(self.ecm_mids,k=2))
-            dist_ecms = search[0]
-            ecm_to_mem_inds = search[1]
-
-            ex = []
-            ey = []
-
-            for i, inds in enumerate(ecm_to_mem_inds):
-
-                dist = dist_ecms[i]
-                ind_i = inds[0]
-                ind_j = inds[1]
-
-                if dist[0] > dist_max: # check the distance between the found ecm and membrane midpoint
-
-                    ind_pair = [ind_j,ind_j]
-
-                elif dist[1] > dist_max:
-
-                    ind_pair = [ind_i, ind_i]
-
-                elif dist[0] <= dist_max and dist[1] <= dist_max:
-
-                    ind_pair = [ind_i,ind_j]
-
-                ex.append(ind_pair[0])
-                ey.append(ind_pair[1])
-
-            self.ecm_to_mem_mids = np.column_stack((ex,ey))
-
-            # Create a matrix that will sum from the membranes to the ecm midpoint:
-
-            self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids),len(self.mem_i)))
-
-            for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
-
-                if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
-
-                    ind = ind_pair[0]
-                    self.M_sum_mem_to_ecm[i_ecm,ind] = 1
-
-                else:
-                    ind1 = ind_pair[0]
-                    ind2 = ind_pair[1]
-                    self.M_sum_mem_to_ecm[i_ecm,ind1] = 1/2
-                    self.M_sum_mem_to_ecm[i_ecm,ind2] = 1/2
-
-
-            # #------------------------------------
-            # # calculate segments from cell centre to ecm midpoints (chord_mag):
-            # chord_mag = []
-            #
-            # for cell_i, mem_i_set in enumerate(self.cell_to_mems):
-            #
-            #     cent = self.cell_centres[cell_i]
-            #
-            #     ecm_points = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
-            #
-            #     chords = ecm_points - cent
-            #     chord_m = np.sqrt(chords[:,0]**2 + chords[:,1]**2)
-            #     chord_mag.append(chord_m)
-            #
-            # self.chord_mag, _ , _ = tb.flatten(chord_mag)
-            # self.chord_mag = np.asarray(self.chord_mag)
-            #
-            # self.chord_mag = (self.chord_mag[self.ecm_to_mem_mids[:,0]] + self.chord_mag[self.ecm_to_mem_mids[:,1]])/2
 
             #---------Deformation matrix-------------------------------------------------------------------------------
 
@@ -1294,15 +1281,17 @@ class Cells(object):
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-            loggers.log_info('Creating environmental Poisson solver for voltage...')
-            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
-            self.lapENV = None   # get rid of the non-inverse matrix as it only hogs memory...
+            if p.fluid_flow is True:
 
-            loggers.log_info('Creating environmental Poisson solver for pressure...')
-            bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
-            self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+                loggers.log_info('Creating environmental Poisson solver for voltage...')
+                self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
+                self.lapENV = None   # get rid of the non-inverse matrix as it only hogs memory...
 
-            self.lapENV_P = None # get rid of the non-inverse matrix as it only hogs memory...
+                loggers.log_info('Creating environmental Poisson solver for pressure...')
+                bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
+                self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+
+                self.lapENV_P = None # get rid of the non-inverse matrix as it only hogs memory...
 
     def short_environment(self,p):
 
@@ -1397,6 +1386,88 @@ class Cells(object):
             # if time dependent deformation is selected, also save the direct Laplacian operator:
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
+
+    def maxwellCapMatrix(self,p):
+        """
+        This method defines the Maxwell Capacitance matrix
+        for the collection of cells with their structured
+        Voronoi lattice.
+
+        Each cell and respective extracellular space are
+        considered to be conductors separated by the insulating
+        region of the cell membrane.
+
+        Each cell interacts with its N nearest ecm spaces.
+        Likewise, each ecm space interacts with two neighbouring cells,
+        or if the ecm space is on an external boundary, with one
+        neighbouring cell.
+
+        The Maxwell Capacitance matrix is created by solving for the
+        charge in each cell or ecm space, given the voltages of the space
+        and the capacitive connections between spaces. The matrix is
+        then inverted, so that we can use it to solve for voltages
+        knowing charges.
+
+        As the capacitance of the membrane far exceeds the self
+        capacitance of cell or ecm space, self capacitances can
+        be safely ignored.
+
+        """
+
+        loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+
+        data_length = len(self.cell_i) + len(self.ecm_mids)
+
+        # define ranges within the total data length where we can
+        # work with cell centres or ecm mids specifically:
+        self.cell_range_a = 0
+        self.cell_range_b = len(self.cell_i)
+        self.ecm_range_a = self.cell_range_b
+        self.ecm_range_b = len(self.ecm_mids) + len(self.cell_i)
+
+        M_max_cap = np.zeros((data_length, data_length))
+
+        # first do cells -- index of maxwell vector equal to cell index
+        for cell_i in range(self.cell_range_a, self.cell_range_b):
+
+            mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
+
+            cm = p.cm*self.mem_sa[mem_i_set]  # get the capacitance of each membrane
+
+            cm_sum = np.sum(cm)  # sum up the capacitances of all membranes for diagonal term
+
+            # get the ecm spaces for each membrane
+            # we must add on the cells data length to make these indices of the max cap vector and matrix:
+            ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
+
+            # set the diagonal element for cells:
+            M_max_cap[cell_i,cell_i] = cm_sum
+            # set the off-diagonal elements for cells:
+            M_max_cap[cell_i,ecm_i_set] = cm
+
+        # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
+        for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
+
+            ecm_i_o = ecm_i - len(self.cell_i)  # get the true ecm index wrt to the cell world
+
+            mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of membranes corresponding to each ecm space
+
+            cm = p.cm*np.mean(self.mem_sa[mem_pair])  # get the capacitance of the individual membrane
+
+            cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
+            cell_k = self.mem_to_cells[mem_pair[1]]
+
+            if cell_j == cell_k:  # then we're on a boundary
+
+                M_max_cap[ecm_i,ecm_i] = cm
+                M_max_cap[ecm_i,cell_j] = -cm
+
+            else:
+                M_max_cap[ecm_i,ecm_i] = 2*cm
+                M_max_cap[ecm_i,cell_j] = -cm
+                M_max_cap[ecm_i,cell_k] = -cm
+
+        self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
 
     def redo_gj(self,dyna,p,savecells =True):
 
