@@ -1489,6 +1489,7 @@ def cell_mosaic(data, ax, cells, p, clrmap):
     return collection, ax
 
 # ....................{ PRIVATE                            }....................
+#FIXME: Obsolete. Let's excise! And exercise in the musky dusk!
 def _handle_plot(params: 'Parameters', *args, **kwargs) -> None:
     '''
     Display the current plot if the passed configuration requests plots to be
@@ -1512,6 +1513,7 @@ def _handle_plot(params: 'Parameters', *args, **kwargs) -> None:
         # Else, reraise this exception.
         else:
             raise
+
 
 #FIXME: Obsolete. Let's excise! And exercise in the sweaty eventide!
 def _setup_file_saving(ani_obj: 'Animation', p: 'Parameters') -> None:

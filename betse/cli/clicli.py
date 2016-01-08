@@ -379,7 +379,7 @@ class CLICLI(CLI):
 #FUXME: Document the "seed" subsubcommand.
 # from betse import metadata, pathtree
 # from betse.util.python import pythons
-# from betse.util.system import processes, systems
+# from betse.util.os import processes, systems
 # from collections import OrderedDict
 # from io import StringIO
 
@@ -549,7 +549,7 @@ class CLICLI(CLI):
 
 # from betse.util.path import dirs, files, paths
 # OrderedDict((
-#                 #FIXME: Shift such functionality to "betse.util.system.systems".
+#                 #FIXME: Shift such functionality to "betse.util.os.systems".
 #                 ('operating system', ),
 #             ))
             # info_buffer.write('{}\n'.format(

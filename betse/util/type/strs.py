@@ -160,7 +160,7 @@ def shell_quote(text: str) -> str:
     assert is_str(text), types.assert_not_str(text)
 
     # Avoid circular import dependencies.
-    from betse.util.system import oses
+    from betse.util.os import oses
 
     # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
     # Windows is POSIX-incompatible and hence does *NOT* parse command-line

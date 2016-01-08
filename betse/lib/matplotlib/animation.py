@@ -9,9 +9,7 @@ Matplotlib-specific animation classes.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseExceptionMatplotlib
-from betse.lib.matplotlib import mpl
 from betse.util.path import dirs, paths
-# from betse.util.type import types
 from matplotlib import verbose
 from matplotlib.animation import writers, MovieWriter
 
@@ -36,7 +34,7 @@ class FileFrameWriter(MovieWriter):
 
     def setup(self, *args, **kwargs) -> None:
         '''
-        Prepare to serialize animation frames.
+        Prepare to write animation frames.
 
         This method is implicitly called by the superclass `saving()` method
         implicitly called by the `Animation.save()` method. Note that,
@@ -98,8 +96,8 @@ class FileFrameWriter(MovieWriter):
 
     def grab_frame(self, **kwargs) -> None:
         '''
-        Serialize the next frame for the current figure to the image file
-        defined by the current filename template.
+        Write the next frame for the current figure to the image file defined by
+        the current filename template.
 
         All passed arguments will passed to the `Figure.savefig()` method
         internally called by this method as is.
@@ -150,6 +148,8 @@ class FileFrameWriter(MovieWriter):
         pass
 
 # --------------------( WASTELANDS                         )--------------------
+# from betse.util.type import types
+# from betse.lib.matplotlib import mpl
         # # List of all output filetypes supported by this class.
         # #
         # # Since this class serializes frames by calling the savefig() function

@@ -1362,9 +1362,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             clrAutoscale=p.autoscale_IP3_ani,
             clrMin=p.IP3_ani_min_clr,
             clrMax=p.IP3_ani_max_clr,
-            save=p.saveAnimations,
-            number_cells=p.enumerate_cells,
-            saveFolder='animation/IP3',
+            saveFolder='IP3',
             saveFile='ip3_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
@@ -1384,9 +1382,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
                 clrAutoscale=p.autoscale_Dye_ani,
                 clrMin=p.Dye_ani_min_clr,
                 clrMax=p.Dye_ani_max_clr,
-                save=p.saveAnimations,
-                number_cells=p.enumerate_cells,
-                saveFolder='animation/Morphogen',
+                saveFolder='Morphogen',
                 saveFile='morphogen_',
                 ignore_simECM=True,
             )
@@ -1415,12 +1411,10 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             zdata_t=tCa,
             tit='Cytosolic Ca2+',
             cbtit='Concentration [nmol/L]',
-            save=p.saveAnimations,
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            number_cells=p.enumerate_cells,
-            saveFolder='animation/Ca',
+            saveFolder='Ca',
             saveFile='ca_',
             ignore_simECM=True,
         )
@@ -1434,12 +1428,10 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             zdata_t=tpH,
             tit='Cytosolic pH',
             cbtit='pH',
-            save=p.saveAnimations,
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            number_cells=p.enumerate_cells,
-            saveFolder='animation/pH',
+            saveFolder='pH',
             saveFile='pH_',
             ignore_simECM=True,
         )
@@ -1455,13 +1447,11 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             zdata_t=vmplt,
             tit='Cell Vmem',
             cbtit='Voltage [mV]',
-            save=p.saveAnimations,
             clrAutoscale=p.autoscale_Vmem_ani,
             clrMin=p.Vmem_ani_min_clr,
             clrMax=p.Vmem_ani_max_clr,
-            number_cells=p.enumerate_cells,
             current_overlay=p.I_overlay,
-            saveFolder='animation/Vmem',
+            saveFolder='Vmem',
             saveFile='vm_',
             ignore_simECM=False,
         )
@@ -1491,9 +1481,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             clrAutoscale=p.autoscale_vcell_ani,
             clrMin=p.vcell_ani_min_clr,
             clrMax=p.vcell_ani_max_clr,
-            save=p.saveAnimations,
-            number_cells=p.enumerate_cells,
-            saveFolder='animation/vcell',
+            saveFolder='vcell',
             saveFile='vcell_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
@@ -1604,9 +1592,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            save=p.saveAnimations,
-            number_cells=p.enumerate_cells,
-            saveFolder='animation/Pcell',
+            saveFolder='Pcell',
             saveFile='Pcell_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
@@ -1622,9 +1608,7 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            save=p.saveAnimations,
-            number_cells=p.enumerate_cells,
-            saveFolder='animation/OsmoP',
+            saveFolder='OsmoP',
             saveFile='OsmoP_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
@@ -1688,10 +1672,9 @@ def plot_sim(cells, sim, p, plot_type: str = 'init'):
 
     if p.turn_all_plots_off is False:
         plt.show()
-
     else:
         loggers.log_info(
-            'As the config file results option "turn all plots off" is set to "True",\n'
+            'As the config file results option "plot after saving" is set to "True",\n'
             'plots and data have been exported to the results folder defined in the config\n'
-            'file. To show animations, consider setting "turn all plots off" to "False".'
+            'file. To display animations, consider changing this option to "False".'
         )

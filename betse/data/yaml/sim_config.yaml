@@ -691,21 +691,21 @@ variable settings:
 
 results options:
 
-    turn all plots off: False      # This option allows you to turn all plots on/off
-                                   # note this doesn't turn plot while solving off.
-                                   # options True or False (case sensitive)
-                                   # If 'automatically save plots" is "True"
-                                   # plots will be exported to results without displaying.
+    plot after solving: True     # This option allows you to turn all plots on/off
+                                 # note this doesn't turn plot while solving off.
+                                 # options True or False (case sensitive)
+                                 # If 'automatically save plots" is "True"
+                                 # plots will be exported to results without displaying.
   
-    plot while solving: True       # shows a continuously updating 2d plot of cell Vmems
-                                   # while the sim run is computing
-                                   # options True or False (case sensitive)
+    plot while solving: True     # shows a continuously updating 2d plot of cell Vmems
+                                 # while the sim run is computing
+                                 # options True or False (case sensitive)
   
     save solving plot: True      # save the plot while solving figure
-                                  # as the sim progresses (as 300 dpi png
-                                  # in folder in the results directory)
-                                  # warning this can slow down simulations
-                                  # options True or False (case sensitive)
+                                 # as the sim progresses (as 300 dpi png
+                                 # in folder in the results directory)
+                                 # warning this can slow down simulations
+                                 # options True or False (case sensitive)
   
     automatically save plots: True     # autosave all still images (as 300 dpi pngs)
                                        # to the results directory

@@ -13,8 +13,8 @@ from argparse import ArgumentParser
 from betse import ignition, metadata
 from betse.util.io import loggers, stderr
 from betse.util.python import identifiers
-from betse.util.system import processes
-from betse.util.system.args import HelpFormatterParagraph
+from betse.util.os import processes
+from betse.util.os.args import HelpFormatterParagraph
 from betse.util.type import regexes, strs, types
 from io import StringIO
 import sys, traceback

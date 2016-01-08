@@ -29,6 +29,11 @@ from betse.science.visualize import (
 # ....................{ IMPORTS                            }....................
 #FIXME: Let's document a few of these initialization parameters. Hot dogs and
 #warm afternoons in the lazy summertime!
+#FIXME: Rename the aptly named "tit" attribute to "_title_plot".
+#FIXME: Rename the "cbtit" attribute to "_title_colorbar".
+#FIXME: Privatize all attributes, both here and in our base class, *AFTER*
+#generalizing this refactoring to every class below.
+
 class AnimateCellData(Animation):
     '''
     Animate color data on a plot of cells.
@@ -37,25 +42,8 @@ class AnimateCellData(Animation):
     def __init__(
         self,
         zdata_t,
-
         tit: str,
         cbtit: str,
-
-        #FIXME: This boolean is set everywhere by the simrunner.plot_sim()
-        #function to be exactly equal to the "p.saveAnimations" boolean. So,
-        #let's go ahead and just:
-        #
-        #* Stop passing this boolean anywhere in simrunner.plot_sim().
-        #* Replace this parameter with "p.saveAnimations" tests instead.
-        #
-        #Risible smile in a mirthful face!
-        save: bool,
-
-        #FIXME: This object is set everywhere by the simrunner.plot_sim()
-        #function to be exactly equal to the "p.enumerate_cells" object. We
-        #know what to do here. Winter zest via suede vests!
-        number_cells,
-
         ignore_simECM: bool,
         current_overlay: bool = False,
         *args, **kwargs
@@ -76,7 +64,6 @@ class AnimateCellData(Animation):
         super().__init__(*args, **kwargs)
 
         self.zdata_t = zdata_t
-        self.save = save
         self.ignore_simECm = ignore_simECM
         self.cbtit = cbtit
         self.current_overlay = current_overlay
@@ -151,7 +138,7 @@ class AnimateCellData(Animation):
         self.cb.set_label(self.cbtit)
         self.tit = tit
 
-        if number_cells is True:
+        if self.p.enumerate_cells is True:
             for i,cll in enumerate(self.cells.cell_centres):
                 self.ax.text(
                     self.p.um*cll[0],
@@ -163,7 +150,7 @@ class AnimateCellData(Animation):
         self.ax.set_title(self.tit_extra)
 
         # self.frames = len(self.zdata_t)
-        self.frames = len(self.sim.time)
+        # self.frames = len(self.sim.time)
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
         #FuncAnimation() both here and everywhere below. Lemon grass and dill!
@@ -220,47 +207,12 @@ class AnimateCellData(Animation):
         #Too bad the Matplotlib documentation itself doesn't cover this. We
         #have gotten what we have paid for. I demand a refund!
 
-        # Create and assign an animation function to a local variable. If the
-        # latter is *NOT* done, this function will be garbage collected prior
-        # to subsequent plot handling -- in which case only the first plot will
-        # be plotted without explicit warning or error. Die, matplotlib! Die!!
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        #FIXME: It appears that movies can be saved at this exact point via the
-        #following lines:
-        #
-        #    video_filename = 'my_filename.mp4'
-        #    video_encoder_name = 'ffmpeg'
-        #    ani.save(filename=video_filename, writer=video_encoder_name)
-        #
-        #Both the "video_filename" and "video_encoder_name" variables used
-        #above should be initialized from YAML configuration items. The latter
-        #should probably be configured as a list of preferred encoders: e.g.,
-        #
-        #    # List of Matplotlib-specific names of preferred video encoders.
-        #    # The first encoder available on the current $PATH will be used.
-        #    video encoders: ['ffmpeg', 'avconv', 'mencoder']
-        #
-        #Given that, we would then need to iteratively search this list until
-        #finding the first encoder available on the current $PATH. Doesn't look
-        #too hard, actually. Grandest joy in the cornucopia of easy winter!
-        #FIXME: Also note that movie encoders are configurable as follows,
-        #which is probably a better idea than just passing a string above:
-        #
-        #    Writer = animation.writers[video_encoder_name]
-        #    writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-        #    ani.save(filename=video_filename, writer=writer)
-        #
-        #Oh, wait. No, that's overkill. All of the above parameters are also
-        #accepted by the ani.save() function itself, so string name it is!
-
-        _handle_plot(self.p)
+        self._animate(frame_count=len(self.sim.time))
 
 
-    def aniFunc(self,i):
+    def _plot_next_frame(self, frame_number):
 
-        zz = self.zdata_t[i]
+        zz = self.zdata_t[frame_number]
 
         if self.p.sim_ECM is True and self.ignore_simECm is False:
             if self.p.plotMask is True:
@@ -279,21 +231,17 @@ class AnimateCellData(Animation):
 
         if self.current_overlay is True:
             self.streams, self.ax = I_overlay_update(
-                i, self.sim, self.streams, self.ax, self.cells, self.p)
+                frame_number,
+                self.sim, self.streams, self.ax, self.cells, self.p)
 
         #FIXME: The str.format() should typically be called in favor of string
         #concatenation. Underworld of candy corn open to me!
         titani = self.tit_extra + ' (sim time' + ' ' + str(
-            round(self.sim.time[i], 3)) + ' ' + ' s)'
+            round(self.sim.time[frame_number], 3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-
-            # #FIXME: Remove this debug statement later.
-            # print('Saving animated frame: {}'.format(savename))
-            plt.savefig(savename, format='png')
+        # Save this frame to disk *AFTER* completing this frame.
+        self._save_frame(frame_number)
 
 
 class AnimateGJData(object):
@@ -415,9 +363,8 @@ class AnimateGJData(object):
         self.ax.axis([xmin,xmax,ymin,ymax])
 
         self.frames = len(self.zdata_t)
-
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
-           frames=self.frames, interval=100, repeat=self.ani_repeat)
+            frames=self.frames, interval=100, repeat=self.ani_repeat)
 
         _handle_plot(p)
 

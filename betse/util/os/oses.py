@@ -4,16 +4,17 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level operating system facilities.
+High-level operating system (OS) facilities.
 
 Caveats
 ----------
-Operating system-specific functions (e.g., `is_windows()`) are considered poor
-form. Call such functions only when absolutely necessary.
+Operating system-specific logic is poor form and should be leveraged only where
+necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
 import platform, sys
+from collections import OrderedDict
 
 # ....................{ TESTERS ~ os                       }....................
 def is_linux() -> bool:
@@ -53,6 +54,23 @@ def is_windows_vanilla() -> bool:
     (i.e., _not_ running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'win32'
+
+# ....................{ GETTERS                            }....................
+def get_metadata() -> OrderedDict:
+    '''
+    Get an ordered dictionary synopsizing the current system.
+
+    This function expands the metadata reported by the cross-platform function
+    `platform.uname()` with additional diagnostics.
+    '''
+    # This dictionary.
+    metadata = vars(platform.uname())
+
+    #FIXME: Expand this dictionary here with additioral metadata. See:
+    #    https://docs.python.org/3/library/platform.html
+
+    # Get such dictionary.
+    return metadata
 
 # --------------------( WASTELANDS                         )--------------------
 # def is_windows() -> bool:

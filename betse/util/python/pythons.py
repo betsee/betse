@@ -32,7 +32,7 @@ def init() -> None:
 
     . Logs a non-fatal warning if such interpreter is _not_ 64-bit.
     '''
-    from betse.util.system import oses
+    from betse.util.os import oses
     if is_wordsize_32():
         loggers.log_warning(
             '32-bit Python interpreter detected. '

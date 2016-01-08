@@ -66,7 +66,7 @@ def die_if_special(pathname: str) -> None:
 # ....................{ TESTERS                            }....................
 def is_file(pathname: str) -> bool:
     '''
-    `True` if the passed path is an existing non-directory file exists *after*
+    `True` if the passed path is an existing non-directory file exists _after_
     following symbolic links.
 
     Versus `path.isfile()`

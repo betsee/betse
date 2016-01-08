@@ -632,19 +632,19 @@ class Parameters(object):
 
         ro = self.config['results options']
 
-        self.turn_all_plots_off = ro['turn all plots off']    # turn off all plots and animations for init and sim runs
-
+        #FIXME: Double negative hurt brainpan.
+        self.turn_all_plots_off = not ro['plot after solving']
         self.plot_cutlines = ro['plot cutlines']
 
-
-         # Colormaps.
+        # Colormaps.
         self.default_cm = mpl.get_colormap(ro['default colormap'])
         self.background_cm = mpl.get_colormap(ro['background colormap'])
 
-        self.vcolor = ro['vector and stream color']  # color of vector and streamlines
-
         # Colormap for plotting gj currents on top of default colormap.
         self.gj_cm = mpl.get_colormap(ro['gj colormap'])
+
+        # Colors.
+        self.vcolor = ro['vector and stream color']  # color of vector and streamlines
 
         self.plot_while_solving = ro['plot while solving']  # create a 2d plot of cell vmems while solution is taking place
 

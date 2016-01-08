@@ -16,7 +16,7 @@ from betse.lib import libs
 from betse.lib.matplotlib.mpl import mplconfig
 from betse.util.io import loggers
 from betse.util.python import pythons
-from betse.util.system import processes, systems
+from betse.util.os import oses, processes
 from io import StringIO
 
 # ..................{ SUBCOMMANDS ~ info                     }..................
@@ -53,8 +53,8 @@ def output_info() -> None:
         # Python metadata.
         ('python', pythons.get_metadata()),
 
-        # System metadata.
-        ('system', systems.get_metadata()),
+        # Operating system (OS) metadata.
+        ('os', oses.get_metadata()),
     ))
 
     # String buffer formatting such information.

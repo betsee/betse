@@ -10,11 +10,11 @@ Simulation configuration in YAML format.
 #FIXME: Validate the versions of loaded configuration files.
 
 # ....................{ IMPORTS                            }....................
+import yaml
 from betse import pathtree
 from betse.util.io import loggers
 from betse.util.path import dirs, files, paths
 from betse.util.type import types
-import yaml
 
 # ....................{ LOADERS                            }....................
 def load(config_filename: str) -> dict:
@@ -26,12 +26,13 @@ def load(config_filename: str) -> dict:
     config_filename : str
         Absolute or relative path of the YAML file to be loaded.
     '''
-    assert types.is_str(config_filename), types.assert_not_str(config_filename)
+    assert types.is_str_nonempty(config_filename), (
+        types.assert_not_str_nonempty(config_filename, 'Filename'))
 
-    # Contents of such file as a dictionary.
+    # Contents of this file as a dictionary.
     config = None
 
-    # Open the passed file for reading and read such file into a dictionary.
+    # Open the passed file for reading and read this file into a dictionary.
     with files.open_for_text_reading(config_filename) as yaml_file:
         config = yaml.load(yaml_file)
 
@@ -56,10 +57,10 @@ def write_default(config_filename: str) -> None:
     For usability, the contents of the written (but _not_ original)
     configuration file will be modified as follows:
 
-    * The `turn all plots off` option in the `results options` section will be
-      forcefully set to `True`. Ideally, this prevents the hapless end user from
-      drowning under an intimidating deluge of static plot windows irrelevant to
-      general-purpose usage.
+    * The `plot after solving` option in the `results options` section will be
+      forcefully set to `False`. Ideally, this prevents the hapless end user
+      from drowning under an intimidating deluge of static plot windows
+      irrelevant to general-purpose usage.
 
     Parameters
     ----------------------------
@@ -88,7 +89,8 @@ def _write_default_check(config_filename: str) -> None:
     config_filename : str
         Absolute or relative path of the target YAML file to be validated.
     '''
-    assert types.is_str(config_filename), types.assert_not_str(config_filename)
+    assert types.is_str_nonempty(config_filename), (
+        types.assert_not_str_nonempty(config_filename, 'Filename'))
 
     # Basename and filetype of this file.
     config_basename = paths.get_basename(config_filename)
@@ -124,7 +126,8 @@ def _write_default_dir(config_filename: str) -> None:
         `sim_config.yaml`), the parent directory to which resources are copied
         will be the current working directory (CWD).
     '''
-    assert types.is_str(config_filename), types.assert_not_str(config_filename)
+    assert types.is_str_nonempty(config_filename), (
+        types.assert_not_str_nonempty(config_filename, 'Filename'))
 
     # Parent directory of this file if any or the current directory otherwise.
     target_dirname = paths.get_dirname_or_current_dirname(config_filename)
@@ -156,23 +159,24 @@ def _write_default_file(config_filename: str) -> None:
     config_filename : str
         Absolute or relative path of the YAML file to be written.
     '''
-    assert types.is_str(config_filename), types.assert_not_str(config_filename)
+    assert types.is_str_nonempty(config_filename), (
+        types.assert_not_str_nonempty(config_filename, 'Filename'))
 
     #FIXME: Ideally, we should be using ruamel.yaml to munge YAML data in a
     #well-structured and hence sane manner rather than the admittedly crude
     #"sed"-like approach leveraged below. Unfortunately, given the complex
-    #nature of such data, it's unclear whether or not ruamel.yaml would
-    #adequately preserve the entirety of such data in a roundtrip manner. For
+    #nature of that data, it's unclear whether or not ruamel.yaml would
+    #adequately preserve the entirety of that data in a roundtrip manner. For
     #now, the "sed"-like approach prevails.
 
-    # Write the default configuration to such file, modifying the latter with
+    # Write the default configuration to this file, modifying the latter with
     # "sed"-like global string substitution as detailed above.
     files.substitute_substrings(
         filename_source = pathtree.CONFIG_DEFAULT_FILENAME,
         filename_target = config_filename,
         substitutions = (
             # Prevent static plots from being displayed by default.
-            (r'^(\s*turn all plots off:\s+)False\b(.*)$', r'\1True\2'),
+            (r'^(\s*plot after solving:\s+)True\b(.*)$', r'\1False\2'),
         ),
     )
 

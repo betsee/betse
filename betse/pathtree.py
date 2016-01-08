@@ -16,7 +16,7 @@ installation environments -- including PyInstaller-frozen executables and
 # ....................{ IMPORTS                            }....................
 from betse import metadata
 from betse.util.path import dirs, files, paths
-from betse.util.system import oses
+from betse.util.os import oses
 from os import environ, path
 import pkg_resources, sys
 

@@ -89,7 +89,7 @@ from betse.exceptions import BetseExceptionMatplotlib
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.python import modules, pythons
-from betse.util.system import oses
+from betse.util.os import oses
 from betse.util.type import containers, strs, types
 from collections import OrderedDict
 from matplotlib import cm as colormaps
@@ -255,6 +255,17 @@ class MatplotlibConfig(object):
             # self.backend_name = 'Gtk3Cairo'
             # self.backend_name = 'Qt4Agg'
             self.backend_name = 'TkAgg'
+
+        # Import all animation writer classes *AFTER* establishing the backend,
+        # thus implicitly registering these classes with Matplotlib. This, in
+        # turn, permits other portions of the codebase to conveniently refer to
+        # these classes by name without having to manually instantiate them.
+        # (While it may or may not be necessary to import these classes after
+        # establishing the backend, it only seems prudent to do so.)
+
+        #FIXME: Uncomment when worky.
+        # from betse.lib.matplotlib import animation
+        # if False: animation    # silence contemptible IDE warning messages
 
     # ..................{ TESTERS                            }..................
     def is_backend(self) -> bool:

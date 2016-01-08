@@ -61,7 +61,7 @@ loggers except the root logger to be unconfigured, messages will be logged
 # WARNING: To avoid circular import dependencies, import only modules *NOT*
 # importing this module at the top-level. Currently, the following modules
 # import this module at the top-level and hence *CANNOT* be imported here:
-# "betse.util.system.processes".
+# "betse.util.os.processes".
 #
 # Since all other modules should *ALWAYS* be able to safely import this module
 # at any level, such circularities are best avoided here rather than elsewhere.
@@ -143,7 +143,7 @@ def get(logger_name: str = None) -> logging.Logger:
     # Default the name of such logger to the basename of the current process.
     # (e.g., "betse").
     if logger_name is None:
-        from betse.util.system import processes
+        from betse.util.os import processes
         logger_name = processes.get_current_basename()
 
     # If such name is the empty string, this function would get the root logger.
@@ -282,7 +282,7 @@ class LoggerConfig(object):
         super().__init__()
 
         # Avoid circular import dependencies.
-        from betse.util.system import processes
+        from betse.util.os import processes
         from betse.util.type import ints
 
         # Record this filename.

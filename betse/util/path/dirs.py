@@ -182,13 +182,13 @@ def copy(dirname_source: str, dirname_target: str) -> None:
     If either the source directory does not exist *or* the target directory
     already exists, an exception will be raised.
     '''
-    assert types.is_str_nonempty(dirname_source),\
-        types.assert_not_str_nonempty(dirname_source, 'Source dirname')
-    assert types.is_str_nonempty(dirname_target),\
-        types.assert_not_str_nonempty(dirname_target, 'Target dirname')
+    assert types.is_str_nonempty(dirname_source), (
+        types.assert_not_str_nonempty(dirname_source, 'Source dirname'))
+    assert types.is_str_nonempty(dirname_target), (
+        types.assert_not_str_nonempty(dirname_target, 'Target dirname'))
 
-    # Log such copy.
-    loggers.log_info(
+    # Log this copy.
+    loggers.log_debug(
         'Copying directory "%s" to "%s".', dirname_source, dirname_target)
 
     # Raise an exception unless the source directory exists.
