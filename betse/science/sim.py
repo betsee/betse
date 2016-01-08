@@ -1634,7 +1634,7 @@ class Simulator(object):
                 self.update_C_ecm(i,f_ED,cells,p)
 
                 # update concentrations in the extracellular spaces:
-                # self.update_ecm(cells,p,t,i)
+                self.update_ecm(cells,p,t,i)
 
                 # update flux between cells due to gap junctions
                 self.update_gj(cells,p,t,i)
@@ -1922,27 +1922,31 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             # get the charge in cells and the environment:
+            #
+            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            # self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
+            #
+            # self.vm, self.v_cell, self.v_env = get_Vall(self,cells,p)
+
+        #------------------------------------------------------------------------
 
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
+            self.v_env = get_Venv(self,cells,p)
+            self.v_cell = get_Vcell(self,cells,p)
 
-            self.vm, self.v_cell, self.v_env = get_Vall(self,cells,p)
-
-            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-            # self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-            # self.v_env = get_Venv(self,cells,p)
-            # self.v_cell = get_Vcell(self,cells,p)
-            #
-            # self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
+            self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
 
         else:
 
-             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+             # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+             #
+             # self.vm, _, _ = get_Vall(self,cells,p)
 
-             self.vm, _, _ = get_Vall(self,cells,p)
+    #-----------------------------------------------------------------------------------------
 
-            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-            # self.vm = get_Vcell(self,cells,p)
+            self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
+            self.vm = get_Vcell(self,cells,p)
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -2187,16 +2191,15 @@ class Simulator(object):
 
         if p.closed_bound is True: # insulation boundary conditions
 
-            pass
-            # cenv_x[:,0] = cenv_x[:,1]
-            # cenv_x[:,-1] = cenv_x[:,-2]
-            # cenv_x[0,:] = cenv_x[1,:]
-            # cenv_x[-1,:] = cenv_x[-2,:]
-            #
-            # cenv_y[0,:] = cenv_y[1,:]
-            # cenv_y[-1,:] = cenv_y[-2,:]
-            # cenv_y[:,0] = cenv_y[:,1]
-            # cenv_y[:,-1] = cenv_y[:,-2]
+            cenv_x[:,0] = cenv_x[:,1]
+            cenv_x[:,-1] = cenv_x[:,-2]
+            cenv_x[0,:] = cenv_x[1,:]
+            cenv_x[-1,:] = cenv_x[-2,:]
+
+            cenv_y[0,:] = cenv_y[1,:]
+            cenv_y[-1,:] = cenv_y[-2,:]
+            cenv_y[:,0] = cenv_y[:,1]
+            cenv_y[:,-1] = cenv_y[:,-2]
 
         else:   # open and electrically grounded boundary conditions
             cenv_x[:,0] =  self.c_env_bound[i]
@@ -2258,16 +2261,15 @@ class Simulator(object):
 
         if p.closed_bound is False:
 
-            pass
-            # f_env_x[:,0] = f_env_x[:,1]
-            # f_env_x[:,-1]= f_env_x[:,-2]
-            # f_env_x[0,:] = f_env_x[1,:]
-            # f_env_x[-1,:] = f_env_x[-2,:]
-            #
-            # f_env_y[:,0] = f_env_y[:,1]
-            # f_env_y[:,-1]= f_env_y[:,-2]
-            # f_env_y[0,:] = f_env_y[1,:]
-            # f_env_y[-1,:] = f_env_y[-2,:]
+            f_env_x[:,0] = f_env_x[:,1]
+            f_env_x[:,-1]= f_env_x[:,-2]
+            f_env_x[0,:] = f_env_x[1,:]
+            f_env_x[-1,:] = f_env_x[-2,:]
+
+            f_env_y[:,0] = f_env_y[:,1]
+            f_env_y[:,-1]= f_env_y[:,-2]
+            f_env_y[0,:] = f_env_y[1,:]
+            f_env_y[-1,:] = f_env_y[-2,:]
 
         else:
 
@@ -2297,11 +2299,11 @@ class Simulator(object):
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
             # zero flux boundaries for concentration:
-            pass
-            # cenv[:,-1] = cenv[:,-2]
-            # cenv[:,0] = cenv[:,1]
-            # cenv[0,:] = cenv[1,:]
-            # cenv[-1,:] = cenv[-2,:]
+
+            cenv[:,-1] = cenv[:,-2]
+            cenv[:,0] = cenv[:,1]
+            cenv[0,:] = cenv[1,:]
+            cenv[-1,:] = cenv[-2,:]
 
         elif p.closed_bound is False:
             # if the boundary is open, set the concentration at the boundary
@@ -4405,13 +4407,15 @@ def get_Vcell(self,cells,p):
     """
 
     if p.sim_ECM is False:
-        # v_cell = (self.rho_cells*cells.cell_vol*p.tm)/(p.eo*80*cells.cell_sa)
         v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
+
+        # v_cell = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
 
 
     else:
 
         v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
+        # v_cell = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
 
     return v_cell
 
@@ -4440,7 +4444,8 @@ def get_Venv(self,cells,p):
 
     # Perform Finite Volume integration on the environmental charge
     self.rho_env = fd.integrator(self.rho_env)
-    # self.rho_env = cells.grid_obj.grid_int(self.rho_env[:], bounds = 'closed')
+
+    # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
 
     rho_env = self.rho_env
 
@@ -4473,6 +4478,7 @@ def get_Venv(self,cells,p):
 
     # smooth out the voltage
     V = fd.integrator(V)
+    # V = gaussian_filter(V,2)
     V = V.ravel()
 
     return V
@@ -4508,81 +4514,101 @@ def get_Vall(self,cells,p):
         v_cell = vm/2
         v_env = -vm/2
 
-        # v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_voll
+        # v_cell = (1/(4*math.pi*p.eo*80*cells.R*p.ff_cell))*(self.rho_cells*cells.cell_vol)
+
 
     else:
 
-        # FIXME -- should I try interpolating cell charge to the same grid, with same smoothing?
-        # if modelling extracellular spaces, we need to determine the relevant charge for the whole capacitive system.
-        # this is done using the quantity (q1 - q2)/2, which has been called the "gorge" of the capacitor in
-        # several non-formal references.
+        Qin = (self.rho_cells*cells.cell_vol)
 
-        Qin_o = (self.rho_cells*cells.cell_vol)
-        Qin = Qin_o[cells.mem_to_cells]
-        # Qin = cells.integrator(Qin_o)
-        # Qin = Qin[cells.mem_to_cells]
+        Qin = cells.integrator(Qin)
 
         # smooth out the environmental charge:
-        self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),3)
+        # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
+        self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
+
+        # make sure charge at the global boundary is zero:
+        # if p.closed_bound is False:
+        self.rho_env[:,0] = 0
+        self.rho_env[:,-1] = 0
+        self.rho_env[-1,:] = 0
+        self.rho_env[0,:] = 0
+
         self.rho_env = self.rho_env.ravel()
 
-        Qout = self.rho_env[cells.map_mem2ecm]*cells.ecm_vol[cells.map_mem2ecm]
-
-        Qmean = (Qin + Qout)/2
+        Qout = self.rho_env[cells.map_cell2ecm]*cells.ecm_vol[cells.map_cell2ecm]
 
         gorge = (Qin - Qout)/2
 
         # The voltage across the capacitor system is then the simple formula again, just using the "gorge".
-        # In the case of extracellular spaces, we consider individual membrane regions of cells so the data length is
-        # len(cells.mem_i)
-        vm = (1/(p.cm*cells.mem_sa))*gorge
+        vm = (1/(p.cm*cells.cell_sa))*gorge
 
         # Now, we don't assume equal voltages on intra and extra cellular surfaces. Instead, assume the ratio of voltages
         # is weighted by to the fraction of charge on the surface:
-
-        # if Qmean.all() != 0.0:
-        #
-        #     v_cell_o = (vm/2)*(Qin/Qmean)
-        #     v_env_o = -(vm/2)*(Qout/Qmean)
-        #
-        # else:
-        #
-        #     v_cell_o = (vm/2)
-        #     v_env_o = -(vm/2)
-        v_cell_o = (vm/2)
+        v_cell = (vm/2)
         v_env_o = -(vm/2)
 
-        # Map the data structures to their proper final form:
-        v_cell = np.dot(cells.M_sum_mems,v_cell_o)/cells.num_mems
+        #Map the data structures to their proper final form:
         v_env = np.zeros(len(cells.xypts))
-        v_env[cells.map_mem2ecm] = v_env_o
+        v_env[cells.map_cell2ecm] = v_env_o
 
         # smooth out the environmental voltage:
-        v_env = gaussian_filter(v_env.reshape(cells.X.shape),3)
+        # v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
+        v_env = fd.integrator(v_env.reshape(cells.X.shape))
         v_env = v_env.ravel()
 
-        print(Qin[cells.cell_to_mems[174]][2],Qout[cells.cell_to_mems[174]][2], gorge[cells.cell_to_mems[174]][2],
-              Qmean[cells.cell_to_mems[174]][2])
-        print('*')
-        print(1000*vm[cells.cell_to_mems[174]][2],1000*v_cell[174], 1000*v_env_o[cells.cell_to_mems[174]][2])
-        print('**')
-        print(cells.mem_sa[cells.cell_to_mems[174]][2],cells.cell_sa[174], cells.cell_vol[174])
+        # # set the conditions for the global boundaries:
+        v_env[cells.bBot_k] = self.bound_V['B']
+        v_env[cells.bTop_k] = self.bound_V['T']
+        v_env[cells.bL_k] = self.bound_V['L']
+        v_env[cells.bR_k] = self.bound_V['R']
+        vm = cells.integrator(vm)
+        vm = vm[cells.mem_to_cells]
+        # vm = cells.interp_to_mem(vm)
 
-        print("ABBA")
+        # as a final step, we need to consider the charge of the whole cell cluster, and any voltage that it presents
+        # must be screened by the environment (this is a correction to vm at the exterior bounds):
+        rho_all = np.zeros(len(cells.xypts))
+        rho_all[cells.map_cell2ecm] = self.rho_cells
+        rho_all = rho_all + self.rho_env
+         # smooth out the total charge:
+        # rho_all = gaussian_filter(rho_all.reshape(cells.X.shape),2)
+        rho_all = fd.integrator(rho_all.reshape(cells.X.shape))
 
-        print(Qin[cells.cell_to_mems[170]][2],Qout[cells.cell_to_mems[170]][2], gorge[cells.cell_to_mems[170]][2],
-              Qmean[cells.cell_to_mems[170]][2])
-        print('*')
-        print(1000*vm[cells.cell_to_mems[170]][2],1000*v_cell[170], 1000*v_env_o[cells.cell_to_mems[170]][2])
-        print('**')
-        print(cells.mem_sa[cells.cell_to_mems[170]][2],cells.cell_sa[170], cells.cell_vol[170])
+        rho_all[:,0] = 0
+        rho_all[:,-1] = 0
+        rho_all[-1,:] = 0
+        rho_all[0,:] = 0
+
+        rho_all = rho_all.ravel()
+
+        v_env_farfield = np.dot(cells.lapENVinv,-rho_all/(p.eo*80*p.ff_env))
+
+        # set the boundary conditions for the outside of the matrix:
+        # v_env_farfield[cells.bBot_k] = self.bound_V['B']
+        # v_env_farfield[cells.bTop_k] = self.bound_V['T']
+        # v_env_farfield[cells.bL_k] = self.bound_V['L']
+        # v_env_farfield[cells.bR_k] = self.bound_V['R']
+
+        # add this solution to the v_cell and v_env solutions (as it's a constant added to both it doesn't affect vmem)
+        v_env_2 = np.zeros(len(cells.xypts))
+        v_env_2 = v_env_farfield
+        # v_env_2 = gaussian_filter(v_env_2.reshape(cells.X.shape),2)
+        v_env_2 = fd.integrator(v_env_2.reshape(cells.X.shape))
+        v_env_2 = v_env_2.ravel()
+
+        # set the conditions for the global boundaries:
+        v_env_2[cells.bBot_k] = self.bound_V['B']
+        v_env_2[cells.bTop_k] = self.bound_V['T']
+        v_env_2[cells.bL_k] = self.bound_V['L']
+        v_env_2[cells.bR_k] = self.bound_V['R']
+        #
+        #
+        v_cell = v_cell + v_env_farfield[cells.map_cell2ecm]
+        v_cell = cells.integrator(v_cell)
 
 
-
-        print('----------')
-
-
-    return vm, v_cell, v_env
+    return vm, v_cell, v_env_2
 
 def get_molarity(concentrations,p):
 

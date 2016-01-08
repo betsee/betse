@@ -1758,6 +1758,61 @@ class Cells(object):
         vertTree = sps.KDTree(self.voronoi_centres)
         self.cell_to_grid = list(vertTree.query(self.cell_centres))[1]
 
+        # #----voronoi mids
+        # self.voronoi_vol = []
+        #
+        # cv_x = []
+        # cv_y = []
+        # cv_nx = []
+        # cv_ny = []
+        # cv_tx = []
+        # cv_ty = []
+        #
+        # for polyc in self.voronoi_verts:
+        #     # First calculate individual cell volumes from cell vertices:
+        #     poly = [x for x in reversed(polyc)]
+        #     self.voronoi_vol.append(p.cell_height*tb.area(poly))
+        #
+        #     # Next calculate individual membrane domains, midpoints, and vectors:
+        #     surfa = []
+        #
+        #     for i in range(0,len(polyc)):
+        #         pt1 = polyc[i-1]
+        #         pt2 = polyc[i]
+        #         pt1 = np.asarray(pt1)
+        #         pt2 = np.asarray(pt2)
+        #         mid = (pt1 + pt2)/2       # midpoint calculation
+        #
+        #         lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
+        #         sa = lgth*p.cell_height    # surface area of membrane
+        #         surfa.append(sa)
+        #
+        #         tang_a = pt2 - pt1       # tangent
+        #
+        #         if np.linalg.norm(tang_a) != 0.0:
+        #             tang = tang_a/np.linalg.norm(tang_a)
+        #
+        #         else:
+        #             tang = [0.0,0.0]
+        #         # normal = np.array([-tang[1],tang[0]])
+        #         normal = np.array([tang[1],-tang[0]])
+        #         cv_x.append(mid[0])
+        #         cv_y.append(mid[1])
+        #         cv_nx.append(normal[0])
+        #         cv_ny.append(normal[1])
+        #         cv_tx.append(tang[0])
+        #         cv_ty.append(tang[1])
+        #
+        # self.voronoi_sa = np.asarray(surfa)
+        # self.voronoi_sa = np.asarray(self.voronoi_sa)
+        #
+        # self.voronoi_vects = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+        #
+        #
+        #  # define a mapping between the voronoi cell centres and the cluster cell centres:
+        # vertTree = sps.KDTree((self.voronoi_vects[:,0],self.voronoi_vects[:,1]))
+        # self.mem_to_grid = list(vertTree.query(self.mem_mids_flat))[1]
+
     def make_maskM(self,p):   # FIXME would this work better with voronoi centres?
         """
         Create structures for plotting interpolated data on cell centres
