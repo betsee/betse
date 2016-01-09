@@ -93,6 +93,7 @@ from betse.util.os import oses
 from betse.util.type import containers, strs, types
 from collections import OrderedDict
 from matplotlib import cm as colormaps
+from matplotlib import rcParams
 from matplotlib.colors import Colormap
 
 # ....................{ IMPORTS ~ matplotlib               }....................
@@ -311,11 +312,22 @@ class MatplotlibConfig(object):
             return False
 
     # ..................{ GETTERS                            }..................
+    def get_rc_param(self, param_name) -> object:
+        '''
+        Get the value of the parameter with the passed `.`-delimited name
+        (e.g., `savefile.dpi`) in the external `matplotlibrc` file.
+
+        If no such parameter exists, an exception is raised.
+        '''
+        return rcParams[param_name]
+
+
     def get_metadata(self) -> OrderedDict:
         '''
         Get an ordered dictionary synopsizing the current matplotlib
         installation.
         '''
+
         # This dictionary.
         metadata = OrderedDict((
             ('rc file', self.rc_filename),

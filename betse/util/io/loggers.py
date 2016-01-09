@@ -304,7 +304,7 @@ class LoggerConfig(object):
         self._logger_root_handler_stdout.setLevel(INFO)
         self._logger_root_handler_stdout.addFilter(LoggerFilterInfoOrLess())
 
-        # Root logger stdout handler, preconfigured as documented above.
+        # Root logger stderr handler, preconfigured as documented above.
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
 
@@ -314,20 +314,20 @@ class LoggerConfig(object):
         # logger having been insufficiently configured) or subtle errors in the
         # best case. Instead, create this directory with standard low-level
         # Python functions.
-        os.makedirs(path.dirname(self._log_filename), exist_ok = True)
+        os.makedirs(path.dirname(self._log_filename), exist_ok=True)
 
         # Root logger file handler, preconfigured as documented above.
         self._logger_root_handler_file = RotatingFileHandler(
             filename = self._log_filename,
 
-            # Append rather than overwrite such file.
+            # Append rather than overwrite this file.
             mode = 'a',
 
             # Encode such file's contents as UTF-8.
             encoding = 'utf-8',
 
-            # Filesize at which to rotate such file.
-            maxBytes = 16 * ints.KB,
+            # Filesize at which to rotate this file.
+            maxBytes = 32 * ints.KB,
 
             # Maximum number of rotated logfiles to maintain.
             backupCount = 8,

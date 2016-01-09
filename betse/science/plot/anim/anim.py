@@ -86,9 +86,6 @@ class AnimateCellData(Anim):
         self.cbtit = cbtit
         self.current_overlay = current_overlay
 
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
-
         self.sim_ECM = self.p.sim_ECM
         self.IecmPlot = self.p.IecmPlot
         self.density = self.p.stream_density
@@ -150,6 +147,9 @@ class AnimateCellData(Anim):
         self.ax.set_ylabel('Spatial y [um]')
         self.fig.suptitle(self.tit, fontsize=14, fontweight='bold')
         self.ax.set_title(self.tit_extra)
+
+        # Display and/or save this animation.
+        self._animate(frame_count=len(self.sim.time))
 
 
     def _plot_next_frame(self, frame_number):

@@ -36,7 +36,7 @@ def init() -> None:
 
     # Configure logging *AFTER* creating such directories, as such logging
     # writes to files in such directories.
-    loggers.config.init(filename = pathtree.LOG_DEFAULT_FILENAME)
+    loggers.config.init(filename=pathtree.LOG_DEFAULT_FILENAME)
     # self._logger.error('ERROR!')
     # self._logger.warning('WARNING!')
     # self._logger.info('INFO!')

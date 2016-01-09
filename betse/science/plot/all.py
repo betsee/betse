@@ -937,13 +937,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=IP3plotting,
+            type='IP3',
             tit='IP3 concentration',
             cbtit='Concentration [umol/L]',
             clrAutoscale=p.autoscale_IP3_ani,
             clrMin=p.IP3_ani_min_clr,
             clrMax=p.IP3_ani_max_clr,
-            saveFolder='IP3',
-            saveFile='ip3_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
         )
@@ -957,13 +956,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             AnimateCellData(
                 sim=sim, cells=cells, p=p,
                 zdata_t=Dyeplotting,
+                type='Morphogen',
                 tit='Morphogen Concentration',
                 cbtit='Concentration [umol/L]',
                 clrAutoscale=p.autoscale_Dye_ani,
                 clrMin=p.Dye_ani_min_clr,
                 clrMax=p.Dye_ani_max_clr,
-                saveFolder='Morphogen',
-                saveFile='morphogen_',
                 ignore_simECM=True,
             )
 
@@ -989,13 +987,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=tCa,
+            type='Ca',
             tit='Cytosolic Ca2+',
             cbtit='Concentration [nmol/L]',
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            saveFolder='Ca',
-            saveFile='ca_',
             ignore_simECM=True,
         )
 
@@ -1006,13 +1003,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=tpH,
+            type='pH',
             tit='Cytosolic pH',
             cbtit='pH',
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            saveFolder='pH',
-            saveFile='pH_',
             ignore_simECM=True,
         )
 
@@ -1025,14 +1021,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=vmplt,
+            type='Vmem',
             tit='Cell Vmem',
             cbtit='Voltage [mV]',
             clrAutoscale=p.autoscale_Vmem_ani,
             clrMin=p.Vmem_ani_min_clr,
             clrMax=p.Vmem_ani_max_clr,
             current_overlay=p.I_overlay,
-            saveFolder='Vmem',
-            saveFile='vm_',
             ignore_simECM=False,
         )
 
@@ -1042,10 +1037,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             tit='Vcell ',
             save=p.saveAnimations,
             ani_repeat=True,
-            saveFolder='animation/Vmem_gj',
             clrAutoscale=p.autoscale_Vgj_ani,
             clrMin=p.Vgj_ani_min_clr,
             clrMax=p.Vgj_ani_max_clr,
+            saveFolder='animation/Vmem_gj',
             saveFile='vmem_gj_',
             number_cells=False,
         )
@@ -1056,13 +1051,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=vcellplt,
+            type='vcell',
             tit='V in cell',
             cbtit='Voltage [mV]',
             clrAutoscale=p.autoscale_vcell_ani,
             clrMin=p.vcell_ani_min_clr,
             clrMax=p.vcell_ani_max_clr,
-            saveFolder='vcell',
-            saveFile='vcell_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
         )
@@ -1167,13 +1161,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=sim.P_cells_time,
+            type='Pcell',
             tit='Hydrostatic Pressure in Cells',
             cbtit='Pressure [Pa]',
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            saveFolder='Pcell',
-            saveFile='Pcell_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
         )
@@ -1183,13 +1176,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             zdata_t=sim.osmo_P_delta_time,
+            type='OsmoP',
             tit='Osmotic Pressure in Cells',
             cbtit='Pressure [Pa]',
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            saveFolder='OsmoP',
-            saveFile='OsmoP_',
             ignore_simECM=True,
             current_overlay=p.I_overlay,
         )
@@ -1204,13 +1196,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 ani_repeat=True,
                 save=p.saveAnimations,
                 plot_ecm=False,
-                saveFolder='animation/ElectrostaticFfield',
-                saveFile='EFfield_',
                 title="Electrostatic Body Force",
                 cb_title="Force [N/cm3]",
                 colorAutoscale=p.autoscale_force_ani,
                 colorMin=p.force_ani_min_clr,
                 colorMax=p.force_ani_max_clr,
+                saveFolder='animation/ElectrostaticFfield',
+                saveFile='EFfield_',
             )
 
         if p.deform_osmo is True:
@@ -1222,13 +1214,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 ani_repeat=True,
                 save=p.saveAnimations,
                 plot_ecm=False,
-                saveFolder='animation/HydroFfield',
-                saveFile='OFfield_',
                 title="Hydrostatic Body Force",
                 cb_title="Force [N/cm3]",
                 colorAutoscale=p.autoscale_force_ani,
                 colorMin=p.force_ani_min_clr,
                 colorMax=p.force_ani_max_clr,
+                saveFolder='animation/HydroFfield',
+                saveFile='OFfield_',
             )
 
     if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:

@@ -124,7 +124,7 @@ def canonicalize_and_make_unless_dir(dirname: str) -> str:
 def make_parent_unless_dir(*pathnames) -> None:
     '''
     Create the parent directory of each passed path for any such directory that
-    does *not* already exist.
+    does _not_ already exist.
 
     All nonexistent parents of each such directory will also be recursively
     created, mimicking the action of the standard `mkdir -p` shell command.

@@ -42,6 +42,21 @@ class FileFrameWriter(MovieWriter):
         return True
 
     # ..................{ PUBLIC                             }..................
+    def __init__(self, *args, **kwargs) -> None:
+        '''
+        Construct a new `FileFrameWriter` object.
+
+        This constructor coerces the passed `extra_args` parameter if any to the
+        empty list. Since no external process is forked to write animation
+        frames, all arguments to be passed to that process are ignorable.
+        '''
+        # Ignoring "extra_args" is essential. Failing to do so results in
+        # exceptions in the superclass constructor, which when "extra_args" is
+        # None attempts to access the non-existent "args_key" class attribute.
+        kwargs['extra_args'] = list()
+        super().__init__(*args, **kwargs)
+
+
     def setup(self, *args, **kwargs) -> None:
         '''
         Prepare to write animation frames.
@@ -101,7 +116,7 @@ class FileFrameWriter(MovieWriter):
         out_dirname = paths.get_dirname(self.outfile)
 
         # Create this directory if needed.
-        dirs.make_unless_parent_dir(out_dirname)
+        dirs.make_parent_unless_dir(out_dirname)
 
 
     def grab_frame(self, **kwargs) -> None:
@@ -113,7 +128,7 @@ class FileFrameWriter(MovieWriter):
         internally called by this method as is.
         '''
 
-        # Leverage similar code as the superclass with exception of:
+        # Leverage similar code as our superclass with exception of:
         #
         # * *NOT* catching and logging exceptions. The superclass implementation
         #   catches and logs exceptions by deferring to the output of an
@@ -136,7 +151,7 @@ class FileFrameWriter(MovieWriter):
 
         # Write the current frame.
         self.fig.savefig(
-            fname=frame_filename,
+            filename=frame_filename,
             format=self.frame_format,
             dpi=self.dpi,
             **kwargs)

@@ -9,25 +9,20 @@ Abstract base classes of all Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseExceptionParameters
-# from betse.lib.matplotlib import mpl
+from betse.lib.matplotlib.mpl import mplconfig
+from betse.lib.matplotlib.anim import FileFrameWriter
+from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
-#FIXME: Condense "saveFolder" and "saveFile" to a single parameter.
-
 # ....................{ BASE                               }....................
 #FIXME: Privatize all public attributes declared below. Raving river madness!
 #FIXME: Document the "clrAutoscale", "clrMin", and "clrMax" attributes. Sizzle!
 #FIXME: Refactor the "savedAni" attribute into a template containing exactly one
-#"{"- and "}"-delimited string, to satisfy our "FrameFileWriter" API. Currently,
+#"{"- and "}"-delimited string, to satisfy our "FileFrameWriter" API. Currently,
 #this attribute is merely the prefix for all frame image files to be saved.
-#FIXME: Rename:
-#* The "saveFolder" attribute to "_save_dir_basename".
-#* The "saveFile" attribute to "_save_file_basename_prefix".
-#Or, alternately (and probably preferably) combine the two attributes into a
-#pathname template consumable by our new "FrameFileWriter" class.
 
 class Anim(object, metaclass=ABCMeta):
     '''
@@ -52,13 +47,30 @@ class Anim(object, metaclass=ABCMeta):
         ???.
     colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
-    savedAni : str
-        Path prefix for all frame image files to be saved.
-    saveFile : str
-        Basename prefix of all frame image files to be saved.
-    saveFolder : str
+    fig : Figure
+        Matplotlib figure providing the current animation frame.
+    ax : FigureAxes
+        Matplotlib figure axes providing the current animation frame data.
+    _anim : FuncAnimation
+        Low-level Matplotlib animation object instantiated by this high-level
+        BETSE wrapper object.
+    _is_saving_plotted_frames : bool
+        `True` if both saving and displaying animation frames _or_ `False`
+        otherwise.
+    _save_frame_template : str
+        `str.format()`-formatted template which, when formatted with the 0-based
+        index of the current frame, yields the absolute path of the image file
+        to be saved for that frame.
+    _type : str
         Basename of the subdirectory in the phase-specific results directory
-        to which all animation results will be saved.
+        to which all animation files will be saved _and_ the basename prefix of
+        these files.
+    _writer_frames : MovieWriter
+        Object writing frames from this animation to image files if enabled _or_
+        `None` otherwise.
+    _writer_video : MovieWriter
+        Object encoding this animation to a video file if enabled _or_ `None`
+        otherwise.
     '''
 
     # ..................{ ABSTRACT ~ private                 }..................
@@ -89,11 +101,10 @@ class Anim(object, metaclass=ABCMeta):
         sim: 'Simulator',
         cells: 'Cells',
         p: 'Parameters',
+        type: str,
         clrAutoscale: bool,
         clrMin: float,
         clrMax: float,
-        saveFolder: str,
-        saveFile: str,
 
         # Optional parameters.
         colormap: 'Colormap' = None,
@@ -109,19 +120,19 @@ class Anim(object, metaclass=ABCMeta):
             Current cell cluster.
         p : Parameters
             Current simulation configuration.
+        type : str
+            Basename of the subdirectory in the phase-specific results directory
+            to which all animation files will be saved _and_ the basename prefix
+            of these files.
         clrAutoscale : bool
             ???.
         clrMin : float
             ???.
         clrMax : float
             ???.
-        saveFolder : str
-            Basename of the subdirectory in the phase-specific results directory
-            to which all animation results will be saved.
-        saveFile : str
-            Basename prefix of all frame image files to be saved.
         colormap : Colormap
-            Matplotlib colormap to be used in this animation's colorbar.
+            Matplotlib colormap to be used in this animation's colorbar or
+            `None`, in which case the default colormap will be used.
         '''
         # Validate core parameters.
         assert types.is_simulator(sim), types.assert_not_simulator(sim)
@@ -133,15 +144,13 @@ class Anim(object, metaclass=ABCMeta):
             colormap = p.default_cm
 
         # Validate all remaining parameters *AFTER* defaulting parameters.
+        assert types.is_str_nonempty(type), (
+            types.assert_not_str_nonempty(type, 'Animation type'))
         assert types.is_bool(clrAutoscale), types.assert_not_bool(clrAutoscale)
         assert types.is_numeric(clrMin), types.assert_not_numeric(clrMin)
         assert types.is_numeric(clrMax), types.assert_not_numeric(clrMax)
         assert types.is_matplotlib_colormap(colormap), (
             types.assert_not_matplotlib_colormap(colormap))
-        assert types.is_str_nonempty(saveFolder), (
-            types.assert_not_str_nonempty(saveFolder, 'Save directory'))
-        assert types.is_str_nonempty(saveFile), (
-            types.assert_not_str_nonempty(saveFile, 'Save frame file prefix'))
 
         # Classify *AFTER* validating parameters.
         self.sim = sim
@@ -151,8 +160,15 @@ class Anim(object, metaclass=ABCMeta):
         self.clrMin = clrMin
         self.clrMax = clrMax
         self.colormap = colormap
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
+        self._writer_frames = None
+        self._writer_video = None
+        self._type = type
+
+        #FIXME: Abandon "pyplot", all who enter here!
+
+        # Figure and figure axes encapsulating this animation.
+        self.fig = pyplot.figure()
+        self.ax = pyplot.subplot(111)
 
         # Initialize animation saving *AFTER* defining all attribute defaults.
         self._init_saving()
@@ -164,14 +180,18 @@ class Anim(object, metaclass=ABCMeta):
         by the current simulation configuration or noop otherwise.
         '''
 
+        # True if both saving and displaying animation frames.
+        self._is_saving_plotted_frames = (
+            self.p.turn_all_plots_off is False and
+            self.p.saveAnimations is True)
+
         # If animation saving is disabled, noop.
         if self.p.saveAnimations is False:
             return
 
         # Ensure that the passed directory and file basenames are actually
         # basenames and hence contain no directory separators.
-        paths.die_unless_basename(self.saveFolder)
-        paths.die_unless_basename(self.saveFile)
+        paths.die_unless_basename(self._type)
 
         # Path of the phase-specific parent directory of the subdirectory to
         # which these files will be saved.
@@ -189,11 +209,39 @@ class Anim(object, metaclass=ABCMeta):
 
         # Path of the subdirectory to which these files will be saved, creating
         # this subdirectory and all parents thereof if needed.
-        images_dirname = paths.join(phase_dirname, 'animation', self.saveFolder)
-        images_dirname = dirs.canonicalize_and_make_unless_dir(images_dirname)
+        save_dirname = paths.join(
+            phase_dirname, 'animation', self._type)
+        save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
-        # Path of the file to be saved.
-        self.savedAni = paths.join(images_dirname, self.saveFile)
+        #FIXME: Pull the image filetype from the current YAML configuration
+        #rather than coercing use of ".png".
+        save_frame_filetype = 'png'
+
+        # Template yielding the basenames of frame image files to be saved.
+        # The "{{"- and "}}"-delimited substring will reduce to a "{"- and "}"-
+        # delimited substring after formatting, which subsequent formatting
+        # elsewhere (e.g., in the "FileFrameWriter" class) will expand with the
+        # 0-based index of the current frame number.
+        save_frame_template_basename = '{}_{{:07d}}.{}'.format(
+            self._type, save_frame_filetype)
+
+        # Template yielding the absolute paths of frame image files to be saved.
+        self._save_frame_template = paths.join(
+            save_dirname, save_frame_template_basename)
+
+        # Object writing frames from this animation to image files.
+        self._writer_frames = FileFrameWriter()
+
+        # If both saving and displaying animation frames, prepare for doing so.
+        # See the _save_frame() method for horrid discussion.
+        if self._is_saving_plotted_frames:
+            self._writer_frames.setup(
+                fig=self.fig,
+                outfile=self._save_frame_template,
+
+                #FIXME: Pass the actual desired "dpi" parameter.
+                dpi=mplconfig.get_rc_param('savefig.dpi'),
+            )
 
     # ..................{ CONCRETE ~ animate                 }..................
     def _animate(self, frame_count: int) -> None:
@@ -215,7 +263,7 @@ class Anim(object, metaclass=ABCMeta):
         # latter is *NOT* done, this function will be garbage collected prior
         # to subsequent plot handling -- in which case only the first plot will
         # be plotted without explicit warning or error. Die, matplotlib! Die!!
-        ani = FuncAnimation(
+        self._anim = FuncAnimation(
             self.fig, self._plot_next_frame,
 
             # Number of frames to be animated.
@@ -264,16 +312,22 @@ class Anim(object, metaclass=ABCMeta):
 
         try:
             #FIXME: Refactor to *NOT* use the "pyplot" API. Juggling hugs!
+            # If displaying animations, do so.
             if self.p.turn_all_plots_off is False:
-                # loggers.log_info(
-                #     'Plotting animation "{}"...'.format(video_filename))
+                loggers.log_info(
+                    'Plotting animation "{}"...'.format(self._type))
+
+                # Display this animation.
                 pyplot.show()
-            elif self.p.saveAnimations:
-                #FIXME: Uncomment when worky.
-                # loggers.log_info(
-                #     'Saving animation frames "{}"...'.format(video_filename))
-                # ani.save(filename=video_filename, writer='frame')
-                pass
+            # Else if saving animation frames, do so.
+            elif self.p.saveAnimations is True:
+                loggers.log_info(
+                    'Saving animation "{}" frames...'.format(self._type))
+
+                #FIXME: Pass the "dpi" parameter as well.
+                self._anim.save(
+                    filename=self._save_frame_template,
+                    writer=self._writer_frames)
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -298,26 +352,14 @@ class Anim(object, metaclass=ABCMeta):
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        # If both saving and displaying animations, save this frame. Note that
-        # if only saving but *NOT* displaying animations, this frame will be
-        # handled by our _animate() method. Why? Because Matplotlib will fail to
-        # iterate frames and hence call our _plot_next_frame() method calling
+        # If both saving and displaying animation frames, save this frame. Note
+        # that if only saving but *NOT* displaying animations, this frame will
+        # be handled by our _animate() method. Why? Because Matplotlib will fail
+        # to iterate frames and hence call our _plot_next_frame() method calling
         # this method *UNLESS* our _animate() method explicitly calls the
         # FuncAnimation.save() method with the writer name "frame" signifying
-        # our "FrameFileWriter" class to do so. (Look. It's complicated, O.K.?)
-        if self.p.saveAnimations is False:
-        #FIXME: Uncomment when _animate() actually calls FuncAnimation.save().
-        # if not (
-        #     self.p.saveAnimations is True and
-        #     self.p.turn_all_plots_off is True):
-            return
-
-        self.fig.canvas.draw()
-
-        # Filename of the file to be written.
-        savename = self.savedAni + str(frame_number) + '.png'
-
-        # #FIXME: Remove this debug statement later.
-        # print('Saving animated frame: {}'.format(savename))
-        pyplot.savefig(savename, format='png')
-
+        # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
+        # if self.p.saveAnimations is False:
+        if self._is_saving_plotted_frames:
+            # print('Saving frame {}.'.format(frame_number))
+            self._writer_frames.grab_frame()
