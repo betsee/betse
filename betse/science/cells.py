@@ -1668,20 +1668,20 @@ class Cells(object):
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
 
-        # # Create cell centres for the whole voronoi grid:
-        # self.voronoi_centres = np.array([0,0])
-        # # self.voronoi_centres = []
-        #
-        # for poly in self.voronoi_verts:
-        #     aa = np.asarray(poly)
-        #     aa = np.mean(aa,axis=0)
-        #     self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
-        #
-        # self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
-        #
-        # # define a mapping between the voronoi cell centres and the cluster cell centres:
-        # vertTree = sps.KDTree(self.voronoi_centres)
-        # self.cell_to_grid = list(vertTree.query(self.cell_centres))[1]
+        # Create cell centres for the whole voronoi grid:
+        self.voronoi_centres = np.array([0,0])
+        # self.voronoi_centres = []
+
+        for poly in self.voronoi_verts:
+            aa = np.asarray(poly)
+            aa = np.mean(aa,axis=0)
+            self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
+
+        self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
+
+        # define a mapping between the voronoi cell centres and the cluster cell centres:
+        vertTree = sps.KDTree(self.voronoi_centres)
+        self.cell_to_grid = list(vertTree.query(self.cell_centres))[1]
 
     def make_maskM(self,p):
         """

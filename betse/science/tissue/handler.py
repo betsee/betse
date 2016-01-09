@@ -327,7 +327,6 @@ class TissueHandler(object):
             self.targets_ecmJ = [
                 item for sublist in self.targets_ecmJ for item in sublist]
 
-
     def _init_channels_tissue(self, sim, cells, p):
         '''
         Initialize all **targeted ion channels** (i.e., ion channels only

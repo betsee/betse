@@ -783,8 +783,6 @@ class Simulator(object):
             self.IP3_flux_y_gj = np.zeros(len(cells.nn_i))
             self.IP3_flux_mem = np.zeros(len(cells.mem_i))
 
-
-
             if p.sim_ECM is True:
                 # self.cIP3_ecm = np.zeros(len(cells.ecm_i))     # initialize IP3 concentration of the environment
                 # self.cIP3_ecm[:] = p.cIP3_to_env
@@ -1302,14 +1300,19 @@ class Simulator(object):
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
-        # Find embeded functions that can't be pickled...
-        for key, valu in vars(self).items():
-            if type(valu) == interp.interp1d or callable(valu):
-                setattr(self,key,None)
-
-        for key, valu in vars(p).items():
-            if type(valu) == interp.interp1d or callable(valu):
-                setattr(p,key,None)
+        # Find embeded functions that can't be pickled... FIXME
+        fh.safe_pickle(self,p)
+        # for key, valu in vars(self).items():
+        #     if type(valu) == interp.interp1d or callable(valu):
+        #         setattr(self,key,None)
+        #
+        # for key, valu in vars(p).items():
+        #     if type(valu) == interp.interp1d or callable(valu):
+        #         setattr(p,key,None)
+        #
+        # for key, valu in vars(self.dyna).items():
+        #     if type(valu) == interp.interp1d or callable(valu):
+        #         setattr(self.dyna,key,None)
 
         cells.points_tree = None
 
@@ -1827,10 +1830,11 @@ class Simulator(object):
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
-         # Find embeded functions that can't be pickled...
-        for key, valu in vars(self.dyna).items():
-            if type(valu) == interp.interp1d or callable(valu):
-                setattr(self.dyna,key,None)
+         # Find embedded functions that can't be pickled...
+        fh.safe_pickle(self,p)
+        # for key, valu in vars(self.dyna).items():
+        #     if type(valu) == interp.interp1d or callable(valu):
+        #         setattr(self.dyna,key,None)
 
         cells.points_tree = None
 
@@ -2024,8 +2028,8 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM is True:
 
-            vmems = self.v_cell[cells.mem_to_cells]
-            # vmems = self.vm
+            # vmems = self.v_cell[cells.mem_to_cells]
+            vmems = self.vm
 
             self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
 
@@ -3374,7 +3378,7 @@ class Simulator(object):
         else:
             # smooth out the environmental osmotic pressure:
             self.osmo_P_env = self.osmo_P_env.reshape(cells.X.shape)
-            # self.osmo_P_env = fd.integrator(self.osmo_P_env)
+            self.osmo_P_env = fd.integrator(self.osmo_P_env)
             self.osmo_P_env = self.osmo_P_env.ravel()
 
             self.osmo_P_delta = self.osmo_P_cell[cells.mem_to_cells] - self.osmo_P_env[cells.map_mem2ecm]
@@ -3401,14 +3405,11 @@ class Simulator(object):
         # pressure developing in the cell depends on how much the volume can change:
         P_react = (1 - (1/p.youngMod))*div_u_osmo
 
+        # the inflow of mass adds to base pressure in cells:
         if p.run_sim is True:
-
-            # the inflow of mass adds to base pressure in cells:
             self.P_base = self.P_base + P_react[:]
 
         else:
-
-            # the inflow of mass adds to base pressure in cells:
             self.P_cells = self.P_cells + P_react[:]
 
         #------------------------------------------------------------------------------------------------------------
@@ -3416,11 +3417,7 @@ class Simulator(object):
         # actual volume change depends on the mechanical properties (young's modulus) of the
         # tissue:
 
-        self.delta_vol = (1/p.youngMod)*div_u_osmo    # FIXME if p.sim_ECM is True adjust volume of those spaces too!
-
-        # print("Reaction pressure", P_react)
-        # print("volume change", self.delta_vol)
-        # print('--------------------')
+        self.delta_vol = (1/p.youngMod)*div_u_osmo
 
         # update concentrations and volume in the cell:
         vo = cells.cell_vol[:]
@@ -3429,6 +3426,17 @@ class Simulator(object):
 
         self.cc_cells =self.cc_cells*(vo/v1)
 
+        cells.cell_vol = v1[:]
+
+        if p.sim_ECM is True:
+            vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
+            v1_ecm = (1 - self.delta_vol)*vo_ecm
+
+            for i, cc_array in enumerate(self.cc_env):
+                self.cc_env[i][cells.map_cell2ecm] = cc_array[cells.map_cell2ecm]*(vo_ecm/v1_ecm)
+
+            cells.ecm_vol[cells.map_cell2ecm] = v1_ecm
+
         if p.voltage_dye is True:
 
             self.cDye_cell= self.cDye_cell*(vo/v1)
@@ -3436,8 +3444,6 @@ class Simulator(object):
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3 = self.cIP3*(vo/v1)
-
-        cells.cell_vol = v1[:]
 
     def getHydroF(self,cells,p):
         #----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
@@ -3454,37 +3460,20 @@ class Simulator(object):
 
         self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
 
-    def electro_P(self,cells,p):  # FIXME use the right charge density in cells!
+    def electro_P(self,cells,p):
         """
         Calculates electrostatic pressure in collection of cells and
         an electrostatic body force.
 
         """
 
-        # # average charge density at the gap junctions between cells:
-        # make sure we're using a realistic charge density by working with the referenced cell membrane capacitance:
-        if p.sim_ECM is False:
-
-            q_cells = (p.cm*cells.cell_sa*self.vm)/cells.cell_vol
-
-        else:
-            q_cells = (p.cm*cells.cell_sa*self.v_cell)/cells.cell_vol
-
-        # charge density interpolated to membranes
-
-        Q_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),q_cells,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        # charge density averaged at nearest neighbour membranes:
-
-        # Q_mem = (rho_cells[cells.cell_nn_i[:,0]] + rho_cells[cells.cell_nn_i[:,1]])/2
-
+        # map charge in cell to the membrane:
+        Q_mem = self.rho_cells[cells.mem_to_cells]
 
         if p.sim_ECM is False:
 
             Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
                     self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
-
 
         else:
 
@@ -4226,8 +4215,9 @@ def get_Vall(self,cells,p):
                                   self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                   fill_value = 0)
 
-        Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
-        # Qecm = rho_ecm*p.cell_height*cells.delta**2
+        # Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
+        Qecm = rho_ecm*p.cell_space*cells.mem_sa.mean()
+        # Qecm = rho_ecm*p.cell_space*cells.delta**2
 
         # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
         Q_max_vect = np.hstack((Qcells,Qecm))
@@ -4238,9 +4228,6 @@ def get_Vall(self,cells,p):
         # separate voltages for cells and ecm spaces
         v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
         v_ecm = v_max_vect[cells.ecm_range_a:cells.ecm_range_b]
-
-        # # calculate the vm
-        # vm = v_cell[cells.mem_to_cells] - v_ecm[cells.mem_to_ecm_mids]
 
         #Map the environmental voltage to the regular grid:
         v_env = np.zeros(len(cells.xypts))
@@ -4262,9 +4249,6 @@ def get_Vall(self,cells,p):
         v_env[cells.bR_k] = self.bound_V['R']
 
         # calculate the vm
-        # vm = v_cell - v_env[cells.map_cell2ecm]
-        # vm = vm[cells.mem_to_cells]
-
         vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
 
 

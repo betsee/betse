@@ -645,11 +645,11 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 1.0e-7 # surface area of gj as fraction of cell area (1.0e-3 or smaller)
+    gap junction surface area: 1.0e-7 # surface area of gj as fraction of cell area (1.0e-5 extremely open, 1e-9 closed)
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
-    gj voltage threshold: 15e-3    # cell-cell voltage at which gj close [V]
+    gj voltage threshold: 25e-3    # cell-cell voltage at which gj close [V]
                                  # suggested range from 10e-3 to 80e-3 V
 
     gj voltage window: 15e-3      # range over which gj goes from open to shut
@@ -978,18 +978,18 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated Na:
 
-        max Dmem Na: 5.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
-        activation v: -55e-3      # voltage threshold above which vgNa is activated [V] -55e-3
+        max Dmem Na: 2.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
+        activation v: -50e-3      # voltage threshold above which vgNa is activated [V] -55e-3
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3
-        deactivation v: -60e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
+        deactivation v: -55e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
         live time: 2e-3           # time activated state can exist (trans to inactivated) [s]  2.5e-3
         dead time: 5e-3          # refractory time vgNa remains inactivated [s]  5e-3
 
     voltage gated K:
 
-        max Dmem K: 1.0e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
-        activation v: -10e-3        # voltage threshold above which vgK is activated [V]    -10e-3
-        deactivation v: -65e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
+        max Dmem K: 0.5e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
+        activation v: -5e-3        # voltage threshold above which vgK is activated [V]    -10e-3
+        deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
         live time: 5e-3            # time activated state can exist [s]   5e-3
 
     voltage gated Ca:
@@ -1056,26 +1056,18 @@ internal parameters:
 
   alpha_NaK:  1.0e-10   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
   halfmax_NaK:  6      # the free energy level at which pump activity is zero [kJ]
-  slope_NaK:  3        # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
   Na pump exponent: 0.5       # the factor by which intracelluar sodium activates the NaK-ATPase pump
   K pump exponent: 0.5        # the factor by which extracellular potassium activates the NaK-ATPase pump
 
   alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  5       # the free energy level at which pump activity is zero [kJ]
-  slope_Ca:  3         # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_HK:  0.025    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
   halfmax_HK:  30       # the free energy level at which pump activity is zero [kJ]
-  slope_HK:  3         # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
 
   alpha_V:  1.0     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
   halfmax_V:  30       # the free energy level at which pump activity is zero [kJ]
-  slope_V:  3         # NOW IGNORDED the energy window width of the NaK-ATPase pump [kJ]
-
-  max_gj_enhancement: 10   # parameters relating to flow sensitivity of gap junctions
-  u_decay_rate: 0.5
-  alpha_rho_gj: 1.0e-3
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 

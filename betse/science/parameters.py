@@ -860,26 +860,18 @@ class Parameters(object):
         # pump parameters
         self.alpha_NaK = float(iu['alpha_NaK']) # maximum rate constant sodium-potassium ATPase per unit surface area
         self.halfmax_NaK = float(iu['halfmax_NaK'])   # the free energy level at which pump activity is halved [kJ]
-        self.slope_NaK = float(iu['slope_NaK'])  # the energy window width of the NaK-ATPase pump [kJ]
         self.Na_exp = float(iu['Na pump exponent'])
         self.K_exp = float(iu['K pump exponent'])
 
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
         self.alpha_CaER = float(iu['alpha_CaER'])  # pump rate for calcium ATPase in endoplasmic reticulum
         self.halfmax_Ca = float(iu['halfmax_Ca'])
-        self.slope_Ca = float(iu['slope_Ca'])
 
         self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
         self.halfmax_HK = float(iu['halfmax_HK'])
-        self.slope_HK = float(iu['slope_HK'])
 
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
         self.halfmax_V = float(iu['halfmax_V'])
-        self.slope_V = float(iu['slope_V'])
-
-        self.max_gj_enhancement = float(iu['max_gj_enhancement'])   # parameters relating to flow sensitivity of gap junctions
-        self.u_decay_rate = float(iu['u_decay_rate'])
-        self.alpha_rho_gj = float(iu['alpha_rho_gj'])
 
          # Calcium dynamics parameters
         self.ER_vol = float(cdp['ER_vol'])   # volume of endoplasmic reticulum as a fraction of cell volume
@@ -890,9 +882,6 @@ class Parameters(object):
         self.z_IP3 = float(cdp['z_IP3'])        # charge valence of IP3
         self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
         self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
-
-        # self.ff_env = float(iu['env modification constant'])
-        # self.ff_cell = float(iu['cell modification constant'])
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]

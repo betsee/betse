@@ -9,6 +9,7 @@ A number of functions used to save and load worlds and simulations.
 """
 
 import pickle
+from scipy import interpolate as interp
 
 
 #FIXME: For orthogonality, this function should probably be refactored to accept
@@ -46,3 +47,22 @@ def loadWorld(loadPath):
         cells,_ = pickle.load(f)
 
     return cells,_
+
+
+def safe_pickle(sim, p):
+    """
+    Removes interpolation functions, colormaps and lambda functions
+    to make the simulator object pickle-able
+    """
+
+    for key, valu in vars(sim).items():
+        if type(valu) == interp.interp1d or callable(valu):
+            setattr(sim,key,None)
+
+    for key, valu in vars(p).items():
+        if type(valu) == interp.interp1d or callable(valu):
+            setattr(p,key,None)
+
+    for key, valu in vars(sim.dyna).items():
+        if type(valu) == interp.interp1d or callable(valu):
+            setattr(sim.dyna,key,None)
