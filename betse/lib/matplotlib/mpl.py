@@ -264,8 +264,8 @@ class MatplotlibConfig(object):
         # establishing the backend, it only seems prudent to do so.)
 
         #FIXME: Uncomment when worky.
-        # from betse.lib.matplotlib import animation
-        # if False: animation    # silence contemptible IDE warning messages
+        from betse.lib.matplotlib import anim
+        if False: anim    # silence contemptible IDE warning messages
 
     # ..................{ TESTERS                            }..................
     def is_backend(self) -> bool:

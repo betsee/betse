@@ -22,7 +22,7 @@ class FileFrameWriter(MovieWriter):
     '''
     Object serializing each frame of an animation to a unique image file.
 
-    For drop-in use as an animation writer (e.g., to the `Animation.save()`
+    For drop-in use as an animation writer (e.g., to the `Anim.save()`
     method), this class masquerades as a `MovieWriter` subclass by the unique
     name of `frame`. Nonetheless, no movie is written; only frames are written.
 
@@ -32,12 +32,22 @@ class FileFrameWriter(MovieWriter):
         0-based index of the next frame to be written.
     '''
 
+    # ..................{ PUBLIC ~ static                    }..................
+    @classmethod
+    def isAvailable(cls):
+        '''
+        Notify users that this class does _not_ depend on external commands and
+        hence is _always_ available.
+        '''
+        return True
+
+    # ..................{ PUBLIC                             }..................
     def setup(self, *args, **kwargs) -> None:
         '''
         Prepare to write animation frames.
 
         This method is implicitly called by the superclass `saving()` method
-        implicitly called by the `Animation.save()` method. Note that,
+        implicitly called by the `Anim.save()` method. Note that,
         unfortunately, the design of both methods prohibits this method from
         accepting subclass-specific parameters.
 
@@ -131,19 +141,19 @@ class FileFrameWriter(MovieWriter):
             dpi=self.dpi,
             **kwargs)
 
+    # ..................{ IGNORE                             }..................
+    def cleanup(self):
+        '''
+        Prevent the superclass `cleanup()` method from attempting to capture
+        output from an external process no longer forked by this subclass.
+        '''
+        pass
+
 
     def _run(self) -> None:
         '''
         Prevent the superclass `_run()` method from attempting to fork an
         external process running a non-existent video encoding command.
-        '''
-        pass
-
-
-    def cleanup(self):
-        '''
-        Prevent the superclass `cleanup()` method from attempting to capture
-        output from an external process no longer forked by this subclass.
         '''
         pass
 

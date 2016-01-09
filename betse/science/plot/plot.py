@@ -136,6 +136,7 @@ def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
 
     return fig, ax
 
+
 def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap=None,edgeOverlay = True,pointOverlay=None, number_cells = False, number_mems = False,
     number_ecm = False, current_overlay = False,plotIecm = False):
@@ -259,6 +260,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
             I_overlay(sim,cells,p,ax,plotIecm)
 
         return fig, ax, ax_cb
+
 
 def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap = None, number_cells=False, current_overlay = False,plotIecm=False):
@@ -1167,7 +1169,7 @@ def I_overlay_update(i,sim,streams,ax,cells,p):
     cells       Instance of cells module
     p           Instance of parameters module
     ax          Existing figure axis to plot currents on
-    i           Animation frame number
+    i           Anim frame number
 
     Returns
     --------
@@ -1516,13 +1518,13 @@ def _handle_plot(params: 'Parameters', *args, **kwargs) -> None:
 
 
 #FIXME: Obsolete. Let's excise! And exercise in the sweaty eventide!
-def _setup_file_saving(ani_obj: 'Animation', p: 'Parameters') -> None:
+def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
     '''
     Setup operating-system friendly file saving for animation classes.
 
     Parameters
     -----------
-    ani_obj : Animation
+    ani_obj : Anim
         Instance of an animation class.
     p : Parameters
         Instance of the 'Parameters' class.
@@ -1537,7 +1539,7 @@ def _setup_file_saving(ani_obj: 'Animation', p: 'Parameters') -> None:
 
     else:
         raise BetseExceptionParameters(
-            'Animation saving for phase "{}" unsupported.'.format(p.plot_type))
+            'Anim saving for phase "{}" unsupported.'.format(p.plot_type))
 
     #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
 

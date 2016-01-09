@@ -15,6 +15,8 @@ from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
+#FIXME: Condense "saveFolder" and "saveFile" to a single parameter.
+
 # ....................{ BASE                               }....................
 #FIXME: Privatize all public attributes declared below. Raving river madness!
 #FIXME: Document the "clrAutoscale", "clrMin", and "clrMax" attributes. Sizzle!
@@ -27,7 +29,7 @@ from matplotlib.animation import FuncAnimation
 #Or, alternately (and probably preferably) combine the two attributes into a
 #pathname template consumable by our new "FrameFileWriter" class.
 
-class Animation(object, metaclass=ABCMeta):
+class Anim(object, metaclass=ABCMeta):
     '''
     Abstract base class of all animation classes.
 
@@ -180,7 +182,7 @@ class Animation(object, metaclass=ABCMeta):
             phase_dirname = self.p.init_results
         else:
             raise BetseExceptionParameters(
-                'Animation saving unsupported during the "{}" phase.'.format(
+                'Anim saving unsupported during the "{}" phase.'.format(
                     self.p.plot_type))
 
         #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
@@ -206,6 +208,9 @@ class Animation(object, metaclass=ABCMeta):
         '''
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
 
+        #FIXME: For efficiency, we should probably be passing "blit=True," to
+        #FuncAnimation(). Lemon grass and dill!
+
         # Create and assign an animation function to a local variable. If the
         # latter is *NOT* done, this function will be garbage collected prior
         # to subsequent plot handling -- in which case only the first plot will
@@ -219,8 +224,9 @@ class Animation(object, metaclass=ABCMeta):
             # Delay in milliseconds between consecutive frames.
             interval=100,
 
-            #FIXME: Ideally, we should be able to support both with a simple
-            #boolean. Tinder sticks in a fragrant bonfire!
+            #FIXME: Ideally, we should be able to support both by adding a new
+            #private boolean attribute tracking this state to this class. Tinder
+            #sticks in a fragrant bonfire!
 
             # Indefinitely repeat this animation unless saving animations, as
             # doing so under the current implementation would repeatedly (and
@@ -257,8 +263,10 @@ class Animation(object, metaclass=ABCMeta):
         #accepted by the ani.save() function itself, so string name it is!
 
         try:
+            #FIXME: Refactor to *NOT* use the "pyplot" API. Juggling hugs!
             if self.p.turn_all_plots_off is False:
-                #FIXME: Refactor to *NOT* use the "pyplot" API. Juggling hugs!
+                # loggers.log_info(
+                #     'Plotting animation "{}"...'.format(video_filename))
                 pyplot.show()
             elif self.p.saveAnimations:
                 #FIXME: Uncomment when worky.

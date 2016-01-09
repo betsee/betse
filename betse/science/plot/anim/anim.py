@@ -6,12 +6,29 @@
 Matplotlib-based animation classes.
 '''
 
+#FIXME: Unfortunately, use of pyplot and hence the pylab figure manager is a
+#bit problematic for long-lived applications like BETSE. Why? Dumb memory
+#leaks. Every time plt.figure() is called, a new figure is added to the pylab
+#figure manager. That's a problem, as it means that figures are never
+#implicitly released from memory -- even if the GUI window displaying that
+#figure has long been closed. The only way to release that sort of figure from
+#memory is to call its figure.close() method. Unfortunately, we can't do that
+#either! Why? Because figures are displayed in a non-blocking manner, which
+#means that we don't actually know when that method should be called.
+#
+#The solution, of course, is to stop using the pylab figure manager altogether
+#and to instead instead directly instantiate figures and canvases via
+#Matplotlib's object-oriented API. See:
+#
+#    https://stackoverflow.com/questions/16334588/create-a-figure-that-is-reference-counted/16337909#16337909
+#
+#Abundant stags in the furry forest!
 # ....................{ IMPORTS                            }....................
 import os
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib import mpl
-from betse.science.animation.abc import Animation
+from betse.science.plot.anim.abc import Anim
 # from betse.util.type import types
 from matplotlib import pyplot as plt
 from matplotlib import animation
@@ -19,14 +36,15 @@ from matplotlib.collections import LineCollection, PolyCollection
 from numpy import ma as ma
 from scipy import interpolate
 
-#FIXME: Shift functions called only by this module here -- possibly as private
-#methods of the "Animation" superclass.
-from betse.science.visualize import (
+#FIXME: Shift functions called only by this module either to a new
+#"betse.science.plot.animation.helper" module or possibly as private
+#methods of the "Anim" superclass.
+from betse.science.plot.plot import (
     _setup_file_saving, _handle_plot, env_mesh, cell_mosaic, cell_mesh,
     I_overlay_setup, I_overlay_update, env_quiver, cell_quiver, cell_stream
 )
 
-# ....................{ IMPORTS                            }....................
+# ....................{ CLASSES                            }....................
 #FIXME: Let's document a few of these initialization parameters. Hot dogs and
 #warm afternoons in the lazy summertime!
 #FIXME: Rename the aptly named "tit" attribute to "_title_plot".
@@ -34,7 +52,7 @@ from betse.science.visualize import (
 #FIXME: Privatize all attributes, both here and in our base class, *AFTER*
 #generalizing this refactoring to every class below.
 
-class AnimateCellData(Animation):
+class AnimateCellData(Anim):
     '''
     Animate color data on a plot of cells.
     '''
@@ -68,22 +86,6 @@ class AnimateCellData(Animation):
         self.cbtit = cbtit
         self.current_overlay = current_overlay
 
-        #FIXME: Unfortunately, use of pyplot and hence the pylab figure manager
-        #is a bit problematic for long-lived applications like BETSE. Why?
-        #Dumb memory leaks. Every time plt.figure() is called, a new figure is
-        #added to the pylab figure manager. That's a problem, as it means that
-        #figures are never implicitly released from memory -- even if the GUI
-        #window displaying that figure has long been closed. The only way to
-        #release that sort of figure from memory is to call its figure.close()
-        #method. Unfortunately, we can't do that either! Why? Because figures
-        #are displayed in a non-blocking manner, which means that we don't
-        #actually know when that method should be called.
-        #
-        #The solution, of course, is to stop using the pylab figure manager
-        #altogether and to instead instead directly instantiate figures and
-        #canvases via Matplotlib's object-oriented API. See also:
-        #    https://stackoverflow.com/questions/16334588/create-a-figure-that-is-reference-counted/16337909#16337909
-        #Abundant stags in the furry forest!
         self.fig = plt.figure()       # define figure
         self.ax = plt.subplot(111)    # define axes
 
@@ -149,66 +151,6 @@ class AnimateCellData(Animation):
         self.fig.suptitle(self.tit, fontsize=14, fontweight='bold')
         self.ax.set_title(self.tit_extra)
 
-        # self.frames = len(self.zdata_t)
-        # self.frames = len(self.sim.time)
-
-        #FIXME: For efficiency, we should probably be passing "blit=True," to
-        #FuncAnimation() both here and everywhere below. Lemon grass and dill!
-        #FIXME: There appear to be a number of approaches to saving without
-        #displaying animation frames, including:
-        #
-        #* Backend-based. This has the advantage of not requiring a movie file
-        #  to also be saved, but the disadvantage of being labelled
-        #  "experimental" and hence unsupported by Matplotlib:
-        #  1. Switch to a non-interactive Matplotlib backend: e.g.,
-        #     matplotlib.pyplot.switch_backend('Agg')
-        #  2. Replace the call to plt.savefig() with a call to something else.
-        #     I have no idea what. The following example suggests
-        #     "plt.close(ani._fig)":
-        #     http://yt-project.org/doc/cookbook/embedded_webm_animation.html
-        #* Movie-based. This has the advantage of being officially supported by
-        #  Matplotlib, but the disadvantage of requiring a movie file to
-        #  *ALWAYS* be saved when saving frames. (Of course, the movie file
-        #  could just be automatically deleted afterwards... but still). In
-        #  this case:
-        #  1. Implement the related FIXME below, which we want to do anyway.
-        #  2. That's it. Pure profit all the way to the poor house!
-        #* File writer-based. This may be the best of all possible approaches,
-        #  as this approach requires no movie file to be saved to save frames.
-        #  It does, however, require that we write our own frame writer class
-        #  (and ideally contribute that class back to Matplotlib). Trivial!
-        #  There appear to be two sort of movie writer classes in the
-        #  "matplotlib.animation" module: those that (A) write frames to files
-        #  and then run an external encoder command consuming those frames and
-        #  (B) directly run an external encoder command without writing frames.
-        #  Using the first type of writer, it looks like we should be able to
-        #  use one of the existing "FileMovieWriter" subclasses or perhaps
-        #  define our own. The FileMovieWriter.grab_frame() function appears to
-        #  do everything we want, suggesting we:
-        #  1. Define a new "FileFrameWriter" subclass of the "FileMovieWriter"
-        #     base class. See "FFMpegFileWriter" for the boiler-plate.
-        #  2. Move our savefig() related logic into a reimplementation of that
-        #     subclass' grab_frame() method. Maybe? Seems about right.
-        #  3. Redefine FileFrameWriter._run(self) to just be a noop.
-        #  4. Set in FileFrameWriter.__init__():
-        #         from collections import namedtuple
-        #
-        #         # Notify our superclass that the _run() method succeeded by
-        #         # constructing a pseudo-process class providing the desired
-        #         # attribute subsequently tested by FileMovieWriter.finish().
-        #         FakeProc = namedtuple('FakeProc', 'returncode')
-        #         self._proc = FakeProc(0)
-        #  5. Use that writer instead of the currently configured
-        #     video_encoder_name (e.g., "ffmpeg") when only writing frames and
-        #     not a movie.
-        #  6. Everything else should be the same. In particular, we'll still
-        #     need to call the ani.save() method as detailed below.
-        #
-        #Too bad the Matplotlib documentation itself doesn't cover this. We
-        #have gotten what we have paid for. I demand a refund!
-
-        self._animate(frame_count=len(self.sim.time))
-
 
     def _plot_next_frame(self, frame_number):
 
@@ -245,7 +187,7 @@ class AnimateCellData(Animation):
 
 
 class AnimateGJData(object):
-# class AnimateGJData(Animation):
+# class AnimateGJData(Anim):
     '''
     Animate the gap junction open state as a function of time.
     '''
@@ -398,7 +340,7 @@ class AnimateGJData(object):
 
 
 class AnimateCurrent(object):
-# class AnimateCurrent(Animation):
+# class AnimateCurrent(Anim):
 
     def __init__(
         self,
@@ -566,7 +508,7 @@ class AnimateCurrent(object):
 
 
 class AnimateField(object):
-# class AnimateField(Animation):
+# class AnimateField(Anim):
 
     def __init__(
         self,
@@ -709,7 +651,7 @@ class AnimateField(object):
 
 
 class AnimateVelocity(object):
-# class AnimateVelocity(Animation):
+# class AnimateVelocity(Anim):
 
     def __init__(
         self,
@@ -898,7 +840,7 @@ class AnimateVelocity(object):
 
 
 class AnimateDeformation(object):
-# class AnimateDeformation(Animation):
+# class AnimateDeformation(Anim):
 
     def __init__(
         self,
@@ -1073,7 +1015,7 @@ class AnimateDeformation(object):
 
 
 class AnimateEnv(object):
-# class AnimateEnv(Animation):
+# class AnimateEnv(Anim):
 
     def __init__(
         self,
@@ -1305,7 +1247,7 @@ class AnimateMem(object):
 
 
 class AnimateDyeData(object):
-# class AnimateDyeData(Animation):
+# class AnimateDyeData(Anim):
     '''
     Animate morphogen concentration data in cell and environment as a function
     of time.

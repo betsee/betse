@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Animation serialization classes.
+Anim serialization classes.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -58,7 +58,7 @@ class AnimationSaver(object, metaclass=ABCMeta):
 # ....................{ IMAGE                              }....................
 class AnimationSaverFrames(AnimationSaver):
     '''
-    Animation serialization class serializing each frame of an animation to an
+    Anim serialization class serializing each frame of an animation to an
     image file of some predefined filetype.
 
     Attributes
@@ -94,7 +94,7 @@ class AnimationSaverFrames(AnimationSaver):
 # ....................{ VIDEO                              }....................
 class AnimationSaverVideo(AnimationSaver):
     '''
-    Animation serialization class serializing an entire animation to an encoded
+    Anim serialization class serializing an entire animation to an encoded
     video file of some predefined filetype.
 
     Attributes

@@ -4,14 +4,15 @@
 
 #FIXME: Higher-level "betse.util.path" functions should typically be called
 #rather than low-level "os.path" functions. Daggers of scintillating wonder!
-import copy, math, os, os.path, time
+
+import copy, os, os.path, time
 import matplotlib.pyplot as plt
 import numpy as np
 from betse.exceptions import BetseExceptionSimulation
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
-from betse.science.animation.animation import PlotWhileSolving
+from betse.science.plot.anim.anim import PlotWhileSolving
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from random import shuffle
