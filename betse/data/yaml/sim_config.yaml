@@ -1071,6 +1071,8 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
+  simulate TEP: False     # favour low volume ecm spaces for true transepithelial potential modelling
+
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
 version: "0.4.0"

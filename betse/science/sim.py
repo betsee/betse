@@ -4215,9 +4215,11 @@ def get_Vall(self,cells,p):
                                   self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                   fill_value = 0)
 
-        # Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
-        Qecm = rho_ecm*p.cell_space*cells.mem_sa.mean()
-        # Qecm = rho_ecm*p.cell_space*cells.delta**2
+        if p.simulate_TEP is True:
+            Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
+
+        else:
+            Qecm = rho_ecm*p.cell_space*cells.delta**2
 
         # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
         Q_max_vect = np.hstack((Qcells,Qecm))
