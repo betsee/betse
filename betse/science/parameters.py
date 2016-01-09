@@ -121,7 +121,7 @@ class Parameters(object):
         self.gj_flux_sensitive = False
 
         self.cavity_state = bool(self.config['variable settings']['cavity open'])
-        self.closed_bound = bool(self.config['variable settings']['environmental boundary'])
+        self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
 
         # set time profile from yaml
         self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run

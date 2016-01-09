@@ -1117,7 +1117,7 @@ def I_overlay(sim,cells,p,ax,plotIecm = False):
 
         ax.set_title('(total current overlay)')
 
-        return streams, ax
+    return streams, ax
 
 def I_overlay_setup(sim, ax, cells, p):
     """
@@ -1350,6 +1350,7 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
         Fy = datay
 
     Fmag = np.sqrt(Fx**2 + Fy**2) + 1e-30
+
 
     # normalize the data:
     if Fmag.all() != 0:

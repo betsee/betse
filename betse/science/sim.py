@@ -655,7 +655,7 @@ class Simulator(object):
 
         if p.global_options['NaKATP_block'] != 0:
 
-            self.NaKATP_block = np.ones(len(cells.cell_i))  # initialize NaKATP blocking vector
+            self.NaKATP_block = np.ones(len(cells.mem_i))  # initialize NaKATP blocking vector
 
         else:
             self.NaKATP_block = 1
@@ -2029,8 +2029,8 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM is True:
 
-            # vmems = self.v_cell[cells.mem_to_cells]
-            vmems = self.vm
+            vmems = self.v_cell[cells.mem_to_cells]
+            # vmems = self.vm
 
             self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
 
@@ -2645,6 +2645,8 @@ class Simulator(object):
                 cenv[:,0] =  self.c_dye_bound
                 cenv[0,:] =  self.c_dye_bound
                 cenv[-1,:] =  self.c_dye_bound
+
+
 
             # reshape the matrices into vectors:
             # self.v_env = self.v_env.ravel()
@@ -3478,8 +3480,8 @@ class Simulator(object):
 
         else:
 
-            Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
-                    self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
+            Eab_o = -(self.vm[cells.nn_i] -
+                    self.vm[cells.mem_i])/(cells.gj_len)
 
         F_x = Q_mem*Eab_o*cells.cell_nn_tx
         F_y = Q_mem*Eab_o*cells.cell_nn_ty
