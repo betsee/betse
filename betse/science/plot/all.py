@@ -872,7 +872,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if p.plot_Vel is True and p.fluid_flow is True and p.deform_electro is True:
+    if p.plot_Vel is True and p.fluid_flow is True and p.deform_electro is True and sim.run_sim is True:
         viz.plotStreamField(
             (1e9)*sim.u_cells_x,
             (1e9)*sim.u_cells_y,
@@ -1131,7 +1131,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             )
 
     if p.ani_Velocity is True and p.fluid_flow is True and \
-       p.deform_electro is True and p.createAnimations is True:
+       p.deform_electro is True and p.createAnimations is True and sim.run_sim is True:
         AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
 
     if p.ani_Deformation is True and p.deformation is True and \
@@ -1139,7 +1139,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateDeformation(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
 
     if p.sim_eosmosis is True and p.sim_ECM is True and \
-       cells.gradMem is not None:
+       sim.run_sim is True:
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimension [um]')
@@ -1232,7 +1232,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             save=p.saveAnimations,
         )
 
-    if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True:
+    if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True and sim.run_sim is True:
         AnimateMem(
             sim,cells,sim.time,p,
             clrAutoscale=p.autoscale_mem_ani,

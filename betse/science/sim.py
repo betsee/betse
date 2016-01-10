@@ -769,11 +769,11 @@ class Simulator(object):
 
         if p.global_options['gj_block'] != 0:
 
-            self.gj_block = np.ones(len(cells.nn_i))   # initialize the gap junction blocking vector to ones
+            self.gj_block = np.ones(len(cells.mem_i))   # initialize the gap junction blocking vector to ones
 
         else:
 
-            self.gj_block = 1
+            self.gj_block = np.ones(len(cells.mem_i))
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
@@ -891,10 +891,6 @@ class Simulator(object):
 
         self.rate_NaKATP_time =[]
 
-        # if p.deform_osmo is True and p.run_sim is False:
-        #
-        #     self.P_cells = np.zeros(len(cells.cell_i)) #initialize total pressure in cells, but only during an init
-
         if p.deformation is True and p.run_sim is True:
 
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
@@ -923,9 +919,9 @@ class Simulator(object):
             self.cIP3_time = []    # retains IP3 concentration as a function of time
 
         # gap junction specific arrays:
-        self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
-        self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
-        self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
+        self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
+        self.gjopen = np.ones(len(cells.mem_i))   # holds gap junction open fraction for each gj
+        self.gjl = np.zeros(len(cells.mem_i))    # gj length for each gj
         self.gjl[:] = cells.gj_len
 
         self.rho_pump = np.ones(len(cells.mem_i))
@@ -1303,17 +1299,6 @@ class Simulator(object):
 
         # Find embeded functions that can't be pickled... FIXME
         fh.safe_pickle(self,p)
-        # for key, valu in vars(self).items():
-        #     if type(valu) == interp.interp1d or callable(valu):
-        #         setattr(self,key,None)
-        #
-        # for key, valu in vars(p).items():
-        #     if type(valu) == interp.interp1d or callable(valu):
-        #         setattr(p,key,None)
-        #
-        # for key, valu in vars(self.dyna).items():
-        #     if type(valu) == interp.interp1d or callable(valu):
-        #         setattr(self.dyna,key,None)
 
         cells.points_tree = None
 
@@ -1482,9 +1467,9 @@ class Simulator(object):
             self.cDye_env_time = []
 
         # gap junction specific arrays:
-        self.id_gj = np.ones(len(cells.nn_i))  # identity array for gap junction indices...
-        self.gjopen = np.ones(len(cells.nn_i))   # holds gap junction open fraction for each gj
-        self.gjl = np.zeros(len(cells.nn_i))    # gj length for each gj
+        self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
+        self.gjopen = np.ones(len(cells.mem_i))   # holds gap junction open fraction for each gj
+        self.gjl = np.zeros(len(cells.mem_i))    # gj length for each gj
         self.gjl[:] = cells.gj_len
 
         # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
@@ -1658,7 +1643,7 @@ class Simulator(object):
                 self.getFlow(cells,p)
 
             # if desired, electroosmosis of membrane channels
-            if p.sim_eosmosis is True and cells.gradMem is not None:
+            if p.sim_eosmosis is True and p.run_sim is True:
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
@@ -2029,86 +2014,23 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM is True:
 
-            vmems = self.v_cell[cells.mem_to_cells]
+            vmems = self.v_cell
             # vmems = self.vm
 
-            self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
+            self.vgj = self.v_cell[cells.cell_nn_i[:,1]]- self.v_cell[cells.cell_nn_i[:,0]]
 
         else:
 
-            vmems = self.vm[cells.mem_to_cells]
-
-            self.vgj = vmems[cells.nn_i]- vmems[cells.mem_i]
-
-
-        if p.gj_flux_sensitive is True and cells.nnAveMatrix is not None:
-
-            if p.gj_respond_flow is True:
-
-                # map intracellular flow velocity to gap junctions:
-                ux_gj = (self.u_cells_x[cells.mem_i] + self.u_cells_x[cells.nn_i])/2
-                uy_gj = (self.u_cells_y[cells.mem_i] + self.u_cells_y[cells.nn_i])/2
-
-                # get the magnitude of flow at the gap junction:
-                u_gj_s = np.sqrt(ux_gj**2 + uy_gj**2)
-
-                # average flow vector lengths for whole cell collection:
-                u_sum = np.mean(u_gj_s)
-
-            else: # respond to total current instead:
-
-                 # calculate current across gap junctions in x direction:
-                I_gj_x = np.zeros(len(cells.nn_i))
-
-                for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
-
-                    I_i_x = flux_array*zi*p.F
-
-                    I_gj_x = I_gj_x + I_i_x
-
-                I_gj_y = np.zeros(len(cells.nn_i))
-
-                for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
-
-                    I_i_y = flux_array*zi*p.F
-
-                    I_gj_y = I_gj_y + I_i_y
-
-                u_gj_s = np.sqrt(I_gj_x**2 + I_gj_y**2)
-
-                u_sum =np.mean(u_gj_s)
-
-
-            if u_sum.any() == 0:
-
-                pass
-
-            else:
-                # normalize cell vector length by the cell sum -- this is the input to each rho_gj growth
-                # U_gj_cell_norm = u_gj_s/u_sum[cells.nn_i][:,0]
-                U_gj_cell_norm = u_gj_s/u_sum
-
-                delta_gj_rho = (U_gj_cell_norm)*(p.max_gj_enhancement - self.gj_rho) -\
-                               (p.u_decay_rate*p.max_gj_enhancement)*self.gj_rho
-
-                # average the delta (calculated on nn duplicates) between cells:
-                delta_gj_rho = np.dot(cells.nnAveMatrix,delta_gj_rho)
-
-                self.gj_rho = self.gj_rho + p.dt*delta_gj_rho*p.alpha_rho_gj
-
-
-        else:
-
-            self.gj_rho = np.zeros(len(cells.nn_i))
+            self.vgj = self.vm[cells.cell_nn_i[:,1]] - self.vm[[cells.cell_nn_i[:,0]]]
 
 
         if p.v_sensitive_gj is True:
             # determine the open state of gap junctions:
-            self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+            self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
             # self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.hill(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
 
         else:
-            self.gjopen = (1 + self.gj_rho)*self.gj_block
+            self.gjopen = self.gj_block
 
 
         # voltage gradient:
@@ -2119,14 +2041,14 @@ class Simulator(object):
 
         # concentration gradient for ion i:
 
-        conc_mem = self.cc_cells[i][cells.mem_to_cells]
-        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.gj_len
+        conc_mem = self.cc_cells[i]
+        grad_cgj = (conc_mem[cells.cell_nn_i[:,1]] - conc_mem[cells.cell_nn_i[:,0]])/cells.gj_len
 
         grad_cgj_x = grad_cgj*cells.cell_nn_tx
         grad_cgj_y = grad_cgj*cells.cell_nn_ty
 
         # midpoint concentration:
-        c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
+        c = (conc_mem[cells.cell_nn_i[:,1]] + conc_mem[cells.cell_nn_i[:,0]])/2
 
         # electroosmotic fluid velocity -- averaged at gap junctions:
         if p.fluid_flow is True:
@@ -2139,7 +2061,6 @@ class Simulator(object):
 
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
-
 
         fgj = fgj_x*cells.cell_nn_tx + fgj_y*cells.cell_nn_ty
 

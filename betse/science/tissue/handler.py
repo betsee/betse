@@ -125,7 +125,9 @@ class TissueHandler(object):
 
             data_length = len(cells.mem_i)
             data_fraction = int((numo/100)*data_length)
-            shuffle(cells.mem_i)
+
+            mem_i_copy = np.copy(cells.mem_i[:])
+            shuffle(mem_i_copy)
             self.targets_gj_block = [cells.mem_i[x] for x in range(0,data_fraction)]
 
 
@@ -556,6 +558,7 @@ class TissueHandler(object):
 
         if p.global_options['gj_block'] != 0:
             sim.gj_block[self.targets_gj_block] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
+            # sim.gj_block[:] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
 
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))

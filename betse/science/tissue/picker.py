@@ -315,7 +315,8 @@ class TissuePickerRandom(TissuePicker):
 
         data_length = len(cells.cell_i)
         data_fraction = int((self.percentage/100)*data_length)
-        random.shuffle(cells.cell_i)
+        cell_i_copy = cells.cell_i[:]
+        random.shuffle(cell_i_copy)
         target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
 
         # If either not simulating *OR* ignoring extracellular spaces, get cell indices only:
