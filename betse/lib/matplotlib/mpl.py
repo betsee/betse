@@ -543,7 +543,7 @@ class MatplotlibConfig(object):
             'Enabled matplotlib backend "{}".'.format(backend_name))
 
 # ....................{ SINGLETONS                         }....................
-mplconfig = MatplotlibConfig()
+mpl_config = MatplotlibConfig()
 '''
 Singleton matplotlib configuration wrapper.
 '''

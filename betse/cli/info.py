@@ -13,7 +13,7 @@
 from collections import OrderedDict
 from betse import metadata, pathtree
 from betse.lib import libs
-from betse.lib.matplotlib.mpl import mplconfig
+from betse.lib.matplotlib.mpl import mpl_config
 from betse.util.io import loggers
 from betse.util.python import pythons
 from betse.util.os import oses, processes
@@ -48,7 +48,7 @@ def output_info() -> None:
         ('dependencies', libs.get_metadata()),
 
         # "matplotlib" metadata.
-        ('matplotlib', mplconfig.get_metadata()),
+        ('matplotlib', mpl_config.get_metadata()),
 
         # Python metadata.
         ('python', pythons.get_metadata()),

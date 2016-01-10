@@ -9,7 +9,7 @@ Abstract base classes of all Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.mpl import mplconfig
+from betse.lib.matplotlib.mpl import mpl_config
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
@@ -20,9 +20,6 @@ from matplotlib.animation import FuncAnimation
 # ....................{ BASE                               }....................
 #FIXME: Privatize all public attributes declared below. Raving river madness!
 #FIXME: Document the "clrAutoscale", "clrMin", and "clrMax" attributes. Sizzle!
-#FIXME: Refactor the "savedAni" attribute into a template containing exactly one
-#"{"- and "}"-delimited string, to satisfy our "FileFrameWriter" API. Currently,
-#this attribute is merely the prefix for all frame image files to be saved.
 
 class Anim(object, metaclass=ABCMeta):
     '''
@@ -61,6 +58,11 @@ class Anim(object, metaclass=ABCMeta):
         `str.format()`-formatted template which, when formatted with the 0-based
         index of the current frame, yields the absolute path of the image file
         to be saved for that frame.
+    _axes_title : str
+        Text displayed above the figure axes. If a non-`None` value for the
+        `axes_title` parameter is passed to the `animate()` method, this is that
+        value; else, this is the value of the `figure_title` parameter passed to
+        the same method.
     _type : str
         Basename of the subdirectory in the phase-specific results directory
         to which all animation files will be saved _and_ the basename prefix of
@@ -72,26 +74,6 @@ class Anim(object, metaclass=ABCMeta):
         Object encoding this animation to a video file if enabled _or_ `None`
         otherwise.
     '''
-
-    # ..................{ ABSTRACT ~ private                 }..................
-    @abstractmethod
-    def _plot_next_frame(self, frame_number: int) -> None:
-        '''
-        Iterate the current animation to the next frame.
-
-        This method is iteratively called by Matplotlib's `FuncAnimation()`
-        class instantiated by our `_animate()` method. The subclass
-        implementation of this abstract method is expected to modify this
-        animation's figure and axes so as to display the next frame. It is
-        _not_, however, expected to save that figure to disk; frame saving is
-        already implemented by this base class in a general-purpose manner.
-
-        Parameters
-        ----------
-        frame_number : int
-            0-based index of the frame to be plotted.
-        '''
-        pass
 
     # ..................{ CONCRETE ~ init                    }..................
     def __init__(
@@ -124,6 +106,8 @@ class Anim(object, metaclass=ABCMeta):
             Basename of the subdirectory in the phase-specific results directory
             to which all animation files will be saved _and_ the basename prefix
             of these files.
+        title_colorbar: str
+            Text displayed above the figure colorbar.
         clrAutoscale : bool
             ???.
         clrMin : float
@@ -156,19 +140,31 @@ class Anim(object, metaclass=ABCMeta):
         self.sim = sim
         self.cells = cells
         self.p = p
+        self._type = type
         self.clrAutoscale = clrAutoscale
         self.clrMin = clrMin
         self.clrMax = clrMax
         self.colormap = colormap
+
+        # Classify private attributes to be subsequently defined.
+        self._axes_title = None
         self._writer_frames = None
         self._writer_video = None
-        self._type = type
 
         #FIXME: Abandon "pyplot", all who enter here!
 
-        # Figure and figure axes encapsulating this animation.
+        # Figure encapsulating this animation.
         self.fig = pyplot.figure()
+
+        # Figure axes scaled to the extent of the current 2D environment.
         self.ax = pyplot.subplot(111)
+        self.ax.axis('equal')
+        self.ax.axis([
+            self.cells.xmin * self.p.um,
+            self.cells.xmax * self.p.um,
+            self.cells.ymin * self.p.um,
+            self.cells.ymax * self.p.um,
+        ])
 
         # Initialize animation saving *AFTER* defining all attribute defaults.
         self._init_saving()
@@ -240,21 +236,78 @@ class Anim(object, metaclass=ABCMeta):
                 outfile=self._save_frame_template,
 
                 #FIXME: Pass the actual desired "dpi" parameter.
-                dpi=mplconfig.get_rc_param('savefig.dpi'),
+                dpi=mpl_config.get_rc_param('savefig.dpi'),
             )
 
     # ..................{ CONCRETE ~ animate                 }..................
-    def _animate(self, frame_count: int) -> None:
+    def _animate(
+        self,
+        frame_count: int,
+        figure_title: str,
+        colorbar_title: str,
+        colorbar_mapping: object,
+        axes_x_label: str,
+        axes_y_label: str,
+        axes_title: str = None,
+    ) -> None:
         '''
         Display this animation if the current simulation configuration
         requests plots to be displayed or noop otherwise.
+
+        This method is intended to be called as the last statement in the
+        `__init__()` method of all subclasses of this superclass.
 
         Attributes
         ----------
         frame_count : int
             Number of frames to be animated.
+        figure_title : str
+            Text displayed above the figure itself.
+        colorbar_title : str
+            Text displayed above the figure colorbar.
+        colorbar_mapping : object
+            The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
+            colorbar applies.
+        axes_title : str
+            Text displayed above the figure axes but below the figure title
+            (i.e., `_figure_title`) _or_ `None` if no such text is to be
+            displayed.
+        axes_x_label : str
+            Text displayed below the figure's X axis.
+        axes_y_label : str
+            Text displayed to the left of the figure's Y axis.
         '''
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
+        assert types.is_str_nonempty(figure_title), (
+            types.assert_not_str_nonempty(figure_title, 'Figure title'))
+        assert types.is_str_nonempty(colorbar_title), (
+            types.assert_not_str_nonempty(colorbar_title, 'Colorbar title'))
+        assert types.is_str_nonempty(axes_x_label), (
+            types.assert_not_str_nonempty(axes_x_label, 'X axis label'))
+        assert types.is_str_nonempty(axes_y_label), (
+            types.assert_not_str_nonempty(axes_y_label, 'Y axis label'))
+
+        # If both a figure and axes title are defined, display the figure title
+        # as such above the axes title.
+        if axes_title is not None:
+            self._axes_title = axes_title
+            self.fig.suptitle(
+                figure_title, fontsize=14, fontweight='bold')
+        # Else, display the figure title as the axes title.
+        else:
+            self._axes_title = figure_title
+
+        assert types.is_str_nonempty(self._axes_title), (
+            types.assert_not_str_nonempty(self._axes_title, 'Axis title'))
+
+        # Display the axes title and labels.
+        self.ax.set_title(self._axes_title)
+        self.ax.set_xlabel(axes_x_label)
+        self.ax.set_ylabel(axes_y_label)
+
+        # Display the colorbar.
+        colorbar = self.fig.colorbar(colorbar_mapping)
+        colorbar.set_label(colorbar_title)
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
         #FuncAnimation(). Lemon grass and dill!
@@ -264,7 +317,7 @@ class Anim(object, metaclass=ABCMeta):
         # to subsequent plot handling -- in which case only the first plot will
         # be plotted without explicit warning or error. Die, matplotlib! Die!!
         self._anim = FuncAnimation(
-            self.fig, self._plot_next_frame,
+            self.fig, self._plot_frame,
 
             # Number of frames to be animated.
             frames=frame_count,
@@ -339,18 +392,38 @@ class Anim(object, metaclass=ABCMeta):
             else:
                 raise
 
-
-    #FIXME: Refactor to just defer to FileFrameWriter.grab_frame().
-    def _save_frame(self, frame_number: int) -> None:
+    # ..................{ PRIVATE ~ plot                     }..................
+    def _plot_frame(self, frame_number: int) -> None:
         '''
-        Write the frame with the 0-based passed index to disk.
+        Iterate the current animation to the next frame.
+
+        This method is iteratively called by Matplotlib's `FuncAnimation()`
+        class instantiated by our `_animate()` method. The subclass
+        implementation of this abstract method is expected to modify this
+        animation's figure and axes so as to display the next frame. It is
+        _not_, however, expected to save that figure to disk; frame saving is
+        already implemented by this base class in a general-purpose manner.
+
+        Specifically, this method (in order):
+
+        . Calls the subclass `_plot_frame_figure()` method.
+        . Updates the current figure's axes title with the current time.
+        . Optionally writes this frame to disk if desired.
 
         Parameters
         ----------
         frame_number : int
-            0-based index of the frame to be written.
+            0-based index of the frame to be plotted.
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        # Plot this frame onto this animation's figure.
+        self._plot_frame_figure(frame_number)
+
+        # Update this figure with the current time, rounded to three decimal
+        # places for readability.
+        self.ax.set_title('{} (time {:.3f}s)'.format(
+            self._axes_title, self.sim.time[frame_number]))
 
         # If both saving and displaying animation frames, save this frame. Note
         # that if only saving but *NOT* displaying animations, this frame will
@@ -363,3 +436,16 @@ class Anim(object, metaclass=ABCMeta):
         if self._is_saving_plotted_frames:
             # print('Saving frame {}.'.format(frame_number))
             self._writer_frames.grab_frame()
+
+
+    @abstractmethod
+    def _plot_frame_figure(self, frame_number: int) -> None:
+        '''
+        Plot the frame with the passed 0-based index onto the current figure.
+
+        Parameters
+        ----------
+        frame_number : int
+            0-based index of the frame to be plotted.
+        '''
+        pass
