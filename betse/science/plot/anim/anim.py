@@ -6,6 +6,9 @@
 Matplotlib-based animation classes.
 '''
 
+#FIXME: Consider generalizing the "figure_title" and "colorbar_title"
+#parameters to the "abc.Anim" base class.
+
 #FIXME: Unfortunately, use of pyplot and hence the pylab figure manager is a
 #bit problematic for long-lived applications like BETSE. Why? Dumb memory
 #leaks. Every time plt.figure() is called, a new figure is added to the pylab
@@ -29,7 +32,7 @@ import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib import mpl
 from betse.science.plot.anim.abc import Anim
-# from betse.util.type import types
+from betse.util.type import types
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib.collections import LineCollection, PolyCollection
@@ -54,12 +57,17 @@ from betse.science.plot.plot import (
 
 class AnimateCellData(Anim):
     '''
-    Animate color data on a plot of cells.
+    Animation of arbitrary colour data plotted on the current cell cluster.
+
+    Attributes
+    ----------
+    zdata_t : list
+        ???.
     '''
 
     def __init__(
         self,
-        zdata_t,
+        zdata_t: list,
         figure_title: str,
         colorbar_title: str,
         ignore_simECM: bool,
@@ -71,6 +79,8 @@ class AnimateCellData(Anim):
 
         Parameters
         ----------
+        zdata_t : list
+            Data array for gap junction coloring.
         figure_title : str
             Text displayed above the figure itself.
         colorbar_title: str
@@ -84,6 +94,12 @@ class AnimateCellData(Anim):
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
+        assert types.is_sequence_nonstr(zdata_t), (
+            types.assert_not_sequence_nonstr(zdata_t))
+        assert types.is_bool(ignore_simECM), (
+            types.assert_not_bool(ignore_simECM))
+        assert types.is_bool(current_overlay), (
+            types.assert_not_bool(current_overlay))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
@@ -111,7 +127,7 @@ class AnimateCellData(Anim):
         else:
             axes_title = None
 
-        # set range of the colormap
+        # Set colormap range.
         if self.clrAutoscale is True:
             #FIXME: This (probably) reduces to this list comprehension both
             #here and everywhere below:
@@ -123,21 +139,8 @@ class AnimateCellData(Anim):
                 for val in zarray:
                     all_z.append(val)
 
-            # self.cmean = np.mean(all_z)
-            cmin = np.min(all_z)
-            cmax = np.max(all_z)
-        else:
-            cmin = self.clrMin
-            cmax = self.clrMax
-
-        # Scale the colorbar mapping.
-        self.collection.set_clim(cmin, cmax)
-
-        if self.p.enumerate_cells is True:
-            for i,cll in enumerate(self.cells.cell_centres):
-                self.ax.text(
-                    self.p.um*cll[0],
-                    self.p.um*cll[1], i, va='center', ha='center')
+            self.clrMin = np.min(all_z)
+            self.clrMax = np.max(all_z)
 
         # Display and/or save this animation.
         self._animate(
@@ -175,149 +178,227 @@ class AnimateCellData(Anim):
                 self.sim, self.streams, self.ax, self.cells, self.p)
 
 
-class AnimateGJData(object):
-# class AnimateGJData(Anim):
+class AnimateCurrent(Anim):
     '''
-    Animate the gap junction open state as a function of time.
+    Animation of current plotted on the current cell cluster.
+
+    Attributes
+    ----------
+    is_gj_current_only : bool
+        `True` if animating only the gap junction current _or_ `False` if
+        animating all current.
     '''
 
     def __init__(
         self,
-        cells,
-        sim,
-        p,
-        tit=' ',
-        save=False,
-        clrAutoscale=True,
-        clrMin=None,
-        clrMax=None,
-        saveFolder='animation',
-        saveFile='sim_',
-        ani_repeat=False,
-        number_cells=False,
+        is_gj_current_only: bool = True,
+        current_overlay: bool = False,
+        *args, **kwargs
     ):
+        '''
+        Initialize this animation.
 
-        self.sim = sim
-        self.cells = cells
-        self.p = p
+        Parameters
+        ----------
+        is_gj_current_only : bool
+            `True` if animating only the gap junction current _or_ `False` if
+            animating all current.
 
-        self.zdata_t = sim.gjopen_time  # data array for gap junction coloring
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_bool(is_gj_current_only), types.assert_not_bool(is_gj_current_only)
 
-        if p.gj_flux_sensitive is True:
-            max_zdata = p.max_gj_enhancement
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(*args, **kwargs)
+
+        self.is_gj_current_only = is_gj_current_only
+        self.colormap = self.p.background_cm
+
+        if self.is_gj_current_only is True:
+            figure_title = 'Gap junction current'
+        else:
+            figure_title = 'Total current'
+
+        # Streamplot and meshplot the Jmag_M data series for the first frame.
+        Jmag_M = self._streamplot_jmag_m(frame_number=0)
+
+        #FIXME: Die, pyplot! Die!
+        self.meshplot = plt.imshow(
+            Jmag_M,
+            origin='lower',
+            extent=self._axes_bounds,
+            cmap=self.colormap,
+        )
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self.sim.time),
+            figure_title=figure_title,
+            colorbar_title='Current Density [A/m2]',
+            colorbar_mapping=self.meshplot,
+            axes_x_label='Spatial x [um]',
+            axes_y_label='Spatial y [um]',
+        )
+
+
+    def _plot_frame_figure(self, frame_number):
+
+        # Erase the prior frame's streamplot before streamplotting this frame.
+        self.ax.patches = []
+        self.streamplot.lines.remove()
+
+        # Streamplot and meshplot the Jmag_M data series for this frame.
+        Jmag_M = self._streamplot_jmag_m(frame_number)
+        self.meshplot.set_data(Jmag_M)
+
+        # Reset colormap range.
+        self.meshplot.set_clim(self.clrMin, self.clrMax)
+
+
+    #FIXME: I have no idea what Jmag_M actually is. The magnitude of...
+    #something? This could probably use better documentation than I can
+    #provide. Whispering willows and wind!
+    def _streamplot_jmag_m(self, frame_number) -> np.ndarray:
+        '''
+        Streamplot and return the `Jmag_M` data series for the current frame.
+        '''
+
+        if self.is_gj_current_only is True:
+            Jmag_M = np.sqrt(
+                self.sim.I_gj_x_time[frame_number]**2 +
+                self.sim.I_gj_y_time[frame_number]**2) + 1e-30
+            J_x = self.sim.I_gj_x_time[frame_number]/Jmag_M
+            J_y = self.sim.I_gj_y_time[frame_number]/Jmag_M
+        else:
+            Jmag_M = np.sqrt(
+                self.sim.I_tot_x_time[frame_number+1]**2 +
+                self.sim.I_tot_y_time[frame_number+1]**2) + 1e-30
+            J_x = self.sim.I_tot_x_time[frame_number+1]/Jmag_M
+            J_y = self.sim.I_tot_y_time[frame_number+1]/Jmag_M
+
+        # Classify this streamplot, thus permitting the _plot_frame_figure()
+        # method to subsequently erase this streamplot's lines.
+        self.streamplot = self.ax.streamplot(
+            self.cells.Xgrid * self.p.um,
+            self.cells.Ygrid * self.p.um,
+            J_x, J_y,
+            density=self.p.stream_density,
+            linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
+            color='k',
+            cmap=self.colormap,
+            arrowsize=1.5,
+        )
+
+        # Set colormap range.
+        if self.clrAutoscale is True:
+            self.clrMin = np.min(Jmag_M)  # 0
+            self.clrMax = np.max(Jmag_M)
+
+        return Jmag_M
+
+
+class AnimateGJData(Anim):
+    '''
+    Animation of the gap junction open state as a function of time.
+
+    Attributes
+    ----------
+    zdata_t : list
+        Data array for gap junction coloring.
+    '''
+
+    def __init__(
+        self,
+        figure_title: str,
+        colorbar_title: str,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        figure_title : str
+            Text displayed above the figure itself.
+        colorbar_title : str
+            Text displayed above the figure colorbar.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(*args, **kwargs)
+
+        # Data array for gap junction coloring.
+        self.zdata_t = self.sim.gjopen_time
+        if self.p.gj_flux_sensitive is True:
+            max_zdata = self.p.max_gj_enhancement
         else:
             max_zdata = 1.0
 
         # Data array for cell coloring.
-        self.vdata_t = [1000*arr for arr in sim.vm_time]
-        self.colormap = p.default_cm
-        self.time = sim.time
+        self.vdata_t = [1000*arr for arr in self.sim.vm_time]
 
-        self.gjI_t_x = sim.I_gj_x_time
-        self.gjI_t_x = sim.I_gj_y_time
-        self.gjvects_x = cells.nn_tx
-        self.gjvects_y = cells.nn_ty
-
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
-
-        self.tit = tit
-
-        self.save = save
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
-
-        if self.save is True:
-            _setup_file_saving(self,p)
-
-        con_segs = cells.nn_edges
-        connects = p.um*np.asarray(con_segs)
+        connects = self.p.um * np.asarray(self.cells.nn_edges)
         self.collection = LineCollection(
             connects,
             array=self.zdata_t[0],
-            cmap=p.gj_cm,
+            cmap=self.p.gj_cm,
             linewidths=2.0,
             zorder=10,
         )
         self.collection.set_clim(0.0, max_zdata)
         self.ax.add_collection(self.collection)
 
-        # Next add a collection of cell polygons, with animated voltage data
-
-        if p.sim_ECM is False:
+        # Add a collection of cell polygons with animated voltage data.
+        if self.p.sim_ECM is False:
             data_set = self.vdata_t[0]
         else:
-            data_set = sim.vcell_time[0]*1000
+            data_set = self.sim.vcell_time[0]*1000
 
-        if p.showCells is True:
+        if self.p.showCells is True:
             self.coll2, self.ax = cell_mosaic(
-                data_set, self.ax, cells, p, p.default_cm)
+                data_set, self.ax, self.cells, self.p, self.colormap)
         else:
             self.coll2, self.ax = cell_mesh(
-                data_set, self.ax, cells, p, p.default_cm)
+                data_set, self.ax, self.cells, self.p, self.colormap)
 
-        # set range of the colormap
-        if clrAutoscale is True:
-             # first flatten the data (needed in case cells were cut)
+        # Set colormap range.
+        if self.clrAutoscale is True:
+            #FIXME: See above.
+            # first flatten the data (needed in case cells were cut)
             all_z = []
             for zarray in self.vdata_t:
                 for val in zarray:
                     all_z.append(val)
 
-            cmin = round(np.min(all_z),1)
-            cmax = round(np.max(all_z),1)
+            self.clrMin = round(np.min(all_z), 1)
+            self.clrMax = round(np.max(all_z), 1)
 
-            clrCheck = cmax - cmin
+            if self.clrMin - self.clrMax == 0:
+                self.clrMin = self.clrMin - 1
+                self.clrMax = self.clrMax + 1
 
-            if clrCheck == 0:
-                cmin = cmin - 1
-                cmax = cmax + 1
-
-        else:
-            cmin = clrMin
-            cmax = clrMax
-
-        self.coll2.set_clim(cmin, cmax)
-        cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
-        cb.set_label('Voltage [mV]')
-
-        if number_cells is True:
-            for i,cll in enumerate(cells.cell_centres):
-                self.ax.text(
-                    p.um*cll[0],
-                    p.um*cll[1], i, va='center', ha='center')
-
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um]')
-        self.ax.set_title(self.tit)
-
-        self.ax.axis('equal')
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        self.frames = len(self.zdata_t)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        _handle_plot(p)
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self.zdata_t),
+            figure_title=figure_title,
+            colorbar_title=colorbar_title,
+            colorbar_mapping=self.coll2,
+            axes_x_label='Spatial x [um]',
+            axes_y_label='Spatial y [um]',
+        )
 
 
-    def aniFunc(self,i):
+    def _plot_frame_figure(self, frame_number):
 
-        zz = self.zdata_t[i]
+        zz = self.zdata_t[frame_number]
+        self.collection.set_array(zz)
 
         if self.p.sim_ECM is False:
-            zv = self.vdata_t[i]
+            zv = self.vdata_t[frame_number]
         else:
-            zv = self.sim.vcell_time[i]*1000
-
-        self.collection.set_array(zz)
+            zv = self.sim.vcell_time[frame_number]*1000
 
         if self.p.showCells is True:
             zz_grid = zv
@@ -326,224 +407,6 @@ class AnimateGJData(object):
             zz_grid[self.cells.cell_to_grid] = zv
 
         self.coll2.set_array(zz_grid)
-
-        titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(self.time[i],3)) + ' ' + 's)'
-        self.ax.set_title(titani)
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,dpi=96,format='png')
-
-
-class AnimateCurrent(object):
-# class AnimateCurrent(Anim):
-
-    def __init__(
-        self,
-        sim,
-        cells,
-        time,
-        p,
-        save=False,
-        ani_repeat=False,
-        current_overlay=False,
-        clrAutoscale=True,
-        gj_current=True,
-        clrMin=None,
-        clrMax=None,
-        clrmap=mpl.get_colormap('rainbow'),
-        number_cells=False,
-        saveFolder='animation',
-        saveFile='sim_',
-    ):
-
-        self.clrmap = clrmap
-        self.time = time
-        self.save = save
-
-        self.sim = sim
-        self.current_overlay = current_overlay
-
-        self.sim_ECM = p.sim_ECM
-        self.IecmPlot = p.IecmPlot
-
-        self.density = p.stream_density
-        self.cells = cells
-        self.p = p
-
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
-
-        self.gj_current = gj_current
-
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
-
-        self.ax.axis('equal')
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if self.save is True:
-            _setup_file_saving(self,p)
-
-        if clrAutoscale is False:
-            self.cmin = clrMin
-            self.cmax = clrMax
-
-        if gj_current is True:
-            Jmag_M = np.sqrt(
-                sim.I_gj_x_time[0]**2 + sim.I_gj_y_time[0]**2) + 1e-30
-
-            J_x = sim.I_gj_x_time[0]/Jmag_M
-            J_y = sim.I_gj_y_time[0]/Jmag_M
-
-            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-            self.meshplot = plt.imshow(
-                Jmag_M,
-                origin='lower',
-                extent=[xmin,xmax,ymin,ymax],
-                cmap=clrmap,
-            )
-            self.streamplot = self.ax.streamplot(
-                cells.Xgrid*p.um,
-                cells.Ygrid*p.um,
-                J_x, J_y,
-                density=p.stream_density,
-                linewidth=lw,
-                color='k',
-                cmap=clrmap,
-                arrowsize=1.5,
-            )
-
-            self.tit = 'Gap junction current'
-
-            # set range of the colormap
-            if clrAutoscale is True:
-                self.cmin = np.min(Jmag_M)
-                self.cmax = np.max(Jmag_M)
-
-        else:
-            Jmag_M = np.sqrt(
-                sim.I_tot_x_time[1]**2 + sim.I_tot_y_time[1]**2) + 1e-30
-
-            J_x = sim.I_tot_x_time[1]/Jmag_M
-            J_y = sim.I_tot_y_time[1]/Jmag_M
-
-            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-            self.meshplot = plt.imshow(
-                Jmag_M,
-                origin='lower',
-                extent=[xmin,xmax,ymin,ymax],
-                cmap=clrmap,
-            )
-            self.streamplot = self.ax.streamplot(
-                cells.Xgrid*p.um,
-                cells.Ygrid*p.um,
-                J_x, J_y,
-                density=p.stream_density,
-                linewidth=lw,
-                color='k',
-                cmap=clrmap,
-                arrowsize=1.5,
-            )
-
-            self.tit = 'Total current'
-
-            # # set range of the colormap
-            if clrAutoscale is True:
-                self.cmin = np.min(Jmag_M)
-                self.cmax = np.max(Jmag_M)
-
-        if clrAutoscale is False:
-            self.meshplot.set_clim(self.cmin, self.cmax)
-
-        cb = self.fig.colorbar(self.meshplot)   # define colorbar for figure
-        cb.set_label('Current Density [A/m2]')
-
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um]')
-        self.ax.set_title(self.tit)
-
-        self.frames = len(sim.time)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        _handle_plot(p)
-
-
-    def aniFunc(self,i):
-
-        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
-        self.ax.set_title(titani)
-
-        if self.gj_current is True:
-            Jmag_M = np.sqrt(
-                self.sim.I_gj_x_time[i]**2 +
-                self.sim.I_gj_y_time[i]**2) + 1e-30
-
-            J_x = self.sim.I_gj_x_time[i]/Jmag_M
-            J_y = self.sim.I_gj_y_time[i]/Jmag_M
-
-            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-            self.meshplot.set_data(Jmag_M)
-
-            self.streamplot.lines.remove()
-            self.ax.patches = []
-
-            self.streamplot = self.ax.streamplot(
-                self.cells.Xgrid*self.p.um,
-                self.cells.Ygrid*self.p.um,
-                J_x, J_y,
-                density=self.p.stream_density,
-                linewidth=lw,
-                color='k',
-                cmap=self.clrmap,
-                arrowsize=1.5,
-            )
-
-        else:
-            Jmag_M = np.sqrt(
-                self.sim.I_tot_x_time[i+1]**2 +
-                self.sim.I_tot_y_time[i+1]**2) + 1e-30
-
-            J_x = self.sim.I_tot_x_time[i+1]/Jmag_M
-            J_y = self.sim.I_tot_y_time[i+1]/Jmag_M
-
-            lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-            self.meshplot.set_data(Jmag_M)
-            self.streamplot.lines.remove()
-            self.ax.patches = []
-
-            self.streamplot = self.ax.streamplot(
-                self.cells.Xgrid*self.p.um,
-                self.cells.Ygrid*self.p.um,
-                J_x, J_y,
-                density=self.p.stream_density,
-                linewidth=lw,
-                color='k',
-                cmap=self.clrmap,
-                arrowsize=1.5,
-            )
-
-        cmax = np.max(Jmag_M)
-
-        self.meshplot.set_clim(0,cmax)
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
 
 
 class AnimateField(object):
@@ -918,11 +781,9 @@ class AnimateDeformation(object):
                 dd = self.sim.vcell_time[0]*1e3
 
             self.specific_cmap = p.default_cm
-
         elif self.p.ani_Deformation_type == 'Displacement':
             dd = p.um*np.sqrt(dx**2 + dy**2)
             self.specific_cmap = p.background_cm
-
         else:
             raise BetseExceptionParameters(
                 "Definition of 'data type' in deformation animation\n"

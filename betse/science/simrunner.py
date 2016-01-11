@@ -17,7 +17,7 @@ from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.parameters import Parameters
 from betse.science.plot import plot as viz
-from betse.science.plot.all import plot_all
+from betse.science.plot.pipeline import plot_all
 from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers

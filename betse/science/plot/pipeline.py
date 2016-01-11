@@ -12,8 +12,16 @@ import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import (
-    AnimateCellData, AnimateDyeData, AnimateGJData, AnimateCurrent,
-    AnimateField, AnimateVelocity, AnimateDeformation, AnimateEnv, AnimateMem)
+    AnimateCellData,
+    AnimateCurrent,
+    AnimateDeformation,
+    AnimateDyeData,
+    AnimateEnv,
+    AnimateField,
+    AnimateGJData,
+    AnimateMem,
+    AnimateVelocity,
+)
 from betse.util.io import loggers
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection, LineCollection
@@ -101,8 +109,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # plot-cell anion (bicarbonate) concentration vs time:
 
-        figConcsM, axConcsM = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iM,p.plot_cell,fig=None,
-             ax=None,lncolor='r',ionname='M-')
+        figConcsM, axConcsM = viz.plotSingleCellCData(
+            sim.cc_time, sim.time, sim.iM, p.plot_cell,
+            fig=None,
+            ax=None,
+            lncolor='r',
+            ionname='M-',
+        )
 
         titM = 'M Anion concentration in cell ' + str(p.plot_cell)
         axConcsM.set_title(titM)
@@ -114,9 +127,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-        # plot single cell Vmem vs time:
-
-        figVt, axVt = viz.plotSingleCellVData(sim,plot_cell_ecm,p,fig=None,ax=None,lncolor='k')
+        # Plot single cell Vmem vs time.
+        figVt, axVt = viz.plotSingleCellVData(
+            sim, plot_cell_ecm, p, fig=None, ax=None, lncolor='k')
         titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
         axVt.set_title(titV)
 
@@ -127,8 +140,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-        # plot fast-Fourier-transform (fft) of Vmem:
-        figFFT, axFFT = viz.plotFFT(sim.time,sim.vm_time,plot_cell_ecm,lab="Power")
+        # Plot fast-Fourier-transform (fft) of Vmem.
+        figFFT, axFFT = viz.plotFFT(
+            sim.time, sim.vm_time, plot_cell_ecm, lab="Power")
         titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)
         axFFT.set_title(titFFT)
 
@@ -149,11 +163,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         else:
             pump_rate = [pump_array[plot_cell_ecm] for pump_array in sim.rate_NaKATP_time]
 
-        axNaK.plot(sim.time,pump_rate)
-
+        axNaK.plot(sim.time, pump_rate)
         axNaK.set_xlabel('Time [s]')
         axNaK.set_ylabel('Pumping Rate of Na+ Out of Cell [mol/(m2 s)]')
-
         axNaK.set_title('Rate of NaK-ATPase pump in cell: ' + str(p.plot_cell) )
 
         if p.autosave is True:
@@ -165,7 +177,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         #--------------------------------------------------------
 
-        # plot-cell trans-membrane current vs time:
+        # Plot cell trans-membrane current vs time.
         figI = plt.figure()
         axI = plt.subplot(111)
 
@@ -189,7 +201,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 Io = np.sqrt(Ix**2 + Iy**2)/cells.cell_sa[p.plot_cell]
                 Imem.append(Io)
 
-        axI.plot(sim.time,Imem)
+        axI.plot(sim.time, Imem)
         axI.set_title('Transmembrane current density for cell ' + str(p.plot_cell) )
         axI.set_xlabel('Time [s]')
         axI.set_ylabel('Current density [A/m2]')
@@ -209,7 +221,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
-            axOP.plot(sim.time,p_hydro)
+            axOP.plot(sim.time, p_hydro)
             axOP.set_xlabel('Time [s]')
             axOP.set_ylabel('Hydrostatic Pressure [Pa]')
             axOP.set_title('Hydrostatic pressure in cell ' + str(p.plot_cell) )
@@ -221,12 +233,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-        # plot-cell calcium vs time (if Ca enabled in ion profiles):
-
+        # Plot cell calcium vs time (if Ca enabled in ion profiles).
         if p.ions_dict['Ca'] ==1:
-            figA, axA = viz.plotSingleCellCData(sim.cc_time,sim.time,sim.iCa,p.plot_cell,fig=None,
-                 ax=None,lncolor='g',ionname='Ca2+ cell')
-            titCa =  'Cytosolic Ca2+ in cell index ' + str(p.plot_cell)
+            figA, axA = viz.plotSingleCellCData(
+                sim.cc_time, sim.time, sim.iCa, p.plot_cell,
+                fig=None,
+                ax=None,
+                lncolor='g',
+                ionname='Ca2+ cell',
+            )
+            titCa = 'Cytosolic Ca2+ in cell index ' + str(p.plot_cell)
             axA.set_title(titCa)
 
             if p.autosave is True:
@@ -237,9 +253,14 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 plt.show(block=False)
 
             if p.Ca_dyn == 1:
-                figD, axD = viz.plotSingleCellCData(sim.cc_er_time,sim.time,0,p.plot_cell,fig=None,
-                     ax=None,lncolor='b',ionname='Ca2+ cell')
-                titER =  'ER Ca2+ in cell index ' + str(p.plot_cell)
+                figD, axD = viz.plotSingleCellCData(
+                    sim.cc_er_time, sim.time, 0, p.plot_cell,
+                    fig=None,
+                    ax=None,
+                    lncolor='b',
+                    ionname='Ca2+ cell',
+                )
+                titER = 'ER Ca2+ in cell index ' + str(p.plot_cell)
                 axD.set_title(titER)
 
                 if p.autosave is True:
@@ -249,8 +270,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 if p.turn_all_plots_off is False:
                     plt.show(block=False)
 
-                figPro, axPro = viz.plotSingleCellData(sim.time, sim.cIP3_time,p.plot_cell, lab='IP3 [mmol/L]')
-                titIP3 =  'IP3 in cell index ' + str(p.plot_cell)
+                figPro, axPro = viz.plotSingleCellData(
+                    sim.time, sim.cIP3_time, p.plot_cell, lab='IP3 [mmol/L]')
+                titIP3 = 'IP3 in cell index ' + str(p.plot_cell)
                 axPro.set_title(titIP3)
 
                 if p.autosave is True:
@@ -265,7 +287,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             f_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
             figPE = plt.figure()
             axPE = plt.subplot(111)
-            axPE.plot(sim.time,f_electro)
+            axPE.plot(sim.time, f_electro)
             axPE.set_xlabel('Time [s]')
             axPE.set_ylabel('Electrostatic Pressure [Pa]')
             axPE.set_title('Electrostatic pressure in cell ' + str(p.plot_cell) )
@@ -281,7 +303,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
-            axOP.plot(sim.time,p_osmo)
+            axOP.plot(sim.time, p_osmo)
             axOP.set_xlabel('Time [s]')
             axOP.set_ylabel('Osmotic Pressure [Pa]')
             axOP.set_title('Osmotic pressure in cell ' + str(p.plot_cell) )
@@ -293,18 +315,18 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-        # total displacement in cell
+        # Total displacement in cell.
         if p.deformation is True and sim.run_sim is True:
-            # extract time-series deformation data for the plot cell:
+            # Extract time-series deformation data for the plot cell.
             dx = np.asarray([arr[p.plot_cell] for arr in sim.dx_cell_time])
             dy = np.asarray([arr[p.plot_cell] for arr in sim.dy_cell_time])
 
-            # get the total magnitude:
+            # Get the total magnitude.
             disp = np.sqrt(dx**2 + dy**2)
 
             figD = plt.figure()
             axD = plt.subplot(111)
-            axD.plot(sim.time,p.um*disp)
+            axD.plot(sim.time, p.um*disp)
             axD.set_xlabel('Time [s]')
             axD.set_ylabel('Displacement [um]')
             axD.set_title('Displacement of cell ' + str(p.plot_cell) )
@@ -563,11 +585,15 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if p.plot_dye2d is True and p.voltage_dye == 1:
         if p.sim_ECM is False:
 
-            figVdye, axVdye, cbVdye = viz.plotPolyData(sim, cells,p,zdata=sim.cDye_time[-1]*1e3,
-                number_cells=p.enumerate_cells,clrAutoscale = p.autoscale_Dye,
-                clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
-
-
+            figVdye, axVdye, cbVdye = viz.plotPolyData(
+                sim, cells, p,
+                zdata=sim.cDye_time[-1]*1e3,
+                number_cells=p.enumerate_cells,
+                clrAutoscale=p.autoscale_Dye,
+                clrMin=p.Dye_min_clr,
+                clrMax=p.Dye_max_clr,
+                clrmap=p.default_cm,
+            )
         else:
             # crazy dye plot
             figVdye = plt.figure()
@@ -576,13 +602,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             dyeEnv = sim.cDye_env*1e3
             dyeCell = sim.cDye_cell*1e3
 
-            bkgPlot = axVdye.imshow(dyeEnv.reshape(cells.X.shape),origin='lower',
-                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
-                p.um*cells.ymax],cmap=p.default_cm)
+            bkgPlot = axVdye.imshow(
+                dyeEnv.reshape(cells.X.shape),
+                origin='lower',
+                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+                cmap=p.default_cm,
+            )
 
             points = np.multiply(cells.cell_verts, p.um)
-
-            coll = PolyCollection(points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
+            coll = PolyCollection(
+                points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
             axVdye.add_collection(coll)
             axVdye.axis('equal')
 
@@ -1109,16 +1138,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_vmgj2d is True and p.createAnimations is True:
         AnimateGJData(
-            cells, sim, p,
-            tit='Vcell ',
-            save=p.saveAnimations,
-            ani_repeat=True,
+            sim=sim, cells=cells, p=p,
+            type='Vmem_gj',
+            figure_title='Vcell',
+            colorbar_title='Voltage [mV]',
             clrAutoscale=p.autoscale_Vgj_ani,
             clrMin=p.Vgj_ani_min_clr,
             clrMax=p.Vgj_ani_max_clr,
-            saveFolder='animation/Vmem_gj',
-            saveFile='vmem_gj_',
-            number_cells=False,
         )
 
     if p.ani_vcell is True and p.createAnimations is True and p.sim_ECM == 1:
@@ -1139,34 +1165,24 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_I is True and p.createAnimations is True:
         AnimateCurrent(
-            sim,cells,time,p,
-            save=p.saveAnimations,
-            ani_repeat=True,
+            sim=sim, cells=cells, p=p,
+            type='current_gj',
+            is_gj_current_only=True,
             current_overlay=p.I_overlay,
-            gj_current=True,
             clrAutoscale=p.autoscale_I_ani,
             clrMin=p.I_ani_min_clr,
             clrMax=p.I_ani_max_clr,
-            clrmap=p.background_cm,
-            number_cells=False,
-            saveFolder='animation/current_gj',
-            saveFile='I_',
         )
 
         if p.sim_ECM is True:
             AnimateCurrent(
-                sim,cells,time,p,
-                save=p.saveAnimations,
-                ani_repeat=True,
+                sim=sim, cells=cells, p=p,
+                type='current_ecm',
+                is_gj_current_only=False,
                 current_overlay=p.I_overlay,
-                gj_current=False,
                 clrAutoscale=p.autoscale_I_ani,
                 clrMin=p.I_ani_min_clr,
                 clrMax=p.I_ani_max_clr,
-                clrmap=p.background_cm,
-                number_cells=False,
-                saveFolder='animation/current_ecm',
-                saveFile='I_',
             )
 
     if p.ani_Efield is True and p.createAnimations is True:

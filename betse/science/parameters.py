@@ -650,7 +650,8 @@ class Parameters(object):
 
         self.save_solving_plot = ro['save solving plot']   # save the 2d plot generated while solving
 
-        self.enumerate_cells = ro['enumerate cells']    # number cells on the static 2D maps
+        # True if numbering cells in plots and animations.
+        self.enumerate_cells = ro['enumerate cells']
 
         self.plot_cell = ro['plot cell index']             # State the cell index to use for single-cell time plots
 

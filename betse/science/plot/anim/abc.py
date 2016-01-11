@@ -19,7 +19,10 @@ from matplotlib.animation import FuncAnimation
 
 # ....................{ BASE                               }....................
 #FIXME: Privatize all public attributes declared below. Raving river madness!
-#FIXME: Document the "clrAutoscale", "clrMin", and "clrMax" attributes. Sizzle!
+#FIXME: Rename all following parameters and attributes:
+#* "clrAutoscale" to "is_colorbar_autoscaled".
+#* "clrMin" to "colorbar_min".
+#* "clrMax" to "colorbar_max".
 
 class Anim(object, metaclass=ABCMeta):
     '''
@@ -37,11 +40,16 @@ class Anim(object, metaclass=ABCMeta):
     p : Parameters
         Current simulation configuration.
     clrAutoscale : bool
-        ???.
+        `True` if dynamically resetting the minimum and maximum colorbar values
+        to be the corresponding minimum and maximum values for the current
+        frame _or_ `False` if statically setting the minimum and maximum
+        colorbar values to predetermined constants.
     clrMin : float
-        ???.
+        Minimum colorbar value to be used. If `clrAutoscale` is `True`, the
+        subclass is responsible for redefining this value as appropriate.
     clrMax : float
-        ???.
+        Maximum colorbar value to be used. If `clrAutoscale` is `True`, the
+        subclass is responsible for redefining this value as appropriate.
     colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
     fig : Figure
@@ -63,6 +71,14 @@ class Anim(object, metaclass=ABCMeta):
         `axes_title` parameter is passed to the `animate()` method, this is that
         value; else, this is the value of the `figure_title` parameter passed to
         the same method.
+    _axes_x_min : float
+        Minimum value of the figure's X axis.
+    _axes_x_max : float
+        Maximum value of the figure's X axis.
+    _axes_y_min : float
+        Minimum value of the figure's Y axis.
+    _axes_y_max : float
+        Maximum value of the figure's Y axis.
     _type : str
         Basename of the subdirectory in the phase-specific results directory
         to which all animation files will be saved _and_ the basename prefix of
@@ -109,11 +125,14 @@ class Anim(object, metaclass=ABCMeta):
         title_colorbar: str
             Text displayed above the figure colorbar.
         clrAutoscale : bool
-            ???.
+            `True` if dynamically resetting the minimum and maximum colorbar
+            values to be the corresponding minimum and maximum values for the
+            current frame _or_ `False` if statically setting the minimum and
+            maximum colorbar values to predetermined constants.
         clrMin : float
-            ???.
+            Minimum colorbar value to be used if `clrAutoscale` is `False`.
         clrMax : float
-            ???.
+            Maximum colorbar value to be used if `clrAutoscale` is `False`.
         colormap : Colormap
             Matplotlib colormap to be used in this animation's colorbar or
             `None`, in which case the default colormap will be used.
@@ -156,15 +175,24 @@ class Anim(object, metaclass=ABCMeta):
         # Figure encapsulating this animation.
         self.fig = pyplot.figure()
 
+        #FIXME: Relocalize all except "_axes_bounds". We don't appear to require
+        #the individual bounds to be attributes.
+        # Extent of the current 2D environment.
+        self._axes_x_min = self.cells.xmin * self.p.um
+        self._axes_x_max = self.cells.xmax * self.p.um
+        self._axes_y_min = self.cells.ymin * self.p.um
+        self._axes_y_max = self.cells.ymax * self.p.um
+        self._axes_bounds = [
+            self._axes_x_min,
+            self._axes_x_max,
+            self._axes_y_min,
+            self._axes_y_max,
+        ]
+
         # Figure axes scaled to the extent of the current 2D environment.
         self.ax = pyplot.subplot(111)
         self.ax.axis('equal')
-        self.ax.axis([
-            self.cells.xmin * self.p.um,
-            self.cells.xmax * self.p.um,
-            self.cells.ymin * self.p.um,
-            self.cells.ymax * self.p.um,
-        ])
+        self.ax.axis(self._axes_bounds)
 
         # Initialize animation saving *AFTER* defining all attribute defaults.
         self._init_saving()
@@ -287,6 +315,18 @@ class Anim(object, metaclass=ABCMeta):
         assert types.is_str_nonempty(axes_y_label), (
             types.assert_not_str_nonempty(axes_y_label, 'Y axis label'))
 
+        # If labelling each plotted cell with that cell's unique 0-based index,
+        # do so.
+        if self.p.enumerate_cells is True:
+            for cell_index, cell_centre in enumerate(self.cells.cell_centres):
+                self.ax.text(
+                    self.p.um*cell_centre[0],
+                    self.p.um*cell_centre[1],
+                    cell_index,
+                    va='center',
+                    ha='center',
+                )
+
         # If both a figure and axes title are defined, display the figure title
         # as such above the axes title.
         if axes_title is not None:
@@ -304,6 +344,9 @@ class Anim(object, metaclass=ABCMeta):
         self.ax.set_title(self._axes_title)
         self.ax.set_xlabel(axes_x_label)
         self.ax.set_ylabel(axes_y_label)
+
+        # Set the colorbar range.
+        colorbar_mapping.set_clim(self.clrMin, self.clrMax)
 
         # Display the colorbar.
         colorbar = self.fig.colorbar(colorbar_mapping)
