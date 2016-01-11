@@ -569,6 +569,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
 
         else:
+            # crazy dye plot
             figVdye = plt.figure()
             axVdye = plt.subplot(111)
 
@@ -629,6 +630,31 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+        # averaged dye plot:
+        if p.sim_ECM is True:
+
+            dyeEnv_at_mem = sim.cDye_env[cells.map_mem2ecm]*1e3  # sample the environmental dye at the membranes
+            dyeEnv_at_cell = np.dot(cells.M_sum_mems,dyeEnv_at_mem)/cells.num_mems  # average the result to cell centres
+            dyeCell = sim.cDye_cell*1e3
+            dye_ave = (dyeEnv_at_cell + dyeCell)/2   # average the dye at location
+
+            figVdye_ave, axVdye_ave, cbVdye_ave = viz.plotPolyData(sim, cells,p,zdata=dye_ave,
+                number_cells=p.enumerate_cells,clrAutoscale = p.autoscale_Dye,
+                clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+
+            axVdye_ave.set_title('Final Average Morphogen Concentration')
+            axVdye_ave.set_xlabel('Spatial distance [um]')
+            axVdye_ave.set_ylabel('Spatial distance [um]')
+            cbVdye_ave.set_label('Concentration umol/L')
+
+            if p.autosave is True:
+                savename7 = savedImg + 'final_morphogen_ave_2D' + '.png'
+                plt.savefig(savename7,format='png',transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
 
     #-------------------------------------------------------------------------------------------------------------------
 
@@ -928,6 +954,33 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+    if p.sim_eosmosis is True and p.sim_ECM is True and \
+       sim.run_sim is True:
+
+        viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
+        plt.xlabel('Spatial Dimension [um]')
+        plt.ylabel('Spatial Dimension [um]')
+        plt.title('Membrane ion pump density factor')
+
+        if p.autosave is True:
+            savename = savedImg + 'final_pumps_2D' + '.png'
+            plt.savefig(savename,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
+        plt.xlabel('Spatial Dimension [um]')
+        plt.ylabel('Spatial Dimension [um]')
+        plt.title('Membrane ion channel density factor')
+
+        if p.autosave is True:
+            savename = savedImg + 'final_channels_2D' + '.png'
+            plt.savefig(savename,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
     #---------Animations---------------------------------------------------------------------------------------
 
     if p.ani_ip32d is True and p.Ca_dyn is True and p.createAnimations is True:
@@ -949,6 +1002,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_dye2d is True and p.voltage_dye == 1 and \
        p.createAnimations is True:
+
         if p.sim_ECM is False:
             Dyeplotting = np.asarray(sim.cDye_time)
             Dyeplotting = np.multiply(Dyeplotting,1e3)
@@ -979,6 +1033,28 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 saveFolder='animation/Dye',
                 saveFile='Dye_',
             )
+
+            # averaged dye animation:
+            # sample the environmental dye at the membranes, scaled to umol/L concentration
+            dyeEnv_at_mem = [arr[cells.map_mem2ecm]*1e3 for arr in sim.cDye_env_time]
+            # average the result to cell centres for each timestep
+            dyeEnv_at_cell = [np.dot(cells.M_sum_mems,arr)/cells.num_mems for arr in dyeEnv_at_mem]
+            # get values for cell at each timestep, scaled to umol/L concentration
+            dyeCell = [arr*1e3 for arr in sim.cDye_time]
+            # average the dye at location for each timestep
+            dye_ave_t = [(arr_env + arr_cell)/2 for (arr_env, arr_cell) in zip(dyeEnv_at_cell,dyeCell)]
+
+            AnimateCellData(sim=sim, cells=cells,p=p,
+                zdata_t=dye_ave_t,
+                type='Morphogen Average',
+                figure_title='Average Morphogen Concentration',
+                colorbar_title= 'Concentration [umol/L]',
+                clrAutoscale = p.autoscale_Dye_ani,
+                clrMin = p.Dye_ani_min_clr,
+                clrMax = p.Dye_ani_max_clr,
+                ignore_simECM = True,
+                )
+
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and \
        p.createAnimations is True:
@@ -1132,29 +1208,17 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_Velocity is True and p.fluid_flow is True and \
        p.deform_electro is True and p.createAnimations is True and sim.run_sim is True:
-        AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
+
+        AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations, vtype = 'GJ')
+
+        if p.sim_ECM is True:
+
+            AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations, vtype = 'ECM')
 
     if p.ani_Deformation is True and p.deformation is True and \
        p.createAnimations is True and sim.run_sim is True:
         AnimateDeformation(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
 
-    if p.sim_eosmosis is True and p.sim_ECM is True and \
-       sim.run_sim is True:
-        viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
-        plt.xlabel('Spatial Dimension [um]')
-        plt.ylabel('Spatial Dimension [um]')
-        plt.title('Membrane ion pump density factor')
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-        viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
-        plt.xlabel('Spatial Dimension [um]')
-        plt.ylabel('Spatial Dimension [um]')
-        plt.title('Membrane ion channel density factor')
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
 
     if p.ani_Pcell is True and p.deform_osmo is True and \
        p.createAnimations is True:
@@ -1248,5 +1312,5 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         loggers.log_info(
             'As the config file results option "plot after saving" is set to "True",\n'
             'plots and data have been exported to the results folder defined in the config\n'
-            'file. To display animations, consider changing this option to "False".'
+            'file.'
         )

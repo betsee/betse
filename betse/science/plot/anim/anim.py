@@ -701,6 +701,7 @@ class AnimateVelocity(object):
         save=True,
         saveFolder='animation/Velocity',
         saveFile='Velocity_',
+        vtype = 'GJ'
     ):
 
         self.fig = plt.figure()
@@ -713,11 +714,12 @@ class AnimateVelocity(object):
         self.saveFolder = saveFolder
         self.saveFile = saveFile
         self.ani_repeat = ani_repeat
+        self.vtype = vtype
 
         if self.save is True:
             _setup_file_saving(self,p)
 
-        if p.sim_ECM is True and p.ani_Velocity_type == 'ECM':
+        if p.sim_ECM is True and vtype == 'ECM':
             vfield = np.sqrt(sim.u_env_x_time[0]**2 + sim.u_env_y_time[0]**2)*1e9
 
             self.msh = self.ax.imshow(
@@ -738,7 +740,7 @@ class AnimateVelocity(object):
 
             tit_extra = 'Extracellular'
 
-        elif p.ani_Velocity_type == 'GJ' or p.sim_ECM is True:
+        elif vtype == 'GJ' or p.sim_ECM is True:
             ugjx = sim.u_cells_x_time[0]
             ugjy = sim.u_cells_y_time[0]
 
@@ -814,7 +816,7 @@ class AnimateVelocity(object):
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
 
-        if self.p.sim_ECM is True and self.p.ani_Velocity_type == 'ECM':
+        if self.p.sim_ECM is True and self.vtype == 'ECM':
             vfield = np.sqrt(self.sim.u_env_x_time[i]**2 + self.sim.u_env_y_time[i]**2)*1e9
 
             self.msh.set_data(vfield)
@@ -823,7 +825,7 @@ class AnimateVelocity(object):
 
             self.streamV.set_UVC(self.sim.u_env_x_time[i]/vnorm,self.sim.u_env_y_time[i]/vnorm)
 
-        elif self.p.ani_Velocity_type == 'GJ' or self.p.sim_ECM is False:
+        elif self.vtype == 'GJ' or self.p.sim_ECM is False:
 
             ugjx = self.sim.u_cells_x_time[i]
             ugjy = self.sim.u_cells_y_time[i]

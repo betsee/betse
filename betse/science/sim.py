@@ -1136,6 +1136,8 @@ class Simulator(object):
             # calculate fluid flow:
             if p.fluid_flow is True and p.run_sim is True:
 
+                self.run_sim = True
+
                 self.getFlow(cells,p)
 
             if p.deformation is True and p.run_sim is True:
@@ -1640,10 +1642,14 @@ class Simulator(object):
 
             if p.fluid_flow is True and p.run_sim is True:
 
+                self.run_sim = True
+
                 self.getFlow(cells,p)
 
             # if desired, electroosmosis of membrane channels
             if p.sim_eosmosis is True and p.run_sim is True:
+
+                self.run_sim = True
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
@@ -3036,7 +3042,7 @@ class Simulator(object):
         # calculate the inverse viscocity for the cell collection, which is scaled by gj conductivity:
         alpha_gj_o = p.gj_surface*self.gjopen*(1/p.mu_water)
         # average to individual cells:
-        alpha_gj = np.dot(cells.gjMatrix,alpha_gj_o)/cells.num_nn
+        alpha_gj = np.dot(cells.M_sum_mems,alpha_gj_o)/cells.num_mems
 
         if p.deform_electro is True:
 
