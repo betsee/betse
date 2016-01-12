@@ -61,17 +61,22 @@ class AnimateCellData(Anim):
 
     Attributes
     ----------
-    zdata_t : list
-        ???.
+    _is_ecm_ignored : bool
+        `True` if ignoring extracellular spaces _or_ `False` otherwise.
+    _is_current_overlay : bool
+        `True` if overlaying electric currents or concentration flux
+        streamlines on 2D plotted data _or_ `False` otherwise.
+    _zdata_time : list
+        List of all colour data to be plotted, indexed by simulation time.
     '''
 
     def __init__(
         self,
-        zdata_t: list,
+        zdata_time: list,
         figure_title: str,
         colorbar_title: str,
-        ignore_simECM: bool,
-        current_overlay: bool = False,
+        is_ecm_ignored: bool = True,
+        is_current_overlay: bool = False,
         *args, **kwargs
     ) -> None:
         '''
@@ -79,39 +84,40 @@ class AnimateCellData(Anim):
 
         Parameters
         ----------
-        zdata_t : list
-            Data array for gap junction coloring.
+        zdata_time : list
+            List of all colour data to be plotted, indexed by simulation time.
         figure_title : str
             Text displayed above the figure itself.
         colorbar_title: str
             Text displayed above the figure colorbar.
-        ignore_simECM : bool
+        is_ecm_ignored : bool
             `True` if ignoring extracellular spaces _or_ `False` otherwise.
-        current_overlay : bool
+            Defaults to `True`.
+        is_current_overlay : bool
             `True` if overlaying electric currents or concentration flux
             streamlines on 2D plotted data _or_ `False` otherwise. Defaults to
             `False`.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(zdata_t), (
-            types.assert_not_sequence_nonstr(zdata_t))
-        assert types.is_bool(ignore_simECM), (
-            types.assert_not_bool(ignore_simECM))
-        assert types.is_bool(current_overlay), (
-            types.assert_not_bool(current_overlay))
+        assert types.is_sequence_nonstr(zdata_time), (
+            types.assert_not_sequence_nonstr(zdata_time))
+        assert types.is_bool(is_ecm_ignored), (
+            types.assert_not_bool(is_ecm_ignored))
+        assert types.is_bool(is_current_overlay), (
+            types.assert_not_bool(is_current_overlay))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
         # Classify parameters required by the _plot_next_frame() method.
-        self.zdata_t = zdata_t
-        self.ignore_simECM = ignore_simECM
-        self.current_overlay = current_overlay
+        self._zdata_time = zdata_time
+        self._is_ecm_ignored = is_ecm_ignored
+        self._is_current_overlay = is_current_overlay
 
-        data_points = self.zdata_t[0]
+        data_points = self._zdata_time[0]
 
-        if self.p.sim_ECM is True and ignore_simECM is False:
+        if self.p.sim_ECM is True and is_ecm_ignored is False:
             self.collection, self.ax = env_mesh(
                 data_points, self.ax, self.cells, self.p, self.colormap)
         elif self.p.showCells is True:
@@ -121,13 +127,13 @@ class AnimateCellData(Anim):
             self.collection, self.ax = cell_mesh(
                 data_points, self.ax, self.cells, self.p, self.colormap)
 
-        if self.current_overlay is True:
+        if self._is_current_overlay is True:
             self.streams, self.ax, axes_title = I_overlay_setup(
                 self.sim, self.ax, self.cells, self.p)
         else:
             axes_title = None
 
-        # Set colormap range.
+        # Autoscale the colorbar range if desired.
         if self.clrAutoscale is True:
             #FIXME: This (probably) reduces to this list comprehension both
             #here and everywhere below:
@@ -135,7 +141,7 @@ class AnimateCellData(Anim):
 
             # first flatten the data (needed in case cells were cut)
             all_z = []
-            for zarray in zdata_t:
+            for zarray in zdata_time:
                 for val in zarray:
                     all_z.append(val)
 
@@ -155,10 +161,11 @@ class AnimateCellData(Anim):
 
 
     def _plot_frame_figure(self, frame_number):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        zz = self.zdata_t[frame_number]
+        zz = self._zdata_time[frame_number]
 
-        if self.p.sim_ECM is True and self.ignore_simECM is False:
+        if self.p.sim_ECM is True and self._is_ecm_ignored is False:
             if self.p.plotMask is True:
                 dat_grid = ma.masked_array(
                     zz, np.logical_not(self.cells.maskM))
@@ -172,7 +179,7 @@ class AnimateCellData(Anim):
                 zz_grid[self.cells.cell_to_grid] = zz
                 self.collection.set_array(zz_grid)
 
-        if self.current_overlay is True:
+        if self._is_current_overlay is True:
             self.streams, self.ax = I_overlay_update(
                 frame_number,
                 self.sim, self.streams, self.ax, self.cells, self.p)
@@ -191,8 +198,7 @@ class AnimateCurrent(Anim):
 
     def __init__(
         self,
-        is_gj_current_only: bool = True,
-        current_overlay: bool = False,
+        is_gj_current_only: bool,
         *args, **kwargs
     ):
         '''
@@ -206,7 +212,8 @@ class AnimateCurrent(Anim):
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_bool(is_gj_current_only), types.assert_not_bool(is_gj_current_only)
+        assert types.is_bool(is_gj_current_only), (
+            types.assert_not_bool(is_gj_current_only))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
@@ -215,9 +222,9 @@ class AnimateCurrent(Anim):
         self.colormap = self.p.background_cm
 
         if self.is_gj_current_only is True:
-            figure_title = 'Gap junction current'
+            figure_title = 'Gap Junction Current'
         else:
-            figure_title = 'Total current'
+            figure_title = 'Total Current'
 
         # Streamplot and meshplot the Jmag_M data series for the first frame.
         Jmag_M = self._streamplot_jmag_m(frame_number=0)
@@ -242,6 +249,7 @@ class AnimateCurrent(Anim):
 
 
     def _plot_frame_figure(self, frame_number):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         # Erase the prior frame's streamplot before streamplotting this frame.
         self.ax.patches = []
@@ -250,9 +258,6 @@ class AnimateCurrent(Anim):
         # Streamplot and meshplot the Jmag_M data series for this frame.
         Jmag_M = self._streamplot_jmag_m(frame_number)
         self.meshplot.set_data(Jmag_M)
-
-        # Reset colormap range.
-        self.meshplot.set_clim(self.clrMin, self.clrMax)
 
 
     #FIXME: I have no idea what Jmag_M actually is. The magnitude of...
@@ -289,9 +294,9 @@ class AnimateCurrent(Anim):
             arrowsize=1.5,
         )
 
-        # Set colormap range.
+        # Rescale the colorbar range if desired.
         if self.clrAutoscale is True:
-            self.clrMin = np.min(Jmag_M)  # 0
+            self.clrMin = np.min(Jmag_M)
             self.clrMax = np.max(Jmag_M)
 
         return Jmag_M
@@ -331,6 +336,7 @@ class AnimateGJData(Anim):
 
         # Data array for gap junction coloring.
         self.zdata_t = self.sim.gjopen_time
+
         if self.p.gj_flux_sensitive is True:
             max_zdata = self.p.max_gj_enhancement
         else:
@@ -363,7 +369,7 @@ class AnimateGJData(Anim):
             self.coll2, self.ax = cell_mesh(
                 data_set, self.ax, self.cells, self.p, self.colormap)
 
-        # Set colormap range.
+        # Autoscale the colorbar range if desired.
         if self.clrAutoscale is True:
             #FIXME: See above.
             # first flatten the data (needed in case cells were cut)
@@ -391,6 +397,7 @@ class AnimateGJData(Anim):
 
 
     def _plot_frame_figure(self, frame_number):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         zz = self.zdata_t[frame_number]
         self.collection.set_array(zz)
@@ -409,147 +416,147 @@ class AnimateGJData(Anim):
         self.coll2.set_array(zz_grid)
 
 
-class AnimateField(object):
-# class AnimateField(Anim):
+class AnimateField(Anim):
+    '''
+    Animation of the electric field over either intra- or extracellular spaces
+    plotted on the current cell cluster.
+
+    Attributes
+    ----------
+    _Fx_time : list
+        List of all electric field strength X components indexed by
+        simulation time.
+    _Fy_time : list
+        List of all electric field strength Y components indexed by
+        simulation time.
+    _is_ecm : bool
+        `True` if plotting the electric field over extracellular spaces;
+        `True` if plotting the electric field over intracellular spaces.
+    '''
 
     def __init__(
         self,
-        Fx,
-        Fy,
-        sim,
-        cells,
-        p,
-        ani_repeat=True,
-        save=True,
-        saveFolder='animation/',
-        saveFile='Field_',
-        plot_ecm=False,
-        title="Final Field in ",
-        cb_title="Force [N]",
-        colorAutoscale=True,
-        colorMin=None,
-        colorMax=None,
-    ):
+        Fx_time: list,
+        Fy_time: list,
+        figure_title: str,
+        colorbar_title: str,
+        is_ecm: bool,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
 
-        self.fig = plt.figure()
-        self.ax = plt.subplot(111)
-        self.p = p
-        self.Fx_time = Fx
-        self.Fy_time = Fy
-        self.sim = sim
-        self.cells = cells
-        self.save = save
-        self.plot_ecm = plot_ecm
+        Parameters
+        ----------
+        Fx_time : list
+            List of all electric field strength X components indexed by
+            simulation time.
+        Fy_time : list
+            List of all electric field strength Y components indexed by
+            simulation time.
+        is_ecm : bool
+            `True` if plotting the electric field over extracellular spaces;
+            `True` if plotting the electric field over intracellular spaces.
 
-        self.title_piece = title
-        self.cb_label = cb_title
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(Fx_time), (
+            types.assert_not_sequence_nonstr(Fx_time))
+        assert types.is_sequence_nonstr(Fy_time), (
+            types.assert_not_sequence_nonstr(Fy_time))
+        assert types.is_bool(is_ecm), types.assert_not_bool(is_ecm)
 
-        self.colorAutoscale = colorAutoscale
-        self.colorMin = colorMin
-        self.colorMax = colorMax
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(*args, **kwargs)
 
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
+        # Classify all remaining parameters.
+        self._Fx_time = Fx_time
+        self._Fy_time = Fy_time
+        self._is_ecm = is_ecm
 
-        if self.save is True:
-            _setup_file_saving(self,p)
+        self.colormap = self.p.background_cm
+        efield_mag = np.sqrt(Fx_time[-1]**2 + Fy_time[-1]**2)
 
-        if p.sim_ECM is True and plot_ecm is True:
-            efield_mag = np.sqrt(Fx[-1]**2 + Fy[-1]**2)
+        if is_ecm is True:
+            if self.p.sim_ECM is False:
+                raise BetseExceptionParameters(
+                    'Electric field animation "{}" plotted over '
+                    'extracellular spaces, but '
+                    'extracellular spaces are disabled by the '
+                    'current simulation configuration.'.format(
+                    self._type))
 
+            figure_title_scope = 'Extra'
             self.msh, self.ax = env_mesh(
-                efield_mag, self.ax, cells, p, p.background_cm,
+                efield_mag, self.ax, self.cells, self.p, self.colormap,
                 ignore_showCells=True)
-            self.streamE, self.ax = env_quiver(Fx[-1],Fy[-1],self.ax,cells,p)
-            tit_extra = 'Extracellular'
-
-        elif plot_ecm is False:
-            efield_mag = np.sqrt(Fx[-1]**2 + Fy[-1]**2)
-
+            self.streamE, self.ax = env_quiver(
+                Fx_time[-1], Fy_time[-1], self.ax, self.cells, self.p)
+        else:
+            figure_title_scope = 'Intra'
             self.msh, self.ax = cell_mesh(
-                efield_mag, self.ax, cells, p, p.background_cm)
+                efield_mag, self.ax, self.cells, self.p, self.colormap)
             self.streamE, self.ax = cell_quiver(
-                Fx[-1], Fy[-1], self.ax, cells, p)
-            tit_extra = 'Intracellular'
+                Fx_time[-1], Fy_time[-1], self.ax, self.cells, self.p)
 
-        self.ax.axis('equal')
+        # Autoscale the colorbar range if desired.
+        if self.clrAutoscale is True:
+            self.clrMin = np.min(efield_mag)
+            self.clrMax = np.max(efield_mag)
 
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if colorAutoscale is False:
-            self.msh.set_clim(colorMin,colorMax)
-
-        self.tit = self.title_piece + ' ' + tit_extra + ' Spaces'
-        self.ax.set_title(self.tit)
-        self.ax.set_xlabel('Spatial distance [um]')
-        self.ax.set_ylabel('Spatial distance [um]')
-
-        cb = self.fig.colorbar(self.msh)
-        cb.set_label(self.cb_label)
-
-        self.frames = len(sim.time)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        _handle_plot(p)
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self.sim.time),
+            figure_title='{}cellular Spaces {}'.format(
+                figure_title_scope, figure_title),
+            colorbar_title=colorbar_title,
+            colorbar_mapping=self.msh,
+            axes_x_label='Spatial distance [um]',
+            axes_y_label='Spatial distance [um]',
+        )
 
 
-    def aniFunc(self,i):
+    def _plot_frame_figure(self, frame_number):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
-        self.ax.set_title(titani)
+        if self.p.sim_ECM is True and self._is_ecm is True:
+            E_x = self._Fx_time[frame_number]
+            E_y = self._Fy_time[frame_number]
 
-        if self.p.sim_ECM is True and self.plot_ecm is True:
-            E_x = self.Fx_time[i]
-            E_y = self.Fy_time[i]
+            efield_mag = np.sqrt(E_x**2 + E_y**2)
+            self.msh.set_data(efield_mag)
 
-            efield = np.sqrt(E_x**2 + E_y**2)
+            if efield_mag.max() != 0.0:
+                E_x = E_x/efield_mag.max()
+                E_y = E_y/efield_mag.max()
 
-            self.msh.set_data(efield)
+            self.streamE.set_UVC(E_x, E_y)
 
-            if efield.max() != 0.0:
-                E_x = E_x/efield.max()
-                E_y = E_y/efield.max()
-
-            self.streamE.set_UVC(E_x,E_y)
-
-        elif self.plot_ecm is False:
-            E_gj_x = self.Fx_time[i]
-            E_gj_y = self.Fy_time[i]
+        else:
+            E_gj_x = self._Fx_time[frame_number]
+            E_gj_y = self._Fy_time[frame_number]
 
             if len(E_gj_x) != len(self.cells.cell_i):
-                E_gj_x = np.dot(self.cells.M_sum_mems,E_gj_x)/self.cells.num_mems
-                E_gj_y = np.dot(self.cells.M_sum_mems,E_gj_y)/self.cells.num_mems
+                E_gj_x = (
+                    np.dot(self.cells.M_sum_mems, E_gj_x)/self.cells.num_mems)
+                E_gj_y = (
+                    np.dot(self.cells.M_sum_mems, E_gj_y)/self.cells.num_mems)
 
-            efield = np.sqrt(E_gj_x**2 + E_gj_y**2)
-
+            efield_mag = np.sqrt(E_gj_x**2 + E_gj_y**2)
             emag_grid = np.zeros(len(self.cells.voronoi_centres))
-            emag_grid[self.cells.cell_to_grid] = efield
-
+            emag_grid[self.cells.cell_to_grid] = efield_mag
             self.msh.set_array(emag_grid)
 
-            if efield.all() != 0.0:
+            if efield_mag.all() != 0.0:
+                E_gj_x = E_gj_x/efield_mag
+                E_gj_y = E_gj_y/efield_mag
 
-                E_gj_x = E_gj_x/efield
-                E_gj_y = E_gj_y/efield
+            self.streamE.set_UVC(E_gj_x, E_gj_y)
 
-            self.streamE.set_UVC(E_gj_x,E_gj_y)
-
-        cmax = np.max(efield)
-
-        if self.colorAutoscale is True:
-            self.msh.set_clim(0,cmax)
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
+        # Rescale the colorbar range if desired.
+        if self.clrAutoscale is True:
+            self.clrMin = np.min(efield_mag)
+            self.clrMax = np.max(efield_mag)
 
 
 class AnimateVelocity(object):

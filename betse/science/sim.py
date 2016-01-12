@@ -3817,6 +3817,10 @@ class Simulator(object):
 
             self.checkPlot.resetData(cells,self,p)
 
+
+#FIXME: No biggie, but it'd be awesome if the following helper functions could
+#be shifted to appropriate toolbox modules. I don't use folding, so navigating
+#this module is a bit... intimidating! Galloping rhinoes on the plains of love!
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """

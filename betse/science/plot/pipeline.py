@@ -7,7 +7,7 @@ High-level facilities for plotting all enabled plots and animations.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, time
+import os
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
@@ -63,7 +63,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.sim_ECM is True:
         plot_cell_ecm = cells.cell_to_mems[p.plot_cell][0]  # convert from cell to mem index
-
     else:
         plot_cell_ecm = p.plot_cell
 
@@ -74,9 +73,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #               SINGLE CELL DATA GRAPHS
     #-------------------------------------------------------------------------------------------------------------------
 
-    # plot-cell sodium concentration vs time:
-
     if p.plot_single_cell_graphs is True:
+        # Plot cell sodium concentration versus time.
         figConcsNa, axConcsNa = viz.plotSingleCellCData(
             sim.cc_time, sim.time, sim.iNa, p.plot_cell, fig=None,
             ax=None, lncolor='g', ionname='Na+')
@@ -88,11 +86,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             savename1 = savedImg + 'concNa_time' + '.png'
             plt.savefig(savename1, dpi=300, format='png', transparent=True)
 
-    # plot-cell potassium concentration vs time:
-
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+        # Plot cell potassium concentration versus time.
         figConcsK, axConcsK = viz.plotSingleCellCData(
             sim.cc_time, sim.time, sim.iK, p.plot_cell, fig=None,
             ax=None, lncolor='b', ionname='K+')
@@ -1013,39 +1010,40 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #---------Animations---------------------------------------------------------------------------------------
 
     if p.ani_ip32d is True and p.Ca_dyn is True and p.createAnimations is True:
+        #FIXME: Out of curiosity, what's the scaling by 10**3 about? We only
+        #appear to do this for animations. Is this similar to our use of "p.um"
+        #to scale by 10**6, only for mm (millimeters) instead? Big smiley face!
         IP3plotting = np.asarray(sim.cIP3_time)
-        IP3plotting = np.multiply(IP3plotting,1e3)
+        IP3plotting = np.multiply(IP3plotting, 1e3)
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=IP3plotting,
+            zdata_time=IP3plotting,
+            is_current_overlay=p.I_overlay,
             type='IP3',
             figure_title='IP3 concentration',
             colorbar_title='Concentration [umol/L]',
             clrAutoscale=p.autoscale_IP3_ani,
             clrMin=p.IP3_ani_min_clr,
             clrMax=p.IP3_ani_max_clr,
-            ignore_simECM=True,
-            current_overlay=p.I_overlay,
         )
 
-    if p.ani_dye2d is True and p.voltage_dye == 1 and \
-       p.createAnimations is True:
+    if (p.ani_dye2d is True and p.voltage_dye == 1 and
+        p.createAnimations is True):
 
         if p.sim_ECM is False:
             Dyeplotting = np.asarray(sim.cDye_time)
-            Dyeplotting = np.multiply(Dyeplotting,1e3)
+            Dyeplotting = np.multiply(Dyeplotting, 1e3)
 
             AnimateCellData(
                 sim=sim, cells=cells, p=p,
-                zdata_t=Dyeplotting,
+                zdata_time=Dyeplotting,
                 type='Morphogen',
                 figure_title='Morphogen Concentration',
                 colorbar_title='Concentration [umol/L]',
                 clrAutoscale=p.autoscale_Dye_ani,
                 clrMin=p.Dye_ani_min_clr,
                 clrMax=p.Dye_ani_max_clr,
-                ignore_simECM=True,
             )
 
         else:
@@ -1070,51 +1068,51 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             dyeEnv_at_cell = [np.dot(cells.M_sum_mems,arr)/cells.num_mems for arr in dyeEnv_at_mem]
             # get values for cell at each timestep, scaled to umol/L concentration
             dyeCell = [arr*1e3 for arr in sim.cDye_time]
-            # average the dye at location for each timestep
-            dye_ave_t = [(arr_env + arr_cell)/2 for (arr_env, arr_cell) in zip(dyeEnv_at_cell,dyeCell)]
 
-            AnimateCellData(sim=sim, cells=cells,p=p,
-                zdata_t=dye_ave_t,
+            # Average the dye at location for each timestep.
+            dye_ave_t = [
+                (arr_env + arr_cell)/2
+                for (arr_env, arr_cell) in zip(dyeEnv_at_cell, dyeCell)]
+
+            AnimateCellData(
+                sim=sim, cells=cells, p=p,
+                zdata_time=dye_ave_t,
                 type='Morphogen Average',
                 figure_title='Average Morphogen Concentration',
-                colorbar_title= 'Concentration [umol/L]',
-                clrAutoscale = p.autoscale_Dye_ani,
-                clrMin = p.Dye_ani_min_clr,
-                clrMax = p.Dye_ani_max_clr,
-                ignore_simECM = True,
-                )
+                colorbar_title='Concentration [umol/L]',
+                clrAutoscale=p.autoscale_Dye_ani,
+                clrMin=p.Dye_ani_min_clr,
+                clrMax=p.Dye_ani_max_clr,
+            )
 
-
-    if p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and \
-       p.createAnimations is True:
+    if (p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and
+        p.createAnimations is True):
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=tCa,
+            zdata_time=tCa,
             type='Ca',
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            ignore_simECM=True,
         )
 
-    if p.ani_pH2d is True and p.ions_dict['H'] == 1 and \
-       p.createAnimations is True:
+    if (p.ani_pH2d is True and p.ions_dict['H'] == 1 and
+        p.createAnimations is True):
         tpH = [-np.log10(arr[sim.iH]) for arr in sim.cc_time]
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=tpH,
+            zdata_time=tpH,
             type='pH',
             figure_title='Cytosolic pH',
             colorbar_title='pH',
             clrAutoscale=p.autoscale_Ca_ani,
             clrMin=p.Ca_ani_min_clr,
             clrMax=p.Ca_ani_max_clr,
-            ignore_simECM=True,
         )
 
     if p.ani_vm2d is True and p.createAnimations is True:
@@ -1125,15 +1123,15 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=vmplt,
+            zdata_time=vmplt,
+            is_ecm_ignored=False,
+            is_current_overlay=p.I_overlay,
             type='Vmem',
             figure_title='Cell Vmem',
             colorbar_title='Voltage [mV]',
             clrAutoscale=p.autoscale_Vmem_ani,
             clrMin=p.Vmem_ani_min_clr,
             clrMax=p.Vmem_ani_max_clr,
-            current_overlay=p.I_overlay,
-            ignore_simECM=False,
         )
 
     if p.ani_vmgj2d is True and p.createAnimations is True:
@@ -1147,20 +1145,20 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             clrMax=p.Vgj_ani_max_clr,
         )
 
-    if p.ani_vcell is True and p.createAnimations is True and p.sim_ECM == 1:
+    if (p.ani_vcell is True and p.createAnimations is True and
+        p.sim_ECM is True):
         vcellplt = [1000*arr for arr in sim.vcell_time]
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=vcellplt,
+            zdata_time=vcellplt,
+            is_current_overlay=p.I_overlay,
             type='vcell',
             figure_title='V in cell',
             colorbar_title='Voltage [mV]',
             clrAutoscale=p.autoscale_vcell_ani,
             clrMin=p.vcell_ani_min_clr,
             clrMax=p.vcell_ani_max_clr,
-            ignore_simECM=True,
-            current_overlay=p.I_overlay,
         )
 
     if p.ani_I is True and p.createAnimations is True:
@@ -1168,7 +1166,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             sim=sim, cells=cells, p=p,
             type='current_gj',
             is_gj_current_only=True,
-            current_overlay=p.I_overlay,
             clrAutoscale=p.autoscale_I_ani,
             clrMin=p.I_ani_min_clr,
             clrMax=p.I_ani_max_clr,
@@ -1179,91 +1176,91 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 sim=sim, cells=cells, p=p,
                 type='current_ecm',
                 is_gj_current_only=False,
-                current_overlay=p.I_overlay,
                 clrAutoscale=p.autoscale_I_ani,
                 clrMin=p.I_ani_min_clr,
                 clrMax=p.I_ani_max_clr,
             )
 
     if p.ani_Efield is True and p.createAnimations is True:
-        Ex_gj = sim.efield_gj_x_time
-        Ey_gj = sim.efield_gj_y_time
-
+        # Always plot the gap junction electric field.
         AnimateField(
-            Ex_gj,Ey_gj,sim,cells,p,
+            sim=sim, cells=cells, p=p,
+            Fx_time=sim.efield_gj_x_time,
+            Fy_time=sim.efield_gj_y_time,
+            is_ecm=False,
+            type='Efield_gj',
+            figure_title='Electric Field',
+            colorbar_title='Electric Field [V/m]',
+            clrAutoscale=p.autoscale_Efield_ani,
+            clrMin=p.Efield_ani_min_clr,
+            clrMax=p.Efield_ani_max_clr,
+        )
+
+        # Also plot the extracellular spaces electric field if desired.
+        if p.sim_ECM is True:
+            AnimateField(
+                sim=sim, cells=cells, p=p,
+                Fx_time=sim.efield_ecm_x_time,
+                Fy_time=sim.efield_ecm_y_time,
+                is_ecm=True,
+                type='Efield_ecm',
+                figure_title='Electric Field',
+                colorbar_title='Electric Field [V/m]',
+                clrAutoscale=p.autoscale_Efield_ani,
+                clrMin=p.Efield_ani_min_clr,
+                clrMax=p.Efield_ani_max_clr,
+            )
+
+    if (p.ani_Velocity is True and p.fluid_flow is True and
+        p.deform_electro is True and p.createAnimations is True and
+        sim.run_sim is True):
+
+        AnimateVelocity(
+            sim, cells, p,
             ani_repeat=True,
             save=p.saveAnimations,
-            plot_ecm=False,
-            title="Electric Field",
-            cb_title="Electric Field [V/m]",
-            colorAutoscale=p.autoscale_Efield_ani,
-            colorMin=p.Efield_ani_min_clr,
-            colorMax=p.Efield_ani_max_clr,
-            saveFolder='animation/Efield',
-            saveFile='Efield_',
+            vtype='GJ',
         )
 
         if p.sim_ECM is True:
-
-            Ex_ecm = sim.efield_ecm_x_time
-            Ey_ecm = sim.efield_ecm_y_time
-
-            AnimateField(
-                Ex_ecm,Ey_ecm,sim,cells,p,
+            AnimateVelocity(
+                sim, cells, p,
                 ani_repeat=True,
                 save=p.saveAnimations,
-                plot_ecm=True,
-                title="Electric Field",
-                cb_title="Electric Field [V/m]",
-                colorAutoscale=p.autoscale_Efield_ani,
-                colorMin=p.Efield_ani_min_clr,
-                colorMax=p.Efield_ani_max_clr,
-                saveFolder='animation/Efield',
-                saveFile='Efield_',
+                vtype='ECM',
             )
-
-    if p.ani_Velocity is True and p.fluid_flow is True and \
-       p.deform_electro is True and p.createAnimations is True and sim.run_sim is True:
-
-        AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations, vtype = 'GJ')
-
-        if p.sim_ECM is True:
-
-            AnimateVelocity(sim, cells, p, ani_repeat=True, save=p.saveAnimations, vtype = 'ECM')
 
     if p.ani_Deformation is True and p.deformation is True and \
        p.createAnimations is True and sim.run_sim is True:
         AnimateDeformation(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
 
 
-    if p.ani_Pcell is True and p.deform_osmo is True and \
-       p.createAnimations is True:
+    if (p.ani_Pcell is True and p.deform_osmo is True and
+        p.createAnimations is True):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=sim.P_cells_time,
+            zdata_time=sim.P_cells_time,
+            is_current_overlay=p.I_overlay,
             type='Pcell',
             figure_title='Hydrostatic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            ignore_simECM=True,
-            current_overlay=p.I_overlay,
         )
 
-    if p.ani_Pcell is True and p.createAnimations is True and \
-       p.deform_osmo is True:
+    if (p.ani_Pcell is True and p.createAnimations is True and
+        p.deform_osmo is True):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_t=sim.osmo_P_delta_time,
+            zdata_time=sim.osmo_P_delta_time,
+            is_current_overlay=p.I_overlay,
             type='OsmoP',
             figure_title='Osmotic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
             clrAutoscale=p.autoscale_Pcell_ani,
             clrMin=p.Pcell_ani_min_clr,
             clrMax=p.Pcell_ani_max_clr,
-            ignore_simECM=True,
-            current_overlay=p.I_overlay,
         )
 
     if p.ani_force is True and p.createAnimations is True:
@@ -1272,17 +1269,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             FEy = [(1/p.um)*arr for arr in sim.F_electro_y_time]
 
             AnimateField(
-                FEx,FEy,sim,cells,p,
-                ani_repeat=True,
-                save=p.saveAnimations,
-                plot_ecm=False,
-                title="Electrostatic Body Force",
-                cb_title="Force [N/cm3]",
-                colorAutoscale=p.autoscale_force_ani,
-                colorMin=p.force_ani_min_clr,
-                colorMax=p.force_ani_max_clr,
-                saveFolder='animation/ElectrostaticFfield',
-                saveFile='EFfield_',
+                sim=sim, cells=cells, p=p,
+                Fx_time=FEx,
+                Fy_time=FEy,
+                is_ecm=False,
+                type='ElectrostaticFfield',
+                figure_title='Electrostatic Body Force',
+                colorbar_title='Force [N/cm3]',
+                clrAutoscale=p.autoscale_force_ani,
+                clrMin=p.force_ani_min_clr,
+                clrMax=p.force_ani_max_clr,
             )
 
         if p.deform_osmo is True:
@@ -1290,17 +1286,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             FHy = [(1/p.um)*arr for arr in sim.F_hydro_y_time]
 
             AnimateField(
-                FHx,FHy,sim,cells,p,
-                ani_repeat=True,
-                save=p.saveAnimations,
-                plot_ecm=False,
-                title="Hydrostatic Body Force",
-                cb_title="Force [N/cm3]",
-                colorAutoscale=p.autoscale_force_ani,
-                colorMin=p.force_ani_min_clr,
-                colorMax=p.force_ani_max_clr,
-                saveFolder='animation/HydroFfield',
-                saveFile='OFfield_',
+                sim=sim, cells=cells, p=p,
+                Fx_time=FHx,
+                Fy_time=FHy,
+                is_ecm=False,
+                type='HydroFfield',
+                figure_title='Hydrostatic Body Force',
+                colorbar_title='Force [N/cm3]',
+                clrAutoscale=p.autoscale_force_ani,
+                clrMin=p.force_ani_min_clr,
+                clrMax=p.force_ani_max_clr,
             )
 
     if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:

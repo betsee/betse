@@ -933,13 +933,13 @@ results options:
   
     Efield Ani:
       animate Efield: True        # 2d animation of electric field in extracellullar matrix
-      autoscale colorbar: True    # autoscale colorbar to min max of datat set?
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 1500               # max colorbar value [V/m]
       min val: 0                  # min colorbar value [V/m]
   
     Velocity Ani:
       animate Velocity: True        # 2d animation of electric field in extracellullar matrix
-      autoscale colorbar: True    # autoscale colorbar to min max of datat set?
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 500               # max colorbar value [V/m]
       min val: 0                  # min colorbar value [V/m]
   
@@ -947,7 +947,7 @@ results options:
       animate Deformation: True        # 2d animation of electric field in extracellullar matrix
       data type: Displacement                  # data type can be 'Vmem' or 'Displacement'
       style: streamline            # plot 'streamline' or 'vector' displacements
-      autoscale colorbar: True    # autoscale colorbar to min max of datat set?
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 10               # max colorbar value [um] when autoscale is False
       min val: 0                  # min colorbar value [um] when autoscale is False
   

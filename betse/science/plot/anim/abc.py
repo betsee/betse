@@ -59,6 +59,9 @@ class Anim(object, metaclass=ABCMeta):
     _anim : FuncAnimation
         Low-level Matplotlib animation object instantiated by this high-level
         BETSE wrapper object.
+    _colorbar_mapping : object
+        The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
+        animation's colorbar applies.
     _is_saving_plotted_frames : bool
         `True` if both saving and displaying animation frames _or_ `False`
         otherwise.
@@ -167,6 +170,7 @@ class Anim(object, metaclass=ABCMeta):
 
         # Classify private attributes to be subsequently defined.
         self._axes_title = None
+        self._colorbar_mapping = None
         self._writer_frames = None
         self._writer_video = None
 
@@ -315,6 +319,9 @@ class Anim(object, metaclass=ABCMeta):
         assert types.is_str_nonempty(axes_y_label), (
             types.assert_not_str_nonempty(axes_y_label, 'Y axis label'))
 
+        # Classify passed parameters.
+        self._colorbar_mapping = colorbar_mapping
+
         # If labelling each plotted cell with that cell's unique 0-based index,
         # do so.
         if self.p.enumerate_cells is True:
@@ -462,6 +469,11 @@ class Anim(object, metaclass=ABCMeta):
 
         # Plot this frame onto this animation's figure.
         self._plot_frame_figure(frame_number)
+
+        # If the above call to the subclass _plot_frame_figure() method modified
+        # either the minimum or maximum colorbar values, rescale the colorbar;
+        # else, noop.
+        self._colorbar_mapping.set_clim(self.clrMin, self.clrMax)
 
         # Update this figure with the current time, rounded to three decimal
         # places for readability.
