@@ -11,6 +11,10 @@ A number of functions used to save and load worlds and simulations.
 import pickle
 from scipy import interpolate as interp
 
+#FIXME: For both space and time efficiency, we should be using "pickle" protocol
+#4 introduced with Python 3.4. That, in turn, suggests we mandate use of Python
+#3.4 in BETSE. See also:
+#    https://docs.python.org/3/library/pickle.html#data-stream-format
 
 #FIXME: For orthogonality, this function should probably be refactored to accept
 #the same objects in the same order returned by the save functions below: e.g.,
@@ -18,7 +22,7 @@ from scipy import interpolate as interp
 #    def saveSim(savePath, sim, cells, p):
 #       with open(savePath, 'wb') as f:
 #           pickle.dump((sim, cells, p), f)
-def saveSim(savePath,datadump):
+def saveSim(savePath, datadump):
     with open(savePath, 'wb') as f:
         pickle.dump(datadump, f)
 
@@ -49,10 +53,22 @@ def loadWorld(loadPath):
     return cells,_
 
 
+#FIXME: This definitely works, but it's not quite ideal. Ideally, every object
+#attribute should be pickled as is. There appear to be a number of solutions,
+#each with corresponding tradeoffs:
+#
+#1. Implement the __getstate__() and __setstate__() methods in the "Cells",
+#   "Parameters", and "Simulator" classes -- perhaps by inheriting a superclass
+#   defining these methods. These methods would need to convert unpicklable to
+#   picklable attributes (e.g., strings). See also:
+#   https://docs.python.org/3/library/pickle.html#pickling-class-instances
+#2. Use a third-party library instead of the built-in pickle functionality.
+#   Alternatives supporting pickling of at least lambda functions include
+#   "picloud" and "dill".
 def safe_pickle(sim, p):
     """
     Removes interpolation functions, colormaps and lambda functions
-    to make the simulator object pickle-able
+    to make the simulator object pickle-able.
     """
 
     for key, valu in vars(sim).items():

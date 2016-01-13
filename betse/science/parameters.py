@@ -92,7 +92,6 @@ class Parameters(object):
 
         self.fixed_cluster_bound = self.config['variable settings']['flow and deformation']['fixed cluster boundary']
 
-
         self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
 
         # calculate lame's parameters from young mod and the poisson ratio:

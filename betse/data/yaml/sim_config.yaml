@@ -195,16 +195,13 @@ world options:
                               # square grid is created.
 
   fluid flow:
-
-    include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
+      include fluid flow: True     # calculate fluid flow between cells and in extracellular environment?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
-
-    turn on: False        # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
+      turn on: False        # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
 
   deformation:
-
-    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+      turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE DESIGNATION
@@ -604,23 +601,22 @@ variable settings:
                               # options True or False (case sensitive)
 
   flow and deformation:
+      water viscocity: 1e-2      # viscocity of water [Pa s] (applies to ease of flow)
 
-    water viscocity: 1e-2      # viscocity of water [Pa s] (applies to ease of flow)
+      include osmotic pressure: False    # include osmotic pressure in flow & deformation?
 
-    include osmotic pressure: False    # include osmotic pressure in flow & deformation?
+      include electrostatic pressure: True   # include electrostatic pressure in flow and deformation?
 
-    include electrostatic pressure: False   # include electrostatic pressure in flow and deformation?
+      membrane water conductivity: 1e-10   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
 
-    membrane water conductivity: 1e-10   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
+      viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
 
-    viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
+      fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
 
-    fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
+      young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
 
-    young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
-
-    time dependent deformation: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
-                            # upon simulation, will check for appropriate world size and time set for your parameters.
+      time dependent deformation: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
+                              # upon simulation, will check for appropriate world size and time set for your parameters.
 
 
   channel electroosmosis:
@@ -884,64 +880,68 @@ results options:
       min val: 0                    # minimum colorbar value in umol/L
   
     Vmem GJ Ani:
-      animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 50.0                # maximum colorbar value in mV
-      min val: -70.0               # minimum colorbar value in mV
+        animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 50.0                # maximum colorbar value in mV
+        min val: -70.0               # minimum colorbar value in mV
   
     Vcell Ani:
-      animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
+        animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+        autoscale colorbar: True     # autoscale colorbar to min max of data set?
+        max val: 10                  # maximum colorbar value in mV
+        min val: -70                 # minimum colorbar value in mV
   
     Venv Ani:
-      animate Venv: True           # 2d animation of voltage in individual cells of the collective?
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
+        animate Venv: True           # 2d animation of voltage in individual cells of the collective?
+        autoscale colorbar: True     # autoscale colorbar to min max of data set?
+        max val: 10                  # maximum colorbar value in mV
+        min val: -70                 # minimum colorbar value in mV
   
     P cell Ani:
-      animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
+        animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+        autoscale colorbar: True     # autoscale colorbar to min max of data set?
+        max val: 10                  # maximum colorbar value in mV
+        min val: -70                 # minimum colorbar value in mV
   
     Osmotic P Ani:
-      animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
+        animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
+        autoscale colorbar: True     # autoscale colorbar to min max of data set?
+        max val: 10                  # maximum colorbar value in mV
+        min val: -70                 # minimum colorbar value in mV
   
     Force Ani:
-      animate force: True         # 2d animation of body forces in individual cells of the collective?
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 100                  # maximum colorbar value in N/m3
-      min val: 0                 # minimum colorbar value in N/m3
+        animate force: True         # 2d animation of body forces in individual cells of the collective?
+        autoscale colorbar: True     # autoscale colorbar to min max of data set?
+        max val: 100                  # maximum colorbar value in N/m3
+        min val: 0                 # minimum colorbar value in N/m3
   
     Current Ani:
-      animate current: True       # 2d animation of current in individual cells of the collective?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 150                # maximum colorbar value [pA]
-      min val: 0                  # minimum colorbar value [pA]
+        animate current: True       # 2d animation of current in individual cells of the collective?
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 150                # maximum colorbar value [pA]
+        min val: 0                  # minimum colorbar value [pA]
   
     Membrane Ani:
-      animate Membrane: True       # 2d animation of membrane pump motion?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 1                # maximum colorbar value [pA]
-      min val: 0                  # minimum colorbar value [pA]
+        animate Membrane: True       # 2d animation of membrane pump motion?
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 1                # maximum colorbar value [pA]
+        min val: 0                  # minimum colorbar value [pA]
   
     Efield Ani:
-      animate Efield: True        # 2d animation of electric field in extracellullar matrix
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 1500               # max colorbar value [V/m]
-      min val: 0                  # min colorbar value [V/m]
+        animate Efield: True        # 2d animation of electric field in extracellullar matrix
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 1500               # max colorbar value [V/m]
+        min val: 0                  # min colorbar value [V/m]
   
     Velocity Ani:
-      animate Velocity: True        # 2d animation of electric field in extracellullar matrix
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 500               # max colorbar value [V/m]
-      min val: 0                  # min colorbar value [V/m]
+        animate Velocity: True      # 2D animation of fluid velocity in
+                                    # extracellullar matrix. Even if True, this
+                                    # will be ignored unless both
+                                    # "include fluid flow" and
+                                    # "include electrostatic pressure" are True.
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 500               # max colorbar value [V/m]
+        min val: 0                  # min colorbar value [V/m]
   
     Deformation Ani:
       animate Deformation: True        # 2d animation of electric field in extracellullar matrix

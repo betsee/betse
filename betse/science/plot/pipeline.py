@@ -945,9 +945,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             plt.show(block=False)
 
         if p.sim_ECM is True:
-            viz.plotStreamField((1e9)*sim.u_env_x,(1e9)*sim.u_env_y,cells,p,plot_ecm = True,
-                title='Final Fluid Velocity in Cell Collective', cb_title = 'Velocity [nm/s]',
-                colorAutoscale = p.autoscale_Vel,minColor = p.Vel_min_clr,maxColor = p.Vel_max_clr)
+            viz.plotStreamField(
+                (1e9)*sim.u_env_x,
+                (1e9)*sim.u_env_y,
+                cells, p, plot_ecm=True,
+                title='Final Fluid Velocity in Cell Collective',
+                cb_title='Velocity [nm/s]',
+                colorAutoscale=p.autoscale_Vel,
+                minColor=p.Vel_min_clr,
+                maxColor=p.Vel_max_clr,
+            )
 
             if p.autosave is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
@@ -1182,7 +1189,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             )
 
     if p.ani_Efield is True and p.createAnimations is True:
-        # Always plot the gap junction electric field.
+        # Always animate the gap junction electric field.
         AnimateField(
             sim=sim, cells=cells, p=p,
             Fx_time=sim.efield_gj_x_time,
@@ -1196,7 +1203,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             clrMax=p.Efield_ani_max_clr,
         )
 
-        # Also plot the extracellular spaces electric field if desired.
+        # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
             AnimateField(
                 sim=sim, cells=cells, p=p,
@@ -1214,26 +1221,38 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if (p.ani_Velocity is True and p.fluid_flow is True and
         p.deform_electro is True and p.createAnimations is True and
         sim.run_sim is True):
-
+        # Always animate the gap junction fluid velocity.
         AnimateVelocity(
+            sim=sim, cells=cells, p=p,
+            vtype='GJ',
+            type='Velocity_gj',
+            figure_title='Fluid Velocity',
+            colorbar_title='Fluid Velocity [nm/s]',
+            clrAutoscale=p.autoscale_Velocity_ani,
+            clrMin=p.Velocity_ani_min_clr,
+            clrMax=p.Velocity_ani_max_clr,
+        )
+
+        # Also animate the extracellular spaces fluid velocity if desired.
+        if p.sim_ECM is True:
+            AnimateVelocity(
+                sim=sim, cells=cells, p=p,
+                vtype='ECM',
+                type='Velocity_ecm',
+                figure_title='Fluid Velocity',
+                colorbar_title='Fluid Velocity [nm/s]',
+                clrAutoscale=p.autoscale_Velocity_ani,
+                clrMin=p.Velocity_ani_min_clr,
+                clrMax=p.Velocity_ani_max_clr,
+            )
+
+    if (p.ani_Deformation is True and p.deformation is True and
+        p.createAnimations is True and sim.run_sim is True):
+        AnimateDeformation(
             sim, cells, p,
             ani_repeat=True,
             save=p.saveAnimations,
-            vtype='GJ',
         )
-
-        if p.sim_ECM is True:
-            AnimateVelocity(
-                sim, cells, p,
-                ani_repeat=True,
-                save=p.saveAnimations,
-                vtype='ECM',
-            )
-
-    if p.ani_Deformation is True and p.deformation is True and \
-       p.createAnimations is True and sim.run_sim is True:
-        AnimateDeformation(sim, cells, p, ani_repeat=True, save=p.saveAnimations)
-
 
     if (p.ani_Pcell is True and p.deform_osmo is True and
         p.createAnimations is True):

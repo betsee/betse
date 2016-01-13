@@ -489,7 +489,6 @@ class Anim(object, metaclass=ABCMeta):
         # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
         # if self.p.saveAnimations is False:
         if self._is_saving_plotted_frames:
-            # print('Saving frame {}.'.format(frame_number))
             self._writer_frames.grab_frame()
 
 
