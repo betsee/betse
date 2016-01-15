@@ -6,6 +6,9 @@
 High-level facilities for plotting all enabled plots and animations.
 '''
 
+#FIXME: For safety, most "== 1"-style tests in this module should be converted
+#to "is True"-style tests instead.
+
 # ....................{ IMPORTS                            }....................
 import os
 import numpy as np
@@ -17,10 +20,12 @@ from betse.science.plot.anim.anim import (
     AnimateDeformation,
     AnimateDyeData,
     AnimateEnv,
-    AnimateField,
     AnimateGJData,
     AnimateMem,
-    AnimateVelocity,
+    AnimateFieldIntracellular,
+    AnimateFieldExtracellular,
+    AnimateVelocityIntracellular,
+    AnimateVelocityExtracellular,
 )
 from betse.util.io import loggers
 from matplotlib import pyplot as plt
@@ -581,7 +586,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.plot_dye2d is True and p.voltage_dye == 1:
         if p.sim_ECM is False:
-
             figVdye, axVdye, cbVdye = viz.plotPolyData(
                 sim, cells, p,
                 zdata=sim.cDye_time[-1]*1e3,
@@ -591,6 +595,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 clrMax=p.Dye_max_clr,
                 clrmap=p.default_cm,
             )
+
         else:
             # crazy dye plot
             figVdye = plt.figure()
@@ -613,11 +618,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             axVdye.axis('equal')
 
             # Add a colorbar for the PolyCollection
-            maxvala = np.max(dyeCell,axis=0)
-            maxvalb = np.max(dyeEnv,axis=0)
-            minvala = np.min(dyeCell,axis=0)
-            minvalb = np.min(dyeEnv,axis=0)
+            maxvala = np.max(dyeCell, axis=0)
+            maxvalb = np.max(dyeEnv,  axis=0)
+            minvala = np.min(dyeCell, axis=0)
+            minvalb = np.min(dyeEnv,  axis=0)
 
+            #FIXME: Consider using Python's built-in min() and max() functions.
+            #Zebras spotted like leotard-wearing leopards!
             if maxvala > maxvalb:
                 maxval = maxvala
             else:
@@ -629,13 +636,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 minval = minvalb
 
             if p.autoscale_Dye is True:
-                coll.set_clim(minval,maxval)
-                bkgPlot.set_clim(minval,maxval)
+                coll.set_clim(minval, maxval)
+                bkgPlot.set_clim(minval, maxval)
                 cbVdye = figVdye.colorbar(coll)
-
-            elif p.autoscale_Dye is False:
-                coll.set_clim(p.Dye_min_clr,p.Dye_max_clr)
-                bkgPlot.set_clim(p.Dye_min_clr,p.Dye_max_clr)
+            else:
+                coll.set_clim(p.Dye_min_clr, p.Dye_max_clr)
+                bkgPlot.set_clim(p.Dye_min_clr, p.Dye_max_clr)
                 cbVdye = figVdye.colorbar(coll)
 
             xmin = cells.xmin*p.um
@@ -659,15 +665,20 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # averaged dye plot:
         if p.sim_ECM is True:
-
             dyeEnv_at_mem = sim.cDye_env[cells.map_mem2ecm]*1e3  # sample the environmental dye at the membranes
             dyeEnv_at_cell = np.dot(cells.M_sum_mems,dyeEnv_at_mem)/cells.num_mems  # average the result to cell centres
             dyeCell = sim.cDye_cell*1e3
             dye_ave = (dyeEnv_at_cell + dyeCell)/2   # average the dye at location
 
-            figVdye_ave, axVdye_ave, cbVdye_ave = viz.plotPolyData(sim, cells,p,zdata=dye_ave,
-                number_cells=p.enumerate_cells,clrAutoscale = p.autoscale_Dye,
-                clrMin = p.Dye_min_clr, clrMax = p.Dye_max_clr, clrmap = p.default_cm)
+            figVdye_ave, axVdye_ave, cbVdye_ave = viz.plotPolyData(
+                sim, cells, p,
+                zdata=dye_ave,
+                number_cells=p.enumerate_cells,
+                clrAutoscale=p.autoscale_Dye,
+                clrMin=p.Dye_min_clr,
+                clrMax=p.Dye_max_clr,
+                clrmap=p.default_cm,
+            )
 
             axVdye_ave.set_title('Final Average Morphogen Concentration')
             axVdye_ave.set_xlabel('Spatial distance [um]')
@@ -924,7 +935,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if p.plot_Vel is True and p.fluid_flow is True and p.deform_electro is True and sim.run_sim is True:
+    if (p.plot_Vel is True and p.fluid_flow is True and
+        p.deform_electro is True and sim.run_sim is True):
         viz.plotStreamField(
             (1e9)*sim.u_cells_x,
             (1e9)*sim.u_cells_y,
@@ -1035,7 +1047,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             clrMax=p.IP3_ani_max_clr,
         )
 
-    if (p.ani_dye2d is True and p.voltage_dye == 1 and
+    if (p.ani_dye2d is True and p.voltage_dye is True and
         p.createAnimations is True):
 
         if p.sim_ECM is False:
@@ -1169,19 +1181,23 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         )
 
     if p.ani_I is True and p.createAnimations is True:
+        # Always animate the gap junction current.
         AnimateCurrent(
             sim=sim, cells=cells, p=p,
             type='current_gj',
+            figure_title='Gap Junction Current',
             is_gj_current_only=True,
             clrAutoscale=p.autoscale_I_ani,
             clrMin=p.I_ani_min_clr,
             clrMax=p.I_ani_max_clr,
         )
 
+        # Also animate the extracellular spaces current if desired.
         if p.sim_ECM is True:
             AnimateCurrent(
                 sim=sim, cells=cells, p=p,
                 type='current_ecm',
+                figure_title='Total Current',
                 is_gj_current_only=False,
                 clrAutoscale=p.autoscale_I_ani,
                 clrMin=p.I_ani_min_clr,
@@ -1190,13 +1206,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_Efield is True and p.createAnimations is True:
         # Always animate the gap junction electric field.
-        AnimateField(
+        AnimateFieldIntracellular(
             sim=sim, cells=cells, p=p,
             Fx_time=sim.efield_gj_x_time,
             Fy_time=sim.efield_gj_y_time,
-            is_ecm=False,
             type='Efield_gj',
-            figure_title='Electric Field',
+            figure_title='Gap Junction Electric Field',
             colorbar_title='Electric Field [V/m]',
             clrAutoscale=p.autoscale_Efield_ani,
             clrMin=p.Efield_ani_min_clr,
@@ -1205,13 +1220,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
-            AnimateField(
+            AnimateFieldExtracellular(
                 sim=sim, cells=cells, p=p,
                 Fx_time=sim.efield_ecm_x_time,
                 Fy_time=sim.efield_ecm_y_time,
-                is_ecm=True,
                 type='Efield_ecm',
-                figure_title='Electric Field',
+                figure_title='Extracellular Spaces Electric Field',
                 colorbar_title='Electric Field [V/m]',
                 clrAutoscale=p.autoscale_Efield_ani,
                 clrMin=p.Efield_ani_min_clr,
@@ -1222,11 +1236,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         p.deform_electro is True and p.createAnimations is True and
         sim.run_sim is True):
         # Always animate the gap junction fluid velocity.
-        AnimateVelocity(
+        AnimateVelocityIntracellular(
             sim=sim, cells=cells, p=p,
-            vtype='GJ',
             type='Velocity_gj',
-            figure_title='Fluid Velocity',
+            figure_title='Gap Junction Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
             clrAutoscale=p.autoscale_Velocity_ani,
             clrMin=p.Velocity_ani_min_clr,
@@ -1235,11 +1248,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # Also animate the extracellular spaces fluid velocity if desired.
         if p.sim_ECM is True:
-            AnimateVelocity(
+            AnimateVelocityExtracellular(
                 sim=sim, cells=cells, p=p,
-                vtype='ECM',
                 type='Velocity_ecm',
-                figure_title='Fluid Velocity',
+                figure_title='Extracellular Spaces Fluid Velocity',
                 colorbar_title='Fluid Velocity [nm/s]',
                 clrAutoscale=p.autoscale_Velocity_ani,
                 clrMin=p.Velocity_ani_min_clr,
@@ -1287,13 +1299,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             FEx = [(1/p.um)*arr for arr in sim.F_electro_x_time]
             FEy = [(1/p.um)*arr for arr in sim.F_electro_y_time]
 
-            AnimateField(
+            AnimateFieldIntracellular(
                 sim=sim, cells=cells, p=p,
                 Fx_time=FEx,
                 Fy_time=FEy,
-                is_ecm=False,
                 type='ElectrostaticFfield',
-                figure_title='Electrostatic Body Force',
+                figure_title='Gap Junction Electrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
                 clrAutoscale=p.autoscale_force_ani,
                 clrMin=p.force_ani_min_clr,
@@ -1304,13 +1315,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             FHx = [(1/p.um)*arr for arr in sim.F_hydro_x_time]
             FHy = [(1/p.um)*arr for arr in sim.F_hydro_y_time]
 
-            AnimateField(
+            AnimateFieldIntracellular(
                 sim=sim, cells=cells, p=p,
                 Fx_time=FHx,
                 Fy_time=FHy,
-                is_ecm=False,
                 type='HydroFfield',
-                figure_title='Hydrostatic Body Force',
+                figure_title='Gap Junction Hydrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
                 clrAutoscale=p.autoscale_force_ani,
                 clrMin=p.force_ani_min_clr,

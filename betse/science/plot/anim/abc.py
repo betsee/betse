@@ -39,6 +39,23 @@ class Anim(object, metaclass=ABCMeta):
         Current cell cluster.
     p : Parameters
         Current simulation configuration.
+    _anim : FuncAnimation
+        Low-level Matplotlib animation object instantiated by this high-level
+        BETSE wrapper object.
+    ax : FigureAxes
+        Matplotlib figure axes providing the current animation frame data.
+    _axes_bounds : list
+        Spacial extent of the current 2D environment as a 4-element list
+        conisting of (in order):
+        1. Minimum value of the figure's X axis.
+        2. Maximum value of the figure's X axis.
+        3. Minimum value of the figure's Y axis.
+        4. Maximum value of the figure's Y axis.
+    _colorbar_mapping : object
+        The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
+        animation's colorbar applies.
+    _colorbar_title: str
+        Text displayed above the figure colorbar.
     clrAutoscale : bool
         `True` if dynamically resetting the minimum and maximum colorbar values
         to be the corresponding minimum and maximum values for the current
@@ -54,14 +71,8 @@ class Anim(object, metaclass=ABCMeta):
         Matplotlib colormap with which to create this animation's colorbar.
     fig : Figure
         Matplotlib figure providing the current animation frame.
-    ax : FigureAxes
-        Matplotlib figure axes providing the current animation frame data.
-    _anim : FuncAnimation
-        Low-level Matplotlib animation object instantiated by this high-level
-        BETSE wrapper object.
-    _colorbar_mapping : object
-        The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
-        animation's colorbar applies.
+    _figure_title : str
+        Text displayed above the figure itself.
     _is_saving_plotted_frames : bool
         `True` if both saving and displaying animation frames _or_ `False`
         otherwise.
@@ -74,14 +85,6 @@ class Anim(object, metaclass=ABCMeta):
         `axes_title` parameter is passed to the `animate()` method, this is that
         value; else, this is the value of the `figure_title` parameter passed to
         the same method.
-    _axes_x_min : float
-        Minimum value of the figure's X axis.
-    _axes_x_max : float
-        Maximum value of the figure's X axis.
-    _axes_y_min : float
-        Minimum value of the figure's Y axis.
-    _axes_y_max : float
-        Maximum value of the figure's Y axis.
     _type : str
         Basename of the subdirectory in the phase-specific results directory
         to which all animation files will be saved _and_ the basename prefix of
@@ -103,6 +106,8 @@ class Anim(object, metaclass=ABCMeta):
         cells: 'Cells',
         p: 'Parameters',
         type: str,
+        figure_title: str,
+        colorbar_title: str,
         clrAutoscale: bool,
         clrMin: float,
         clrMax: float,
@@ -125,7 +130,9 @@ class Anim(object, metaclass=ABCMeta):
             Basename of the subdirectory in the phase-specific results directory
             to which all animation files will be saved _and_ the basename prefix
             of these files.
-        title_colorbar: str
+        figure_title : str
+            Text displayed above the figure itself.
+        colorbar_title: str
             Text displayed above the figure colorbar.
         clrAutoscale : bool
             `True` if dynamically resetting the minimum and maximum colorbar
@@ -152,6 +159,10 @@ class Anim(object, metaclass=ABCMeta):
         # Validate all remaining parameters *AFTER* defaulting parameters.
         assert types.is_str_nonempty(type), (
             types.assert_not_str_nonempty(type, 'Animation type'))
+        assert types.is_str_nonempty(figure_title), (
+            types.assert_not_str_nonempty(figure_title, 'Figure title'))
+        assert types.is_str_nonempty(colorbar_title), (
+            types.assert_not_str_nonempty(colorbar_title, 'Colorbar title'))
         assert types.is_bool(clrAutoscale), types.assert_not_bool(clrAutoscale)
         assert types.is_numeric(clrMin), types.assert_not_numeric(clrMin)
         assert types.is_numeric(clrMax), types.assert_not_numeric(clrMax)
@@ -163,12 +174,14 @@ class Anim(object, metaclass=ABCMeta):
         self.cells = cells
         self.p = p
         self._type = type
+        self._figure_title = figure_title
+        self._colorbar_title = colorbar_title
         self.clrAutoscale = clrAutoscale
         self.clrMin = clrMin
         self.clrMax = clrMax
         self.colormap = colormap
 
-        # Classify private attributes to be subsequently defined.
+        # Classify attributes to be subsequently defined.
         self._axes_title = None
         self._colorbar_mapping = None
         self._writer_frames = None
@@ -179,18 +192,12 @@ class Anim(object, metaclass=ABCMeta):
         # Figure encapsulating this animation.
         self.fig = pyplot.figure()
 
-        #FIXME: Relocalize all except "_axes_bounds". We don't appear to require
-        #the individual bounds to be attributes.
         # Extent of the current 2D environment.
-        self._axes_x_min = self.cells.xmin * self.p.um
-        self._axes_x_max = self.cells.xmax * self.p.um
-        self._axes_y_min = self.cells.ymin * self.p.um
-        self._axes_y_max = self.cells.ymax * self.p.um
         self._axes_bounds = [
-            self._axes_x_min,
-            self._axes_x_max,
-            self._axes_y_min,
-            self._axes_y_max,
+            self.cells.xmin * self.p.um,
+            self.cells.xmax * self.p.um,
+            self.cells.ymin * self.p.um,
+            self.cells.ymax * self.p.um,
         ]
 
         # Figure axes scaled to the extent of the current 2D environment.
@@ -245,6 +252,13 @@ class Anim(object, metaclass=ABCMeta):
         #rather than coercing use of ".png".
         save_frame_filetype = 'png'
 
+        #FIXME: This currently defaults to padding frames with six or seven
+        #zeroes, on average. Let's make this a bit more aesthetic by padding
+        #frames to only as many zeroes are absolutely required by the current
+        #frame count. To do that, in turn, we'll probably need to shift
+        #everything that follows in this method to the _animate() method, where
+        #the actual frame count is finally passed.
+
         # Template yielding the basenames of frame image files to be saved.
         # The "{{"- and "}}"-delimited substring will reduce to a "{"- and "}"-
         # delimited substring after formatting, which subsequent formatting
@@ -272,11 +286,13 @@ class Anim(object, metaclass=ABCMeta):
             )
 
     # ..................{ CONCRETE ~ animate                 }..................
+    #FIXME: The "axes_x_label" and "axes_y_label" parameters should probably
+    #just be passed to the __init__() method and then classified. Doing so
+    #would simplify "AnimateField" subclasses by permitting that superclass to
+    #define values for these parameters common to these subclasses. Bemusement!
     def _animate(
         self,
         frame_count: int,
-        figure_title: str,
-        colorbar_title: str,
         colorbar_mapping: object,
         axes_x_label: str,
         axes_y_label: str,
@@ -293,10 +309,6 @@ class Anim(object, metaclass=ABCMeta):
         ----------
         frame_count : int
             Number of frames to be animated.
-        figure_title : str
-            Text displayed above the figure itself.
-        colorbar_title : str
-            Text displayed above the figure colorbar.
         colorbar_mapping : object
             The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
             colorbar applies.
@@ -310,10 +322,6 @@ class Anim(object, metaclass=ABCMeta):
             Text displayed to the left of the figure's Y axis.
         '''
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
-        assert types.is_str_nonempty(figure_title), (
-            types.assert_not_str_nonempty(figure_title, 'Figure title'))
-        assert types.is_str_nonempty(colorbar_title), (
-            types.assert_not_str_nonempty(colorbar_title, 'Colorbar title'))
         assert types.is_str_nonempty(axes_x_label), (
             types.assert_not_str_nonempty(axes_x_label, 'X axis label'))
         assert types.is_str_nonempty(axes_y_label), (
@@ -339,10 +347,10 @@ class Anim(object, metaclass=ABCMeta):
         if axes_title is not None:
             self._axes_title = axes_title
             self.fig.suptitle(
-                figure_title, fontsize=14, fontweight='bold')
+                self._figure_title, fontsize=14, fontweight='bold')
         # Else, display the figure title as the axes title.
         else:
-            self._axes_title = figure_title
+            self._axes_title = self._figure_title
 
         assert types.is_str_nonempty(self._axes_title), (
             types.assert_not_str_nonempty(self._axes_title, 'Axis title'))
@@ -357,7 +365,7 @@ class Anim(object, metaclass=ABCMeta):
 
         # Display the colorbar.
         colorbar = self.fig.colorbar(colorbar_mapping)
-        colorbar.set_label(colorbar_title)
+        colorbar.set_label(self._colorbar_title)
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
         #FuncAnimation(). Lemon grass and dill!
@@ -499,3 +507,54 @@ class Anim(object, metaclass=ABCMeta):
             0-based index of the frame to be plotted.
         '''
         pass
+
+# ....................{ BASE ~ field                       }....................
+class AnimField(Anim):
+    '''
+    Abstract base class of all animations of an electric field plotted on the
+    current cell cluster.
+
+    Attributes
+    ----------
+    _Fx_time : list
+        List of all electric field strength X components indexed by
+        simulation time.
+    _Fy_time : list
+        List of all electric field strength Y components indexed by
+        simulation time.
+    '''
+
+    def __init__(
+        self,
+        Fx_time: list,
+        Fy_time: list,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        Fx_time : list
+            List of all electric field strength X components indexed by
+            simulation time.
+        Fy_time : list
+            List of all electric field strength Y components indexed by
+            simulation time.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(Fx_time), (
+            types.assert_not_sequence_nonstr(Fx_time))
+        assert types.is_sequence_nonstr(Fy_time), (
+            types.assert_not_sequence_nonstr(Fy_time))
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(*args, **kwargs)
+
+        # Classify all remaining parameters.
+        self._Fx_time = Fx_time
+        self._Fy_time = Fy_time
+
+        # Prefer an alternative colormap.
+        self.colormap = self.p.background_cm

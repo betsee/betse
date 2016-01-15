@@ -305,26 +305,26 @@ class CLI(metaclass = ABCMeta):
                         text = exception_message,
                         line_prefix = '    ',))
 
-                # If such exception has a traceback, append such traceback to
-                # such log but *NOT* standard error buffer.
+                # If such exception has a traceback, append this traceback to
+                # this log but *NOT* standard error buffer.
                 if exception_parent_traceback:
                     # Append a traceback header.
                     log_buffer.write('\nTraceback (most recent call last):\n')
 
                     # Append such traceback.
                     log_buffer.write(strs.join(
-                        # List of lines formatted from such list.
+                        # List of lines formatted from this list.
                         traceback.format_list(
-                            # List of stack trace entries from such traceback.
+                            # List of stack trace entries from this traceback.
                             traceback.extract_tb(
                                 exception_parent_traceback))))
 
-            # Append a logfile reference to such standard error message.
+            # Append a logfile reference to this standard error message.
             stderr_buffer.write('\n\nFor details, see "{}".'.format(
                 loggers.config.filename))
 
-            # Append a random error haiku to such log message.
-            log_buffer.write('\n' + stderr.get_haiku_random())
+            # Append a random error haiku to this log message.
+            log_buffer.write('\n{}\n'.format(stderr.get_haiku_random()))
 
             # Exception messages.
             stderr_message = stderr_buffer.getvalue()
@@ -333,7 +333,7 @@ class CLI(metaclass = ABCMeta):
             # True if the user requested verbosity.
             is_verbose = getattr(self._args, 'is_verbose', False)
 
-            # If a logger has been initialized, log such exception as a debug
+            # If a logger has been initialized, log this exception as a debug
             # message. Unless the user explicitly passed command-line option
             # "--verbose" to this script, logging with the debug level confines
             # such traceback to the logfile. This is a (largely) good thing;

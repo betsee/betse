@@ -571,7 +571,6 @@ variable settings:
   temperature: 310            # system temperature [K]
 
   morphogen properties:  # specify the properties of an auxillary chemical
-
       include morphogen: False     # include electrodiffusion of an auxillary chemical substance?
       Dm: 1.0e-15        # morphogen membrane diffusion coefficient [m2/s]
       Do: 1.0e-10         # morphogen free diffusion constant [m2/s]
@@ -786,10 +785,12 @@ results options:
       min val: 0                    # minimum colorbar value, in umol/L
   
     Morpho 2D:
-      plot Morpho: True               # 2d plot of voltage sensitive dye in cell collective?
+      plot Morpho: True            # 2D plot of voltage sensitive dye in the
+                                   # cell cluster? Ignored unless
+                                   # "include morphogen" is also True.
       autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 1.0e-4                  # maximum colorbar value in umol/L
-      min val: 0                     # minimum colorbar value in umol/L
+      max val: 1.0e-4              # maximum colorbar value in umol/L
+      min val: 0                   # minimum colorbar value in umol/L
   
     Vcell 2D:
       plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
@@ -834,8 +835,11 @@ results options:
       max val: 15
       min val: -15
   
-    Velocity 2D:                      # 2D plot of electroosmotic fluid velocity in the cluster
-      plot Velocity: True
+    Velocity 2D:
+      plot Velocity: True          # 2D plot of the velocity of electrostatic
+                                   # fluid in the cell cluster? Ignored unless
+                                   # "include fluid flow" and
+                                   # "include electrostatic pressure" are True.
       autoscale colorbar: True
       max val: 15
       min val: -15
@@ -873,10 +877,12 @@ results options:
       min val: 0                   # minimum colorbar value in umol/L
   
     Morpho Ani:
-      animate Morpho: True            # 2d animation of voltage sensitive dye in cell collective with time?
+      animate Morpho: True         # Plot a 2D animation of voltage sensitive
+                                   # dye in the cell cluster? Ignored unless
+                                   # "include morphogen" is also True.
       autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 1.5e-3                  # maximum colorbar value in umol/L
-      min val: 0                    # minimum colorbar value in umol/L
+      max val: 1.5e-3              # maximum colorbar value in umol/L
+      min val: 0                   # minimum colorbar value in umol/L
   
     Vmem GJ Ani:
         animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
@@ -933,13 +939,12 @@ results options:
         min val: 0                  # min colorbar value [V/m]
   
     Velocity Ani:
-        animate Velocity: True      # 2D animation of fluid velocity in
-                                    # extracellullar matrix. Even if True, this
-                                    # will be ignored unless both
+        animate Velocity: True      # Plot a 2D animation of the velocity of
+                                    # fluid in the cell cluster? Ignored unless
                                     # "include fluid flow" and
                                     # "include electrostatic pressure" are True.
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 500               # max colorbar value [V/m]
+        max val: 500                # max colorbar value [V/m]
         min val: 0                  # min colorbar value [V/m]
   
     Deformation Ani:

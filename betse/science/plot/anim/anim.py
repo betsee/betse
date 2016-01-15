@@ -6,9 +6,6 @@
 Matplotlib-based animation classes.
 '''
 
-#FIXME: Consider generalizing the "figure_title" and "colorbar_title"
-#parameters to the "abc.Anim" base class. Quite alot of boilerplate below.
-
 #FIXME: Unfortunately, use of pyplot and hence the pylab figure manager is a
 #bit problematic for long-lived applications like BETSE. Why? Dumb memory
 #leaks. Every time plt.figure() is called, a new figure is added to the pylab
@@ -31,8 +28,9 @@ import os
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib import mpl
-from betse.science.plot.anim.abc import Anim
+from betse.science.plot.anim.abc import Anim, AnimField
 from betse.util.type import types
+from enum import Enum
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib.collections import LineCollection, PolyCollection
@@ -73,8 +71,6 @@ class AnimateCellData(Anim):
     def __init__(
         self,
         zdata_time: list,
-        figure_title: str,
-        colorbar_title: str,
         is_ecm_ignored: bool = True,
         is_current_overlay: bool = False,
         *args, **kwargs
@@ -86,10 +82,6 @@ class AnimateCellData(Anim):
         ----------
         zdata_time : list
             List of all colour data to be plotted, indexed by simulation time.
-        figure_title : str
-            Text displayed above the figure itself.
-        colorbar_title: str
-            Text displayed above the figure colorbar.
         is_ecm_ignored : bool
             `True` if ignoring extracellular spaces _or_ `False` otherwise.
             Defaults to `True`.
@@ -100,8 +92,8 @@ class AnimateCellData(Anim):
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        # assert types.is_sequence_nonstr(zdata_time), (
-        #     types.assert_not_sequence_nonstr(zdata_time))
+        assert types.is_sequence_nonstr(zdata_time), (
+            types.assert_not_sequence_nonstr(zdata_time))
         assert types.is_bool(is_ecm_ignored), (
             types.assert_not_bool(is_ecm_ignored))
         assert types.is_bool(is_current_overlay), (
@@ -133,6 +125,17 @@ class AnimateCellData(Anim):
         else:
             axes_title = None
 
+        #FIXME: This is great! Ally suggests we generalize this technique to
+        #all of the other animation classes as well. What this does is
+        #precalculate the minimum and maximum values for this data set
+        #beforehand, allowing us to clim this animation's collection to this
+        #range only once rather than for each frame. It's not just a matter of
+        #efficiency: colorbar range fluctuations are disorienting.
+        #
+        #The question is how best to go about this. Perhaps add a new
+        #"colorbar_values" parameter to the superclass _animate() method and
+        #have that perform the desired autoscaling? Wonder boy in jujube land!
+
         # Autoscale the colorbar range if desired.
         if self.clrAutoscale is True:
             #FIXME: This (probably) reduces to this list comprehension both
@@ -151,8 +154,6 @@ class AnimateCellData(Anim):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self.sim.time),
-            figure_title=figure_title,
-            colorbar_title=colorbar_title,
             colorbar_mapping=self.collection,
             axes_title=axes_title,
             axes_x_label='Spatial x [um]',
@@ -160,7 +161,7 @@ class AnimateCellData(Anim):
         )
 
 
-    def _plot_frame_figure(self, frame_number):
+    def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         zz = self._zdata_time[frame_number]
@@ -185,6 +186,8 @@ class AnimateCellData(Anim):
                 self.sim, self.streams, self.ax, self.cells, self.p)
 
 
+#FIXME: The boolean "is_gj_current_only" is a bit awkward. Consider further
+#subclassing. Into the smothering depths of spicy ghost peppers!
 class AnimateCurrent(Anim):
     '''
     Animation of current plotted on the current cell cluster.
@@ -216,15 +219,12 @@ class AnimateCurrent(Anim):
             types.assert_not_bool(is_gj_current_only))
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            colorbar_title='Current Density [A/m2]',
+            *args, **kwargs)
 
         self.is_gj_current_only = is_gj_current_only
         self.colormap = self.p.background_cm
-
-        if self.is_gj_current_only is True:
-            figure_title = 'Gap Junction Current'
-        else:
-            figure_title = 'Total Current'
 
         # Streamplot and meshplot the Jmag_M data series for the first frame.
         Jmag_M = self._streamplot_jmag_m(frame_number=0)
@@ -242,15 +242,13 @@ class AnimateCurrent(Anim):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self.sim.time),
-            figure_title=figure_title,
-            colorbar_title='Current Density [A/m2]',
             colorbar_mapping=self.meshplot,
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
         )
 
 
-    def _plot_frame_figure(self, frame_number):
+    def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         # Erase the prior frame's streamplot before streamplotting this frame.
@@ -262,7 +260,7 @@ class AnimateCurrent(Anim):
         self.meshplot.set_data(Jmag_M)
 
 
-    def _streamplot_jmag_m(self, frame_number) -> np.ndarray:
+    def _streamplot_jmag_m(self, frame_number: int) -> np.ndarray:
         '''
         Streamplot and return the magnitude of the current density (Jmag_M)
         data series for the current frame.
@@ -303,88 +301,24 @@ class AnimateCurrent(Anim):
         return Jmag_M
 
 
-class AnimateField(Anim):
+class AnimateFieldIntracellular(AnimField):
     '''
-    Animation of the electric field over either intra- or extracellular spaces
+    Animation of the electric field over all intracellular gap junctions
     plotted on the current cell cluster.
-
-    Attributes
-    ----------
-    _Fx_time : list
-        List of all electric field strength X components indexed by
-        simulation time.
-    _Fy_time : list
-        List of all electric field strength Y components indexed by
-        simulation time.
-    _is_ecm : bool
-        `True` if plotting the electric field over extracellular spaces;
-        `True` if plotting the electric field over intracellular spaces.
     '''
 
-    def __init__(
-        self,
-        Fx_time: list,
-        Fy_time: list,
-        figure_title: str,
-        colorbar_title: str,
-        is_ecm: bool,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        Fx_time : list
-            List of all electric field strength X components indexed by
-            simulation time.
-        Fy_time : list
-            List of all electric field strength Y components indexed by
-            simulation time.
-        is_ecm : bool
-            `True` if plotting the electric field over extracellular spaces;
-            `True` if plotting the electric field over intracellular spaces.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-        assert types.is_sequence_nonstr(Fx_time), (
-            types.assert_not_sequence_nonstr(Fx_time))
-        assert types.is_sequence_nonstr(Fy_time), (
-            types.assert_not_sequence_nonstr(Fy_time))
-        assert types.is_bool(is_ecm), types.assert_not_bool(is_ecm)
+    def __init__(self, *args, **kwargs) -> None:
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
-        # Classify all remaining parameters.
-        self._Fx_time = Fx_time
-        self._Fy_time = Fy_time
-        self._is_ecm = is_ecm
+        # Electric field magnitude.
+        efield_mag = np.sqrt(self._Fx_time[-1]**2 + self._Fy_time[-1]**2)
 
-        self.colormap = self.p.background_cm
-        efield_mag = np.sqrt(Fx_time[-1]**2 + Fy_time[-1]**2)
-
-        if is_ecm is True:
-            if self.p.sim_ECM is False:
-                raise BetseExceptionParameters(
-                    'Electric field animation "{}" plotted over '
-                    'extracellular spaces, but '
-                    'extracellular spaces are disabled by the '
-                    'current simulation configuration.'.format(
-                    self._type))
-
-            figure_title_scope = 'Extra'
-            self.msh, self.ax = env_mesh(
-                efield_mag, self.ax, self.cells, self.p, self.colormap,
-                ignore_showCells=True)
-            self.streamE, self.ax = env_quiver(
-                Fx_time[-1], Fy_time[-1], self.ax, self.cells, self.p)
-        else:
-            figure_title_scope = 'Intra'
-            self.msh, self.ax = cell_mesh(
-                efield_mag, self.ax, self.cells, self.p, self.colormap)
-            self.streamE, self.ax = cell_quiver(
-                Fx_time[-1], Fy_time[-1], self.ax, self.cells, self.p)
+        self.msh, self.ax = cell_mesh(
+            efield_mag, self.ax, self.cells, self.p, self.colormap)
+        self.streamE, self.ax = cell_quiver(
+            self._Fx_time[-1], self._Fy_time[-1], self.ax, self.cells, self.p)
 
         # Autoscale the colorbar range if desired.
         if self.clrAutoscale is True:
@@ -394,51 +328,98 @@ class AnimateField(Anim):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self.sim.time),
-            figure_title='{}cellular Spaces {}'.format(
-                figure_title_scope, figure_title),
-            colorbar_title=colorbar_title,
             colorbar_mapping=self.msh,
             axes_x_label='Spatial distance [um]',
             axes_y_label='Spatial distance [um]',
         )
 
 
-    def _plot_frame_figure(self, frame_number):
+    def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        if self._is_ecm is True:
-            E_x = self._Fx_time[frame_number]
-            E_y = self._Fy_time[frame_number]
+        E_gj_x = self._Fx_time[frame_number]
+        E_gj_y = self._Fy_time[frame_number]
 
-            efield_mag = np.sqrt(E_x**2 + E_y**2)
-            self.msh.set_data(efield_mag)
+        if len(E_gj_x) != len(self.cells.cell_i):
+            E_gj_x = (
+                np.dot(self.cells.M_sum_mems, E_gj_x)/self.cells.num_mems)
+            E_gj_y = (
+                np.dot(self.cells.M_sum_mems, E_gj_y)/self.cells.num_mems)
 
-            if efield_mag.max() != 0.0:
-                E_x = E_x/efield_mag.max()
-                E_y = E_y/efield_mag.max()
+        efield_mag = np.sqrt(E_gj_x**2 + E_gj_y**2)
+        emag_grid = np.zeros(len(self.cells.voronoi_centres))
+        emag_grid[self.cells.cell_to_grid] = efield_mag
+        self.msh.set_array(emag_grid)
 
-            self.streamE.set_UVC(E_x, E_y)
+        if efield_mag.all() != 0.0:
+            E_gj_x = E_gj_x/efield_mag
+            E_gj_y = E_gj_y/efield_mag
 
-        else:
-            E_gj_x = self._Fx_time[frame_number]
-            E_gj_y = self._Fy_time[frame_number]
+        self.streamE.set_UVC(E_gj_x, E_gj_y)
 
-            if len(E_gj_x) != len(self.cells.cell_i):
-                E_gj_x = (
-                    np.dot(self.cells.M_sum_mems, E_gj_x)/self.cells.num_mems)
-                E_gj_y = (
-                    np.dot(self.cells.M_sum_mems, E_gj_y)/self.cells.num_mems)
+        # Rescale the colorbar range if desired.
+        if self.clrAutoscale is True:
+            self.clrMin = np.min(efield_mag)
+            self.clrMax = np.max(efield_mag)
 
-            efield_mag = np.sqrt(E_gj_x**2 + E_gj_y**2)
-            emag_grid = np.zeros(len(self.cells.voronoi_centres))
-            emag_grid[self.cells.cell_to_grid] = efield_mag
-            self.msh.set_array(emag_grid)
 
-            if efield_mag.all() != 0.0:
-                E_gj_x = E_gj_x/efield_mag
-                E_gj_y = E_gj_y/efield_mag
+class AnimateFieldExtracellular(AnimField):
+    '''
+    Animation of the electric field over all extracellular spaces plotted on
+    the current cell cluster.
+    '''
 
-            self.streamE.set_UVC(E_gj_x, E_gj_y)
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Pass all parameters to our superclass.
+        super().__init__(*args, **kwargs)
+
+        # Validate sanity.
+        if self.p.sim_ECM is False:
+            raise BetseExceptionParameters(
+                'Electric field animation "{}" plotted over '
+                'extracellular spaces, but '
+                'extracellular spaces are disabled by the '
+                'current simulation configuration.'.format(
+                self._type))
+
+        # Electric field magnitude.
+        efield_mag = np.sqrt(self._Fx_time[-1]**2 + self._Fy_time[-1]**2)
+
+        self.msh, self.ax = env_mesh(
+            efield_mag, self.ax, self.cells, self.p, self.colormap,
+            ignore_showCells=True)
+        self.streamE, self.ax = env_quiver(
+            self._Fx_time[-1], self._Fy_time[-1], self.ax, self.cells, self.p)
+
+        # Autoscale the colorbar range if desired.
+        if self.clrAutoscale is True:
+            self.clrMin = np.min(efield_mag)
+            self.clrMax = np.max(efield_mag)
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self.sim.time),
+            colorbar_mapping=self.msh,
+            axes_x_label='Spatial distance [um]',
+            axes_y_label='Spatial distance [um]',
+        )
+
+
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        E_x = self._Fx_time[frame_number]
+        E_y = self._Fy_time[frame_number]
+
+        efield_mag = np.sqrt(E_x**2 + E_y**2)
+        self.msh.set_data(efield_mag)
+
+        if efield_mag.max() != 0.0:
+            E_x = E_x/efield_mag.max()
+            E_y = E_y/efield_mag.max()
+
+        self.streamE.set_UVC(E_x, E_y)
 
         # Rescale the colorbar range if desired.
         if self.clrAutoscale is True:
@@ -456,24 +437,7 @@ class AnimateGJData(Anim):
         Data array for gap junction coloring.
     '''
 
-    def __init__(
-        self,
-        figure_title: str,
-        colorbar_title: str,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        figure_title : str
-            Text displayed above the figure itself.
-        colorbar_title : str
-            Text displayed above the figure colorbar.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
+    def __init__(self, *args, **kwargs) -> None:
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
@@ -484,7 +448,7 @@ class AnimateGJData(Anim):
         # Data array for cell coloring.
         self.vdata_t = [1000*arr for arr in self.sim.vm_time]
 
-        connects = self.p.um * np.asarray(self.cells.nn_edges)
+        connects = np.asarray(self.cells.nn_edges) * self.p.um
         self.collection = LineCollection(
             connects,
             array=self.zdata_t[0],
@@ -520,22 +484,23 @@ class AnimateGJData(Anim):
             self.clrMin = round(np.min(all_z), 1)
             self.clrMax = round(np.max(all_z), 1)
 
-            if self.clrMax - self.clrMin == 0:
+            if self.clrMin == self.clrMax:
                 self.clrMin = self.clrMin - 1
                 self.clrMax = self.clrMax + 1
 
-        # Display and/or save this animation. # FIXME: There's possibly a scaling issue that's climming to Vdata rather than gj
+        # FIXME: There's possibly a scaling issue that's clipping to Vdata
+        # rather than gj.
+
+        # Display and/or save this animation.
         self._animate(
             frame_count=len(self.zdata_t),
-            figure_title=figure_title,
-            colorbar_title=colorbar_title,
             colorbar_mapping=self.coll2,
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
         )
 
 
-    def _plot_frame_figure(self, frame_number):
+    def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         zz = self.zdata_t[frame_number]
@@ -556,80 +521,19 @@ class AnimateGJData(Anim):
         self.coll2.set_array(zz_grid)
 
 
-#FIXME: We probably want to use enum objects in place of "vtype". See also:
-#    https://docs.python.org/3/library/enum.html#functional-api
-#FIXME: We probably want to use a similar approach elsewhere. Grep
-#above for "is_ecm".
-
-class AnimateVelocity(Anim):
+class AnimateVelocityIntracellular(Anim):
     '''
-    Animation of fluid velocity over either intra- or extracellular spaces
-    plotted on the current cell cluster.
-
-    Attributes
-    ----------
-    _is_ecm : bool
-        `True` if plotting the fluid velocity over extracellular spaces;
-        `True` if plotting the fluid velocity over intracellular spaces.
+    Animation of fluid velocity over all intracellular gap junctions plotted on
+    the current cell cluster.
     '''
 
-    def __init__(
-        self,
-        vtype: str,
-        figure_title: str,
-        colorbar_title: str,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        vtype : str
-            Type of fluid velocity to be plotted. Valid values include:
-            * `ECM`, plotting extracellular spaces.
-            * `GJ`, plotting intracellular gap junctions.
-        figure_title : str
-            Text displayed above the figure itself.
-        colorbar_title: str
-            Text displayed above the figure colorbar.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-        assert types.is_str(vtype), types.assert_not_str(vtype)
+    def __init__(self, *args, **kwargs) -> None:
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
-        # Classify all remaining parameters.
-        self.vtype = vtype
-
-        # Validate the passed fluid type.
-        if vtype == 'ECM' and self.p.sim_ECM is False:
-            raise BetseExceptionParameters(
-                'Fluid velocity animation "{}" plotted over '
-                'extracellular spaces, but '
-                'extracellular spaces are disabled by the '
-                'current simulation configuration.'.format(
-                self._type))
-
         # Velocity field and maximum velocity field value for the first frame.
         vfield, vnorm = self._get_velocity_field(frame_number=0)
-
-        if vtype == 'ECM':
-            figure_title_scope = 'Extra'
-            self.streamV = self.ax.quiver(
-                self.cells.xypts[:,0] * self.p.um,
-                self.cells.xypts[:,1] * self.p.um,
-                self.sim.u_env_x_time[-1].ravel()/vnorm,
-                self.sim.u_env_y_time[-1].ravel()/vnorm,
-            )
-        elif vtype == 'GJ':
-            figure_title_scope = 'Intra'
-        else:
-            raise BetseExceptionParameters(
-                'Fluid velocity animation type "{}" unrecognized.'.format(
-                vtype))
 
         # Vector field mesh for the first frame.
         self.msh = self.ax.imshow(
@@ -642,23 +546,18 @@ class AnimateVelocity(Anim):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self.sim.time),
-            figure_title='{}cellular Spaces {}'.format(
-                figure_title_scope, figure_title),
-            colorbar_title=colorbar_title,
             colorbar_mapping=self.msh,
             axes_x_label='Spatial distance [um]',
             axes_y_label='Spatial distance [um]',
         )
 
 
-    def _plot_frame_figure(self, frame_number):
+    def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        # If the current fluid type is intracellular gap junctions, erase the
-        # prior frame's streamplot before streamplotting this frame.
-        if self.vtype == 'GJ':
-            self.ax.patches = []
-            self.streamV.lines.remove()
+        # Erase the prior frame's streamplot before streamplotting this frame.
+        self.ax.patches = []
+        self.streamV.lines.remove()
 
         # Velocity field and maximum velocity field value for this frame.
         vfield, vnorm = self._get_velocity_field(frame_number)
@@ -666,23 +565,15 @@ class AnimateVelocity(Anim):
         # Update the current velocity field mesh.
         self.msh.set_data(vfield)
 
-        # If the current fluid type is extracellular spaces, streamplot this
-        # frame.
-        if self.vtype == 'ECM':
-            self.streamV.set_UVC(
-                self.sim.u_env_x_time[frame_number]/vnorm,
-                self.sim.u_env_y_time[frame_number]/vnorm)
-
 
     #FIXME: Duplicate code as in the "AnimateCurrent" class abounds.
-    def _get_velocity_field(self, frame_number) -> tuple:
+    def _get_velocity_field(self, frame_number: int) -> tuple:
         '''
         Get a 2-element tuple whose first element is the velocity field and
         second element is the maximum value of that field for the current
         frame.
 
-        If the current fluid type is intracellular gap junctions, the
-        streamplot of the velocity field will also be redefined.
+        For convenience, the streamplot of that field will also be redefined.
 
         Returns
         ----------
@@ -691,52 +582,134 @@ class AnimateVelocity(Anim):
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        if self.vtype == 'ECM':
-            vfield = np.sqrt(
-                self.sim.u_env_x_time[frame_number]**2 +
-                self.sim.u_env_y_time[frame_number]**2) * 1e9
-            vnorm = np.max(vfield)
+        #FIXME: Can at least "cell_grid" be cached between calls to this
+        #method? We suspect "Maybe."
+        cell_centres = (
+            self.cells.cell_centres[:,0], self.cells.cell_centres[:,1])
+        cell_grid = (self.cells.Xgrid, self.cells.Ygrid)
 
-        elif self.vtype == 'GJ':
-            #FIXME: Can at least "cell_grid" be cached between calls to this
-            #method? We suspect "Maybe."
-            cell_centres = (
-                self.cells.cell_centres[:,0], self.cells.cell_centres[:,1])
-            cell_grid = (self.cells.Xgrid, self.cells.Ygrid)
+        u_gj_x = interpolate.griddata(
+            cell_centres,
+            self.sim.u_cells_x_time[frame_number],
+            cell_grid,
+            fill_value=0,
+            method=self.p.interp_type,
+        )
+        u_gj_y = interpolate.griddata(
+            cell_centres,
+            self.sim.u_cells_y_time[frame_number],
+            cell_grid,
+            fill_value=0,
+            method=self.p.interp_type,
+        )
 
-            u_gj_x = interpolate.griddata(
-                cell_centres,
-                self.sim.u_cells_x_time[frame_number],
-                cell_grid,
-                fill_value=0,
-                method=self.p.interp_type,
-            )
-            u_gj_y = interpolate.griddata(
-                cell_centres,
-                self.sim.u_cells_y_time[frame_number],
-                cell_grid,
-                fill_value=0,
-                method=self.p.interp_type,
-            )
+        u_gj_x = u_gj_x * self.cells.maskM
+        u_gj_y = u_gj_y * self.cells.maskM
 
-            u_gj_x = u_gj_x * self.cells.maskM
-            u_gj_y = u_gj_y * self.cells.maskM
+        vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
+        vnorm = np.max(vfield)
 
-            vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
-            vnorm = np.max(vfield)
+        self.streamV = self.ax.streamplot(
+            self.cells.Xgrid * self.p.um,
+            self.cells.Ygrid * self.p.um,
+            u_gj_x/vnorm,
+            u_gj_y/vnorm,
+            density=self.p.stream_density,
+            linewidth=(3.0*vfield/vnorm) + 0.5,
+            color='k',
+            cmap=self.colormap,
+            arrowsize=1.5,
+        )
+        # self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
 
-            self.streamV = self.ax.streamplot(
-                self.cells.Xgrid * self.p.um,
-                self.cells.Ygrid * self.p.um,
-                u_gj_x/vnorm,
-                u_gj_y/vnorm,
-                density=self.p.stream_density,
-                linewidth=(3.0*vfield/vnorm) + 0.5,
-                color='k',
-                cmap=self.colormap,
-                arrowsize=1.5,
-            )
-            # self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
+        # Rescale the colorbar range if desired.
+        if self.clrAutoscale is True:
+            self.clrMin = np.min(vfield)
+            self.clrMax = vnorm
+
+        return (vfield, vnorm)
+
+
+class AnimateVelocityExtracellular(Anim):
+    '''
+    Animation of fluid velocity over all extracellular spaces plotted on the
+    current cell cluster.
+    '''
+
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(*args, **kwargs)
+
+        # Validate sanity.
+        if self.p.sim_ECM is False:
+            raise BetseExceptionParameters(
+                'Extracellular spaces fluid velocity animation "{}" '
+                'requested, but extracellular spaces are disabled by the '
+                'current simulation configuration.'.format(
+                self._type))
+
+        # Velocity field and maximum velocity field value for the first frame.
+        vfield, vnorm = self._get_velocity_field(frame_number=0)
+
+        self.streamV = self.ax.quiver(
+            self.cells.xypts[:,0] * self.p.um,
+            self.cells.xypts[:,1] * self.p.um,
+            self.sim.u_env_x_time[-1].ravel()/vnorm,
+            self.sim.u_env_y_time[-1].ravel()/vnorm,
+        )
+
+        # Vector field mesh for the first frame.
+        self.msh = self.ax.imshow(
+            vfield,
+            origin='lower',
+            extent=self._axes_bounds,
+            cmap=self.colormap,
+        )
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self.sim.time),
+            colorbar_mapping=self.msh,
+            axes_x_label='Spatial distance [um]',
+            axes_y_label='Spatial distance [um]',
+        )
+
+
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        # Velocity field and maximum velocity field value for this frame.
+        vfield, vnorm = self._get_velocity_field(frame_number)
+
+        # Update the current velocity field mesh.
+        self.msh.set_data(vfield)
+
+        # Update the current velocity field streamplot.
+        self.streamV.set_UVC(
+            self.sim.u_env_x_time[frame_number]/vnorm,
+            self.sim.u_env_y_time[frame_number]/vnorm)
+
+
+    #FIXME: Sufficiently simplistic now that we should probably just
+    #reduplicate this logic above and excise this method altogether.
+    def _get_velocity_field(self, frame_number: int) -> tuple:
+        '''
+        Get a 2-element tuple whose first element is the velocity field and
+        second element is the maximum value of that field for the current
+        frame.
+
+        Returns
+        ----------
+        `(velocity_field, velocity_field_max_value)`
+            2-element tuple as described above.
+        '''
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        vfield = np.sqrt(
+            self.sim.u_env_x_time[frame_number]**2 +
+            self.sim.u_env_y_time[frame_number]**2) * 1e9
+        vnorm = np.max(vfield)
 
         # Rescale the colorbar range if desired.
         if self.clrAutoscale is True:

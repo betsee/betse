@@ -74,24 +74,15 @@ class Parameters(object):
         self.config = simconfig.load(self.config_filename)
 
         self.grid_size = int(self.config['general options']['comp grid size'])
-
         self.plot_grid_size = int(self.config['general options']['plot grid size'])
-
         self.sim_ECM = self.config['general options']['simulate extracellular spaces']    # boolean letting us know if extracellular spaces are included
-
         self.fluid_flow = self.config['world options']['fluid flow']['include fluid flow']
-
         self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
-
         self.deformation = self.config['world options']['deformation']['turn on']
-
         self.td_deform = self.config['variable settings']['flow and deformation']['time dependent deformation']
-
         self.deform_osmo = self.config['variable settings']['flow and deformation']['include osmotic pressure']
         self.deform_electro = self.config['variable settings']['flow and deformation']['include electrostatic pressure']
-
         self.fixed_cluster_bound = self.config['variable settings']['flow and deformation']['fixed cluster boundary']
-
         self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
 
         # calculate lame's parameters from young mod and the poisson ratio:

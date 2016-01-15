@@ -135,8 +135,8 @@ def get_match(text: str, regex, **kwargs) -> 'SRE_Match':
     # raise exceptions.
     if match is None:
         raise BetseExceptionRegex(
-            'Subject string "{}" not matched by regular expression "{}".'.format(
-                text, regex))
+            'Subject string "{}" not matched by '
+            'regular expression "{}".'.format(text, regex))
 
     return match
 
@@ -201,19 +201,26 @@ def remove_substrings(text: str, regex, **kwargs) -> str:
 # ....................{ SUBSTITUTERS                       }....................
 def substitute_substrings(text: str, regex, substitution, **kwargs) -> str:
     '''
-    Replace all substrings in the passed string that match the passed regular
-    expression with the passed substitution.
+    Replace all substrings in the passed string matching the passed regular
+    expression if any with the passed substitution _or_ noop otherwise.
 
-    This regular expression may be either a string _or_ `Pattern` (i.e.,
-    compiled regular expression object), while this substitution may be either a
-    string _or_ function. This function accepts the same optional keyword
-    arguments as `re.sub()`.
+    Parameters
+    ----------
+    This function accepts the same optional keyword arguments as `re.sub()`.
+
+    regex : str, Pattern
+        Regular expression to be matched. This object should be either of type:
+        * `str`, signifying an uncompiled regular expression.
+        * `Pattern`, signifying a compiled regular expression object.
+    substitution : str, func
+        Substitution to be performed. This should be either a string or
+        callable (e.g., function, method).
 
     Returns
     ----------
     str
-        Passed string with all substrings matching such regular expression
-        replaced with such substitution.
+        Passed string with all substrings matching this regular expression
+        replaced with this substitution.
 
     See Also
     ----------
@@ -221,4 +228,9 @@ def substitute_substrings(text: str, regex, substitution, **kwargs) -> str:
         Further details on regular expressions and keyword arguments.
     '''
     assert types.is_str(text), types.assert_not_str(text)
+
+    # Enable the following substitution flags by default.
+    kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL
+
+    # Substitute, if you please.
     return re.sub(regex, substitution, text, **kwargs)
