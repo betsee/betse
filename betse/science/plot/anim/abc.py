@@ -375,10 +375,6 @@ class Anim(object, metaclass=ABCMeta):
             # Delay in milliseconds between consecutive frames.
             interval=100,
 
-            #FIXME: Ideally, we should be able to support both by adding a new
-            #private boolean attribute tracking this state to this class. Tinder
-            #sticks in a fragrant bonfire!
-
             # Indefinitely repeat this animation unless saving animations, as
             # doing so under the current implementation would repeatedly (and
             # hence unnecessarily) overwrite previously written files.

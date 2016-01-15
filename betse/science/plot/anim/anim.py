@@ -100,8 +100,8 @@ class AnimateCellData(Anim):
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(zdata_time), (
-            types.assert_not_sequence_nonstr(zdata_time))
+        # assert types.is_sequence_nonstr(zdata_time), (
+        #     types.assert_not_sequence_nonstr(zdata_time))
         assert types.is_bool(is_ecm_ignored), (
             types.assert_not_bool(is_ecm_ignored))
         assert types.is_bool(is_current_overlay), (
@@ -262,12 +262,10 @@ class AnimateCurrent(Anim):
         self.meshplot.set_data(Jmag_M)
 
 
-    #FIXME: I have no idea what Jmag_M actually is. The magnitude of...
-    #something? This could probably use better documentation than I can
-    #provide. Whispering willows and wind!
     def _streamplot_jmag_m(self, frame_number) -> np.ndarray:
         '''
-        Streamplot and return the `Jmag_M` data series for the current frame.
+        Streamplot and return the magnitude of the current density (Jmag_M)
+        data series for the current frame.
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
@@ -279,10 +277,10 @@ class AnimateCurrent(Anim):
             J_y = self.sim.I_gj_y_time[frame_number]/Jmag_M
         else:
             Jmag_M = np.sqrt(
-                self.sim.I_tot_x_time[frame_number+1]**2 +
-                self.sim.I_tot_y_time[frame_number+1]**2) + 1e-30
-            J_x = self.sim.I_tot_x_time[frame_number+1]/Jmag_M
-            J_y = self.sim.I_tot_y_time[frame_number+1]/Jmag_M
+                self.sim.I_tot_x_time[frame_number]**2 +
+                self.sim.I_tot_y_time[frame_number]**2) + 1e-30
+            J_x = self.sim.I_tot_x_time[frame_number]/Jmag_M
+            J_y = self.sim.I_tot_y_time[frame_number]/Jmag_M
 
         # Classify this streamplot, thus permitting the _plot_frame_figure()
         # method to subsequently erase this streamplot's lines.
@@ -483,11 +481,6 @@ class AnimateGJData(Anim):
         # Data array for gap junction coloring.
         self.zdata_t = self.sim.gjopen_time
 
-        if self.p.gj_flux_sensitive is True:
-            max_zdata = self.p.max_gj_enhancement
-        else:
-            max_zdata = 1.0
-
         # Data array for cell coloring.
         self.vdata_t = [1000*arr for arr in self.sim.vm_time]
 
@@ -499,7 +492,7 @@ class AnimateGJData(Anim):
             linewidths=2.0,
             zorder=10,
         )
-        self.collection.set_clim(0.0, max_zdata)
+        self.collection.set_clim(0.0, 1.0)
         self.ax.add_collection(self.collection)
 
         # Add a collection of cell polygons with animated voltage data.
@@ -527,11 +520,11 @@ class AnimateGJData(Anim):
             self.clrMin = round(np.min(all_z), 1)
             self.clrMax = round(np.max(all_z), 1)
 
-            if self.clrMin - self.clrMax == 0:
+            if self.clrMax - self.clrMin == 0:
                 self.clrMin = self.clrMin - 1
                 self.clrMax = self.clrMax + 1
 
-        # Display and/or save this animation.
+        # Display and/or save this animation. # FIXME: There's possibly a scaling issue that's climming to Vdata rather than gj
         self._animate(
             frame_count=len(self.zdata_t),
             figure_title=figure_title,
@@ -547,6 +540,7 @@ class AnimateGJData(Anim):
 
         zz = self.zdata_t[frame_number]
         self.collection.set_array(zz)
+        self.collection.set_clim(0.0, 1.0)
 
         if self.p.sim_ECM is False:
             zv = self.vdata_t[frame_number]

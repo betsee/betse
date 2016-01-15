@@ -128,7 +128,6 @@ general options:
                                 # 'basic' (Na+, K+, and proteins-)
                                 # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
                                 # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
-                                # 'invertebrate' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
                                 # 'customized' (user-specified settings)
                                 # each profile also contains a charge-balance anion, M-
                                 # In 'animal' and 'invertebrate' profiles
@@ -195,7 +194,7 @@ world options:
                               # square grid is created.
 
   fluid flow:
-      include fluid flow: True     # calculate fluid flow between cells and in extracellular environment?
+      include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
       turn on: False        # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
@@ -601,11 +600,11 @@ variable settings:
                               # options True or False (case sensitive)
 
   flow and deformation:
-      water viscocity: 1e-2      # viscocity of water [Pa s] (applies to ease of flow)
+      water viscocity: 0.5      # viscocity of water [Pa s] (applies to ease of flow)
 
       include osmotic pressure: False    # include osmotic pressure in flow & deformation?
 
-      include electrostatic pressure: True   # include electrostatic pressure in flow and deformation?
+      include electrostatic pressure: False   # include electrostatic pressure in flow and deformation?
 
       membrane water conductivity: 1e-10   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
 
