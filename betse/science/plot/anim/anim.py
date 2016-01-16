@@ -23,6 +23,24 @@ Matplotlib-based animation classes.
 #    https://stackoverflow.com/questions/16334588/create-a-figure-that-is-reference-counted/16337909#16337909
 #
 #Abundant stags in the furry forest!
+
+#FIXME: For a similar reason (avoiding memory leaks), I'm fairly certain that
+#everywhere we currently call the ".lines.remove()" method of a Matplotlib
+#streamplot object, that we instead need to simply call remove(): e.g.,
+#
+#    # ...instead of this:
+#    self._stream_plot.lines.remove()
+#
+#    # ...do this:
+#    self._stream_plot.remove()
+#
+#The latter removes the stream plot itself from the parent figure and axes, in
+#preparation for recreating the stream plot. The former merely removes the set
+#of all stream lines from the stream plot. Failing to remove the stream plot
+#itself could potentially cause old stream plots to be retained in memory. In
+#any case, give self._stream_plot.remove() a go; if that works, we'll want to
+#use that regardless of whether there are any memory leaks here or not.
+
 # ....................{ IMPORTS                            }....................
 import os
 import numpy as np
@@ -52,6 +70,7 @@ from betse.science.plot.plot import (
 #warm afternoons in the lazy summertime!
 #FIXME: Privatize all attributes, both here and in our base class, *AFTER*
 #generalizing this refactoring to every class below.
+#FIXME: Rename "zdata_time" to "time_series".
 
 class AnimateCellData(Anim):
     '''
@@ -119,42 +138,19 @@ class AnimateCellData(Anim):
             self.collection, self.ax = cell_mesh(
                 data_points, self.ax, self.cells, self.p, self.colormap)
 
+        #FIXME: We don't appear to use "self.streams" anywhere and hence can
+        #probably stop classifying that object. Jetties of the Eden overflow!
         if self._is_current_overlay is True:
             self.streams, self.ax, axes_title = I_overlay_setup(
                 self.sim, self.ax, self.cells, self.p)
         else:
             axes_title = None
 
-        #FIXME: This is great! Ally suggests we generalize this technique to
-        #all of the other animation classes as well. What this does is
-        #precalculate the minimum and maximum values for this data set
-        #beforehand, allowing us to clim this animation's collection to this
-        #range only once rather than for each frame. It's not just a matter of
-        #efficiency: colorbar range fluctuations are disorienting.
-        #
-        #The question is how best to go about this. Perhaps add a new
-        #"colorbar_values" parameter to the superclass _animate() method and
-        #have that perform the desired autoscaling? Wonder boy in jujube land!
-
-        # Autoscale the colorbar range if desired.
-        if self.clrAutoscale is True:
-            #FIXME: This (probably) reduces to this list comprehension both
-            #here and everywhere below:
-            #all_z = [val for zarray in zdata_t for val in zarray]
-
-            # first flatten the data (needed in case cells were cut)
-            all_z = []
-            for zarray in zdata_time:
-                for val in zarray:
-                    all_z.append(val)
-
-            self.clrMin = np.min(all_z)
-            self.clrMax = np.max(all_z)
-
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.collection,
+            colorbar_values=self._zdata_time,
             axes_title=axes_title,
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
@@ -186,8 +182,9 @@ class AnimateCellData(Anim):
                 self.sim, self.streams, self.ax, self.cells, self.p)
 
 
-#FIXME: The boolean "is_gj_current_only" is a bit awkward. Consider further
-#subclassing. Into the smothering depths of spicy ghost peppers!
+#FIXME: Consider creating a new "AnimStreamplot" superclass for animating
+#streamplots. There appears to be duplicate code throughout classes animating
+#streamplots here and below.
 class AnimateCurrent(Anim):
     '''
     Animation of current plotted on the current cell cluster.
@@ -219,9 +216,7 @@ class AnimateCurrent(Anim):
             types.assert_not_bool(is_gj_current_only))
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            colorbar_title='Current Density [A/m2]',
-            *args, **kwargs)
+        super().__init__( *args, **kwargs)
 
         self.is_gj_current_only = is_gj_current_only
         self.colormap = self.p.background_cm
@@ -239,7 +234,23 @@ class AnimateCurrent(Anim):
             cmap=self.colormap,
         )
 
-        # Display and/or save this animation.
+        #FIXME: This may not actually be the case. How expensive *IS*
+        #recalculating "Jmag_M", anyway? We can certainly tolerate a bit of
+        #recalculation here. Indeed, if the memory costs aren't too high, we
+        #could even calculate *ALL* possible "Jmag_M" values for the entire
+        #time series up-front here and then subsequently reuse these values.
+        #
+        #To get a sense of whether or not that is likely to be too space-
+        #prohibitive, let's do the following as a sanity check first:
+        #
+        #    print('I_gj_x_time len: ' + len(self.sim.I_gj_x_time))
+
+        # Display and/or save this animation. Since recalculating "Jmag_M" for
+        # each animation frame is non-trivial, this call avoids passing the
+        # "time_series" parameter. Instead, the _streamplot_jmag_m() method
+        # manually rescales the colorbar on each frame according to the minimum
+        # and maximum current density magnitude. While non-ideal, every
+        # alternative is currently worse. (Get it: *current*ly?)
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.meshplot,
@@ -301,6 +312,160 @@ class AnimateCurrent(Anim):
         return Jmag_M
 
 
+#FIXME: Use below in lieu of string constants.
+AnimDeformationStyle = Enum('AnimDeformationStyle', ('streamline', 'vector'))
+
+#FIXME: Split into two subclasses: one handling physical deformations and the
+#other voltage deformations. There exists very little post-subclassing code
+#sharred in common between the two conditional branches handling this below.
+
+class AnimateDeformation(Anim):
+    '''
+    Animation of physical cell deformation plotted on the current cell cluster.
+    '''
+
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(*args, **kwargs)
+
+        dx = self.sim.dx_cell_time[0]
+        dy = self.sim.dy_cell_time[0]
+
+        if self.p.ani_Deformation_type == 'Vmem':
+            self.colormap = self.p.default_cm
+
+            if self.p.sim_ECM is False:
+                dd = self.sim.vm_time[0]*1e3
+            else:
+                dd = self.sim.vcell_time[0]*1e3
+        elif self.p.ani_Deformation_type == 'Displacement':
+            self.colormap = self.p.background_cm
+            dd = self.p.um * np.sqrt(dx**2 + dy**2)
+        else:
+            raise BetseExceptionParameters(
+                'Deformation animation type "{}" not '
+                '"Vmem" or "Displacement".'.format(
+                    self.p.ani_Deformation_type))
+
+        dd_collection, self.ax = cell_mesh(
+            dd, self.ax, self.cells, self.p, self.colormap)
+
+        if self.p.ani_Deformation_style == 'vector':
+            self._quiver_plot, self.ax = cell_quiver(
+                dx, dy, self.ax, self.cells, self.p)
+        elif self.p.ani_Deformation_style == 'streamline':
+            self._stream_plot, self.ax = cell_stream(
+                dx, dy, self.ax, self.cells, self.p,
+                showing_cells=self.p.showCells)
+        else:
+            raise BetseExceptionParameters(
+                'Deformation animation style "{}" not '
+                '"vector" or "streamline".'.format(
+                    self.p.ani_Deformation_style))
+
+        # Sequence of all deformation values for use in colorbar autoscaling.
+        colorbar_time_series = None
+
+        if self.clrAutoscale is True:
+            if self.p.ani_Deformation_type == 'Displacement':
+                #FIXME: Optimize. Since our superclass already ravels, this
+                #should reduce to just:
+                #colorbar_time_series = np.array([
+                #     np.sqrt(cell_dx**2 + cell_dy**2) * self.p.um
+                #     for cell_dx, cell_dy in zip(
+                #        self.sim.dx_cell_time, self.sim.dy_cell_time)])
+
+                # first flatten the data (needed in case cells were cut)
+                colorbar_time_series = []
+
+                # For sequence of X and Y cell deformation components for each
+                # time step, ...
+                for cell_dx, cell_dy in zip(
+                    self.sim.dx_cell_time, self.sim.dy_cell_time):
+                    zarray = np.sqrt(cell_dx**2 + cell_dy**2)
+                    for val in zarray:
+                        colorbar_time_series.append(val*self.p.um)
+
+            elif self.p.ani_Deformation_type == 'Vmem':
+                #FIXME: Optimize. Since our superclass already ravels, this
+                #should reduce to just:
+                #    colorbar_time_series = self.sim.vm_time * 1e3
+
+                colorbar_time_series = []
+
+                for zarray in self.sim.vm_time:
+                    for val in zarray:
+                        colorbar_time_series.append(val*1e3)
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self.sim.time),
+            colorbar_mapping=dd_collection,
+            colorbar_values=colorbar_time_series,
+            axes_x_label='Spatial distance [um]',
+            axes_y_label='Spatial distance [um]',
+        )
+
+
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        #FIXME: Is it actually the case that the entire plot needs to be
+        #regenerated? The AnimateCellData._plot_frame_figure() method also
+        #recreates "self.ax" but without regenerating the entire plot. Let's
+        #test this in the trivial way. Luscious, luscious heart candy!
+        #FIXME: Indeed, it appears that the entire plot didn't need to be
+        #replotted. Let's go with our newfound efficiency. Make it so, sunbeam!
+
+        #FIXME: Quite a bit of code duplication. Let's see if we can generalize
+        #a new method for this.
+
+        # Erase the prior frame before plotting this frame.
+        self.ax.patches = []
+
+        # we need to have changing cells, so we have to clear the plot and redo it...
+        # self.fig.clf()
+        # self.ax = plt.subplot(111)
+
+        # Cell deformations as X and Y component arrays for this frame.
+        dx = self.sim.dx_cell_time[frame_number]
+        dy = self.sim.dy_cell_time[frame_number]
+
+        if self.p.ani_Deformation_type == 'Vmem':
+            if self.p.sim_ECM is False:
+                dd = self.sim.vm_time[frame_number]*1e3
+            else:
+                dd = self.sim.vcell_time[frame_number]*1e3
+        elif self.p.ani_Deformation_type == 'Displacement':
+            dd = 1e6 * np.sqrt(dx**2 + dy**2)
+
+        # Reset the superclass colorbar mapping to this newly created mapping,
+        # permitting the superclass _plot_frame() method to clip this mapping.
+        self._colorbar_mapping, self.ax = cell_mesh(
+            dd, self.ax, self.cells, self.p, self.colormap)
+        # dd_collection, self.ax = cell_mesh(
+        #     dd, self.ax, self.cells, self.p, self.colormap)
+        # dd_collection.set_clim(self.clrMin, self.clrMax)
+        # cb = self.fig.colorbar(self._colorbar_mapping)
+        # cb.set_label(self._colorbar_title)
+
+        if self.p.ani_Deformation_style == 'vector':
+            self._quiver_plot.remove()
+            self._quiver_plot, self.ax = cell_quiver(
+                dx, dy, self.ax, self.cells, self.p)
+        elif self.p.ani_Deformation_style == 'streamline':
+            self._stream_plot.lines.remove()
+            self._stream_plot, self.ax = cell_stream(
+                dx, dy, self.ax, self.cells, self.p,
+                showing_cells=self.p.showCells)
+
+        # self.ax.axis('equal')
+        # self.ax.axis(self._axes_bounds)
+        # self.ax.set_xlabel('Spatial distance [um]')
+        # self.ax.set_ylabel('Spatial distance [um]')
+
+
 class AnimateFieldIntracellular(AnimField):
     '''
     Animation of the electric field over all intracellular gap junctions
@@ -325,7 +490,14 @@ class AnimateFieldIntracellular(AnimField):
             self.clrMin = np.min(efield_mag)
             self.clrMax = np.max(efield_mag)
 
-        # Display and/or save this animation.
+        #FIXME: How expensive would caching these calculations be?
+
+        # Display and/or save this animation. Since recalculating "efield_mag"
+        # for each animation frame is non-trivial, this call avoids passing the
+        # "time_series" parameter. Instead, the __plot_frame_figure() method
+        # manually rescales the colorbar on each frame according to the minimum
+        # and maximum electric field magnitude. While non-ideal, every
+        # alternative is currently worse.
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.msh,
@@ -397,7 +569,14 @@ class AnimateFieldExtracellular(AnimField):
             self.clrMin = np.min(efield_mag)
             self.clrMax = np.max(efield_mag)
 
-        # Display and/or save this animation.
+        #FIXME: How expensive would caching these calculations be?
+
+        # Display and/or save this animation. Since recalculating "efield_mag"
+        # for each animation frame is non-trivial, this call avoids passing the
+        # "time_series" parameter. Instead, the __plot_frame_figure() method
+        # manually rescales the colorbar on each frame according to the minimum
+        # and maximum electric field magnitude. While non-ideal, every
+        # alternative is currently worse.
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.msh,
@@ -427,26 +606,49 @@ class AnimateFieldExtracellular(AnimField):
             self.clrMax = np.max(efield_mag)
 
 
+#FIXME: Rename "self.zdata_t" to "self.gj_time_series".
+#FIXME: Rename "self.vdata_t" to "self.underlay_time_series".
 class AnimateGJData(Anim):
     '''
     Animation of the gap junction open state as a function of time.
 
     Attributes
     ----------
+    vdata_t : list
+        Time series used for cell coloring.
     zdata_t : list
-        Data array for gap junction coloring.
+        Time series used for gap junction coloring.
     '''
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        gj_time_series: list,
+        cell_time_series: list,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        gj_time_series : list
+            Time series used for gap junction coloring.
+        cell_time_series : list
+            Time series used for cell coloring.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(gj_time_series), (
+            types.assert_not_sequence_nonstr(gj_time_series))
+        assert types.is_sequence_nonstr(cell_time_series), (
+            types.assert_not_sequence_nonstr(cell_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
-        # Data array for gap junction coloring.
-        self.zdata_t = self.sim.gjopen_time
-
-        # Data array for cell coloring.
-        self.vdata_t = [1000*arr for arr in self.sim.vm_time]
+        # Classify all remaining parameters.
+        self.zdata_t = gj_time_series
+        self.vdata_t = cell_time_series
 
         connects = np.asarray(self.cells.nn_edges) * self.p.um
         self.collection = LineCollection(
@@ -472,29 +674,11 @@ class AnimateGJData(Anim):
             self.coll2, self.ax = cell_mesh(
                 data_set, self.ax, self.cells, self.p, self.colormap)
 
-        # Autoscale the colorbar range if desired.
-        if self.clrAutoscale is True:
-            #FIXME: See above.
-            # first flatten the data (needed in case cells were cut)
-            all_z = []
-            for zarray in self.vdata_t:
-                for val in zarray:
-                    all_z.append(val)
-
-            self.clrMin = round(np.min(all_z), 1)
-            self.clrMax = round(np.max(all_z), 1)
-
-            if self.clrMin == self.clrMax:
-                self.clrMin = self.clrMin - 1
-                self.clrMax = self.clrMax + 1
-
-        # FIXME: There's possibly a scaling issue that's clipping to Vdata
-        # rather than gj.
-
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self.zdata_t),
             colorbar_mapping=self.coll2,
+            colorbar_values=self.vdata_t,
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
         )
@@ -543,7 +727,14 @@ class AnimateVelocityIntracellular(Anim):
             cmap=self.colormap,
         )
 
-        # Display and/or save this animation.
+        #FIXME: How expensive would caching these calculations be?
+
+        # Display and/or save this animation. Since recalculating "vfield" for
+        # each animation frame is non-trivial, this call avoids passing the
+        # "time_series" parameter. Instead, the _get_velocity_field() method
+        # manually rescales the colorbar on each frame according to the minimum
+        # and maximum velocity field magnitude. While non-ideal, every
+        # alternative is currently worse.
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.msh,
@@ -667,7 +858,14 @@ class AnimateVelocityExtracellular(Anim):
             cmap=self.colormap,
         )
 
-        # Display and/or save this animation.
+        #FIXME: How expensive would caching these calculations be?
+
+        # Display and/or save this animation. Since recalculating "vfield" for
+        # each animation frame is non-trivial, this call avoids passing the
+        # "time_series" parameter. Instead, the _get_velocity_field() method
+        # manually rescales the colorbar on each frame according to the minimum
+        # and maximum velocity field magnitude. While non-ideal, every
+        # alternative is currently worse.
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.msh,
@@ -691,8 +889,6 @@ class AnimateVelocityExtracellular(Anim):
             self.sim.u_env_y_time[frame_number]/vnorm)
 
 
-    #FIXME: Sufficiently simplistic now that we should probably just
-    #reduplicate this logic above and excise this method altogether.
     def _get_velocity_field(self, frame_number: int) -> tuple:
         '''
         Get a 2-element tuple whose first element is the velocity field and
@@ -717,179 +913,6 @@ class AnimateVelocityExtracellular(Anim):
             self.clrMax = vnorm
 
         return (vfield, vnorm)
-
-
-class AnimateDeformation(object):
-# class AnimateDeformation(Anim):
-
-    def __init__(
-        self,
-        sim,
-        cells,
-        p,
-        ani_repeat=True,
-        save=True,
-        saveFolder='animation/Deformation',
-        saveFile='Deformation_',
-    ):
-
-        self.fig = plt.figure()
-        self.ax = plt.subplot(111)
-        self.p = p
-        self.sim = sim
-        self.cells = cells
-        self.save = save
-
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
-
-        if self.save is True:
-            _setup_file_saving(self,p)
-
-        dx = self.sim.dx_cell_time[0]
-        dy = self.sim.dy_cell_time[0]
-
-        if self.p.ani_Deformation_type == 'Vmem':
-            if self.p.sim_ECM is False:
-                dd = self.sim.vm_time[0]*1e3
-            else:
-                dd = self.sim.vcell_time[0]*1e3
-
-            self.specific_cmap = p.default_cm
-        elif self.p.ani_Deformation_type == 'Displacement':
-            dd = p.um*np.sqrt(dx**2 + dy**2)
-            self.specific_cmap = p.background_cm
-        else:
-            raise BetseExceptionParameters(
-                "Definition of 'data type' in deformation animation\n"
-                "must be either 'Vmem' or 'Displacement'.")
-
-        dd_collection, self.ax = cell_mesh(
-            dd,self.ax,cells,p,self.specific_cmap)
-
-        if p.ani_Deformation_style == 'vector':
-            vplot, self.ax = cell_quiver(dx,dy,self.ax,cells,p)
-        elif p.ani_Deformation_style == 'streamline':
-            vplot, self.ax = cell_stream(
-                dx,dy,self.ax,cells,p, showing_cells=p.showCells)
-        else:
-            raise BetseExceptionParameters(
-                "Definition of 'style' in deformation animation\n"
-                "must be either 'vector' or 'streamline'.")
-
-        self.ax.axis('equal')
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if p.autoscale_Deformation_ani is True:
-            if p.ani_Deformation_type == 'Displacement':
-                # first flatten the data (needed in case cells were cut)
-                all_z = []
-                for xarray, yarray in zip(sim.dx_cell_time,sim.dy_cell_time):
-                    zarray = np.sqrt(xarray**2 + yarray**2)
-                    for val in zarray:
-                        all_z.append(val*p.um)
-
-            elif p.ani_Deformation_type == 'Vmem':
-                all_z = []
-
-                for zarray in sim.vm_time:
-                    for val in zarray:
-                        all_z.append(val*1e3)
-
-            self.cmin = np.min(all_z)
-            self.cmax = np.max(all_z)
-
-            dd_collection.set_clim(self.cmin,self.cmax)
-
-        elif p.autoscale_Deformation_ani is False:
-            dd_collection.set_clim(
-                p.Deformation_ani_min_clr, p.Deformation_ani_max_clr)
-
-        cb = self.fig.colorbar(dd_collection)
-
-        self.tit = "Displacement Field and Deformation"
-        self.ax.set_title(self.tit)
-        self.ax.set_xlabel('Spatial distance [um]')
-        self.ax.set_ylabel('Spatial distance [um]')
-
-        if self.p.ani_Deformation_type == 'Displacement':
-            cb.set_label('Displacement [um]')
-
-        elif self.p.ani_Deformation_type == 'Vmem':
-            cb.set_label('Voltage [mV]')
-
-        self.frames = len(sim.time)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        _handle_plot(p)
-
-
-    def aniFunc(self,i):
-
-        # we need to have changing cells, so we have to clear the plot and redo it...
-        self.fig.clf()
-        self.ax = plt.subplot(111)
-
-        dx = self.sim.dx_cell_time[i]
-        dy = self.sim.dy_cell_time[i]
-
-        if self.p.ani_Deformation_type == 'Vmem':
-            if self.p.sim_ECM is False:
-                dd = self.sim.vm_time[i]*1e3
-            else:
-                dd = self.sim.vcell_time[i]*1e3
-        elif self.p.ani_Deformation_type == 'Displacement':
-            dd = 1e6*np.sqrt(dx**2 + dy**2)
-
-        dd_collection, self.ax = cell_mesh(
-            dd, self.ax, self.cells, self.p, self.specific_cmap)
-
-        if self.p.ani_Deformation_style == 'vector':
-            vplot, self.ax = cell_quiver(dx,dy,self.ax,self.cells,self.p)
-        elif self.p.ani_Deformation_style == 'streamline':
-            vplot, self.ax = cell_stream(
-                dx, dy, self.ax, self.cells, self.p,
-                showing_cells=self.p.showCells)
-
-        self.ax.axis('equal')
-
-        xmin = self.cells.xmin*self.p.um
-        xmax = self.cells.xmax*self.p.um
-        ymin = self.cells.ymin*self.p.um
-        ymax = self.cells.ymax*self.p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if self.p.autoscale_Deformation_ani is False:
-            dd_collection.set_clim(
-                self.p.Deformation_ani_min_clr,self.p.Deformation_ani_max_clr)
-        else:
-            dd_collection.set_clim(self.cmin,self.cmax)
-
-        titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
-        self.ax.set_title(titani)
-        self.ax.set_xlabel('Spatial distance [um]')
-        self.ax.set_ylabel('Spatial distance [um]')
-
-        cb = self.fig.colorbar(dd_collection)
-
-        if self.p.ani_Deformation_type == 'Displacement':
-            cb.set_label('Displacement [um]')
-        elif self.p.ani_Deformation_type == 'Vmem':
-            cb.set_label('Voltage [mV]')
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
 
 
 class AnimateEnv(object):

@@ -123,6 +123,18 @@ def is_iterable_nonstr(obj: object) -> bool:
     return is_iterable(obj) and not is_str(obj)
 
 # ....................{ TESTERS ~ lib                      }....................
+def is_numpy_array(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Numpy array or matrix.
+
+    This function returns true if the passed object is an instance of the
+    Numpy-specific `ndarray` superclass.
+    '''
+    # Avoid importing third-party packages at the top level.
+    from numpy import ndarray
+    return isinstance(obj, ndarray)
+
+
 def is_matplotlib_colormap(obj: object) -> bool:
     '''
     `True` if the passed object is a Matplotlib colormap.
@@ -186,16 +198,12 @@ def is_sequence_nonstr(obj: object) -> bool:
     implementing all methods defined by that subclass).
     '''
 
-    # Avoid importing third-party packages at the top level.
-    import numpy
-
     # Let's do this.
     return (
         # Is this a pure-Python non-string sequence?
         (is_sequence(obj) and not is_str(obj)) or
-        # Is this a non-Pythonic Fortran-based numpy array or matrix, all of
-        # which subclass the "ndarray" superclass?
-        isinstance(obj, numpy.ndarray)
+        # Is this a non-Pythonic Fortran-based numpy array or matrix?
+        is_numpy_array(obj)
     )
 
 
@@ -310,6 +318,13 @@ def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
         obj) else '{} empty.'.format(label.capitalize())
 
 # ....................{ ASSERTERS ~ lib                    }....................
+def assert_not_numpy_array(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Numpy array or matrix.
+    '''
+    return '"{}" not a array or matrix.'.format(trim(obj))
+
+
 def assert_not_matplotlib_colormap(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be a Matplotlib colormap.

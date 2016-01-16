@@ -849,41 +849,41 @@ results options:
       autoscale colorbar: True
       max val: 15
       min val: -15
-  
+
     #---------Animations -------------------------------------------------------------------------------------------------
-  
+
     Vmem Ani:
-      animate Vmem: True           # 2d animation of vmem with time?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 10.0                # maximum colorbar value in mV
-      min val: -70.0               # maximum colorbar value in mV
-  
+        animate Vmem: True           # 2d animation of vmem with time?
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 10.0                # maximum colorbar value in mV
+        min val: -70.0               # maximum colorbar value in mV
+
     Ca Ani:
-      animate Ca2+: True           # 2d animation of cell calcium with time ?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 1000                # maximum colorbar value in nmol/L
-      min val: 0                   # minimum colorbar vlue in nmol/L
-  
+        animate Ca2+: True           # 2d animation of cell calcium with time ?
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 1000                # maximum colorbar value in nmol/L
+        min val: 0                   # minimum colorbar vlue in nmol/L
+
     pH Ani:
-      animate pH: True           # 2d animation of cell pH with time ?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 8               # maximum colorbar value in nmol/L
-      min val: 6                   # minimum colorbar vlue in nmol/L
-  
+        animate pH: True           # 2d animation of cell pH with time ?
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 8               # maximum colorbar value in nmol/L
+        min val: 6                   # minimum colorbar vlue in nmol/L
+
     IP3 Ani:
-      animate IP3: True            # 2d animation of cIP3 with time?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 100                 # maximum colorbar value in umol/L
-      min val: 0                   # minimum colorbar value in umol/L
-  
+        animate IP3: True            # 2d animation of cIP3 with time?
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 100                 # maximum colorbar value in umol/L
+        min val: 0                   # minimum colorbar value in umol/L
+
     Morpho Ani:
-      animate Morpho: True         # Plot a 2D animation of voltage sensitive
-                                   # dye in the cell cluster? Ignored unless
-                                   # "include morphogen" is also True.
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 1.5e-3              # maximum colorbar value in umol/L
-      min val: 0                   # minimum colorbar value in umol/L
-  
+        animate Morpho: True         # Plot a 2D animation of voltage sensitive
+                                     # dye in the cell cluster? Ignored unless
+                                     # "include morphogen" is also True.
+        autoscale colorbar: True     # autoscale colorbar to min max of data set?
+        max val: 1.5e-3              # maximum colorbar value in umol/L
+        min val: 0                   # minimum colorbar value in umol/L
+
     Vmem GJ Ani:
         animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
@@ -947,13 +947,19 @@ results options:
         max val: 500                # max colorbar value [V/m]
         min val: 0                  # min colorbar value [V/m]
   
+    #FIXME: The "data type" key should probably be replaced by splitting this
+    #entire animation entry into two new animation entries: a new
+    #"Vmem Deformation Ani" and a new "Displacement Ani". Presumably, it might
+    #be helpful to be able to plot both animations at the same time. Zesty hum!
     Deformation Ani:
-      animate Deformation: True        # 2d animation of electric field in extracellullar matrix
-      data type: Displacement                  # data type can be 'Vmem' or 'Displacement'
-      style: streamline            # plot 'streamline' or 'vector' displacements
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 10               # max colorbar value [um] when autoscale is False
-      min val: 0                  # min colorbar value [um] when autoscale is False
+        animate Deformation: True   # Plot a 2D animation of cell deformation?
+                                    # Ignored unless "turn on" under
+                                    # "deformation" is True.
+        data type: Displacement     # data type can be 'Vmem' or 'Displacement'
+        style: streamline           # plot 'streamline' or 'vector' displacements
+        autoscale colorbar: True    # autoscale colorbar to min max of data set?
+        max val: 10                 # max colorbar value [um] when autoscale is False
+        min val: 0                  # min colorbar value [um] when autoscale is False
   
     default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
                                  # options include

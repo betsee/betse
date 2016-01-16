@@ -1154,8 +1154,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         )
 
     if p.ani_vmgj2d is True and p.createAnimations is True:
+        # Animate the gap junction overlayed over Vmem.
         AnimateGJData(
             sim=sim, cells=cells, p=p,
+            gj_time_series=sim.gjopen_time,
+            #FIXME: This probably reduces to just:
+            #cell_time_series=sim.vm_time * 1000,
+            cell_time_series=[1000*arr for arr in sim.vm_time],
             type='Vmem_gj',
             figure_title='Vcell',
             colorbar_title='Voltage [mV]',
@@ -1184,9 +1189,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         # Always animate the gap junction current.
         AnimateCurrent(
             sim=sim, cells=cells, p=p,
+            is_gj_current_only=True,
             type='current_gj',
             figure_title='Gap Junction Current',
-            is_gj_current_only=True,
+            colorbar_title='Current Density [A/m2]',
             clrAutoscale=p.autoscale_I_ani,
             clrMin=p.I_ani_min_clr,
             clrMax=p.I_ani_max_clr,
@@ -1196,9 +1202,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.sim_ECM is True:
             AnimateCurrent(
                 sim=sim, cells=cells, p=p,
+                is_gj_current_only=False,
                 type='current_ecm',
                 figure_title='Total Current',
-                is_gj_current_only=False,
+                colorbar_title='Current Density [A/m2]',
                 clrAutoscale=p.autoscale_I_ani,
                 clrMin=p.I_ani_min_clr,
                 clrMax=p.I_ani_max_clr,
@@ -1260,11 +1267,26 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if (p.ani_Deformation is True and p.deformation is True and
         p.createAnimations is True and sim.run_sim is True):
-        AnimateDeformation(
-            sim, cells, p,
-            ani_repeat=True,
-            save=p.saveAnimations,
-        )
+        if p.ani_Deformation_type == 'Displacement':
+            AnimateDeformation(
+                sim=sim, cells=cells, p=p,
+                type='Deformation',
+                figure_title='Displacement Field and Deformation',
+                colorbar_title='Displacement [um]',
+                clrAutoscale=p.autoscale_Deformation_ani,
+                clrMin=p.Deformation_ani_min_clr,
+                clrMax=p.Deformation_ani_max_clr,
+            )
+        elif p.ani_Deformation_type == 'Vmem':
+            AnimateDeformation(
+                sim=sim, cells=cells, p=p,
+                type='Deformation',
+                figure_title='Displacement Field and Deformation',
+                colorbar_title='Voltage [mV]',
+                clrAutoscale=p.autoscale_Deformation_ani,
+                clrMin=p.Deformation_ani_min_clr,
+                clrMax=p.Deformation_ani_max_clr,
+            )
 
     if (p.ani_Pcell is True and p.deform_osmo is True and
         p.createAnimations is True):

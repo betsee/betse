@@ -7,6 +7,7 @@ Abstract base classes of all Matplotlib-based animation classes.
 '''
 
 # ....................{ IMPORTS                            }....................
+import numpy as np
 from abc import ABCMeta, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.mpl import mpl_config
@@ -97,7 +98,7 @@ class Anim(object, metaclass=ABCMeta):
         otherwise.
     '''
 
-    # ..................{ CONCRETE ~ init                    }..................
+    # ..................{ PRIVATE ~ init                     }..................
     def __init__(
         self,
 
@@ -285,7 +286,7 @@ class Anim(object, metaclass=ABCMeta):
                 dpi=mpl_config.get_rc_param('savefig.dpi'),
             )
 
-    # ..................{ CONCRETE ~ animate                 }..................
+    # ..................{ PRIVATE ~ animate                  }..................
     #FIXME: The "axes_x_label" and "axes_y_label" parameters should probably
     #just be passed to the __init__() method and then classified. Doing so
     #would simplify "AnimateField" subclasses by permitting that superclass to
@@ -297,6 +298,7 @@ class Anim(object, metaclass=ABCMeta):
         axes_x_label: str,
         axes_y_label: str,
         axes_title: str = None,
+        colorbar_values: np.ndarray = None,
     ) -> None:
         '''
         Display this animation if the current simulation configuration
@@ -309,17 +311,26 @@ class Anim(object, metaclass=ABCMeta):
         ----------
         frame_count : int
             Number of frames to be animated.
-        colorbar_mapping : object
-            The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
-            colorbar applies.
         axes_title : str
-            Text displayed above the figure axes but below the figure title
-            (i.e., `_figure_title`) _or_ `None` if no such text is to be
-            displayed.
+            Optional text displayed above the figure axes but below the figure
+            title (i.e., `_figure_title`) _or_ `None` if no such text is to be
+            displayed. Defaults to `None`.
         axes_x_label : str
             Text displayed below the figure's X axis.
         axes_y_label : str
             Text displayed to the left of the figure's Y axis.
+        colorbar_mapping : object
+            The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
+            colorbar applies.
+        colorbar_values : np.ndarray
+            Optional multi-dimensional Numpy array containing all data values
+            to be animated _or_ `None` if calculating this data during the
+            animation initialization is infeasible or impractical (e.g., due to
+            space and time constraints). If non-`None` _and_ colorbar
+            autoscaling is requested (i.e., the initialization-time
+            `clrAutoscale` parameter was `True`), the colorbar will be clipped
+            to the maximum and minimum value in this matrix; else, the subclass
+            is responsible for colorbar autoscaling. Defaults to `None`.
         '''
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
         assert types.is_str_nonempty(axes_x_label), (
@@ -359,6 +370,26 @@ class Anim(object, metaclass=ABCMeta):
         self.ax.set_title(self._axes_title)
         self.ax.set_xlabel(axes_x_label)
         self.ax.set_ylabel(axes_y_label)
+
+        # If a time series is passed *AND* colorbar autoscaling is requested,
+        # clip the colorbar to the minimum and maximum values of this series.
+        if colorbar_values is not None and self.clrAutoscale is True:
+            assert types.is_sequence_nonstr(colorbar_values), (
+                types.assert_not_sequence_nonstr(colorbar_values))
+
+            # Flatten this two-dimensional matrix to a one-dimensional array,
+            # providing efficient retrieval of minimum and maximum values.
+            time_series_flat = np.ravel(colorbar_values)
+
+            # Minimum and maximum values.
+            self.clrMin = np.min(time_series_flat)
+            self.clrMax = np.max(time_series_flat)
+
+            # If these values are identical, coerce them to differ. This ensures
+            # that the colorbar will be displayed in a sane manner.
+            if self.clrMin == self.clrMax:
+                self.clrMin = self.clrMin - 1
+                self.clrMax = self.clrMax + 1
 
         # Set the colorbar range.
         colorbar_mapping.set_clim(self.clrMin, self.clrMax)
@@ -474,9 +505,9 @@ class Anim(object, metaclass=ABCMeta):
         # Plot this frame onto this animation's figure.
         self._plot_frame_figure(frame_number)
 
-        # If the above call to the subclass _plot_frame_figure() method modified
-        # either the minimum or maximum colorbar values, rescale the colorbar;
-        # else, noop.
+        # For safety, rescale the colorbar regardless of whether or not the
+        # minimum or maximum colorbar values have been modified by the above
+        # call to the subclass _plot_frame_figure() method.
         self._colorbar_mapping.set_clim(self.clrMin, self.clrMax)
 
         # Update this figure with the current time, rounded to three decimal

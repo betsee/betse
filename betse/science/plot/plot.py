@@ -1237,7 +1237,7 @@ def cell_ave(cells,vm_at_mem):
     return v_cell
 
 # utility functions------------------------------------------------------
-def cell_quiver(datax,datay,ax,cells,p):
+def cell_quiver(datax, datay, ax, cells, p):
     """
     Sets up a vector plot for cell-specific data on an existing axis.
 
@@ -1276,6 +1276,7 @@ def cell_quiver(datax,datay,ax,cells,p):
         pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7, zorder=10)
 
     return vplot, ax
+
 
 def env_quiver(datax,datay,ax,cells,p):
     """
@@ -1368,6 +1369,7 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
 
     return streams, ax
 
+
 def env_stream(datax,datay,ax,cells,p):
     """
     Sets up a streamline plot for environmental data on an existing axis.
@@ -1415,20 +1417,27 @@ def env_stream(datax,datay,ax,cells,p):
 
     return streams, ax
 
-def cell_mesh(data,ax,cells,p,clrmap):
 
+#FIXME: It'd be sweet if we could document this up. Streaming smiles underflow!
+def cell_mesh(data, ax, cells, p, clrmap):
 
-    if len(data) == len(cells.mem_i): # if the data is defined on membrane midpoints, average to cell centres:
-
+    # If the data is defined on membrane midpoints, average to cell centres.
+    if len(data) == len(cells.mem_i):
         data = np.dot(cells.M_sum_mems,data)/cells.num_mems
 
     data_grid = np.zeros(len(cells.voronoi_centres))
     data_grid[cells.cell_to_grid] = data
 
-    msh = ax.tripcolor(p.um*cells.voronoi_centres[:,0],p.um*cells.voronoi_centres[:,1],data_grid,
-        shading='gouraud',cmap=clrmap)
+    msh = ax.tripcolor(
+        p.um*cells.voronoi_centres[:,0],
+        p.um*cells.voronoi_centres[:,1],
+        data_grid,
+        shading='gouraud',
+        cmap=clrmap,
+    )
 
     return msh, ax
+
 
 def env_mesh(data,ax,cells,p,clrmap,ignore_showCells=False):
     """
