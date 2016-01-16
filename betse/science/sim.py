@@ -1900,37 +1900,117 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
+    def get_Vall(self,cells,p):
+        """
+        Calculates transmembrane voltage (Vmem) and voltages inside the cell and extracellular space, assuming the cell
+        is a capacitor consisting of two concentric spheres.
+
+        self:
+        cells:
+        p:
+
+        Returns
+        --------
+        vm           Transmembrane voltage
+        v_cell       Voltage at the inner membrane surface
+        v_env        Voltage at the outer membrane surface
+
+        """
+
+        if p.sim_ECM is False:
+            # if we're not modelling extracellular spaces, but assuming a perfectly mixing environment,
+            # assume the cell is a concentric spherical capacitor with opposite but equal magnitude
+            # charge inside the cell and out
+            # calculate the voltage for the system using the measured capacitance of the cell membrane:
+
+            vm = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
+
+            # in this case, the voltage across the membrane is assumed to be equal and opposite to the cell voltage:
+            v_cell = vm/2
+            v_env = -vm/2
+
+
+        else:
+
+            Qcells = (self.rho_cells*cells.cell_vol)
+
+            # Qcells = cells.integrator(Qcells)
+
+            # smooth out the environmental charge:
+            self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
+            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
+
+            # make sure charge at the global boundary is zero:
+            # if p.closed_bound is False:
+            self.rho_env[:,0] = 0
+            self.rho_env[:,-1] = 0
+            self.rho_env[-1,:] = 0
+            self.rho_env[0,:] = 0
+
+            self.rho_env = self.rho_env.ravel()
+
+            # interpolate charge from environmental grid to the ecm_mids:v
+            rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
+                                      self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
+                                      fill_value = 0)
+
+            if p.simulate_TEP is True:
+                Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
+
+            else:
+                Qecm = rho_ecm*p.cell_space*cells.delta**2
+
+            # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
+            Q_max_vect = np.hstack((Qcells,Qecm))
+
+            # calculate the voltage for the system based on the max cap vector
+            v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
+
+            # separate voltages for cells and ecm spaces
+            v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
+            v_ecm = v_max_vect[cells.ecm_range_a:cells.ecm_range_b]
+
+            #Map the environmental voltage to the regular grid:
+            v_env = np.zeros(len(cells.xypts))
+
+            # map the ecm voltage to membrane midpoints:
+            v_ecm_at_mem = v_ecm[cells.mem_to_ecm_mids]
+            # map it again to the environmental grid
+            v_env[cells.map_mem2ecm] = v_ecm_at_mem
+
+            # smooth out the environmental voltage:
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
+            # v_env = fd.integrator(v_env.reshape(cells.X.shape))
+            v_env = v_env.ravel()
+
+            # # set the conditions for the global boundaries:
+            v_env[cells.bBot_k] = self.bound_V['B']
+            v_env[cells.bTop_k] = self.bound_V['T']
+            v_env[cells.bL_k] = self.bound_V['L']
+            v_env[cells.bR_k] = self.bound_V['R']
+
+            # calculate the vm
+            vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
+
+        return vm, v_cell, v_env
+
     def update_V_ecm(self,cells,p,t):
 
 
         if p.sim_ECM is True:
 
             # get the charge in cells and the environment:
-
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
 
-            self.vm, self.v_cell, self.v_env = get_Vall(self,cells,p)
+            self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
 
-        #------------------------------------------------------------------------
-
-            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-            # self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-            # self.v_env = get_Venv(self,cells,p)
-            # self.v_cell = get_Vcell(self,cells,p)
-            #
-            # self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]  # calculate v_mem
 
         else:
 
              self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
 
-             self.vm, _, _ = get_Vall(self,cells,p)
-
-    #-----------------------------------------------------------------------------------------
-
-            # self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-            # self.vm = get_Vcell(self,cells,p)
+             self.vm, _, _ = self.get_Vall(cells,p)
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -1943,9 +2023,8 @@ class Simulator(object):
         delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
         delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
 
-        self.cc_cells[ion_i] = rk4(c_cells,delta_cells,p)
-
-        self.cc_env[ion_i] = rk4(c_env,delta_env,p)
+        self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
+        self.cc_env[ion_i] = c_env + delta_env*p.dt
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -2068,9 +2147,10 @@ class Simulator(object):
         fgj_x,fgj_y = nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
             p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
 
+        # component of flux tangent to gap junctions:
         fgj = fgj_x*cells.cell_nn_tx + fgj_y*cells.cell_nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
+        delta_cc = np.dot(cells.gjMatrix,fgj*cells.mem_sa)/cells.cell_vol
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
@@ -2206,8 +2286,8 @@ class Simulator(object):
         # # # calculate the divergence of the total flux, which is equivalent to the total change per unit time
         # delta_c = fd.flux_summer(f_env_x,f_env_y,cells.X)*(1/cells.delta)
 
-        d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
-        d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
+        d_fenvx = (f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
+        d_fenvy = (f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
 
         delta_c = d_fenvx + d_fenvy
 
@@ -2410,7 +2490,7 @@ class Simulator(object):
 
         fgj_dye = fgj_x_dye*cells.cell_nn_tx + fgj_y_dye*cells.cell_nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_dye*cells.mem_sa)/cells.cell_vol
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_dye*cells.mem_sa)/cells.cell_vol
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
@@ -2436,9 +2516,9 @@ class Simulator(object):
             delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
             delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
 
-            self.cDye_cell = rk4(self.cDye_cell,delta_cells,p)
+            self.cDye_cell = self.cDye_cell + delta_cells*p.dt
 
-            self.cDye_env = rk4(self.cDye_env,-delta_env,p)
+            self.cDye_env = self.cDye_env - delta_env*p.dt
 
             # transport dye through environment: _________________________________________________________
             if p.closed_bound is True:
@@ -2620,7 +2700,7 @@ class Simulator(object):
 
         fgj_ip3 = fgj_x_ip3*cells.cell_nn_tx + fgj_y_ip3*cells.cell_nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_ip3*cells.mem_sa)/cells.cell_vol
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_ip3*cells.mem_sa)/cells.cell_vol
 
         self.cIP3 = self.cIP3 + p.dt*delta_cc
 
@@ -2799,7 +2879,7 @@ class Simulator(object):
         self.I_tot_y = np.zeros(cells.Xgrid.shape)
 
         # calculate current across gap junctions in x direction:
-        I_gj_x = np.zeros(len(cells.nn_i))
+        I_gj_x = np.zeros(len(cells.mem_i))
 
         for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
 
@@ -3343,7 +3423,6 @@ class Simulator(object):
             self.P_cells = self.P_cells + P_react[:]
 
         #------------------------------------------------------------------------------------------------------------
-
         # actual volume change depends on the mechanical properties (young's modulus) of the
         # tissue:
 
@@ -3817,7 +3896,6 @@ class Simulator(object):
 
             self.checkPlot.resetData(cells,self,p)
 
-
 #FIXME: No biggie, but it'd be awesome if the following helper functions could
 #be shifted to appropriate toolbox modules. I don't use folding, so navigating
 #this module is a bit... intimidating! Galloping rhinoes on the plains of love!
@@ -4093,103 +4171,6 @@ def get_charge_density(concentrations,zs,p):
 
     return netcharge
 
-def get_Vall(self,cells,p):
-    """
-    Calculates transmembrane voltage (Vmem) and voltages inside the cell and extracellular space, assuming the cell
-    is a capacitor consisting of two concentric spheres.
-
-    self:
-    cells:
-    p:
-
-    Returns
-    --------
-    vm           Transmembrane voltage
-    v_cell       Voltage at the inner membrane surface
-    v_env        Voltage at the outer membrane surface
-
-
-
-    """
-
-    if p.sim_ECM is False:
-        # if we're not modelling extracellular spaces, but assuming a perfectly mixing environment,
-        # assume the cell is a concentric spherical capacitor with opposite but equal magnitude
-        # charge inside the cell and out
-        # calculate the voltage for the system using the measured capacitance of the cell membrane:
-
-        vm = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
-
-        # in this case, the voltage across the membrane is assumed to be equal and opposite to the cell voltage:
-        v_cell = vm/2
-        v_env = -vm/2
-
-
-    else:
-
-        Qcells = (self.rho_cells*cells.cell_vol)
-
-        # Qcells = cells.integrator(Qcells)
-
-        # smooth out the environmental charge:
-        self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
-        # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
-
-        # make sure charge at the global boundary is zero:
-        # if p.closed_bound is False:
-        self.rho_env[:,0] = 0
-        self.rho_env[:,-1] = 0
-        self.rho_env[-1,:] = 0
-        self.rho_env[0,:] = 0
-
-        self.rho_env = self.rho_env.ravel()
-
-        # interpolate charge from environmental grid to the ecm_mids:v
-        rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
-                                  self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
-                                  fill_value = 0)
-
-        if p.simulate_TEP is True:
-            Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
-
-        else:
-            Qecm = rho_ecm*p.cell_space*cells.delta**2
-
-        # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
-        Q_max_vect = np.hstack((Qcells,Qecm))
-
-        # calculate the voltage for the system based on the max cap vector
-        v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
-
-        # separate voltages for cells and ecm spaces
-        v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
-        v_ecm = v_max_vect[cells.ecm_range_a:cells.ecm_range_b]
-
-        #Map the environmental voltage to the regular grid:
-        v_env = np.zeros(len(cells.xypts))
-
-        # map the ecm voltage to membrane midpoints:
-        v_ecm_at_mem = v_ecm[cells.mem_to_ecm_mids]
-        # map it again to the environmental grid
-        v_env[cells.map_mem2ecm] = v_ecm_at_mem
-
-        # smooth out the environmental voltage:
-        v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
-        # v_env = fd.integrator(v_env.reshape(cells.X.shape))
-        v_env = v_env.ravel()
-
-        # # set the conditions for the global boundaries:
-        v_env[cells.bBot_k] = self.bound_V['B']
-        v_env[cells.bTop_k] = self.bound_V['T']
-        v_env[cells.bL_k] = self.bound_V['L']
-        v_env[cells.bR_k] = self.bound_V['R']
-
-        # calculate the vm
-        vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
-
-
-    return vm, v_cell, v_env
-
 def get_molarity(concentrations,p):
 
     q = 0
@@ -4285,9 +4266,9 @@ def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
 
     alpha = (D*z*p.q)/(p.kb*T)
 
-    fx =  -D*gcx - alpha*gvx*c + ux*c
+    fx =  D*gcx + alpha*gvx*c - ux*c
 
-    fy =  -D*gcy - alpha*gvy*c + uy*c
+    fy =  D*gcy + alpha*gvy*c - uy*c
 
     return fx, fy
 
@@ -4296,25 +4277,12 @@ def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
     alphax = (Dx*z*p.q)/(p.kb*T)
     alphay = (Dy*z*p.q)/(p.kb*T)
 
-    fx =  -Dx*gcx - alphax*gvx*cx + cx*ux
+    fx =  Dx*gcx + alphax*gvx*cx - cx*ux
 
-    fy =  -Dy*gcy - alphay*gvy*cy + cy*uy
+    fy =  Dy*gcy + alphay*gvy*cy - cy*uy
 
     return fx, fy
 
-def rk4(c,deltac,p):
-    """
-    This function is here for the day we figure out how to
-    do a suitable RK4 solver for the complex physics we're
-    simulating.
-
-    For now it just computes forwards Euler method.
-    """
-
-    c2 = c + deltac*p.dt
-
-
-    return c2
 
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
