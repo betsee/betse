@@ -23,6 +23,24 @@ Matplotlib-based animation classes.
 #    https://stackoverflow.com/questions/16334588/create-a-figure-that-is-reference-counted/16337909#16337909
 #
 #Abundant stags in the furry forest!
+#FIXME: Note that the equivalent of the pyplot.show() function is the "show"
+#attribute of the current backend module -- which, bizarrely, turns out to be
+#exactly equivalent to the pyplot.show() function (for interactive backends,
+#anyway) via internal trickery. Even more oddly, this attribute is actually an
+#instantiated object defining a __call__() method. It is crazy. In any case,
+#call this "show" attribute instead of pyplot.show() below.
+#
+#Note also that we shouldn't need to explicitly call any close or destroy
+#methods. Python's garbage collector should handle everything. We might,
+#however, need to explicitly break circular references between figures and
+#their associated canvases: e.g.,
+#
+#     self._figure.canvas = None
+#     self._canvas.figure = None
+#     self._figure = None
+#     self._canvas = None
+#
+#Thanks to the garbage collector, that shouldn't be necessary. You never know!
 
 #FIXME: For a similar reason (avoiding memory leaks), I'm fairly certain that
 #everywhere we currently call the ".lines.remove()" method of a Matplotlib

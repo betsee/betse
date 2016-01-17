@@ -8,6 +8,9 @@ High-level facilities for plotting all enabled plots and animations.
 
 #FIXME: For safety, most "== 1"-style tests in this module should be converted
 #to "is True"-style tests instead.
+#FIXME: All current use of the "matplotlib.pyplot" module should be replaced by
+#use of Matplotlib's object-oriented (OO) API instead. See our
+#"betse.science.plot.anim.anim" module for further details.
 
 # ....................{ IMPORTS                            }....................
 import os

@@ -4,16 +4,13 @@
 
 # FIXME saving animations as video files directly doesn't work
 
-import os
-import os.path
-
+import os, os.path
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-
 from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
 from betse.util.path import dirs
 from betse.util.type import types
@@ -1364,8 +1361,15 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
     else:
         lw = 3.0
 
-    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um,Fx,Fy,density=p.stream_density,
-        linewidth=lw,color=p.vcolor,arrowsize=1.5)
+    streams = ax.streamplot(
+        cells.X*p.um,
+        cells.Y*p.um,
+        Fx, Fy,
+        density=p.stream_density,
+        linewidth=lw,
+        color=p.vcolor,
+        arrowsize=1.5,
+    )
 
     return streams, ax
 
