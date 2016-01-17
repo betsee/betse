@@ -294,8 +294,8 @@ class AnimateCurrent(Anim):
         # Classify this streamplot, thus permitting the _plot_frame_figure()
         # method to subsequently erase this streamplot's lines.
         self.streamplot = self.ax.streamplot(
-            self.cells.Xgrid * self.p.um,
-            self.cells.Ygrid * self.p.um,
+            self.cells.X*self.p.um,
+            self.cells.Y*self.p.um,
             J_x, J_y,
             density=self.p.stream_density,
             linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
@@ -773,11 +773,9 @@ class AnimateVelocityIntracellular(Anim):
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        #FIXME: Can at least "cell_grid" be cached between calls to this
-        #method? We suspect "Maybe."
         cell_centres = (
             self.cells.cell_centres[:,0], self.cells.cell_centres[:,1])
-        cell_grid = (self.cells.Xgrid, self.cells.Ygrid)
+        cell_grid = (self.cells.X, self.cells.Y)
 
         u_gj_x = interpolate.griddata(
             cell_centres,
@@ -794,15 +792,15 @@ class AnimateVelocityIntracellular(Anim):
             method=self.p.interp_type,
         )
 
-        u_gj_x = u_gj_x * self.cells.maskM
-        u_gj_y = u_gj_y * self.cells.maskM
+        # u_gj_x = u_gj_x*self.cells.maskM
+        # u_gj_y = u_gj_y*self.cells.maskM
 
         vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
         vnorm = np.max(vfield)
 
         self.streamV = self.ax.streamplot(
-            self.cells.Xgrid * self.p.um,
-            self.cells.Ygrid * self.p.um,
+            self.cells.X*self.p.um,
+            self.cells.Y*self.p.um,
             u_gj_x/vnorm,
             u_gj_y/vnorm,
             density=self.p.stream_density,
@@ -1482,26 +1480,6 @@ class PlotWhileSolving(object):
                 self.coll2,self.ax = cell_mesh(
                     vdata,self.ax,cells,p,p.default_cm)
 
-            # if p.showCells is True:
-            #     # Add a collection of cell polygons, with animated voltage data
-            #     points = np.multiply(cells.cell_verts, p.um)
-            #     self.coll2 =  PolyCollection(points, array=vdata, edgecolors='none', cmap=self.colormap)
-            #     self.coll2.set_alpha(1.0)
-            #     self.ax.add_collection(self.coll2)
-            #
-            # else:
-            #
-            #     dat_grid = interpolate.griddata((cells.cell_centres[:, 0],cells.cell_centres[:, 1]),vdata,
-            #         (cells.Xgrid,cells.Ygrid),fill_value=0,method=p.interp_type)
-            #
-            #     # dat_grid = np.multiply(dat_grid,cells.maskM)
-            #     #
-            #     if p.plotMask is True:
-            #         dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
-            #     #
-            #     self.coll2 = plt.pcolormesh(p.um*cells.Xgrid, p.um*cells.Ygrid,dat_grid,shading='gouraud',
-            #         cmap=self.colormap)
-
         elif p.sim_ECM is True:
             dat_grid = sim.vm_Matrix[0]*1000
 
@@ -1522,13 +1500,6 @@ class PlotWhileSolving(object):
                 coll.set_alpha(0.5)
                 self.ax.add_collection(coll)
 
-            # dat_grid = sim.vm_Matrix[0]*1000
-            #
-            # if p.plotMask is True:
-            #     dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
-            #
-            # self.coll2 = plt.imshow(dat_grid,origin='lower',extent=[xmin,xmax,ymin,ymax],cmap=self.colormap)
-
             # If the "apply external voltage" event occurred and is to be
             # plotted, plot this event.
             if p.scheduled_options['extV'] is not None and p.extVPlot is True:
@@ -1538,13 +1509,6 @@ class PlotWhileSolving(object):
                     p.um*cells.env_points[:,1],
                     cmap=self.colormap, c=boundv, zorder=10)
                 self.vext_plot.set_clim(self.cmin, self.cmax)
-
-            # if p.showCells is True:
-            #     # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-            #     cell_edges_flat = cells.um*cells.mem_edges_flat
-            #     coll = LineCollection(cell_edges_flat,colors='k')
-            #     coll.set_alpha(0.5)
-            #     self.ax.add_collection(coll)
 
         # set range of the colormap
         self.coll2.set_clim(self.cmin,self.cmax)

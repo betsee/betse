@@ -179,6 +179,19 @@ class Simulator(object):
 
             self.gj_rho = 0
 
+        if p.sim_eosmosis is True:
+
+            self.rho_pump = np.ones(len(cells.mem_i))
+            self.rho_channel = np.ones(len(cells.mem_i))
+            self.rho_pump_o = np.ones(len(cells.cell_i))
+            self.rho_channel_o = np.ones(len(cells.cell_i))
+        else:
+
+            self.rho_pump = 1  # else just define it as identity.
+            self.rho_channel = 1
+            self.rho_pump_o = 1
+            self.rho_channel_o = 1
+
 
         ion_names = list(p.ions_dict.keys())
 
@@ -918,13 +931,18 @@ class Simulator(object):
 
             self.cIP3_time = []    # retains IP3 concentration as a function of time
 
+        if p.sim_eosmosis is True:
+
+            self.rho_channel_time = []
+            self.rho_pump_time = []
+
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.mem_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.mem_i))    # gj length for each gj
         self.gjl[:] = cells.gj_len
 
-        self.rho_pump = np.ones(len(cells.mem_i))
+        # self.rho_pump = np.ones(len(cells.mem_i))
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
         self.update_V_ecm(cells,p,0)
@@ -949,8 +967,6 @@ class Simulator(object):
             i = i + resample
             tsamples.append(tt[i])
         tsamples = set(tsamples)
-
-        # report
 
         if p.run_sim is True:
             loggers.log_info(
@@ -997,16 +1013,19 @@ class Simulator(object):
                 self.dyna.runAllDynamics(self,cells,p,t)
 
             # run the Na-K-ATPase pump:
-            fNa_NaK, fK_NaK, self.rate_NaKATP = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],self.cc_cells[self.iK],
-                self.cc_env[self.iK],self.vm,self.T,p,self.NaKATP_block)
+            fNa_NaK, fK_NaK, self.rate_NaKATP = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],
+                self.cc_cells[self.iK], self.cc_env[self.iK],self.vm,self.T,p,self.NaKATP_block)
 
             # update the concentration in cells (assume environment steady and constant supply of ions)
-            self.cc_cells[self.iNa] = self.cc_cells[self.iNa] + fNa_NaK*(cells.cell_sa/cells.cell_vol)*p.dt
-            self.cc_cells[self.iK] = self.cc_cells[self.iK] + fK_NaK*(cells.cell_sa/cells.cell_vol)*p.dt
+            self.cc_cells[self.iNa] = self.cc_cells[self.iNa] + \
+                                      self.rho_pump_o*fNa_NaK*(cells.cell_sa/cells.cell_vol)*p.dt
+
+            self.cc_cells[self.iK] = self.cc_cells[self.iK] + \
+                                     self.rho_pump_o*fK_NaK*(cells.cell_sa/cells.cell_vol)*p.dt
 
             # store transmembrane fluxes for each ion:
-            self.fluxes_mem[self.iNa] = fNa_NaK[cells.mem_to_cells]
-            self.fluxes_mem[self.iK] = fK_NaK[cells.mem_to_cells]
+            self.fluxes_mem[self.iNa] = self.rho_pump*fNa_NaK[cells.mem_to_cells]
+            self.fluxes_mem[self.iK] = self.rho_pump*fK_NaK[cells.mem_to_cells]
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V_ecm(cells,p,t)
@@ -1104,7 +1123,8 @@ class Simulator(object):
             for i in self.movingIons:
 
                 # electrodiffusion of ion between cell and extracellular matrix
-                f_ED = electroflux(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.zs[i],self.vm,self.T,p)
+                f_ED = electroflux(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.zs[i],
+                    self.vm,self.T,p,rho=self.rho_channel_o)
 
                 # update ion due to transmembrane flux:
                 self.cc_cells[i] = self.cc_cells[i] + f_ED*(cells.cell_sa/cells.cell_vol)*p.dt
@@ -1139,6 +1159,12 @@ class Simulator(object):
                 self.run_sim = True
 
                 self.getFlow(cells,p)
+
+            if p.sim_eosmosis is True and p.run_sim is True:
+
+                self.run_sim = True
+
+                self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
             if p.deformation is True and p.run_sim is True:
 
@@ -1265,10 +1291,15 @@ class Simulator(object):
                     self.dy_cell_time.append(self.d_cells_y[:])
 
 
-                if p.fluid_flow is True:
+                if p.fluid_flow is True and p.run_sim is True:
 
                     self.u_cells_x_time.append(self.u_cells_x[:])
                     self.u_cells_y_time.append(self.u_cells_y[:])
+
+                if p.sim_eosmosis is True and p.run_sim is True:
+
+                    self.rho_channel_time.append(self.rho_channel[:])
+                    self.rho_pump_time.append(self.rho_pump[:])
 
                 self.gjopen_time.append(self.gjopen[:])
 
@@ -1747,7 +1778,7 @@ class Simulator(object):
 
                 self.rate_NaKATP_time.append(self.rate_NaKATP[:])
 
-                if p.fluid_flow is True:
+                if p.fluid_flow is True and p.run_sim is True:
                     self.u_env_x_time.append(self.u_env_x[:])
                     self.u_env_y_time.append(self.u_env_y[:])
 
@@ -1803,7 +1834,7 @@ class Simulator(object):
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
 
-                if p.sim_eosmosis is True:
+                if p.sim_eosmosis is True and p.run_sim is True:
 
                     self.rho_channel_time.append(self.rho_channel[:])
                     self.rho_pump_time.append(self.rho_pump[:])
@@ -2374,8 +2405,8 @@ class Simulator(object):
 
                     f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
 
-                    d_dye_cells = f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-                    d_dye_env = -f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+                    d_dye_cells = self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+                    d_dye_env = -self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
 
                     delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
                     delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
@@ -2396,8 +2427,8 @@ class Simulator(object):
 
                     f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell[cells.mem_to_cells])
 
-                    d_dye_cells = -f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-                    d_dye_env = f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+                    d_dye_cells = -self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+                    d_dye_env = self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
 
                     delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
                     delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
@@ -2425,7 +2456,7 @@ class Simulator(object):
                     # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
                     alpha = p.pump_Dye_alpha*delG_pump
 
-                    f_Dye_pump  = alpha*(self.cDye_env)
+                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env)
 
                     d_dye_cells = f_Dye_pump*(cells.cell_sa/cells.cell_vol)
 
@@ -2446,7 +2477,7 @@ class Simulator(object):
                     # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
                     alpha = p.pump_Dye_alpha*delG_pump
 
-                    f_Dye_pump  = alpha*(self.cDye_cell)
+                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell)
 
                     d_dye_cells = -f_Dye_pump*(cells.cell_sa/cells.cell_vol)
 
@@ -2499,7 +2530,8 @@ class Simulator(object):
 
         if p.sim_ECM is False:
 
-            fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
+            fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
+                self.T,p,rho=self.rho_channel_o)
 
             # update dye concentration
             self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
@@ -2630,8 +2662,8 @@ class Simulator(object):
                 grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_Dye,self.T,p)
 
             # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
-            d_fenvx = -(f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
-            d_fenvy = -(f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
+            d_fenvx = (f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
+            d_fenvy = (f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
 
             delta_c = d_fenvx + d_fenvy
 
@@ -2652,7 +2684,6 @@ class Simulator(object):
                 cenv[:,0] =  self.c_dye_bound
                 cenv[0,:] =  self.c_dye_bound
                 cenv[-1,:] =  self.c_dye_bound
-
 
 
             # reshape the matrices into vectors:
@@ -2726,9 +2757,9 @@ class Simulator(object):
             delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
             delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
 
-            self.cIP3 = rk4(self.cIP3,delta_cells,p)
+            self.cIP3 = self.cIP3 + delta_cells*p.dt
 
-            self.cIP3_env = rk4(self.cIP3_env,-delta_env,p)
+            self.cIP3_env = self.cIP3_env - delta_env*p.dt
 
             # transport dye through environment: _________________________________________________________
             if p.closed_bound is True:
@@ -2813,8 +2844,8 @@ class Simulator(object):
                 grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_IP3,self.T,p)
 
             # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
-            d_fenvx = -(f_env_x_ip3[:,1:] - f_env_x_ip3[:,0:-1])/cells.delta
-            d_fenvy = -(f_env_y_ip3[1:,:] - f_env_y_ip3[0:-1,:])/cells.delta
+            d_fenvx = (f_env_x_ip3[:,1:] - f_env_x_ip3[:,0:-1])/cells.delta
+            d_fenvy = (f_env_y_ip3[1:,:] - f_env_y_ip3[0:-1,:])/cells.delta
 
             delta_c = d_fenvx + d_fenvy
 
@@ -2875,8 +2906,8 @@ class Simulator(object):
 
         # zero components of total current vector:
 
-        self.I_tot_x = np.zeros(cells.Xgrid.shape)
-        self.I_tot_y = np.zeros(cells.Xgrid.shape)
+        self.I_tot_x = np.zeros(cells.X.shape)
+        self.I_tot_y = np.zeros(cells.X.shape)
 
         # calculate current across gap junctions in x direction:
         I_gj_x = np.zeros(len(cells.mem_i))
@@ -2896,13 +2927,15 @@ class Simulator(object):
             I_gj_y = I_gj_y + I_i_y
 
         # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.Xgrid,cells.Ygrid),
+        self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.X,cells.Y),
                                       method=p.interp_type,fill_value=0)
-        self.I_gj_x = np.multiply(self.I_gj_x,cells.maskM)
 
-        self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.Xgrid,cells.Ygrid),
+        # self.I_gj_x = np.multiply(self.I_gj_x,cells.maskECM)
+
+        self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.X,cells.Y),
                                       method=p.interp_type,fill_value=0)
-        self.I_gj_y = np.multiply(self.I_gj_y,cells.maskM)
+
+        # self.I_gj_y = np.multiply(self.I_gj_y,cells.maskECM)
 
         self.I_tot_x = self.I_tot_x + self.I_gj_x
         self.I_tot_y = self.I_tot_y + self.I_gj_y
@@ -2921,13 +2954,13 @@ class Simulator(object):
             I_mem_y = self.I_mem*cells.mem_vects_flat[:,3]
 
          # interpolate the trans-membrane current components to the grid:
-        self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.Xgrid,cells.Ygrid),
+        self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.X,cells.Y),
                                       method=p.interp_type,fill_value=0)
-        self.I_mem_x = np.multiply(self.I_mem_x,cells.maskM)
+        # self.I_mem_x = np.multiply(self.I_mem_x,cells.maskM)
 
-        self.I_mem_y = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_y,(cells.Xgrid,cells.Ygrid),
+        self.I_mem_y = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_y,(cells.X,cells.Y),
                                       method=p.interp_type,fill_value=0)
-        self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
+        # self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
 
         self.I_tot_x = self.I_tot_x + self.I_mem_x
         self.I_tot_y = self.I_tot_y + self.I_mem_y
@@ -2949,11 +2982,14 @@ class Simulator(object):
 
                 self.I_env_y = self.I_env_y + I_i
 
-            I_env_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_x,(cells.Xgrid,cells.Ygrid),
-                                      method=p.interp_type,fill_value=0)
+            I_env_x = self.I_env_x.reshape(cells.X.shape)
+            I_env_y = self.I_env_y.reshape(cells.X.shape)
 
-            I_env_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_y,(cells.Xgrid,cells.Ygrid),
-                                      method=p.interp_type,fill_value=0)
+            # I_env_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_x,(cells.Xgrid,cells.Ygrid),
+            #                           method=p.interp_type,fill_value=0)
+            #
+            # I_env_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_y,(cells.Xgrid,cells.Ygrid),
+            #                           method=p.interp_type,fill_value=0)
 
             self.I_tot_x = self.I_tot_x + I_env_x
             self.I_tot_y = self.I_tot_y + I_env_y
@@ -2984,20 +3020,18 @@ class Simulator(object):
 
             if p.deform_electro is True:
 
-                # calculate the electroosmotic force (shaped to the u and v grids):
-                # first calculate the electric field on the u and v junctions:
-                venv = self.v_env.reshape(cells.X.shape)
+                # determine the geometric factor to map charge density from volume to surface:
+                if p.simulate_TEP is True:
+                    Qfactor = p.cell_space
 
-                # take the gradient of the venv and calculate the electric field
-                env_x, env_y = fd.gradient(venv,cells.delta)
+                else:
+                    Qfactor = cells.delta
 
-                # reshape and rescale the charge density:
-                rho_env = ((p.cell_space*cells.mem_sa.mean())/(cells.delta**2))*self.rho_env.reshape(cells.X.shape)
+                # calculate the electroosmotic force:
+                self.rho_env[cells.inds_env] = 0
 
-                # these are negative because the gradient of the voltage is the electric field and we just took the grad
-                # above but didn't carry through the negative sign.
-                Fe_x = -rho_env*env_x
-                Fe_y = -rho_env*env_y
+                Fe_x = Qfactor*self.rho_env.reshape(cells.X.shape)*self.E_env_x
+                Fe_y = Qfactor*self.rho_env.reshape(cells.X.shape)*self.E_env_y
 
             else:
 
@@ -3015,25 +3049,17 @@ class Simulator(object):
             source_y = cells.grid_obj.grid_int(source_y,bounds=btag) # perform finite volume integration of source
 
             # # calculated the fluid flow using the time-independent Stokes Flow equation:
-            if p.closed_bound is True:
-
-                # enforce closed conditions on source:
-                source_x[:,0] = 0
-                source_x[:,-1] = 0
-                source_x[0,:] = 0
-                source_x[-1,:] = 0
-
-                source_y[:,0] = 0
-                source_y[:,-1] = 0
-                source_y[0,:] = 0
-                source_y[-1,:] = 0
-
-                ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
-                uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
-
-            else:
-                ux_ecm_o = np.dot(cells.lapENV_P_inv,source_x.ravel())
-                uy_ecm_o = np.dot(cells.lapENV_P_inv,source_y.ravel())
+            ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
+            uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
+            # if p.closed_bound is True:
+            #
+            #     # enforce closed conditions on source:
+            #     ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
+            #     uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
+            #
+            # else:
+            #     ux_ecm_o = np.dot(cells.lapENV_P_inv,source_x.ravel())
+            #     uy_ecm_o = np.dot(cells.lapENV_P_inv,source_y.ravel())
 
 
             # calculate the divergence of the flow field as the sum of the two spatial derivatives:
@@ -3045,27 +3071,37 @@ class Simulator(object):
             div_uo = cells.grid_obj.grid_int(div_uo,bounds=btag)
 
             # calculate the alpha-scaled internal pressure from the divergence of the force:
-            if p.closed_bound is True:
+            P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
+            P = P.reshape(cells.grid_obj.cents_shape)
 
-                P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-                P = P.reshape(cells.grid_obj.cents_shape)
+            # enforce zero normal gradient boundary conditions on P:
+            P[:,0] = P[:,1]
+            P[:,-1] = P[:,-2]
+            P[0,:] = P[1,:]
+            P[-1,:] = P[-2,:]
 
-                # enforce zero normal gradient boundary conditions on P:
-                P[:,0] = P[:,1]
-                P[:,-1] = P[:,-2]
-                P[0,:] = P[1,:]
-                P[-1,:] = P[-2,:]
 
-            else:
-
-                P = np.dot(cells.lapENVinv, div_uo.ravel())
-                P = P.reshape(cells.grid_obj.cents_shape)
-
-                # enforce zero pressure boundary conditions on P:
-                P[:,0] = 0
-                P[:,-1] = 0
-                P[0,:] = 0
-                P[-1,:] = 0
+            # if p.closed_bound is True:
+            #
+            #     P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
+            #     P = P.reshape(cells.grid_obj.cents_shape)
+            #
+            #     # enforce zero normal gradient boundary conditions on P:
+            #     P[:,0] = P[:,1]
+            #     P[:,-1] = P[:,-2]
+            #     P[0,:] = P[1,:]
+            #     P[-1,:] = P[-2,:]
+            #
+            # else:
+            #
+            #     P = np.dot(cells.lapENVinv, div_uo.ravel())
+            #     P = P.reshape(cells.grid_obj.cents_shape)
+            #
+            #     # enforce zero pressure boundary conditions on P:
+            #     P[:,0] = 0
+            #     P[:,-1] = 0
+            #     P[0,:] = 0
+            #     P[-1,:] = 0
 
             # Take the grid gradient of the scaled internal pressure:
             gPx, gPy = fd.gradient(P,cells.delta)
@@ -3078,44 +3114,61 @@ class Simulator(object):
             self.u_env_x = u_env_x[:]
             self.u_env_y = u_env_y[:]
 
-            # reinforce boundary conditions
-            if p.closed_bound is True:
-                #left
-                self.u_env_x[:,0] = 0
-                # right
-                self.u_env_x[:,-1] = 0
-                # top
-                self.u_env_x[-1,:] = 0
-                # bottom
-                self.u_env_x[0,:] = 0
+            self.u_env_x[:,0] = 0
+            # right
+            self.u_env_x[:,-1] = 0
+            # top
+            self.u_env_x[-1,:] = 0
+            # bottom
+            self.u_env_x[0,:] = 0
 
-                # left
-                self.u_env_y[:,0] = 0
-                # right
-                self.u_env_y[:,-1] = 0
-                # top
-                self.u_env_y[-1,:] = 0
-                # bottom
-                self.u_env_y[0,:] = 0
+            # left
+            self.u_env_y[:,0] = 0
+            # right
+            self.u_env_y[:,-1] = 0
+            # top
+            self.u_env_y[-1,:] = 0
+            # bottom
+            self.u_env_y[0,:] = 0
 
-            else:
-                # left
-                self.u_env_x[:,0] = self.u_env_x[:,1]
-                # right
-                self.u_env_x[:,-1] = self.u_env_x[:,-2]
-                # top
-                self.u_env_x[-1,:] = self.u_env_x[-2,:]
-                # bottom
-                self.u_env_x[0,:] = self.u_env_x[1,:]
-
-                # left
-                self.u_env_y[:,0] = self.u_env_y[:,1]
-                # right
-                self.u_env_y[:,-1] = self.u_env_y[:,-2]
-                # top
-                self.u_env_y[-1,:] = self.u_env_y[-2,:]
-                # bottom
-                self.u_env_y[0,:] = self.u_env_y[1,:]
+            # # reinforce boundary conditions
+            # if p.closed_bound is True:
+            #     #left
+            #     self.u_env_x[:,0] = 0
+            #     # right
+            #     self.u_env_x[:,-1] = 0
+            #     # top
+            #     self.u_env_x[-1,:] = 0
+            #     # bottom
+            #     self.u_env_x[0,:] = 0
+            #
+            #     # left
+            #     self.u_env_y[:,0] = 0
+            #     # right
+            #     self.u_env_y[:,-1] = 0
+            #     # top
+            #     self.u_env_y[-1,:] = 0
+            #     # bottom
+            #     self.u_env_y[0,:] = 0
+            #
+            # else:
+            #     # left
+            #     self.u_env_x[:,0] = self.u_env_x[:,1]
+            #     # right
+            #     self.u_env_x[:,-1] = self.u_env_x[:,-2]
+            #     # top
+            #     self.u_env_x[-1,:] = self.u_env_x[-2,:]
+            #     # bottom
+            #     self.u_env_x[0,:] = self.u_env_x[1,:]
+            #
+            #     # left
+            #     self.u_env_y[:,0] = self.u_env_y[:,1]
+            #     # right
+            #     self.u_env_y[:,-1] = self.u_env_y[:,-2]
+            #     # top
+            #     self.u_env_y[-1,:] = self.u_env_y[-2,:]
+            #     # bottom
+            #     self.u_env_y[0,:] = self.u_env_y[1,:]
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
 
@@ -3133,6 +3186,16 @@ class Simulator(object):
             Fe_cell_x = np.zeros(len(cells.cell_i))
             Fe_cell_y = np.zeros(len(cells.cell_i))
 
+        if p.deform_osmo is True:
+
+            F_osmo_x = self.F_hydro_x
+            F_osmo_y = self.F_hydro_y
+
+        else:
+
+            F_osmo_x = np.zeros(len(cells.cell_i))
+            F_osmo_y = np.zeros(len(cells.cell_i))
+
         # net force is the sum of electrostatic and hydrostatic pressure induced body forces:
         F_net_x = Fe_cell_x + self.F_hydro_x
         F_net_y = Fe_cell_y + self.F_hydro_y
@@ -3142,8 +3205,8 @@ class Simulator(object):
         F_net_y = cells.integrator(F_net_y)
 
         # set boundary values (applicable to u_gj_x/y solution):
-        F_net_x[cells.bflags_cells] = 0
-        F_net_y[cells.bflags_cells] = 0
+        # F_net_x[cells.bflags_cells] = 0
+        # F_net_y[cells.bflags_cells] = 0
 
         # Calculate flow under body forces:
         u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
@@ -3194,10 +3257,8 @@ class Simulator(object):
 
         """
 
-        vmem = self.v_env[cells.map_mem2ecm]
-
         # components of fluid flow velocity at the membrane:
-        if p.fluid_flow is True:
+        if p.fluid_flow is True and p.sim_ECM is True:
             ux_mem = self.u_env_x.ravel()[cells.map_mem2ecm]
             uy_mem = self.u_env_y.ravel()[cells.map_mem2ecm]
 
@@ -3206,50 +3267,83 @@ class Simulator(object):
             uy_mem = 0
 
         # get the gradient of rho concentration around each membrane:
-        grad_c = np.dot(cells.gradMem,self.rho_pump)
-        grad_c_ch = np.dot(cells.gradMem,self.rho_channel)
 
-        # gcx = grad_c*cells.mem_vects_flat[:,4]
-        # gcy = grad_c*cells.mem_vects_flat[:,5]
-        gcx = 0
-        gcy = 0
+        rho_pump = np.dot(cells.M_sum_mems, self.rho_pump)/cells.num_mems
+        rho_channel = np.dot(cells.M_sum_mems, self.rho_channel)/cells.num_mems
 
-        # electric field at each membrane
+        grad_c = (rho_pump[cells.cell_nn_i[:,0]] - rho_pump[cells.cell_nn_i[:,1]])/cells.nn_len
+        grad_c_ch = (rho_channel[cells.cell_nn_i[:,0]] - rho_channel[cells.cell_nn_i[:,1]])/cells.nn_len
 
-        gvx = - self.E_env_x.ravel()[cells.map_mem2ecm]
-        gvy = - self.E_env_y.ravel()[cells.map_mem2ecm]
+        # get the gradient components:
+        gcx = grad_c*cells.cell_nn_tx
+        gcy = grad_c*cells.cell_nn_ty
 
-        # calculate the total Nernst-Planck flux at each membrane:
+        gcx_ch = grad_c_ch*cells.cell_nn_tx
+        gcy_ch = grad_c_ch*cells.cell_nn_ty
 
-        fx, fy = nernst_planck_flux(self.rho_pump, gcx, gcy, gvx, gvy,ux_mem,uy_mem,p.D_membrane,p.z_pump,
+        # total electric field at each membrane
+        if p.sim_ECM is True:
+            Ex = self.E_env_x.ravel()[cells.map_mem2ecm] + self.E_gj_x
+            Ey = self.E_env_y.ravel()[cells.map_mem2ecm] + self.E_gj_y
+
+        else:
+            Ex = self.E_gj_x
+            Ey = self.E_gj_y
+
+        # calculate the total Nernst-Planck flux at each membrane for rho_pump factor:
+
+        fx_pump, fy_pump = nernst_planck_flux(self.rho_pump, gcx, gcy, Ex, Ey,ux_mem,uy_mem,p.D_membrane,p.z_pump,
             self.T,p)
 
         # component of total flux in direction of membrane
-        ftot = fx*cells.mem_vects_flat[:,4] + fy*cells.mem_vects_flat[:,5]
+        # ftot = fx*cells.mem_vects_flat[:,4] + fy*cells.mem_vects_flat[:,5]
 
-        # calculate the membrane-specific divergence of the flux which will be the "delta rho" at each membrane:
-        delta_rho = np.dot(cells.gradMem,ftot)
+        # map the flux to cell centres:
+        fx_pump_o = np.dot(cells.M_sum_mems,fx_pump)/cells.num_mems
+        fy_pump_o = np.dot(cells.M_sum_mems,fy_pump)/cells.num_mems
+
+        # divergence of the total flux:
+        gfx_o = (fx_pump_o[cells.cell_nn_i[:,1]] - fx_pump_o[cells.cell_nn_i[:,0]])/cells.nn_len
+
+        fxx = gfx_o*cells.cell_nn_tx
+
+        gfy_o = (fy_pump_o[cells.cell_nn_i[:,1]] - fy_pump_o[cells.cell_nn_i[:,0]])/cells.nn_len
+        fyy = gfy_o*cells.cell_nn_ty
+
+        divF_pump = fxx + fyy
+
+        self.rho_pump = self.rho_pump + divF_pump*p.dt
 
         #------------------------------------------------
         # calculate the total Nernst-Planck flux at each membrane for rho_channel factor:
 
-        fx2, fy2 = nernst_planck_flux(self.rho_channel, gcx, gcy, gvx, gvy,ux_mem,uy_mem,p.D_membrane,p.z_channel,
-            self.T,p)
+        fx_chan, fy_chan = nernst_planck_flux(self.rho_channel, gcx_ch, gcy_ch, Ex, Ey,ux_mem,uy_mem,p.D_membrane,
+            p.z_channel,self.T,p)
 
-        # component of total flux in direction of membrane
-        ftot2 = fx2*cells.mem_vects_flat[:,4] + fy2*cells.mem_vects_flat[:,5]
+        # map the flux to cell centres:
+        fx_chan_o = np.dot(cells.M_sum_mems,fx_chan)/cells.num_mems
+        fy_chan_o = np.dot(cells.M_sum_mems,fy_chan)/cells.num_mems
 
-        # calculate the membrane-specific divergence of the flux which will be the "delta rho" at each membrane:
-        delta_rho2 = np.dot(cells.gradMem,ftot2)
+        # divergence of the total flux:
+        gfx_o = (fx_chan_o[cells.cell_nn_i[:,1]] - fx_chan_o[cells.cell_nn_i[:,0]])/cells.nn_len
+
+        fxx = gfx_o*cells.cell_nn_tx
+
+        gfy_o = (fy_chan_o[cells.cell_nn_i[:,1]] - fy_chan_o[cells.cell_nn_i[:,0]])/cells.nn_len
+        fyy = gfy_o*cells.cell_nn_ty
+
+        divF_chan = fxx + fyy
+
+        self.rho_channel = self.rho_channel + divF_chan*p.dt
+
+        if p.sim_ECM is False:
+
+            # average to the cell centre:
+            self.rho_pump_o = np.dot(cells.M_sum_mems, self.rho_pump)/cells.num_mems
+            self.rho_channel_o = np.dot(cells.M_sum_mems, self.rho_channel)/cells.num_mems
 
         #------------------------------------------------
-
-        # update the pump and channel density properties:
-        self.rho_pump = self.rho_pump + p.dt*delta_rho
-
-        self.rho_channel = self.rho_channel + p.dt*delta_rho2
-
-        # # make sure nothing is non-zero:
+        # make sure nothing is non-zero:
         fix_inds = (self.rho_pump < 0).nonzero()
         self.rho_pump[fix_inds] = 0
 
@@ -3896,9 +3990,6 @@ class Simulator(object):
 
             self.checkPlot.resetData(cells,self,p)
 
-#FIXME: No biggie, but it'd be awesome if the following helper functions could
-#be shifted to appropriate toolbox modules. I don't use folding, so navigating
-#this module is a bit... intimidating! Galloping rhinoes on the plains of love!
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """

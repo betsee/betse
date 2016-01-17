@@ -721,7 +721,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
         meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
-        streamplot = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,J_x,J_y,density=p.stream_density,
+        streamplot = ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
             linewidth=lw,color='k', cmap=clrmap,arrowsize=1.5)
 
         ax.set_title('Final gap junction current density')
@@ -737,7 +737,7 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
         meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
 
         ax.streamplot(
-            cells.Xgrid*p.um, cells.Ygrid*p.um, J_x, J_y,
+            cells.X*p.um, cells.Y*p.um, J_x, J_y,
             density=p.stream_density,
             linewidth=lw,
             color='k',
@@ -1333,17 +1333,17 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
         coll.set_alpha(0.3)
         ax.add_collection(coll)
 
-    if datax.shape != cells.Xgrid.shape: # if the data hasn't been interpolated yet...
+    if datax.shape != cells.X.shape: # if the data hasn't been interpolated yet...
 
-        Fx = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datax,(cells.Xgrid,cells.Ygrid),
+        Fx = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datax,(cells.X,cells.Y),
                                               fill_value=0,method=p.interp_type)
 
-        Fx = Fx*cells.maskM
+        # Fx = Fx*cells.maskM
 
-        Fy = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datay,(cells.Xgrid,cells.Ygrid),
+        Fy = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datay,(cells.X,cells.Y),
                                               fill_value=0,method=p.interp_type)
 
-        Fy = Fy*cells.maskM
+        # Fy = Fy*cells.maskM
 
     else:
 
@@ -1364,7 +1364,7 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
     else:
         lw = 3.0
 
-    streams = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um,Fx,Fy,density=p.stream_density,
+    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um,Fx,Fy,density=p.stream_density,
         linewidth=lw,color=p.vcolor,arrowsize=1.5)
 
     return streams, ax
@@ -1402,18 +1402,18 @@ def env_stream(datax,datay,ax,cells,p):
     else:
         lw = 3.0
 
-    if datax.shape == cells.Xgrid.shape:
+    # if datax.shape == cells.X.shape:
 
-        streams = ax.streamplot(cells.Xgrid*p.um,cells.Ygrid*p.um, Fx, Fy,density=p.stream_density,
+    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy,density=p.stream_density,
             linewidth=lw,color=p.vcolor,arrowsize=1.5)
 
-    elif datax.shape == cells.X.shape:
+    # elif datax.shape == cells.X.shape:
+    #
+    #     streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy,density=p.stream_density,
+    #         linewidth=lw,color=p.vcolor,arrowsize=1.5)
 
-        streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy,density=p.stream_density,
-            linewidth=lw,color=p.vcolor,arrowsize=1.5)
-
-    else:
-        raise BetseExceptionFunction("Data input to env_streams function must be \n shaped as cells.X or cells.Xgrid.")
+    # else:
+    #     raise BetseExceptionFunction("Data input to env_streams function must be \n shaped as cells.X or cells.Xgrid.")
 
     return streams, ax
 

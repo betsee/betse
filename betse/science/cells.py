@@ -823,30 +823,30 @@ class Cells(object):
 
         #-----------------------------------------------------------------------------------------------------------
 
-        # if studying lateral movement of pumps and channels in membrane,
-        # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        if p.sim_eosmosis is True:
-            self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
-
-            for i, inds in enumerate(self.cell_to_mems):
-
-                inds = np.asarray(inds)
-
-                inds_p1 = np.roll(inds,1)
-                inds_n1 = np.roll(inds,-1)
-                inds_o = np.roll(inds,0)
-
-                dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
-                len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-                dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
-
-                tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
-                tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
-
-                if len_mem.all() != 0 and dist_sign.all() != 0:
-
-                    self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
-                    self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+        # # if studying lateral movement of pumps and channels in membrane,
+        # # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        # if p.sim_eosmosis is True:
+        #     self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+        #
+        #     for i, inds in enumerate(self.cell_to_mems):
+        #
+        #         inds = np.asarray(inds)
+        #
+        #         inds_p1 = np.roll(inds,1)
+        #         inds_n1 = np.roll(inds,-1)
+        #         inds_o = np.roll(inds,0)
+        #
+        #         dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
+        #         len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+        #         dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
+        #
+        #         tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
+        #         tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
+        #
+        #         if len_mem.all() != 0 and dist_sign.all() != 0:
+        #
+        #             self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
+        #             self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
 
         #---------------------------------------------------------------------------
 
@@ -1706,12 +1706,12 @@ class Cells(object):
         self.Xgrid = X
         self.Ygrid = Y
 
-        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),self.voronoi_mask,(self.Xgrid,self.Ygrid),
+        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),
+            self.voronoi_mask,(self.Xgrid,self.Ygrid),
                              method='linear',fill_value=0)
 
         self.maskM = ndimage.filters.gaussian_filter(self.maskM, 2, mode='nearest')
         self.maskM = np.round(self.maskM,0)
-
 
         maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
         maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')

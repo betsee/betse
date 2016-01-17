@@ -999,8 +999,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if p.sim_eosmosis is True and p.sim_ECM is True and \
-       sim.run_sim is True:
+    if p.sim_eosmosis is True and sim.run_sim is True:
 
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
@@ -1358,7 +1357,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             save=p.saveAnimations,
         )
 
-    if p.ani_mem is True and p.sim_eosmosis is True and p.sim_ECM is True and sim.run_sim is True:
+    if p.ani_mem is True and p.sim_eosmosis is True and sim.run_sim is True:
         AnimateMem(
             sim,cells,sim.time,p,
             clrAutoscale=p.autoscale_mem_ani,

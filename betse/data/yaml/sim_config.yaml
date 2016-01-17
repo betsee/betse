@@ -197,7 +197,7 @@ world options:
       include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
-      turn on: False        # turn on electroosmosis of pumps and channels (Note: memory intensive option!)
+      turn on: False        # turn on electroosmosis of pumps and channels
 
   deformation:
       turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
@@ -623,7 +623,7 @@ variable settings:
 
     pump charge: 1          # charge of pumps (controls direction they move in)
 
-    membrane mobility: 1e-10    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+    membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
   noise:
 
