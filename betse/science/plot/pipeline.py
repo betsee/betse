@@ -541,11 +541,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             minvala = np.min(ip3Cell,axis=0)
             minvalb = np.min(ip3Env,axis=0)
 
-            #FIXME: Consider using Python's builtin min() and max() functions:
-            #    maxval = max(maxvala, maxvalb)
-            #    minval = min(minvala, minvalb)
-            #Sunrise over a descending moon!
-
             if maxvala > maxvalb:
                 maxval = maxvala
             else:
@@ -1034,6 +1029,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         #FIXME: Out of curiosity, what's the scaling by 10**3 about? We only
         #appear to do this for animations. Is this similar to our use of "p.um"
         #to scale by 10**6, only for mm (millimeters) instead? Big smiley face!
+
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting, 1e3)
 

@@ -357,17 +357,26 @@ class AnimateDeformation(Anim):
                 dd = self.sim.vm_time[0]*1e3
             else:
                 dd = self.sim.vcell_time[0]*1e3
+
         elif self.p.ani_Deformation_type == 'Displacement':
             self.colormap = self.p.background_cm
             dd = self.p.um * np.sqrt(dx**2 + dy**2)
+
         else:
             raise BetseExceptionParameters(
                 'Deformation animation type "{}" not '
                 '"Vmem" or "Displacement".'.format(
                     self.p.ani_Deformation_type))
 
-        dd_collection, self.ax = cell_mesh(
-            dd, self.ax, self.cells, self.p, self.colormap)
+        if self.p.showCells is False:
+
+            dd_collection, self.ax = cell_mesh(
+                dd, self.ax, self.cells, self.p, self.colormap)
+
+        else:
+            dd_collection, self.ax = cell_mosaic(
+                dd, self.ax, self.cells, self.p, self.colormap)
+
 
         if self.p.ani_Deformation_style == 'vector':
             self._quiver_plot, self.ax = cell_quiver(
@@ -375,11 +384,11 @@ class AnimateDeformation(Anim):
         elif self.p.ani_Deformation_style == 'streamline':
             self._stream_plot, self.ax = cell_stream(
                 dx, dy, self.ax, self.cells, self.p,
-                showing_cells=self.p.showCells)
-        else:
+                showing_cells=False)
+        elif self.p.ani_Deformation_style != 'None':
             raise BetseExceptionParameters(
                 'Deformation animation style "{}" not '
-                '"vector" or "streamline".'.format(
+                '"vector", "streamline", or "None".'.format(
                     self.p.ani_Deformation_style))
 
         # Sequence of all deformation values for use in colorbar autoscaling.
@@ -436,6 +445,9 @@ class AnimateDeformation(Anim):
         #FIXME: Indeed, it appears that the entire plot didn't need to be
         #replotted. Let's go with our newfound efficiency. Make it so, sunbeam!
 
+        # FIXME, FIXME, FIXME!: ACTUALLY, the plot doesn't work the way you did it -- the edges defining the cells
+        # are not moving, and they should be. So unfortunately the whole point of this plot is no longer happening :(
+
         #FIXME: Quite a bit of code duplication. Let's see if we can generalize
         #a new method for this.
 
@@ -460,8 +472,19 @@ class AnimateDeformation(Anim):
 
         # Reset the superclass colorbar mapping to this newly created mapping,
         # permitting the superclass _plot_frame() method to clip this mapping.
-        self._colorbar_mapping, self.ax = cell_mesh(
-            dd, self.ax, self.cells, self.p, self.colormap)
+
+        # FIXME: as this does not involve replotting, the x and y position coordinates for the cell_mesh or
+        # cell_mosaic plots are not being updated as they should be...which is the point of deformation.
+
+        if self.p.showCells is False:
+
+            self._colorbar_mapping, self.ax = cell_mesh(
+                dd, self.ax, self.cells, self.p, self.colormap)
+
+        else:
+            self._colorbar_mapping, self.ax = cell_mosaic(
+                dd, self.ax, self.cells, self.p, self.colormap)
+
         # dd_collection, self.ax = cell_mesh(
         #     dd, self.ax, self.cells, self.p, self.colormap)
         # dd_collection.set_clim(self.clrMin, self.clrMax)
@@ -742,7 +765,7 @@ class AnimateVelocityIntracellular(Anim):
             vfield,
             origin='lower',
             extent=self._axes_bounds,
-            cmap=self.colormap,
+            cmap=self.p.background_cm,
         )
 
         #FIXME: How expensive would caching these calculations be?
@@ -824,7 +847,6 @@ class AnimateVelocityIntracellular(Anim):
             density=self.p.stream_density,
             linewidth=(3.0*vfield/vnorm) + 0.5,
             color='k',
-            cmap=self.colormap,
             arrowsize=1.5,
         )
         # self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
@@ -871,17 +893,9 @@ class AnimateVelocityExtracellular(Anim):
             vfield,
             origin='lower',
             extent=self._axes_bounds,
-            cmap=self.colormap,
+            cmap=self.p.background_cm,
         )
 
-        #FIXME: How expensive would caching these calculations be?
-
-        # Display and/or save this animation. Since recalculating "vfield" for
-        # each animation frame is non-trivial, this call avoids passing the
-        # "time_series" parameter. Instead, the _get_velocity_field() method
-        # manually rescales the colorbar on each frame according to the minimum
-        # and maximum velocity field magnitude. While non-ideal, every
-        # alternative is currently worse.
         self._animate(
             frame_count=len(self.sim.time),
             colorbar_mapping=self.msh,
