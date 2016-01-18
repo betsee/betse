@@ -6,45 +6,9 @@
 Matplotlib-based animation classes.
 '''
 
-#FIXME: Unfortunately, use of pyplot and hence the pylab figure manager is a
-#bit problematic for long-lived applications like BETSE. Why? Dumb memory
-#leaks. Every time plt.figure() is called, a new figure is added to the pylab
-#figure manager. That's a problem, as it means that figures are never
-#implicitly released from memory -- even if the GUI window displaying that
-#figure has long been closed. The only way to release that sort of figure from
-#memory is to call its figure.close() method. Unfortunately, we can't do that
-#either! Why? Because figures are displayed in a non-blocking manner, which
-#means that we don't actually know when that method should be called.
-#
-#The solution, of course, is to stop using the pylab figure manager altogether
-#and to instead instead directly instantiate figures and canvases via
-#Matplotlib's object-oriented API. See:
-#
-#    https://stackoverflow.com/questions/16334588/create-a-figure-that-is-reference-counted/16337909#16337909
-#
-#Abundant stags in the furry forest!
-#FIXME: Note that the equivalent of the pyplot.show() function is the "show"
-#attribute of the current backend module -- which, bizarrely, turns out to be
-#exactly equivalent to the pyplot.show() function (for interactive backends,
-#anyway) via internal trickery. Even more oddly, this attribute is actually an
-#instantiated object defining a __call__() method. It is crazy. In any case,
-#call this "show" attribute instead of pyplot.show() below.
-#
-#Note also that we shouldn't need to explicitly call any close or destroy
-#methods. Python's garbage collector should handle everything. We might,
-#however, need to explicitly break circular references between figures and
-#their associated canvases: e.g.,
-#
-#     self._figure.canvas = None
-#     self._canvas.figure = None
-#     self._figure = None
-#     self._canvas = None
-#
-#Thanks to the garbage collector, that shouldn't be necessary. You never know!
-
-#FIXME: For a similar reason (avoiding memory leaks), I'm fairly certain that
-#everywhere we currently call the ".lines.remove()" method of a Matplotlib
-#streamplot object, that we instead need to simply call remove(): e.g.,
+#FIXME: To avoid memory leaks, I'm fairly certain that everywhere we currently
+#call the ".lines.remove()" method of a Matplotlib streamplot object, that we
+#instead need to simply call remove(): e.g.,
 #
 #    # ...instead of this:
 #    self._stream_plot.lines.remove()
@@ -244,7 +208,6 @@ class AnimateCurrent(Anim):
 
         #FIXME: We repeat this same logic in other classes. Shift into a new
         #private superclass method, please.
-        #FIXME: Die, pyplot! Die!
         self.meshplot = plt.imshow(
             Jmag_M,
             origin='lower',
@@ -287,6 +250,11 @@ class AnimateCurrent(Anim):
         # Streamplot and meshplot the Jmag_M data series for this frame.
         Jmag_M = self._streamplot_jmag_m(frame_number)
         self.meshplot.set_data(Jmag_M)
+
+        #FIXME: Make this go away. A coven of unicycles droven to the edge!
+
+        # Set the colorbar range.
+        self.meshplot.set_clim(self.clrMin, self.clrMax)
 
 
     def _streamplot_jmag_m(self, frame_number: int) -> np.ndarray:
@@ -368,15 +336,12 @@ class AnimateDeformation(Anim):
                 '"Vmem" or "Displacement".'.format(
                     self.p.ani_Deformation_type))
 
-        if self.p.showCells is False:
-
-            dd_collection, self.ax = cell_mesh(
-                dd, self.ax, self.cells, self.p, self.colormap)
-
-        else:
+        if self.p.showCells is True:
             dd_collection, self.ax = cell_mosaic(
                 dd, self.ax, self.cells, self.p, self.colormap)
-
+        else:
+            dd_collection, self.ax = cell_mesh(
+                dd, self.ax, self.cells, self.p, self.colormap)
 
         if self.p.ani_Deformation_style == 'vector':
             self._quiver_plot, self.ax = cell_quiver(
@@ -435,76 +400,67 @@ class AnimateDeformation(Anim):
         )
 
 
+    #FIXME: Quite a bit of code duplication. Generalize us up the bomb.
     def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        #FIXME: Is it actually the case that the entire plot needs to be
-        #regenerated? The AnimateCellData._plot_frame_figure() method also
-        #recreates "self.ax" but without regenerating the entire plot. Let's
-        #test this in the trivial way. Luscious, luscious heart candy!
-        #FIXME: Indeed, it appears that the entire plot didn't need to be
-        #replotted. Let's go with our newfound efficiency. Make it so, sunbeam!
-
-        # FIXME, FIXME, FIXME!: ACTUALLY, the plot doesn't work the way you did it -- the edges defining the cells
-        # are not moving, and they should be. So unfortunately the whole point of this plot is no longer happening :(
-
-        #FIXME: Quite a bit of code duplication. Let's see if we can generalize
-        #a new method for this.
-
         # Erase the prior frame before plotting this frame.
-        self.ax.patches = []
+        # self.ax.patches = []
 
-        # we need to have changing cells, so we have to clear the plot and redo it...
+        #FIXME: Improve to avoid clearing the current axes.
+
+        # we need to have changing cells, so we have to clear the plot and redo
+        # it...
         # self.fig.clf()
         # self.ax = plt.subplot(111)
+        self.ax.cla()
+        self.ax.axis('equal')
+        self.ax.axis(self._axes_bounds)
+        self.ax.set_xlabel('Spatial distance [um]')
+        self.ax.set_ylabel('Spatial distance [um]')
 
-        # Cell deformations as X and Y component arrays for this frame.
+        # Arrays of all cell deformation X and Y components for this frame.
         dx = self.sim.dx_cell_time[frame_number]
         dy = self.sim.dy_cell_time[frame_number]
 
+        # Array of all cell Vmem values for this frame.
         if self.p.ani_Deformation_type == 'Vmem':
             if self.p.sim_ECM is False:
                 dd = self.sim.vm_time[frame_number]*1e3
             else:
                 dd = self.sim.vcell_time[frame_number]*1e3
+        # Array of all cell deformation magnitudes for this frame.
         elif self.p.ani_Deformation_type == 'Displacement':
             dd = 1e6 * np.sqrt(dx**2 + dy**2)
 
         # Reset the superclass colorbar mapping to this newly created mapping,
         # permitting the superclass _plot_frame() method to clip this mapping.
-
-        # FIXME: as this does not involve replotting, the x and y position coordinates for the cell_mesh or
-        # cell_mosaic plots are not being updated as they should be...which is the point of deformation.
-
-        if self.p.showCells is False:
-
-            self._colorbar_mapping, self.ax = cell_mesh(
+        # dd_collection.remove()
+        # self.ax.collections = []
+        if self.p.showCells is True:
+            dd_collection, self.ax = cell_mosaic(
                 dd, self.ax, self.cells, self.p, self.colormap)
-
+            # points = np.multiply(self.cells.cell_verts, self.p.um)
+            # dd_collection = PolyCollection(
+            #     points, cmap=self.colormap, edgecolors='none')
+            # dd_collection.set_array(dd)
         else:
-            self._colorbar_mapping, self.ax = cell_mosaic(
+            dd_collection, self.ax = cell_mesh(
                 dd, self.ax, self.cells, self.p, self.colormap)
 
-        # dd_collection, self.ax = cell_mesh(
-        #     dd, self.ax, self.cells, self.p, self.colormap)
-        # dd_collection.set_clim(self.clrMin, self.clrMax)
-        # cb = self.fig.colorbar(self._colorbar_mapping)
+        dd_collection.set_clim(self.clrMin, self.clrMax)
+        # cb = self.fig.colorbar(dd_collection)
         # cb.set_label(self._colorbar_title)
 
         if self.p.ani_Deformation_style == 'vector':
-            self._quiver_plot.remove()
-            self._quiver_plot, self.ax = cell_quiver(
+            # self._quiver_plot.remove()
+            quiver_plot, self.ax = cell_quiver(
                 dx, dy, self.ax, self.cells, self.p)
         elif self.p.ani_Deformation_style == 'streamline':
-            self._stream_plot.lines.remove()
-            self._stream_plot, self.ax = cell_stream(
+            # self._stream_plot.lines.remove()
+            stream_plot, self.ax = cell_stream(
                 dx, dy, self.ax, self.cells, self.p,
                 showing_cells=self.p.showCells)
-
-        # self.ax.axis('equal')
-        # self.ax.axis(self._axes_bounds)
-        # self.ax.set_xlabel('Spatial distance [um]')
-        # self.ax.set_ylabel('Spatial distance [um]')
 
 
 class AnimateFieldIntracellular(AnimField):
@@ -574,6 +530,11 @@ class AnimateFieldIntracellular(AnimField):
         if self.clrAutoscale is True:
             self.clrMin = np.min(efield_mag)
             self.clrMax = np.max(efield_mag)
+
+            #FIXME: Make this go away. A coven of unicycles droven to the edge!
+
+            # Set the colorbar range.
+            self.msh.set_clim(self.clrMin, self.clrMax)
 
 
 class AnimateFieldExtracellular(AnimField):
@@ -645,6 +606,11 @@ class AnimateFieldExtracellular(AnimField):
         if self.clrAutoscale is True:
             self.clrMin = np.min(efield_mag)
             self.clrMax = np.max(efield_mag)
+
+            #FIXME: Make this go away. A coven of unicycles droven to the edge!
+
+            # Set the colorbar range.
+            self.msh.set_clim(self.clrMin, self.clrMax)
 
 
 #FIXME: Rename "self.zdata_t" to "self.gj_time_series".
@@ -797,6 +763,11 @@ class AnimateVelocityIntracellular(Anim):
         # Update the current velocity field mesh.
         self.msh.set_data(vfield)
 
+        #FIXME: Make this go away. A coven of unicycles droven to the edge!
+
+        # Set the colorbar range.
+        self.msh.set_clim(self.clrMin, self.clrMax)
+
 
     #FIXME: Duplicate code as in the "AnimateCurrent" class abounds.
     def _get_velocity_field(self, frame_number: int) -> tuple:
@@ -912,6 +883,11 @@ class AnimateVelocityExtracellular(Anim):
 
         # Update the current velocity field mesh.
         self.msh.set_data(vfield)
+
+        #FIXME: Make this go away. A coven of unicycles droven to the edge!
+
+        # Set the colorbar range.
+        self.msh.set_clim(self.clrMin, self.clrMax)
 
         # Update the current velocity field streamplot.
         self.streamV.set_UVC(
@@ -1432,7 +1408,8 @@ class PlotWhileSolving(object):
 
             self.i = 0   # an index used for saving plot filename
 
-        # keep the plt.show(block=False) statement as this animation is different and is closed by software
+        # Keep the plt.show(block=False) statement as this animation is
+        # different and is closed by software.
         plt.show(block=False)
 
 

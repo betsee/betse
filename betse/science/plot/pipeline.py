@@ -11,6 +11,36 @@ High-level facilities for plotting all enabled plots and animations.
 #FIXME: All current use of the "matplotlib.pyplot" module should be replaced by
 #use of Matplotlib's object-oriented (OO) API instead. See our
 #"betse.science.plot.anim.anim" module for further details.
+#FIXME: I believe I've finally tracked down the issue relating to the following
+#runtime "pyplot" warning:
+#
+#    pyplot.py:424: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+#
+#The issue is that whenever we call a viz.plot* function below (e.g.,
+#viz.plotSingleCellCData()), we localize the figure returned by that function.
+#That figure will then be garbage collected on whichever of the following
+#occurs last: (A) the corresponding local variable goes out of scope and (B)
+#the corresponding plot window is closed by the user. Normally, neither would
+#be a problem. Except this function is 1,400 lines long, which means that each
+#figure's local variable effectively *NEVER* goes out of scope for the duration
+#of plotting. Thus, figures will only be garbage collected *AFTER* this
+#function terminates -- which is pretty much unacceptable.
+#
+#There are a couple solutions, thankfully. The simplest would simply be to stop
+#localizing figures returned by viz.plot*() functions for all unused figure
+#locals. The harder but probably more ideal solution would be to refactor all
+#viz.plot*() functions to stop returning figures altogether. Since the current
+#figure is *ALWAYS* accessible via the "matplotlib.pyplot.gcf()" getter (i.e.,
+#[g]et[c]urrent[f]igure), there's no nead to explicitly return figures at all.
+#
+#In the unlikely event that we actually use a figure local, we need to either:
+#
+#* Extract all plotting logic related to that figure into a new helper function
+#  of this module, ensuring that local will go out of scope immediately after
+#  plotting that figure in that function.
+#* Manually destroy that local with either "figure = None" or "del figure".
+#
+#Undomesticated unicorns running into the carefree sunset!
 
 # ....................{ IMPORTS                            }....................
 import os

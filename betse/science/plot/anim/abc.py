@@ -56,9 +56,6 @@ class Anim(object, metaclass=ABCMeta):
         2. Maximum value of the figure's X axis.
         3. Minimum value of the figure's Y axis.
         4. Maximum value of the figure's Y axis.
-    _colorbar_mapping : object
-        The Matplotlib mapping (e.g., `Image`, `ContourSet`) to which this
-        animation's colorbar applies.
     _colorbar_title: str
         Text displayed above the figure colorbar.
     clrAutoscale : bool
@@ -188,47 +185,8 @@ class Anim(object, metaclass=ABCMeta):
 
         # Classify attributes to be subsequently defined.
         self._axes_title = None
-        self._colorbar_mapping = None
         self._writer_frames = None
         self._writer_video = None
-
-        #FIXME: Abandon "pyplot", all who enter here!
-        #FIXME: Call the
-        #betse.lib.matplotlib.mpl.mpl_config.make_backend_figure() method rather
-        #than pyplot.figure() here and everywhere.
-        #FIXME: Actually, the
-        #betse.lib.matplotlib.mpl.mpl_config.make_backend_figure() method
-        #doesn't appear to be terribly helpful as one can't actually call show()
-        #on that. The closest approximation is figure.canvas.print_figure(), but
-        #that's intended principally for producing physical print copies (as the
-        #name suggests) and mandates blocking in any case. Instead, what we
-        #*REALLY* want to be doing is calling the current backend's
-        #new_figure_manager() function. This creates a figure manager containing
-        #the desired figure and figure canvas objects, all initialized in a sane
-        #manner conducive to displaying and saving. We think, anyway!
-        #
-        #Given a "FigureManagerBase" instance, we can then call the current
-        #backend's show() callable to do what we want. This callable accepts the
-        #same exact parameters as the "pyplot.show()" function -- which is no
-        #coincidence, as the latter defers to the former.
-        #
-        #Wait! We should just be able to call the show() method of the new
-        #"FigureManagerBase" instance. The ShowBase.__call__() just defers to
-        #that. By default, everything is non-blocking. If we want blocking
-        #behavior (which we probably don't), then we'd probably want to call
-        #the current backend's show() callable instead. Annnnnyway, let's just
-        #go with the FigureManagerBase.show() approach for now.
-        #FIXME: Since we're subverting the "pyplot" API, we'll want to make sure
-        #that we're not opening too many figures: e.g.,
-        #
-        #    if len(list(six.iterkeys(_pylab_helpers.Gcf.figs))) >= 20:
-        #         print('Uh oh!)
-        #
-        #The question is whether "_pylab_helpers.Gcf" applies if you only create
-        #figure managers outside of the "pyplot" API. We suspect it does, but...
-        #Oh, and note that the pyplot.get_fignums() function should probably be
-        #called instead of the above code. It's likely "Gcf" will be moved away,
-        #at some point.
 
         # Figure encapsulating this animation.
         self.fig = pyplot.figure()
@@ -378,13 +336,6 @@ class Anim(object, metaclass=ABCMeta):
         assert types.is_str_nonempty(axes_y_label), (
             types.assert_not_str_nonempty(axes_y_label, 'Y axis label'))
 
-        #FIXME: No! Cease classifying this, please. Some animation subclasses
-        #subsequently redefine the colorbar mapping. They shouldn't have to know
-        #that they need to also reset this attribute to safely do so.
-
-        # Classify passed parameters.
-        self._colorbar_mapping = colorbar_mapping
-
         # If labelling each plotted cell with that cell's unique 0-based index,
         # do so.
         if self.p.enumerate_cells is True:
@@ -493,7 +444,6 @@ class Anim(object, metaclass=ABCMeta):
         #accepted by the ani.save() function itself, so string name it is!
 
         try:
-            #FIXME: Refactor to *NOT* use the "pyplot" API. Juggling hugs!
             # If displaying animations, do so.
             if self.p.turn_all_plots_off is False:
                 loggers.log_info(
@@ -548,15 +498,6 @@ class Anim(object, metaclass=ABCMeta):
 
         # Plot this frame onto this animation's figure.
         self._plot_frame_figure(frame_number)
-
-        #FIXME: Nope! This is terrible. Do this in subclasses if we do this
-        #anywhere. Ideally, this will no longer be necessary *AFTER* we refactor
-        #subclasses to precalculate the global "clrMin" and "clrMax" values.
-
-        # For safety, rescale the colorbar regardless of whether or not the
-        # minimum or maximum colorbar values have been modified by the above
-        # call to the subclass _plot_frame_figure() method.
-        self._colorbar_mapping.set_clim(self.clrMin, self.clrMax)
 
         # Update this figure with the current time, rounded to three decimal
         # places for readability.

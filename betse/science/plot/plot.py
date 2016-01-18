@@ -314,9 +314,7 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
             clrmap = cm.rainbow
 
         if p.showCells is True:
-
             coll, ax = cell_mosaic(z,ax,cells,p,p.default_cm)
-
         else:
             coll, ax = cell_mesh(z,ax,cells,p,p.default_cm)
 
@@ -1443,7 +1441,7 @@ def cell_mesh(data, ax, cells, p, clrmap):
     return msh, ax
 
 
-def env_mesh(data,ax,cells,p,clrmap,ignore_showCells=False):
+def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
     """
     Sets up a mesh plot for environmental data on an existing axis.
 
@@ -1477,13 +1475,21 @@ def env_mesh(data,ax,cells,p,clrmap,ignore_showCells=False):
     return mesh_plot, ax
 
 
-def cell_mosaic(data, ax, cells, p, clrmap):
+#FIXME: There's no discernable reason to return the same axes object as the
+#caller passed. Consider refactoring to only return the newly created
+#"PolyCollection" object. Quavering tide pools under the unwavering summer Sun!
+def cell_mosaic(
+    data,
+    ax: 'matplotlib.axes.Axes',
+    cells: 'Cells',
+    p: 'Parameters',
+    clrmap: 'matplotlib.colors.Colormap',
+) -> (PolyCollection, 'matplotlib.axes.Axes'):
     """
     Sets up a mosaic plot for cell data on an existing axis.
 
     Parameters
     -----------
-
     data            Data defined on environmental grid
     cells           Instance of cells module
     p               Instance of parameters module
@@ -1493,7 +1499,6 @@ def cell_mosaic(data, ax, cells, p, clrmap):
     --------
     collection          Container for mosaic plot
     ax                  Modified axis
-
     """
 
     # define a polygon collection based on individual cell polygons
