@@ -688,11 +688,23 @@ def plotVects(cells, p, fig=None, ax=None):
 
         return fig, ax
 
-def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = None,
-    clrAutoscale = True, clrMin = None, clrMax = None, clrmap= cm.coolwarm,edgeOverlay = True,number_cells = False):
+def streamingCurrent(
+    sim, cells, p,
+    fig=None,
+    ax=None,
+    plot_Iecm=True,
+    zdata=None,
+    clrAutoscale=True,
+    clrMin=None,
+    clrMax=None,
+    clrmap=cm.coolwarm,
+    edgeOverlay=True,
+    number_cells=False,
+):
 
+    # Define the figure and axes instances if needed.
     if fig is None:
-        fig = plt.figure()# define the figure and axes instances
+        fig = plt.figure()
     if ax is None:
         ax = plt.subplot(111)
 
@@ -705,36 +717,51 @@ def streamingCurrent(sim, cells,p,fig=None, ax=None, plot_Iecm = True, zdata = N
 
     ax.axis([xmin,xmax,ymin,ymax])
 
+    #FIXME: There's a fair amount of overlap between the following branches.
+    #Treetops swaying in the contumely breeze!
     if p.sim_ECM is False or plot_Iecm is False:
-
-        Jmag_M = np.sqrt(sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
+        Jmag_M = np.sqrt(
+            sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
 
         J_x = sim.I_gj_x_time[-1]/Jmag_M
         J_y = sim.I_gj_y_time[-1]/Jmag_M
 
-        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-        meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
-
-        streamplot = ax.streamplot(cells.X*p.um,cells.Y*p.um,J_x,J_y,density=p.stream_density,
-            linewidth=lw,color='k', cmap=clrmap,arrowsize=1.5)
-
-        ax.set_title('Final gap junction current density')
-
-    elif plot_Iecm is True:
-        Jmag_M = np.sqrt(sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
-
-        J_x = sim.I_tot_x_time[-1]/Jmag_M
-        J_y = sim.I_tot_y_time[-1]/Jmag_M
-
-        lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
-        meshplot = plt.imshow(Jmag_M,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=clrmap)
+        meshplot = plt.imshow(
+            Jmag_M,
+            origin='lower',
+            extent=[xmin,xmax,ymin,ymax],
+            cmap=clrmap,
+        )
 
         ax.streamplot(
             cells.X*p.um, cells.Y*p.um, J_x, J_y,
             density=p.stream_density,
-            linewidth=lw,
+            linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
+            color='k',
+            cmap=clrmap,
+            arrowsize=1.5,
+        )
+
+        ax.set_title('Final gap junction current density')
+
+    elif plot_Iecm is True:
+        Jmag_M = np.sqrt(
+            sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
+
+        J_x = sim.I_tot_x_time[-1]/Jmag_M
+        J_y = sim.I_tot_y_time[-1]/Jmag_M
+
+        meshplot = plt.imshow(
+            Jmag_M,
+            origin='lower',
+            extent=[xmin,xmax,ymin,ymax],
+            cmap=clrmap,
+        )
+
+        ax.streamplot(
+            cells.X*p.um, cells.Y*p.um, J_x, J_y,
+            density=p.stream_density,
+            linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
             color='k',
             cmap=clrmap,
             arrowsize=1.5,
@@ -1187,8 +1214,6 @@ def I_overlay_update(i,sim,streams,ax,cells,p):
         J_x = sim.I_tot_x_time[i]/Jmag_M
         J_y = sim.I_tot_y_time[i]/Jmag_M
 
-    lw = (3.0*Jmag_M/Jmag_M.max()) + 0.5
-
     streams.lines.remove()
     ax.patches = []
 
@@ -1196,11 +1221,13 @@ def I_overlay_update(i,sim,streams,ax,cells,p):
         cells.Xgrid*1e6,
         cells.Ygrid*1e6, J_x, J_y,
         density=p.stream_density,
-        linewidth=lw,
+        linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
         color='k',
-        arrowsize=1.5)
+        arrowsize=1.5,
+    )
 
     return streams, ax
+
 
 def cell_ave(cells,vm_at_mem):
 

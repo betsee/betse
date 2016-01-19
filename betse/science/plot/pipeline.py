@@ -1065,14 +1065,14 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=IP3plotting,
+            time_series=IP3plotting,
             is_current_overlay=p.I_overlay,
             type='IP3',
             figure_title='IP3 concentration',
             colorbar_title='Concentration [umol/L]',
-            clrAutoscale=p.autoscale_IP3_ani,
-            clrMin=p.IP3_ani_min_clr,
-            clrMax=p.IP3_ani_max_clr,
+            is_color_autoscaled=p.autoscale_IP3_ani,
+            color_min=p.IP3_ani_min_clr,
+            color_max=p.IP3_ani_max_clr,
         )
 
     if (p.ani_dye2d is True and p.voltage_dye is True and
@@ -1084,13 +1084,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
             AnimateCellData(
                 sim=sim, cells=cells, p=p,
-                zdata_time=Dyeplotting,
+                time_series=Dyeplotting,
                 type='Morphogen',
                 figure_title='Morphogen Concentration',
                 colorbar_title='Concentration [umol/L]',
-                clrAutoscale=p.autoscale_Dye_ani,
-                clrMin=p.Dye_ani_min_clr,
-                clrMax=p.Dye_ani_max_clr,
+                is_color_autoscaled=p.autoscale_Dye_ani,
+                color_min=p.Dye_ani_min_clr,
+                color_max=p.Dye_ani_max_clr,
             )
 
         else:
@@ -1123,13 +1123,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
             AnimateCellData(
                 sim=sim, cells=cells, p=p,
-                zdata_time=dye_ave_t,
+                time_series=dye_ave_t,
                 type='Morphogen Average',
                 figure_title='Average Morphogen Concentration',
                 colorbar_title='Concentration [umol/L]',
-                clrAutoscale=p.autoscale_Dye_ani,
-                clrMin=p.Dye_ani_min_clr,
-                clrMax=p.Dye_ani_max_clr,
+                is_color_autoscaled=p.autoscale_Dye_ani,
+                color_min=p.Dye_ani_min_clr,
+                color_max=p.Dye_ani_max_clr,
             )
 
     if (p.ani_ca2d is True and p.ions_dict['Ca'] == 1 and
@@ -1138,13 +1138,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=tCa,
+            time_series=tCa,
             type='Ca',
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
-            clrAutoscale=p.autoscale_Ca_ani,
-            clrMin=p.Ca_ani_min_clr,
-            clrMax=p.Ca_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Ca_ani,
+            color_min=p.Ca_ani_min_clr,
+            color_max=p.Ca_ani_max_clr,
         )
 
     if (p.ani_pH2d is True and p.ions_dict['H'] == 1 and
@@ -1153,13 +1153,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=tpH,
+            time_series=tpH,
             type='pH',
             figure_title='Cytosolic pH',
             colorbar_title='pH',
-            clrAutoscale=p.autoscale_Ca_ani,
-            clrMin=p.Ca_ani_min_clr,
-            clrMax=p.Ca_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Ca_ani,
+            color_min=p.Ca_ani_min_clr,
+            color_max=p.Ca_ani_max_clr,
         )
 
     if p.ani_vm2d is True and p.createAnimations is True:
@@ -1170,15 +1170,15 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=vmplt,
+            time_series=vmplt,
             is_ecm_ignored=False,
             is_current_overlay=p.I_overlay,
             type='Vmem',
             figure_title='Cell Vmem',
             colorbar_title='Voltage [mV]',
-            clrAutoscale=p.autoscale_Vmem_ani,
-            clrMin=p.Vmem_ani_min_clr,
-            clrMax=p.Vmem_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Vmem_ani,
+            color_min=p.Vmem_ani_min_clr,
+            color_max=p.Vmem_ani_max_clr,
         )
 
     if p.ani_vmgj2d is True and p.createAnimations is True:
@@ -1186,31 +1186,35 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateGJData(
             sim=sim, cells=cells, p=p,
             gj_time_series=sim.gjopen_time,
+
             #FIXME: This probably reduces to just:
             #cell_time_series=sim.vm_time * 1000,
             cell_time_series=[1000*arr for arr in sim.vm_time],
+
             type='Vmem_gj',
             figure_title='Vcell',
             colorbar_title='Voltage [mV]',
-            clrAutoscale=p.autoscale_Vgj_ani,
-            clrMin=p.Vgj_ani_min_clr,
-            clrMax=p.Vgj_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Vgj_ani,
+            color_min=p.Vgj_ani_min_clr,
+            color_max=p.Vgj_ani_max_clr,
         )
 
     if (p.ani_vcell is True and p.createAnimations is True and
         p.sim_ECM is True):
-        vcellplt = [1000*arr for arr in sim.vcell_time]
-
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=vcellplt,
+
+            #FIXME: This probably reduces to just:
+            #cell_time_series=sim.vm_time * 1000,
+            time_series=[1000*arr for arr in sim.vcell_time],
+
             is_current_overlay=p.I_overlay,
             type='vcell',
             figure_title='V in cell',
             colorbar_title='Voltage [mV]',
-            clrAutoscale=p.autoscale_vcell_ani,
-            clrMin=p.vcell_ani_min_clr,
-            clrMax=p.vcell_ani_max_clr,
+            is_color_autoscaled=p.autoscale_vcell_ani,
+            color_min=p.vcell_ani_min_clr,
+            color_max=p.vcell_ani_max_clr,
         )
 
     if p.ani_I is True and p.createAnimations is True:
@@ -1221,9 +1225,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             type='current_gj',
             figure_title='Gap Junction Current',
             colorbar_title='Current Density [A/m2]',
-            clrAutoscale=p.autoscale_I_ani,
-            clrMin=p.I_ani_min_clr,
-            clrMax=p.I_ani_max_clr,
+            is_color_autoscaled=p.autoscale_I_ani,
+            color_min=p.I_ani_min_clr,
+            color_max=p.I_ani_max_clr,
         )
 
         # Also animate the extracellular spaces current if desired.
@@ -1234,9 +1238,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 type='current_ecm',
                 figure_title='Total Current',
                 colorbar_title='Current Density [A/m2]',
-                clrAutoscale=p.autoscale_I_ani,
-                clrMin=p.I_ani_min_clr,
-                clrMax=p.I_ani_max_clr,
+                is_color_autoscaled=p.autoscale_I_ani,
+                color_min=p.I_ani_min_clr,
+                color_max=p.I_ani_max_clr,
             )
 
     if p.ani_Efield is True and p.createAnimations is True:
@@ -1248,9 +1252,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             type='Efield_gj',
             figure_title='Gap Junction Electric Field',
             colorbar_title='Electric Field [V/m]',
-            clrAutoscale=p.autoscale_Efield_ani,
-            clrMin=p.Efield_ani_min_clr,
-            clrMax=p.Efield_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Efield_ani,
+            color_min=p.Efield_ani_min_clr,
+            color_max=p.Efield_ani_max_clr,
         )
 
         # Also animate the extracellular spaces electric field if desired.
@@ -1262,9 +1266,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 type='Efield_ecm',
                 figure_title='Extracellular Spaces Electric Field',
                 colorbar_title='Electric Field [V/m]',
-                clrAutoscale=p.autoscale_Efield_ani,
-                clrMin=p.Efield_ani_min_clr,
-                clrMax=p.Efield_ani_max_clr,
+                is_color_autoscaled=p.autoscale_Efield_ani,
+                color_min=p.Efield_ani_min_clr,
+                color_max=p.Efield_ani_max_clr,
             )
 
     if (p.ani_Velocity is True and p.fluid_flow is True and
@@ -1276,9 +1280,9 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             type='Velocity_gj',
             figure_title='Gap Junction Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
-            clrAutoscale=p.autoscale_Velocity_ani,
-            clrMin=p.Velocity_ani_min_clr,
-            clrMax=p.Velocity_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Velocity_ani,
+            color_min=p.Velocity_ani_min_clr,
+            color_max=p.Velocity_ani_max_clr,
         )
 
         # Also animate the extracellular spaces fluid velocity if desired.
@@ -1288,93 +1292,92 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 type='Velocity_ecm',
                 figure_title='Extracellular Spaces Fluid Velocity',
                 colorbar_title='Fluid Velocity [nm/s]',
-                clrAutoscale=p.autoscale_Velocity_ani,
-                clrMin=p.Velocity_ani_min_clr,
-                clrMax=p.Velocity_ani_max_clr,
+                is_color_autoscaled=p.autoscale_Velocity_ani,
+                color_min=p.Velocity_ani_min_clr,
+                color_max=p.Velocity_ani_max_clr,
             )
 
     if (p.ani_Deformation is True and p.deformation is True and
         p.createAnimations is True and sim.run_sim is True):
-        if p.ani_Deformation_type == 'Displacement':
-            AnimateDeformation(
-                sim=sim, cells=cells, p=p,
-                type='Deformation',
-                figure_title='Displacement Field and Deformation',
-                colorbar_title='Displacement [um]',
-                clrAutoscale=p.autoscale_Deformation_ani,
-                clrMin=p.Deformation_ani_min_clr,
-                clrMax=p.Deformation_ani_max_clr,
-            )
-        elif p.ani_Deformation_type == 'Vmem':
-            AnimateDeformation(
-                sim=sim, cells=cells, p=p,
-                type='Deformation',
-                figure_title='Displacement Field and Deformation',
-                colorbar_title='Voltage [mV]',
-                clrAutoscale=p.autoscale_Deformation_ani,
-                clrMin=p.Deformation_ani_min_clr,
-                clrMax=p.Deformation_ani_max_clr,
-            )
+        AnimateDeformation(
+            sim, cells, p,
+            ani_repeat=True,
+            save=p.saveAnimations,
+        )
+        # if p.ani_Deformation_type == 'Displacement':
+        #     AnimateDeformation(
+        #         sim=sim, cells=cells, p=p,
+        #         type='Deformation',
+        #         figure_title='Displacement Field and Deformation',
+        #         colorbar_title='Displacement [um]',
+        #         is_color_autoscaled=p.autoscale_Deformation_ani,
+        #         color_min=p.Deformation_ani_min_clr,
+        #         color_max=p.Deformation_ani_max_clr,
+        #     )
+        # elif p.ani_Deformation_type == 'Vmem':
+        #     AnimateDeformation(
+        #         sim=sim, cells=cells, p=p,
+        #         type='Deformation',
+        #         figure_title='Displacement Field and Deformation',
+        #         colorbar_title='Voltage [mV]',
+        #         is_color_autoscaled=p.autoscale_Deformation_ani,
+        #         color_min=p.Deformation_ani_min_clr,
+        #         color_max=p.Deformation_ani_max_clr,
+        #     )
 
     if (p.ani_Pcell is True and p.deform_osmo is True and
         p.createAnimations is True):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=sim.P_cells_time,
+            time_series=sim.P_cells_time,
             is_current_overlay=p.I_overlay,
             type='Pcell',
             figure_title='Hydrostatic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
-            clrAutoscale=p.autoscale_Pcell_ani,
-            clrMin=p.Pcell_ani_min_clr,
-            clrMax=p.Pcell_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Pcell_ani,
+            color_min=p.Pcell_ani_min_clr,
+            color_max=p.Pcell_ani_max_clr,
         )
 
     if (p.ani_Pcell is True and p.createAnimations is True and
         p.deform_osmo is True):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
-            zdata_time=sim.osmo_P_delta_time,
+            time_series=sim.osmo_P_delta_time,
             is_current_overlay=p.I_overlay,
             type='OsmoP',
             figure_title='Osmotic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
-            clrAutoscale=p.autoscale_Pcell_ani,
-            clrMin=p.Pcell_ani_min_clr,
-            clrMax=p.Pcell_ani_max_clr,
+            is_color_autoscaled=p.autoscale_Pcell_ani,
+            color_min=p.Pcell_ani_min_clr,
+            color_max=p.Pcell_ani_max_clr,
         )
 
     if p.ani_force is True and p.createAnimations is True:
         if p.deform_electro is True:
-            FEx = [(1/p.um)*arr for arr in sim.F_electro_x_time]
-            FEy = [(1/p.um)*arr for arr in sim.F_electro_y_time]
-
             AnimateFieldIntracellular(
                 sim=sim, cells=cells, p=p,
-                Fx_time=FEx,
-                Fy_time=FEy,
+                Fx_time=[(1/p.um)*arr for arr in sim.F_electro_x_time],
+                Fy_time=[(1/p.um)*arr for arr in sim.F_electro_y_time],
                 type='ElectrostaticFfield',
                 figure_title='Gap Junction Electrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
-                clrAutoscale=p.autoscale_force_ani,
-                clrMin=p.force_ani_min_clr,
-                clrMax=p.force_ani_max_clr,
+                is_color_autoscaled=p.autoscale_force_ani,
+                color_min=p.force_ani_min_clr,
+                color_max=p.force_ani_max_clr,
             )
 
         if p.deform_osmo is True:
-            FHx = [(1/p.um)*arr for arr in sim.F_hydro_x_time]
-            FHy = [(1/p.um)*arr for arr in sim.F_hydro_y_time]
-
             AnimateFieldIntracellular(
                 sim=sim, cells=cells, p=p,
-                Fx_time=FHx,
-                Fy_time=FHy,
+                Fx_time=[(1/p.um)*arr for arr in sim.F_hydro_x_time],
+                Fy_time=[(1/p.um)*arr for arr in sim.F_hydro_y_time],
                 type='HydroFfield',
                 figure_title='Gap Junction Hydrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
-                clrAutoscale=p.autoscale_force_ani,
-                clrMin=p.force_ani_min_clr,
-                clrMax=p.force_ani_max_clr,
+                is_color_autoscaled=p.autoscale_force_ani,
+                color_min=p.force_ani_min_clr,
+                color_max=p.force_ani_max_clr,
             )
 
     if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:
