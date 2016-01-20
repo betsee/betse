@@ -195,11 +195,11 @@ class PlotCells(object, metaclass=ABCMeta):
         self,
 
         # Mandatory parameters.
-        colorbar_mapping: object,
+        color_mapping: object,
 
         # Optional parameters.
+        color_series: np.ndarray = None,
         axes_title: str = None,
-        colorbar_values: np.ndarray = None,
     ) -> None:
         '''
         Prepare this plot for subsequent display and/or saving.
@@ -226,10 +226,10 @@ class PlotCells(object, metaclass=ABCMeta):
             Optional text displayed above the figure axes but below the figure
             title (i.e., `_figure_title`) _or_ `None` if no such text is to be
             displayed. Defaults to `None`.
-        colorbar_mapping : object
+        color_mapping : object
             Mandatory Matplotlib mapping (e.g., `Image`, `ContourSet`) to which
             this colorbar applies.
-        colorbar_values : np.ndarray
+        color_series : np.ndarray
             Optional multi-dimensional Numpy array containing all data values
             to be animated _or_ `None` if calculating this data during the
             animation initialization is infeasible or impractical (e.g., due to
@@ -270,13 +270,13 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # If a time series is passed *AND* colorbar autoscaling is requested,
         # clip the colorbar to the minimum and maximum values of this series.
-        if colorbar_values is not None and self._is_color_autoscaled is True:
-            assert types.is_sequence_nonstr(colorbar_values), (
-                types.assert_not_sequence_nonstr(colorbar_values))
+        if color_series is not None and self._is_color_autoscaled is True:
+            assert types.is_sequence_nonstr(color_series), (
+                types.assert_not_sequence_nonstr(color_series))
 
             # Flatten this two-dimensional matrix to a one-dimensional array,
             # providing efficient retrieval of minimum and maximum values.
-            time_series_flat = np.ravel(colorbar_values)
+            time_series_flat = np.ravel(color_series)
 
             # Minimum and maximum values.
             self._color_min = np.min(time_series_flat)
@@ -289,10 +289,10 @@ class PlotCells(object, metaclass=ABCMeta):
                 self._color_max = self._color_max + 1
 
         # Set the colorbar range.
-        colorbar_mapping.set_clim(self._color_min, self._color_max)
+        color_mapping.set_clim(self._color_min, self._color_max)
 
         # Display the colorbar.
-        colorbar = self._figure.colorbar(colorbar_mapping)
+        colorbar = self._figure.colorbar(color_mapping)
         colorbar.set_label(self._colorbar_title)
 
     # ..................{ PRIVATE ~ helper                   }..................
@@ -362,12 +362,15 @@ class PlotCells(object, metaclass=ABCMeta):
         http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.streamplot
             Further details on Matplotlib-based axes streamplotting.
         '''
-        assert types.is_numpy_array(x), (
-            types.assert_not_numpy_array(x))
-        assert types.is_numpy_array(y), (
-            types.assert_not_numpy_array(y))
-        assert types.is_numpy_array(magnitude), (
-            types.assert_not_numpy_array(magnitude))
+        assert types.is_sequence_nonstr(x), (
+            types.assert_not_sequence_nonstr(x))
+        assert types.is_sequence_nonstr(y), (
+            types.assert_not_sequence_nonstr(y))
+        assert types.is_sequence_nonstr(magnitude), (
+            types.assert_not_sequence_nonstr(magnitude))
+
+        # Maximum magnitude in the passed list of magnitudes.
+        magnitude_max = np.max(magnitude)
 
         return self._axes.streamplot(
             # X and Y grid.
@@ -376,7 +379,7 @@ class PlotCells(object, metaclass=ABCMeta):
             # X and Y velocities.
             x, y,
             density=self._p.stream_density,
-            linewidth=(3.0*magnitude/magnitude.max()) + 0.5,
+            linewidth=(3.0*magnitude/magnitude_max) + 0.5,
             color='k',
             cmap=self._colormap,
             arrowsize=1.5,

@@ -137,8 +137,8 @@ class AnimateCellData(AnimCells):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=self.collection,
-            colorbar_values=self._time_series,
+            color_mapping=self.collection,
+            color_series=self._time_series,
             axes_title=axes_title,
         )
 
@@ -168,18 +168,18 @@ class AnimateCellData(AnimCells):
                 self._sim, self.streams, self._axes, self._cells, self._p)
 
 
-#FIXME: Consider creating a new "AnimStreamplot" superclass for animating
-#streamplots. There appears to be duplicate code throughout classes animating
-#streamplots here and below.
 class AnimateCurrent(AnimCells):
     '''
     Animation of current plotted on the current cell cluster.
 
     Attributes
     ----------
-    is_gj_current_only : bool
-        `True` if animating only the gap junction current _or_ `False` if
-        animating all current.
+    _current_density_magnitude_time_series : ndarray
+        Time series of all current density magnitudes (i.e., `Jmag_M`).
+    _current_density_x_time_series : list
+        Time series of all current density X components.
+    _current_density_y_time_series : list
+        Time series of all current density Y components.
     '''
 
     def __init__(
@@ -207,94 +207,65 @@ class AnimateCurrent(AnimCells):
             axes_y_label='Spatial y [um]',
             *args, **kwargs)
 
-        self.is_gj_current_only = is_gj_current_only
         self._colormap = self._p.background_cm
 
-        # Streamplot of the current density magnitude for the first frame.
-        Jmag_M = self._streamplot_jmag_m(frame_number=0)
+        # Time series of all current density X and Y components.
+        if is_gj_current_only is True:
+            self._current_density_x_time_series = self._sim.I_gj_x_time
+            self._current_density_y_time_series = self._sim.I_gj_y_time
+        else:
+            self._current_density_x_time_series = self._sim.I_tot_x_time
+            self._current_density_y_time_series = self._sim.I_tot_y_time
 
-        # Meshplot of the current density magnitude for the first frame.
-        self.meshplot = self._plot_image(Jmag_M)
+        # Time series of all current density magnitudes (i.e., `Jmag_M`).
+        self._current_density_magnitude_time_series = np.sqrt(
+            np.array(self._current_density_x_time_series) ** 2 +
+            np.array(self._current_density_y_time_series) ** 2) + 1e-30
 
-        #FIXME: This may not actually be the case. How expensive *IS*
-        #recalculating "Jmag_M", anyway? We can certainly tolerate a bit of
-        #recalculation here. Indeed, if the memory costs aren't too high, we
-        #could even calculate *ALL* possible "Jmag_M" values for the entire
-        #time series up-front here and then subsequently reuse these values.
-        #
-        #To get a sense of whether or not that is likely to be too space-
-        #prohibitive, let's do the following as a sanity check first:
-        #
-        #    print('I_gj_x_time len: ' + len(self.sim.I_gj_x_time))
+        # Stream- and meshplot the first frame's current density magnitude.
+        Jmag_M = self._plot_stream_current_density_magnitude(frame_number=0)
+        self._mesh_plot = self._plot_image(Jmag_M)
 
-        # Display and/or save this animation. Since recalculating "Jmag_M" for
-        # each animation frame is non-trivial, this call avoids passing the
-        # "time_series" parameter. Instead, the _streamplot_jmag_m() method
-        # manually rescales the colorbar on each frame according to the minimum
-        # and maximum current density magnitude. While non-ideal, every
-        # alternative is currently worse. (Get it: *current*ly?)
+        # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=self.meshplot,
+            color_mapping=self._mesh_plot,
+            color_series=self._current_density_magnitude_time_series,
         )
 
 
     def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        #FIXME: Rename "self.streamplot" to "self._streamplot".
-
         # Erase the prior frame's streamplot before streamplotting this frame.
         self._axes.patches = []
-        self.streamplot.lines.remove()
+        self._stream_plot.lines.remove()
 
-        # Streamplot and meshplot the Jmag_M data series for this frame.
-        Jmag_M = self._streamplot_jmag_m(frame_number)
-        self.meshplot.set_data(Jmag_M)
-
-        #FIXME: Make this go away. A coven of unicycles droven to the edge!
-
-        # Set the colorbar range.
-        self.meshplot.set_clim(self._color_min, self._color_max)
+        # Stream- and meshplot the current density magnitude for this frame.
+        Jmag_M = self._plot_stream_current_density_magnitude(frame_number)
+        self._mesh_plot.set_data(Jmag_M)
 
 
-    def _streamplot_jmag_m(self, frame_number: int) -> np.ndarray:
+    def _plot_stream_current_density_magnitude(
+        self, frame_number: int) -> np.ndarray:
         '''
-        Streamplot and return the magnitude of the current density (Jmag_M)
-        data series for the current frame.
+        Streamplot and return all current density magnitudes (i.e., `Jmag_M`)
+        for the passed frame.
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        if self.is_gj_current_only is True:
-            Jmag_M = np.sqrt(
-                    self._sim.I_gj_x_time[frame_number] ** 2 +
-                    self._sim.I_gj_y_time[frame_number] ** 2) + 1e-30
-            J_x = self._sim.I_gj_x_time[frame_number] / Jmag_M
-            J_y = self._sim.I_gj_y_time[frame_number] / Jmag_M
-        else:
-            Jmag_M = np.sqrt(
-                    self._sim.I_tot_x_time[frame_number] ** 2 +
-                    self._sim.I_tot_y_time[frame_number] ** 2) + 1e-30
-            J_x = self._sim.I_tot_x_time[frame_number] / Jmag_M
-            J_y = self._sim.I_tot_y_time[frame_number] / Jmag_M
+        # All current density magnitudes for the current frame.
+        Jmag_M = self._current_density_magnitude_time_series[frame_number]
+
+        #FIXME: Are streamplots always passed unit vectors? Sparkling cider!
 
         # Classify this streamplot, thus permitting the _plot_frame_figure()
         # method to subsequently erase this streamplot's lines.
-        self.streamplot = self._axes.streamplot(
-                self._cells.X * self._p.um,
-                self._cells.Y * self._p.um,
-            J_x, J_y,
-            density=self._p.stream_density,
-            linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
-            color='k',
-            cmap=self._colormap,
-            arrowsize=1.5,
+        self._stream_plot = self._plot_stream(
+            x=self._current_density_x_time_series[frame_number] / Jmag_M,
+            y=self._current_density_y_time_series[frame_number] / Jmag_M,
+            magnitude=Jmag_M,
         )
-
-        # Rescale the colorbar range if desired.
-        if self._is_color_autoscaled is True:
-            self._color_min = np.min(Jmag_M)
-            self._color_max = np.max(Jmag_M)
 
         return Jmag_M
 
@@ -402,8 +373,8 @@ class AnimateDeformationUnused(AnimCells):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=dd_collection,
-            colorbar_values=colorbar_time_series,
+            color_mapping=dd_collection,
+            color_series=colorbar_time_series,
         )
 
 
@@ -744,7 +715,7 @@ class AnimateFieldIntracellular(AnimCellsField):
         # alternative is currently worse.
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=self.msh,
+            color_mapping=self.msh,
         )
 
 
@@ -826,7 +797,7 @@ class AnimateFieldExtracellular(AnimCellsField):
         # alternative is currently worse.
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=self.msh,
+            color_mapping=self.msh,
         )
 
 
@@ -928,14 +899,14 @@ class AnimateGJData(AnimCells):
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self._gj_time_series),
-            colorbar_mapping=self.coll2,
+            color_mapping=self.coll2,
 
             #FIXME: If modelling extracellular spaces, this doesn't seem quite
             #right. In that case, shouldn't this be something resembling:
-            #    colorbar_values=self.sim.vcell_time*1000,
+            #    color_series=self.sim.vcell_time*1000,
             #Tug boats in the muggy bastions of the gentle night!
 
-            colorbar_values=self._cell_time_series,
+            color_series=self._cell_time_series,
         )
 
 
@@ -989,7 +960,7 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
         # alternative is currently worse.
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=self.msh,
+            color_mapping=self.msh,
         )
 
 
@@ -1108,7 +1079,7 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
 
         self._animate(
             frame_count=len(self._sim.time),
-            colorbar_mapping=self.msh,
+            color_mapping=self.msh,
         )
 
 
