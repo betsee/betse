@@ -1120,11 +1120,17 @@ class Simulator(object):
 
             shuffle(self.movingIons)
 
-            for i in self.movingIons:
+            for i in self.movingIons: # confine eosmosis of channels to K+ channels:
+
+                if p.sim_eosmosis is True and i == self.iK:
+                    rho_i = self.rho_channel_o
+
+                else:
+                    rho_i = 1
 
                 # electrodiffusion of ion between cell and extracellular matrix
                 f_ED = electroflux(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.zs[i],
-                    self.vm,self.T,p,rho=self.rho_channel_o)
+                    self.vm,self.T,p,rho=rho_i)
 
                 # update ion due to transmembrane flux:
                 self.cc_cells[i] = self.cc_cells[i] + f_ED*(cells.cell_sa/cells.cell_vol)*p.dt
@@ -1638,9 +1644,16 @@ class Simulator(object):
 
             for i in self.movingIons:
 
+                if p.sim_eosmosis is True and i == self.iK:  # confine electroosmotic movement to K+ channels:
+
+                    rho_i = self.rho_channel
+
+                else:
+                    rho_i = 1
+
                 f_ED = electroflux(self.cc_env[i][cells.map_mem2ecm],self.cc_cells[i][cells.mem_to_cells],
                          self.Dm_cells[i], self.tm, self.zs[i], self.vm, self.T, p,
-                         rho=self.rho_channel)
+                         rho=rho_i)
 
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
@@ -2185,8 +2198,8 @@ class Simulator(object):
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
-        self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
-        self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
+        self.fluxes_gj_x[i] = -fgj_x  # store gap junction flux for this ion
+        self.fluxes_gj_y[i] = -fgj_y  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
 
@@ -2353,8 +2366,8 @@ class Simulator(object):
         # fenvx = fd.integrator(fenvx)
         # fenvy = fd.integrator(fenvy)
 
-        self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_x[i] = -fenvx.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = -fenvy.ravel()  # store ecm junction flux for this ion
 
     def update_er(self,cells,p,t):
 
@@ -2525,8 +2538,8 @@ class Simulator(object):
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
-        self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
-        self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
+        self.Dye_flux_x_gj = -fgj_x_dye[:]  # store gap junction flux for this ion
+        self.Dye_flux_y_gj = -fgj_y_dye[:]  # store gap junction flux for this ion
 
         if p.sim_ECM is False:
 
@@ -2693,8 +2706,8 @@ class Simulator(object):
             fenvx = (f_env_x_dye[:,1:] + f_env_x_dye[:,0:-1])/2
             fenvy = (f_env_y_dye[1:,:] + f_env_y_dye[0:-1,:])/2
 
-            self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
-            self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
+            self.Dye_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
+            self.Dye_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
 
     def update_IP3(self,cells,p,t):
 
@@ -2735,8 +2748,8 @@ class Simulator(object):
 
         self.cIP3 = self.cIP3 + p.dt*delta_cc
 
-        self.IP3_flux_x_gj = fgj_x_ip3[:]  # store gap junction flux for this ion
-        self.IP3_flux_y_gj = fgj_y_ip3[:]  # store gap junction flux for this ion
+        self.IP3_flux_x_gj = -fgj_x_ip3[:]  # store gap junction flux for this ion
+        self.IP3_flux_y_gj = -fgj_y_ip3[:]  # store gap junction flux for this ion
 
         if p.sim_ECM is False:
 
@@ -2874,8 +2887,8 @@ class Simulator(object):
             fenvx = (f_env_x_ip3[:,1:] + f_env_x_ip3[:,0:-1])/2
             fenvy = (f_env_y_ip3[1:,:] + f_env_y_ip3[0:-1,:])/2
 
-            self.IP3_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
-            self.IP3_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
+            self.IP3_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
+            self.IP3_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
 
     def get_Efield(self,cells,p):
 
