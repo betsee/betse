@@ -93,16 +93,6 @@ class AnimCells(PlotCells):
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
-        # Initialize animation saving *AFTER* defining all other attributes.
-        self._init_saving()
-
-
-    def _init_saving(self) -> None:
-        '''
-        Initialize this animation for platform-compatible file saving if enabled
-        by the current simulation configuration or noop otherwise.
-        '''
-
         # Classify attributes to be possibly redefined below.
         self._writer_frames = None
         self._writer_video = None
@@ -111,6 +101,33 @@ class AnimCells(PlotCells):
         self._is_saving_plotted_frames = (
             self._p.turn_all_plots_off is False and
             self._p.saveAnimations is True)
+
+        # Type of animation attempt to be logged below.
+        if self._p.turn_all_plots_off is False:
+            animation_verb = 'Plotting'
+        elif self._p.saveAnimations is True:
+            animation_verb = 'Saving'
+        # If neither displaying or saving this animation, this animation would
+        # ideally reduce to a noop. Since this is a superclass method, however,
+        # simply returning would have little effect; while raising an exception
+        # would certainly have an effect, doing so would also require all
+        # callers to explicitly catch and ignore that exception -- in which case
+        # this object would hardly have reduced to a noop. In short, ignoring
+        # this edge case is currently the only sane policy.
+
+        # Log this animation as early as reasonably feasible.
+        loggers.log_info(
+            '{} animation "{}"...'.format(animation_verb, self._type))
+
+        # Initialize animation saving.
+        self._init_saving()
+
+
+    def _init_saving(self) -> None:
+        '''
+        Initialize this animation for platform-compatible file saving if enabled
+        by the current simulation configuration or noop otherwise.
+        '''
 
         # If animation saving is disabled, noop.
         if self._p.saveAnimations is False:
@@ -255,16 +272,9 @@ class AnimCells(PlotCells):
         try:
             # If displaying animations, do so.
             if self._p.turn_all_plots_off is False:
-                loggers.log_info(
-                    'Plotting animation "{}"...'.format(self._type))
-
-                # Display this animation.
                 pyplot.show()
             # Else if saving animation frames, do so.
             elif self._p.saveAnimations is True:
-                loggers.log_info(
-                    'Saving animation "{}" frames...'.format(self._type))
-
                 #FIXME: Pass the "dpi" parameter as well.
                 self._anim.save(
                     filename=self._save_frame_template,

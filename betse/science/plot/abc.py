@@ -338,6 +338,7 @@ class PlotCells(object, metaclass=ABCMeta):
         x: np.ndarray,
         y: np.ndarray,
         magnitude: np.ndarray,
+        magnitude_max: float = None,
     ) -> 'matplotlib.streamplot.StreamplotSet':
         '''
         Plot all streamlines of the passed vector flow data onto the current
@@ -346,11 +347,18 @@ class PlotCells(object, metaclass=ABCMeta):
         Parameters
         ----------
         x : np.ndarray
-            Two-dimensional X components of the vector flow velocity.
+            Two-dimensional X unit components of the vector flow velocity. The
+            vectors given by these components should all be **unit vectors**
+            (i.e., have magnitude 1).
         y : np.ndarray
-            Two-dimensional Y components of the vector flow velocity.
+            Two-dimensional Y unit components of the vector flow velocity. The
+            vectors given by these components should all be **unit vectors**
+            (i.e., have magnitude 1).
         magnitude: np.ndarray
             One-dimensional vector flow magnitudes.
+        magnitude_max: float
+            Optional maximum magnitude in the passed `magnitude` array. Defaults
+            to `None`, in which case this array will be searched for this value.
 
         Returns
         ----------
@@ -369,14 +377,18 @@ class PlotCells(object, metaclass=ABCMeta):
         assert types.is_sequence_nonstr(magnitude), (
             types.assert_not_sequence_nonstr(magnitude))
 
-        # Maximum magnitude in the passed list of magnitudes.
-        magnitude_max = np.max(magnitude)
+        # Maximum magnitude in the passed array of magnitudes.
+        if magnitude_max is None:
+            magnitude_max = np.max(magnitude)
+        assert types.is_numeric(magnitude_max), (
+            types.assert_not_numeric(magnitude_max))
 
+        # Plot and return this streamplot.
         return self._axes.streamplot(
             # X and Y grid.
             self._cells.X * self._p.um,
             self._cells.Y * self._p.um,
-            # X and Y velocities.
+            # X and Y unit velocities.
             x, y,
             density=self._p.stream_density,
             linewidth=(3.0*magnitude/magnitude_max) + 0.5,

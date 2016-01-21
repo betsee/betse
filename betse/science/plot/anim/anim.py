@@ -945,12 +945,8 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
         # Velocity field and maximum velocity field value for the first frame.
         vfield, vnorm = self._get_velocity_field(frame_number=0)
 
-        #FIXME: Rename "self.msh" to "self._meshplot" both here and below.
-
         # Vector field meshplot for the first frame.
-        self.msh = self._plot_image(vfield)
-
-        #FIXME: How expensive would caching these calculations be?
+        self._mesh_plot = self._plot_image(vfield)
 
         # Display and/or save this animation. Since recalculating "vfield" for
         # each animation frame is non-trivial, this call avoids passing the
@@ -960,7 +956,7 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
         # alternative is currently worse.
         self._animate(
             frame_count=len(self._sim.time),
-            color_mapping=self.msh,
+            color_mapping=self._mesh_plot,
         )
 
 
@@ -969,21 +965,18 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
 
         # Erase the prior frame's streamplot before streamplotting this frame.
         self._axes.patches = []
-        self.streamV.lines.remove()
+        self._stream_plot.lines.remove()
 
         # Velocity field and maximum velocity field value for this frame.
         vfield, vnorm = self._get_velocity_field(frame_number)
 
         # Update the current velocity field mesh.
-        self.msh.set_data(vfield)
+        self._mesh_plot.set_data(vfield)
 
-        #FIXME: Make this go away. A coven of unicycles droven to the edge!
-
-        # Set the colorbar range.
-        self.msh.set_clim(self._color_min, self._color_max)
+        # Rescale the colorbar if required.
+        self._mesh_plot.set_clim(self._color_min, self._color_max)
 
 
-    #FIXME: Duplicate code as in the "AnimateCurrent" class abounds.
     def _get_velocity_field(self, frame_number: int) -> tuple:
         '''
         Get a 2-element tuple whose first element is the velocity field and
@@ -1018,21 +1011,15 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
             method=self._p.interp_type,
         )
 
-        # u_gj_x = u_gj_x*self.cells.maskM
-        # u_gj_y = u_gj_y*self.cells.maskM
-
         vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
         vnorm = np.max(vfield)
 
-        self.streamV = self._axes.streamplot(
-                self._cells.X * self._p.um,
-                self._cells.Y * self._p.um,
-                u_gj_x / vnorm,
-                u_gj_y / vnorm,
-            density=self._p.stream_density,
-            linewidth=(3.0*vfield/vnorm) + 0.5,
-            color='k',
-            arrowsize=1.5,
+        # Replot the streamplot.
+        self._stream_plot = self._plot_stream(
+            x=u_gj_x / vnorm,
+            y=u_gj_y / vnorm,
+            magnitude=vfield,
+            magnitude_max=vnorm,
         )
         # self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
 
@@ -1048,6 +1035,11 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
     '''
     Animation of fluid velocity over all extracellular spaces plotted on the
     current cell cluster.
+
+    Attributes
+    ----------
+    _velocity_magnitude_time_series : np.ndarray
+        Time series of all fluid velocity magnitudes.
     '''
 
     def __init__(self, *args, **kwargs) -> None:
@@ -1063,23 +1055,33 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
                 'current simulation configuration.'.format(
                 self._type))
 
-        # Velocity field and maximum velocity field value for the first frame.
-        vfield, vnorm = self._get_velocity_field(frame_number=0)
+        # Time series of all velocity magnitudes.
+        self._velocity_magnitude_time_series = np.sqrt(
+            np.array(self._sim.u_env_x_time) ** 2 +
+            np.array(self._sim.u_env_y_time) ** 2) * 1e9
 
-        # Vector field quiverplot for the first frame.
-        self.streamV = self._axes.quiver(
-                self._cells.xypts[:, 0] * self._p.um,
-                self._cells.xypts[:, 1] * self._p.um,
-                self._sim.u_env_x_time[-1].ravel() / vnorm,
-                self._sim.u_env_y_time[-1].ravel() / vnorm,
+        # Velocity field and maximum velocity field value for the first frame.
+        vfield = self._velocity_magnitude_time_series[0]
+        vnorm = np.max(vfield)
+
+        # Velocity field meshplot for the first frame.
+        self._mesh_plot = self._plot_image(vfield)
+
+        #FIXME: Doesn't this streamplot the last frame instead?
+
+        # Velocity field streamplot for the first frame.
+        self._stream_plot = self._axes.quiver(
+            self._cells.xypts[:,0] * self._p.um,
+            self._cells.xypts[:,1] * self._p.um,
+            self._sim.u_env_x_time[-1].ravel() / vnorm,
+            self._sim.u_env_y_time[-1].ravel() / vnorm,
         )
 
-        # Vector field meshplot for the first frame.
-        self.msh = self._plot_image(vfield)
-
+        # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
-            color_mapping=self.msh,
+            color_mapping=self._mesh_plot,
+            color_series=self._velocity_magnitude_time_series,
         )
 
 
@@ -1087,46 +1089,16 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         # Velocity field and maximum velocity field value for this frame.
-        vfield, vnorm = self._get_velocity_field(frame_number)
-
-        # Update the current velocity field mesh.
-        self.msh.set_data(vfield)
-
-        #FIXME: Make this go away. A coven of unicycles droven to the edge!
-
-        # Set the colorbar range.
-        self.msh.set_clim(self._color_min, self._color_max)
-
-        # Update the current velocity field streamplot.
-        self.streamV.set_UVC(
-                self._sim.u_env_x_time[frame_number] / vnorm,
-                self._sim.u_env_y_time[frame_number] / vnorm)
-
-
-    def _get_velocity_field(self, frame_number: int) -> tuple:
-        '''
-        Get a 2-element tuple whose first element is the velocity field and
-        second element is the maximum value of that field for the current
-        frame.
-
-        Returns
-        ----------
-        `(velocity_field, velocity_field_max_value)`
-            2-element tuple as described above.
-        '''
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
-
-        vfield = np.sqrt(
-                self._sim.u_env_x_time[frame_number] ** 2 +
-                self._sim.u_env_y_time[frame_number] ** 2) * 1e9
+        vfield = self._velocity_magnitude_time_series[frame_number]
         vnorm = np.max(vfield)
 
-        # Rescale the colorbar range if desired.
-        if self._is_color_autoscaled is True:
-            self._color_min = np.min(vfield)
-            self._color_max = vnorm
+        # Update the current velocity meshplot.
+        self._mesh_plot.set_data(vfield)
 
-        return (vfield, vnorm)
+        # Update the current velocity streamplot.
+        self._stream_plot.set_UVC(
+                self._sim.u_env_x_time[frame_number] / vnorm,
+                self._sim.u_env_y_time[frame_number] / vnorm)
 
 
 class AnimateEnv(object):
