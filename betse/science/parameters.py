@@ -20,6 +20,7 @@ from betse.util.path import paths
 from collections import OrderedDict
 
 
+#FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
 class Parameters(object):
     '''
     Storage for all user-defined parameters used in world-building,
@@ -29,7 +30,7 @@ class Parameters(object):
     the user-defined YAML configuration file passed to this object on
     initialization.
 
-    Attributes (General)
+    Attributes (General: Path)
     ----------------------------
     config_dirname : str
         Absolute path of the directory containing the source YAML configuration
@@ -39,6 +40,12 @@ class Parameters(object):
     config_filename : str
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
+
+    Attributes (General: Boolean)
+    ----------------------------
+    I_overlay : bool
+        `True` if overlaying either electric current or concentration flux
+        streamlines on appropriate plots and animations _or_ `False` otherwise.
 
     Attributes (Tissue)
     ----------------------------

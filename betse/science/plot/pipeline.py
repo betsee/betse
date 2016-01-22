@@ -1071,14 +1071,12 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         #FIXME: Out of curiosity, what's the scaling by 10**3 about? We only
         #appear to do this for animations. Is this similar to our use of "p.um"
         #to scale by 10**6, only for mm (millimeters) instead? Big smiley face!
-
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting, 1e3)
 
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             time_series=IP3plotting,
-            is_current_overlay=p.I_overlay,
             type='IP3',
             figure_title='IP3 concentration',
             colorbar_title='Concentration [umol/L]',
@@ -1089,7 +1087,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if (p.ani_dye2d is True and p.voltage_dye is True and
         p.createAnimations is True):
-
         Dyeplotting = np.asarray(sim.cDye_time)
         Dyeplotting = np.multiply(Dyeplotting, 1e3)
 
@@ -1183,7 +1180,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             sim=sim, cells=cells, p=p,
             time_series=vmplt,
             is_ecm_ignored=False,
-            is_current_overlay=p.I_overlay,
             type='Vmem',
             figure_title='Cell Vmem',
             colorbar_title='Voltage [mV]',
@@ -1218,8 +1214,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             #FIXME: This probably reduces to just:
             #cell_time_series=sim.vm_time * 1000,
             time_series=[1000*arr for arr in sim.vcell_time],
-
-            is_current_overlay=p.I_overlay,
             type='vcell',
             figure_title='V in cell',
             colorbar_title='Voltage [mV]',
@@ -1341,7 +1335,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             time_series=sim.P_cells_time,
-            is_current_overlay=p.I_overlay,
             type='Pcell',
             figure_title='Hydrostatic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
@@ -1355,7 +1348,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         AnimateCellData(
             sim=sim, cells=cells, p=p,
             time_series=sim.osmo_P_delta_time,
-            is_current_overlay=p.I_overlay,
             type='OsmoP',
             figure_title='Osmotic Pressure in Cells',
             colorbar_title='Pressure [Pa]',

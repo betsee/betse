@@ -14,8 +14,26 @@ Abstract base classes of all Matplotlib-based animation classes.
 #have to monkey-patch the appropriate Matplotlib event handlers on window close
 #to release these object references. To do so, grep the Matplotlib codebase for
 #"Gcf.destroy". Thunderous tales of woe!
+#
+#Actually, I believe that a simpler approach might be available. Rather
+#than implementing yet another "_pylab_helper.Gcf"-like construct, we leverage
+#the fact that animation objects should only live as long as their underlying
+#figure objects by explicitly adding circular references between the two: e.g.,
+#
+#    # This is already done by the "PlotCells" superclass.
+#    self._figure = pyplot.figure()
+#
+#    # Then just add this to the AnimCells.__init__() method *BEFORE* the
+#    # self._figure.show(block=False) method is called.
+#    self._figure.__BETSE_anim__ = self
+#
+#That said, we might not even need to do that much. Why? Because the
+#FuncAnimation() class is *ALWAYS* passed "self._plot_frame" -- which, being a
+#bound method of the current animation object, should ensure that that object
+#remains alive. Non-blocking animations may already work out of the box!
 
 # ....................{ IMPORTS                            }....................
+import numpy as np
 from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.mpl import mpl_config
@@ -26,6 +44,11 @@ from betse.util.path import dirs, paths
 from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import FancyArrowPatch
+
+from betse.science.plot.plot import (
+    env_mesh, env_quiver, env_stream,
+    cell_mosaic, cell_mesh, cell_quiver, cell_stream)
 
 # ....................{ BASE                               }....................
 class AnimCells(PlotCells):
@@ -40,6 +63,15 @@ class AnimCells(PlotCells):
     _anim : FuncAnimation
         Low-level Matplotlib animation object instantiated by this high-level
         BETSE wrapper object.
+    _current_overlay_stream_plot : matplotlib.streamplot.StreamplotSet
+        Streamplot of either electric current or concentration flux overlayed
+        over this subclass' animation if `_is_plotting_current_overlay` is
+        `True` _or_ `None` otherwise.
+    _is_plotting_current_overlay : bool
+        `True` if overlaying either electric current or concentration flux
+        streamlines on this animation when requested by the current simulation
+        configuration (as governed by the `p.I_overlay` parameter)_or_ `False`
+        otherwise.
     _is_saving_plotted_frames : bool
         `True` if both saving and displaying animation frames _or_ `False`
         otherwise.
@@ -56,46 +88,41 @@ class AnimCells(PlotCells):
     '''
 
     # ..................{ PRIVATE ~ init                     }..................
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        is_plotting_current_overlay: bool = False,
+        *args, **kwargs
+    ) -> None:
         '''
         Initialize this animation.
 
         Parameters
         ----------
-        sim : Simulator
-            Current simulation.
-        cells : Cells
-            Current cell cluster.
-        p : Parameters
-            Current simulation configuration.
-        type : str
-            Basename of the subdirectory in the phase-specific results directory
-            to which all animation files will be saved _and_ the basename prefix
-            of these files.
-        figure_title : str
-            Text displayed above the figure itself.
-        colorbar_title: str
-            Text displayed above the figure colorbar.
-        clrAutoscale : bool
-            `True` if dynamically resetting the minimum and maximum colorbar
-            values to be the corresponding minimum and maximum values for the
-            current frame _or_ `False` if statically setting the minimum and
-            maximum colorbar values to predetermined constants.
-        clrMin : float
-            Minimum colorbar value to be used if `clrAutoscale` is `False`.
-        clrMax : float
-            Maximum colorbar value to be used if `clrAutoscale` is `False`.
-        colormap : Colormap
-            Matplotlib colormap to be used in this animation's colorbar or
-            `None`, in which case the default colormap will be used.
+        _is_plotting_current_overlay : bool
+            `True` if overlaying either electric current or concentration flux
+            streamlines on this animation when requested by the current
+            simulation configuration (as governed by the `p.I_overlay`
+            parameter)_or_ `False` otherwise. All subclasses except those
+            already plotting streamlines (e.g., by calling the superclass
+            `_plot_stream()` method) should unconditionally enable this boolean.
+            Defaults to `False`, for safety.
         '''
+        assert types.is_bool(is_plotting_current_overlay), (
+            types.assert_not_bool(is_plotting_current_overlay))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
         # Classify attributes to be possibly redefined below.
+        self._current_overlay_stream_plot = None
+        self._writer_frames = None
         self._writer_frames = None
         self._writer_video = None
+
+        # If this subclass requests a current overlay, do so only if also
+        # requested by the current simulation configuration.
+        self._is_plotting_current_overlay = (
+            is_plotting_current_overlay and self._p.I_overlay)
 
         # True if both saving and displaying animation frames.
         self._is_saving_plotted_frames = (
@@ -119,8 +146,9 @@ class AnimCells(PlotCells):
         loggers.log_info(
             '{} animation "{}"...'.format(animation_verb, self._type))
 
-        # Initialize animation saving.
-        self._init_saving()
+        # If saving animations, prepare to do so.
+        if self._p.saveAnimations is True:
+            self._init_saving()
 
 
     def _init_saving(self) -> None:
@@ -128,10 +156,6 @@ class AnimCells(PlotCells):
         Initialize this animation for platform-compatible file saving if enabled
         by the current simulation configuration or noop otherwise.
         '''
-
-        # If animation saving is disabled, noop.
-        if self._p.saveAnimations is False:
-            return
 
         # Ensure that the passed directory and file basenames are actually
         # basenames and hence contain no directory separators.
@@ -217,6 +241,14 @@ class AnimCells(PlotCells):
         '''
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
 
+        # If plotting a current overlay, do so *AFTER* this subclass has already
+        # performed all initial plotting but *BEFORE* our superclass overlays
+        # its even more critical plotting data (e.g., cell labels).
+        if self._is_plotting_current_overlay:
+            self._init_current_overlay()
+
+        # Perform all superclass plotting preparation. This should typically be
+        # performed immediately *BEFORE* creating this animation.
         self._prep(*args, **kwargs)
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
@@ -319,6 +351,11 @@ class AnimCells(PlotCells):
         # Plot this frame onto this animation's figure.
         self._plot_frame_figure(frame_number)
 
+        # If plotting a current overlay, do so *AFTER* this subclass has already
+        # performed all plotting for this frame.
+        if self._is_plotting_current_overlay:
+            self._plot_current_overlay(frame_number)
+
         # Update this figure with the current time, rounded to three decimal
         # places for readability.
         self._axes.set_title('{} (time {:.3f}s)'.format(
@@ -348,7 +385,120 @@ class AnimCells(PlotCells):
         '''
         pass
 
-# ....................{ SUBCLASS                           }....................
+    # ..................{ PRIVATE ~ plot : overlay           }..................
+    def _init_current_overlay(self) -> None:
+        '''
+        Overlay the first frame of this subclass' animation with a streamplot of
+        either electric current or concentration flux.
+        '''
+
+        # If either extracellular spaces are disabled *OR* are enabled but only
+        # intracellular current is to be plotted, do so (i.e., only plot
+        # intracellular current).
+        if self._p.sim_ECM is False or self._p.IecmPlot is False:
+            self._axes_title = 'Gap Junction Current'
+            self._current_overlay_stream_plot, self._axes = cell_stream(
+                self._sim.I_gj_x_time[-1],
+                self._sim.I_gj_y_time[-1],
+                self._axes, self._cells, self._p)
+        # Else, extracellular spaces are enabled *AND* both intracellular and
+        # extracellular current is to be plotted. Do so.
+        else:
+            self._axes_title = 'Total Current Overlay'
+            self._current_overlay_stream_plot, self._axes = env_stream(
+                self._sim.I_tot_x_time[-1],
+                self._sim.I_tot_y_time[-1],
+                self._axes, self._cells, self._p)
+
+
+    #FIXME: Duplicate code here with our "AnimateCurrent" subclass. Candy canes!
+    def _plot_current_overlay(self, frame_number: int) -> None:
+        '''
+        Overlay the passed frame of this subclass' animation with a streamplot
+        of either electric current or concentration flux.
+
+        Parameters
+        -----------
+        frame_number : int
+            0-based index of the frame to be plotted.
+        '''
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        # Current density X and Y components for this frame.
+        #
+        # If either extracellular spaces are disabled *OR* are enabled but only
+        # intracellular current is to be plotted, do so (i.e., only plot
+        # intracellular current).
+        if self._p.sim_ECM is False or self._p.IecmPlot is False:
+            current_x = self._sim.I_gj_x_time
+            current_y = self._sim.I_gj_y_time
+        # Else, extracellular spaces are enabled *AND* both intracellular and
+        # extracellular current is to be plotted. Do so.
+        else:
+            current_x = self._sim.I_tot_x_time
+            current_y = self._sim.I_tot_y_time
+
+        # Current density magnitudes for this frame.
+        Jmag_M = np.sqrt(
+            current_x[frame_number]**2 + current_y[frame_number]**2) + 1e-30
+
+        #FIXME: We repeat this particular functionality fairly often. The fact
+        #that you have to erase *ALL* patches to update a streamplot suggests
+        #that, indeed, only one streamplot may be animated at a time. Which is
+        #probably reasonable. I can't imagine trying to visualize two or more on
+        #the same figure. Hmm; actually, let's try not to be too clever, here.
+        #Being explicit isn't necessarily a bad thing. Or... yeah. It kind of
+        #is. Consider:
+        #
+        #* Defining a new PlotCells._stream_plot attribute which the
+        #  PlotCells._replot_stream() method sets rather than returns. Hmm...
+        #  *NOPE.* I just can't tolerate it. We might conceivably want to
+        #  support multiple stream plots on the same figure, so I can't lock us
+        #  in. Do the right thing here, please.
+        #* Defining a new PlotCells._replot_stream() method passed a
+        #  stream plot object that:
+        #  1. Performs the erasure below on that object and the current axes.
+        #  1. Calls and returns the value of PlotCells._plot_stream().
+
+        # Erase the prior frame's streamlines before streamplotting this frame.
+        self._current_overlay_stream_plot.lines.remove()
+
+        #FIXME: We *REALLY* want to replicate this behavior everywhere that we
+        #update streamplots. See above!
+
+        # If this version of Matplotlib provides the set of patches
+        # corresponding to a streamplot's arrow heads, remove these as well.
+        try:
+            self._current_overlay_stream_plot.arrows.remove()
+        # Else, manually remove them by iterating over all patch objects and
+        # preserving all non-arrow head patches. This will also remove all arrow
+        # head patches of streamplots plotted by this subclass for this frame,
+        # which is non-ideal -- but Matplotlib leaves us little choice.
+        except NotImplementedError:
+            self._axes.patches = [
+                patch
+                for patch in self._axes.patches
+                if not isinstance(patch, FancyArrowPatch)
+            ]
+
+        # Streamplot this frame's overlay.
+        self._current_overlay_stream_plot = self._plot_stream(
+            x=current_x[frame_number] / Jmag_M,
+            y=current_y[frame_number] / Jmag_M,
+            magnitude=Jmag_M,
+
+            #FIXME: What's the difference between "cells.X" and "cells.Xgrid"?
+            #FIXME: This is how the original I_overlay_update() function was
+            #defined, but it causes Matplotlib to fail with debug assertions.
+            #Let's query Allium about this 'un. Handlebar mustaches are the way!
+
+            #The Cells.make_maskM() method suggests they might be identical,
+            #but I'm not entirely clear on that. (Undocumunted attributes!)
+            # grid_x=self._cells.Xgrid * self._p.um,
+            # grid_y=self._cells.Ygrid * self._p.um,
+        )
+
+# ....................{ SUBCLASSES                         }....................
 class AnimCellsField(AnimCells):
     '''
     Abstract base class of all animations of an electric field plotted on the

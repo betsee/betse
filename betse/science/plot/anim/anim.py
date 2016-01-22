@@ -6,6 +6,9 @@
 Matplotlib-based animation classes.
 '''
 
+#FIXME: Replace all instances of the "current_overlay" and "is_current_overlay"
+#booleans in this class with the corresponding superclass functionality.
+
 #FIXME: To avoid memory leaks, I'm fairly certain that everywhere we currently
 #call the ".lines.remove()" method of a Matplotlib streamplot object, that we
 #instead need to simply call remove(): e.g.,
@@ -52,10 +55,10 @@ from betse.science.plot.plot import (
 )
 
 # ....................{ CLASSES                            }....................
-#FIXME: Let's document a few of these initialization parameters. Hot dogs and
-#warm afternoons in the lazy summertime!
-#FIXME: Privatize all attributes, both here and in our base class, *AFTER*
-#generalizing this refactoring to every class below.
+#FIXME: The "is_current_overlay" boolean is handled identically here as it is
+#in the "AnimateMem" class. This suggests that the existing
+#plot.I_overlay_setup() and plot.I_overlay_update() functions could be shifted
+#into a new superclass of this class handling optional current overlays.
 
 class AnimateCellData(AnimCells):
     '''
@@ -65,10 +68,7 @@ class AnimateCellData(AnimCells):
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
-    _is_current_overlay : bool
-        `True` if overlaying electric currents or concentration flux
-        streamlines on 2D plotted data _or_ `False` otherwise.
-    _zdata_time : list
+    _time_series : list
         List of all colour data to be plotted, indexed by simulation time.
     '''
 
@@ -76,7 +76,6 @@ class AnimateCellData(AnimCells):
         self,
         time_series: list,
         is_ecm_ignored: bool = True,
-        is_current_overlay: bool = False,
         *args, **kwargs
     ) -> None:
         '''
@@ -89,10 +88,6 @@ class AnimateCellData(AnimCells):
         is_ecm_ignored : bool
             `True` if ignoring extracellular spaces _or_ `False` otherwise.
             Defaults to `True`.
-        is_current_overlay : bool
-            `True` if overlaying electric currents or concentration flux
-            streamlines on 2D plotted data _or_ `False` otherwise. Defaults to
-            `False`.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
@@ -100,19 +95,21 @@ class AnimateCellData(AnimCells):
             types.assert_not_sequence_nonstr(time_series))
         assert types.is_bool(is_ecm_ignored), (
             types.assert_not_bool(is_ecm_ignored))
-        assert types.is_bool(is_current_overlay), (
-            types.assert_not_bool(is_current_overlay))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
-            *args, **kwargs)
+
+            # Since this class does *NOT* plot a streamplot, request that the
+            # superclass do so for electric current or concentration flux.
+            is_plotting_current_overlay=True,
+            *args, **kwargs
+        )
 
         # Classify parameters required by the _plot_next_frame() method.
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
-        self._is_current_overlay = is_current_overlay
 
         data_points = self._time_series[0]
 
@@ -126,20 +123,11 @@ class AnimateCellData(AnimCells):
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
 
-        #FIXME: We don't appear to use "self.streams" anywhere and hence can
-        #probably stop classifying that object. Jetties of the Eden overflow!
-        if self._is_current_overlay is True:
-            self.streams, self._axes, axes_title = I_overlay_setup(
-                self._sim, self._axes, self._cells, self._p)
-        else:
-            axes_title = None
-
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
             color_mapping=self.collection,
             color_series=self._time_series,
-            axes_title=axes_title,
         )
 
 
@@ -161,11 +149,6 @@ class AnimateCellData(AnimCells):
                 zz_grid = np.zeros(len(self._cells.voronoi_centres))
                 zz_grid[self._cells.cell_to_grid] = zz
                 self.collection.set_array(zz_grid)
-
-        if self._is_current_overlay is True:
-            self.streams, self._axes = I_overlay_update(
-                frame_number,
-                self._sim, self.streams, self._axes, self._cells, self._p)
 
 
 class AnimateCurrent(AnimCells):
@@ -1333,6 +1316,7 @@ class AnimateMem(object):
             plt.savefig(savename,format='png')
 
 
+#FIXME: Excise the unused "current_overlay" attribute and parameter. Mush-room!
 class AnimateDyeData(object):
 # class AnimateDyeData(Anim):
     '''
