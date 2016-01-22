@@ -613,18 +613,30 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #-------------------------------------------------------------------------------------------------------------------
 
     if p.plot_dye2d is True and p.voltage_dye == 1:
-        if p.sim_ECM is False:
-            figVdye, axVdye, cbVdye = viz.plotPolyData(
-                sim, cells, p,
-                zdata=sim.cDye_time[-1]*1e3,
-                number_cells=p.enumerate_cells,
-                clrAutoscale=p.autoscale_Dye,
-                clrMin=p.Dye_min_clr,
-                clrMax=p.Dye_max_clr,
-                clrmap=p.default_cm,
-            )
 
-        else:
+        figVdye, axVdye, cbVdye = viz.plotPolyData(
+            sim, cells, p,
+            zdata=sim.cDye_time[-1]*1e3,
+            number_cells=p.enumerate_cells,
+            clrAutoscale=p.autoscale_Dye,
+            clrMin=p.Dye_min_clr,
+            clrMax=p.Dye_max_clr,
+            clrmap=p.default_cm,
+        )
+
+        axVdye.set_title('Final Morphogen Concentration in Cells')
+        axVdye.set_xlabel('Spatial distance [um]')
+        axVdye.set_ylabel('Spatial distance [um]')
+        cbVdye.set_label('Concentration umol/L')
+
+        if p.autosave is True:
+            savename = savedImg + 'final_morphogenCells_2D' + '.png'
+            plt.savefig(savename,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        if p.sim_ECM is True:
             # crazy dye plot
             figVdye = plt.figure()
             axVdye = plt.subplot(111)
@@ -1078,22 +1090,21 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if (p.ani_dye2d is True and p.voltage_dye is True and
         p.createAnimations is True):
 
-        if p.sim_ECM is False:
-            Dyeplotting = np.asarray(sim.cDye_time)
-            Dyeplotting = np.multiply(Dyeplotting, 1e3)
+        Dyeplotting = np.asarray(sim.cDye_time)
+        Dyeplotting = np.multiply(Dyeplotting, 1e3)
 
-            AnimateCellData(
-                sim=sim, cells=cells, p=p,
-                time_series=Dyeplotting,
-                type='Morphogen',
-                figure_title='Morphogen Concentration',
-                colorbar_title='Concentration [umol/L]',
-                is_color_autoscaled=p.autoscale_Dye_ani,
-                color_min=p.Dye_ani_min_clr,
-                color_max=p.Dye_ani_max_clr,
-            )
+        AnimateCellData(
+            sim=sim, cells=cells, p=p,
+            time_series=Dyeplotting,
+            type='Morphogen Intracellular',
+            figure_title='Morphogen Concentration in Cells',
+            colorbar_title='Concentration [umol/L]',
+            is_color_autoscaled=p.autoscale_Dye_ani,
+            color_min=p.Dye_ani_min_clr,
+            color_max=p.Dye_ani_max_clr,
+        )
 
-        else:
+        if p.sim_ECM is True:
             AnimateDyeData(
                 sim,cells,p,
                 save=p.saveAnimations,
