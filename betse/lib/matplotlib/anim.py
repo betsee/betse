@@ -124,8 +124,10 @@ class FileFrameWriter(MovieWriter):
         Write the next frame for the current figure to the image file defined by
         the current filename template.
 
-        All passed arguments will passed to the `Figure.savefig()` method
-        internally called by this method as is.
+        The high-level `Animation.save()` method unpacks and passes all
+        key-value pairs of the optional `savefig_kwargs` dictionary argument to
+        this method as keyword arguments. This method then passes all passed
+        keyword arguments to the `Figure.savefig()` method.
         '''
 
         # Leverage similar code as our superclass with exception of:
@@ -154,8 +156,8 @@ class FileFrameWriter(MovieWriter):
             filename=frame_filename,
             format=self.frame_format,
             dpi=self.dpi,
-            transparent=True,
-            **kwargs)
+            **kwargs
+        )
 
     # ..................{ IGNORE                             }..................
     def cleanup(self):

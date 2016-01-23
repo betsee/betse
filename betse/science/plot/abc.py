@@ -15,6 +15,7 @@ import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.util.type import types
 from matplotlib import pyplot
+from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
 class PlotCells(object, metaclass=ABCMeta):
@@ -296,7 +297,7 @@ class PlotCells(object, metaclass=ABCMeta):
         colorbar = self._figure.colorbar(color_mapping)
         colorbar.set_label(self._colorbar_title)
 
-    # ..................{ PRIVATE ~ helper                   }..................
+    # ..................{ PRIVATE ~ plotter                  }..................
     def _plot_image(
         self, pixel_data: np.ndarray) -> 'matplotlib.image.AxesImage':
         '''
@@ -346,10 +347,11 @@ class PlotCells(object, metaclass=ABCMeta):
         grid_x: np.ndarray = None,
         grid_y: np.ndarray = None,
         magnitude_max: float = None,
+        old_stream_plot: 'matplotlib.streamplot.StreamplotSet' = None,
     ) -> 'matplotlib.streamplot.StreamplotSet':
         '''
         Plot all streamlines of the passed vector flow data onto the current
-        frame's figure axes and return the resulting streamplot.
+        frame's figure axes _and_ return the resulting streamplot.
 
         Parameters
         ----------
@@ -368,10 +370,15 @@ class PlotCells(object, metaclass=ABCMeta):
         magnitude_max: float
             Optional maximum magnitude in the passed `magnitude` array. Defaults
             to `None`, in which case this array is searched for this value.
+        old_stream_plot: StreamplotSet
+            Optional streamplot returned by a prior call to this method
+            (typically for a prior frame) _or_ `None` if this is the first call
+            to this method for this animation. If non-`None`, this streamplot
+            will be cleared in preparation for re-streamplotting by this call.
 
         Returns
         ----------
-        matplotlib.streamplot.StreamplotSet
+        StreamplotSet
             Streamplot produced by plotting the passed vector flow data.
 
         See Also
@@ -399,6 +406,29 @@ class PlotCells(object, metaclass=ABCMeta):
             types.assert_not_sequence_nonstr(grid_x))
         assert types.is_sequence_nonstr(grid_y), (
             types.assert_not_sequence_nonstr(grid_y))
+
+        # If a prior streamplot to be erased was passed, do so.
+        if old_stream_plot is not None:
+            assert types.is_matplotlib_streamplot(old_stream_plot), (
+                types.assert_not_matplotlib_streamplot(old_stream_plot))
+
+            # Erase this streamplot's streamlines before replotting.
+            old_stream_plot.lines.remove()
+
+            # If this version of Matplotlib supports erasing the set of patches
+            # corresponding to this streamplot's arrow heads, do so.
+            try:
+                old_stream_plot.arrows.remove()
+            # Else, manually erase them by iterating over all patch objects and
+            # preserving all non-arrow head patches. This will also remove all
+            # arrow head patches of streamplots plotted by this subclass for
+            # this frame, which is non-ideal. Matplotlib leaves us no choice.
+            except NotImplementedError:
+                self._axes.patches = [
+                    patch
+                    for patch in self._axes.patches
+                    if not isinstance(patch, FancyArrowPatch)
+                ]
 
         # Plot and return this streamplot.
         return self._axes.streamplot(

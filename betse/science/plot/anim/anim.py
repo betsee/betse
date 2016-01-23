@@ -103,7 +103,7 @@ class AnimateCellData(AnimCells):
 
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
-            is_plotting_current_overlay=True,
+            is_current_overlayable=True,
             *args, **kwargs
         )
 
@@ -111,14 +111,18 @@ class AnimateCellData(AnimCells):
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
 
+        # Cell data for the first frame.
         data_points = self._time_series[0]
 
-        if self._p.sim_ECM is True and is_ecm_ignored is False:
+        # If extracellular spaces are both simulated and requested, plot them.
+        if self._p.sim_ECM is True and self._is_ecm_ignored is False:
             self.collection, self._axes = env_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
+        # Else if a cell mosaic is requested, plot that.
         elif self._p.showCells is True:
             self.collection, self._axes = cell_mosaic(
                 data_points, self._axes, self._cells, self._p, self._colormap)
+        # Else, plot a smooth continuum approximating the cell cluster.
         else:
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
@@ -136,33 +140,24 @@ class AnimateCellData(AnimCells):
 
         zz = self._time_series[frame_number]
 
-        if self._p.sim_ECM is True and self._is_ecm_ignored is False:
-            if self._p.plotMask is True:
-                dat_grid = ma.masked_array(
-                    zz, np.logical_not(self._cells.maskM))
-
+        #FIXME: This doesn't quite seem right. We don't test for
+        #"self._p.plotMask is True" above, for example.
+        if (self._p.sim_ECM is True and self._is_ecm_ignored is False and
+            self._p.plotMask is True):
+            dat_grid = ma.masked_array(
+                zz, np.logical_not(self._cells.maskM))
             self.collection.set_data(dat_grid)
+        elif self._p.showCells is True:
+            self.collection.set_array(zz)
         else:
-            if self._p.showCells is True:
-                self.collection.set_array(zz)
-            else:
-                zz_grid = np.zeros(len(self._cells.voronoi_centres))
-                zz_grid[self._cells.cell_to_grid] = zz
-                self.collection.set_array(zz_grid)
+            zz_grid = np.zeros(len(self._cells.voronoi_centres))
+            zz_grid[self._cells.cell_to_grid] = zz
+            self.collection.set_array(zz_grid)
 
 
 class AnimateCurrent(AnimCells):
     '''
-    Animation of current plotted on the current cell cluster.
-
-    Attributes
-    ----------
-    _current_density_magnitude_time_series : ndarray
-        Time series of all current density magnitudes (i.e., `Jmag_M`).
-    _current_density_x_time_series : list
-        Time series of all current density X components.
-    _current_density_y_time_series : list
-        Time series of all current density Y components.
+    Animation of current density plotted on the current cell cluster.
     '''
 
     def __init__(
@@ -176,8 +171,9 @@ class AnimateCurrent(AnimCells):
         Parameters
         ----------
         is_gj_current_only : bool
-            `True` if animating only the gap junction current _or_ `False` if
-            animating all current.
+            `True` if animating only the intracellular gap junction current
+            _or_ `False` if animating all current (i.e., of both
+            extracellular spaces _and_ intracellular gap junctions).
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
@@ -190,23 +186,24 @@ class AnimateCurrent(AnimCells):
             axes_y_label='Spatial y [um]',
             *args, **kwargs)
 
+        # Prefer an alternative colormap *BEFORE* plotting below.
         self._colormap = self._p.background_cm
 
-        # Time series of all current density X and Y components.
-        if is_gj_current_only is True:
-            self._current_density_x_time_series = self._sim.I_gj_x_time
-            self._current_density_y_time_series = self._sim.I_gj_y_time
-        else:
-            self._current_density_x_time_series = self._sim.I_tot_x_time
-            self._current_density_y_time_series = self._sim.I_tot_y_time
+        # Initialize all attributes pertaining to current density.
+        self._init_current_density(is_gj_current_only)
 
-        # Time series of all current density magnitudes (i.e., `Jmag_M`).
-        self._current_density_magnitude_time_series = np.sqrt(
-            np.array(self._current_density_x_time_series) ** 2 +
-            np.array(self._current_density_y_time_series) ** 2) + 1e-30
+        # Current density magnitudes for the first frame.
+        Jmag_M = self._current_density_magnitude_time_series[0]
 
-        # Stream- and meshplot the first frame's current density magnitude.
-        Jmag_M = self._plot_stream_current_density_magnitude(frame_number=0)
+        # Streamplot the first frame's current density, classified to permit
+        # erasure of this streamplot by the _replot_current_density() method.
+        self._current_overlay_stream_plot = self._plot_stream(
+            x=self._current_density_x_time_series[0] / Jmag_M,
+            y=self._current_density_y_time_series[0] / Jmag_M,
+            magnitude=Jmag_M,
+        )
+
+        # Meshplot the first frame's current density magnitude.
         self._mesh_plot = self._plot_image(Jmag_M)
 
         # Display and/or save this animation.
@@ -220,37 +217,14 @@ class AnimateCurrent(AnimCells):
     def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        # Erase the prior frame's streamplot before streamplotting this frame.
-        self._axes.patches = []
-        self._stream_plot.lines.remove()
-
-        # Stream- and meshplot the current density magnitude for this frame.
-        Jmag_M = self._plot_stream_current_density_magnitude(frame_number)
-        self._mesh_plot.set_data(Jmag_M)
-
-
-    def _plot_stream_current_density_magnitude(
-        self, frame_number: int) -> np.ndarray:
-        '''
-        Streamplot and return all current density magnitudes (i.e., `Jmag_M`)
-        for the passed frame.
-        '''
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
-
-        # All current density magnitudes for the current frame.
+        # Current density magnitudes for this frame.
         Jmag_M = self._current_density_magnitude_time_series[frame_number]
 
-        #FIXME: Are streamplots always passed unit vectors? Sparkling cider!
+        # Streamplot this frame's current density.
+        self._replot_current_density(frame_number)
 
-        # Classify this streamplot, thus permitting the _plot_frame_figure()
-        # method to subsequently erase this streamplot's lines.
-        self._stream_plot = self._plot_stream(
-            x=self._current_density_x_time_series[frame_number] / Jmag_M,
-            y=self._current_density_y_time_series[frame_number] / Jmag_M,
-            magnitude=Jmag_M,
-        )
-
-        return Jmag_M
+        # Meshplot this frame's current density magnitude.
+        self._mesh_plot.set_data(Jmag_M)
 
 
 #FIXME: Use below in lieu of string constants.
@@ -918,6 +892,14 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
     '''
     Animation of fluid velocity over all intracellular gap junctions plotted on
     the current cell cluster.
+
+    Attributes
+    -----------
+    _mesh_plot : matplotlib.image.AxesImage
+        Meshplot of the current or prior frame's velocity field.
+    _stream_plot : matplotlib.streamplot.StreamplotSet
+        Streamplot of the current or prior frame's velocity field _or_ `None`
+        if such field has yet to be streamplotted.
     '''
 
     def __init__(self, *args, **kwargs) -> None:
@@ -925,10 +907,14 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
-        # Velocity field and maximum velocity field value for the first frame.
-        vfield, vnorm = self._get_velocity_field(frame_number=0)
+        # Define this attribute *BEFORE* streamplotting, which assumes this
+        # attribute to exist.
+        self._stream_plot = None
 
-        # Vector field meshplot for the first frame.
+        # Streamplot the first frame's velocity field.
+        vfield, vnorm = self._plot_stream_velocity_field(frame_number=0)
+
+        # Meshplot the first frame's velocity field magnitude.
         self._mesh_plot = self._plot_image(vfield)
 
         # Display and/or save this animation. Since recalculating "vfield" for
@@ -946,32 +932,28 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
     def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        # Erase the prior frame's streamplot before streamplotting this frame.
-        self._axes.patches = []
-        self._stream_plot.lines.remove()
+        # Streamplot this frame's velocity field.
+        vfield, vnorm = self._plot_stream_velocity_field(frame_number)
 
-        # Velocity field and maximum velocity field value for this frame.
-        vfield, vnorm = self._get_velocity_field(frame_number)
-
-        # Update the current velocity field mesh.
+        # Meshplot this frame's velocity field.
         self._mesh_plot.set_data(vfield)
 
-        # Rescale the colorbar if required.
+        # Rescale the colorbar if needed.
         self._mesh_plot.set_clim(self._color_min, self._color_max)
 
 
-    def _get_velocity_field(self, frame_number: int) -> tuple:
+    def _plot_stream_velocity_field(self, frame_number: int) -> (
+        np.ndarray, float):
         '''
-        Get a 2-element tuple whose first element is the velocity field and
-        second element is the maximum value of this field for the current
-        frame.
-
-        For convenience, the streamplot of this field will also be redefined.
+        Streamplot the current velocity field for the passed frame and return a
+        2-tuple describing this field.
 
         Returns
         ----------
-        `(velocity_field, velocity_field_max_value)`
-            2-element tuple as described above.
+        `(velocity_field, velocity_field_magnitude_max)`
+            2-element tuple whose:
+            * First element is all velocity field magnitudes for this frame.
+            * Second element is the maximum such magnitude.
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
@@ -994,11 +976,13 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
             method=self._p.interp_type,
         )
 
-        vfield = np.sqrt(u_gj_x**2 + u_gj_y**2)*1e9
+        # Current velocity field magnitudes and the maximum such magnitude.
+        vfield = np.sqrt(u_gj_x**2 + u_gj_y**2) * 1e9
         vnorm = np.max(vfield)
 
-        # Replot the streamplot.
+        # Streamplot the current velocity field for this frame.
         self._stream_plot = self._plot_stream(
+            old_stream_plot=self._stream_plot,
             x=u_gj_x / vnorm,
             y=u_gj_y / vnorm,
             magnitude=vfield,

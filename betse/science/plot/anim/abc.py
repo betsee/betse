@@ -44,7 +44,6 @@ from betse.util.path import dirs, paths
 from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
-from matplotlib.patches import FancyArrowPatch
 
 from betse.science.plot.plot import (
     env_mesh, env_quiver, env_stream,
@@ -63,6 +62,18 @@ class AnimCells(PlotCells):
     _anim : FuncAnimation
         Low-level Matplotlib animation object instantiated by this high-level
         BETSE wrapper object.
+    _current_density_magnitude_time_series : ndarray
+        Time series of all current density magnitudes (i.e., `Jmag_M`) if the
+        optional `_init_current_density()` method has been called for
+        this animation _or_ `None` otherwise.
+    _current_density_x_time_series : list
+        Time series of all current density X components if the optional
+        `_init_current_density()` method has been called for this
+        animation _or_ `None` otherwise.
+    _current_density_y_time_series : list
+        Time series of all current density Y components if the optional
+        `_init_current_density()` method has been called for this
+        animation _or_ `None` otherwise.
     _current_overlay_stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of either electric current or concentration flux overlayed
         over this subclass' animation if `_is_plotting_current_overlay` is
@@ -82,6 +93,9 @@ class AnimCells(PlotCells):
     _writer_frames : MovieWriter
         Object writing frames from this animation to image files if enabled _or_
         `None` otherwise.
+    _writer_savefig_kwargs : dict
+        Dictionary of all keyword arguments to be passed to the
+        `Figure.savefig()` method called to write each animation frame.
     _writer_video : MovieWriter
         Object encoding this animation to a video file if enabled _or_ `None`
         otherwise.
@@ -90,7 +104,7 @@ class AnimCells(PlotCells):
     # ..................{ PRIVATE ~ init                     }..................
     def __init__(
         self,
-        is_plotting_current_overlay: bool = False,
+        is_current_overlayable: bool = False,
         *args, **kwargs
     ) -> None:
         '''
@@ -98,7 +112,7 @@ class AnimCells(PlotCells):
 
         Parameters
         ----------
-        _is_plotting_current_overlay : bool
+        is_current_overlayable : bool
             `True` if overlaying either electric current or concentration flux
             streamlines on this animation when requested by the current
             simulation configuration (as governed by the `p.I_overlay`
@@ -107,13 +121,16 @@ class AnimCells(PlotCells):
             `_plot_stream()` method) should unconditionally enable this boolean.
             Defaults to `False`, for safety.
         '''
-        assert types.is_bool(is_plotting_current_overlay), (
-            types.assert_not_bool(is_plotting_current_overlay))
+        assert types.is_bool(is_current_overlayable), (
+            types.assert_not_bool(is_current_overlayable))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
 
         # Classify attributes to be possibly redefined below.
+        self._current_density_magnitude_time_series = None
+        self._current_density_x_time_series = None
+        self._current_density_y_time_series = None
         self._current_overlay_stream_plot = None
         self._writer_frames = None
         self._writer_frames = None
@@ -122,7 +139,7 @@ class AnimCells(PlotCells):
         # If this subclass requests a current overlay, do so only if also
         # requested by the current simulation configuration.
         self._is_plotting_current_overlay = (
-            is_plotting_current_overlay and self._p.I_overlay)
+            is_current_overlayable and self._p.I_overlay)
 
         # True if both saving and displaying animation frames.
         self._is_saving_plotted_frames = (
@@ -207,6 +224,13 @@ class AnimCells(PlotCells):
         # Object writing frames from this animation to image files.
         self._writer_frames = FileFrameWriter()
 
+        # Dictionary of keyword arguments to be passed to Figure.savefig().
+        self._writer_savefig_kwargs = {
+            # Plot the background of each animation frame as transparent rather
+            # than pure-white.
+            'transparent': True,
+        }
+
         # If both saving and displaying animation frames, prepare for doing so.
         # See the _save_frame() method for horrid discussion.
         if self._is_saving_plotted_frames:
@@ -245,7 +269,7 @@ class AnimCells(PlotCells):
         # performed all initial plotting but *BEFORE* our superclass overlays
         # its even more critical plotting data (e.g., cell labels).
         if self._is_plotting_current_overlay:
-            self._init_current_overlay()
+            self._plot_current_density()
 
         # Perform all superclass plotting preparation. This should typically be
         # performed immediately *BEFORE* creating this animation.
@@ -310,7 +334,9 @@ class AnimCells(PlotCells):
                 #FIXME: Pass the "dpi" parameter as well.
                 self._anim.save(
                     filename=self._save_frame_template,
-                    writer=self._writer_frames)
+                    writer=self._writer_frames,
+                    savefig_kwargs=self._writer_savefig_kwargs,
+                )
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -354,7 +380,7 @@ class AnimCells(PlotCells):
         # If plotting a current overlay, do so *AFTER* this subclass has already
         # performed all plotting for this frame.
         if self._is_plotting_current_overlay:
-            self._plot_current_overlay(frame_number)
+            self._replot_current_density(frame_number)
 
         # Update this figure with the current time, rounded to three decimal
         # places for readability.
@@ -370,7 +396,7 @@ class AnimCells(PlotCells):
         # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
         # if self.p.saveAnimations is False:
         if self._is_saving_plotted_frames:
-            self._writer_frames.grab_frame()
+            self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
 
 
     @abstractmethod
@@ -385,34 +411,77 @@ class AnimCells(PlotCells):
         '''
         pass
 
-    # ..................{ PRIVATE ~ plot : overlay           }..................
-    def _init_current_overlay(self) -> None:
+    # ..................{ PRIVATE ~ plot : current           }..................
+    def _init_current_density(self, is_gj_only: bool) -> None:
+        '''
+        Initialize all attributes pertaining to current density.
+
+        Specifically, this method defines the `_current_density_x_time_series`,
+        `_current_density_y_time_series`, and
+        `_current_density_magnitude_time_series` attributes. These attributes
+        are required both by this superclass for animating current overlays
+        _and_ by current-specific subclasses.
+
+        Parameters
+        ----------
+        is_gj_only : bool
+            Either:
+            * `True` if initializing these attributes to only the intracellular
+              gap junction current density.
+            * `False` if initializing these attributes to all current density
+              (i.e., of both extracellular spaces _and_ intracellular gap
+              junctions).
+        '''
+        assert types.is_bool(is_gj_only), types.assert_not_bool(is_gj_only)
+
+        # Time series of all current density X and Y components.
+        if is_gj_only is True:
+            self._current_density_x_time_series = self._sim.I_gj_x_time
+            self._current_density_y_time_series = self._sim.I_gj_y_time
+        else:
+            self._current_density_x_time_series = self._sim.I_tot_x_time
+            self._current_density_y_time_series = self._sim.I_tot_y_time
+
+        # Time series of all current density magnitudes (i.e., `Jmag_M`).
+        self._current_density_magnitude_time_series = np.sqrt(
+            np.array(self._current_density_x_time_series) ** 2 +
+            np.array(self._current_density_y_time_series) ** 2) + 1e-30
+
+
+    def _plot_current_density(self) -> None:
         '''
         Overlay the first frame of this subclass' animation with a streamplot of
         either electric current or concentration flux.
         '''
 
-        # If either extracellular spaces are disabled *OR* are enabled but only
-        # intracellular current is to be plotted, do so (i.e., only plot
-        # intracellular current).
-        if self._p.sim_ECM is False or self._p.IecmPlot is False:
+        # Boolean:
+        #
+        # * "True" if either extracellular spaces are disabled *OR* are enabled
+        #   but only intracellular current is to be animated.
+        # * "False" if extracellular spaces are enabled *AND* both intracellular
+        #   and extracellular current is to be animated.
+        is_gj_only = self._p.sim_ECM is False or self._p.IecmPlot is False
+
+        # Initialize all attributes pertaining to current density.
+        self._init_current_density(is_gj_only)
+
+        # If animating only intracellular current, do so.
+        if is_gj_only:
             self._axes_title = 'Gap Junction Current'
             self._current_overlay_stream_plot, self._axes = cell_stream(
-                self._sim.I_gj_x_time[-1],
-                self._sim.I_gj_y_time[-1],
+                self._current_density_x_time_series[-1],
+                self._current_density_y_time_series[-1],
                 self._axes, self._cells, self._p)
-        # Else, extracellular spaces are enabled *AND* both intracellular and
-        # extracellular current is to be plotted. Do so.
+        # If animating both extracellular and intracellular current, do so.
         else:
             self._axes_title = 'Total Current Overlay'
             self._current_overlay_stream_plot, self._axes = env_stream(
-                self._sim.I_tot_x_time[-1],
-                self._sim.I_tot_y_time[-1],
+                self._current_density_x_time_series[-1],
+                self._current_density_y_time_series[-1],
                 self._axes, self._cells, self._p)
 
 
-    #FIXME: Duplicate code here with our "AnimateCurrent" subclass. Candy canes!
-    def _plot_current_overlay(self, frame_number: int) -> None:
+    def _replot_current_density(self, frame_number: int) -> None:
         '''
         Overlay the passed frame of this subclass' animation with a streamplot
         of either electric current or concentration flux.
@@ -424,78 +493,15 @@ class AnimCells(PlotCells):
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        # Current density X and Y components for this frame.
-        #
-        # If either extracellular spaces are disabled *OR* are enabled but only
-        # intracellular current is to be plotted, do so (i.e., only plot
-        # intracellular current).
-        if self._p.sim_ECM is False or self._p.IecmPlot is False:
-            current_x = self._sim.I_gj_x_time
-            current_y = self._sim.I_gj_y_time
-        # Else, extracellular spaces are enabled *AND* both intracellular and
-        # extracellular current is to be plotted. Do so.
-        else:
-            current_x = self._sim.I_tot_x_time
-            current_y = self._sim.I_tot_y_time
-
         # Current density magnitudes for this frame.
-        Jmag_M = np.sqrt(
-            current_x[frame_number]**2 + current_y[frame_number]**2) + 1e-30
+        Jmag_M = self._current_density_magnitude_time_series[frame_number]
 
-        #FIXME: We repeat this particular functionality fairly often. The fact
-        #that you have to erase *ALL* patches to update a streamplot suggests
-        #that, indeed, only one streamplot may be animated at a time. Which is
-        #probably reasonable. I can't imagine trying to visualize two or more on
-        #the same figure. Hmm; actually, let's try not to be too clever, here.
-        #Being explicit isn't necessarily a bad thing. Or... yeah. It kind of
-        #is. Consider:
-        #
-        #* Defining a new PlotCells._stream_plot attribute which the
-        #  PlotCells._replot_stream() method sets rather than returns. Hmm...
-        #  *NOPE.* I just can't tolerate it. We might conceivably want to
-        #  support multiple stream plots on the same figure, so I can't lock us
-        #  in. Do the right thing here, please.
-        #* Defining a new PlotCells._replot_stream() method passed a
-        #  stream plot object that:
-        #  1. Performs the erasure below on that object and the current axes.
-        #  1. Calls and returns the value of PlotCells._plot_stream().
-
-        # Erase the prior frame's streamlines before streamplotting this frame.
-        self._current_overlay_stream_plot.lines.remove()
-
-        #FIXME: We *REALLY* want to replicate this behavior everywhere that we
-        #update streamplots. See above!
-
-        # If this version of Matplotlib provides the set of patches
-        # corresponding to a streamplot's arrow heads, remove these as well.
-        try:
-            self._current_overlay_stream_plot.arrows.remove()
-        # Else, manually remove them by iterating over all patch objects and
-        # preserving all non-arrow head patches. This will also remove all arrow
-        # head patches of streamplots plotted by this subclass for this frame,
-        # which is non-ideal -- but Matplotlib leaves us little choice.
-        except NotImplementedError:
-            self._axes.patches = [
-                patch
-                for patch in self._axes.patches
-                if not isinstance(patch, FancyArrowPatch)
-            ]
-
-        # Streamplot this frame's overlay.
+        # Erase the prior frame's overlay and streamplot this frame's overlay.
         self._current_overlay_stream_plot = self._plot_stream(
-            x=current_x[frame_number] / Jmag_M,
-            y=current_y[frame_number] / Jmag_M,
+            old_stream_plot=self._current_overlay_stream_plot,
+            x=self._current_density_x_time_series[frame_number] / Jmag_M,
+            y=self._current_density_y_time_series[frame_number] / Jmag_M,
             magnitude=Jmag_M,
-
-            #FIXME: What's the difference between "cells.X" and "cells.Xgrid"?
-            #FIXME: This is how the original I_overlay_update() function was
-            #defined, but it causes Matplotlib to fail with debug assertions.
-            #Let's query Allium about this 'un. Handlebar mustaches are the way!
-
-            #The Cells.make_maskM() method suggests they might be identical,
-            #but I'm not entirely clear on that. (Undocumunted attributes!)
-            # grid_x=self._cells.Xgrid * self._p.um,
-            # grid_y=self._cells.Ygrid * self._p.um,
         )
 
 # ....................{ SUBCLASSES                         }....................

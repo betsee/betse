@@ -143,6 +143,16 @@ def is_matplotlib_colormap(obj: object) -> bool:
     from matplotlib.colors import Colormap
     return isinstance(obj, Colormap)
 
+
+def is_matplotlib_streamplot(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Matplotlib **streamplot** (i.e., an object
+    returned by the `matplotlib.plt.streamplot()` function).
+    '''
+    # Avoid importing third-party packages at the top level.
+    from matplotlib.streamplot import StreamplotSet
+    return isinstance(obj, StreamplotSet)
+
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
     '''
@@ -330,6 +340,13 @@ def assert_not_matplotlib_colormap(obj: object) -> bool:
     String asserting the passed object to _not_ be a Matplotlib colormap.
     '''
     return '"{}" not a Matplotlib colormap.'.format(trim(obj))
+
+
+def assert_not_matplotlib_streamplot(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Matplotlib streamplot.
+    '''
+    return '"{}" not a Matplotlib streamplot.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ numeric                }....................
 def assert_not_int(obj: object) -> str:
