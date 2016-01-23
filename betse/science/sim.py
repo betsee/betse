@@ -869,7 +869,7 @@ class Simulator(object):
         self.dd_time = []  # data array holding membrane permeabilites at time points
         self.vm_time = []  # data array holding voltage at time points
         self.vm_GHK_time = [] # data array holding GHK vm estimates
-        # self.dvm_time = []  # data array holding derivative of voltage at time points
+        self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
         self.cc_er_time = []   # retains er concentrations as a function of time
@@ -1263,6 +1263,8 @@ class Simulator(object):
 
                 self.vm_time.append(self.vm[:])
 
+                self.dvm_time.append(self.dvm[:])
+
                 self.rho_cells_time.append(self.rho_cells[:])
 
                 self.rate_NaKATP_time.append(self.rate_NaKATP[:])
@@ -1431,7 +1433,7 @@ class Simulator(object):
 
         self.vm_GHK_time = [] # data array holding GHK vm estimate
 
-        # self.dvm_time = []  # data array holding derivative of voltage at time points
+        self.dvm_time = []  # data array holding derivative of voltage at time points
         self.time = []     # time values of the simulation
 
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
@@ -1771,7 +1773,7 @@ class Simulator(object):
 
                 self.vm_time.append(self.vm[:])
 
-                # self.dvm_time.append(self.dvm[:])
+                self.dvm_time.append(self.dvm[:])
 
                 self.gjopen_time.append(self.gjopen[:])
 

@@ -154,6 +154,7 @@ class FileFrameWriter(MovieWriter):
             filename=frame_filename,
             format=self.frame_format,
             dpi=self.dpi,
+            transparent=True,
             **kwargs)
 
     # ..................{ IGNORE                             }..................
