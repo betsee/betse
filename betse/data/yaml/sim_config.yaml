@@ -892,25 +892,31 @@ results options:
         min val: -70.0               # minimum colorbar value in mV
   
     Vcell Ani:
-        animate Vcell: True           # 2d animation of voltage in individual cells of the collective?
+        animate Vcell: True          # Plot a 2D animation of voltage in
+                                     # individual cells of the collective?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-  
+
+    #FIXME: How does this differ from the "Vcell Ani" animation above? They
+    #have identical descriptions, but that can't be right. Monkeys in a sauna!
     Venv Ani:
-        animate Venv: True           # 2d animation of voltage in individual cells of the collective?
+        animate Venv: True           # Plot a 2D animation of voltage in
+                                     # individual cells of the collective?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
   
     P cell Ani:
-        animate P cell: True         # 2d animation of electroosmotic pressure in individual cells of the collective?
+        animate P cell: True         # Plot a 2D animation of electroosmotic
+                                     # pressure in individual cells?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
   
     Osmotic P Ani:
-        animate Osmotic P: True         # 2d animation of osmotic pressure difference in individual cells of the collective?
+        animate Osmotic P: True      # Plot a 2D animation of osmotic pressure
+                                     # difference in individual cells?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV

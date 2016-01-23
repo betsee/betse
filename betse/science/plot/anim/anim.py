@@ -127,6 +127,10 @@ class AnimateCellData(AnimCells):
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
 
+        #FIXME: Is "frame_count=len(self._sim.time)," effectively *ALWAYS* the
+        #case, even for animations currently setting the frame count otherwise?
+        #We suspect this might be the case, but let's test this up. Winged sun!
+
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
@@ -204,7 +208,10 @@ class AnimateCurrent(AnimCells):
         )
 
         # Meshplot the first frame's current density magnitude.
-        self._mesh_plot = self._plot_image(Jmag_M)
+        self._mesh_plot = self._plot_image(
+            pixel_data=Jmag_M,
+            colormap=self._p.background_cm,
+        )
 
         # Display and/or save this animation.
         self._animate(
@@ -896,7 +903,7 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
     Attributes
     -----------
     _mesh_plot : matplotlib.image.AxesImage
-        Meshplot of the current or prior frame's velocity field.
+        Meshplot of the current or prior frame's velocity field magnitude.
     _stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of the current or prior frame's velocity field _or_ `None`
         if such field has yet to be streamplotted.
@@ -915,7 +922,10 @@ class AnimateVelocityIntracellular(AnimCellsVelocity):
         vfield, vnorm = self._plot_stream_velocity_field(frame_number=0)
 
         # Meshplot the first frame's velocity field magnitude.
-        self._mesh_plot = self._plot_image(vfield)
+        self._mesh_plot = self._plot_image(
+            pixel_data=vfield,
+            colormap=self._p.background_cm,
+        )
 
         # Display and/or save this animation. Since recalculating "vfield" for
         # each animation frame is non-trivial, this call avoids passing the
@@ -1005,6 +1015,10 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
 
     Attributes
     ----------
+    _mesh_plot : matplotlib.image.AxesImage
+        Meshplot of the current or prior frame's velocity field magnitude.
+    _stream_plot : matplotlib.streamplot.StreamplotSet
+        Streamplot of the current or prior frame's velocity field.
     _velocity_magnitude_time_series : np.ndarray
         Time series of all fluid velocity magnitudes.
     '''
@@ -1032,7 +1046,10 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
         vnorm = np.max(vfield)
 
         # Velocity field meshplot for the first frame.
-        self._mesh_plot = self._plot_image(vfield)
+        self._mesh_plot = self._plot_image(
+            pixel_data=vfield,
+            colormap=self._p.background_cm,
+        )
 
         #FIXME: Doesn't this streamplot the last frame instead?
 
@@ -1068,96 +1085,53 @@ class AnimateVelocityExtracellular(AnimCellsVelocity):
                 self._sim.u_env_y_time[frame_number] / vnorm)
 
 
-class AnimateEnv(object):
-# class AnimateEnv(Anim):
+class AnimateEnv(AnimCells):
+    '''
+    Animation of voltage in individual cells plotted on the current cluster.
 
-    def __init__(
-        self,
-        sim,
-        cells,
-        time,
-        p,
-        save=True,
-        ani_repeat=False,
-        clrAutoscale=True,
-        clrMin=None,
-        clrMax=None,
-        clrmap=mpl.get_colormap('rainbow'),
-        number_cells=False,
-        saveFolder='animation/Venv',
-        saveFile='venv_',
-    ):
+    Attributes
+    ----------
+    _time_series : list
+        Cell voltages calculated for all frames.
+    _mesh_plot : matplotlib.image.AxesImage
+        Meshplot of the current or prior frame's cell voltage magnitude.
+    '''
 
-        self.clrmap = clrmap
-        self.time = time
-        self.save = save
+    def __init__(self, *args, **kwargs) -> None:
 
-        self.sim = sim
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(
+            axes_x_label='Spatial x [um]',
+            axes_y_label='Spatial y [um]',
 
-        self.sim_ECM = p.sim_ECM
-        self.IecmPlot = p.IecmPlot
-
-        self.cells = cells
-        self.p = p
-
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
-
-        self.ax.axis('equal')
-
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if self.save is True:
-            _setup_file_saving(self,p)
-
-        if clrAutoscale is False:
-            self.cmin = clrMin
-            self.cmax = clrMax
-
-        self.meshplot = plt.imshow(
-            sim.venv_time[0].reshape(cells.X.shape)*1000,
-            origin='lower',
-            extent=[xmin,xmax,ymin,ymax],
-            cmap=p.default_cm,
+            # Since this class does *NOT* plot a streamplot, request that the
+            # superclass do so for electric current or concentration flux.
+            is_current_overlayable=True,
+            *args, **kwargs
         )
 
-        if clrAutoscale is False:
-            self.meshplot.set_clim(self.cmin,self.cmax)
+        # Cell voltages for all frames.
+        self._time_series = [
+            venv.reshape(self._cells.X.shape) * 1000
+            for venv in self._sim.venv_time
+        ]
 
-        self.cb = self.fig.colorbar(self.meshplot)   # define colorbar for figure
-        self.cb.set_label('Voltage [V]')
+        # Cell voltage meshplot for the first frame.
+        self._mesh_plot = self._plot_image(pixel_data=self._time_series[0])
 
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um]')
-        self.ax.set_title('Environmental Voltage')
-
-        self.frames = len(sim.time)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        _handle_plot(p)
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self._sim.time),
+            color_mapping=self._mesh_plot,
+            color_series=self._time_series,
+        )
 
 
-    def aniFunc(self,i):
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        titani = 'Environmental Voltage' + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
-        self.ax.set_title(titani)
-
-        self.meshplot.set_data(self.sim.venv_time[i].reshape(self.cells.X.shape)*1000)
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
+        # Cell voltage meshplot for this frame.
+        self._mesh_plot.set_data(self._time_series[frame_number])
 
 
 class AnimateMem(object):

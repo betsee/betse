@@ -128,9 +128,10 @@ class PlotCells(object, metaclass=ABCMeta):
             Minimum colorbar value to be used if `clrAutoscale` is `False`.
         color_max : float
             Maximum colorbar value to be used if `clrAutoscale` is `False`.
-        colormap : Colormap
-            Matplotlib colormap to be used in this animation's colorbar or
-            `None`, in which case the default colormap will be used.
+        colormap : matplotlib.cm.Colormap
+            Matplotlib colormap to be used by default for all animation artists
+            (e.g., colorbar, images) _or_ `None`, in which case the default
+            colormap will be used.
         '''
         # Validate core parameters.
         assert types.is_simulator(sim), types.assert_not_simulator(sim)
@@ -299,7 +300,14 @@ class PlotCells(object, metaclass=ABCMeta):
 
     # ..................{ PRIVATE ~ plotter                  }..................
     def _plot_image(
-        self, pixel_data: np.ndarray) -> 'matplotlib.image.AxesImage':
+        self,
+
+        # Mandatory parameters.
+        pixel_data: np.ndarray,
+
+        # Optional parameters.
+        colormap : 'matplotlib.cm.Colormap' = None,
+    ) -> 'matplotlib.image.AxesImage':
         '''
         Plot the passed pixel data onto the current frame's figure axes and
         return the resulting image.
@@ -310,12 +318,16 @@ class PlotCells(object, metaclass=ABCMeta):
             Array of pixel data defining the image to be plotted, whose first
             two dimensions index the X and Y components of this axes. If this
             array is:
-            * Two-dimensional, a greyscale image mapped onto the current
+            * Two-dimensional, a greyscale image mapped onto the passed
               colormap will be plotted.
-            * Three-dimensional, an RGB image _not_ mapped onto the current
+            * Three-dimensional, an RGB image _not_ mapped onto the passed
               colormap will be plotted.
-            * Four-dimensional, an RGBa image _not_ mapped onto the current
+            * Four-dimensional, an RGBa image _not_ mapped onto the passed
               colormap will be plotted.
+        colormap : matplotlib.cm.Colormap
+            Optional colormap with which to map the passed pixel data when
+            greyscale (and ignored otherwise) _or_ `None`, in which case the
+            default colormap will be used.
 
         Returns
         ----------
@@ -327,11 +339,21 @@ class PlotCells(object, metaclass=ABCMeta):
         http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow
             Further details on Matplotlib-based axes image plotting.
         '''
+        assert types.is_sequence_nonstr(pixel_data), (
+            types.assert_not_sequence_nonstr(pixel_data))
+
+        # Default unpassed parameters.
+        if colormap is None:
+            colormap = self._colormap
+        assert types.is_matplotlib_colormap(colormap), (
+            types.assert_not_matplotlib_colormap(colormap))
+
+        # Plot and return this image.
         return self._axes.imshow(
             pixel_data,
             origin='lower',
             extent=self._axes_bounds,
-            cmap=self._p.background_cm,
+            cmap=colormap,
         )
 
 

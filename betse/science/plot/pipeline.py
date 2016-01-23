@@ -1385,11 +1385,13 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:
         AnimateEnv(
-            sim,cells,sim.time,p,
-            clrAutoscale=p.autoscale_venv_ani,
-            clrMin=p.venv_min_clr,
-            clrMax=p.venv_max_clr,
-            save=p.saveAnimations,
+            sim=sim, cells=cells, p=p,
+            type='Venv',
+            figure_title='Environmental Voltage',
+            colorbar_title='Voltage [V]',
+            is_color_autoscaled=p.autoscale_venv_ani,
+            color_min=p.venv_min_clr,
+            color_max=p.venv_max_clr,
         )
 
     if p.ani_mem is True and p.sim_eosmosis is True and sim.run_sim is True:
