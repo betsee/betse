@@ -48,17 +48,17 @@ import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import (
-    AnimateCellData,
-    AnimateCurrent,
+    AnimCellsTimeSeries,
+    AnimCurrent,
     AnimateDeformation,
     AnimateDyeData,
-    AnimateEnv,
-    AnimateGJData,
+    AnimEnvTimeSeries,
+    AnimCellsGJTimeSeries,
     AnimateMem,
-    AnimateFieldIntracellular,
-    AnimateFieldExtracellular,
-    AnimateVelocityIntracellular,
-    AnimateVelocityExtracellular,
+    AnimFieldIntracellular,
+    AnimFieldExtracellular,
+    AnimVelocityIntracellular,
+    AnimVelocityExtracellular,
 )
 from betse.util.io import loggers
 from matplotlib import pyplot as plt
@@ -1074,7 +1074,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         IP3plotting = np.asarray(sim.cIP3_time)
         IP3plotting = np.multiply(IP3plotting, 1e3)
 
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=IP3plotting,
             type='IP3',
@@ -1090,7 +1090,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         Dyeplotting = np.asarray(sim.cDye_time)
         Dyeplotting = np.multiply(Dyeplotting, 1e3)
 
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=Dyeplotting,
             type='Morphogen Intracellular',
@@ -1129,7 +1129,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 (arr_env + arr_cell)/2
                 for (arr_env, arr_cell) in zip(dyeEnv_at_cell, dyeCell)]
 
-            AnimateCellData(
+            AnimCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
                 time_series=dye_ave_t,
                 type='Morphogen Average',
@@ -1144,7 +1144,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         p.createAnimations is True):
         tCa = [1e6*arr[sim.iCa] for arr in sim.cc_time]
 
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=tCa,
             type='Ca',
@@ -1159,7 +1159,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         p.createAnimations is True):
         tpH = [-np.log10(arr[sim.iH]) for arr in sim.cc_time]
 
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=tpH,
             type='pH',
@@ -1176,7 +1176,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         else:
             vmplt = [1000*arr for arr in sim.vm_Matrix]
 
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=vmplt,
             is_ecm_ignored=False,
@@ -1190,7 +1190,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_vmgj2d is True and p.createAnimations is True:
         # Animate the gap junction overlayed over Vmem.
-        AnimateGJData(
+        AnimCellsGJTimeSeries(
             sim=sim, cells=cells, p=p,
             gj_time_series=sim.gjopen_time,
 
@@ -1208,7 +1208,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if (p.ani_vcell is True and p.createAnimations is True and
         p.sim_ECM is True):
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
 
             #FIXME: This probably reduces to just:
@@ -1224,7 +1224,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_I is True and p.createAnimations is True:
         # Always animate the gap junction current.
-        AnimateCurrent(
+        AnimCurrent(
             sim=sim, cells=cells, p=p,
             is_gj_current_only=True,
             type='current_gj',
@@ -1237,7 +1237,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # Also animate the extracellular spaces current if desired.
         if p.sim_ECM is True:
-            AnimateCurrent(
+            AnimCurrent(
                 sim=sim, cells=cells, p=p,
                 is_gj_current_only=False,
                 type='current_ecm',
@@ -1250,7 +1250,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_Efield is True and p.createAnimations is True:
         # Always animate the gap junction electric field.
-        AnimateFieldIntracellular(
+        AnimFieldIntracellular(
             sim=sim, cells=cells, p=p,
             Fx_time=sim.efield_gj_x_time,
             Fy_time=sim.efield_gj_y_time,
@@ -1264,7 +1264,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
-            AnimateFieldExtracellular(
+            AnimFieldExtracellular(
                 sim=sim, cells=cells, p=p,
                 Fx_time=sim.efield_ecm_x_time,
                 Fy_time=sim.efield_ecm_y_time,
@@ -1280,7 +1280,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         p.deform_electro is True and p.createAnimations is True and
         sim.run_sim is True):
         # Always animate the gap junction fluid velocity.
-        AnimateVelocityIntracellular(
+        AnimVelocityIntracellular(
             sim=sim, cells=cells, p=p,
             type='Velocity_gj',
             figure_title='Gap Junction Fluid Velocity',
@@ -1292,7 +1292,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # Also animate the extracellular spaces fluid velocity if desired.
         if p.sim_ECM is True:
-            AnimateVelocityExtracellular(
+            AnimVelocityExtracellular(
                 sim=sim, cells=cells, p=p,
                 type='Velocity_ecm',
                 figure_title='Extracellular Spaces Fluid Velocity',
@@ -1332,7 +1332,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if (p.ani_Pcell is True and p.deform_osmo is True and
         p.createAnimations is True):
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.P_cells_time,
             type='Pcell',
@@ -1345,7 +1345,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if (p.ani_Pcell is True and p.createAnimations is True and
         p.deform_osmo is True):
-        AnimateCellData(
+        AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.osmo_P_delta_time,
             type='OsmoP',
@@ -1358,7 +1358,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.ani_force is True and p.createAnimations is True:
         if p.deform_electro is True:
-            AnimateFieldIntracellular(
+            AnimFieldIntracellular(
                 sim=sim, cells=cells, p=p,
                 Fx_time=[(1/p.um)*arr for arr in sim.F_electro_x_time],
                 Fy_time=[(1/p.um)*arr for arr in sim.F_electro_y_time],
@@ -1371,7 +1371,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             )
 
         if p.deform_osmo is True:
-            AnimateFieldIntracellular(
+            AnimFieldIntracellular(
                 sim=sim, cells=cells, p=p,
                 Fx_time=[(1/p.um)*arr for arr in sim.F_hydro_x_time],
                 Fy_time=[(1/p.um)*arr for arr in sim.F_hydro_y_time],
@@ -1383,9 +1383,14 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 color_max=p.force_ani_max_clr,
             )
 
+    # Animate environment voltage if requested.
     if p.ani_venv is True and p.createAnimations is True and p.sim_ECM is True:
-        AnimateEnv(
+        # List of environment voltages, indexed by time step.
+        venv_time_series = [
+            venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
+        AnimEnvTimeSeries(
             sim=sim, cells=cells, p=p,
+            time_series=venv_time_series,
             type='Venv',
             figure_title='Environmental Voltage',
             colorbar_title='Voltage [V]',

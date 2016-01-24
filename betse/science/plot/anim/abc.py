@@ -505,7 +505,8 @@ class AnimCells(PlotCells):
         )
 
 # ....................{ SUBCLASSES                         }....................
-class AnimCellsField(AnimCells):
+#FIXME: Rename "Fx_time" to "x_time_series" and likewise for "Fy_time".
+class AnimField(AnimCells):
     '''
     Abstract base class of all animations of an electric field plotted on the
     current cell cluster.
@@ -559,7 +560,7 @@ class AnimCellsField(AnimCells):
         self._colormap = self._p.background_cm
 
 
-class AnimCellsVelocity(AnimCells):
+class AnimVelocity(AnimCells):
     '''
     Abstract base class of all animations of a velocity flow plotted on the
     current cell cluster.
