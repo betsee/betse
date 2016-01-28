@@ -21,6 +21,32 @@ from scipy.ndimage.filters import gaussian_filter
 
 
 #FIXME: Shift method documentation into method docstrings. Burnished sunsets!
+#FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
+#attribute appears to be internally set by the Simulator.runSim() method. That
+#makes sense; however, what's the parallel "p.run_sim" attribute for, then?
+#Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
+#
+#* To "False" if an initialization is being performed.
+#* To "True" if a simulation is being performed.
+#
+#This doesn't seem quite ideal, however. Ideally, there would exist one and only
+#one attribute whose value is an instance of a multi-state "PhaseEnum" class
+#rather than two binary boolean attributes. Possible enum values might include:
+#
+#* "PhaseEnum.seed" when seeding a new cluster.
+#* "PhaseEnum.init" when initializing a seeded cluster.
+#* "PhaseEnum.sim" when simulation an initialized cluster.
+#
+#This attribute would probably exist in the "Simulator" class -- say, as
+#"sim.phase". In light of that, consider the following refactoring:
+#
+#* Define a new "PhaseEnum" class in the "sim" module with the above attributes.
+#* Define a new "Simulator.phase" attribute initialized to None.
+#* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
+#  "sim.phase" instead.
+#
+#Wonder temptress at the speed of light and the sound of love!
+
 class Simulator(object):
     """
     Contains the main routines used in the simulation of networked cell
@@ -1150,38 +1176,28 @@ class Simulator(object):
             self.getHydroF(cells,p)
 
             # calculate pressures
-
             if p.deform_osmo is True:
-
-                 self.osmotic_P(cells,p)
+                self.osmotic_P(cells,p)
 
             if p.deform_electro is True:
-
                 self.electro_P(cells,p)
 
             # calculate fluid flow:
             if p.fluid_flow is True and p.run_sim is True:
-
                 self.run_sim = True
-
                 self.getFlow(cells,p)
 
             if p.sim_eosmosis is True and p.run_sim is True:
-
                 self.run_sim = True
 
                 self.eosmosis(cells,p)    # modify membrane pump and channel density according to Nernst-Planck
 
             if p.deformation is True and p.run_sim is True:
-
                 self.run_sim = True
 
                 if p.td_deform is False:
-
                     self.getDeformation(cells,t,p)
-
-                elif p.td_deform is True:
-
+                else:
                     self.timeDeform(cells,t,p)
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
@@ -1190,16 +1206,30 @@ class Simulator(object):
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                 # electrodiffusion of ions between cell and endoplasmic reticulum
-                fER_ca = electroflux(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,self.z_er[0],
-                    self.v_er,self.T,p)
+                fER_ca = electroflux(
+                    self.cc_cells[self.iCa],
+                    self.cc_er[0],
+                    self.Dm_er[0],
+                    self.tm,
+                    self.z_er[0],
+                    self.v_er,
+                    self.T,
+                    p)
 
                 # update concentration of calcium in cell and ER:
                 self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fER_ca*(cells.cell_sa/cells.cell_vol)*p.dt
                 self.cc_er[0] = self.cc_er[0] + fER_ca*(cells.cell_sa/(cells.cell_vol*p.ER_vol))*p.dt
 
                 # Electrodiffusion of charge compensation anion
-                fER_m = electroflux(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,self.z_er[1],
-                    self.v_er,self.T,p)
+                fER_m = electroflux(
+                    self.cc_cells[self.iM],
+                    self.cc_er[1],
+                    self.Dm_er[1],
+                    self.tm,
+                    self.z_er[1],
+                    self.v_er,
+                    self.T,
+                    p)
 
                 # update concentration of anion in cell and ER:
                 self.cc_cells[self.iM] = self.cc_cells[self.iM] - fER_m*(cells.cell_sa/cells.cell_vol)*p.dt

@@ -934,7 +934,10 @@ results options:
         min val: 0                  # minimum colorbar value [pA]
   
     Membrane Ani:
-        animate Membrane: True       # 2d animation of membrane pump motion?
+        animate Membrane: True      # Plot a 2D animation of membrane pump
+                                    # motion in the cell cluster? Ignored
+                                    # unless "channel electroosmosis" is
+                                    # enabled as well.
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 1                # maximum colorbar value [pA]
         min val: 0                  # minimum colorbar value [pA]

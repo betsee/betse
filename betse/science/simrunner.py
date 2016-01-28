@@ -23,7 +23,6 @@ from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from betse.util.path import files, paths
 
-
 class SimRunner(object):
     '''
     High-level simulation runner encapsulating a single simulation.

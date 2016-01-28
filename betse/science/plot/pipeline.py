@@ -1040,7 +1040,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             plt.show(block=False)
 
     if p.sim_eosmosis is True and sim.run_sim is True:
-
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimension [um]')
@@ -1067,6 +1066,17 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     #---------Animations---------------------------------------------------------------------------------------
 
+    #FIXME: The repeated testing of "p.createAnimations is True" below is a bit
+    #unfortunate. An ideal approach would probably be to:
+    #
+    #* Shift all of the following animation-specific logic into a new function
+    #  -- say, anim_all().
+    #* At the very beginning of that function, perform the following test:
+    #
+    #    if p.createAnimations is False:
+    #        return
+    #
+    #Lizards baking on the desert sands at high noon!
     if p.ani_ip32d is True and p.Ca_dyn is True and p.createAnimations is True:
         #FIXME: Out of curiosity, what's the scaling by 10**3 about? We only
         #appear to do this for animations. Is this similar to our use of "p.um"
@@ -1252,8 +1262,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         # Always animate the gap junction electric field.
         AnimFieldIntracellular(
             sim=sim, cells=cells, p=p,
-            Fx_time=sim.efield_gj_x_time,
-            Fy_time=sim.efield_gj_y_time,
+            x_time_series=sim.efield_gj_x_time,
+            y_time_series=sim.efield_gj_y_time,
             type='Efield_gj',
             figure_title='Gap Junction Electric Field',
             colorbar_title='Electric Field [V/m]',
@@ -1266,8 +1276,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.sim_ECM is True:
             AnimFieldExtracellular(
                 sim=sim, cells=cells, p=p,
-                Fx_time=sim.efield_ecm_x_time,
-                Fy_time=sim.efield_ecm_y_time,
+                x_time_series=sim.efield_ecm_x_time,
+                y_time_series=sim.efield_ecm_y_time,
                 type='Efield_ecm',
                 figure_title='Extracellular Spaces Electric Field',
                 colorbar_title='Electric Field [V/m]',
@@ -1360,8 +1370,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.deform_electro is True:
             AnimFieldIntracellular(
                 sim=sim, cells=cells, p=p,
-                Fx_time=[(1/p.um)*arr for arr in sim.F_electro_x_time],
-                Fy_time=[(1/p.um)*arr for arr in sim.F_electro_y_time],
+                x_time_series=[(1/p.um)*arr for arr in sim.F_electro_x_time],
+                y_time_series=[(1/p.um)*arr for arr in sim.F_electro_y_time],
                 type='ElectrostaticFfield',
                 figure_title='Gap Junction Electrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
@@ -1373,8 +1383,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.deform_osmo is True:
             AnimFieldIntracellular(
                 sim=sim, cells=cells, p=p,
-                Fx_time=[(1/p.um)*arr for arr in sim.F_hydro_x_time],
-                Fy_time=[(1/p.um)*arr for arr in sim.F_hydro_y_time],
+                x_time_series=[(1/p.um)*arr for arr in sim.F_hydro_x_time],
+                y_time_series=[(1/p.um)*arr for arr in sim.F_hydro_y_time],
                 type='HydroFfield',
                 figure_title='Gap Junction Hydrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
@@ -1399,14 +1409,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             color_max=p.venv_max_clr,
         )
 
-    if p.ani_mem is True and p.sim_eosmosis is True and sim.run_sim is True:
+    if (p.createAnimations is True and p.ani_mem is True and
+        p.sim_eosmosis is True and sim.run_sim is True):
         AnimateMem(
-            sim,cells,sim.time,p,
-            clrAutoscale=p.autoscale_mem_ani,
-            clrMin=p.mem_ani_min_clr,
-            clrMax=p.mem_ani_max_clr,
-            save=p.saveAnimations,
-            current_overlay=p.I_overlay,
+            sim=sim, cells=cells, p=p,
+            type='rhoPump',
+            figure_title='Pump Density Factor',
+            colorbar_title='mol fraction/m2',
+            is_color_autoscaled=p.autoscale_mem_ani,
+            color_min=p.mem_ani_min_clr,
+            color_max=p.mem_ani_max_clr,
         )
 
     if p.turn_all_plots_off is False:

@@ -45,9 +45,8 @@ from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
-from betse.science.plot.plot import (
-    env_mesh, env_quiver, env_stream,
-    cell_mosaic, cell_mesh, cell_quiver, cell_stream)
+#FIXME: Shift such functions into our superclass.
+from betse.science.plot.plot import (env_stream, cell_stream)
 
 # ....................{ BASE                               }....................
 class AnimCells(PlotCells):
@@ -74,7 +73,7 @@ class AnimCells(PlotCells):
         Time series of all current density Y components if the optional
         `_init_current_density()` method has been called for this
         animation _or_ `None` otherwise.
-    _current_overlay_stream_plot : matplotlib.streamplot.StreamplotSet
+    _current_density_stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of either electric current or concentration flux overlayed
         over this subclass' animation if `_is_plotting_current_overlay` is
         `True` _or_ `None` otherwise.
@@ -105,6 +104,7 @@ class AnimCells(PlotCells):
     def __init__(
         self,
         is_current_overlayable: bool = False,
+        is_ecm_required: bool = False,
         *args, **kwargs
     ) -> None:
         '''
@@ -119,19 +119,33 @@ class AnimCells(PlotCells):
             parameter)_or_ `False` otherwise. All subclasses except those
             already plotting streamlines (e.g., by calling the superclass
             `_plot_stream()` method) should unconditionally enable this boolean.
-            Defaults to `False`, for safety.
+            Defaults to `False`.
+        is_ecm_required : bool
+            `True` if this animation is specific to extracellular spaces or
+            `False` otherwise. If `True` and extracellular spaces are currently
+            disabled, an exception is raised. Defaults to `False`.
         '''
         assert types.is_bool(is_current_overlayable), (
             types.assert_not_bool(is_current_overlayable))
+        assert types.is_bool(is_ecm_required), (
+            types.assert_not_bool(is_ecm_required))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
+
+        # If this subclass requires extracellular spaces but extracellular
+        # spaces are currently disabled, raise an exception.
+        if is_ecm_required and self._p.sim_ECM is False:
+            raise BetseExceptionParameters(
+                'Animation "{}" requires extracellular spaces, which are '
+                'disabled by the current simulation configuration.'.format(
+                self._type))
 
         # Classify attributes to be possibly redefined below.
         self._current_density_magnitude_time_series = None
         self._current_density_x_time_series = None
         self._current_density_y_time_series = None
-        self._current_overlay_stream_plot = None
+        self._current_density_stream_plot = None
         self._writer_frames = None
         self._writer_frames = None
         self._writer_video = None
@@ -468,14 +482,14 @@ class AnimCells(PlotCells):
         # If animating only intracellular current, do so.
         if is_gj_only:
             self._axes_title = 'Gap Junction Current'
-            self._current_overlay_stream_plot, self._axes = cell_stream(
+            self._current_density_stream_plot, self._axes = cell_stream(
                 self._current_density_x_time_series[-1],
                 self._current_density_y_time_series[-1],
                 self._axes, self._cells, self._p)
         # If animating both extracellular and intracellular current, do so.
         else:
             self._axes_title = 'Total Current Overlay'
-            self._current_overlay_stream_plot, self._axes = env_stream(
+            self._current_density_stream_plot, self._axes = env_stream(
                 self._current_density_x_time_series[-1],
                 self._current_density_y_time_series[-1],
                 self._axes, self._cells, self._p)
@@ -497,34 +511,43 @@ class AnimCells(PlotCells):
         Jmag_M = self._current_density_magnitude_time_series[frame_number]
 
         # Erase the prior frame's overlay and streamplot this frame's overlay.
-        self._current_overlay_stream_plot = self._plot_stream(
-            old_stream_plot=self._current_overlay_stream_plot,
+        self._current_density_stream_plot = self._plot_stream(
+            old_stream_plot=self._current_density_stream_plot,
             x=self._current_density_x_time_series[frame_number] / Jmag_M,
             y=self._current_density_y_time_series[frame_number] / Jmag_M,
             magnitude=Jmag_M,
         )
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Rename "Fx_time" to "x_time_series" and likewise for "Fy_time".
 class AnimField(AnimCells):
     '''
-    Abstract base class of all animations of an electric field plotted on the
-    current cell cluster.
+    Abstract base class of all animations of electric field strength plotted on
+    the current cell cluster.
 
     Attributes
     ----------
-    _Fx_time : list
-        List of all electric field strength X components indexed by
-        simulation time.
-    _Fy_time : list
-        List of all electric field strength Y components indexed by
-        simulation time.
+    _magnitude_time_series : list
+        Electric field magnitudes as a function of time.
+    _mesh_plot : matplotlib.image.AxesImage
+        Meshplot of the current or prior frame's electric field magnitude.
+    _stream_plot : matplotlib.streamplot.StreamplotSet
+        Streamplot of the current or prior frame's electric field.
+    _x_time_series : list
+        Electric field X components as a function of time.
+    _y_time_series : list
+        Electric field Y components as a function of time.
+    _unit_x_time_series : list
+        Electric field X unit components as a function of time. The resulting
+        electric field vectors are **unit vectors** (i.e., have magnitude 1).
+    _unit_y_time_series : list
+        Electric field Y unit components as a function of time. The resulting
+        electric field vectors are **unit vectors** (i.e., have magnitude 1).
     '''
 
     def __init__(
         self,
-        Fx_time: list,
-        Fy_time: list,
+        x_time_series: list,
+        y_time_series: list,
         *args, **kwargs
     ) -> None:
         '''
@@ -532,19 +555,19 @@ class AnimField(AnimCells):
 
         Parameters
         ----------
-        Fx_time : list
+        x_time_series : list
             List of all electric field strength X components indexed by
             simulation time.
-        Fy_time : list
+        y_time_series : list
             List of all electric field strength Y components indexed by
             simulation time.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(Fx_time), (
-            types.assert_not_sequence_nonstr(Fx_time))
-        assert types.is_sequence_nonstr(Fy_time), (
-            types.assert_not_sequence_nonstr(Fy_time))
+        assert types.is_sequence_nonstr(x_time_series), (
+            types.assert_not_sequence_nonstr(x_time_series))
+        assert types.is_sequence_nonstr(y_time_series), (
+            types.assert_not_sequence_nonstr(y_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
@@ -553,8 +576,13 @@ class AnimField(AnimCells):
             *args, **kwargs)
 
         # Classify all remaining parameters.
-        self._Fx_time = Fx_time
-        self._Fy_time = Fy_time
+        self._x_time_series = x_time_series
+        self._y_time_series = y_time_series
+
+        # Electric field magnitudes and X and Y unit components.
+        self._magnitude_time_series = []
+        self._unit_x_time_series = []
+        self._unit_y_time_series = []
 
         # Prefer an alternative colormap.
         self._colormap = self._p.background_cm
