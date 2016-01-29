@@ -1074,7 +1074,7 @@ internal parameters:
   # pump parameters
 
   alpha_NaK:  1.0e-10   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
-  halfmax_NaK:  6      # the free energy level at which pump activity is zero [kJ]
+  halfmax_NaK:  1      # the free energy level at which pump activity is zero [kJ]
   Na pump exponent: 0.5       # the factor by which intracelluar sodium activates the NaK-ATPase pump
   K pump exponent: 0.5        # the factor by which extracellular potassium activates the NaK-ATPase pump
 
