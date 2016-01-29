@@ -3,15 +3,9 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-
-import os
-import os.path
-import time
-
+import os, os.path, time
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.collections import LineCollection, PolyCollection
-
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
@@ -22,6 +16,8 @@ from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from betse.util.path import files, paths
+from matplotlib.collections import LineCollection, PolyCollection
+
 
 class SimRunner(object):
     '''
@@ -156,16 +152,20 @@ class SimRunner(object):
                p_old.config['world options'] != p.config['world options'] or \
                p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
                 raise BetseExceptionParameters(
-                    'Important config file options are out of sync between seed and this init attempt! '
-                    'Run "betse seed" again to match the current settings of this config file.')
+                    'Important config file options are out of sync between '
+                    'seed and this init attempt! '
+                    'Run "betse seed" again to match the current settings of '
+                    'this config file.')
 
         else:
             loggers.log_info("Ooops! No such cell cluster file found to load!")
 
             if p.autoInit is True:
-                loggers.log_info("Automatically seeding cell cluster from config file settings...")
+                loggers.log_info(
+                    'Automatically seeding cell cluster from config file settings...')
                 self.makeWorld()  # create an instance of world
-                loggers.log_info('Now using cell cluster to run initialization.')
+                loggers.log_info(
+                    'Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
             else:
@@ -176,15 +176,14 @@ class SimRunner(object):
         sim = Simulator(p)   # create an instance of Simulator
         sim.run_sim = False
 
+        # Initialize simulation data structures, run, and save the
+        # initialization.
         if p.sim_ECM is False:
-            sim.baseInit(cells, p)   # initialize simulation data structures
-            # sim.tissueInit(cells,p)
-            sim.runSim(cells,p)     # run and save the initialization
-
-        elif p.sim_ECM is True:
-            sim.baseInit_ECM(cells, p)   # initialize simulation data structures
-            # sim.tissueInit(cells,p)
-            sim.runSim_ECM(cells,p)     # run and save the initialization
+            sim.baseInit(cells, p)
+            sim.run_phase_sans_ecm(cells, p)
+        else:
+            sim.baseInit_ECM(cells, p)
+            sim.run_phase_with_ecm(cells, p)
 
         loggers.log_info('Initialization run complete!')
         loggers.log_info(
@@ -201,6 +200,7 @@ class SimRunner(object):
 
             plot_all(cells, sim, p, plot_type='init')
             plt.show()
+
 
     def simulate(self):
         '''
@@ -242,13 +242,15 @@ class SimRunner(object):
                 raise BetseExceptionSimulation("Simulation terminated due to missing initialization. Please run"
                                                "an initialization and try again.")
 
-        sim.fileInit(p)   # reinitialize save and load directories in case params defines new ones for this sim
+        # Reinitialize save and load directories in case params defines new ones
+        # for this sim.
+        sim.fileInit(p)
 
         # Run and optionally save the simulation to the cache.
         if p.sim_ECM is False:
-            sim.runSim(cells,p,save=True)
+            sim.run_phase_sans_ecm(cells, p, save=True)
         else:
-            sim.runSim_ECM(cells,p,save=True)
+            sim.run_phase_with_ecm(cells, p, save=True)
 
         loggers.log_info(
             'The simulation took {} seconds to complete.'.format(

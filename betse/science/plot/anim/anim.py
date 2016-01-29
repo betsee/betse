@@ -216,9 +216,9 @@ class AnimCellsGJTimeSeries(AnimCells):
         self._gj_time_series = gj_time_series
         self._cell_time_series = cell_time_series
 
-        connects = np.asarray(self._cells.nn_edges) * self._p.um
+        # Black lines signifying gap junctions.
         self.collection = LineCollection(
-            connects,
+            np.asarray(self._cells.nn_edges) * self._p.um,
             array=self._gj_time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,
@@ -335,6 +335,80 @@ class AnimEnvTimeSeries(AnimCells):
 
         # Environmental data meshplot for this frame.
         self._mesh_plot.set_data(self._time_series[frame_number])
+
+
+class AnimMemTimeSeries(AnimCells):
+    '''
+    Animation of an arbitrary cell membrane-specific time series (e.g.,
+    membrane channel or pump density factor as a function of time), plotted
+    over the cell cluster.
+
+    This factor changes in response to changes in electroosmotic and
+    electrophoretic movements, produced by self-generated fields and flows in
+    the cell cluster.
+
+    Attributes
+    ----------
+    _mem_edges : LineCollection
+        Membrane edges coloured for the current or prior frame.
+    _time_series : list
+        Arbitrary cell membrane data as a function of time to be plotted.
+    '''
+
+    def __init__(
+        self,
+        time_series: np.ndarray,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        time_series : list
+            Arbitrary cell membrane data as a function of time to be plotted.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(time_series), (
+            types.assert_not_sequence_nonstr(time_series))
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(
+            axes_x_label='Spatial x [um]',
+            axes_y_label='Spatial y [um]',
+
+            # Since this class does *NOT* plot a streamplot, request that the
+            # superclass do so for electric current or concentration flux.
+            is_current_overlayable=True,
+            *args, **kwargs
+        )
+
+        # Classify parameters required by the _plot_frame_figure() method.
+        self._time_series = time_series
+
+        # Membrane edges coloured for the first frame.
+        self._mem_edges = LineCollection(
+            self._cells.mem_edges_flat * self._p.um,
+            array=self._time_series[0],
+            cmap=self._colormap,
+            linewidths=4.0,
+        )
+        self._axes.add_collection(self._mem_edges)
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self._time_series),
+            color_mapping=self._mem_edges,
+            color_series=self._time_series,
+        )
+
+
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        # Update membrane edges colours for this frame.
+        self._mem_edges.set_array(self._time_series[frame_number])
 
 # ....................{ SUBCLASSES ~ field                 }....................
 class AnimFieldIntracellular(AnimField):
@@ -1179,65 +1253,6 @@ class AnimateDeformation(object):
             plt.savefig(savename,format='png')
 
 
-#FIXME: Rename to "AnimMembraneTimeSeries".
-#FIXME: Generalize to support arbitrary data.
-class AnimateMem(object):
-    '''
-    Animation of the channel or pump density factor (i.e., `sim.rho_channel` or
-    `sim.rho_pump` respectively), plotted over the cell cluster.
-
-    This factor changes in response to changes in electroosmotic and
-    electrophoretic movements, produced by self-generated fields and flows in
-    the cell cluster.
-
-    Attributes
-    ----------
-    '''
-
-    def __init__(
-        self,
-        # time_series: np.ndarray,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        '''
-
-        # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
-            # Since this class does *NOT* plot a streamplot, request that the
-            # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
-            *args, **kwargs
-        )
-
-        #FIXME: Do we create similar line collections elsewhere in animations?
-        self.coll = LineCollection(
-            positions=self._p.um * self._cells.mem_edges_flat,
-            array=self._sim.rho_pump_time[0],
-            cmap=self._colormap,
-            linewidths=4.0,
-        )
-
-        # Display and/or save this animation.
-        self._animate(
-            frame_count=len(self._sim.rho_pump_time),
-            color_mapping=self.coll,
-            color_series=self._sim.rho_pump_time,
-        )
-
-
-    def _plot_frame_figure(self, frame_number: int):
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
-        self.coll.set_array(self._sim.rho_pump_time[frame_number])
-
-
 #FIXME: Excise the unused "current_overlay" attribute and parameter. Mush-room!
 class AnimateDyeData(object):
 # class AnimateDyeData(Anim):
@@ -1407,10 +1422,8 @@ class PlotWhileSolving(object):
         self.tit = 'Vmem check while solving'
 
         self.clrAutoscale = clrAutoscale
-
         self.cells = cells
         self.p = p
-
         self.number_cells = number_cells
         self.clrMin = clrMin
         self.clrMax = clrMax
@@ -1433,7 +1446,6 @@ class PlotWhileSolving(object):
             if clrCheck == 0:
                 self.cmin = self.cmin - 0.1
                 self.cmax = self.cmax + 0.1
-
         else:
             self.cmin = clrMin
             self.cmax = clrMax
@@ -1446,8 +1458,7 @@ class PlotWhileSolving(object):
             else:
                 self.coll2,self.ax = cell_mesh(
                     vdata,self.ax,cells,p,p.default_cm)
-
-        elif p.sim_ECM is True:
+        else:
             dat_grid = sim.vm_Matrix[0]*1000
 
             if p.plotMask is True:
@@ -1463,8 +1474,11 @@ class PlotWhileSolving(object):
 
             if p.showCells is True:
                 # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-                cell_edges_flat = cells.um*cells.mem_edges_flat
-                coll = LineCollection(cell_edges_flat,colors='k')
+                #FIXME: Fairly certain that we can just pass "alpha=0.5" here.
+                coll = LineCollection(
+                    cells.um * cells.mem_edges_flat,
+                    colors='k',
+                )
                 coll.set_alpha(0.5)
                 self.ax.add_collection(coll)
 
@@ -1519,7 +1533,9 @@ class PlotWhileSolving(object):
                 if p.plotMask is False:
                     zv = sim.vm_Matrix[-1]*1000
                 else:
-                    zv = ma.masked_array(sim.vm_Matrix[-1]*1000, np.logical_not(self.cells.maskM))
+                    zv = ma.masked_array(
+                        sim.vm_Matrix[-1]*1000,
+                        np.logical_not(self.cells.maskM))
 
                 self.coll2.set_data(zv)
 
@@ -1541,7 +1557,9 @@ class PlotWhileSolving(object):
             plt.savefig(savename,dpi=96,format='png')
 
 
-    def resetData(self,cells,sim,p):
+    #FIXME: There's a fair amount of code duplicated here from above.
+    #Contemplate a rejiggering. Thus flow the indelicate streams of nighttime!
+    def resetData(self, cells, sim, p):
 
         vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
 
@@ -1561,8 +1579,7 @@ class PlotWhileSolving(object):
         if self.clrAutoscale is True:
             self.cmin = np.min(vdata)
             self.cmax = np.max(vdata)
-
-        elif self.clrAutoscale is False:
+        else:
             self.cmin = self.clrMin
             self.cmax = self.clrMax
 
@@ -1570,16 +1587,17 @@ class PlotWhileSolving(object):
             if p.showCells is True:
                 # Add a collection of cell polygons, with animated voltage data
                 self.coll2, self.ax = cell_mosaic(
-                    vdata,self.ax,cells,p,p.default_cm)
+                    vdata, self.ax, cells, p, p.default_cm)
             else:
                 self.coll2,self.ax = cell_mesh(
-                    vdata,self.ax,cells,p,p.default_cm)
-
-        elif p.sim_ECM is True:
+                    vdata, self.ax, cells, p, p.default_cm)
+        else:
             dat_grid = sim.vm_Matrix[0]*1000
 
             if p.plotMask is True:
-                dat_grid = ma.masked_array(sim.vm_Matrix[0]*1000, np.logical_not(cells.maskM))
+                dat_grid = ma.masked_array(
+                    sim.vm_Matrix[0]*1000,
+                    np.logical_not(cells.maskM))
 
             self.coll2 = plt.imshow(
                 dat_grid,

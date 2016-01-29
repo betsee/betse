@@ -705,10 +705,9 @@ results options:
                                        # to the results directory
                                        # options True or False (case sensitive)
   
-    create all animations: True     # use this setting to quickly toggle creation of all
-                                    # animations. If False, no animations created. If
-                                    # true, all animations created.
-                                    # options True or False (case sensitive)
+    create all animations: True     # Display and save animations (True) or not
+                                    # (False)? Even if True, only animations
+                                    # enabled below are displayed and saved.
   
     save animations:            # save animations in animation-specific folders
         frames:

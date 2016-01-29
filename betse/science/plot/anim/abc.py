@@ -28,9 +28,13 @@ Abstract base classes of all Matplotlib-based animation classes.
 #    self._figure.__BETSE_anim__ = self
 #
 #That said, we might not even need to do that much. Why? Because the
-#FuncAnimation() class is *ALWAYS* passed "self._plot_frame" -- which, being a
+#"FuncAnimation" class is *ALWAYS* passed "self._plot_frame" -- which, being a
 #bound method of the current animation object, should ensure that that object
-#remains alive. Non-blocking animations may already work out of the box!
+#remains alive. Non-blocking animations may already work out of the box! Oh...
+#no. The "FuncAnimation" class is instantiated into an attribute of this class,
+#implying that when the last reference to instances of this class go away, they
+#everything goes away. We probably will need to add circular references to the
+#passed "_figure", as detailed above.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
@@ -45,7 +49,7 @@ from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
-#FIXME: Shift such functions into our superclass.
+#FIXME: Shift these functions into our superclass.
 from betse.science.plot.plot import (env_stream, cell_stream)
 
 # ....................{ BASE                               }....................
@@ -135,7 +139,7 @@ class AnimCells(PlotCells):
 
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
-        if is_ecm_required and self._p.sim_ECM is False:
+        if is_ecm_required and not self._p.sim_ECM:
             raise BetseExceptionParameters(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(

@@ -22,7 +22,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 #FIXME: Shift method documentation into method docstrings. Burnished sunsets!
 #FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
-#attribute appears to be internally set by the Simulator.runSim() method. That
+#attribute appears to be internally set by the Simulator.run_phase_sans_ecm() method. That
 #makes sense; however, what's the parallel "p.run_sim" attribute for, then?
 #Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
 #
@@ -43,9 +43,13 @@ from scipy.ndimage.filters import gaussian_filter
 #* Define a new "PhaseEnum" class in the "sim" module with the above attributes.
 #* Define a new "Simulator.phase" attribute initialized to None.
 #* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
-#  "sim.phase" instead.
+#  "sim.phase" instead. Note that only the:
+#  * "SimRunner" class sets "p.run_sim".
+#  * "Simulator" class sets "sim.run_sim".
 #
-#Wonder temptress at the speed of light and the sound of love!
+#Note also the "plot_type" parameter passed to the pipeline.plot_all()
+#function, which should probably receive similar treatment. Wonder temptress at
+#the speed of light and the sound of love!
 
 class Simulator(object):
     """
@@ -60,12 +64,6 @@ class Simulator(object):
     baseInit(cells,p)           Prepares data structures for a cell-only simulation
 
     baseInit_ECM(cells,p)      Prepares data structures for a simulation with extracellular spaces
-
-    tissueInit(cells,p)         Prepares data structures pertaining to tissue profiles and dynamic activity
-
-    runSim(cells,p)            Runs and saves a simulation (init or sim) for world with cells only
-
-    runSim_ECM(cells, p)        Runs and saves a simulation (init or sim) for world with cells and full environment
 
     update_V_ecm(cells,p,t)    For sims with environmental spaces, gets charge densities in cells and environment
                                 and calculates respective voltages.
@@ -753,14 +751,22 @@ class Simulator(object):
         # initialize the environmental diffusion matrix:
         self.initDenv(cells,p)
 
-    def tissueInit(self,cells,p):
+
+    def _init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
+        '''
+        Prepares data structures pertaining to tissue profiles and dynamic
+        activity.
+
+        This method is called at the start of all simulation phases, regardless
+        of whether extracellular spaces are being modelled or not.
+        '''
 
         if p.sim_ECM is True:
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
 
-        self.dyna = TissueHandler(self,cells,p)   # create the tissue dynamics object
-        self.dyna.tissueProfiles(self,cells,p)  # initialize all tissue profiles
+        self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
+        self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
 
         if p.sim_ECM is True:
             # create a copy-base of the environmental junctions diffusion constants:
@@ -879,14 +885,34 @@ class Simulator(object):
         loggers.log_info('You are running the ion profile: '+ p.ion_profile)
 
         loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-        loggers.log_info('If you have selected features using other ions, they will be ignored.')
+        loggers.log_info(
+            'If you have selected features using other ions, '
+            'they will be ignored.')
 
-    def runSim(self,cells,p,save=None):
-        """
-        Drives the time-loop for the main simulation, including gap-junction connections and all dynamics.
-        """
 
-        self.tissueInit(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
+    #FIXME: The "save" parameter is currently ignored! This method appears to
+    #*ALWAYS* unconditionally save results to the cache. Star dragon wings!
+    def run_phase_sans_ecm(
+        self,
+        cells: 'Cells',
+        p: 'Parameters',
+        save: bool = None
+    ) -> None:
+        '''
+        Runs (and optionally saves) the current simulation phase with
+        extracellular spaces disabled.
+
+        This method drives the time-loop for the main simulation, including
+        gap-junction connections and all dynamics.
+
+        Parameters
+        ----------
+        save : bool
+            If `True`, the results of running this simulation phase will be
+            written to the on-disk cache.
+        '''
+
+        self._init_tissue(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
 
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
@@ -931,7 +957,6 @@ class Simulator(object):
         self.rate_NaKATP_time =[]
 
         if p.deformation is True and p.run_sim is True:
-
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
 
             self.cell_centres_time = []
@@ -950,15 +975,12 @@ class Simulator(object):
             self.phi_time = []
 
         if p.voltage_dye is True:
-
             self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
             self.cIP3_time = []    # retains IP3 concentration as a function of time
 
         if p.sim_eosmosis is True:
-
             self.rho_channel_time = []
             self.rho_pump_time = []
 
@@ -1018,7 +1040,6 @@ class Simulator(object):
         do_once = True  # a variable to time the loop only once
 
         for t in tt:   # run through the loop
-
             if do_once is True:
                 loop_measure = time.time()
 
@@ -1214,7 +1235,8 @@ class Simulator(object):
                     self.z_er[0],
                     self.v_er,
                     self.T,
-                    p)
+                    p,
+                )
 
                 # update concentration of calcium in cell and ER:
                 self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - fER_ca*(cells.cell_sa/cells.cell_vol)*p.dt
@@ -1229,7 +1251,8 @@ class Simulator(object):
                     self.z_er[1],
                     self.v_er,
                     self.T,
-                    p)
+                    p,
+                )
 
                 # update concentration of anion in cell and ER:
                 self.cc_cells[self.iM] = self.cc_cells[self.iM] - fER_m*(cells.cell_sa/cells.cell_vol)*p.dt
@@ -1244,7 +1267,6 @@ class Simulator(object):
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye ==1:
-
                 self.update_dye(cells,p,t)
 
             if p.dynamic_noise == 1 and p.ions_dict['P']==1:
@@ -1372,20 +1394,16 @@ class Simulator(object):
         fh.safe_pickle(self,p)
 
         cells.points_tree = None
-
         self.checkPlot = None
 
         if p.run_sim is False:
-
-            datadump = [self,cells,p]
-            fh.saveSim(self.savedInit,datadump)
+            datadump = [self, cells, p]
+            fh.saveSim(self.savedInit, datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
             loggers.log_info(message_1)
-
-        elif p.run_sim is True:
-
-            datadump = [self,cells,p]
-            fh.saveSim(self.savedSim,datadump)
+        else:
+            datadump = [self, cells, p]
+            fh.saveSim(self.savedSim, datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
             loggers.log_info(message_2)
 
@@ -1444,12 +1462,30 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
-    def runSim_ECM(self,cells,p,save=None):
-        """
-        Drives the time-loop for the main simulation, including gap-junction connections and all dynamics.
-        """
 
-        self.tissueInit(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
+    #FIXME: The "save" parameter is currently ignored! This method appears to
+    #*ALWAYS* unconditionally save results to the cache. Star dragon wings!
+    def run_phase_with_ecm(
+        self,
+        cells: 'Cells',
+        p: 'Parameters',
+        save: bool = None
+    ) -> None:
+        '''
+        Runs (and optionally saves) the current simulation phase with
+        extracellular spaces enabled.
+
+        This method drives the time-loop for the main simulation, including
+        gap-junction connections and all dynamics.
+
+        Parameters
+        ----------
+        save : bool
+            If `True`, the results of running this simulation phase will be
+            written to the on-disk cache.
+        '''
+
+        self._init_tissue(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
 
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
@@ -1851,7 +1887,6 @@ class Simulator(object):
                     self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
-
                     self.implement_deform_timestep(cells,t,p)
 
                     self.cell_centres_time.append(cells.cell_centres[:])
@@ -1862,7 +1897,6 @@ class Simulator(object):
 
                     self.dx_cell_time.append(self.d_cells_x[:])
                     self.dy_cell_time.append(self.d_cells_y[:])
-
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
                     ccIP3 = self.cIP3[:]
@@ -1905,20 +1939,17 @@ class Simulator(object):
         #         setattr(self.dyna,key,None)
 
         cells.points_tree = None
-
         self.checkPlot = None
 
         if p.run_sim is False:
-
-            datadump = [self,cells,p]
-            fh.saveSim(self.savedInit,datadump)
+            datadump = [self, cells, p]
+            fh.saveSim(self.savedInit, datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
             loggers.log_info(message_1)
-
-        elif p.run_sim is True:
+        else:
             # celf = copy.deepcopy(self)
-            datadump = [self,cells,p]
-            fh.saveSim(self.savedSim,datadump)
+            datadump = [self, cells, p]
+            fh.saveSim(self.savedSim, datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
             loggers.log_info(message_2)
 
@@ -2070,11 +2101,10 @@ class Simulator(object):
 
         return vm, v_cell, v_env
 
+
     def update_V_ecm(self,cells,p,t):
 
-
         if p.sim_ECM is True:
-
             # get the charge in cells and the environment:
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
@@ -4032,22 +4062,24 @@ class Simulator(object):
 
         #----------------------------------------
         if p.plot_while_solving is True and t > 0:
-
             self.checkPlot.resetData(cells,self,p)
 
+
+#FIXME: Perhaps we could shift this into an "electro" module? Scintillations!
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """
-    Electro-diffusion between two connected volumes. Note for cell work, 'b' is 'inside', 'a' is outside, with
-    a positive flux moving from a to b. The voltage is defined as
-    Vb - Va (Vba), which is equivalent to Vmem.
+    Electro-diffusion between two connected volumes. Note for cell work, 'b' is
+    'inside', 'a' is outside, with a positive flux moving from a to b. The
+    voltage is defined as Vb - Va (Vba), which is equivalent to Vmem.
 
-    This function defaults to regular diffusion if Vba == 0.0
+    This function defaults to regular diffusion if Vba == 0.0.
 
-    This function takes numpy matrix values as input. All inputs must be matrices of
-    the same shape.
+    This function takes numpy matrix values as input. All inputs must be
+    matrices of the same shape.
 
-    This is the Goldman Flux/Current Equation (not to be confused with the Goldman Equation).
+    This is the Goldman Flux/Current Equation (not to be confused with the
+    Goldman Equation).
 
     Parameters
     ----------
@@ -4058,7 +4090,6 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     zc          valence of ionic species c
     vBA         voltage difference between region B (in) and A (out) = Vmem
     p           an instance of the Parameters class
-
 
     Returns
     --------

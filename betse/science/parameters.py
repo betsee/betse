@@ -963,7 +963,10 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
+            #FIXME: Shouldn't these be "True" and "False" booleans rather than
+            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
+
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'P':self.cP_env,'M':self.cM_env}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'P':self.Dm_P,'M':self.Dm_M}
@@ -1002,7 +1005,10 @@ class Parameters(object):
             self.cCa_er = 1.0e-3
             self.cM_er = self.cCa_er
 
+            #FIXME: Shouldn't these be "True" and "False" booleans rather than
+            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
+
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'P':self.cP_env,'M':self.cM_env}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca, 'P':self.Dm_P,'M':self.Dm_M}
@@ -1043,7 +1049,10 @@ class Parameters(object):
             self.cCa_er = 0.5
             self.cM_er = - self.cCa_er
 
+            #FIXME: Shouldn't these be "True" and "False" booleans rather than
+            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
@@ -1098,7 +1107,10 @@ class Parameters(object):
             self.cCa_er = 0.5
             self.cM_er = -self.cCa_er
 
+            #FIXME: Shouldn't these be "True" and "False" booleans rather than
+            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
@@ -1131,7 +1143,10 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
+            #FIXME: Shouldn't these be "True" and "False" booleans rather than
+            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':0,'H':0,'P':1,'M':1}
+
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Cl':self.cCl_cell,'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Cl':self.cCl_env,'P':self.cP_env,'M':self.cM_env}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Cl':self.Dm_Cl ,'P':self.Dm_P,'M':self.Dm_M}
@@ -1142,7 +1157,6 @@ class Parameters(object):
 
         # user-specified environmental and cytoplasm values (customized)
         elif self.ion_profile == 'customized':
-
             self.cCa_er = 0.5
             self.cM_er = -self.cCa_er
 
@@ -1168,21 +1182,26 @@ class Parameters(object):
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
 
             if self.z_M_env == 1:
-                raise BetseExceptionParameters("You have defined a net negative charge profile in the environment: "
-                                               "it cannot be charge balanced by an anion. Please try again.")
+                raise BetseExceptionParameters(
+                    "You have defined a net negative charge profile in the environment: "
+                    "it cannot be charge balanced by an anion. Please try again.")
 
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             if self.z_M_cell == 1:
-                raise BetseExceptionParameters("You have defined a net negative charge profile in the cell: "
-                                               "it cannot be charge balanced by an anion. Please try again.")
+                raise BetseExceptionParameters(
+                    "You have defined a net negative charge profile in the cell: "
+                    "it cannot be charge balanced by an anion. Please try again.")
 
             self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
             self.cM_er = -self.cCa_er
 
+            #FIXME: Shouldn't these be "True" and "False" booleans rather than
+            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
                 'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,

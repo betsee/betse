@@ -12,6 +12,7 @@ Abstract base classes of all Matplotlib-based plotting classes.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.util.type import types
 from matplotlib import pyplot
@@ -138,6 +139,16 @@ class PlotCells(object, metaclass=ABCMeta):
         assert types.is_cells(cells), types.assert_not_parameters(cells)
         assert types.is_parameters(p), types.assert_not_parameters(p)
 
+        # Classify core parameters with weak rather than strong (the default)
+        # references, thus avoiding circular references and all resulting
+        # complications thereof (e.g., increased memory churn.) Since these
+        # objects necessarily live significantly longer than this plot, no
+        # complications arise. These attributes *ALWAYS* provide the expected
+        # objects rather than non-deterministically returning "None".
+        self._sim = weakref.proxy(sim)
+        self._cells = weakref.proxy(cells)
+        self._p = weakref.proxy(p)
+
         # Default unpassed parameters.
         if colormap is None:
             colormap = p.default_cm
@@ -162,9 +173,6 @@ class PlotCells(object, metaclass=ABCMeta):
             types.assert_not_matplotlib_colormap(colormap))
 
         # Classify *AFTER* validating parameters.
-        self._sim = sim
-        self._cells = cells
-        self._p = p
         self._type = type
         self._figure_title = figure_title
         self._axes_title = axes_title

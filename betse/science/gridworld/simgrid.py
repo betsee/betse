@@ -55,7 +55,7 @@ class SimGrid(object):
 
     runInit(cells,p)            Runs and saves an initialization for world specified by cells and parameters in p.
 
-    runSim(cells,p,save=True)   Runs a simulation for world specified by cells and parameters in p.
+    run_phase_sans_ecm(cells,p,save=True)   Runs a simulation for world specified by cells and parameters in p.
                                 Optional save for save=True (default).
 
     """

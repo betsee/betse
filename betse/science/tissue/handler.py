@@ -30,7 +30,8 @@ class TissueHandler(object):
     ----------------------------
     '''
 
-    def __init__(self, sim, cells, p):
+    def __init__(
+        self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         #FIXME: Reduce to the following single line:
         #    self.data_length = len(cells.mem_i if p.sim_ECM else cells.cell_i)
         #Actually, as this duplicates logic below, we should probably just
@@ -40,19 +41,22 @@ class TissueHandler(object):
         #simply remove this logic both here and below.
         if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
-        elif p.sim_ECM is False:
+        else:
             self.data_length = len(cells.cell_i)
 
-    def runAllInit(self,sim,cells,p):
+
+    def runAllInit(
+        self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         '''
         Initialize all tissue manipulations specified by the passed
-        user-specified parameters with the passed tissue simulation and cellular
-        world.
+        user-specified parameters with the passed tissue simulation and
+        cellular world.
         '''
 
         self._init_events_global(  sim, cells, p)
         self._init_events_tissue(  sim, cells, p)
         self._init_channels_tissue(sim, cells, p)
+
 
     def runAllDynamics(self, sim, cells, p, t):
         '''
@@ -65,6 +69,7 @@ class TissueHandler(object):
         self._sim_events_tissue(  sim, cells, p, t)
         self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
+
 
     def _init_events_global(self,sim,cells,p):
         '''
