@@ -144,6 +144,15 @@ def is_matplotlib_colormap(obj: object) -> bool:
     return isinstance(obj, Colormap)
 
 
+def is_matplotlib_mappable(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Matplotlib mappable.
+    '''
+    # Avoid importing third-party packages at the top level.
+    from matplotlib.cm import ScalarMappable
+    return isinstance(obj, ScalarMappable)
+
+
 def is_matplotlib_streamplot(obj: object) -> bool:
     '''
     `True` if the passed object is a Matplotlib **streamplot** (i.e., an object
@@ -340,6 +349,13 @@ def assert_not_matplotlib_colormap(obj: object) -> bool:
     String asserting the passed object to _not_ be a Matplotlib colormap.
     '''
     return '"{}" not a Matplotlib colormap.'.format(trim(obj))
+
+
+def assert_not_matplotlib_mappable(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Matplotlib mappable.
+    '''
+    return '"{}" not a Matplotlib mappable.'.format(trim(obj))
 
 
 def assert_not_matplotlib_streamplot(obj: object) -> bool:

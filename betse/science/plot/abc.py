@@ -208,6 +208,7 @@ class PlotCells(object, metaclass=ABCMeta):
     def _prep(
         self,
 
+        #FIXME: Rename to "color_mappings".
         # Mandatory parameters.
         color_mapping: object,
 
@@ -239,18 +240,25 @@ class PlotCells(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        color_mapping : object
-            Mandatory Matplotlib mapping (e.g., `Image`, `ContourSet`) to which
-            this colorbar applies.
+        color_mapping : mpl.cm.ScalarMappable, list
+            One or more color mappables (e.g., `Image`, `ContourSet`) to
+            associate with this animation's colorbar. This may be either:
+            * A single mappable, in which case this colorbar will be associated
+              with this mappable as is.
+            * A non-string sequence (e.g., `list`) of one or more mappables, in
+              which case this colorbar will be associated with the **first**
+              mappable in this sequence.
         color_series : np.ndarray
             Optional multi-dimensional Numpy array containing all data values
             to be animated _or_ `None` if calculating this data during the
             animation initialization is infeasible or impractical (e.g., due to
-            space and time constraints). If non-`None` _and_ colorbar
-            autoscaling is requested (i.e., the initialization-time
-            `clrAutoscale` parameter was `True`), the colorbar will be clipped
-            to the maximum and minimum value in this matrix; else, the subclass
-            is responsible for colorbar autoscaling. Defaults to `None`.
+            space and time constraints). If colorbar autoscaling is requested
+            (i.e., the initialization-time `is_color_autoscaled` parameter was
+            `True`) _and_ this parameter is:
+            * Non-`None`, the colorbar will be clipped to the minimum and
+              maximum scalar values unravelled from this array.
+            * `None`, the subclass is responsible for colorbar autoscaling.
+            Defaults to `None`.
         '''
 
         # If labelling each plotted cell with that cell's unique 0-based index,
@@ -299,11 +307,21 @@ class PlotCells(object, metaclass=ABCMeta):
                 self._color_min = self._color_min - 1
                 self._color_max = self._color_max + 1
 
-        # Set the colorbar range.
-        color_mapping.set_clim(self._color_min, self._color_max)
+        # If a single mappable rather than a list of mappables was passed,
+        # convert the former to the latter.
+        if not types.is_sequence_nonstr(color_mapping):
+            color_mapping = (color_mapping,)
 
-        # Display the colorbar.
-        colorbar = self._figure.colorbar(color_mapping)
+        # For each passed mappable, clip that mappable to the minimum and
+        # maximum values discovered above. Note this also has the beneficial
+        # side-effect of establishing the colorbar's range.
+        for clr_mapping in color_mapping:
+            assert types.is_matplotlib_mappable(clr_mapping), (
+                types.assert_not_matplotlib_mappable(clr_mapping))
+            clr_mapping.set_clim(self._color_min, self._color_max)
+
+        # Create a colorbar associated with the first such mappable.
+        colorbar = self._figure.colorbar(color_mapping[0])
         colorbar.set_label(self._colorbar_title)
 
     # ..................{ PRIVATE ~ plotter                  }..................

@@ -168,7 +168,70 @@ class AnimCellsTimeSeries(AnimCells):
             self.collection.set_array(zz_grid)
 
 
-class AnimCellsGJTimeSeries(AnimCells):
+class AnimEnvTimeSeries(AnimCells):
+    '''
+    Animation of an arbitrary cell-agnostic time series (e.g., environmental
+    voltage as a function of time), plotted over the cell cluster.
+
+    Attributes
+    ----------
+    _time_series : list
+        Arbitrary environmental data as a function of time to be plotted.
+    _mesh_plot : matplotlib.image.AxesImage
+        Meshplot of the current or prior frame's environmental data.
+    '''
+
+    def __init__(
+        self,
+        time_series: np.ndarray,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        time_series : np.ndarray
+            Arbitrary environmental data as a function of time to be plotted.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(time_series), (
+            types.assert_not_sequence_nonstr(time_series))
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(
+            axes_x_label='Spatial x [um]',
+            axes_y_label='Spatial y [um]',
+
+            # Since this class does *NOT* plot a streamplot, request that the
+            # superclass do so for electric current or concentration flux.
+            is_current_overlayable=True,
+            *args, **kwargs
+        )
+
+        # Classify parameters required by the _plot_frame_figure() method.
+        self._time_series = time_series
+
+        # Environmental data meshplot for the first frame.
+        self._mesh_plot = self._plot_image(pixel_data=self._time_series[0])
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self._sim.time),
+            color_mapping=self._mesh_plot,
+            color_series=self._time_series,
+        )
+
+
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        # Environmental data meshplot for this frame.
+        self._mesh_plot.set_data(self._time_series[frame_number])
+
+
+class AnimGapJuncTimeSeries(AnimCells):
     '''
     Animation of an arbitrary gap junction-centric time series (e.g., the gap
     junction open state as a function of time) overlayed on an arbitrary
@@ -274,70 +337,7 @@ class AnimCellsGJTimeSeries(AnimCells):
         self.coll2.set_array(zz_grid)
 
 
-class AnimEnvTimeSeries(AnimCells):
-    '''
-    Animation of an arbitrary cell-agnostic time series (e.g., environmental
-    voltage as a function of time), plotted over the cell cluster.
-
-    Attributes
-    ----------
-    _time_series : list
-        Arbitrary environmental data as a function of time to be plotted.
-    _mesh_plot : matplotlib.image.AxesImage
-        Meshplot of the current or prior frame's environmental data.
-    '''
-
-    def __init__(
-        self,
-        time_series: np.ndarray,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        time_series : np.ndarray
-            Arbitrary environmental data as a function of time to be plotted.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-        assert types.is_sequence_nonstr(time_series), (
-            types.assert_not_sequence_nonstr(time_series))
-
-        # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
-            # Since this class does *NOT* plot a streamplot, request that the
-            # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
-            *args, **kwargs
-        )
-
-        # Classify parameters required by the _plot_frame_figure() method.
-        self._time_series = time_series
-
-        # Environmental data meshplot for the first frame.
-        self._mesh_plot = self._plot_image(pixel_data=self._time_series[0])
-
-        # Display and/or save this animation.
-        self._animate(
-            frame_count=len(self._sim.time),
-            color_mapping=self._mesh_plot,
-            color_series=self._time_series,
-        )
-
-
-    def _plot_frame_figure(self, frame_number: int):
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
-
-        # Environmental data meshplot for this frame.
-        self._mesh_plot.set_data(self._time_series[frame_number])
-
-
-class AnimMemTimeSeries(AnimCells):
+class AnimMembraneTimeSeries(AnimCells):
     '''
     Animation of an arbitrary cell membrane-specific time series (e.g.,
     membrane channel or pump density factor as a function of time), plotted
@@ -410,6 +410,94 @@ class AnimMemTimeSeries(AnimCells):
         # Update membrane edges colours for this frame.
         self._mem_edges.set_array(self._time_series[frame_number])
 
+
+class AnimMorphogenTimeSeries(AnimCells):
+    '''
+    Animation of the concentration of an arbitrary morphogen in both cells and
+    the environment as a function of time, plotted over the cell cluster.
+
+    Parameters
+    ----------
+    _cell_time_series : np.ndarray
+        Morphogen concentration in cells as a function of time.
+    _env_time_series : np.ndarray
+        Morphogen concentration in the environment as a function of time.
+    '''
+
+    def __init__(
+        self,
+        cell_time_series: np.ndarray,
+        env_time_series: np.ndarray,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        cell_time_series : np.ndarray
+            Morphogen concentration in cells as a function of time.
+        env_time_series : np.ndarray
+            Morphogen concentration in the environment as a function of time.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(cell_time_series), (
+            types.assert_not_sequence_nonstr(cell_time_series))
+        assert types.is_sequence_nonstr(env_time_series), (
+            types.assert_not_sequence_nonstr(env_time_series))
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(
+            axes_x_label='Spatial x [um]',
+            axes_y_label='Spatial y [um]',
+
+            # Since this subclass plots no streamplot, request that the
+            # superclass do so.
+            is_current_overlayable=True,
+            *args, **kwargs
+        )
+
+        # Classify parameters required by the _plot_frame_figure() method.
+        self._cell_time_series = env_time_series
+        self._env_time_series = env_time_series
+
+        #FIXME: Rename:
+        #
+        #* "bkgPlot" to "_"... we have no idea. Animate first. Decide later.
+        #* "collection" to "_mesh_plot".
+
+        self.bkgPlot = self._plot_image(
+            pixel_data=self._env_time_series[0].reshape(self._cells.X.shape))
+
+        #FIXME: Try reducing to: self._cells.cell_verts * self._p.um
+        # Polygon collection based on individual cell polygons.
+        points = np.multiply(self._cells.cell_verts, self._p.um)
+        self.collection = PolyCollection(
+            points, cmap=self._colormap, edgecolors='none')
+        self.collection.set_array(self._cell_time_series[0])
+        self._axes.add_collection(self.collection)
+
+        # Display and/or save this animation.
+        self._animate(
+            frame_count=len(self._cell_time_series),
+            color_mapping=(self.collection, self.bkgPlot),
+
+            # If colorbar autoscaling is requested, clip the colorbar to the
+            # minimum and maximum morphogen concentrations -- regardless of
+            # whether that morphogen resides in cells or the environment.
+            color_series=(
+                self._cell_time_series, self._env_time_series),
+        )
+
+
+    def _plot_frame_figure(self, frame_number: int):
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        self.collection.set_array(self._cell_time_series[frame_number])
+        self.bkgPlot.set_data(
+            self._env_time_series[frame_number].reshape(self._cells.X.shape))
+
 # ....................{ SUBCLASSES ~ field                 }....................
 class AnimFieldIntracellular(AnimField):
     '''
@@ -418,12 +506,6 @@ class AnimFieldIntracellular(AnimField):
 
     Attributes
     ----------
-    _field_magnitude_time_series : list
-        Electric field magnitudes as a function of time.
-    _field_x_time_series : list
-        Electric field X components as a function of time.
-    _field_y_time_series : list
-        Electric field Y components as a function of time.
     _mesh_plot : matplotlib.image.AxesImage
         Meshplot of the current or prior frame's electric field magnitude.
     _stream_plot : matplotlib.streamplot.StreamplotSet
@@ -1246,153 +1328,6 @@ class AnimateDeformation(object):
             cb.set_label('Displacement [um]')
         elif self.p.ani_Deformation_type == 'Vmem':
             cb.set_label('Voltage [mV]')
-
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
-
-
-#FIXME: Excise the unused "current_overlay" attribute and parameter. Mush-room!
-class AnimateDyeData(object):
-# class AnimateDyeData(Anim):
-    '''
-    Animate morphogen concentration data in cell and environment as a function
-    of time.
-    '''
-
-    def __init__(
-        self,
-        sim,
-        cells,
-        p,
-        save=False,
-        ani_repeat=False,
-        current_overlay=False,
-        clrAutoscale=True,
-        clrMin=None,
-        clrMax=None,
-        clrmap=mpl.get_colormap('rainbow'),
-        number_cells=False,
-        saveFolder='animation',
-        saveFile='sim_',
-    ):
-
-        self.zdata_t = np.multiply(np.asarray(sim.cDye_time[:]),1e3)
-        self.zenv_t = np.multiply(np.asarray(sim.cDye_env_time[:]),1e3)
-
-        self.colormap = clrmap
-        self.time = sim.time
-        self.save = save
-
-        self.cells = cells
-        self.p = p
-
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
-
-        self.sim = sim
-        self.current_overlay = current_overlay
-        self.clrmap = clrmap
-
-        self.sim_ECM = p.sim_ECM
-        self.IecmPlot = p.IecmPlot
-        self.density = p.stream_density
-
-        self.saveFolder = saveFolder
-        self.saveFile = saveFile
-        self.ani_repeat = ani_repeat
-
-        self.ax.axis('equal')
-
-        xmin = cells.xmin*p.um
-        xmax = cells.xmax*p.um
-        ymin = cells.ymin*p.um
-        ymax = cells.ymax*p.um
-
-        self.ax.axis([xmin,xmax,ymin,ymax])
-
-        if self.save is True:
-            _setup_file_saving(self,p)
-
-        self.bkgPlot = self.ax.imshow(
-            self.zenv_t[0].reshape(cells.X.shape),
-            origin='lower',
-            extent=[xmin,xmax,ymin,ymax],
-            cmap=clrmap,
-        )
-
-        # define a polygon collection based on individual cell polygons
-        self.points = np.multiply(cells.cell_verts, p.um)
-        self.collection =  PolyCollection(
-            self.points, cmap=self.colormap, edgecolors='none')
-        self.collection.set_array(self.zdata_t[0])
-        self.ax.add_collection(self.collection)
-
-        # set range of the colormap
-
-        if clrAutoscale is True:
-            # first flatten the data (needed in case cells were cut)
-            all_z = []
-            for zarray in self.zdata_t:
-                for val in zarray:
-                    all_z.append(val)
-
-            cmina = np.min(all_z)
-            cmaxa = np.max(all_z)
-
-            cminb = np.min(self.zenv_t)
-            cmaxb = np.max(self.zenv_t)
-
-            #FIXME: Consider using Python's built-in min() and max() functions
-            #instead. Penultimate zenith of the zodiac arise!
-            if cmaxa > cmaxb:
-                self.cmax = cmaxa
-            else:
-                self.cmax = cmaxb
-
-            if cmina < cminb:
-                self.cmin = cmina
-            else:
-                self.cmin = cminb
-
-        else:
-            self.cmin = clrMin
-            self.cmax = clrMax
-
-        self.collection.set_clim(self.cmin,self.cmax)
-        self.bkgPlot.set_clim(self.cmin,self.cmax)
-
-        self.cb = self.fig.colorbar(self.collection)   # define colorbar for figure
-        self.cb.set_label('Morphogen concentration [umol/L]')
-
-        self.tit = 'Morphogen concentration in cell and environment'
-
-        if number_cells is True:
-            for i,cll in enumerate(cells.cell_centres):
-                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
-
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um]')
-        self.fig.suptitle(self.tit,fontsize=14, fontweight='bold')
-
-        self.frames = len(self.zdata_t)
-        ani = animation.FuncAnimation(self.fig, self.aniFunc,
-            frames=self.frames, interval=100, repeat=self.ani_repeat)
-
-        _handle_plot(p)
-
-
-    def aniFunc(self,i):
-
-        zz = self.zdata_t[i]
-        zenv = self.zenv_t[i]
-
-        self.collection.set_array(zz)
-        self.bkgPlot.set_data(zenv.reshape(self.cells.X.shape))
-
-        titani = 'sim time' + ' ' + str(round(self.time[i],3)) + ' ' + ' s'
-        self.ax.set_title(titani)
 
         if self.save is True:
             self.fig.canvas.draw()

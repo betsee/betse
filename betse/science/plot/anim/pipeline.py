@@ -12,10 +12,10 @@ from betse.science.plot.anim.anim import (
     AnimCellsTimeSeries,
     AnimCurrent,
     AnimateDeformation,
-    AnimateDyeData,
     AnimEnvTimeSeries,
-    AnimCellsGJTimeSeries,
-    AnimMemTimeSeries,
+    AnimGapJuncTimeSeries,
+    AnimMembraneTimeSeries,
+    AnimMorphogenTimeSeries,
     AnimFieldIntracellular,
     AnimFieldExtracellular,
     AnimVelocityIntracellular,
@@ -76,8 +76,8 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=Dyeplotting,
-            type='Morphogen Intracellular',
-            figure_title='Morphogen Concentration in Cells',
+            type='Morph_cell',
+            figure_title='Cellular Morphogen Concentration',
             colorbar_title='Concentration [umol/L]',
             is_color_autoscaled=p.autoscale_Dye_ani,
             color_min=p.Dye_ani_min_clr,
@@ -85,18 +85,26 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         )
 
         if p.sim_ECM is True:
-            AnimateDyeData(
-                sim,cells,p,
-                save=p.saveAnimations,
-                ani_repeat=True,
-                current_overlay=p.I_overlay,
-                clrAutoscale=p.autoscale_Dye_ani,
-                clrMin=p.Dye_ani_min_clr,
-                clrMax=p.Dye_ani_max_clr,
-                clrmap=p.default_cm,
-                number_cells=p.enumerate_cells,
-                saveFolder='animation/Dye',
-                saveFile='Dye_',
+            AnimMorphogenTimeSeries(
+                sim=sim, cells=cells, p=p,
+
+                #FIXME: This probably safely reduces to:
+                #    cell_time_series=np.array(sim.cDye_time) * 1e3,
+                #The np.asarray() function avoids making a copy, which appears
+                #to be unnecessary here; the np.array() function makes a copy,
+                #thus permitting us to avoid the copy-by-slice (assuming
+                #"cDye_time" to be a Python list, of course). Lastly, the
+                #np.multiply() call appears to be equivalent to operator "*".
+                cell_time_series=np.multiply(
+                    np.asarray(sim.cDye_time[:]), 1e3),
+                env_time_series=np.multiply(
+                    np.asarray(sim.cDye_env_time[:]), 1e3),
+                type='Morph_all',
+                figure_title='Total Morphogen Concentration',
+                colorbar_title='Concentration [umol/L]',
+                is_color_autoscaled=p.autoscale_Dye_ani,
+                color_min=p.Dye_ani_min_clr,
+                color_max=p.Dye_ani_max_clr,
             )
 
             # Averaged dye animation, produced by sampling the environmental dye
@@ -121,7 +129,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             AnimCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
                 time_series=dye_ave_t,
-                type='Morphogen Average',
+                type='Morph_ave',
                 figure_title='Average Morphogen Concentration',
                 colorbar_title='Concentration [umol/L]',
                 is_color_autoscaled=p.autoscale_Dye_ani,
@@ -173,7 +181,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     if p.ani_vmgj2d is True:
         # Animate the gap junction overlayed over Vmem.
-        AnimCellsGJTimeSeries(
+        AnimGapJuncTimeSeries(
             sim=sim, cells=cells, p=p,
             gj_time_series=sim.gjopen_time,
             cell_time_series=[1000*arr for arr in sim.vm_time],
@@ -398,7 +406,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     # Animate the cell membrane pump density factor as a function of time.
     if p.ani_mem is True and p.sim_eosmosis is True:
-        AnimMemTimeSeries(
+        AnimMembraneTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.rho_pump_time,
             type='rhoPump',
