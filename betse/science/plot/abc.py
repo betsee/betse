@@ -11,9 +11,10 @@ Abstract base classes of all Matplotlib-based plotting classes.
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
+import gc, weakref
 import numpy as np
-import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
+from betse.util.python import objects
 from betse.util.type import types
 from matplotlib import pyplot
 from matplotlib.patches import FancyArrowPatch
@@ -141,7 +142,7 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # Classify core parameters with weak rather than strong (the default)
         # references, thus avoiding circular references and all resulting
-        # complications thereof (e.g., increased memory churn.) Since these
+        # complications thereof (e.g., increased memory overhead). Since these
         # objects necessarily live significantly longer than this plot, no
         # complications arise. These attributes *ALWAYS* provide the expected
         # objects rather than non-deterministically returning "None".
@@ -186,8 +187,14 @@ class PlotCells(object, metaclass=ABCMeta):
         self._writer_frames = None
         self._writer_video = None
 
-        # Figure encapsulating this animation.
-        self._figure = pyplot.figure()
+        # Figure encapsulating this animation as a weak rather than strong (the
+        # default) references, thus avoiding circular references and
+        # complications thereof (e.g., memory overhead). Figures created by the
+        # "pyplot" API are internally retained in Matplotlib's "Gcf" figure
+        # cache until explicitly closed -- either non-interactively by a close()
+        # call or interactively by the corresponding GUI window being closed.
+        # Hence, strong figure references should typically *NOT* be retained.
+        self._figure = weakref.proxy(pyplot.figure())
 
         # Extent of the current 2D environment.
         self._axes_bounds = [
@@ -197,12 +204,59 @@ class PlotCells(object, metaclass=ABCMeta):
             self._cells.ymax * self._p.um,
         ]
 
-        # Figure axes scaled to the extent of the current 2D environment.
-        self._axes = pyplot.subplot(111)
+        # Figure axes scaled to the extent of the current 2D environment as a
+        # weak rather than strong (the default) reference, thus avoiding
+        # circular references and complications thereof (e.g., memory overhead).
+        # Since figures contain their axes as a strong reference, we needn't.
+        self._axes = weakref.proxy(pyplot.subplot(111))
         self._axes.axis('equal')
         self._axes.axis(self._axes_bounds)
         self._axes.set_xlabel(axes_x_label)
         self._axes.set_ylabel(axes_y_label)
+
+
+    def _close(self) -> None:
+        '''
+        Destroy this plot and deallocate all memory associated with this plot.
+
+        To reduce Matplotlib's memory overhead, this method (in order):
+
+        . Explicitly closes this plot's figure.
+        . Explicitly breaks all circular references between this plot's figure
+          and related artist objects (e.g., between this figure and its axes).
+        . Explicitly nullifies _all_ attributes of the current object.
+        . Explicitly garbage collects.
+
+        This method should only be called:
+
+        * When this plot is non-blocking (e.g., being non-interactively saved
+          rather than interactively displayed).
+        * As the last action of this plot's subclass or caller.
+
+        Attempting to subsequently call any other plot method _or_ access any
+        plot field will reliably result in raised exceptions.
+        '''
+
+        # If this figure still exists, explicitly close it.
+        if self._figure is not None:
+            pyplot.close(self._figure)
+
+        # For each name and value of a field bound to this object...
+        for field_name, field_value in objects.iter_fields_nonbuiltin(self):
+            # If this field itself contains a "figure" attribute, explicitly
+            # nullify the latter to break this figure's circular references.
+            #
+            # Note that this probably fails to break all such references, as
+            # doing so appears to be infeasible in a general-purpose manner.
+            # These references are baked into the Matplotlib API at a low level!
+            if  hasattr(field_value, 'figure'):
+                setattr(field_value, 'figure', None)
+
+            # Explicitly nullify all attributes of this object.
+            setattr(self, field_name, None)
+
+        # Explicitly garbage collect.
+        gc.collect()
 
     # ..................{ PRIVATE ~ plot                     }..................
     def _prep(

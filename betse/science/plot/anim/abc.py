@@ -6,29 +6,6 @@
 Abstract base classes of all Matplotlib-based animation classes.
 '''
 
-#FIXME: Memory management raises its ugly "pyplot" head yet again. We're getting
-#the following all-too-familiar warning on a "betse plot sim" non-interactive
-#run only saving to disk with literally *ALL* still plots disabled:
-#
-#    [betse] Saving animation "vcell"...
-#    [betse] Saving animation "current_gj"...
-#    [betse] Saving animation "current_ecm"...
-#    [betse] /usr/lib64/python3.4/site-packages/matplotlib/pyplot.py:424: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
-#      max_open_warning, RuntimeWarning)
-#
-#    [betse] Saving animation "Efield_gj"...
-#    [betse] Saving animation "Efield_ecm"...
-#    [betse] Saving animation "ElectrostaticFfield"...
-#
-#This directly implies, of course, that animations and hence "anim._figure"
-#objects are retained sufficiently long in memory (despite theoretically
-#immediately going out of scope and hence being garbage collected after being
-#saved to disk) to result in memory consumption concerns. The solution, of
-#course, is to explicitly close figures for the specific case of saving to disk
-#immediately after such saving. This is guaranteed to be safe. Do *NOT*,
-#however, unconditionally close figures after animations end. We intend to adopt
-#a non-blocking paradigm for interactive animations!
-
 #FIXME: We should probably animate non-blockingly (e.g., by passing
 #"block=False" to the plt.show() command. To do so, however, we'll probably have
 #to implement an analogue to Matplotlib's "_pylab_helper.Gcf" global-like static
@@ -378,6 +355,10 @@ class AnimCells(PlotCells):
                     writer=self._writer_frames,
                     savefig_kwargs=self._writer_savefig_kwargs,
                 )
+
+                # For space efficiency, explicitly close this animation *AFTER*
+                # saving this animation in a non-blocking manner.
+                self._close()
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
