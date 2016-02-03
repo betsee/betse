@@ -1450,32 +1450,6 @@ def cell_mosaic(
     return collection, ax
 
 # ....................{ PRIVATE                            }....................
-#FIXME: Obsolete. Let's excise! And exercise in the musky dusk!
-def _handle_plot(params: 'Parameters', *args, **kwargs) -> None:
-    '''
-    Display the current plot if the passed configuration requests plots to be
-    displayed or noop otherwise.
-
-    All passed arguments following the passed configuration will be passed as
-    is to the `matplotlib.pyplot.show()` function.
-    '''
-    assert types.is_parameters(params), types.assert_not_parameters(params)
-
-    try:
-        if params.turn_all_plots_off is False:
-            plt.show(*args, **kwargs)
-    # plt.show() unreliably raises exceptions on window close resembling:
-    #     AttributeError: 'NoneType' object has no attribute 'tk'
-    # This error appears to ignorable and hence is caught and squelched.
-    except AttributeError as exc:
-        # If this is that exception, mercilessly squelch it.
-        if str(exc) == "'NoneType' object has no attribute 'tk'":
-            pass
-        # Else, reraise this exception.
-        else:
-            raise
-
-
 #FIXME: Obsolete. Let's excise! And exercise in the sweaty eventide!
 def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
     '''

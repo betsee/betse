@@ -56,7 +56,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         #appear to do this for animations. Is this similar to our use of "p.um"
         #to scale by 10**6, only for mm (millimeters) instead? Big smiley face!
         IP3plotting = np.asarray(sim.cIP3_time)
-        IP3plotting = np.multiply(IP3plotting, 1e3)
+        IP3plotting = np.multiply(IP3plotting, 1000)
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
@@ -179,12 +179,12 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_max=p.Vmem_ani_max_clr,
         )
 
+    # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:
-        # Animate the gap junction overlayed over Vmem.
         AnimGapJuncTimeSeries(
             sim=sim, cells=cells, p=p,
-            gj_time_series=sim.gjopen_time,
-            cell_time_series=[1000*arr for arr in sim.vm_time],
+            cell_time_series=_get_vmem_time_series(sim, p),
+            gapjunc_time_series=sim.gjopen_time,
             type='Vmem_gj',
             figure_title='Vcell',
             colorbar_title='Voltage [mV]',
@@ -377,31 +377,41 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 color_max=p.Velocity_ani_max_clr,
             )
 
+    # Animate if desired.
     if p.ani_Deformation is True and p.deformation is True:
         AnimateDeformation(
             sim, cells, p,
             ani_repeat=True,
             save=p.saveAnimations,
         )
+
         # if p.ani_Deformation_type == 'Displacement':
-        #     AnimateDeformation(
+        #     displacement_time_series = [
+        #         np.sqrt(cell_dx_series**2 + cell_dy_series**2) * self.p.um
+        #         for cell_dx_series, cell_dy_series in zip(
+        #            self.sim.dx_cell_time, self.sim.dy_cell_time)]
+        #     AnimDeformTimeSeries(
         #         sim=sim, cells=cells, p=p,
-        #         type='Deformation',
+        #         cell_time_series=displacement_time_series,
+        #         type='Deform_dxdy',
         #         figure_title='Displacement Field and Deformation',
         #         colorbar_title='Displacement [um]',
         #         is_color_autoscaled=p.autoscale_Deformation_ani,
         #         color_min=p.Deformation_ani_min_clr,
         #         color_max=p.Deformation_ani_max_clr,
+        #         colormap=p.background_cm,
         #     )
         # elif p.ani_Deformation_type == 'Vmem':
-        #     AnimateDeformation(
+        #     AnimDeformTimeSeries(
         #         sim=sim, cells=cells, p=p,
-        #         type='Deformation',
-        #         figure_title='Displacement Field and Deformation',
+        #         cell_time_series=_get_vmem_time_series(sim, p),
+        #         type='Deform_Vmem',
+        #         figure_title='Cell Vmem and Deformation',
         #         colorbar_title='Voltage [mV]',
         #         is_color_autoscaled=p.autoscale_Deformation_ani,
         #         color_min=p.Deformation_ani_min_clr,
         #         color_max=p.Deformation_ani_max_clr,
+        #         colormap=p.default_cm,
         #     )
 
     # Animate the cell membrane pump density factor as a function of time.
@@ -416,3 +426,21 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_min=p.mem_ani_min_clr,
             color_max=p.mem_ani_max_clr,
         )
+
+# ....................{ PRIVATE ~ getters                  }....................
+def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
+    '''
+    Get the membrane voltage time series for the current simulation, upscaled
+    for use in animations.
+    '''
+    assert types.is_simulator(sim), types.assert_not_simulator(sim)
+    assert types.is_parameters(p), types.assert_not_parameters(p)
+
+    # Unscaled membrane voltage time series.
+    if p.sim_ECM is False:
+        vmem_time_series = sim.vm_time
+    else:
+        vmem_time_series = sim.vcell_time
+
+    # Scaled membrane voltage time series.
+    return [vmem_time_step*1000 for vmem_time_step in vmem_time_series]

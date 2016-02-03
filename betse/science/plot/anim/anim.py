@@ -32,7 +32,6 @@ Matplotlib-based animation classes.
 import os
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib import mpl
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.science.plot.anim.abc import (
     AnimCells, AnimField, AnimVelocity)
@@ -40,8 +39,8 @@ from betse.util.io import loggers
 from betse.util.path import dirs, paths
 from betse.util.type import types
 from enum import Enum
-from matplotlib import pyplot as plt
 from matplotlib import animation
+from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 from numpy import ma as ma
 from scipy import interpolate
@@ -52,7 +51,7 @@ from scipy import interpolate
 #latter approach. This should permit us to avoid passing *ANY* parameters to
 #these methods, which is rather nice.
 from betse.science.plot.plot import (
-    _setup_file_saving, _handle_plot, env_mesh, cell_mosaic, cell_mesh,
+    _setup_file_saving, env_mesh, cell_mosaic, cell_mesh,
     env_quiver, cell_quiver, cell_stream
 )
 
@@ -139,6 +138,12 @@ class AnimCellsTimeSeries(AnimCells):
         #    frame_count = len(self._sim.time)
         #
         #Contemplate!
+        #FIXME: Actually, we appear to *ALWAYS* pass "color_series" below. We
+        #should probably require that by removing the "= None" default for
+        #this parameter from the _animate() method and, in the same method,
+        #setting:
+        #
+        #    frame_count = len(color_series)
 
         # Display and/or save this animation.
         self._animate(
@@ -234,22 +239,26 @@ class AnimEnvTimeSeries(AnimCells):
 class AnimGapJuncTimeSeries(AnimCells):
     '''
     Animation of an arbitrary gap junction-centric time series (e.g., the gap
-    junction open state as a function of time) overlayed on an arbitrary
-    cell-centric time series (e.g., cell voltage as a function of time),
-    plotted over the cell cluster.
+    junction open state as a function of time) overlayed an arbitrary cell-
+    centric time series (e.g., cell voltage as a function of time) on the cell
+    cluster.
 
     Attributes
     ----------
+    _cell_plot : ???
+        Artists signifying cell data for the prior or current frame.
     _cell_time_series : list
         Arbitrary cell data as a function of time to be underlayed.
-    _gj_time_series : list
+    _gapjunc_plot : LineCollection
+        Lines signifying gap junction state for the prior or current frame.
+    _gapjunc_time_series : list
         Arbitrary gap junction data as a function of time to be overlayed.
     '''
 
     def __init__(
         self,
-        gj_time_series: list,
         cell_time_series: list,
+        gapjunc_time_series: list,
         *args, **kwargs
     ) -> None:
         '''
@@ -257,17 +266,17 @@ class AnimGapJuncTimeSeries(AnimCells):
 
         Parameters
         ----------
-        gj_time_series : list
-            Time series used for gap junction coloring.
         cell_time_series : list
-            Time series used for cell coloring.
+            Arbitrary cell data as a function of time to be underlayed.
+        gapjunc_time_series : list
+            Arbitrary gap junction data as a function of time to be overlayed.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(gj_time_series), (
-            types.assert_not_sequence_nonstr(gj_time_series))
         assert types.is_sequence_nonstr(cell_time_series), (
             types.assert_not_sequence_nonstr(cell_time_series))
+        assert types.is_sequence_nonstr(gapjunc_time_series), (
+            types.assert_not_sequence_nonstr(gapjunc_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
@@ -276,42 +285,35 @@ class AnimGapJuncTimeSeries(AnimCells):
             *args, **kwargs)
 
         # Classify all remaining parameters.
-        self._gj_time_series = gj_time_series
         self._cell_time_series = cell_time_series
+        self._gapjunc_time_series = gapjunc_time_series
 
-        # Black lines signifying gap junctions.
-        self.collection = LineCollection(
+        # Gap junction data series for the first frame plotted as lines.
+        self._gapjunc_plot = LineCollection(
             np.asarray(self._cells.nn_edges) * self._p.um,
-            array=self._gj_time_series[0],
+            array=self._gapjunc_time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,
             zorder=10,
         )
-        self.collection.set_clim(0.0, 1.0)
-        self._axes.add_collection(self.collection)
+        self._gapjunc_plot.set_clim(0.0, 1.0)
+        self._axes.add_collection(self._gapjunc_plot)
+
+        # Cell data series for the first frame.
+        data_set = self._cell_time_series[0]
 
         # Add a collection of cell polygons with animated voltage data.
-        if self._p.sim_ECM is False:
-            data_set = self._cell_time_series[0]
-        else:
-            data_set = self._sim.vcell_time[0] * 1000
-
         if self._p.showCells is True:
-            self.coll2, self._axes = cell_mosaic(
+            self._cell_plot, self._axes = cell_mosaic(
                 data_set, self._axes, self._cells, self._p, self._colormap)
         else:
-            self.coll2, self._axes = cell_mesh(
+            self._cell_plot, self._axes = cell_mesh(
                 data_set, self._axes, self._cells, self._p, self._colormap)
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._gj_time_series),
-            color_mapping=self.coll2,
-
-            #FIXME: If modelling extracellular spaces, this doesn't seem quite
-            #right. In that case, shouldn't this be something resembling:
-            #    color_series=self.sim.vcell_time*1000,
-            #Tug boats in the muggy bastions of the gentle night!
+            frame_count=len(self._gapjunc_time_series),
+            color_mapping=self._cell_plot,
             color_series=self._cell_time_series,
         )
 
@@ -319,22 +321,19 @@ class AnimGapJuncTimeSeries(AnimCells):
     def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
-        zz = self._gj_time_series[frame_number]
-        self.collection.set_array(zz)
-        self.collection.set_clim(0.0, 1.0)
+        # Update the gap junction plot for this frame.
+        self._gapjunc_plot.set_array(self._gapjunc_time_series[frame_number])
 
-        if self._p.sim_ECM is False:
-            zv = self._cell_time_series[frame_number]
-        else:
-            zv = self._sim.vcell_time[frame_number] * 1000
-
+        # Cell data series for this frame.
+        zv = self._cell_time_series[frame_number]
         if self._p.showCells is True:
             zz_grid = zv
         else:
             zz_grid = np.zeros(len(self._cells.voronoi_centres))
             zz_grid[self._cells.cell_to_grid] = zv
 
-        self.coll2.set_array(zz_grid)
+        # Update the cell plot for this frame.
+        self._cell_plot.set_array(zz_grid)
 
 
 class AnimMembraneTimeSeries(AnimCells):
@@ -925,20 +924,42 @@ class AnimCurrent(AnimCells):
 
 
 #FIXME: Use below in lieu of string constants.
-AnimDeformationStyle = Enum('AnimDeformationStyle', ('streamline', 'vector'))
+AnimDeformStyle = Enum('AnimDeformStyle', ('streamline', 'vector'))
 
-#FIXME: Reenable after we deduce why the "AnimateDeformation" class defined
+#FIXME: Reenable after we deduce why the "AnimDeform" class defined
 #below no longer animates physical displacement.
 #FIXME: Split into two subclasses: one handling physical deformations and the
 #other voltage deformations. There exists very little post-subclassing code
 #sharred in common between the two conditional branches handling this below.
 
-class AnimDeformationUnused(AnimCells):
+class AnimDeformTimeSeries(AnimCells):
     '''
-    Animation of physical cell deformation plotted on the cell cluster.
+    Animation of physical cell deformation overlayed an arbitrary cell-centric
+    time series (e.g., cell voltage as a function of time) on the cell cluster.
+
+    Attributes
+    ----------
+    _cell_time_series : list
+        Arbitrary cell data as a function of time to be underlayed.
     '''
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        cell_time_series: list,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        cell_time_series : list
+            Arbitrary cell data as a function of time to be underlayed.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        assert types.is_sequence_nonstr(cell_time_series), (
+            types.assert_not_sequence_nonstr(cell_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
@@ -946,26 +967,15 @@ class AnimDeformationUnused(AnimCells):
             axes_y_label='Spatial distance [um]',
             *args, **kwargs)
 
+        # Classify all remaining parameters.
+        self._cell_time_series = cell_time_series
+
+        # Cell displacement magnitudes for the first frame.
+        dd = self._cell_time_series[0]
+
+        # Cell displacement X and Y components for the first frame.
         dx = self._sim.dx_cell_time[0]
         dy = self._sim.dy_cell_time[0]
-
-        if self._p.ani_Deformation_type == 'Vmem':
-            self._colormap = self._p.default_cm
-
-            if self._p.sim_ECM is False:
-                dd = self._sim.vm_time[0] * 1e3
-            else:
-                dd = self._sim.vcell_time[0] * 1e3
-
-        elif self._p.ani_Deformation_type == 'Displacement':
-            self._colormap = self._p.background_cm
-            dd = self._p.um * np.sqrt(dx ** 2 + dy ** 2)
-
-        else:
-            raise BetseExceptionParameters(
-                'Deformation animation type "{}" not '
-                '"Vmem" or "Displacement".'.format(
-                    self._p.ani_Deformation_type))
 
         if self._p.showCells is True:
             dd_collection, self._axes = cell_mosaic(
@@ -987,48 +997,11 @@ class AnimDeformationUnused(AnimCells):
                 '"vector", "streamline", or "None".'.format(
                     self._p.ani_Deformation_style))
 
-        # Sequence of all deformation values for use in colorbar autoscaling.
-        colorbar_time_series = None
-
-        #FIXME: Classify colorbar_time_series as a more appropriately named
-        #attribute (e.g., "self._deform_time_series"); then, use that attribute
-        #in _plot_frame_figure() rather than recompute such values.
-        if self._is_color_autoscaled is True:
-            if self._p.ani_Deformation_type == 'Displacement':
-                #FIXME: Optimize. Since our superclass already ravels, this
-                #should reduce to just:
-                #colorbar_time_series = np.array([
-                #     np.sqrt(cell_dx**2 + cell_dy**2) * self.p.um
-                #     for cell_dx, cell_dy in zip(
-                #        self.sim.dx_cell_time, self.sim.dy_cell_time)])
-
-                # first flatten the data (needed in case cells were cut)
-                colorbar_time_series = []
-
-                # For sequence of X and Y cell deformation components for each
-                # time step, ...
-                for cell_dx, cell_dy in zip(
-                    self._sim.dx_cell_time, self._sim.dy_cell_time):
-                    zarray = np.sqrt(cell_dx**2 + cell_dy**2)
-                    for val in zarray:
-                        colorbar_time_series.append(val * self._p.um)
-
-            elif self._p.ani_Deformation_type == 'Vmem':
-                #FIXME: Optimize. Since our superclass already ravels, this
-                #should reduce to just:
-                #    colorbar_time_series = self.sim.vm_time * 1e3
-
-                colorbar_time_series = []
-
-                for zarray in self._sim.vm_time:
-                    for val in zarray:
-                        colorbar_time_series.append(val*1e3)
-
         # Display and/or save this animation.
         self._animate(
             frame_count=len(self._sim.time),
             color_mapping=dd_collection,
-            color_series=colorbar_time_series,
+            color_series=self._cell_time_series,
         )
 
 
