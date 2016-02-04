@@ -44,7 +44,6 @@ class TissueHandler(object):
         else:
             self.data_length = len(cells.cell_i)
 
-
     def runAllInit(
         self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -57,7 +56,6 @@ class TissueHandler(object):
         self._init_events_tissue(  sim, cells, p)
         self._init_channels_tissue(sim, cells, p)
 
-
     def runAllDynamics(self, sim, cells, p, t):
         '''
         Apply all tissue manipulations specified by the passed user-specified
@@ -69,7 +67,6 @@ class TissueHandler(object):
         self._sim_events_tissue(  sim, cells, p, t)
         self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
-
 
     def _init_events_global(self,sim,cells,p):
         '''

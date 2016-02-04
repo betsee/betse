@@ -1024,7 +1024,7 @@ class Parameters(object):
             self.cK_env = 5.0
             self.cCl_env = 105.0
             self.cCa_env = 1.0
-            self.cH_env = 6.98e-8
+            self.cH_env = 3.98e-8
             self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
@@ -1038,7 +1038,7 @@ class Parameters(object):
             self.cK_cell = 190.0
             self.cCl_cell = 52.0
             self.cCa_cell = 1.0e-3
-            self.cH_cell = 6.31e-8
+            self.cH_cell = 3.98e-8
             self.cP_cell = 138.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
@@ -1062,20 +1062,14 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
          # default environmental and cytoplasm values invertebrate cells
-        elif self.ion_profile == 'invertebrate':
-            # self.cNa_env = 440.0
-            # self.cK_env = 20.0
-            # self.cCl_env = 460.0
-            # self.cCa_env = 10.0
-            # self.cH_env = 3.98e-5
-            # self.cP_env = 7.0
+        elif self.ion_profile == 'xenopus':
 
-            self.cNa_env = 8.7
-            self.cK_env = 0.31
-            self.cCl_env = 5.64
-            self.cCa_env = 3.75
+            self.cNa_env = 110.0
+            self.cK_env = 2.5
+            self.cCl_env = 100.0
+            self.cCa_env = 2.0
             self.cH_env = 3.98e-8
-            self.cP_env = 7.0
+            self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
 
@@ -1084,19 +1078,12 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            # self.cNa_cell = 8.66
-            # self.cK_cell = 406.09
-            # self.cCl_cell = 45.56
-            # self.cCa_cell = 3.0e-4
-            # self.cH_cell = 6.31e-5
-            # self.cP_cell = 350.0
-
-            self.cNa_cell = 11.00
-            self.cK_cell = 406.09
-            self.cCl_cell = 45.56
+            self.cNa_cell = 11.0
+            self.cK_cell = 120.0
+            self.cCl_cell = 50.0
             self.cCa_cell = 3.0e-4
-            self.cH_cell = 6.31e-8
-            self.cP_cell = 320.0
+            self.cH_cell = 3.98e-8
+            self.cP_cell = 70.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
 

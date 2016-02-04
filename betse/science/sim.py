@@ -2318,6 +2318,18 @@ class Simulator(object):
             cenv_y[:,0] =  self.c_env_bound[i]
             cenv_y[:,-1] =  self.c_env_bound[i]
 
+            # try adding it to the second layer to get proper diffusion in...
+
+            cenv_x[:,1] =  self.c_env_bound[i]
+            cenv_x[:,-2] =  self.c_env_bound[i]
+            cenv_x[1,:] =  self.c_env_bound[i]
+            cenv_x[-2,:] =  self.c_env_bound[i]
+
+            cenv_y[1,:] =  self.c_env_bound[i]
+            cenv_y[-2,:] =  self.c_env_bound[i]
+            cenv_y[:,1] =  self.c_env_bound[i]
+            cenv_y[:,-2] =  self.c_env_bound[i]
+
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
 
@@ -2418,6 +2430,11 @@ class Simulator(object):
             cenv[:,0] = self.c_env_bound[i]
             cenv[0,:] = self.c_env_bound[i]
             cenv[-1,:] = self.c_env_bound[i]
+
+            cenv[:,-2] = self.c_env_bound[i]
+            cenv[:,1] = self.c_env_bound[i]
+            cenv[1,:] = self.c_env_bound[i]
+            cenv[-2,:] = self.c_env_bound[i]
 
         # reshape the matrices back into vectors:
         self.cc_env[i] = cenv.ravel()

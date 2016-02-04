@@ -623,7 +623,7 @@ class Cells(object):
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
-        sc = (p.rc/2.5)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
+        sc = (p.rc/2.4)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
         memTree = sps.KDTree(self.mem_mids_flat)
 
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
