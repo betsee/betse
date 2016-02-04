@@ -6,6 +6,10 @@
 High-level facilities for displaying and/or saving all enabled animations.
 '''
 
+#FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
+#based asynchronicity and parallelization. Ideally, we'd be able to segregate
+#the generation of each animation to its own Python process. Verdant shimmers!
+
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.plot.anim.anim import (
@@ -24,6 +28,11 @@ from betse.science.plot.anim.anim import (
 from betse.util.type import types
 
 # ....................{ PIPELINES                          }....................
+#FIXME: To improve memory consumption, split this monolithic function up into
+#one function per top-level animation if conditional. Doing so will prevent
+#large arrays specific to such conditionals from being retained for the duration
+#of the animation pipeline. Against, this really warrants refactoring into a
+#class (e.g., to avoid repassing "sim", "cells", and "p" everywhere). Summers!
 def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     '''
     Serially (i.e., in series) display and/or save all enabled animations for
@@ -51,16 +60,11 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if not p.createAnimations:
        return
 
+    # If animating IP3 calcium dynamics, do so.
     if p.ani_ip32d is True and p.Ca_dyn is True:
-        #FIXME: Out of curiosity, what's the scaling by 10**3 about? We only
-        #appear to do this for animations. Is this similar to our use of "p.um"
-        #to scale by 10**6, only for mm (millimeters) instead? Big smiley face!
-        IP3plotting = np.asarray(sim.cIP3_time)
-        IP3plotting = np.multiply(IP3plotting, 1000)
-
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=IP3plotting,
+            time_series=np.array(sim.cIP3_time) * 1000,
             type='IP3',
             figure_title='IP3 concentration',
             colorbar_title='Concentration [umol/L]',
@@ -69,13 +73,14 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_max=p.IP3_ani_max_clr,
         )
 
+    # If animating voltage-sensitive dye concentration, do so.
     if p.ani_dye2d is True and p.voltage_dye is True:
-        Dyeplotting = np.asarray(sim.cDye_time)
-        Dyeplotting = np.multiply(Dyeplotting, 1e3)
+        # Cell voltage-sensitive dye concentration as a function of time.
+        cell_morphogen_time_series = np.array(sim.cDye_time) * 1000
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=Dyeplotting,
+            time_series=cell_morphogen_time_series,
             type='Morph_cell',
             figure_title='Cellular Morphogen Concentration',
             colorbar_title='Concentration [umol/L]',
@@ -87,18 +92,8 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         if p.sim_ECM is True:
             AnimMorphogenTimeSeries(
                 sim=sim, cells=cells, p=p,
-
-                #FIXME: This probably safely reduces to:
-                #    cell_time_series=np.array(sim.cDye_time) * 1e3,
-                #The np.asarray() function avoids making a copy, which appears
-                #to be unnecessary here; the np.array() function makes a copy,
-                #thus permitting us to avoid the copy-by-slice (assuming
-                #"cDye_time" to be a Python list, of course). Lastly, the
-                #np.multiply() call appears to be equivalent to operator "*".
-                cell_time_series=np.multiply(
-                    np.asarray(sim.cDye_time[:]), 1e3),
-                env_time_series=np.multiply(
-                    np.asarray(sim.cDye_env_time[:]), 1e3),
+                cell_time_series=cell_morphogen_time_series,
+                env_time_series=np.array(sim.cDye_env_time)*1000,
                 type='Morph_all',
                 figure_title='Total Morphogen Concentration',
                 colorbar_title='Concentration [umol/L]',
@@ -110,21 +105,23 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             # Averaged dye animation, produced by sampling the environmental dye
             # at the membranes scaled to umol/L concentration.
             dyeEnv_at_mem = [
-                arr[cells.map_mem2ecm]*1e3 for arr in sim.cDye_env_time]
+                arr[cells.map_mem2ecm]*1000 for arr in sim.cDye_env_time]
 
             # Average the result to cell centres for each timestep.
             dyeEnv_at_cell = [
-                np.dot(cells.M_sum_mems,arr)/cells.num_mems
-                for arr in dyeEnv_at_mem]
+                np.dot(cells.M_sum_mems, arr) / cells.num_mems
+                for arr in dyeEnv_at_mem
+            ]
 
             # Values for all cells at each timestep scaled to umol/L
             # concentration.
-            dyeCell = [arr*1e3 for arr in sim.cDye_time]
+            dyeCell = [arr*1000 for arr in sim.cDye_time]
 
             # Average the dye at all locations for each timestep.
             dye_ave_t = [
                 (arr_env + arr_cell)/2
-                for (arr_env, arr_cell) in zip(dyeEnv_at_cell, dyeCell)]
+                for (arr_env, arr_cell) in zip(dyeEnv_at_cell, dyeCell)
+            ]
 
             AnimCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
@@ -428,6 +425,8 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         )
 
 # ....................{ PRIVATE ~ getters                  }....................
+#FIXME: Use everywhere above. Since recomputing this is heavy, we probably want
+#to refactor this module's functions into class methods. Fair dandylion hair!
 def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
     '''
     Get the membrane voltage time series for the current simulation, upscaled
@@ -440,7 +439,36 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
     if p.sim_ECM is False:
         vmem_time_series = sim.vm_time
     else:
+        #FIXME: What's the difference between "sim.vcell_time" and
+        #"sim.vm_Matrix"? The "p.ani_vm2d" animation leverages the latter for
+        #extracellular spaces, whereas most animations leverage the former.
         vmem_time_series = sim.vcell_time
 
     # Scaled membrane voltage time series.
-    return [vmem_time_step*1000 for vmem_time_step in vmem_time_series]
+    return np.array(vmem_time_series) * 1000
+
+
+#FIXME: Actually use above, including in _get_vmem_time_series().
+def _get_time_series_upscaled(time_series: (np.ndarray, list)) -> np.ndarray:
+    '''
+    Convert the passed time series (as either a pure-Python sequence _or_ Numpy
+    array) into a Numpy array whose scalar contents are all upscaled for use in
+    animations.
+
+    Each scalar value of the returned time series will be exactly `1000` times
+    larger than the corresponding value of the passed time series, which will
+    remain unmodified by this operation.
+
+    Parameters
+    ----------------------------
+    time_series : (np.ndarray, list)
+        Pure-Python sequence _or_ Numpy array to be upscaled.
+
+    Returns
+    ----------------------------
+    np.ndarray
+        Upscaled Numpy array.
+    '''
+    assert types.is_sequence_nonstr(time_series), (
+        types.assert_not_sequence_nonstr(time_series))
+    return np.array(time_series) * 1000

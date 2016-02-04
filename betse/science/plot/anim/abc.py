@@ -490,6 +490,10 @@ class AnimCells(PlotCells):
         # If animating only intracellular current, do so.
         if is_gj_only:
             self._axes_title = 'Gap Junction Current'
+
+            #FIXME: Is there any point to this? From what we can tell, the
+            #"self._current_density_stream_plot" will simply be outright
+            #replaced for the first and all subsequent frames. Galloping fish!
             self._current_density_stream_plot, self._axes = cell_stream(
                 self._current_density_x_time_series[-1],
                 self._current_density_y_time_series[-1],

@@ -236,6 +236,8 @@ class AnimEnvTimeSeries(AnimCells):
         self._mesh_plot.set_data(self._time_series[frame_number])
 
 
+#FIXME: Can the gap junction-specific functionality simply be folded into the
+#"AnimCellTimeSeries" class and this class removed entirely?
 class AnimGapJuncTimeSeries(AnimCells):
     '''
     Animation of an arbitrary gap junction-centric time series (e.g., the gap
@@ -377,9 +379,16 @@ class AnimMembraneTimeSeries(AnimCells):
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
 
+            #FIXME: This should be "True". Unfortunately, we appear to have
+            #broken this unbeknownst at some point. It now underlays rather
+            #than overlays the current, which is quite visually useless. We
+            #suspect the issue is in the superclass _replot_current_density()
+            #method. Perhaps a "zorder" needs to be explicitly passed to the
+            #_plot_stream() call to guarantee an overlay is produced? *shrug*
+
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
+            is_current_overlayable=False,
             *args, **kwargs
         )
 

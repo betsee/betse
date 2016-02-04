@@ -11,7 +11,7 @@ import numpy as np
 import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-from betse.exceptions import BetseExceptionFunction, BetseExceptionParameters
+from betse.exceptions import BetseExceptionParameters
 from betse.util.path import dirs
 from betse.util.type import types
 
@@ -405,31 +405,36 @@ def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title
 
     return fig, ax, cb
 
-def plotStreamField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]',
-                show_cells = False,colorAutoscale = True, minColor = None, maxColor=None):
+def plotStreamField(
+    Fx,Fy,
+    cells,
+    p,
+    plot_ecm: bool = False,
+    title: str = 'Vector field',
+    cb_title: str = 'Field [V/m]',
+    show_cells: bool = False,
+    colorAutoscale: bool = True,
+    minColor = None,
+    maxColor = None,
+):
 
     fig = plt.figure()
     ax = plt.subplot(111)
 
     if p.sim_ECM is True and plot_ecm is True:
-
         efield = np.sqrt(Fx**2 + Fy**2)
-
-        msh = ax.imshow(efield,origin='lower', extent = [cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um,
-            cells.ymax*p.um],cmap=p.background_cm)
-
+        msh = ax.imshow(
+            efield,
+            origin='lower',
+            extent=[cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um, cells.ymax*p.um],
+            cmap=p.background_cm,
+        )
         splot, ax = env_stream(Fx,Fy,ax,cells,p)
-
         tit_extra = 'Extracellular'
-
     elif plot_ecm is False:
-
         efield = np.sqrt(Fx**2 + Fy**2)
-
         msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
-
         splot, ax = cell_stream(Fx,Fy,ax,cells,p,showing_cells=show_cells)
-
         tit_extra = 'Intracellular'
 
     ax.axis('equal')

@@ -22,9 +22,9 @@ from scipy.ndimage.filters import gaussian_filter
 
 #FIXME: Shift method documentation into method docstrings. Burnished sunsets!
 #FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
-#attribute appears to be internally set by the Simulator.run_phase_sans_ecm() method. That
-#makes sense; however, what's the parallel "p.run_sim" attribute for, then?
-#Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
+#attribute appears to be internally set by the Simulator.run_phase_sans_ecm()
+#method. That makes sense; however, what's the parallel "p.run_sim" attribute
+#for, then?  Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
 #
 #* To "False" if an initialization is being performed.
 #* To "True" if a simulation is being performed.

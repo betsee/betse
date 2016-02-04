@@ -7,6 +7,10 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
+#FIXME: Print a non-fatal warning if Numpy is linked against a non-multithreaded
+#BLAS implementation. Also, print the name of the BLAS implementation against
+#which Numpy is linked with similar "betse info" metadata.
+
 # ....................{ IMPORTS                            }....................
 from betse import pathtree
 from betse.lib import libs
