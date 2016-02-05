@@ -33,7 +33,7 @@ def init() -> None:
       platform.
     '''
     # Avoid circular import dependencies.
-    from betse.lib.matplotlib.mpl import mpl_config
+    from betse.lib.matplotlib.matplotlibs import mpl_config
 
     # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
     # (possibly) importing such dependencies.

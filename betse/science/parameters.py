@@ -10,7 +10,7 @@
 
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib import mpl
+from betse.lib.matplotlib import matplotlibs
 from betse.science import simconfig
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
@@ -634,11 +634,11 @@ class Parameters(object):
         self.plot_cutlines = ro['plot cutlines']
 
         # Colormaps.
-        self.default_cm = mpl.get_colormap(ro['default colormap'])
-        self.background_cm = mpl.get_colormap(ro['background colormap'])
+        self.default_cm = matplotlibs.get_colormap(ro['default colormap'])
+        self.background_cm = matplotlibs.get_colormap(ro['background colormap'])
 
         # Colormap for plotting gj currents on top of default colormap.
-        self.gj_cm = mpl.get_colormap(ro['gj colormap'])
+        self.gj_cm = matplotlibs.get_colormap(ro['gj colormap'])
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines

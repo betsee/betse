@@ -14,6 +14,7 @@ Abstract base classes of all Matplotlib-based plotting classes.
 import gc, weakref
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
+from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.python import objects
 from betse.util.type import types
 from matplotlib import pyplot
@@ -540,4 +541,8 @@ class PlotCells(object, metaclass=ABCMeta):
             color='k',
             cmap=self._colormap,
             arrowsize=1.5,
+
+            # Draw this streamplot over all patch and line artists, by default.
+            # See the "ZORDER_STREAM" docstring for further commentary.
+            zorder=ZORDER_STREAM,
         )

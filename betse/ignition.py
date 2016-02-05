@@ -10,6 +10,12 @@ High-level application initialization common to both the CLI and GUI.
 #FIXME: Print a non-fatal warning if Numpy is linked against a non-multithreaded
 #BLAS implementation. Also, print the name of the BLAS implementation against
 #which Numpy is linked with similar "betse info" metadata.
+#
+#Indeed! It would appear that the metadata we require (...and more!) is
+#available via the "numpy.__config__" API. Sure, it's private, but well-
+#established at this point. We can't really see it going away. See also:
+#
+#    https://stackoverflow.com/a/19350234/2809027
 
 # ....................{ IMPORTS                            }....................
 from betse import pathtree

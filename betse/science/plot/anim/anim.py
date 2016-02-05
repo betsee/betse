@@ -338,6 +338,8 @@ class AnimGapJuncTimeSeries(AnimCells):
         self._cell_plot.set_array(zz_grid)
 
 
+#FIXME: Can the membrane-specific functionality simply be folded into the
+#"AnimCellTimeSeries" class and this class removed entirely?
 class AnimMembraneTimeSeries(AnimCells):
     '''
     Animation of an arbitrary cell membrane-specific time series (e.g.,
@@ -379,16 +381,9 @@ class AnimMembraneTimeSeries(AnimCells):
             axes_x_label='Spatial x [um]',
             axes_y_label='Spatial y [um]',
 
-            #FIXME: This should be "True". Unfortunately, we appear to have
-            #broken this unbeknownst at some point. It now underlays rather
-            #than overlays the current, which is quite visually useless. We
-            #suspect the issue is in the superclass _replot_current_density()
-            #method. Perhaps a "zorder" needs to be explicitly passed to the
-            #_plot_stream() call to guarantee an overlay is produced? *shrug*
-
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
-            is_current_overlayable=False,
+            is_current_overlayable=True,
             *args, **kwargs
         )
 

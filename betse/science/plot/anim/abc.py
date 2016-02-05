@@ -35,12 +35,17 @@ Abstract base classes of all Matplotlib-based animation classes.
 #implying that when the last reference to instances of this class go away, they
 #everything goes away. We probably will need to add circular references to the
 #passed "_figure", as detailed above.
+#FIXME: Indeed, a (very minor) amount of research suggests that non-blocking
+#animations should be trivially creatable by just ensuring that a reference to
+#the instantiated FuncAnimation() object is retained, as intuited above: e.g.,
+#
+#    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.mpl import mpl_config
+from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.science.plot.abc import PlotCells
 from betse.util.io import loggers
@@ -79,9 +84,9 @@ class AnimCells(PlotCells):
         animation _or_ `None` otherwise.
     _current_density_stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of either electric current or concentration flux overlayed
-        over this subclass' animation if `_is_plotting_current_overlay` is
+        over this subclass' animation if `_is_overlaying_current` is
         `True` _or_ `None` otherwise.
-    _is_plotting_current_overlay : bool
+    _is_overlaying_current : bool
         `True` if overlaying either electric current or concentration flux
         streamlines on this animation when requested by the current simulation
         configuration (as governed by the `p.I_overlay` parameter)_or_ `False`
@@ -156,7 +161,7 @@ class AnimCells(PlotCells):
 
         # If this subclass requests a current overlay, do so only if also
         # requested by the current simulation configuration.
-        self._is_plotting_current_overlay = (
+        self._is_overlaying_current = (
             is_current_overlayable and self._p.I_overlay)
 
         # True if both saving and displaying animation frames.
@@ -286,7 +291,7 @@ class AnimCells(PlotCells):
         # If plotting a current overlay, do so *AFTER* this subclass has already
         # performed all initial plotting but *BEFORE* our superclass overlays
         # its even more critical plotting data (e.g., cell labels).
-        if self._is_plotting_current_overlay:
+        if self._is_overlaying_current:
             self._plot_current_density()
 
         # Perform all superclass plotting preparation. This should typically be
@@ -401,7 +406,7 @@ class AnimCells(PlotCells):
 
         # If plotting a current overlay, do so *AFTER* this subclass has already
         # performed all plotting for this frame.
-        if self._is_plotting_current_overlay:
+        if self._is_overlaying_current:
             self._replot_current_density(frame_number)
 
         # Update this figure with the current time, rounded to three decimal

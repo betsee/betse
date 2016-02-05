@@ -5,7 +5,7 @@
 
 #FIXME: Redirect Matplotlib output through our logging interface. Currently, we
 #configure Matplotlib via the "RC_PARAMS" global constant to simply output all
-#non-debug messages to stdout, thereby preventing such messages from being
+#non-debug messages to stdout, thereby preventing these messages from being
 #logged. While Matplotlib can be reconfigured to redirect output to a file
 #instead, doing so then prevents that output from also being redirected to
 #stdout. (See the matplotlib.Verbose.set_fileo() method for details.)
@@ -146,6 +146,59 @@ in-memory dictionary of default `matplotlibrc` options deserialized from the
 current `matplotlibrc` file) with this dictionary. Hence, the custom options
 specified by this dictionary override the default options specified by the
 on-disk `matplotlibrc` file.
+'''
+
+# ....................{ CONSTANTS ~ z-order                }....................
+# These values derive from the following canonical z-order example:
+#     http://matplotlib.org/examples/pylab_examples/zorder_demo.html
+
+ZORDER_PATCH = 1
+'''
+Default **z-order** (i.e., positive integer ordering artist drawing, such that
+artists with larger z-orders are drawn over artists with smaller z-orders) for
+patch artists (e.g., `Patch`, `PatchCollection`).
+
+This is the lowest default z-order, thus drawing patch artists under all other
+artists by default.
+'''
+
+ZORDER_LINE = 2
+'''
+Default **z-order** (i.e., positive integer ordering artist drawing, such that
+artists with larger z-orders are drawn over artists with smaller z-orders) for
+line artists (e.g., `Line2D`, `LineCollection`, `StreamplotSet`).
+
+This is the middle default z-order, thus drawing line artists over all patch
+artists but under all text artists by default.
+'''
+
+ZORDER_TEXT = 3
+'''
+Default **z-order** (i.e., positive integer ordering artist drawing, such that
+artists with larger z-orders are drawn over artists with smaller z-orders) for
+text artists (e.g., `Text`).
+
+This is the highest default z-order, thus drawing text artists over all other
+artists by default.
+'''
+
+ZORDER_STREAM = (ZORDER_LINE + ZORDER_TEXT) / 2
+'''
+BETSE-specific **z-order** (i.e., positive integer ordering artist drawing, such
+that artists with larger z-orders are drawn over artists with smaller z-orders)
+for streamplots (e.g., `StreamplotSet`).
+
+This magic number has been chosen such that streamplots with this z-order will
+be drawn over all line and patch artists but under all text artists by default.
+Streamplots are technically a variant of line artists but sufficiently non-
+linear (and visually busy) to warrant separate handling.
+
+It may also be pertinent to note that recent Matplotlib releases as of this
+writing (1.40) accidentally broke backward compatibility with respect to default
+streamplot z-order. Specifically, streamplots were assigned a default z-order of
+`ZORDER_PATCH` rather than `ZORDER_LINE`:
+
+    https://github.com/matplotlib/matplotlib/pull/5567
 '''
 
 # ....................{ GETTERS                            }....................
