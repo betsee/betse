@@ -976,7 +976,6 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','P':'proteins','M':'anion'}
 
 
-
         elif self.ion_profile == 'basic_Ca':
 
             self.cNa_env = 145.0

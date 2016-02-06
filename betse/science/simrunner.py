@@ -180,10 +180,10 @@ class SimRunner(object):
         # initialization.
         if p.sim_ECM is False:
             sim.baseInit(cells, p)
-            sim.run_phase_sans_ecm(cells, p)
+            sim.run_loop_no_ecm(cells, p)
         else:
             sim.baseInit_ECM(cells, p)
-            sim.run_phase_with_ecm(cells, p)
+            sim.run_loop_with_ecm(cells, p)
 
         loggers.log_info('Initialization run complete!')
         loggers.log_info(
@@ -245,11 +245,11 @@ class SimRunner(object):
         # for this sim.
         sim.fileInit(p)
 
-        # Run and optionally save the simulation to the cache.
+        # Run and save the simulation to the cache.
         if p.sim_ECM is False:
-            sim.run_phase_sans_ecm(cells, p, save=True)
+            sim.run_loop_no_ecm(cells, p)
         else:
-            sim.run_phase_with_ecm(cells, p, save=True)
+            sim.run_loop_with_ecm(cells, p)
 
         loggers.log_info(
             'The simulation took {} seconds to complete.'.format(

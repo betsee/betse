@@ -767,6 +767,23 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+    if p.ions_dict['H'] == 1 and p.HKATPase_dyn == 1 and sim.run_sim is True:
+
+        viz.plotMemData(cells,p,zdata=-sim.HKATPase_rate,clrmap=p.default_cm)
+
+        plt.xlabel('Spatial Dimension [um]')
+        plt.ylabel('Spatial Dimension [um]')
+        plt.title('HKATPase_RATE')
+
+        if p.autosave is True:
+            savename8 = savedImg + 'final_HKPumpRate_2D' + '.png'
+            plt.savefig(savename8,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+
+
     #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_I2d is True:

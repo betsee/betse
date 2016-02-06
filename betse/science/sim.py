@@ -2,9 +2,6 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-#FIXME: Higher-level "betse.util.path" functions should typically be called
-#rather than low-level "os.path" functions. Daggers of scintillating wonder!
-
 import copy, os, os.path, time
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,38 +15,6 @@ from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-
-
-#FIXME: Shift method documentation into method docstrings. Burnished sunsets!
-#FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
-#attribute appears to be internally set by the Simulator.run_phase_sans_ecm()
-#method. That makes sense; however, what's the parallel "p.run_sim" attribute
-#for, then?  Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
-#
-#* To "False" if an initialization is being performed.
-#* To "True" if a simulation is being performed.
-#
-#This doesn't seem quite ideal, however. Ideally, there would exist one and only
-#one attribute whose value is an instance of a multi-state "PhaseEnum" class
-#rather than two binary boolean attributes. Possible enum values might include:
-#
-#* "PhaseEnum.seed" when seeding a new cluster.
-#* "PhaseEnum.init" when initializing a seeded cluster.
-#* "PhaseEnum.sim" when simulation an initialized cluster.
-#
-#This attribute would probably exist in the "Simulator" class -- say, as
-#"sim.phase". In light of that, consider the following refactoring:
-#
-#* Define a new "PhaseEnum" class in the "sim" module with the above attributes.
-#* Define a new "Simulator.phase" attribute initialized to None.
-#* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
-#  "sim.phase" instead. Note that only the:
-#  * "SimRunner" class sets "p.run_sim".
-#  * "Simulator" class sets "sim.run_sim".
-#
-#Note also the "plot_type" parameter passed to the pipeline.plot_all()
-#function, which should probably receive similar treatment. Wonder temptress at
-#the speed of light and the sound of love!
 
 class Simulator(object):
     """
@@ -751,7 +716,6 @@ class Simulator(object):
         # initialize the environmental diffusion matrix:
         self.initDenv(cells,p)
 
-
     def _init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Prepares data structures pertaining to tissue profiles and dynamic
@@ -889,15 +853,7 @@ class Simulator(object):
             'If you have selected features using other ions, '
             'they will be ignored.')
 
-
-    #FIXME: The "save" parameter is currently ignored! This method appears to
-    #*ALWAYS* unconditionally save results to the cache. Star dragon wings!
-    def run_phase_sans_ecm(
-        self,
-        cells: 'Cells',
-        p: 'Parameters',
-        save: bool = None
-    ) -> None:
+    def run_loop_no_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
         extracellular spaces disabled.
@@ -1082,10 +1038,10 @@ class Simulator(object):
                 fCaATP = pumpCaATP(self.cc_cells[self.iCa],self.cc_env[self.iCa],self.vm,self.T,p)
 
                 # update concentrations in the cell:
-                self.cc_cells[self.iCa] = self.cc_cells[self.iCa] + fCaATP*(cells.cell_sa/cells.cell_vol)*p.dt
+                self.cc_cells[self.iCa] = self.cc_cells[self.iCa] + self.rho_pump_o*fCaATP*(cells.cell_sa/cells.cell_vol)*p.dt
 
                 # store the transmembrane flux for this ion
-                self.fluxes_mem[self.iCa] = fCaATP[cells.mem_to_cells]
+                self.fluxes_mem[self.iCa] = self.rho_pump*fCaATP[cells.mem_to_cells]
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
@@ -1133,12 +1089,12 @@ class Simulator(object):
                         self.cc_env[self.iK],self.vm,self.T,p,self.HKATP_block)
 
                     # update the concentration in cells (assume environment steady and constant supply of ions)
-                    self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_H2*(cells.cell_sa/cells.cell_vol)*p.dt
-                    self.cc_cells[self.iK] = self.cc_cells[self.iK] + f_K2*(cells.cell_sa/cells.cell_vol)*p.dt
+                    self.cc_cells[self.iM] = self.cc_cells[self.iM] - self.rho_pump_o*f_H2*(cells.cell_sa/cells.cell_vol)*p.dt
+                    self.cc_cells[self.iK] = self.cc_cells[self.iK] + self.rho_pump_o*f_K2*(cells.cell_sa/cells.cell_vol)*p.dt
 
                     # store fluxes for this pump:
-                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2[cells.mem_to_cells]
-                    self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2[cells.mem_to_cells]
+                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump*f_H2[cells.mem_to_cells]
+                    self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + self.rho_pump*f_K2[cells.mem_to_cells]
 
                     # Calculate the new pH and H+ concentration:
                     self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
@@ -1152,9 +1108,9 @@ class Simulator(object):
                      # if HKATPase pump is desired, run the H-K-ATPase pump:
                     f_H3 = pumpVATP(self.cc_cells[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block)
 
-                    self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_H3*(cells.cell_sa/cells.cell_vol)*p.dt
+                    self.cc_cells[self.iM] = self.cc_cells[self.iM] - self.rho_pump_o*f_H3*(cells.cell_sa/cells.cell_vol)*p.dt
 
-                    self.fluxes_mem[self.iH]  = self.fluxes_mem[self.iH] + f_H3[cells.mem_to_cells]
+                    self.fluxes_mem[self.iH]  = self.fluxes_mem[self.iH] + self.rho_pump*f_H3[cells.mem_to_cells]
 
                     # Calculate the new pH and H+ concentration:
                     self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
@@ -1462,15 +1418,7 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
-
-    #FIXME: The "save" parameter is currently ignored! This method appears to
-    #*ALWAYS* unconditionally save results to the cache. Star dragon wings!
-    def run_phase_with_ecm(
-        self,
-        cells: 'Cells',
-        p: 'Parameters',
-        save: bool = None
-    ) -> None:
+    def run_loop_with_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
         extracellular spaces enabled.
@@ -1478,11 +1426,6 @@ class Simulator(object):
         This method drives the time-loop for the main simulation, including
         gap-junction connections and all dynamics.
 
-        Parameters
-        ----------
-        save : bool
-            If `True`, the results of running this simulation phase will be
-            written to the on-disk cache.
         '''
 
         self._init_tissue(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
@@ -1666,6 +1609,10 @@ class Simulator(object):
 
                 f_CaATP = pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],self.cc_env[self.iCa][cells.map_mem2ecm],
                         self.vm,self.T,p)
+
+                # modify calcium flux by any redistribution of pumps and channels
+
+                f_CaATP = self.rho_pump*f_CaATP
 
                 # update calcium concentrations in cell and ecm:
                 self.update_C_ecm(self.iCa,f_CaATP,cells,p)
@@ -1934,9 +1881,6 @@ class Simulator(object):
 
          # Find embedded functions that can't be pickled...
         fh.safe_pickle(self,p)
-        # for key, valu in vars(self.dyna).items():
-        #     if type(valu) == interp.interp1d or callable(valu):
-        #         setattr(self.dyna,key,None)
 
         cells.points_tree = None
         self.checkPlot = None
@@ -2101,7 +2045,6 @@ class Simulator(object):
 
         return vm, v_cell, v_env
 
-
     def update_V_ecm(self,cells,p,t):
 
         if p.sim_ECM is True:
@@ -2162,6 +2105,12 @@ class Simulator(object):
             self.cc_cells[self.iK][cells.mem_to_cells],self.cc_env[self.iK][cells.map_mem2ecm],
             self.vm,self.T,p,self.HKATP_block)
 
+        # modify fluxes by any uneven redistribution of pump location:
+        f_H2 = self.rho_pump*f_H2
+        f_K2 = self.rho_pump*f_K2
+
+        self.HKATPase_rate = f_H2[:]
+
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H2
         self.fluxes_mem[self.iK] =  self.fluxes_mem[self.iK] + f_K2
 
@@ -2185,6 +2134,9 @@ class Simulator(object):
         # if HKATPase pump is desired, run the H-K-ATPase pump:
         f_H3 = pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_env[self.iH][cells.map_mem2ecm],
             self.vm,self.T,p,self.VATP_block)
+
+         # modify flux by any uneven redistribution of pump location:
+        f_H3 = self.rho_pump*f_H3
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H3
 
@@ -2260,8 +2212,8 @@ class Simulator(object):
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
-        self.fluxes_gj_x[i] = -fgj_x  # store gap junction flux for this ion
-        self.fluxes_gj_y[i] = -fgj_y  # store gap junction flux for this ion
+        self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
+        self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
 
@@ -2445,8 +2397,8 @@ class Simulator(object):
         # fenvx = fd.integrator(fenvx)
         # fenvy = fd.integrator(fenvy)
 
-        self.fluxes_env_x[i] = -fenvx.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = -fenvy.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
 
     def update_er(self,cells,p,t):
 
@@ -3375,8 +3327,9 @@ class Simulator(object):
 
         # total electric field at each membrane
         if p.sim_ECM is True:
-            Ex = self.E_env_x.ravel()[cells.map_mem2ecm] + self.E_gj_x
-            Ey = self.E_env_y.ravel()[cells.map_mem2ecm] + self.E_gj_y
+
+            Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
+            Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
 
         else:
             Ex = self.E_gj_x
@@ -4081,8 +4034,6 @@ class Simulator(object):
         if p.plot_while_solving is True and t > 0:
             self.checkPlot.resetData(cells,self,p)
 
-
-#FIXME: Perhaps we could shift this into an "electro" module? Scintillations!
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """
@@ -4471,3 +4422,32 @@ def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
+#FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
+#attribute appears to be internally set by the Simulator.run_phase_sans_ecm()
+#method. That makes sense; however, what's the parallel "p.run_sim" attribute
+#for, then?  Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
+#
+#* To "False" if an initialization is being performed.
+#* To "True" if a simulation is being performed.
+#
+#This doesn't seem quite ideal, however. Ideally, there would exist one and only
+#one attribute whose value is an instance of a multi-state "PhaseEnum" class
+#rather than two binary boolean attributes. Possible enum values might include:
+#
+#* "PhaseEnum.seed" when seeding a new cluster.
+#* "PhaseEnum.init" when initializing a seeded cluster.
+#* "PhaseEnum.sim" when simulation an initialized cluster.
+#
+#This attribute would probably exist in the "Simulator" class -- say, as
+#"sim.phase". In light of that, consider the following refactoring:
+#
+#* Define a new "PhaseEnum" class in the "sim" module with the above attributes.
+#* Define a new "Simulator.phase" attribute initialized to None.
+#* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
+#  "sim.phase" instead. Note that only the:
+#  * "SimRunner" class sets "p.run_sim".
+#  * "Simulator" class sets "sim.run_sim".
+#
+#Note also the "plot_type" parameter passed to the pipeline.plot_all()
+#function, which should probably receive similar treatment. Wonder temptress at
+#the speed of light and the sound of love!
