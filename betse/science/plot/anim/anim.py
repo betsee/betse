@@ -115,6 +115,9 @@ class AnimCellsTimeSeries(AnimCells):
 
         # If extracellular spaces are both simulated and requested, plot them.
         if self._p.sim_ECM is True and self._is_ecm_ignored is False:
+            # Disambiguate this animation from identical animations with no
+            # extracellular space support.
+            self._type += '_ecm'
             self.collection, self._axes = env_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
         # Else if a cell mosaic is requested, plot that.
@@ -1312,18 +1315,37 @@ class AnimateDeformation(object):
             plt.savefig(savename,format='png')
 
 
+#FIXME: Rename to "AnimCellsWhileSolving".
+#FIXME: We're fairly certain this to be trivially refactorable to inherit from
+#"AnimCells", simply by avoiding calling the _animate() method. Candycane sun!
 class PlotWhileSolving(object):
+    '''
+    Animation of an arbitrary cell-centric time series (e.g., cell voltage as a
+    function of time), plotted over the cell cluster during rather than after
+    simulation modelling.
+
+    Attributes
+    ----------
+    '''
 
     def __init__(
         self,
-        cells,
-        sim,
-        p,
-        number_cells=False,
-        clrAutoscale=True,
-        clrMin=None,
-        clrMax=None,
-    ):
+        cells: 'Cells',
+        sim: 'Simulator',
+        p: 'Parameters',
+        number_cells: bool = False,
+        clrAutoscale: bool = True,
+        clrMin: float = None,
+        clrMax: float = None,
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
 
         vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
 

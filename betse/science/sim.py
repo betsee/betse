@@ -853,6 +853,9 @@ class Simulator(object):
             'If you have selected features using other ions, '
             'they will be ignored.')
 
+
+    #FIXME: This and the run_loop_with_ecm() method share a great deal of
+    #copy-and-pasted code in common. Evergreen groves in the ultrablack light!
     def run_loop_no_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
@@ -956,42 +959,42 @@ class Simulator(object):
 
         if p.Ca_dyn is True:
             self.cc_er = np.asarray(self.cc_er)
+
+            #FIXME: This doesn't do what you think it does. In Numpy, basic
+            #array slices return a *VIEW* rather than a *COPY* of the sliced
+            #array. Hence, the following two assignments are identical:
+            #
+            #    # This...
+            #    self.cc_er_to = self.cc_er[:]
+            #
+            #    # ...is the exact same as this.
+            #    self.cc_er_to = self.cc_er
+            #
+            #In both assignments, no copy is made! The two attributes will
+            #refer to the same underlying array. Changes made to the contents
+            #of one will affect the other.
+            #
+            #Is that the intention? If so, that's fine; but the slice should
+            #probably be dropped for clarity. If not, the most efficient means
+            #of copying Numpy arrays is interestingly the standard array()
+            #function:
+            #
+            #    # This actually makes a copy. Pretty fast, too.
+            #    self.cc_er_to = np.array(self.cc_er)
+            #
+            #Or did you actually mean these two arrays to be references to each
+            #other? Unfortunately, I'm seeing quite a bit of "[:]"-style
+            #slicing on Numpy arrays throughout the codebase. This might be a
+            #widespread issue. Or I might be a raving juggernaut of code love.
+            #
+            #Swimming pool waters in a shampagne pool hall!
             self.cc_er_to = self.cc_er[:]
 
-        # create a time-steps vector appropriate for the simulation type:
-        if p.run_sim is True:
-            tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
-        else:
-            tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)
-
-        i = 0 # resample the time vector to save data at specific times:
-        tsamples =[]
-        resample = p.t_resample
-        while i < len(tt)-resample:
-            i = i + resample
-            tsamples.append(tt[i])
-        tsamples = set(tsamples)
-
-        if p.run_sim is True:
-            loggers.log_info(
-                'Your simulation is running from ' + str(0) + ' to '
-                + str(round(p.sim_tsteps*p.dt,3))
-                + ' seconds of in-world time.')
-        else:
-             loggers.log_info(
-                 'Your initialization is running from '+ str(0) + ' to '
-                 + str(round(p.init_tsteps*p.dt,3))
-                 + ' seconds of in-world time.')
-
-        if p.plot_while_solving is True:
-            self.checkPlot = PlotWhileSolving(
-                cells,
-                self,
-                p,
-                clrAutoscale=p.autoscale_Vmem,
-                clrMin=p.Vmem_min_clr,
-                clrMax=p.Vmem_max_clr,
-            )
+        # Display and/or save an animation during solving and calculate:
+        #
+        # * "tt", a time-steps vector appropriate for the current run.
+        # * "tsamples", that vector resampled to save data at specific times.
+        tt, tsamples = self._plot_loop(cells, p)
 
         do_once = True  # a variable to time the loop only once
 
@@ -1002,11 +1005,9 @@ class Simulator(object):
             self.fluxes_mem.fill(0)  # reinitialize flux storage device
 
             self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
-                 # reassign the history-saving vm
-            self.vm_to = self.vm[:]
+            self.vm_to = self.vm[:]       # reassign the history-saving vm
 
             if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
-
                 self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
                 # self.cc_er_to = copy.deepcopy(self.cc_er)
                 self.cc_er_to = self.cc_er[:]
@@ -1015,9 +1016,19 @@ class Simulator(object):
             if p.run_sim is True:
                 self.dyna.runAllDynamics(self,cells,p,t)
 
+            #-----------------PUMPS-------------------------------------------------------------------------------------
+
             # run the Na-K-ATPase pump:
-            fNa_NaK, fK_NaK, self.rate_NaKATP = pumpNaKATP(self.cc_cells[self.iNa],self.cc_env[self.iNa],
-                self.cc_cells[self.iK], self.cc_env[self.iK],self.vm,self.T,p,self.NaKATP_block)
+            fNa_NaK, fK_NaK, self.rate_NaKATP = pumpNaKATP(
+                self.cc_cells[self.iNa],
+                self.cc_env[self.iNa],
+                self.cc_cells[self.iK],
+                self.cc_env[self.iK],
+                self.vm,
+                self.T,
+                p,
+                self.NaKATP_block,
+            )
 
             # update the concentration in cells (assume environment steady and constant supply of ions)
             self.cc_cells[self.iNa] = self.cc_cells[self.iNa] + \
@@ -1418,6 +1429,7 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
+
     def run_loop_with_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
@@ -1525,43 +1537,16 @@ class Simulator(object):
         # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
         self.update_V_ecm(cells,p,0)
 
+        #FIXME: We're in trouble here. This does *NOT* make a copy. Numpy
+        #array slices return a view rather than a copy. See related FIXME
+        #comment above. Slipping slides down the loggerhead of time!
         self.vm_to = self.vm[:]   # create a copy of the original voltage
 
-         # create a time-steps vector appropriate for simulation type:
-        if p.run_sim is True:
-            tt = np.linspace(0,p.sim_tsteps*p.dt,p.sim_tsteps)
-        else:
-            tt = np.linspace(0,p.init_tsteps*p.dt,p.init_tsteps)   # timestep vector
-
-        i = 0 # resample the time vector to save data at specific times:
-        tsamples =[]
-        resample = p.t_resample
-        while i < len(tt)-resample:
-            i = i + resample
-            tsamples.append(tt[i])
-        tsamples = set(tsamples)
-
-        # report
-        if p.run_sim is True:
-            loggers.log_info(
-                'Your simulation (with extracellular spaces) is running from '+ str(0) + ' to '
-                + str(round(p.sim_tsteps*p.dt,3))
-                + ' seconds of in-world time.')
-        else:
-            loggers.log_info(
-                'Your initialization (with extracellular spaces) is running from '+ str(0) + ' to '
-                + str(round(p.init_tsteps*p.dt,3))
-                + ' seconds of in-world time.')
-
-        if p.plot_while_solving is True:
-            self.checkPlot = PlotWhileSolving(
-                cells,
-                self,
-                p,
-                clrAutoscale=p.autoscale_Vmem,
-                clrMin=p.Vmem_min_clr,
-                clrMax=p.Vmem_max_clr,
-            )
+        # Display and/or save an animation during solving and calculate:
+        #
+        # * "tt", a time-steps vector appropriate for the current run.
+        # * "tsamples", that vector resampled to save data at specific times.
+        tt, tsamples = self._plot_loop(cells, p)
 
         do_once = True  # a variable to time the loop only once
 
@@ -1569,27 +1554,39 @@ class Simulator(object):
             if do_once is True:
                 loop_measure = time.time()
 
-            self.fluxes_mem.fill(0)  # reinitialize flux storage device
+            # Reinitialize flux storage device.
+            self.fluxes_mem.fill(0)
 
-            self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
+            # Calculate the change in the voltage derivative.
+            self.dvm = (self.vm - self.vm_to)/p.dt
+
+            #FIXME: Uh oh! More Numpy slicing horror show. Joyous inner voyage!
             self.vm_to = self.vm[:]       # reassign the history-saving vm
 
-            if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
-
+            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                 self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
+
+                #FIXME: Uh oh! Numpy slicing bites back. Wondrous outer world!
                 self.cc_er_to = self.cc_er[:]
 
-            # calculate the values of scheduled and dynamic quantities (e.g. ion channel multipliers):
+            # Calculate the values of scheduled and dynamic quantities (e.g.
+            # ion channel multipliers).
             if p.run_sim is True:
-                self.dyna.runAllDynamics(self,cells,p,t)
+                self.dyna.runAllDynamics(self, cells, p, t)
 
             #-----------------PUMPS-------------------------------------------------------------------------------------
 
             # run the Na-K-ATPase pump:
-            fNa_NaK, fK_NaK, self.rate_NaKATP =\
-                pumpNaKATP(self.cc_cells[self.iNa][cells.mem_to_cells],self.cc_env[self.iNa][cells.map_mem2ecm],
-                    self.cc_cells[self.iK][cells.mem_to_cells],self.cc_env[self.iK][cells.map_mem2ecm],
-                    self.vm,self.T,p,self.NaKATP_block)
+            fNa_NaK, fK_NaK, self.rate_NaKATP = pumpNaKATP(
+                self.cc_cells[self.iNa][cells.mem_to_cells],
+                self.cc_env[self.iNa][cells.map_mem2ecm],
+                self.cc_cells[self.iK][cells.mem_to_cells],
+                self.cc_env[self.iK][cells.map_mem2ecm],
+                self.vm,
+                self.T,
+                p,
+                self.NaKATP_block,
+            )
 
             # modify the resulting fluxes by the electroosmosis membrane redistribution factor (if calculated)
             fNa_NaK = self.rho_pump*fNa_NaK
@@ -1951,21 +1948,88 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
-    def get_Vall(self,cells,p):
-        """
-        Calculates transmembrane voltage (Vmem) and voltages inside the cell and extracellular space, assuming the cell
-        is a capacitor consisting of two concentric spheres.
 
-        self:
+    def _plot_loop(self, cells, p) -> (np.ndarray, set):
+        '''
+        Display and/or save an animation during solving if requested _and_
+        calculate data common to solving both with and without extracellular
+        spaces.
+
+        Returns
+        --------
+        tt : np.ndarray
+            Time-steps vector appropriate for the current run.
+        tsamples : set
+            Time-steps vector resampled to save data at specific times.
+        '''
+
+        # Human-readable state of extracellular spaces simulation.
+        if p.sim_ECM is False:
+            ecm_state_label = ''
+        else:
+            ecm_state_label = '(with extracellular spaces) '
+
+        # Human-readable type and maximum number of steps of the current run.
+        if p.run_sim is False:
+            loop_type_label = 'initialization'
+            loop_time_step_max = p.init_tsteps
+        else:
+            loop_type_label = 'simulation'
+            loop_time_step_max = p.sim_tsteps
+
+        # Maximum number of seconds simulated by the current run.
+        loop_seconds_max = loop_time_step_max * p.dt
+
+        # Time-steps vector appropriate for the current run.
+        tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
+
+        # Resample this vector to save data at specific times.
+        i = 0
+        tsamples = set()
+        resample = p.t_resample
+        while i < len(tt) - resample:
+            i = i + resample
+            tsamples.add(tt[i])
+
+        # Log this run.
+        loggers.log_info(
+            'Your {} {}is running from 0 to {:.3f} '
+            'seconds of in-world time.'.format(
+            loop_type_label, ecm_state_label, loop_seconds_max))
+
+        # If displaying and/or saving an animation during solving, do so.
+        if p.plot_while_solving is True:
+            self.checkPlot = PlotWhileSolving(
+                cells,
+                self,
+                p,
+                clrAutoscale=p.autoscale_Vmem,
+                clrMin=p.Vmem_min_clr,
+                clrMax=p.Vmem_max_clr,
+            )
+
+        return tt, tsamples
+
+
+    def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
+        """
+        Calculates transmembrane voltage (Vmem) and voltages inside the cell
+        and extracellular space, assuming the cell is a capacitor consisting of
+        two concentric spheres.
+
+        Parameters
+        --------
         cells:
         p:
 
         Returns
         --------
-        vm           Transmembrane voltage
-        v_cell       Voltage at the inner membrane surface
-        v_env        Voltage at the outer membrane surface
-
+        vm : np.ndarray
+            Transmembrane voltage.
+        v_cell : np.ndarray
+            Voltage at the inner membrane surface.
+        v_env : np.ndarray
+            Voltage at the outer membrane surface.
         """
 
         if p.sim_ECM is False:
