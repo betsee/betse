@@ -435,21 +435,26 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
     assert types.is_simulator(sim), types.assert_not_simulator(sim)
     assert types.is_parameters(p), types.assert_not_parameters(p)
 
-    # Unscaled membrane voltage time series.
+    # Scaled membrane voltage time series.
     if p.sim_ECM is False:
-        vmem_time_series = sim.vm_time
+        return get_time_series_upscaled(sim.vm_time)
     else:
         #FIXME: What's the difference between "sim.vcell_time" and
-        #"sim.vm_Matrix"? The "p.ani_vm2d" animation leverages the latter for
-        #extracellular spaces, whereas most animations leverage the former.
-        vmem_time_series = sim.vcell_time
-
-    # Scaled membrane voltage time series.
-    return np.array(vmem_time_series) * 1000
+        #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "PlotWhileSolving"
+        #animations leverage the latter for extracellular spaces, whereas most
+        #animations leverage the former.
+        #FIXME: It would seem that "sim.vm_Matrix" is used where continuous
+        #plots (e.g., streamplots) are required and "sim.vcell_time" where
+        #discrete plots suffice, suggesting we probably want two variants of
+        #this method:
+        #
+        #* _get_vmem_time_series_smooth(), returning "sim.vm_Matrix" for ECM.
+        #* _get_vmem_time_series_jagged(), returning "sim.vcell_time" for ECM.
+        return get_time_series_upscaled(sim.vcell_time)
 
 
 #FIXME: Actually use above, including in _get_vmem_time_series().
-def _get_time_series_upscaled(time_series: (np.ndarray, list)) -> np.ndarray:
+def get_time_series_upscaled(time_series: (np.ndarray, list)) -> np.ndarray:
     '''
     Convert the passed time series (as either a pure-Python sequence _or_ Numpy
     array) into a Numpy array whose scalar contents are all upscaled for use in
@@ -471,4 +476,4 @@ def _get_time_series_upscaled(time_series: (np.ndarray, list)) -> np.ndarray:
     '''
     assert types.is_sequence_nonstr(time_series), (
         types.assert_not_sequence_nonstr(time_series))
-    return np.array(time_series) * 1000
+    return np.asarray(time_series) * 1000

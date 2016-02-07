@@ -808,8 +808,8 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Time series of all velocity magnitudes.
         self._magnitude_time_series = np.sqrt(
-            np.array(self._sim.u_env_x_time) ** 2 +
-            np.array(self._sim.u_env_y_time) ** 2) * 1e9
+            np.asarray(self._sim.u_env_x_time) ** 2 +
+            np.asarray(self._sim.u_env_y_time) ** 2) * 1e9
 
         # Velocity field and maximum velocity field value for the first frame.
         vfield = self._magnitude_time_series[0]
@@ -1334,9 +1334,9 @@ class PlotWhileSolving(object):
         sim: 'Simulator',
         p: 'Parameters',
         number_cells: bool = False,
-        clrAutoscale: bool = True,
-        clrMin: float = None,
-        clrMax: float = None,
+        is_color_autoscaled: bool = True,
+        color_min: float = None,
+        color_max: float = None,
     ) -> None:
         '''
         Initialize this animation.
@@ -1347,51 +1347,65 @@ class PlotWhileSolving(object):
         See the superclass `__init__()` method for all remaining parameters.
         '''
 
+        #FIXME: Call pipeline._get_vmem_time_series() instead, *POSSIBLY*. That
+        #function accounts for ECM by returning a different array. Do we
+        #perform the equivalent action somewhere below?
+        #FIXME: Ah! We require "sim.vm_Matrix" in the ECM case, implying we
+        #can't defer to the aforementioned function. Instead, refactor the
+        #callor to instead pass:
+        #
+        #if p.sim_ECM is False:
+        #    time_series=np.multiply(sim.vm,1000)
         vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
 
-        self.colormap = p.default_cm
-        self.fig = plt.figure()       # define figure
-        self.ax = plt.subplot(111)    # define axes
+        #FIXME: Begin copy-and-pasta.
+        self._colormap = p.default_cm
+        self._figure = plt.figure()       # define figure
+        self._axes = plt.subplot(111)    # define axes
+        #FIXME: End copy-and-pasta.
 
-        self.tit = 'Vmem check while solving'
+        self._figure_title = 'Vmem check while solving'
 
-        self.clrAutoscale = clrAutoscale
-        self.cells = cells
-        self.p = p
+        #FIXME: Begin copy-and-pasta.
+        self._is_color_autoscaled = is_color_autoscaled
+        self._cells = cells
+        self._p = p
         self.number_cells = number_cells
-        self.clrMin = clrMin
-        self.clrMax = clrMax
+#        self._color_min = color_min
+#        self._color_max = color_max
 
-        self.ax.axis('equal')
+        self._axes.axis('equal')
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
         ymin = cells.ymin*p.um
         ymax = cells.ymax*p.um
 
-        self.ax.axis([xmin,xmax,ymin,ymax])
+        self._axes.axis([xmin, xmax, ymin, ymax])
+        #FIXME: End copy-and-pasta.
 
-        if clrAutoscale is True:
+        if is_color_autoscaled is True:
+            #FIXME: What's "cmean" for?
             self.cmean = np.mean(vdata)
-            self.cmin = round(np.min(vdata),1)
-            self.cmax = round(np.max(vdata),1)
-            clrCheck = self.cmax - self.cmin
+            self._color_min = round(np.min(vdata), 1)
+            self._color_max = round(np.max(vdata), 1)
+            clrCheck = self._color_max - self._color_min
 
             if clrCheck == 0:
-                self.cmin = self.cmin - 0.1
-                self.cmax = self.cmax + 0.1
+                self._color_min = self._color_min - 0.1
+                self._color_max = self._color_max + 0.1
         else:
-            self.cmin = clrMin
-            self.cmax = clrMax
+            self._color_min = color_min
+            self._color_max = color_max
 
         if p.sim_ECM is False:
             if p.showCells is True:
                 # Add a collection of cell polygons, with animated voltage data
-                self.coll2, self.ax = cell_mosaic(
-                    vdata,self.ax,cells,p,p.default_cm)
+                self.coll2, self._axes = cell_mosaic(
+                    vdata,self._axes,cells,p,p.default_cm)
             else:
-                self.coll2,self.ax = cell_mesh(
-                    vdata,self.ax,cells,p,p.default_cm)
+                self.coll2,self._axes = cell_mesh(
+                    vdata,self._axes,cells,p,p.default_cm)
         else:
             dat_grid = sim.vm_Matrix[0]*1000
 
@@ -1403,7 +1417,7 @@ class PlotWhileSolving(object):
                 dat_grid,
                 origin='lower',
                 extent=[xmin,xmax,ymin,ymax],
-                cmap=self.colormap,
+                cmap=self._colormap,
             )
 
             if p.showCells is True:
@@ -1414,20 +1428,20 @@ class PlotWhileSolving(object):
                     colors='k',
                 )
                 coll.set_alpha(0.5)
-                self.ax.add_collection(coll)
+                self._axes.add_collection(coll)
 
          # set range of the colormap
-        self.coll2.set_clim(self.cmin,self.cmax)
-        self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
+        self.coll2.set_clim(self._color_min, self._color_max)
+        self._colorbar = self._figure.colorbar(self.coll2)   # define colorbar for figure
 
         if number_cells is True and p.showCells is True:
             for i,cll in enumerate(cells.cell_centres):
-                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
+                self._axes.text(p.um * cll[0], p.um * cll[1], i, va='center', ha='center')
 
-        self.cb.set_label('Voltage [mV]')
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um]')
-        self.ax.set_title(self.tit)
+        self._colorbar.set_label('Voltage [mV]')
+        self._axes.set_xlabel('Spatial x [um]')
+        self._axes.set_ylabel('Spatial y [um]')
+        self._axes.set_title(self._figure_title)
 
         if p.save_solving_plot is True:
             if p.run_sim is True:
@@ -1450,11 +1464,11 @@ class PlotWhileSolving(object):
     def updatePlot(self,sim,p):
 
         if p.sim_ECM is False:
-            if self.p.showCells is True:
+            if self._p.showCells is True:
                 zz_grid = sim.vm_time[-1]*1000
             else:
-                zz_grid = np.zeros(len(self.cells.voronoi_centres))
-                zz_grid[self.cells.cell_to_grid] = sim.vm_time[-1]*1000
+                zz_grid = np.zeros(len(self._cells.voronoi_centres))
+                zz_grid[self._cells.cell_to_grid] = sim.vm_time[-1] * 1000
 
             self.coll2.set_array(zz_grid)
 
@@ -1469,21 +1483,21 @@ class PlotWhileSolving(object):
                 else:
                     zv = ma.masked_array(
                         sim.vm_Matrix[-1]*1000,
-                        np.logical_not(self.cells.maskM))
+                        np.logical_not(self._cells.maskM))
 
                 self.coll2.set_data(zv)
 
-        if self.clrAutoscale is True:
+        if self._is_color_autoscaled is True:
             cmin = 1000*np.min(sim.vm_time[-1])
             cmax = 1000*np.max(sim.vm_time[-1])
             self.coll2.set_clim(cmin,cmax)
 
         time = sim.time[-1]
 
-        titani = self.tit + ' ' + '(simulation time' + ' ' + str(round(time,3)) + ' ' + 's)'
-        self.ax.set_title(titani)
+        titani = self._figure_title + ' ' + '(simulation time' + ' ' + str(round(time, 3)) + ' ' + 's)'
+        self._axes.set_title(titani)
 
-        self.fig.canvas.draw()
+        self._figure.canvas.draw()
 
         if p.save_solving_plot is True:
             self.i = self.i + 1
@@ -1497,34 +1511,34 @@ class PlotWhileSolving(object):
 
         vdata = np.multiply(sim.vm,1000)   # data array for cell coloring
 
-        self.cells = cells
-        self.p = p
+        self._cells = cells
+        self._p = p
 
-        self.fig.clf()
-        self.ax = plt.subplot(111)
+        self._figure.clf()
+        self._axes = plt.subplot(111)
 
         xmin = p.um*cells.xmin
         xmax = p.um*cells.xmax
         ymin = p.um*cells.ymin
         ymax = p.um*cells.ymax
 
-        self.ax.axis([xmin,xmax,ymin,ymax])
+        self._axes.axis([xmin, xmax, ymin, ymax])
 
-        if self.clrAutoscale is True:
-            self.cmin = np.min(vdata)
-            self.cmax = np.max(vdata)
+        if self._is_color_autoscaled is True:
+            self._color_min = np.min(vdata)
+            self._color_max = np.max(vdata)
         else:
-            self.cmin = self.clrMin
-            self.cmax = self.clrMax
+            self._color_min = self._color_min
+            self._color_max = self._color_max
 
         if p.sim_ECM is False:
             if p.showCells is True:
                 # Add a collection of cell polygons, with animated voltage data
-                self.coll2, self.ax = cell_mosaic(
-                    vdata, self.ax, cells, p, p.default_cm)
+                self.coll2, self._axes = cell_mosaic(
+                    vdata, self._axes, cells, p, p.default_cm)
             else:
-                self.coll2,self.ax = cell_mesh(
-                    vdata, self.ax, cells, p, p.default_cm)
+                self.coll2,self._axes = cell_mesh(
+                    vdata, self._axes, cells, p, p.default_cm)
         else:
             dat_grid = sim.vm_Matrix[0]*1000
 
@@ -1537,7 +1551,7 @@ class PlotWhileSolving(object):
                 dat_grid,
                 origin='lower',
                 extent=[xmin,xmax,ymin,ymax],
-                cmap=self.colormap,
+                cmap=self._colormap,
             )
 
             if p.showCells is True:
@@ -1545,28 +1559,28 @@ class PlotWhileSolving(object):
                 cell_edges_flat = cells.um*cells.mem_edges_flat
                 coll = LineCollection(cell_edges_flat,colors='k')
                 coll.set_alpha(0.5)
-                self.ax.add_collection(coll)
+                self._axes.add_collection(coll)
 
             # If the "apply external voltage" event occurred and is to be
             # plotted, plot this event.
             if p.scheduled_options['extV'] is not None and p.extVPlot is True:
                 boundv = sim.v_env*1e3
-                self.vext_plot = self.ax.scatter(
+                self.vext_plot = self._axes.scatter(
                     p.um*cells.env_points[:,0],
                     p.um*cells.env_points[:,1],
-                    cmap=self.colormap, c=boundv, zorder=10)
-                self.vext_plot.set_clim(self.cmin, self.cmax)
+                    cmap=self._colormap, c=boundv, zorder=10)
+                self.vext_plot.set_clim(self._color_min, self._color_max)
 
         # set range of the colormap
-        self.coll2.set_clim(self.cmin,self.cmax)
-        self.cb = self.fig.colorbar(self.coll2)   # define colorbar for figure
+        self.coll2.set_clim(self._color_min, self._color_max)
+        self._colorbar = self._figure.colorbar(self.coll2)   # define colorbar for figure
 
         if self.number_cells is True and p.showCells is True:
             for i,cll in enumerate(cells.cell_centres):
-                self.ax.text(p.um*cll[0],p.um*cll[1],i,va='center',ha='center')
+                self._axes.text(p.um * cll[0], p.um * cll[1], i, va='center', ha='center')
 
         # self.cb.set_label('Voltage [mV]')
-        self.cb.set_label('Voltage [mV]')
-        self.ax.set_xlabel('Spatial x [um]')
-        self.ax.set_ylabel('Spatial y [um]')
-        self.ax.set_title(self.tit)
+        self._colorbar.set_label('Voltage [mV]')
+        self._axes.set_xlabel('Spatial x [um]')
+        self._axes.set_ylabel('Spatial y [um]')
+        self._axes.set_title(self._figure_title)

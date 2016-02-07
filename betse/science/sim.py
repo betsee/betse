@@ -17,15 +17,13 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 
 class Simulator(object):
-    """
+    '''
     Contains the main routines used in the simulation of networked cell
     bioelectrical activity. For efficiency, all methods are implemented in
     terms of Numpy-based linear algebra.
 
     Methods
     -------
-    fileInit(p)                 Prepares save paths for initialization and simulation runs
-
     baseInit(cells,p)           Prepares data structures for a cell-only simulation
 
     baseInit_ECM(cells,p)      Prepares data structures for a simulation with extracellular spaces
@@ -79,17 +77,39 @@ class Simulator(object):
 
     initDenv(cells,p)                       Initializes the environmental diffusion matrix and corresponding weight
                                             matrices, including tight and adherin junctions.
-    """
+
+    Parameters
+    ----------
+    vcell_time : np.ndarray
+        Voltage at the inner membrane surface of each cell as a function of
+        time.
+    venv_time : np.ndarray
+        Voltage at the outer membrane surface of each cell as a function of
+        time.
+    vm_Matrix : np.ndarray
+        Voltage of each cell as a function of time, resampled for use in smooth
+        plots (e.g., streamplots).
+    '''
 
     def __init__(self,p):
+
+        #FIXME: Defer until later. To quote the "simrunner" module, which
+        #explicitly calls this public method:
+        #   "Reinitialize save and load directories in case params defines new
+        #    ones for this sim."
+        #Hence, this method should instead be called as the first statement in
+        #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
+
     def fileInit(self,p):
-        """
-        Initializes file saving and loading directory as the betse cach.
-        For now, automatically assigns file names, but later, will allow
-        user-specified file names.
-        """
+        '''
+        Initializes the pathnames of top-level files and directories comprising
+        the BETSE cache for subsequent initialization and simulation runs.
+
+        This method currently implicitly assigns file names, but will
+        (hopefully) permit caller-specified pathnames at some point.
+        '''
 
         # Make the BETSE-specific cache directory if not found.
         betse_cache_dir = os.path.expanduser(p.init_path)
@@ -101,6 +121,7 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
         self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
+
 
     def baseInit(self,cells,p):
         """
@@ -1274,28 +1295,19 @@ class Simulator(object):
 
                 self.I_gj_x_time.append(self.I_gj_x[:])
                 self.I_gj_y_time.append(self.I_gj_y[:])
-
                 self.I_tot_x_time.append(self.I_tot_x[:])
                 self.I_tot_y_time.append(self.I_tot_y[:])
-
                 self.I_mem_time.append(self.I_mem[:])
-
                 self.vm_time.append(self.vm[:])
-
                 self.dvm_time.append(self.dvm[:])
-
                 self.rho_cells_time.append(self.rho_cells[:])
-
                 self.rate_NaKATP_time.append(self.rate_NaKATP[:])
-
                 self.P_cells_time.append(self.P_cells[:])
                 self.F_hydro_x_time.append(self.F_hydro_x[:])
                 self.F_hydro_y_time.append(self.F_hydro_y[:])
 
                 if p.deform_osmo is True:
-
                     self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-
 
                 if p.deform_electro is True:
                     self.F_electro_time.append(self.F_electro[:])
@@ -1305,7 +1317,6 @@ class Simulator(object):
                     self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
-
                     self.implement_deform_timestep(cells,t,p)
 
                     self.cell_centres_time.append(cells.cell_centres[:])
@@ -1317,37 +1328,30 @@ class Simulator(object):
                     self.dx_cell_time.append(self.d_cells_x[:])
                     self.dy_cell_time.append(self.d_cells_y[:])
 
-
                 if p.fluid_flow is True and p.run_sim is True:
-
                     self.u_cells_x_time.append(self.u_cells_x[:])
                     self.u_cells_y_time.append(self.u_cells_y[:])
 
                 if p.sim_eosmosis is True and p.run_sim is True:
-
                     self.rho_channel_time.append(self.rho_channel[:])
                     self.rho_pump_time.append(self.rho_pump[:])
 
                 self.gjopen_time.append(self.gjopen[:])
-
                 self.time.append(t)
 
                 if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
                     self.cIP3_time.append(self.cIP3[:])
 
                 if p.voltage_dye ==1:
-
                     self.cDye_time.append(self.cDye_cell[:])
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
 
-                if p.plot_while_solving is True:
-                    self.checkPlot.updatePlot(self,p)
+                # Update the currently displayed and/or saved animation.
+                self._replot_loop(p)
 
-                        # get time for loop and estimate total time for simulation
+            # Get time for loop and estimate total time for simulation.
             if do_once is True:
                 loop_time = time.time() - loop_measure
                 if p.run_sim is True:
@@ -1357,10 +1361,12 @@ class Simulator(object):
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
-        # Find embeded functions that can't be pickled... FIXME
+        # Find embeded functions that can't be pickled...
         fh.safe_pickle(self,p)
 
         cells.points_tree = None
+
+        # Garbage collect the prior animation to conserve memory.
         self.checkPlot = None
 
         if p.run_sim is False:
@@ -1862,10 +1868,10 @@ class Simulator(object):
                     self.rho_channel_time.append(self.rho_channel[:])
                     self.rho_pump_time.append(self.rho_pump[:])
 
-                if p.plot_while_solving is True:
-                    self.checkPlot.updatePlot(self,p)
+                # Update the currently displayed and/or saved animation.
+                self._replot_loop(p)
 
-                        # get time for loop and estimate total time for simulation
+            # Get time for loop and estimate total time for simulation.
             if do_once is True:
                 loop_time = time.time() - loop_measure
 
@@ -1876,10 +1882,12 @@ class Simulator(object):
                 loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
-         # Find embedded functions that can't be pickled...
+        # Find embedded functions that can't be pickled...
         fh.safe_pickle(self,p)
 
         cells.points_tree = None
+
+        # Garbage collect the prior animation to conserve memory.
         self.checkPlot = None
 
         if p.run_sim is False:
@@ -1949,6 +1957,7 @@ class Simulator(object):
         loggers.log_info('Simulation completed successfully.')
 
 
+    # ..................{ PLOTTERS                           }..................
     def _plot_loop(self, cells, p) -> (np.ndarray, set):
         '''
         Display and/or save an animation during solving if requested _and_
@@ -1983,12 +1992,13 @@ class Simulator(object):
         # Time-steps vector appropriate for the current run.
         tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
 
+        #FIXME: Refactor into a for loop calling the range() builtin. Sunsets!
+
         # Resample this vector to save data at specific times.
-        i = 0
         tsamples = set()
-        resample = p.t_resample
-        while i < len(tt) - resample:
-            i = i + resample
+        i = 0
+        while i < len(tt) - p.t_resample:
+            i += p.t_resample
             tsamples.add(tt[i])
 
         # Log this run.
@@ -1997,18 +2007,28 @@ class Simulator(object):
             'seconds of in-world time.'.format(
             loop_type_label, ecm_state_label, loop_seconds_max))
 
+        #FIXME: Rename "checkPlot" to "_anim_cells_while_solving".
+
         # If displaying and/or saving an animation during solving, do so.
         if p.plot_while_solving is True:
             self.checkPlot = PlotWhileSolving(
-                cells,
-                self,
-                p,
-                clrAutoscale=p.autoscale_Vmem,
-                clrMin=p.Vmem_min_clr,
-                clrMax=p.Vmem_max_clr,
+                sim=self, cells=cells, p=p,
+                is_color_autoscaled=p.autoscale_Vmem,
+                color_min=p.Vmem_min_clr,
+                color_max=p.Vmem_max_clr,
             )
 
         return tt, tsamples
+
+
+    def _replot_loop(self, p) -> None:
+        '''
+        Update the currently displayed and/or saved animation during solving
+        with the results of the most recently solved time step, if requested.
+        '''
+
+        if p.plot_while_solving is True:
+            self.checkPlot.updatePlot(self, p)
 
 
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
@@ -4057,7 +4077,8 @@ class Simulator(object):
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
     def implement_deform_timestep(self,cells,t,p):
-        # map individual cell deformations to their membranes. In this case it's better than interpolation
+        # Map individual cell deformations to their membranes. In this case,
+        # this is better than interpolation.
         ux_at_mem = self.d_cells_x[cells.mem_to_cells]
         uy_at_mem = self.d_cells_y[cells.mem_to_cells]
 
@@ -4096,10 +4117,10 @@ class Simulator(object):
 
         #----------------------------------------
         if p.plot_while_solving is True and t > 0:
-            self.checkPlot.resetData(cells,self,p)
+            self.checkPlot.resetData(cells, self, p)
+
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
-
     """
     Electro-diffusion between two connected volumes. Note for cell work, 'b' is
     'inside', 'a' is outside, with a positive flux moving from a to b. The
