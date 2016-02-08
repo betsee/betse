@@ -9,7 +9,7 @@ from betse.exceptions import BetseExceptionSimulation
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
-from betse.science.plot.anim.anim import PlotWhileSolving
+from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io import loggers
 from random import shuffle
@@ -80,6 +80,10 @@ class Simulator(object):
 
     Parameters
     ----------
+    _anim_cells_while_solving : AnimCellsWhileSolving
+        In-place animation of cell voltage as a function of time plotted during
+        (rather than after) simulation modelling if both requested and a
+        simulation is currently being modelled _or_ `None` otherwise.
     vcell_time : np.ndarray
         Voltage at the inner membrane surface of each cell as a function of
         time.
@@ -1014,7 +1018,7 @@ class Simulator(object):
         # Display and/or save an animation during solving and calculate:
         #
         # * "tt", a time-steps vector appropriate for the current run.
-        # * "tsamples", that vector resampled to save data at specific times.
+        # * "tsamples", that vector resampled to save data at fewer times.
         tt, tsamples = self._plot_loop(cells, p)
 
         do_once = True  # a variable to time the loop only once
@@ -1267,9 +1271,7 @@ class Simulator(object):
             check_v(self.vm)
 
             if t in tsamples:
-
                 if p.GHK_calc is True:
-
                     self.ghk_calculator(cells,p)
                     self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
 
@@ -1366,8 +1368,8 @@ class Simulator(object):
 
         cells.points_tree = None
 
-        # Garbage collect the prior animation to conserve memory.
-        self.checkPlot = None
+        # Explicitly close the prior animation to conserve memory.
+        self._deplot_loop()
 
         if p.run_sim is False:
             datadump = [self, cells, p]
@@ -1551,7 +1553,7 @@ class Simulator(object):
         # Display and/or save an animation during solving and calculate:
         #
         # * "tt", a time-steps vector appropriate for the current run.
-        # * "tsamples", that vector resampled to save data at specific times.
+        # * "tsamples", that vector resampled to save data at fewer times.
         tt, tsamples = self._plot_loop(cells, p)
 
         do_once = True  # a variable to time the loop only once
@@ -1751,11 +1753,8 @@ class Simulator(object):
 
             check_v(self.vm)
 
-
             if t in tsamples:
-
                 if p.GHK_calc is True:
-
                     self.ghk_calculator(cells,p)
                     self.vm_GHK_time.append(self.vm_GHK)
 
@@ -1864,7 +1863,6 @@ class Simulator(object):
                     self.cc_er_time.append(np.copy(self.cc_er[:]))
 
                 if p.sim_eosmosis is True and p.run_sim is True:
-
                     self.rho_channel_time.append(self.rho_channel[:])
                     self.rho_pump_time.append(self.rho_pump[:])
 
@@ -1887,8 +1885,8 @@ class Simulator(object):
 
         cells.points_tree = None
 
-        # Garbage collect the prior animation to conserve memory.
-        self.checkPlot = None
+        # Explicitly close the prior animation to conserve memory.
+        self._deplot_loop()
 
         if p.run_sim is False:
             datadump = [self, cells, p]
@@ -1969,7 +1967,9 @@ class Simulator(object):
         tt : np.ndarray
             Time-steps vector appropriate for the current run.
         tsamples : set
-            Time-steps vector resampled to save data at specific times.
+            Time-steps vector resampled to save data at substantially fewer
+            times. The length of this vector governs the number of frames in
+            plotted animations, for example.
         '''
 
         # Human-readable state of extracellular spaces simulation.
@@ -1980,9 +1980,11 @@ class Simulator(object):
 
         # Human-readable type and maximum number of steps of the current run.
         if p.run_sim is False:
+            figure_type_label = 'Initializing'
             loop_type_label = 'initialization'
             loop_time_step_max = p.init_tsteps
         else:
+            figure_type_label = 'Simulating'
             loop_type_label = 'simulation'
             loop_time_step_max = p.sim_tsteps
 
@@ -1993,8 +1995,7 @@ class Simulator(object):
         tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
 
         #FIXME: Refactor into a for loop calling the range() builtin. Sunsets!
-
-        # Resample this vector to save data at specific times.
+        # Resample this vector to save data at substantially fewer times.
         tsamples = set()
         i = 0
         while i < len(tt) - p.t_resample:
@@ -2003,16 +2004,23 @@ class Simulator(object):
 
         # Log this run.
         loggers.log_info(
-            'Your {} {}is running from 0 to {:.3f} '
-            'seconds of in-world time.'.format(
-            loop_type_label, ecm_state_label, loop_seconds_max))
-
-        #FIXME: Rename "checkPlot" to "_anim_cells_while_solving".
+            'Your {} {}is running from 0 to {:.3f} seconds of in-world time '
+            'with {} unsampled and {} sampled time steps.'.format(
+            loop_type_label,
+            ecm_state_label,
+            loop_seconds_max,
+            len(tt),
+            len(tsamples),
+        ))
 
         # If displaying and/or saving an animation during solving, do so.
         if p.plot_while_solving is True:
-            self.checkPlot = PlotWhileSolving(
+            self._anim_cells_while_solving = AnimCellsWhileSolving(
                 sim=self, cells=cells, p=p,
+                type='Vmem',
+                figure_title='Cell Membrane Voltage While {}'.format(
+                    figure_type_label),
+                colorbar_title='Voltage [mV]',
                 is_color_autoscaled=p.autoscale_Vmem,
                 color_min=p.Vmem_min_clr,
                 color_max=p.Vmem_max_clr,
@@ -2027,10 +2035,26 @@ class Simulator(object):
         with the results of the most recently solved time step, if requested.
         '''
 
+        # Update this animation for the "last frame" if desired, corresponding
+        # to the results of the most recently solved time step.
         if p.plot_while_solving is True:
-            self.checkPlot.updatePlot(self, p)
+            self._anim_cells_while_solving.plot_frame(frame_number=-1)
 
 
+    def _deplot_loop(self) -> None:
+        '''
+        Explicitly close the previously displayed and/or saved animation if
+        any _or_ noop otherwise.
+
+        To conserve memory, this method nullifies and hence garbage
+        collects both this animation and this animation's associate figure.
+        '''
+
+        if self._anim_cells_while_solving is not None:
+            # self._anim_cells_while_solving.close()
+            self._anim_cells_while_solving = None
+
+    # ..................{ GETTERS                            }..................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Calculates transmembrane voltage (Vmem) and voltages inside the cell
@@ -4117,7 +4141,7 @@ class Simulator(object):
 
         #----------------------------------------
         if p.plot_while_solving is True and t > 0:
-            self.checkPlot.resetData(cells, self, p)
+            self._anim_cells_while_solving.resetData()
 
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
@@ -4533,6 +4557,7 @@ def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
 #  * "SimRunner" class sets "p.run_sim".
 #  * "Simulator" class sets "sim.run_sim".
 #
-#Note also the "plot_type" parameter passed to the pipeline.plot_all()
-#function, which should probably receive similar treatment. Wonder temptress at
-#the speed of light and the sound of love!
+#Note also the "plot_type" parameter passed to the pipeline.plot_all() function
+#*AND* seemingly duplicate "p.plot_type" attribute, which should probably
+#receive similar treatment. Wonder temptress at the speed of light and the
+#sound of love!

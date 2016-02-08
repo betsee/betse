@@ -75,7 +75,51 @@ class PlotCells(object, metaclass=ABCMeta):
         these files.
     '''
 
-    # ..................{ PRIVATE ~ init                     }..................
+    # ..................{ PUBLIC                             }..................
+    def close(self) -> None:
+        '''
+        Destroy this plot and deallocate all memory associated with this plot.
+
+        To reduce Matplotlib's memory overhead, this method (in order):
+
+        . Explicitly closes this plot's figure.
+        . Explicitly breaks all circular references between this plot's figure
+          and related artist objects (e.g., between this figure and its axes).
+        . Explicitly nullifies _all_ attributes of the current object.
+        . Explicitly garbage collects.
+
+        This method should only be called:
+
+        * When this plot is non-blocking (e.g., being non-interactively saved
+          rather than interactively displayed).
+        * As the last action of this plot's subclass or caller.
+
+        Attempting to subsequently call any other plot method _or_ access any
+        plot field will reliably result in raised exceptions.
+        '''
+
+        # If this figure still exists, explicitly close it.
+        if self._figure is not None:
+            pyplot.close(self._figure)
+
+        # For each name and value of a field bound to this object...
+        for field_name, field_value in objects.iter_fields_nonbuiltin(self):
+            # If this field itself contains a "figure" attribute, explicitly
+            # nullify the latter to break this figure's circular references.
+            #
+            # Note that this probably fails to break all such references, as
+            # doing so appears to be infeasible in a general-purpose manner.
+            # These references are baked into the Matplotlib API at a low level!
+            if  hasattr(field_value, 'figure'):
+                setattr(field_value, 'figure', None)
+
+            # Explicitly nullify all attributes of this object.
+            setattr(self, field_name, None)
+
+        # Explicitly garbage collect.
+        gc.collect()
+
+    # ..................{ PRIVATE                            }..................
     def __init__(
         self,
 
@@ -215,55 +259,10 @@ class PlotCells(object, metaclass=ABCMeta):
         self._axes.set_xlabel(axes_x_label)
         self._axes.set_ylabel(axes_y_label)
 
-
-    def _close(self) -> None:
-        '''
-        Destroy this plot and deallocate all memory associated with this plot.
-
-        To reduce Matplotlib's memory overhead, this method (in order):
-
-        . Explicitly closes this plot's figure.
-        . Explicitly breaks all circular references between this plot's figure
-          and related artist objects (e.g., between this figure and its axes).
-        . Explicitly nullifies _all_ attributes of the current object.
-        . Explicitly garbage collects.
-
-        This method should only be called:
-
-        * When this plot is non-blocking (e.g., being non-interactively saved
-          rather than interactively displayed).
-        * As the last action of this plot's subclass or caller.
-
-        Attempting to subsequently call any other plot method _or_ access any
-        plot field will reliably result in raised exceptions.
-        '''
-
-        # If this figure still exists, explicitly close it.
-        if self._figure is not None:
-            pyplot.close(self._figure)
-
-        # For each name and value of a field bound to this object...
-        for field_name, field_value in objects.iter_fields_nonbuiltin(self):
-            # If this field itself contains a "figure" attribute, explicitly
-            # nullify the latter to break this figure's circular references.
-            #
-            # Note that this probably fails to break all such references, as
-            # doing so appears to be infeasible in a general-purpose manner.
-            # These references are baked into the Matplotlib API at a low level!
-            if  hasattr(field_value, 'figure'):
-                setattr(field_value, 'figure', None)
-
-            # Explicitly nullify all attributes of this object.
-            setattr(self, field_name, None)
-
-        # Explicitly garbage collect.
-        gc.collect()
-
     # ..................{ PRIVATE ~ plot                     }..................
     def _prep(
         self,
 
-        #FIXME: Rename to "color_mappings".
         # Mandatory parameters.
         color_mapping: object,
 

@@ -79,13 +79,19 @@ class Cells(object):
         self.worldtype = worldtype # the complexity of cluster to create
         self.fileInit(p)
 
+        #FIXME: Duplicated from the "Parameters" class. Since we predominantly
+        #use "p.um" rather than "cells.um" everywhere, consider replacing the
+        #latter everywhere by the former. Hidden honey hives buzzing with glee!
+
         # Multiplicative factor for converting from m to um.
         self.um = 1e6
 
+
     def fileInit(self, p):
         """
-        Initializes file saving and loading directory as the BETSE cache, which is
-        automatically assigned from the user-specified path in the configuration file.
+        Initializes file saving and loading directory as the BETSE cache, which
+        is automatically assigned from the user-specified path in the
+        configuration file.
         """
 
         # Make the BETSE-specific cache directory if not found.

@@ -169,7 +169,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             time_series=vmplt,
             is_ecm_ignored=False,
             type='Vmem',
-            figure_title='Cell Vmem',
+            figure_title='Cell Membrane Voltage',
             colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_Vmem_ani,
             color_min=p.Vmem_ani_min_clr,
@@ -183,7 +183,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             cell_time_series=_get_vmem_time_series(sim, p),
             gapjunc_time_series=sim.gjopen_time,
             type='Vmem_gj',
-            figure_title='Vcell',
+            figure_title='Gap Junction State over Cell Membrane Voltage',
             colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_Vgj_ani,
             color_min=p.Vgj_ani_min_clr,
@@ -195,6 +195,8 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             sim=sim, cells=cells, p=p,
             time_series=[1000*arr for arr in sim.vcell_time],
             type='vcell',
+
+            #FIXME: Odd figure title. What is this animation actually animating?
             figure_title='V in cell',
             colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_vcell_ani,
@@ -206,7 +208,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         # Always animate the gap junction current.
         AnimCurrent(
             sim=sim, cells=cells, p=p,
-            is_gj_current_only=True,
+            is_overlaying_current_gj_only=True,
             type='current_gj',
             figure_title='Gap Junction Current',
             colorbar_title='Current Density [A/m2]',
@@ -219,7 +221,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         if p.sim_ECM is True:
             AnimCurrent(
                 sim=sim, cells=cells, p=p,
-                is_gj_current_only=False,
+                is_overlaying_current_gj_only=False,
                 type='current_ecm',
                 figure_title='Total Current',
                 colorbar_title='Current Density [A/m2]',
@@ -440,7 +442,7 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
         return get_time_series_upscaled(sim.vm_time)
     else:
         #FIXME: What's the difference between "sim.vcell_time" and
-        #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "PlotWhileSolving"
+        #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "AnimCellsWhileSolving"
         #animations leverage the latter for extracellular spaces, whereas most
         #animations leverage the former.
         #FIXME: It would seem that "sim.vm_Matrix" is used where continuous

@@ -28,7 +28,7 @@ Abstract base classes of all Matplotlib-based animation classes.
 #    self._figure.__BETSE_anim__ = self
 #
 #That said, we might not even need to do that much. Why? Because the
-#"FuncAnimation" class is *ALWAYS* passed "self._plot_frame" -- which, being a
+#"FuncAnimation" class is *ALWAYS* passed "self.plot_frame" -- which, being a
 #bound method of the current animation object, should ensure that that object
 #remains alive. Non-blocking animations may already work out of the box! Oh...
 #no. The "FuncAnimation" class is instantiated into an attribute of this class,
@@ -91,8 +91,19 @@ class AnimCells(PlotCells):
         streamlines on this animation when requested by the current simulation
         configuration (as governed by the `p.I_overlay` parameter)_or_ `False`
         otherwise.
-    _is_saving_plotted_frames : bool
+    _is_overlaying_current_gj_only : bool
+        `True` if only overlaying intracellular current _or_ `False` if
+        overlaying both intra- and extracellular current. Ignored if current is
+        _not_ being overlayed at all (i.e., if `_is_overlaying_current` is
+        `False`).
+    _is_saving : bool
+        `True` if saving this animation as discrete frames and/or an encoded
+        video _or_ `False` otherwise.
+    _is_saving_shown_frames : bool
         `True` if both saving and displaying animation frames _or_ `False`
+        otherwise.
+    _is_showing : bool
+        `True` if interactively displaying this animation _or_ `False`
         otherwise.
     _save_frame_template : str
         `str.format()`-formatted template which, when formatted with the 0-based
@@ -109,10 +120,19 @@ class AnimCells(PlotCells):
         otherwise.
     '''
 
-    # ..................{ PRIVATE ~ init                     }..................
+    # ..................{ PRIVATE                            }..................
     def __init__(
         self,
+
+        #FIXME: I'm not terribly happy with defaulting these parameters here.
+        #Ideally, we should define a new "AnimCellsAfterSolving" subclass simply
+        #passing these defaults to this method as normal parameters. After doing
+        #so, eliminate these defaults, these forcing these parameters to
+        #*ALWAYS* be passed.
+        save_dir_parent_basename: str = 'anim',
+
         is_current_overlayable: bool = False,
+        is_overlaying_current_gj_only: bool = None,
         is_ecm_required: bool = False,
         *args, **kwargs
     ) -> None:
@@ -121,19 +141,34 @@ class AnimCells(PlotCells):
 
         Parameters
         ----------
+        save_dir_parent_basename : str
+            Basename of the parent directory of the subdirectory to which this
+            animation's frames will be saved when requested by the current
+            simulation configuration. Defaults to a suitably generic basename.
         is_current_overlayable : bool
             `True` if overlaying either electric current or concentration flux
             streamlines on this animation when requested by the current
             simulation configuration (as governed by the `p.I_overlay`
-            parameter)_or_ `False` otherwise. All subclasses except those
+            parameter) _or_ `False` otherwise. All subclasses except those
             already plotting streamlines (e.g., by calling the superclass
             `_plot_stream()` method) should unconditionally enable this boolean.
             Defaults to `False`.
+        is_overlaying_current_gj_only : bool
+            `True` if only overlaying intracellular current _or_ `False` if
+            overlaying both intra- and extracellular current. Ignored if current
+            is _not_ being overlayed at all (i.e., if `_is_overlaying_current`
+            is `False`). If `None`, defaults to the following state:
+            * `False` if extracellular spaces are enabled _and_ both
+               intracellular and extracellular current is to be animated.
+            * `True` if either extracellular spaces are disabled _or_ are
+               enabled but only intracellular current is to be animated.
         is_ecm_required : bool
             `True` if this animation is specific to extracellular spaces or
             `False` otherwise. If `True` and extracellular spaces are currently
             disabled, an exception is raised. Defaults to `False`.
         '''
+        assert types.is_str(save_dir_parent_basename), (
+            types.assert_not_str(save_dir_parent_basename))
         assert types.is_bool(is_current_overlayable), (
             types.assert_not_bool(is_current_overlayable))
         assert types.is_bool(is_ecm_required), (
@@ -150,6 +185,26 @@ class AnimCells(PlotCells):
                 'disabled by the current simulation configuration.'.format(
                 self._type))
 
+        # Default unpassed parameters.
+        if is_overlaying_current_gj_only is None:
+            is_overlaying_current_gj_only = not (
+                self._p.sim_ECM and self._p.IecmPlot)
+
+        # Classify defaulted parameters.
+        self._is_overlaying_current_gj_only = is_overlaying_current_gj_only
+
+        # Classify attributes returned by overridable methods.
+        self._is_showing = self._is_showing()
+        self._is_saving = self._is_saving()
+
+        # Validate these attributes.
+        assert types.is_bool(self._is_showing), (
+            types.assert_not_bool(self._is_showing))
+        assert types.is_bool(self._is_saving), (
+            types.assert_not_bool(self._is_saving))
+        assert types.is_bool(self._is_overlaying_current_gj_only), (
+            types.assert_not_bool(self._is_overlaying_current_gj_only))
+
         # Classify attributes to be possibly redefined below.
         self._current_density_magnitude_time_series = None
         self._current_density_x_time_series = None
@@ -165,14 +220,14 @@ class AnimCells(PlotCells):
             is_current_overlayable and self._p.I_overlay)
 
         # True if both saving and displaying animation frames.
-        self._is_saving_plotted_frames = (
-            self._p.turn_all_plots_off is False and
-            self._p.saveAnimations is True)
+        self._is_saving_shown_frames = (
+            self._is_showing and self._is_saving)
 
         # Type of animation attempt to be logged below.
-        if self._p.turn_all_plots_off is False:
+        animation_verb = None
+        if self._is_showing:
             animation_verb = 'Plotting'
-        elif self._p.saveAnimations is True:
+        elif self._is_saving:
             animation_verb = 'Saving'
         # If neither displaying or saving this animation, this animation would
         # ideally reduce to a noop. Since this is a superclass method, however,
@@ -183,42 +238,96 @@ class AnimCells(PlotCells):
         # this edge case is currently the only sane policy.
 
         # Log this animation as early as reasonably feasible.
-        loggers.log_info(
-            '{} animation "{}"...'.format(animation_verb, self._type))
+        if animation_verb is not None:
+            loggers.log_info(
+                '{} animation "{}"...'.format(animation_verb, self._type))
+
+        # If overlaying current, prepare to do so.
+        if self._is_overlaying_current:
+            self._init_current_density()
 
         # If saving animations, prepare to do so.
-        if self._p.saveAnimations is True:
-            self._init_saving()
+        if self._is_saving:
+            self._init_saving(save_dir_parent_basename=save_dir_parent_basename)
 
 
-    def _init_saving(self) -> None:
+    # ..................{ PRIVATE ~ testers                  }..................
+    # The following testers are intended to be overridden by subclasses.
+    #
+    # The corresponding attributes (e.g., "_is_showing" for _is_showing())
+    # *MUST* be defined via dynamic methods rather than static attributes passed
+    # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
+    # Because chicken-and-the-egg constraints.  Specifically, the latter
+    # approach prevents subclasses from passing a value dependent on the current
+    # "Parameters" object to __init__(), as that object has yet to be classified
+    # as the "_p" attribute yet. (Ugh.)
+
+    def _is_showing(self) -> bool:
+        '''
+        `True` if interactively displaying this animation _or_ `False`
+        otherwise.
+        '''
+        return not self._p.turn_all_plots_off
+
+
+    def _is_saving(self) -> bool:
+        '''
+        `True` if non-interactively saving this animation as discrete frames
+        and/or an encoded video _or_ `False` otherwise.
+        '''
+        return self._p.saveAnimations
+
+    # ..................{ PRIVATE ~ saving                   }..................
+    def _init_saving(
+        self,
+        save_dir_parent_basename: str,
+    ) -> None:
         '''
         Initialize this animation for platform-compatible file saving if enabled
         by the current simulation configuration or noop otherwise.
+
+        Parameters
+        ----------
+        save_dir_parent_basename : str
+            Basename of the parent directory of the subdirectory to which this
+            animation's frames will be saved when requested by the current
+            simulation configuration. Defaults to a suitably generic basename.
         '''
+        assert types.is_str(save_dir_parent_basename), (
+            types.assert_not_str(save_dir_parent_basename))
 
         # Ensure that the passed directory and file basenames are actually
         # basenames and hence contain no directory separators.
         paths.die_unless_basename(self._type)
 
+        #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #This is an utter travesty, but we have no choice but to hack detection
+        #of the current loop type until we sort out just what is going on with
+        #this boolean and/or string enumeration elsewhere.
+        #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if hasattr(self._p, 'plot_type'):
+            plot_type = self._p.plot_type
+        else:
+            plot_type = 'sim' if self._p.run_sim else 'init'
+
         # Path of the phase-specific parent directory of the subdirectory to
         # which these files will be saved.
-        phase_dirname = None
-        if self._p.plot_type == 'sim':
-            phase_dirname = self._p.sim_results
-        elif self._p.plot_type == 'init':
-            phase_dirname = self._p.init_results
+        loop_dirname = None
+        if plot_type == 'sim':
+            loop_dirname = self._p.sim_results
+        elif plot_type == 'init':
+            loop_dirname = self._p.init_results
         else:
             raise BetseExceptionParameters(
-                'Anim saving unsupported during the "{}" phase.'.format(
-                    self._p.plot_type))
+                'Anim saving unsupported during the "{}" loop.'.format(
+                    plot_type))
 
         #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
 
         # Path of the subdirectory to which these files will be saved, creating
         # this subdirectory and all parents thereof if needed.
         save_dirname = paths.join(
-            phase_dirname, 'animation', self._type)
+            loop_dirname, save_dir_parent_basename, self._type)
         save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
         #FIXME: Pull the image filetype from the current YAML configuration
@@ -256,7 +365,7 @@ class AnimCells(PlotCells):
 
         # If both saving and displaying animation frames, prepare for doing so.
         # See the _save_frame() method for horrid discussion.
-        if self._is_saving_plotted_frames:
+        if self._is_saving_shown_frames:
             self._writer_frames.setup(
                 fig=self._figure,
                 outfile=self._save_frame_template,
@@ -266,6 +375,25 @@ class AnimCells(PlotCells):
             )
 
     # ..................{ PRIVATE ~ animate                  }..................
+    # This method has been overriden to support subclasses manually handling
+    # animation rather than calling the _animate() method (e.g., the
+    # "AnimCellsWhileSolving" subclass).
+    def _prep(self, *args, **kwargs) -> None:
+        #FIXME: Actually, given what we know of Matplotlib z-order now, it
+        #shouldn't particularly matter which order we plot in. Try reversing the
+        #order of these calls; if it works, we'd prefer that instead.
+
+        # If plotting a current overlay, do so *AFTER* this subclass has already
+        # performed all initial plotting but *BEFORE* our superclass overlays
+        # its even more critical plotting data (e.g., cell labels).
+        if self._is_overlaying_current:
+            self._plot_current_density()
+
+        # Perform all superclass plotting preparation. This should typically be
+        # performed immediately *BEFORE* plotting this animation's first frame.
+        super()._prep(*args, **kwargs)
+
+
     def _animate(
         self,
         frame_count: int,
@@ -288,14 +416,7 @@ class AnimCells(PlotCells):
         '''
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
 
-        # If plotting a current overlay, do so *AFTER* this subclass has already
-        # performed all initial plotting but *BEFORE* our superclass overlays
-        # its even more critical plotting data (e.g., cell labels).
-        if self._is_overlaying_current:
-            self._plot_current_density()
-
-        # Perform all superclass plotting preparation. This should typically be
-        # performed immediately *BEFORE* creating this animation.
+        # Prepare for plotting immediately *BEFORE* plotting the first frame.
         self._prep(*args, **kwargs)
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
@@ -306,7 +427,7 @@ class AnimCells(PlotCells):
         # to subsequent plot handling -- in which case only the first plot will
         # be plotted without explicit warning or error. Die, matplotlib! Die!!
         self._anim = FuncAnimation(
-            self._figure, self._plot_frame,
+            self._figure, self.plot_frame,
 
             # Number of frames to be animated.
             frames=frame_count,
@@ -317,7 +438,7 @@ class AnimCells(PlotCells):
             # Indefinitely repeat this animation unless saving animations, as
             # doing so under the current implementation would repeatedly (and
             # hence unnecessarily) overwrite previously written files.
-            repeat=not self._p.saveAnimations,
+            repeat=not self._is_saving,
         )
 
         #FIXME: It appears that movies can be saved at this exact point via the
@@ -350,10 +471,10 @@ class AnimCells(PlotCells):
 
         try:
             # If displaying animations, do so.
-            if self._p.turn_all_plots_off is False:
+            if self._is_showing:
                 pyplot.show()
             # Else if saving animation frames, do so.
-            elif self._p.saveAnimations is True:
+            elif self._is_saving:
                 #FIXME: Pass the "dpi" parameter as well.
                 self._anim.save(
                     filename=self._save_frame_template,
@@ -363,7 +484,7 @@ class AnimCells(PlotCells):
 
                 # For space efficiency, explicitly close this animation *AFTER*
                 # saving this animation in a non-blocking manner.
-                self._close()
+                self.close()
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -376,7 +497,7 @@ class AnimCells(PlotCells):
                 raise
 
     # ..................{ PRIVATE ~ plot                     }..................
-    def _plot_frame(self, frame_number: int) -> None:
+    def plot_frame(self, frame_number: int) -> None:
         '''
         Iterate the current animation to the next frame.
 
@@ -400,6 +521,10 @@ class AnimCells(PlotCells):
             0-based index of the frame to be plotted.
         '''
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
+        # loggers.log_info(
+        #     'Updating animation "{}" frame number {}...'.format(
+        #         self._type,
+        #         len(self._sim.time) if frame_number == -1 else frame_number))
 
         # Plot this frame onto this animation's figure.
         self._plot_frame_figure(frame_number)
@@ -421,8 +546,7 @@ class AnimCells(PlotCells):
         # this method *UNLESS* our _animate() method explicitly calls the
         # FuncAnimation.save() method with the writer name "frame" signifying
         # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
-        # if self.p.saveAnimations is False:
-        if self._is_saving_plotted_frames:
+        if self._is_saving_shown_frames:
             self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
 
 
@@ -439,7 +563,7 @@ class AnimCells(PlotCells):
         pass
 
     # ..................{ PRIVATE ~ plot : current           }..................
-    def _init_current_density(self, is_gj_only: bool) -> None:
+    def _init_current_density(self) -> None:
         '''
         Initialize all attributes pertaining to current density.
 
@@ -448,21 +572,10 @@ class AnimCells(PlotCells):
         `_current_density_magnitude_time_series` attributes. These attributes
         are required both by this superclass for animating current overlays
         _and_ by current-specific subclasses.
-
-        Parameters
-        ----------
-        is_gj_only : bool
-            Either:
-            * `True` if initializing these attributes to only the intracellular
-              gap junction current density.
-            * `False` if initializing these attributes to all current density
-              (i.e., of both extracellular spaces _and_ intracellular gap
-              junctions).
         '''
-        assert types.is_bool(is_gj_only), types.assert_not_bool(is_gj_only)
 
         # Time series of all current density X and Y components.
-        if is_gj_only is True:
+        if self._is_overlaying_current_gj_only is True:
             self._current_density_x_time_series = self._sim.I_gj_x_time
             self._current_density_y_time_series = self._sim.I_gj_y_time
         else:
@@ -481,19 +594,8 @@ class AnimCells(PlotCells):
         either electric current or concentration flux.
         '''
 
-        # Boolean:
-        #
-        # * "True" if either extracellular spaces are disabled *OR* are enabled
-        #   but only intracellular current is to be animated.
-        # * "False" if extracellular spaces are enabled *AND* both intracellular
-        #   and extracellular current is to be animated.
-        is_gj_only = self._p.sim_ECM is False or self._p.IecmPlot is False
-
-        # Initialize all attributes pertaining to current density.
-        self._init_current_density(is_gj_only)
-
         # If animating only intracellular current, do so.
-        if is_gj_only:
+        if self._is_overlaying_current_gj_only:
             self._axes_title = 'Gap Junction Current'
 
             #FIXME: Is there any point to this? From what we can tell, the
@@ -506,6 +608,8 @@ class AnimCells(PlotCells):
         # If animating both extracellular and intracellular current, do so.
         else:
             self._axes_title = 'Total Current Overlay'
+
+            #FIXME: Likewise.
             self._current_density_stream_plot, self._axes = env_stream(
                 self._current_density_x_time_series[-1],
                 self._current_density_y_time_series[-1],
