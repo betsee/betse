@@ -499,7 +499,7 @@ class AnimCells(PlotCells):
     # ..................{ PRIVATE ~ plot                     }..................
     def plot_frame(self, frame_number: int) -> None:
         '''
-        Iterate the current animation to the next frame.
+        Iterate this animation to the next frame.
 
         This method is iteratively called by Matplotlib's `FuncAnimation()`
         class instantiated by our `_animate()` method. The subclass

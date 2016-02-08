@@ -78,7 +78,7 @@ class Simulator(object):
     initDenv(cells,p)                       Initializes the environmental diffusion matrix and corresponding weight
                                             matrices, including tight and adherin junctions.
 
-    Parameters
+    Attributes
     ----------
     _anim_cells_while_solving : AnimCellsWhileSolving
         In-place animation of cell voltage as a function of time plotted during
@@ -1321,6 +1321,7 @@ class Simulator(object):
                 if p.deformation is True and p.run_sim is True:
                     self.implement_deform_timestep(cells,t,p)
 
+                    #FIXME: Shift into implement_deform_timestep(). Magical OK!
                     self.cell_centres_time.append(cells.cell_centres[:])
                     self.mem_mids_time.append(cells.mem_mids_flat[:])
                     self.maskM_time.append(cells.maskM[:])
@@ -1956,7 +1957,7 @@ class Simulator(object):
 
 
     # ..................{ PLOTTERS                           }..................
-    def _plot_loop(self, cells, p) -> (np.ndarray, set):
+    def _plot_loop(self, cells: 'Cells', p: 'Parameters') -> (np.ndarray, set):
         '''
         Display and/or save an animation during solving if requested _and_
         calculate data common to solving both with and without extracellular
@@ -2029,7 +2030,7 @@ class Simulator(object):
         return tt, tsamples
 
 
-    def _replot_loop(self, p) -> None:
+    def _replot_loop(self, p: 'Parameters') -> None:
         '''
         Update the currently displayed and/or saved animation during solving
         with the results of the most recently solved time step, if requested.
@@ -2051,8 +2052,26 @@ class Simulator(object):
         '''
 
         if self._anim_cells_while_solving is not None:
-            # self._anim_cells_while_solving.close()
+            self._anim_cells_while_solving.close()
             self._anim_cells_while_solving = None
+
+
+    def _dereplot_loop(self, p: 'Parameters', t: int) -> None:
+        '''
+        Clear and recreate the currently displayed and/or saved animation
+        during solving with the results of the passed time step, if requested
+        _and_ if this time step is not the first time step (i.e., 0).
+
+        Parameters
+        ----------
+        p : Parameters
+            Current simulation configuration.
+        t : int
+            Time step to be animated.
+        '''
+
+        if p.plot_while_solving is True and t > 0:
+            self._anim_cells_while_solving.reinit()
 
     # ..................{ GETTERS                            }..................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
@@ -4124,24 +4143,23 @@ class Simulator(object):
         # Repackage ecm verts so that the World module can do its magic:
         ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
 
-        # next repackage the structure to include individual cell data
+        # Repackage the structure to include individual cell data.
         cells.ecm_verts = [] # null the original ecm verts data structure...
 
+        # Convert region to a numpy array so it can be sorted.
         for i in range(0,len(cells.cell_to_mems)):
-
             ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
-
-            ecm_nest = np.asarray(ecm_nest)      # convert region to a numpy array so it can be sorted
-
+            ecm_nest = np.asarray(ecm_nest)
             cells.ecm_verts.append(ecm_nest)
 
-        cells.ecm_verts = np.asarray(cells.ecm_verts)   # Voila! Deformed ecm_verts!
-
+        # Voila! Deformed ecm_verts!
+        cells.ecm_verts = np.asarray(cells.ecm_verts)
         cells.deformWorld(p)
 
-        #----------------------------------------
-        if p.plot_while_solving is True and t > 0:
-            self._anim_cells_while_solving.resetData()
+        # Clear and recreate the currently displayed and/or saved animation.
+        # Deformations require sufficiently "heavy" modifications to plot data
+        # that starting over from scratch is the safest and simplest approach.
+        self._dereplot_loop(p, t)
 
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):

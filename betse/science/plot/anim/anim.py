@@ -1444,7 +1444,25 @@ class AnimCellsWhileSolving(AnimCells):
     #FIXME: There's a fair amount of code duplicated here from above.
     #Contemplate a rejiggering. Thus flow the indelicate streams of nighttime!
     #FIXME: Docstring us up the help bomb.
-    def resetData(self) -> None:
+    #FIXME: Shift into our superclass if feasible.
+    def reinit(self) -> None:
+        '''
+        Clear and recreate this animation "from scratch."
+
+        Specifically (in order), this method:
+
+        . Clears this animation's figure. This clears all previously plotted
+          artists (e.g., meshplots) from this animation's previously plotted
+          frame, while retaining the existing figure object.
+        . Recreates this animation's figure "from scratch," as if this
+          animation had just been created. This adds all artists required by
+          this animation's first frame.
+
+        This method neither redisplays nor resaves this animation, thus
+        preventing these changes from visibly "leaking" to the end user.
+        Assuming the `plot_frame()` method to be subsequently passed the
+        number of the next frame, no one will be the wiser!
+        '''
 
         vdata = np.multiply(self._sim.vm,1000)   # data array for cell coloring
 
@@ -1506,13 +1524,13 @@ class AnimCellsWhileSolving(AnimCells):
         self._cell_voltages_plot.set_clim(self._color_min, self._color_max)
         self._colorbar = self._figure.colorbar(self._cell_voltages_plot)   # define colorbar for figure
 
-        if self.number_cells is True and self._p.showCells is True:
-            for i,cll in enumerate(self._cells.cell_centres):
-                self._axes.text(
-                    self._p.um * cll[0],
-                    self._p.um * cll[1], i, va='center', ha='center')
+        # if self.number_cells is True and self._p.showCells is True:
+        #     for i,cll in enumerate(self._cells.cell_centres):
+        #         self._axes.text(
+        #             self._p.um * cll[0],
+        #             self._p.um * cll[1], i, va='center', ha='center')
 
-        self._colorbar.set_label('Voltage [mV]')
+        self._colorbar.set_label(self._colorbar_title)
         self._axes.set_xlabel('Spatial x [um]')
         self._axes.set_ylabel('Spatial y [um]')
         self._axes.set_title(self._figure_title)
