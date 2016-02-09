@@ -19,6 +19,7 @@ class BetseException(Exception, metaclass = ABCMeta):
     '''
     pass
 
+
 class BetseExceptionLog(BetseException):
     '''
     Log-specific exception.
@@ -32,11 +33,20 @@ class BetseExceptionModule(BetseException):
     '''
     pass
 
+
 class BetseExceptionFunction(BetseException):
     '''
     Function-specific exception.
     '''
     pass
+
+
+class BetseExceptionMethod(BetseException):
+    '''
+    Method-specific exception.
+    '''
+    pass
+
 
 class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
     '''

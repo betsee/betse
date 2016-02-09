@@ -14,6 +14,7 @@ Abstract base classes of all Matplotlib-based plotting classes.
 import gc, weakref
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
+from betse.exceptions import BetseExceptionMethod
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.python import objects
 from betse.util.type import types
@@ -50,6 +51,10 @@ class PlotCells(object, metaclass=ABCMeta):
         `axes_title` parameter is passed to the `__init__()` method, this is
         that value; else, this is the value of the `figure_title` parameter
         passed to the same method.
+    _axes_x_label : str
+        Text displayed below the figure's X axis.
+    _axes_y_label : str
+        Text displayed to the left of the figure's Y axis.
     _colorbar_title: str
         Text displayed above the figure colorbar.
     _is_color_autoscaled : bool
@@ -75,51 +80,7 @@ class PlotCells(object, metaclass=ABCMeta):
         these files.
     '''
 
-    # ..................{ PUBLIC                             }..................
-    def close(self) -> None:
-        '''
-        Destroy this plot and deallocate all memory associated with this plot.
-
-        To reduce Matplotlib's memory overhead, this method (in order):
-
-        . Explicitly closes this plot's figure.
-        . Explicitly breaks all circular references between this plot's figure
-          and related artist objects (e.g., between this figure and its axes).
-        . Explicitly nullifies _all_ attributes of the current object.
-        . Explicitly garbage collects.
-
-        This method should only be called:
-
-        * When this plot is non-blocking (e.g., being non-interactively saved
-          rather than interactively displayed).
-        * As the last action of this plot's subclass or caller.
-
-        Attempting to subsequently call any other plot method _or_ access any
-        plot field will reliably result in raised exceptions.
-        '''
-
-        # If this figure still exists, explicitly close it.
-        if self._figure is not None:
-            pyplot.close(self._figure)
-
-        # For each name and value of a field bound to this object...
-        for field_name, field_value in objects.iter_fields_nonbuiltin(self):
-            # If this field itself contains a "figure" attribute, explicitly
-            # nullify the latter to break this figure's circular references.
-            #
-            # Note that this probably fails to break all such references, as
-            # doing so appears to be infeasible in a general-purpose manner.
-            # These references are baked into the Matplotlib API at a low level!
-            if  hasattr(field_value, 'figure'):
-                setattr(field_value, 'figure', None)
-
-            # Explicitly nullify all attributes of this object.
-            setattr(self, field_name, None)
-
-        # Explicitly garbage collect.
-        gc.collect()
-
-    # ..................{ PRIVATE                            }..................
+    # ..................{ LIFECYCLE                          }..................
     def __init__(
         self,
 
@@ -130,14 +91,14 @@ class PlotCells(object, metaclass=ABCMeta):
         type: str,
         figure_title: str,
         colorbar_title: str,
-        axes_x_label: str,
-        axes_y_label: str,
         is_color_autoscaled: bool,
         color_min: float,
         color_max: float,
 
         # Optional parameters.
         axes_title: str = None,
+        axes_x_label: str = 'Spatial Distance [um]',
+        axes_y_label: str = 'Spatial Distance [um]',
         colormap: 'Colormap' = None,
     ) -> None:
         '''
@@ -163,9 +124,11 @@ class PlotCells(object, metaclass=ABCMeta):
             Optional text displayed above the figure axes but below the figure
             title _or_ `None` if no text is to be displayed. Defaults to `None`.
         axes_x_label : str
-            Text displayed below the figure's X axis.
+            Text displayed below the figure's X axis. Defaults to a general-
+            purpose string.
         axes_y_label : str
-            Text displayed to the left of the figure's Y axis.
+            Text displayed to the left of the figure's Y axis. Defaults to a
+            general-purpose string.
         is_color_autoscaled : bool
             `True` if dynamically resetting the minimum and maximum colorbar
             values to be the corresponding minimum and maximum values for the
@@ -222,6 +185,8 @@ class PlotCells(object, metaclass=ABCMeta):
         self._type = type
         self._figure_title = figure_title
         self._axes_title = axes_title
+        self._axes_x_label = axes_x_label
+        self._axes_y_label = axes_y_label
         self._colorbar_title = colorbar_title
         self._is_color_autoscaled = is_color_autoscaled
         self._color_min = color_min
@@ -256,11 +221,13 @@ class PlotCells(object, metaclass=ABCMeta):
         self._axes = weakref.proxy(pyplot.subplot(111))
         self._axes.axis('equal')
         self._axes.axis(self._axes_bounds)
-        self._axes.set_xlabel(axes_x_label)
-        self._axes.set_ylabel(axes_y_label)
+        self._axes.set_xlabel(self._axes_x_label)
+        self._axes.set_ylabel(self._axes_y_label)
 
-    # ..................{ PRIVATE ~ plot                     }..................
-    def _prep(
+
+    #FIXME: Make the "color_series" parameter mandatory. There's no justifiable
+    #reason for subclasses to omit this parameter anymore.
+    def _prep_figure(
         self,
 
         # Mandatory parameters.
@@ -270,25 +237,26 @@ class PlotCells(object, metaclass=ABCMeta):
         color_series: np.ndarray = None,
     ) -> None:
         '''
-        Prepare this plot for subsequent display and/or saving.
+        Prepare this plot _after_ having previously initialized this plot but
+        _before_ subsequently displaying and/or saving this plot.
 
-        Specifically (in order):
+        Specifically, this method:
 
-        . If the current simulation configuration requests that each plotted
+        * If the current simulation configuration requests that each plotted
           cell by labelled with that cell's unique 0-based index, do so. To
           ensure that these labels are plotted over rather than under the
           contents of their corresponding cells, we do so only _after_ all
           subclass plotting has been performed by delaying such labelling to
           this method rather than the above `__init__()` method.
-        . If the optional `axes_title` parameter was passed to `__init__()`:
-          * Add the current `_figure_title` to this figure as a "super title."
-          * Add the passed `axes_title` to this figure's axes as a "subtitle."
-        . Else, add the current `_figure_title` to this figure's axes.
-        . If the optional `colorbar_values` parameter is passed _and_ the
+        * If the optional `axes_title` parameter was passed to `__init__()`:
+          * Adds the current `_figure_title` to this figure as a "super title."
+          * Adds the passed `axes_title` to this figure's axes as a "subtitle."
+        * Else, add the current `_figure_title` to this figure's axes.
+        * If the optional `colorbar_values` parameter is passed _and_ the
           current `clrAutoscale` boolean is `True`, clip the colorbar to the
           minimum and maximum values in the `colorbar_values` array.
-        . Else, clip the colorbar to the current `clrMin` and `clrMax` values.
-        . Add a colorbar whose:
+        * Else, clip the colorbar to the current `clrMin` and `clrMax` values.
+        * Add a colorbar whose:
           * Title is the current `_colorbar_title` string.
           * Mapping is the passed `_colorbar_mapping` parameter.
 
@@ -311,9 +279,15 @@ class PlotCells(object, metaclass=ABCMeta):
             `True`) _and_ this parameter is:
             * Non-`None`, the colorbar will be clipped to the minimum and
               maximum scalar values unravelled from this array.
-            * `None`, the subclass is responsible for colorbar autoscaling.
+            * `None`, the subclass will be responsible for colorbar autoscaling.
             Defaults to `None`.
         '''
+
+        # If the _init_figure() method has yet to be called, raise an exception.
+        if getattr(self, '_axes', None) is None:
+            raise BetseExceptionMethod(
+                'PlotCells._prep_figure() called before '
+                'PlotCells._init_figure().')
 
         # If labelling each plotted cell with that cell's unique 0-based index,
         # do so.
@@ -378,7 +352,76 @@ class PlotCells(object, metaclass=ABCMeta):
         colorbar = self._figure.colorbar(color_mapping[0])
         colorbar.set_label(self._colorbar_title)
 
-    # ..................{ PRIVATE ~ plotter                  }..................
+
+    def close(self) -> None:
+        '''
+        Destroy this plot and deallocate all memory associated with this plot.
+
+        To reduce Matplotlib's memory overhead, this method (in order):
+
+        . Explicitly closes this plot's figure.
+        . Explicitly breaks all circular references between this plot's figure
+          and related artist objects (e.g., between this figure and its axes).
+        . Explicitly nullifies _all_ attributes of the current object.
+        . Explicitly garbage collects.
+
+        This method should only be called:
+
+        * When this plot is non-blocking (e.g., being non-interactively saved
+          rather than interactively displayed).
+        * As the last action of this plot's subclass or caller.
+
+        Attempting to subsequently call any other plot method _or_ access any
+        plot field will reliably result in raised exceptions.
+        '''
+
+        # If this figure still exists, explicitly close it.
+        if self._figure is not None:
+            pyplot.close(self._figure)
+
+        # For each name and value of a field bound to this object...
+        for field_name, field_value in objects.iter_fields_nonbuiltin(self):
+            # If this field itself contains a "figure" attribute, explicitly
+            # nullify the latter to break this figure's circular references in a
+            # manner ignoring "AttributeError: can't set attribute" exceptions.
+            #
+            # Note that this probably fails to break all such references, as
+            # doing so appears to be infeasible in a general-purpose manner.
+            # These references are baked into the Matplotlib API at a low level!
+            try:
+                if  hasattr(field_value, 'figure'):
+                    setattr(field_value, 'figure', None)
+            except AttributeError:
+                pass
+
+            # Explicitly nullify all attributes of this object, again ignoring
+            # "AttributeError: can't set attribute" exceptions.
+            try:
+                setattr(self, field_name, None)
+            except AttributeError:
+                pass
+
+        #FIXME: Unfortunately, explicitly garbage collecting immediately after
+        #closing this animation appears to induce instabilities. Under the
+        #"TkAgg" backend, for example, the following non-fatal runtime warning
+        #is printed (presumably by the underlying Tcl/Tk library):
+        #
+        #    can't invoke "event" command:  application has been destroyed
+        #        while executing
+        #    "event generate $w <<ThemeChanged>>"
+        #        (procedure "ttk::ThemeChanged" line 6)
+        #        invoked from within
+        #    "ttk::ThemeChanged"
+        #
+        #This suggests that if Python happens to garbage collect at this time,
+        #the same issue will arise -- but hopefully much less frequently. Until
+        #we resolve the underlying cause, we have no choice but to disable this.
+        #Untrained glow bugs in a listless summer swelter!
+
+        # Explicitly garbage collect.
+        # gc.collect()
+
+    # ..................{ PLOTTERS                           }..................
     def _plot_image(
         self,
 

@@ -96,14 +96,8 @@ class AnimCells(PlotCells):
         overlaying both intra- and extracellular current. Ignored if current is
         _not_ being overlayed at all (i.e., if `_is_overlaying_current` is
         `False`).
-    _is_saving : bool
-        `True` if saving this animation as discrete frames and/or an encoded
-        video _or_ `False` otherwise.
     _is_saving_shown_frames : bool
         `True` if both saving and displaying animation frames _or_ `False`
-        otherwise.
-    _is_showing : bool
-        `True` if interactively displaying this animation _or_ `False`
         otherwise.
     _save_frame_template : str
         `str.format()`-formatted template which, when formatted with the 0-based
@@ -120,14 +114,14 @@ class AnimCells(PlotCells):
         otherwise.
     '''
 
-    # ..................{ PRIVATE                            }..................
+    # ..................{ LIFECYCLE                          }..................
     def __init__(
         self,
 
         #FIXME: I'm not terribly happy with defaulting these parameters here.
         #Ideally, we should define a new "AnimCellsAfterSolving" subclass simply
         #passing these defaults to this method as normal parameters. After doing
-        #so, eliminate these defaults, these forcing these parameters to
+        #so, eliminate these defaults, thus forcing these parameters to
         #*ALWAYS* be passed.
         save_dir_parent_basename: str = 'anim',
 
@@ -193,26 +187,9 @@ class AnimCells(PlotCells):
         # Classify defaulted parameters.
         self._is_overlaying_current_gj_only = is_overlaying_current_gj_only
 
-        # Classify attributes returned by overridable methods.
-        self._is_showing = self._is_showing()
-        self._is_saving = self._is_saving()
-
         # Validate these attributes.
-        assert types.is_bool(self._is_showing), (
-            types.assert_not_bool(self._is_showing))
-        assert types.is_bool(self._is_saving), (
-            types.assert_not_bool(self._is_saving))
         assert types.is_bool(self._is_overlaying_current_gj_only), (
             types.assert_not_bool(self._is_overlaying_current_gj_only))
-
-        # Classify attributes to be possibly redefined below.
-        self._current_density_magnitude_time_series = None
-        self._current_density_x_time_series = None
-        self._current_density_y_time_series = None
-        self._current_density_stream_plot = None
-        self._writer_frames = None
-        self._writer_frames = None
-        self._writer_video = None
 
         # If this subclass requests a current overlay, do so only if also
         # requested by the current simulation configuration.
@@ -242,42 +219,24 @@ class AnimCells(PlotCells):
             loggers.log_info(
                 '{} animation "{}"...'.format(animation_verb, self._type))
 
-        # If overlaying current, prepare to do so.
-        if self._is_overlaying_current:
-            self._init_current_density()
+        # Classify attributes to be possibly redefined below.
+        self._current_density_magnitude_time_series = None
+        self._current_density_x_time_series = None
+        self._current_density_y_time_series = None
+        self._current_density_stream_plot = None
+        self._writer_frames = None
+        self._writer_frames = None
+        self._writer_video = None
 
         # If saving animations, prepare to do so.
         if self._is_saving:
             self._init_saving(save_dir_parent_basename=save_dir_parent_basename)
 
-
-    # ..................{ PRIVATE ~ testers                  }..................
-    # The following testers are intended to be overridden by subclasses.
-    #
-    # The corresponding attributes (e.g., "_is_showing" for _is_showing())
-    # *MUST* be defined via dynamic methods rather than static attributes passed
-    # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
-    # Because chicken-and-the-egg constraints.  Specifically, the latter
-    # approach prevents subclasses from passing a value dependent on the current
-    # "Parameters" object to __init__(), as that object has yet to be classified
-    # as the "_p" attribute yet. (Ugh.)
-
-    def _is_showing(self) -> bool:
-        '''
-        `True` if interactively displaying this animation _or_ `False`
-        otherwise.
-        '''
-        return not self._p.turn_all_plots_off
+        # If overlaying current, prepare to do so.
+        if self._is_overlaying_current:
+            self._init_current_density()
 
 
-    def _is_saving(self) -> bool:
-        '''
-        `True` if non-interactively saving this animation as discrete frames
-        and/or an encoded video _or_ `False` otherwise.
-        '''
-        return self._p.saveAnimations
-
-    # ..................{ PRIVATE ~ saving                   }..................
     def _init_saving(
         self,
         save_dir_parent_basename: str,
@@ -374,26 +333,47 @@ class AnimCells(PlotCells):
                 dpi=mpl_config.get_rc_param('savefig.dpi'),
             )
 
-    # ..................{ PRIVATE ~ animate                  }..................
-    # This method has been overriden to support subclasses manually handling
-    # animation rather than calling the _animate() method (e.g., the
-    # "AnimCellsWhileSolving" subclass).
-    def _prep(self, *args, **kwargs) -> None:
-        #FIXME: Actually, given what we know of Matplotlib z-order now, it
-        #shouldn't particularly matter which order we plot in. Try reversing the
-        #order of these calls; if it works, we'd prefer that instead.
 
-        # If plotting a current overlay, do so *AFTER* this subclass has already
-        # performed all initial plotting but *BEFORE* our superclass overlays
-        # its even more critical plotting data (e.g., cell labels).
+    # This method has been overriden to support subclasses that manually handle
+    # animations rather than calling the _animate() method (e.g., the
+    # "AnimCellsWhileSolving" subclass).
+    def _prep_figure(self, *args, **kwargs) -> None:
+
+        super()._prep_figure(*args, **kwargs)
+
+        # If overlaying current, do so.
         if self._is_overlaying_current:
             self._plot_current_density()
 
-        # Perform all superclass plotting preparation. This should typically be
-        # performed immediately *BEFORE* plotting this animation's first frame.
-        super()._prep(*args, **kwargs)
+    # ..................{ PROPERTIES                         }..................
+    # The following testers are intended to be overridden by subclasses.
+    #
+    # The corresponding attributes (e.g., "_is_showing" for _is_showing())
+    # *MUST* be defined via dynamic methods rather than static attributes passed
+    # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
+    # Because chicken-and-the-egg constraints.  Specifically, the latter
+    # approach prevents subclasses from passing a value dependent on the current
+    # "Parameters" object to __init__(), as that object has yet to be classified
+    # as the "_p" attribute yet. (Ugh.)
+
+    @property
+    def _is_showing(self) -> bool:
+        '''
+        `True` if interactively displaying this animation _or_ `False`
+        otherwise.
+        '''
+        return not self._p.turn_all_plots_off
 
 
+    @property
+    def _is_saving(self) -> bool:
+        '''
+        `True` if non-interactively saving this animation as discrete frames
+        and/or an encoded video _or_ `False` otherwise.
+        '''
+        return self._p.saveAnimations
+
+    # ..................{ ANIMATORS                          }..................
     def _animate(
         self,
         frame_count: int,
@@ -417,7 +397,7 @@ class AnimCells(PlotCells):
         assert types.is_int(frame_count), types.assert_not_int(frame_count)
 
         # Prepare for plotting immediately *BEFORE* plotting the first frame.
-        self._prep(*args, **kwargs)
+        self._prep_figure(*args, **kwargs)
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
         #FuncAnimation(). Lemon grass and dill!
@@ -496,7 +476,7 @@ class AnimCells(PlotCells):
             else:
                 raise
 
-    # ..................{ PRIVATE ~ plot                     }..................
+    # ..................{ PLOTTERS                           }..................
     def plot_frame(self, frame_number: int) -> None:
         '''
         Iterate this animation to the next frame.
@@ -526,11 +506,7 @@ class AnimCells(PlotCells):
         #         self._type,
         #         len(self._sim.time) if frame_number == -1 else frame_number))
 
-        # Plot this frame onto this animation's figure.
-        self._plot_frame_figure(frame_number)
-
-        # If plotting a current overlay, do so *AFTER* this subclass has already
-        # performed all plotting for this frame.
+        # If plotting a current overlay, do so.
         if self._is_overlaying_current:
             self._replot_current_density(frame_number)
 
@@ -538,6 +514,10 @@ class AnimCells(PlotCells):
         # places for readability.
         self._axes.set_title('{} (time {:.3f}s)'.format(
             self._axes_title, self._sim.time[frame_number]))
+
+        # Plot this frame *AFTER* performing all superclass-specific plotting,
+        # permitting the subclass to modify that plotting.
+        self._plot_frame_figure(frame_number)
 
         # If both saving and displaying animation frames, save this frame. Note
         # that if only saving but *NOT* displaying animations, this frame will
@@ -691,10 +671,7 @@ class AnimField(AnimCells):
             types.assert_not_sequence_nonstr(y_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial distance [um]',
-            axes_y_label='Spatial distance [um]',
-            *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Classify all remaining parameters.
         self._x_time_series = x_time_series
@@ -718,10 +695,7 @@ class AnimVelocity(AnimCells):
     def __init__(self, *args, **kwargs) -> None:
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial distance [um]',
-            axes_y_label='Spatial distance [um]',
-            *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Prefer an alternative colormap.
         self._colormap = self._p.background_cm

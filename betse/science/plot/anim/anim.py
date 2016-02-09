@@ -95,9 +95,6 @@ class AnimCellsTimeSeries(AnimCells):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
@@ -209,9 +206,6 @@ class AnimEnvTimeSeries(AnimCells):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
@@ -284,10 +278,7 @@ class AnimGapJuncTimeSeries(AnimCells):
             types.assert_not_sequence_nonstr(gapjunc_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-            *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Classify all remaining parameters.
         self._cell_time_series = cell_time_series
@@ -381,9 +372,6 @@ class AnimMembraneTimeSeries(AnimCells):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
@@ -455,9 +443,6 @@ class AnimMorphogenTimeSeries(AnimCells):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
             # Since this subclass plots no streamplot, request that the
             # superclass do so.
             is_current_overlayable=True,
@@ -864,10 +849,7 @@ class AnimCurrent(AnimCells):
     def __init__(self, *args, **kwargs) -> None:
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-            *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Prefer an alternative colormap *BEFORE* plotting below.
         self._colormap = self._p.background_cm
@@ -955,10 +937,7 @@ class AnimDeformTimeSeries(AnimCells):
             types.assert_not_sequence_nonstr(cell_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            axes_x_label='Spatial distance [um]',
-            axes_y_label='Spatial distance [um]',
-            *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Classify all remaining parameters.
         self._cell_time_series = cell_time_series
@@ -1330,9 +1309,6 @@ class AnimCellsWhileSolving(AnimCells):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
-            axes_x_label='Spatial x [um]',
-            axes_y_label='Spatial y [um]',
-
             # Save in-place animation to a different parent directory than that
             # to which out-of-place animations are saved.
             save_dir_parent_basename='anim_while_solving',
@@ -1388,7 +1364,7 @@ class AnimCellsWhileSolving(AnimCells):
 
         # Perform all superclass plotting preparation immediately *BEFORE*
         # plotting this animation's first frame.
-        self._prep(
+        self._prep_figure(
            color_mapping=self._cell_voltages_plot,
            color_series=vdata,
         )
@@ -1397,10 +1373,12 @@ class AnimCellsWhileSolving(AnimCells):
         plt.show(block=False)
 
 
+    @property
     def _is_showing(self) -> bool:
         return self._p.plot_while_solving
 
 
+    @property
     def _is_saving(self) -> bool:
         return self._p.save_solving_plot
 
@@ -1427,24 +1405,39 @@ class AnimCellsWhileSolving(AnimCells):
 
         #FIXME: Ideally, this logic should be encapsulated into a new private
         #superclass method accepting no parameters -- say,
-        #PlotCells._update_colorbar(). Since the PlotCells._prep() method was
+        #PlotCells._update_colorbar(). Since the PlotCells._prep_figure() method was
         #previously passed the desired color mapping and series, it shouldn't
         #be necessary to repass such parameters again.
         #
-        #For orthogonality, the PlotCells._prep() method should be refactored
+        #For orthogonality, the PlotCells._prep_figure() method should be refactored
         #to call a new PlotCells._make_colorbar() method doing just that.
         if self._is_color_autoscaled is True:
             self._color_min = 1000*np.min(self._sim.vm_time[frame_number])
             self._color_max = 1000*np.max(self._sim.vm_time[frame_number])
             self._cell_voltages_plot.set_clim(self._color_min, self._color_max)
 
-        self._figure.canvas.draw()
+        # If displaying this frame, do so.
+        if self._is_showing:
+            self._figure.canvas.draw()
 
 
     #FIXME: There's a fair amount of code duplicated here from above.
     #Contemplate a rejiggering. Thus flow the indelicate streams of nighttime!
-    #FIXME: Docstring us up the help bomb.
-    #FIXME: Shift into our superclass if feasible.
+    #FIXME: Aha! We believe we've finally glommed upon the solution. Rather
+    #than attempting to implement lifecycle management directly in either this
+    #subclass or any of our superclasses (...which has turned out to be
+    #basically unfeasible due to all the familiar chicken-and-egg issues that
+    #crop up with lifecycle management in object-oriented hierarchies), the
+    #obvious solution is also the simplest: *JUST RECREATE THIS OBJECT.*
+    #
+    #No, really. It truly is that simple, with one simple caveat: we need to
+    #preserve the existing "self._figure" object -- but that's truly it.
+    #Absolutely everything else should be reinitialized. Can we support that?
+    #Yes, trivially! Just add a new "figure" parameter to the superclass
+    #PlotCells.__init__() method defaulting to "None". If "None", the "_figure"
+    #attribute is set to "plt.figure()"; else, that attribute is set to that
+    #parameter... Why didn't we glom up with this earlier? Better late than
+    #never, certainly; but, geez. We nearly stumbled down another dark alley.
     def reinit(self) -> None:
         '''
         Clear and recreate this animation "from scratch."
@@ -1461,12 +1454,13 @@ class AnimCellsWhileSolving(AnimCells):
         This method neither redisplays nor resaves this animation, thus
         preventing these changes from visibly "leaking" to the end user.
         Assuming the `plot_frame()` method to be subsequently passed the
-        number of the next frame, no one will be the wiser!
+        number of the next frame, the call to this method will _not_ disrupt
+        the animation.
         '''
 
         vdata = np.multiply(self._sim.vm,1000)   # data array for cell coloring
 
-        self._figure.clf()
+        self._figure.clear()
         self._axes = plt.subplot(111)
 
         xmin = self._p.um*self._cells.xmin
