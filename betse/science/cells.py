@@ -62,7 +62,6 @@ class Cells(object):
     -------
     makeWorld()                       Create a cell cluster for simulation
     fileInit()                        Create directories for file saving
-    makeSeeds()                       Create an irregular lattice of seed points in 2d space
     makeVoronoi()                     Make and clip/close a Voronoi diagram from the seed points
     cell_index()                      Returns a list of [x,y] points defining the cell centres in order
     near_neigh()                      Calculate the nearest neighbour (nn) array for each cell (make gap junctions)
@@ -101,11 +100,10 @@ class Cells(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedWorld = os.path.join(betse_cache_dir, p.world_filename)
 
-    def makeWorld(self,p):
 
+    def makeWorld(self, p):
         """
         Calls internal methods to set up the cell cluster.
-
         """
 
         if self.worldtype is None or self.worldtype == 'full':
@@ -156,32 +154,28 @@ class Cells(object):
 
         self.calc_gj_vects(p)
 
-    def makeSeeds(self,p):
 
-        """
-        Returns an irregular scatter
-        of points defined on a world space
-        with dimensions supplied by p.wsx in [m].
+    def makeSeeds(self, p: 'Parameters') -> None:
+        '''
+        Creates the irregular scatter lattice of seed points defined on a 2D
+        world space, with dimensions supplied by `p.wsx` in [m].
 
-        The amount of deviation from a square
-        grid is specified by p.nl, defined from
-        0 (perfect square grid) to 1 (full noise).
+        Specifically, this method defines the following object attributes:
+
+        * `xmin`, `xmax`, `ymin`, `ymax`, the minimum and maximum points of the
+          global world space.
+        * `centre`, the centre of the global world space.
+        * `clust_xy`, the list of `(x, y)` Cartesian coordinates of seed
+          points.
+
+        The amount of deviation from a square grid is specified by `p.nl`,
+        defined from 0 (perfect square grid) to 1 (full noise).
 
         Parameters
         -----------
-        p                   An instance of the Parameters object.
-
-        Creates
-        -----------
-        self.xmin, self.xmax, self.ymin, self.ymax      Min/max points of global world space
-        self.centre                                     Centre of global world space
-        self.clust_xy                                   List of x,y coordinates of seed points
-
-        Notes
-        -------
-        Uses Numpy arrays
-
-        """
+        p : Parameters
+            Current simulation configuration.
+        '''
 
         # first begin with linear vectors which are the "ticks" of the x and y dimensions
         x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
@@ -208,11 +202,10 @@ class Cells(object):
         self.ymax = np.max(xypts[:,1])
 
         self.centre = xypts.mean(axis=0)
-
         self.clust_xy = xypts
 
-    def makeVoronoi(self, p):
 
+    def makeVoronoi(self, p):
         """
         Calculates the Voronoi diagram from cell seed points.
 
@@ -1237,6 +1230,7 @@ class Cells(object):
 
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
+
 
     def graphLaplacian(self,p):
         '''

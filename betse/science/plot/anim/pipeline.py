@@ -25,6 +25,7 @@ from betse.science.plot.anim.anim import (
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
 )
+from betse.science.plot import plot
 from betse.util.type import types
 
 # ....................{ PIPELINES                          }....................
@@ -439,7 +440,7 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
 
     # Scaled membrane voltage time series.
     if p.sim_ECM is False:
-        return get_time_series_upscaled(sim.vm_time)
+        return plot.upscale_data(sim.vm_time)
     else:
         #FIXME: What's the difference between "sim.vcell_time" and
         #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "AnimCellsWhileSolving"
@@ -450,32 +451,8 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
         #discrete plots suffice, suggesting we probably want two variants of
         #this method:
         #
-        #* _get_vmem_time_series_smooth(), returning "sim.vm_Matrix" for ECM.
-        #* _get_vmem_time_series_jagged(), returning "sim.vcell_time" for ECM.
-        return get_time_series_upscaled(sim.vcell_time)
-
-
-#FIXME: Actually use above, including in _get_vmem_time_series().
-def get_time_series_upscaled(time_series: (np.ndarray, list)) -> np.ndarray:
-    '''
-    Convert the passed time series (as either a pure-Python sequence _or_ Numpy
-    array) into a Numpy array whose scalar contents are all upscaled for use in
-    animations.
-
-    Each scalar value of the returned time series will be exactly `1000` times
-    larger than the corresponding value of the passed time series, which will
-    remain unmodified by this operation.
-
-    Parameters
-    ----------------------------
-    time_series : (np.ndarray, list)
-        Pure-Python sequence _or_ Numpy array to be upscaled.
-
-    Returns
-    ----------------------------
-    np.ndarray
-        Upscaled Numpy array.
-    '''
-    assert types.is_sequence_nonstr(time_series), (
-        types.assert_not_sequence_nonstr(time_series))
-    return np.asarray(time_series) * 1000
+        #* _get_vmem_time_series_continuous(), returning "sim.vm_Matrix" for
+        #  ECM and "sim.vm_time" for non-ECM.
+        #* _get_vmem_time_series_discontinuous(), returning "sim.vcell_time" for
+        #  ECM and "sim.vm_time" for non-ECM.
+        return plot.upscale_data(sim.vcell_time)

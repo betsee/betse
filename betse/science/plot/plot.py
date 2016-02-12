@@ -1489,3 +1489,41 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
 
     # Force animations to *NOT* repeat (don't FIXME-- we don't want to keep saving the animation over and over and over so please keep this!)
     ani_obj.ani_repeat = False
+
+
+#FIXME: Use everywhere in "betse.science.plot.anim.pipeline".
+def upscale_data(data: (int, float, np.ndarray, 'Sequence')) -> (
+    int, float, np.ndarray):
+    '''
+    Upscale the contents of the passed object for use in plots and animations.
+
+    This function does _not_ modify the passed object. If this object is:
+
+    * A scalar number (e.g., of type `int` or `float`), this function returns a
+      new scalar number of the same type multiplied by a positive constant.
+    * A NumPy array, this function returns a new NumPy array equal to the
+      passed array multiplied by a positive constant.
+    * A Python sequence (e.g., `list`), this function returns a new NumPy array
+      equal to the passed sequence converted into a new NumPy array and then
+      multiplied by a positive constant.
+
+    Parameters
+    ----------------------------
+    data : (int, float, np.ndarray, Sequence)
+        Pure-Python number or sequence _or_ NumPy array to be upscaled.
+
+    Returns
+    ----------------------------
+    object
+        Upscaled object as described above.
+    '''
+
+    # Positive multiplier with which to upscale.
+    upscale_factor = 1000
+
+    if types.is_numeric(data):
+        return data * upscale_factor
+    else:
+        assert types.is_sequence_nonstr(data), (
+            types.assert_not_sequence_nonstr(data))
+        return np.asarray(data) * upscale_factor

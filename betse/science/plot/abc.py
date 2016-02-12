@@ -19,6 +19,7 @@ from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.python import objects
 from betse.util.type import types
 from matplotlib import pyplot
+from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
@@ -225,13 +226,15 @@ class PlotCells(object, metaclass=ABCMeta):
         self._axes.set_ylabel(self._axes_y_label)
 
 
-    #FIXME: Make the "color_series" parameter mandatory. There's no justifiable
-    #reason for subclasses to omit this parameter anymore.
     def _prep_figure(
         self,
 
         # Mandatory parameters.
         color_mapping: object,
+
+        #FIXME: Rename to merely "color_data".
+        #FIXME: Make this parameter mandatory. There's no justifiable reason for
+        #subclasses to omit this anymore.
 
         # Optional parameters.
         color_series: np.ndarray = None,
@@ -432,8 +435,8 @@ class PlotCells(object, metaclass=ABCMeta):
         colormap : 'matplotlib.cm.Colormap' = None,
     ) -> 'matplotlib.image.AxesImage':
         '''
-        Plot the passed pixel data onto the current frame's figure axes and
-        return the resulting image.
+        Plot and return an image of the passed pixel data onto the current
+        figure's axes.
 
         Parameters
         ----------
@@ -495,8 +498,8 @@ class PlotCells(object, metaclass=ABCMeta):
         old_stream_plot: 'matplotlib.streamplot.StreamplotSet' = None,
     ) -> 'matplotlib.streamplot.StreamplotSet':
         '''
-        Plot all streamlines of the passed vector flow data onto the current
-        frame's figure axes _and_ return the resulting streamplot.
+        Plot and return a streamplot of all streamlines of the passed vector
+        flow data onto the current figure's axes.
 
         Parameters
         ----------
@@ -588,3 +591,44 @@ class PlotCells(object, metaclass=ABCMeta):
             # See the "ZORDER_STREAM" docstring for further commentary.
             zorder=ZORDER_STREAM,
         )
+
+    # ..................{ PLOTTERS ~ cell                    }..................
+    #FIXME: Replace all calls to cell_mosaic() with calls this method; then,
+    #excise cell_mosaic() entirely.
+    def _plot_cell_mosaic(self, cell_data: np.ndarray) -> PolyCollection:
+        '''
+        Plot and return a mosaic plot of all cells with colours corresponding to
+        the passed vector of arbitrary cell data (e.g., transmembrane voltages
+        for all cells for the current time step) onto the current figure's axes.
+
+        This mosaic plot is a polygon collection such that each polygon
+        signifies a cell in this simulation's cell cluster.
+
+        Parameters
+        -----------
+        cell_data : np.ndarray
+            Arbitrary cell data defined on an environmental grid.
+
+        Returns
+        --------
+        PolyCollection
+            Mosaic plot produced by plotting the passed cell data.
+        '''
+        assert types.is_sequence_nonstr(cell_data), (
+            types.assert_not_sequence_nonstr(cell_data))
+
+        # Cell vertices plotted as polygons.
+        mosaic_plot = PolyCollection(
+            verts=np.asarray(self._cells.cell_verts) * self._p.um,
+            cmap=self._colormap,
+            edgecolors='none',
+        )
+
+        # Associate this plot with the passed cell data. Curiously, the
+        # Matplotlib API provides no means of passing this data to the
+        # PolyCollection.__init__() constructor. (Yes, we checked. Twice.)
+        mosaic_plot.set_array(cell_data)
+
+        # Add this plot to this figure's axes.
+        self._axes.add_collection(mosaic_plot)
+        return mosaic_plot

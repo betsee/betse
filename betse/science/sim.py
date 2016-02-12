@@ -90,12 +90,16 @@ class Simulator(object):
     venv_time : np.ndarray
         Voltage at the outer membrane surface of each cell as a function of
         time.
+    vm : np.ndarray
+        Transmembrane voltage of each cell for the current time step.
+    vm_time : np.ndarray
+        Transmembrane voltage of each cell as a function of time.
     vm_Matrix : np.ndarray
-        Voltage of each cell as a function of time, resampled for use in smooth
-        plots (e.g., streamplots).
+        Transmembrane voltage of each cell as a function of time, resampled for
+        use in smooth visualization (e.g., streamplots).
     '''
 
-    def __init__(self,p):
+    def __init__(self, p: 'Parameters'):
 
         #FIXME: Defer until later. To quote the "simrunner" module, which
         #explicitly calls this public method:
@@ -1319,7 +1323,7 @@ class Simulator(object):
                     self.P_electro_time.append(self.P_electro[:])
 
                 if p.deformation is True and p.run_sim is True:
-                    self.implement_deform_timestep(cells,t,p)
+                    self.implement_deform_timestep(cells, t, p)
 
                     #FIXME: Shift into implement_deform_timestep(). Magical OK!
                     self.cell_centres_time.append(cells.cell_centres[:])
@@ -1612,7 +1616,6 @@ class Simulator(object):
             self.update_V_ecm(cells,p,t)
 
             if p.ions_dict['Ca'] == 1:
-
                 f_CaATP = pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],self.cc_env[self.iCa][cells.map_mem2ecm],
                         self.vm,self.T,p)
 
@@ -1629,8 +1632,13 @@ class Simulator(object):
                 self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
-
-                    f_Ca_ER = pumpCaER(self.cc_er[0],self.cc_cells[self.iCa],self.v_er,self.T,p)
+                    f_Ca_ER = pumpCaER(
+                        self.cc_er[0],
+                        self.cc_cells[self.iCa],
+                        self.v_er,
+                        self.T,
+                        p,
+                    )
 
                     # update calcium concentrations in the ER and cell:
                     self.cc_er[0] = self.cc_er[0] + f_Ca_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
@@ -1646,15 +1654,12 @@ class Simulator(object):
                     self.v_er = v_er_o - self.v_cell
 
             if p.ions_dict['H'] == 1:
-
                 self.Hplus_electrofuse_ecm(cells,p,t)
 
                 if p.HKATPase_dyn == 1 and p.run_sim is True:
-
                     self.Hplus_HKATP_ecm(cells,p,t)
 
                 if p.VATPase_dyn == 1 and p.run_sim is True:
-
                     self.Hplus_VATP_ecm(cells,p,t)
 
             #----------------ELECTRODIFFUSION---------------------------------------------------------------------------
@@ -1788,25 +1793,16 @@ class Simulator(object):
                 ddc = None
 
                 self.vm_time.append(self.vm[:])
-
                 self.dvm_time.append(self.dvm[:])
-
                 self.gjopen_time.append(self.gjopen[:])
-
                 self.vcell_time.append(self.v_cell[:])
-
                 self.venv_time.append(self.v_env[:])
-
                 self.I_gj_x_time.append(self.I_gj_x[:])
                 self.I_gj_y_time.append(self.I_gj_y[:])
-
                 self.I_mem_time.append(self.I_mem[:])
-
                 self.I_tot_x_time.append(self.I_tot_x)
                 self.I_tot_y_time.append(self.I_tot_y)
-
                 self.rho_cells_time.append(self.rho_cells[:])
-
                 self.rate_NaKATP_time.append(self.rate_NaKATP[:])
 
                 if p.fluid_flow is True and p.run_sim is True:
@@ -1820,9 +1816,7 @@ class Simulator(object):
                 dat_grid_vm = vertData(self.vm[:],cells,p)
 
                 self.vm_Matrix.append(dat_grid_vm[:])
-
                 self.time.append(t)
-
                 self.P_cells_time.append(self.P_cells[:])
                 self.F_hydro_x_time.append(self.F_hydro_x[:])
                 self.F_hydro_y_time.append(self.F_hydro_y[:])
@@ -2062,6 +2056,9 @@ class Simulator(object):
         during solving with the results of the passed time step, if requested
         _and_ if this time step is not the first time step (i.e., 0).
 
+        If this time step is the first time step, the animation has just been
+        created and hence requires no recreation.
+
         Parameters
         ----------
         p : Parameters
@@ -2107,9 +2104,7 @@ class Simulator(object):
             v_cell = vm/2
             v_env = -vm/2
 
-
         else:
-
             Qcells = (self.rho_cells*cells.cell_vol)
 
             # Qcells = cells.integrator(Qcells)
@@ -2172,21 +2167,18 @@ class Simulator(object):
 
         return vm, v_cell, v_env
 
+
     def update_V_ecm(self,cells,p,t):
 
         if p.sim_ECM is True:
             # get the charge in cells and the environment:
             self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = get_charge_density(self.cc_env, self.z_array_env, p)
-
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
-
-
         else:
-
              self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
-
              self.vm, _, _ = self.get_Vall(cells,p)
+
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -2201,6 +2193,7 @@ class Simulator(object):
 
         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
         self.cc_env[ion_i] = c_env + delta_env*p.dt
+
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -2224,8 +2217,8 @@ class Simulator(object):
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
 
-    def Hplus_HKATP_ecm(self,cells,p,t):
 
+    def Hplus_HKATP_ecm(self,cells,p,t):
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
         f_H2, f_K2 = pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],self.cc_env[self.iH][cells.map_mem2ecm],
@@ -2255,6 +2248,7 @@ class Simulator(object):
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
+
 
     def Hplus_VATP_ecm(self,cells,p,t):
 
@@ -4119,6 +4113,7 @@ class Simulator(object):
         # # sum the change over the membranes to get the total mass change of salts:
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
+
     def implement_deform_timestep(self,cells,t,p):
         # Map individual cell deformations to their membranes. In this case,
         # this is better than interpolation.
@@ -4147,7 +4142,7 @@ class Simulator(object):
         cells.ecm_verts = [] # null the original ecm verts data structure...
 
         # Convert region to a numpy array so it can be sorted.
-        for i in range(0,len(cells.cell_to_mems)):
+        for i in range(0, len(cells.cell_to_mems)):
             ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
             ecm_nest = np.asarray(ecm_nest)
             cells.ecm_verts.append(ecm_nest)
@@ -4486,6 +4481,7 @@ def check_v(vm):
         raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
                                        "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
+
 def vertData(data, cells, p):
     """
     Interpolate data from midpoints to verts
@@ -4502,7 +4498,6 @@ def vertData(data, cells, p):
     Returns
     ----------
     dat_grid      THe data sampled on a uniform grid
-
     """
 
     # interpolate vmem defined on mem mids to cell vertices:
@@ -4524,15 +4519,15 @@ def vertData(data, cells, p):
 
     return dat_grid
 
+
 def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
 
     alpha = (D*z*p.q)/(p.kb*T)
-
     fx =  D*gcx + alpha*gvx*c - ux*c
-
     fy =  D*gcy + alpha*gvy*c - uy*c
 
     return fx, fy
+
 
 def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
 

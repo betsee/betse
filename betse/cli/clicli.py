@@ -50,53 +50,53 @@ class CLICLI(CLI):
         # Top-level subcommands.
         self._arg_subparsers_top = self._arg_parser.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
-            dest = 'subcommand_name_top',
+            dest='subcommand_name_top',
 
             # Title of the subcommand section in help output.
-            title = 'subcommands',
+            title='subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description = self._format_help_template(
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
 
         self._add_arg_subparser_top_configured(
-            name = 'config',
-            help = 'create a new {} simulation configuration'.format(
+            name='config',
+            help='create a new {} simulation configuration'.format(
                 metadata.NAME),
-            description = self._format_help_template(
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_CONFIG),
         )
         self._add_arg_subparser_top_configured(
-            name = 'seed',
-            help = 'create the cell cluster defined by a config file',
-            description = self._format_help_template(
+            name='seed',
+            help='create the cell cluster defined by a config file',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_SEED),
         )
         self._add_arg_subparser_top_configured(
-            name = 'init',
-            help = 'init the created cell cluster defined by a config file',
-            description = self._format_help_template(
+            name='init',
+            help='init the created cell cluster defined by a config file',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_INIT),
         )
         self._add_arg_subparser_top_configured(
-            name = 'sim',
-            help = 'simulate the initted cell cluster defined by a config file',
-            description = self._format_help_template(
+            name='sim',
+            help='simulate the initted cell cluster defined by a config file',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_SIM),
         )
         self._configure_arg_parsing_plot()
         self._add_arg_subparser_top(
-            name = 'info',
-            help = 'show information about {} and the current system'.format(
+            name='info',
+            help='show information about {} and the current system'.format(
                 metadata.NAME),
-            description = self._format_help_template(
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_INFO),
         )
         self._add_arg_subparser_top(
-            name = 'try',
-            help = 'create, init, simulate, and plot a sample simulation',
-            description = self._format_help_template(
+            name='try',
+            help='create, init, simulate, and plot a sample simulation',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_TRY),
         )
 
@@ -129,42 +129,42 @@ class CLICLI(CLI):
         '''
         Configure argument parsing for the `plot` subcommand.
         '''
-        # Such subcommand.
+        # This subcommand.
         self._arg_parser_plot = self._add_arg_subparser_top(
-            name = 'plot',
-            help = 'plot previously created, initted, or simulated simulations',
-            description = self._format_help_template(
+            name='plot',
+            help='plot previously created, initted, or simulated simulations',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT),
         )
 
-        # Collection of all subcommands of such subcommand.
+        # Collection of all subcommands of this subcommand.
         self._arg_subparsers_plot = self._arg_parser_plot.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
-            dest = 'subcommand_name_plot',
+            dest='subcommand_name_plot',
 
             # Title of the subcommand section in help output.
-            title = 'plot subcommands',
+            title='plot subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description = self._format_help_template(
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMANDS_PREFIX),
         )
         self._add_arg_subparser_plot_configured(
-            name = 'seed',
-            help = 'plot the created cell cluster defined by a config file',
-            description = self._format_help_template(
+            name='seed',
+            help='plot the created cell cluster defined by a config file',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_SEED),
         )
         self._add_arg_subparser_plot_configured(
-            name = 'init',
-            help = 'plot the initted cell cluster defined by a config file',
-            description = self._format_help_template(
+            name='init',
+            help='plot the initted cell cluster defined by a config file',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_INIT),
         )
         self._add_arg_subparser_plot_configured(
-            name = 'sim',
-            help = 'plot the simulated cell cluster defined by a config file',
-            description = self._format_help_template(
+            name='sim',
+            help='plot the simulated cell cluster defined by a config file',
+            description=self._format_help_template(
                 help.TEMPLATE_SUBCOMMAND_PLOT_SIM),
         )
 
@@ -262,21 +262,21 @@ class CLICLI(CLI):
         # Basename of the sample configuration file to be created.
         config_basename = 'sample_sim.yaml'
 
-        # Relative path of such file, relative to the current directory.
+        # Relative path of this file, relative to the current directory.
         self._args.config_filename = paths.join(
             'sample_sim', config_basename)
 
-        #FIXME: Insufficient. We only want to reuse such file if such file's
+        #FIXME: Insufficient. We only want to reuse this file if this file's
         #version is identical to that of the default YAML configuration file's
         #version. Hence, this logic should (arguably) be shifted elsewhere --
-        #probably to "betse.science.simconfig".
+        #probably into "betse.science.simconfig".
 
-        # If such file already exists, reuse such file.
+        # If this file already exists, reuse this file.
         if files.is_file(self._args.config_filename):
             loggers.log_info(
                 'Reusing simulation configuration "{}".'.format(
                     config_basename))
-        # Else, create such file.
+        # Else, create this file.
         else:
             self._do_config()
 
