@@ -153,6 +153,16 @@ def is_matplotlib_mappable(obj: object) -> bool:
     return isinstance(obj, ScalarMappable)
 
 
+def is_matplotlib_polycollection(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Matplotlib **polygon collection** (i.e., an
+    instance of the `PolyCollection` class).
+    '''
+    # Avoid importing third-party packages at the top level.
+    from matplotlib.collections import PolyCollection
+    return isinstance(obj, PolyCollection)
+
+
 def is_matplotlib_streamplot(obj: object) -> bool:
     '''
     `True` if the passed object is a Matplotlib **streamplot** (i.e., an object
@@ -161,6 +171,16 @@ def is_matplotlib_streamplot(obj: object) -> bool:
     # Avoid importing third-party packages at the top level.
     from matplotlib.streamplot import StreamplotSet
     return isinstance(obj, StreamplotSet)
+
+
+def is_matplotlib_trimesh(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Matplotlib **triangle mesh** (i.e., an
+    instance of the `TriMesh` class).
+    '''
+    # Avoid importing third-party packages at the top level.
+    from matplotlib.collections import TriMesh
+    return isinstance(obj, TriMesh)
 
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
@@ -358,11 +378,26 @@ def assert_not_matplotlib_mappable(obj: object) -> bool:
     return '"{}" not a Matplotlib mappable.'.format(trim(obj))
 
 
+def assert_not_matplotlib_polycollection(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Matplotlib polygon
+    collection.
+    '''
+    return '"{}" not a Matplotlib polygon collection.'.format(trim(obj))
+
+
 def assert_not_matplotlib_streamplot(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be a Matplotlib streamplot.
     '''
     return '"{}" not a Matplotlib streamplot.'.format(trim(obj))
+
+
+def assert_not_matplotlib_trimesh(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Matplotlib triangle mesh.
+    '''
+    return '"{}" not a Matplotlib triangle mesh.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ numeric                }....................
 def assert_not_int(obj: object) -> str:

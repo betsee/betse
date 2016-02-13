@@ -593,21 +593,147 @@ class PlotCells(object, metaclass=ABCMeta):
         )
 
     # ..................{ PLOTTERS ~ cell                    }..................
-    #FIXME: Replace all calls to cell_mosaic() with calls this method; then,
-    #excise cell_mosaic() entirely.
+    def _plot_cells(self, *args, **kwargs) -> 'Collection':
+        '''
+        Plot and return a plot of all cells with colours corresponding to
+        the passed vector of arbitrary cell data (e.g., transmembrane voltages
+        for all cells for the current time step) onto the current figure's axes.
+
+        The type of plot returned is defined by this simulation's configuration.
+        Specifically:
+
+        * If this configuration requests that individual cells be plotted (i.e.,
+          `show cells` is `True`), a mosaic plot of this simulation's cell
+          cluster will be returned. See the `_plot_cell_mosaic()` method.
+        * Else, a mesh plot interpolating the individual cells of this
+          simulation's cell cluster will be returned. See the
+          `_plot_cell_mesh()` method.
+
+        Parameters
+        -----------
+        cell_data : np.ndarray
+            Arbitrary cell data defined on an environmental grid to be plotted.
+
+        All other passed parameters will be passed as is to the underlying plot
+        method called by this method (e.g., `_plot_cell_mosaic()`).
+
+        Returns
+        --------
+        Collection
+            Plot produced by plotting the passed cell data.
+        '''
+
+        if self._p.showCells is True:
+            return self._plot_cell_mosaic(*args, **kwargs)
+        else:
+            return self._plot_cell_mesh(*args, **kwargs)
+
+
+    def _replot_cells(
+        self, cell_plot, *args, **kwargs) -> 'Collection':
+        '''
+        Replot the passed plot and return a similar plot of all cells with
+        colours corresponding to the passed vector of arbitrary cell data (e.g.,
+        transmembrane voltages for all cells for the current time step) onto the
+        current figure's axes.
+
+        This method is typically called to replot an animation of a cell cluster
+        subject to physical cell changes (e.g., cutting, deformation). The type
+        of plot returned is defined by this simulation's configuration.
+        Specifically:
+
+        * If this configuration requests that individual cells be plotted (i.e.,
+          `show cells` is `True`), the passed plot _must_ be a mosaic plot
+          previously returned by the `_plot_cell_mesh()` method. This plot will
+          be updated in-place and returned as is without creating a new plot.
+        * Else, the passed plot _must_ be a mesh plot previously returned by the
+          `_plot_cell_mesh()` method -- specifically, a `TriMesh` object. Since
+          the `TriMesh` API currently provides no public means of updating such
+          plots in-place, this method (in order):
+          . Removes the passed mesh plot from this figure's axes.
+          . Creates a new mesh plot and adds that plot to this figure's axes.
+          . Returns that plot.
+
+        Parameters
+        -----------
+        cell_plot : Collection
+            Cell plot previously returned by either the `_plot_cells()` or
+            `_replot_cells()` methods.
+        cell_data : np.ndarray
+            Arbitrary cell data defined on an environmental grid to be plotted.
+
+        All other passed parameters will be passed as is to the underlying plot
+        method called by this method (e.g., `_plot_cell_mosaic()`).
+
+        Returns
+        --------
+        Collection
+            Plot produced by replotting the passed cell data.
+
+        See Also
+        -----------
+        `_plot_cells()`
+            Further details on cell plotting.
+        '''
+
+        # If plotting individual cells, the passed cell plot *MUST* be a polygon
+        # collection previously returned by the _plot_cell_mosaic() method.
+        if self._p.showCells is True:
+            assert types.is_matplotlib_polycollection(cell_plot), (
+                types.assert_not_matplotlib_polycollection(cell_plot))
+
+            # Update this plot in-place and return the same plot.
+            cell_plot.set_verts(np.asarray(self._cells.cell_verts) * self._p.um)
+            return cell_plot
+        # Else, the passed cell plot *MUST* be a triangle mesh previously
+        # returned by the _plot_cell_mesh() method.
+        else:
+            assert types.is_matplotlib_trimesh(cell_plot), (
+                types.assert_not_matplotlib_trimesh(cell_plot))
+
+            #FIXME: We're fairly certain that this isn't actually necessary and
+            #that, consequently, the following two expensive statements are
+            #equivalent to this noop:
+            #
+            #    return cell_plot
+            #
+            #The reason why is that the _plot_cell_mesh() method triangulates
+            #from the Voronoi centres rather than edges of each cell -- and the
+            #centres don *NOT* appear to actually ever change. Hence, the same
+            #exact plot with possibly different cell data (which is trivially
+            #and efficiently settable elsewhere by calling
+            #"cell_plot.set_array(cell_data)") is returned. Tasty fudge sundaes!
+
+            # Remove this plot and create and return a new plot. Sadly, triangle
+            # meshes do *NOT* currently support in-place update. Note that we
+            # could technically break privacy encapsulation to update this plot
+            # in-place with the following code:
+            #
+            #     # ...where "triangular_grid" is as defined locally by the
+            #     # _plot_cell_mesh() method.
+            #     cell_plot._triangulation = triangular_grid
+            #     cell_plot._paths = None
+            #
+            # Doing so subverts the "TriMesh" API, however, and hence is likely
+            # to break on Matplotlib updates. While inefficient, the current
+            # approach is vastly more robust.
+            cell_plot.remove()
+            return self._plot_cell_mesh(*args, **kwargs)
+
+
     def _plot_cell_mosaic(self, cell_data: np.ndarray) -> PolyCollection:
         '''
         Plot and return a mosaic plot of all cells with colours corresponding to
         the passed vector of arbitrary cell data (e.g., transmembrane voltages
         for all cells for the current time step) onto the current figure's axes.
 
-        This mosaic plot is a polygon collection such that each polygon
+        The returned plot will be a polygon collection such that each polygon
         signifies a cell in this simulation's cell cluster.
 
         Parameters
         -----------
         cell_data : np.ndarray
-            Arbitrary cell data defined on an environmental grid.
+            Arbitrary cell data defined on an environmental grid to be plotted.
 
         Returns
         --------
@@ -632,3 +758,53 @@ class PlotCells(object, metaclass=ABCMeta):
         # Add this plot to this figure's axes.
         self._axes.add_collection(mosaic_plot)
         return mosaic_plot
+
+
+    #FIXME: Replace all calls to cell_mesh() with calls this method; then,
+    #excise cell_mesh() entirely.
+    def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
+        '''
+        Plot and return a mesh plot of all cells with colours corresponding to
+        the passed vector of arbitrary cell data (e.g., transmembrane voltages
+        for all cells for the current time step) onto the current figure's axes.
+
+        The returned plot will be an unstructured triangular grid interpolating
+        each cell of this simulation's cell cluster into a smooth continuum.
+
+        Parameters
+        -----------
+        cell_data : np.ndarray
+            Arbitrary cell data defined on an environmental grid to be plotted.
+
+        Returns
+        --------
+        TriMesh
+            Mesh plot produced by plotting the passed cell data.
+        '''
+        assert types.is_sequence_nonstr(cell_data), (
+            types.assert_not_sequence_nonstr(cell_data))
+
+        # If the passed cell data is defined on membrane midpoints, average that
+        # to correspond to cell centres instead.
+        if len(cell_data) == len(self._cells.mem_i):
+            cell_data = np.dot(
+                self._cells.M_sum_mems, cell_data) / self._cells.num_mems
+
+        # Unstructured triangular grid assigned the passed cell data.
+        triangular_grid = np.zeros(len(self._cells.voronoi_centres))
+        triangular_grid[self._cells.cell_to_grid] = cell_data
+
+        # Create and add this plot to this figure's axes and return this plot.
+        # Unfortunately, the tripcolor() function requires:
+        #
+        # * The "x", "y", and "triangles" parameters to be positional.
+        # * All other parameters to be keyword.
+        #
+        # Behold! The ultimate examplar of nonsensical API design.
+        return self._axes.tripcolor(
+            self._p.um*self._cells.voronoi_centres[:,0],
+            self._p.um*self._cells.voronoi_centres[:,1],
+            triangular_grid,
+            shading='gouraud',
+            cmap=self._colormap,
+        )

@@ -55,7 +55,367 @@ from betse.science.plot.plot import (
     env_quiver, cell_quiver, cell_stream
 )
 
-# ....................{ CLASSES ~ time series              }....................
+# ....................{ CLASSES ~ while                    }....................
+#FIXME: There appears to be a largely ignorable aesthetic issue with
+#deformations. The first time step centers the cell cluster; all subsequent
+#time steps shift the cell cluster towards the top of the figure window. While
+#nothing clips across edges, the movement is noticeably... awkward Since this
+#occurs in the older "PlotWhileSolving" implementation as well, we ignore this.
+class AnimCellsWhileSolving(AnimCells):
+    '''
+    In-place animation of an arbitrary cell-centric time series (e.g., cell
+    voltage as a function of time), plotted over the cell cluster during rather
+    than after simulation modelling.
+
+    Attributes
+    ----------
+    _cell_edges_plot : LineCollection
+        Plot of the current or prior frame's cell edges.
+    _cell_data_plot : ???
+        Plot of the current or prior frame's cell data.
+    '''
+
+    def __init__(
+        self,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+        # assert types.is_sequence_nonstr(cell_time_series), (
+        #     types.assert_not_sequence_nonstr(cell_time_series))
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(
+            # Save in-place animation to a different parent directory than that
+            # to which out-of-place animations are saved.
+            save_dir_parent_basename='anim_while_solving',
+
+            # Prevent the superclass from plotting electric current or
+            # concentration flux. Although this class does *NOT* plot a
+            # streamplot, the time series required for the current overlay is
+            # unavailable until *AFTER* simulation modelling completes.
+            is_current_overlayable=False,
+            *args, **kwargs
+        )
+
+        #FIXME: Pass as a new "cell_time_series" parameter instead.
+        #FIXME: Sadly, doing so will be slightly non-trivial. While the
+        #"sim.vm_Matrix" array is never reassigned, the "sim.vm" array appears
+        #to be reassigned each time step and hence *CANNOT* simply be passed as
+        #is. Instead, we'll probably need to pass a new "cell_time_series_name"
+        #parameter set by our caller to either "vm" or "vm_Matrix". Given that,
+        #we'll then need to "getattr(self._sim, cell_time_series_name)" to get
+        #the current value of this array. Hardly ideal, but it'll work.
+        #
+        #Ah! There *IS* a slightly less hacky approach. Let's revisit the
+        #"cell_time_series" approach. Suppose the "Simulator" class defined the
+        #following two new properties:
+        #
+        #    @property
+        #    def transmembrane_voltage_time_series_unsampled():
+        #        return self.vm
+        #
+        #    @property
+        #    def transmembrane_voltage_time_series_sampled():
+        #        return self.vm_Matrix
+        #
+        #Given that, we could then simply pass those properties as the values
+        #of a new "cell_time_series" parameter. Yes, we rather like it!
+        #FIXME: Actually, what we *REALLY* want here is "self._sim.vm_time".
+        #Unfortunately, "self._sim.vm_time" currently appears to be set in the
+        #"sim" module later than the _plot_loop() method is called. Ideally,
+        #"self._sim.vm_time" would be initialized in a similar manner to
+        #"self._sim.vm_Matrix".
+        #
+        #Ugh. No, it doesn't appear that we'll be able to safely refactor this.
+        #Too much large-scale change required on fragile code. That means the
+        #property approach is what we want. Note, however, these improvements:
+        #FIXME: Ah-ha! We have it. To implement this readily, we actually need
+        #this method to accept *TWO* new parameters:
+        #
+        #* "cell_time_series", set to either "sim.vm_time" or "sim.vm_Matrix".
+        #* "cell_data_current", set to either "sim.vm" or
+        #  "sim.vm_Matrix[0]".
+        #
+        #Phew! That'll do it. No significant changes to "sim" required, which
+        #is a gargantuan relief.
+        if not self._p.sim_ECM:
+            self._cell_time_series = self._sim.vm_time
+            cell_data_current = self._sim.vm
+        else:
+            self._cell_time_series = self._sim.vm_Matrix
+            cell_data_current = self._sim.vm_Matrix[0]
+
+        # Upscaled cell data for the first frame.
+        cell_data_current_upscaled = plot.upscale_data(cell_data_current)
+
+        # Collection of cell polygons with animated voltage data.
+        #
+        # If *NOT* simulating extracellular spaces, only animate intracellular
+        # spaces.
+        if not self._p.sim_ECM:
+            self._cell_data_plot = self._plot_cells(
+                cell_data=cell_data_current_upscaled)
+        # Else, extracellular spaces are simulated. Animate both intracellular
+        # and extracellular spaces.
+        else:
+            if self._p.plotMask:
+                cell_data_current_upscaled = ma.masked_array(
+                    cell_data_current_upscaled,
+                    np.logical_not(self._cells.maskM))
+
+            self._cell_data_plot = self._plot_image(
+                pixel_data=cell_data_current_upscaled)
+
+            #FIXME: Shouldn't we be classifying the "coll" collection for
+            #subsequent updating as well?
+
+            if self._p.showCells:
+                #FIXME: Fairly certain that we can just pass "alpha=0.5" here.
+                self._cell_edges_plot = LineCollection(
+                    self._p.um * self._cells.mem_edges_flat,
+                    colors='black',
+                )
+                self._cell_edges_plot.set_alpha(0.5)
+                self._axes.add_collection(self._cell_edges_plot)
+
+        # Perform all superclass plotting preparation immediately *BEFORE*
+        # plotting this animation's first frame.
+        self._prep_figure(
+            color_mapping=self._cell_data_plot,
+            color_series=cell_data_current_upscaled,
+        )
+
+        # Plot this animation's first frame in a non-blocking manner.
+        plt.show(block=False)
+
+
+    @property
+    def _is_showing(self) -> bool:
+        return self._p.plot_while_solving
+
+
+    @property
+    def _is_saving(self) -> bool:
+        return self._p.save_solving_plot
+
+    #FIXME: This entire method could be efficiently performed in the
+    #_plot_figure_frame() method instead by simply:
+    #
+    #* Preserving the object ID of the "self._cells.cell_verts" object in this
+    #  class' __init__() method: e.g.,
+    #    self._cell_verts_id = id(self._cells.cell_verts)
+    #* In _plot_figure_frame(), testing whether or not that ID has changed and,
+    #  if so, resetting such vertices on this plot: e.g.,
+    #    if self._cell_verts_id != id(self._cells.cell_verts):
+    #        # Do everything currently in this function.
+    #        ...
+    #
+    #Pretty cool, eh? Pumpkin-flavoured sassafras in the afternoon!
+    def reinit(self) -> None:
+
+        #FIXME: Horrible! Basically duplicated from above, with exception of
+        #use of "frame_number" in place of "0".
+        if not self._p.sim_ECM:
+            cell_data_current = self._sim.vm
+        else:
+            cell_data_current = self._sim.vm_Matrix[self._frame_number]
+
+        #FIXME: Horrible! Duplicated exactly from above.
+        # Upscaled cell data for the current frame.
+        cell_data_current_upscaled = plot.upscale_data(cell_data_current)
+
+        # If simulating only intracellular spaces...
+        if not self._p.sim_ECM:
+            self._cell_data_plot = self._replot_cells(
+                cell_plot=self._cell_data_plot,
+                cell_data=cell_data_current_upscaled)
+        # Else, both intra- and extracellular spaces are being simulated.
+        else:
+            # If displaying discrete cells, update the cell edges plot.
+            if self._p.showCells:
+                self._cell_edges_plot.set_segments(
+                    self._p.um * self._cells.mem_edges_flat)
+
+            # If the "apply external voltage" event both occurred and is to be
+            # plotted, plot this event.
+            if (self._p.extVPlot and
+                self._p.scheduled_options['extV'] is not None):
+                self.vext_plot = self._axes.scatter(
+                    self._p.um * self._cells.env_points[:,0],
+                    self._p.um * self._cells.env_points[:,1],
+                    c=plot.upscale_data(self._sim.v_env),
+                    cmap=self._colormap,
+
+                    #FIXME: This isn't the best. Text should still be displayed
+                    #above this. Ideally, this should be something like
+                    #"(ZORDER_LINE + ZORDER_STREAM) / 2" instead.
+                    zorder=10,
+                )
+                self.vext_plot.set_clim(self._color_min, self._color_max)
+
+
+    #FIXME: Refactor to use the new "self._cell_time_series" attribute.
+    def _plot_frame_figure(self, frame_number: int) -> None:
+        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
+        cell_data = None
+
+        if not self._p.sim_ECM:
+            cell_data_raw = plot.upscale_data(
+                self._sim.vm_time[frame_number])
+
+            if self._p.showCells:
+                cell_data = cell_data_raw
+            else:
+                cell_data = np.zeros(len(self._cells.voronoi_centres))
+                cell_data[self._cells.cell_to_grid] = cell_data_raw
+        else:
+            cell_data = plot.upscale_data(self._sim.vm_Matrix[frame_number])
+
+            if self._p.plotMask:
+                cell_data = ma.masked_array(
+                    cell_data, np.logical_not(self._cells.maskM))
+
+        # Update the cell data plot for this frame.
+        self._cell_data_plot.set_array(cell_data)
+
+        #FIXME: Ideally, this logic should be encapsulated into a new private
+        #superclass method accepting no parameters -- say,
+        #PlotCells._update_colorbar(). Since the PlotCells._prep_figure() method was
+        #previously passed the desired color mapping and series, it shouldn't
+        #be necessary to repass such parameters again.
+        #
+        #For orthogonality, the PlotCells._prep_figure() method should be refactored
+        #to call a new PlotCells._make_colorbar() method doing just that.
+        if self._is_color_autoscaled:
+            self._color_min = plot.upscale_data(
+                np.min(self._sim.vm_time[frame_number]))
+            self._color_max = plot.upscale_data(
+                np.max(self._sim.vm_time[frame_number]))
+            self._cell_data_plot.set_clim(self._color_min, self._color_max)
+
+        # If displaying this frame, do so.
+        if self._is_showing:
+            self._figure.canvas.draw()
+
+
+    #FIXME: There's a fair amount of code duplicated here from above.
+    #Contemplate a rejiggering. Thus flow the indelicate streams of nighttime!
+    #FIXME: Aha! We believe we've finally glommed upon the solution. Rather
+    #than attempting to implement lifecycle management directly in either this
+    #subclass or any of our superclasses (...which has turned out to be
+    #basically unfeasible due to all the familiar chicken-and-egg issues that
+    #crop up with lifecycle management in object-oriented hierarchies), the
+    #obvious solution is also the simplest: *JUST RECREATE THIS OBJECT.*
+    #
+    #No, really. It truly is that simple, with one simple caveat: we need to
+    #preserve the existing "self._figure" object -- but that's truly it.
+    #Absolutely everything else should be reinitialized. Can we support that?
+    #Yes, trivially! Just add a new "figure" parameter to the superclass
+    #PlotCells.__init__() method defaulting to "None". If "None", the "_figure"
+    #attribute is set to "plt.figure()"; else, that attribute is set to that
+    #parameter... Why didn't we glom up with this earlier? Better late than
+    #never, certainly; but, geez. We nearly stumbled down another dark alley.
+    #FIXME: Mostly obsolete now. Contemplate removing. Ruddy red scrublands!
+    def _reinit(self) -> None:
+        '''
+        Clear and recreate this animation "from scratch."
+
+        Specifically (in order), this method:
+
+        . Clears this animation's figure. This clears all previously plotted
+          artists (e.g., meshplots) from this animation's previously plotted
+          frame, while retaining the existing figure object.
+        . Recreates this animation's figure "from scratch," as if this
+          animation had just been created. This adds all artists required by
+          this animation's first frame.
+
+        This method neither redisplays nor resaves this animation, thus
+        preventing these changes from visibly "leaking" to the end user.
+        Assuming the `plot_frame()` method to be subsequently passed the
+        number of the next frame, the call to this method will _not_ disrupt
+        the animation.
+        '''
+
+        vdata = np.multiply(self._sim.vm,1000)   # data array for cell coloring
+
+        self._figure.clear()
+        self._axes = plt.subplot(111)
+
+        xmin = self._p.um*self._cells.xmin
+        xmax = self._p.um*self._cells.xmax
+        ymin = self._p.um*self._cells.ymin
+        ymax = self._p.um*self._cells.ymax
+
+        self._axes.axis([xmin, xmax, ymin, ymax])
+
+        if self._is_color_autoscaled is True:
+            self._color_min = np.min(vdata)
+            self._color_max = np.max(vdata)
+
+        # Add a collection of cell polygons with animated voltage data.
+        if self._p.sim_ECM is False:
+            if self._p.showCells is True:
+                self._cell_data_plot, self._axes = cell_mosaic(
+                    vdata, self._axes, self._cells, self._p, self._colormap)
+            else:
+                self._cell_data_plot, self._axes = cell_mesh(
+                    vdata, self._axes, self._cells, self._p, self._colormap)
+        else:
+            dat_grid = plot.upscale_data(self._sim.vm_Matrix[0])
+
+            if self._p.plotMask is True:
+                dat_grid = ma.masked_array(
+                    self._sim.vm_Matrix[0]*1000,
+                    np.logical_not(self._cells.maskM))
+
+            self._cell_data_plot = plt.imshow(
+                dat_grid,
+                origin='lower',
+                extent=[xmin,xmax,ymin,ymax],
+                cmap=self._colormap,
+            )
+
+            if self._p.showCells is True:
+                cell_edges_flat = self._p.um * self._cells.mem_edges_flat
+                coll = LineCollection(cell_edges_flat, colors='k')
+                coll.set_alpha(0.5)
+                self._axes.add_collection(coll)
+
+            # If the "apply external voltage" event occurred and is to be
+            # plotted, plot this event.
+            if (self._p.scheduled_options['extV'] is not None and
+                self._p.extVPlot is True):
+                boundv = self._sim.v_env*1e3
+                self.vext_plot = self._axes.scatter(
+                    self._p.um*self._cells.env_points[:,0],
+                    self._p.um*self._cells.env_points[:,1],
+                    cmap=self._colormap, c=boundv, zorder=10)
+                self.vext_plot.set_clim(self._color_min, self._color_max)
+
+        # set range of the colormap
+        self._cell_data_plot.set_clim(self._color_min, self._color_max)
+        self._colorbar = self._figure.colorbar(self._cell_data_plot)   # define colorbar for figure
+
+        # if self.number_cells is True and self._p.showCells is True:
+        #     for i,cll in enumerate(self._cells.cell_centres):
+        #         self._axes.text(
+        #             self._p.um * cll[0],
+        #             self._p.um * cll[1], i, va='center', ha='center')
+
+        self._colorbar.set_label(self._colorbar_title)
+        self._axes.set_xlabel('Spatial x [um]')
+        self._axes.set_ylabel('Spatial y [um]')
+        self._axes.set_title(self._figure_title)
+
+# ....................{ CLASSES ~ after                    }....................
 class AnimCellsTimeSeries(AnimCells):
     '''
     Animation of an arbitrary cell-centric time series (e.g., cell voltage as a
@@ -1278,378 +1638,3 @@ class AnimateDeformation(object):
             self.fig.canvas.draw()
             savename = self.savedAni + str(i) + '.png'
             plt.savefig(savename,format='png')
-
-
-class AnimCellsWhileSolving(AnimCells):
-    '''
-    In-place animation of an arbitrary cell-centric time series (e.g., cell
-    voltage as a function of time), plotted over the cell cluster during rather
-    than after simulation modelling.
-
-    Attributes
-    ----------
-    _cell_edges_plot : LineCollection
-        Plot of the current or prior frame's cell edges.
-    _cell_data_plot : ???
-        Plot of the current or prior frame's cell data.
-    '''
-
-    def __init__(
-        self,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-        # assert types.is_sequence_nonstr(cell_time_series), (
-        #     types.assert_not_sequence_nonstr(cell_time_series))
-
-        # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            # Save in-place animation to a different parent directory than that
-            # to which out-of-place animations are saved.
-            save_dir_parent_basename='anim_while_solving',
-
-            # Prevent the superclass from plotting electric current or
-            # concentration flux. Although this class does *NOT* plot a
-            # streamplot, the time series required for the current overlay is
-            # unavailable until *AFTER* simulation modelling completes.
-            is_current_overlayable=False,
-            *args, **kwargs
-        )
-
-        #FIXME: Pass as a new "cell_time_series" parameter instead.
-        #FIXME: Sadly, doing so will be slightly non-trivial. While the
-        #"sim.vm_Matrix" array is never reassigned, the "sim.vm" array appears
-        #to be reassigned each time step and hence *CANNOT* simply be passed as
-        #is. Instead, we'll probably need to pass a new "cell_time_series_name"
-        #parameter set by our caller to either "vm" or "vm_Matrix". Given that,
-        #we'll then need to "getattr(self._sim, cell_time_series_name)" to get
-        #the current value of this array. Hardly ideal, but it'll work.
-        #
-        #Ah! There *IS* a slightly less hacky approach. Let's revisit the
-        #"cell_time_series" approach. Suppose the "Simulator" class defined the
-        #following two new properties:
-        #
-        #    @property
-        #    def transmembrane_voltage_time_series_unsampled():
-        #        return self.vm
-        #
-        #    @property
-        #    def transmembrane_voltage_time_series_sampled():
-        #        return self.vm_Matrix
-        #
-        #Given that, we could then simply pass those properties as the values
-        #of a new "cell_time_series" parameter. Yes, we rather like it!
-        #FIXME: Actually, what we *REALLY* want here is "self._sim.vm_time".
-        #Unfortunately, "self._sim.vm_time" currently appears to be set in the
-        #"sim" module later than the _plot_loop() method is called. Ideally,
-        #"self._sim.vm_time" would be initialized in a similar manner to
-        #"self._sim.vm_Matrix".
-        #
-        #Ugh. No, it doesn't appear that we'll be able to safely refactor this.
-        #Too much large-scale change required on fragile code. That means the
-        #property approach is what we want. Note, however, these improvements:
-        #FIXME: Ah-ha! We have it. To implement this readily, we actually need
-        #this method to accept *TWO* new parameters:
-        #
-        #* "cell_time_series", set to either "sim.vm_time" or "sim.vm_Matrix".
-        #* "cell_data_current", set to either "sim.vm" or
-        #  "sim.vm_Matrix[0]".
-        #
-        #Phew! That'll do it. No significant changes to "sim" required, which
-        #is a gargantuan relief.
-        if not self._p.sim_ECM:
-            self._cell_time_series = self._sim.vm_time
-            cell_data_current = self._sim.vm
-        else:
-            self._cell_time_series = self._sim.vm_Matrix
-            cell_data_current = self._sim.vm_Matrix[0]
-
-        # Upscaled cell data for the first frame.
-        cell_data_current_upscaled = plot.upscale_data(cell_data_current)
-
-        # Collection of cell polygons with animated voltage data.
-        #
-        # If *NOT* simulating extracellular spaces, only animate intracellular
-        # spaces.
-        if not self._p.sim_ECM:
-            if self._p.showCells:
-                self._cell_data_plot = self._plot_cell_mosaic(
-                    cell_data_current_upscaled)
-            else:
-                self._cell_data_plot, self._axes = cell_mesh(
-                    cell_data_current_upscaled,
-                    self._axes, self._cells, self._p, self._colormap)
-        # Else, extracellular spaces are simulated. Animate both intracellular
-        # and extracellular spaces.
-        else:
-            if self._p.plotMask:
-                cell_data_current_upscaled = ma.masked_array(
-                    cell_data_current_upscaled,
-                    np.logical_not(self._cells.maskM))
-
-            self._cell_data_plot = self._plot_image(pixel_data=cell_data_current_upscaled)
-
-            #FIXME: Shouldn't we be classifying the "coll" collection for
-            #subsequent updating as well?
-
-            if self._p.showCells:
-                #FIXME: Fairly certain that we can just pass "alpha=0.5" here.
-                self._cell_edges_plot = LineCollection(
-                    self._p.um * self._cells.mem_edges_flat,
-                    colors='black',
-                )
-                self._cell_edges_plot.set_alpha(0.5)
-                self._axes.add_collection(self._cell_edges_plot)
-
-        # Perform all superclass plotting preparation immediately *BEFORE*
-        # plotting this animation's first frame.
-        self._prep_figure(
-            color_mapping=self._cell_data_plot,
-            color_series=cell_data_current_upscaled,
-        )
-
-        # Plot this animation's first frame in a non-blocking manner.
-        plt.show(block=False)
-
-
-    @property
-    def _is_showing(self) -> bool:
-        return self._p.plot_while_solving
-
-
-    @property
-    def _is_saving(self) -> bool:
-        return self._p.save_solving_plot
-
-
-    #FIXME: There appears to be a largely ignorable aesthetic issue with
-    #deformations. The first time step centers the cell cluster; all subsequent
-    #time steps shift the cell cluster towards the top of the figure window.
-    #While nothing clips across edges, the movement is noticeably... awkward.
-    def reinit(self) -> None:
-
-        #FIXME: Horrible! Basically duplicated from above, with exception of
-        #use of "frame_number" in place of "0".
-        #FIXME: Oh, right. We shouldn't need to set
-        #"cell_data_current_upscaled" here at all anymore, after we refactor
-        #the cell_mesh() call below away, which then permits us to also remove
-        #"cell_data_current" and hence this entire conditional. Velvetine glow!
-
-        if not self._p.sim_ECM:
-            cell_data_current = self._sim.vm
-        else:
-            cell_data_current = self._sim.vm_Matrix[self._frame_number]
-
-        #FIXME: Horrible! Duplicated exactly from above.
-        # Upscaled cell data for the current frame.
-        cell_data_current_upscaled = plot.upscale_data(cell_data_current)
-
-        # If simulating only intracellular spaces...
-        if not self._p.sim_ECM:
-            #FIXME: This could be efficiently performed in the
-            #_plot_figure_frame() method instead by simply:
-            #
-            #* Preserving the object ID of the "self._cells.cell_verts" object
-            #  in this class' __init__() method: e.g.,
-            #    self._cell_verts_id = id(self._cells.cell_verts)
-            #* In _plot_figure_frame(), testing whether or not that ID has
-            #  changed and, if so, resetting such vertices on this plot: e.g.,
-            #    if self._cell_verts_id != id(self._cells.cell_verts):
-            #        self._cell_data_plot.set_verts(
-            #            np.asarray(self._cells.cell_verts) * self._p.um)
-            #
-            #Pretty cool, eh? Pumpkin-flavoured sassafras in the afternoon!
-            if self._p.showCells:
-                self._cell_data_plot.set_verts(
-                    np.asarray(self._cells.cell_verts) * self._p.um)
-            #FIXME: Horrible! Duplicated from above. Ideally, this
-            #should be using the above set_verts() approach.
-            else:
-                self._cell_data_plot.remove()
-                self._cell_data_plot, self._axes = cell_mesh(
-                    cell_data_current_upscaled,
-                    self._axes, self._cells, self._p, self._colormap)
-        # Else, both intra- and extracellular spaces are being simulated.
-        else:
-            # If displaying discrete cells, update the cell edges plot.
-            if self._p.showCells:
-                self._cell_edges_plot.set_segments(
-                    self._p.um * self._cells.mem_edges_flat)
-
-            # If the "apply external voltage" event both occurred and is to be
-            # plotted, plot this event.
-            if (self._p.extVPlot and
-                self._p.scheduled_options['extV'] is not None):
-                self.vext_plot = self._axes.scatter(
-                    self._p.um * self._cells.env_points[:,0],
-                    self._p.um * self._cells.env_points[:,1],
-                    c=plot.upscale_data(self._sim.v_env),
-                    cmap=self._colormap,
-
-                    #FIXME: This isn't the best. Text should still be displayed
-                    #above this. Ideally, this should be something like
-                    #"(ZORDER_LINE + ZORDER_STREAM) / 2".
-                    zorder=10,
-                )
-                self.vext_plot.set_clim(self._color_min, self._color_max)
-
-
-    #FIXME: Refactor to use the new "self._cell_time_series" attribute.
-    def _plot_frame_figure(self, frame_number: int) -> None:
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
-
-        cell_data = None
-
-        if not self._p.sim_ECM:
-            cell_data_raw = plot.upscale_data(
-                self._sim.vm_time[frame_number])
-
-            if self._p.showCells:
-                cell_data = cell_data_raw
-            else:
-                cell_data = np.zeros(len(self._cells.voronoi_centres))
-                cell_data[self._cells.cell_to_grid] = cell_data_raw
-        else:
-            cell_data = plot.upscale_data(self._sim.vm_Matrix[frame_number])
-
-            if self._p.plotMask:
-                cell_data = ma.masked_array(
-                    cell_data, np.logical_not(self._cells.maskM))
-
-        self._cell_data_plot.set_array(cell_data)
-
-        #FIXME: Ideally, this logic should be encapsulated into a new private
-        #superclass method accepting no parameters -- say,
-        #PlotCells._update_colorbar(). Since the PlotCells._prep_figure() method was
-        #previously passed the desired color mapping and series, it shouldn't
-        #be necessary to repass such parameters again.
-        #
-        #For orthogonality, the PlotCells._prep_figure() method should be refactored
-        #to call a new PlotCells._make_colorbar() method doing just that.
-        if self._is_color_autoscaled:
-            self._color_min = plot.upscale_data(
-                np.min(self._sim.vm_time[frame_number]))
-            self._color_max = plot.upscale_data(
-                np.max(self._sim.vm_time[frame_number]))
-            self._cell_data_plot.set_clim(self._color_min, self._color_max)
-
-        # If displaying this frame, do so.
-        if self._is_showing:
-            self._figure.canvas.draw()
-
-
-    #FIXME: There's a fair amount of code duplicated here from above.
-    #Contemplate a rejiggering. Thus flow the indelicate streams of nighttime!
-    #FIXME: Aha! We believe we've finally glommed upon the solution. Rather
-    #than attempting to implement lifecycle management directly in either this
-    #subclass or any of our superclasses (...which has turned out to be
-    #basically unfeasible due to all the familiar chicken-and-egg issues that
-    #crop up with lifecycle management in object-oriented hierarchies), the
-    #obvious solution is also the simplest: *JUST RECREATE THIS OBJECT.*
-    #
-    #No, really. It truly is that simple, with one simple caveat: we need to
-    #preserve the existing "self._figure" object -- but that's truly it.
-    #Absolutely everything else should be reinitialized. Can we support that?
-    #Yes, trivially! Just add a new "figure" parameter to the superclass
-    #PlotCells.__init__() method defaulting to "None". If "None", the "_figure"
-    #attribute is set to "plt.figure()"; else, that attribute is set to that
-    #parameter... Why didn't we glom up with this earlier? Better late than
-    #never, certainly; but, geez. We nearly stumbled down another dark alley.
-    #FIXME: Mostly obsolete now. Contemplate removing. Ruddy red scrublands!
-    def _reinit(self) -> None:
-        '''
-        Clear and recreate this animation "from scratch."
-
-        Specifically (in order), this method:
-
-        . Clears this animation's figure. This clears all previously plotted
-          artists (e.g., meshplots) from this animation's previously plotted
-          frame, while retaining the existing figure object.
-        . Recreates this animation's figure "from scratch," as if this
-          animation had just been created. This adds all artists required by
-          this animation's first frame.
-
-        This method neither redisplays nor resaves this animation, thus
-        preventing these changes from visibly "leaking" to the end user.
-        Assuming the `plot_frame()` method to be subsequently passed the
-        number of the next frame, the call to this method will _not_ disrupt
-        the animation.
-        '''
-
-        vdata = np.multiply(self._sim.vm,1000)   # data array for cell coloring
-
-        self._figure.clear()
-        self._axes = plt.subplot(111)
-
-        xmin = self._p.um*self._cells.xmin
-        xmax = self._p.um*self._cells.xmax
-        ymin = self._p.um*self._cells.ymin
-        ymax = self._p.um*self._cells.ymax
-
-        self._axes.axis([xmin, xmax, ymin, ymax])
-
-        if self._is_color_autoscaled is True:
-            self._color_min = np.min(vdata)
-            self._color_max = np.max(vdata)
-
-        # Add a collection of cell polygons with animated voltage data.
-        if self._p.sim_ECM is False:
-            if self._p.showCells is True:
-                self._cell_data_plot, self._axes = cell_mosaic(
-                    vdata, self._axes, self._cells, self._p, self._colormap)
-            else:
-                self._cell_data_plot, self._axes = cell_mesh(
-                    vdata, self._axes, self._cells, self._p, self._colormap)
-        else:
-            dat_grid = plot.upscale_data(self._sim.vm_Matrix[0])
-
-            if self._p.plotMask is True:
-                dat_grid = ma.masked_array(
-                    self._sim.vm_Matrix[0]*1000,
-                    np.logical_not(self._cells.maskM))
-
-            self._cell_data_plot = plt.imshow(
-                dat_grid,
-                origin='lower',
-                extent=[xmin,xmax,ymin,ymax],
-                cmap=self._colormap,
-            )
-
-            if self._p.showCells is True:
-                cell_edges_flat = self._p.um * self._cells.mem_edges_flat
-                coll = LineCollection(cell_edges_flat, colors='k')
-                coll.set_alpha(0.5)
-                self._axes.add_collection(coll)
-
-            # If the "apply external voltage" event occurred and is to be
-            # plotted, plot this event.
-            if (self._p.scheduled_options['extV'] is not None and
-                self._p.extVPlot is True):
-                boundv = self._sim.v_env*1e3
-                self.vext_plot = self._axes.scatter(
-                    self._p.um*self._cells.env_points[:,0],
-                    self._p.um*self._cells.env_points[:,1],
-                    cmap=self._colormap, c=boundv, zorder=10)
-                self.vext_plot.set_clim(self._color_min, self._color_max)
-
-        # set range of the colormap
-        self._cell_data_plot.set_clim(self._color_min, self._color_max)
-        self._colorbar = self._figure.colorbar(self._cell_data_plot)   # define colorbar for figure
-
-        # if self.number_cells is True and self._p.showCells is True:
-        #     for i,cll in enumerate(self._cells.cell_centres):
-        #         self._axes.text(
-        #             self._p.um * cll[0],
-        #             self._p.um * cll[1], i, va='center', ha='center')
-
-        self._colorbar.set_label(self._colorbar_title)
-        self._axes.set_xlabel('Spatial x [um]')
-        self._axes.set_ylabel('Spatial y [um]')
-        self._axes.set_title(self._figure_title)
