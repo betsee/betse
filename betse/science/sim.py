@@ -16,6 +16,7 @@ from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 
+
 class Simulator(object):
     '''
     Contains the main routines used in the simulation of networked cell
@@ -2050,24 +2051,19 @@ class Simulator(object):
             self._anim_cells_while_solving = None
 
 
-    def _dereplot_loop(self, p: 'Parameters', t: int) -> None:
+    def _dereplot_loop(self, p: 'Parameters') -> None:
         '''
         Clear and recreate the currently displayed and/or saved animation
-        during solving with the results of the passed time step, if requested
-        _and_ if this time step is not the first time step (i.e., 0).
-
-        If this time step is the first time step, the animation has just been
-        created and hence requires no recreation.
+        during solving with the results of the passed time step if requested
+        by the passed simulation configuration _or_ noop otherwise.
 
         Parameters
         ----------
         p : Parameters
             Current simulation configuration.
-        t : int
-            Time step to be animated.
         '''
 
-        if p.plot_while_solving is True and t > 0:
+        if p.plot_while_solving is True:
             self._anim_cells_while_solving.reinit()
 
     # ..................{ GETTERS                            }..................
@@ -4154,7 +4150,7 @@ class Simulator(object):
         # Clear and recreate the currently displayed and/or saved animation.
         # Deformations require sufficiently "heavy" modifications to plot data
         # that starting over from scratch is the safest and simplest approach.
-        self._dereplot_loop(p, t)
+        self._dereplot_loop(p)
 
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):

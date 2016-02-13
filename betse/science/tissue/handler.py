@@ -681,8 +681,11 @@ class TissueHandler(object):
             cells.redo_gj(self, p, savecells=False)
             self.runAllInit(sim, cells, p)
 
-            if p.plot_while_solving is True:
-                sim.checkPlot.resetData(cells, sim, p)
+            # Clear and recreate the currently displayed and/or saved
+            # animation. Cutting requires sufficiently "heavy" modifications to
+            # plot data that starting over from scratch is the safest and
+            # simplest approach.
+            sim._dereplot_loop(p)
 
             # Avoid repeating this cutting event at subsequent time steps.
             soc._is_fired = True

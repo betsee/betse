@@ -650,6 +650,10 @@ class AnimGapJuncTimeSeries(AnimCells):
             array=self._gapjunc_time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,
+
+            #FIXME: This isn't the best. Text should still be displayed
+            #above this. Ideally, this should be something like
+            #"(ZORDER_LINE + ZORDER_STREAM) / 2" instead.
             zorder=10,
         )
         self._gapjunc_plot.set_clim(0.0, 1.0)
