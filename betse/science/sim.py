@@ -2106,8 +2106,9 @@ class Simulator(object):
             # Qcells = cells.integrator(Qcells)
 
             # smooth out the environmental charge:
-            self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
+            self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
             # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
+            # self.rho_env = self.rho_env.reshape(cells.X.shape)
 
             # make sure charge at the global boundary is zero:
             # if p.closed_bound is False:
