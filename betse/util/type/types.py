@@ -134,6 +134,15 @@ def is_numpy_array(obj: object) -> bool:
     from numpy import ndarray
     return isinstance(obj, ndarray)
 
+# ....................{ TESTERS ~ lib : matplotlib         }....................
+def is_matplotlib_collection(obj: object) -> bool:
+    '''
+    `True` if the passed object is a Matplotlib collection.
+    '''
+    # Avoid importing third-party packages at the top level.
+    from matplotlib.collections import Collection
+    return isinstance(obj, Collection)
+
 
 def is_matplotlib_colormap(obj: object) -> bool:
     '''
@@ -362,6 +371,13 @@ def assert_not_numpy_array(obj: object) -> bool:
     String asserting the passed object to _not_ be a Numpy array or matrix.
     '''
     return '"{}" not a array or matrix.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ lib : matplotlib       }....................
+def assert_not_matplotlib_collection(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Matplotlib collection.
+    '''
+    return '"{}" not a Matplotlib collection.'.format(trim(obj))
 
 
 def assert_not_matplotlib_colormap(obj: object) -> bool:

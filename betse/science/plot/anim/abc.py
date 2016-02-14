@@ -86,8 +86,9 @@ class AnimCells(PlotCells):
         Streamplot of either electric current or concentration flux overlayed
         over this subclass' animation if `_is_overlaying_current` is
         `True` _or_ `None` otherwise.
-    _frame_number : int
-        0-based index of the frame currently being plotted.
+    _time_step : int
+        0-based index of the frame currently being plotted, corresponding to the
+        0-based sampled time step currently being simulated.
     _is_overlaying_current : bool
         `True` if overlaying either electric current or concentration flux
         streamlines on this animation when requested by the current simulation
@@ -226,7 +227,7 @@ class AnimCells(PlotCells):
         self._current_density_x_time_series = None
         self._current_density_y_time_series = None
         self._current_density_stream_plot = None
-        self._frame_number = 0
+        self._time_step = 0
         self._writer_frames = None
         self._writer_frames = None
         self._writer_video = None
@@ -480,6 +481,7 @@ class AnimCells(PlotCells):
                 raise
 
     # ..................{ PLOTTERS                           }..................
+    #FIXME: Rename "frame_number" to "time_step".
     def plot_frame(self, frame_number: int) -> None:
         '''
         Iterate this animation to the next frame.
@@ -509,13 +511,13 @@ class AnimCells(PlotCells):
         #         self._type,
         #         len(self._sim.time) if frame_number == -1 else frame_number))
 
-        # Classify the passed frame number.
-        self._frame_number = frame_number
+        # Classify the passed time step.
+        self._time_step = frame_number
 
         # If plotting a current overlay, do so.
         if self._is_overlaying_current:
             #FIXME: Refactor _replot_current_density() to use
-            #"self._frame_number" rather than repass this parameter everywhere.
+            #"self._time_step" rather than repass this parameter everywhere.
             self._replot_current_density(frame_number)
 
         # Update this figure with the current time, rounded to three decimal
@@ -523,7 +525,7 @@ class AnimCells(PlotCells):
         self._axes.set_title('{} (time {:.3f}s)'.format(
             self._axes_title, self._sim.time[frame_number]))
 
-        #FIXME: Refactor _plot_frame_figure() to use "self._frame_number" rather
+        #FIXME: Refactor _plot_frame_figure() to use "self._time_step" rather
         #than repass this parameter everywhere.
 
         # Plot this frame *AFTER* performing all superclass-specific plotting,

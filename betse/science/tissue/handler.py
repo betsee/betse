@@ -681,11 +681,12 @@ class TissueHandler(object):
             cells.redo_gj(self, p, savecells=False)
             self.runAllInit(sim, cells, p)
 
+            #FIXME: Excise. And the chill vermouth of winter did exhale!
             # Clear and recreate the currently displayed and/or saved
             # animation. Cutting requires sufficiently "heavy" modifications to
             # plot data that starting over from scratch is the safest and
             # simplest approach.
-            sim._dereplot_loop(p)
+            # sim._dereplot_loop(p)
 
             # Avoid repeating this cutting event at subsequent time steps.
             soc._is_fired = True

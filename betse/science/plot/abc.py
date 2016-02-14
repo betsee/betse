@@ -593,11 +593,12 @@ class PlotCells(object, metaclass=ABCMeta):
         )
 
     # ..................{ PLOTTERS ~ cell                    }..................
-    def _plot_cells(self, *args, **kwargs) -> 'Collection':
+    def _plot_cells_sans_ecm(self, *args, **kwargs) -> 'Collection':
         '''
-        Plot and return a plot of all cells with colours corresponding to
-        the passed vector of arbitrary cell data (e.g., transmembrane voltages
-        for all cells for the current time step) onto the current figure's axes.
+        Plot and return an intracellular plot of all cells with colours
+        corresponding to the passed vector of arbitrary cell data (e.g.,
+        transmembrane cell voltages for the current time step) onto the current
+        figure's axes.
 
         The type of plot returned is defined by this simulation's configuration.
         Specifically:
@@ -629,13 +630,62 @@ class PlotCells(object, metaclass=ABCMeta):
             return self._plot_cell_mesh(*args, **kwargs)
 
 
-    def _replot_cells(
-        self, cell_plot, *args, **kwargs) -> 'Collection':
+    def _update_cell_plot_sans_ecm(
+        self,
+        cell_plot: 'Collection',
+        cell_data: np.ndarray,
+        *args, **kwargs
+    ) -> None:
         '''
-        Replot the passed plot and return a similar plot of all cells with
-        colours corresponding to the passed vector of arbitrary cell data (e.g.,
-        transmembrane voltages for all cells for the current time step) onto the
-        current figure's axes.
+        Update _without_ recreating the passed intracellular cell plot with the
+        passed vector of arbitrary cell data (e.g., transmembrane cell voltages
+        for the current time step) onto the current figure's axes.
+
+        Parameters
+        -----------
+        cell_plot : Collection
+            Cell plot previously returned by either the `_plot_cells_sans_ecm()`
+            _or_ `_revive_cell_plot_sans_ecm()` method.
+        cell_data : np.ndarray
+            Arbitrary cell data defined on an environmental grid to be plotted.
+
+        All other passed parameters will be passed as is to the underlying plot
+        method called by this method (e.g., `_plot_cell_mosaic()`).
+        '''
+        assert types.is_sequence_nonstr(cell_data), (
+            types.assert_not_sequence_nonstr(cell_data))
+
+        # If plotting individuals cells, update this plot with this data as is.
+        if self._p.showCells:
+            assert types.is_matplotlib_polycollection(cell_plot), (
+                types.assert_not_matplotlib_polycollection(cell_plot))
+            cell_plot.set_array(cell_data)
+        # Else, the cell cluster is being plotted as an unstructured triangular
+        # grid, requiring this data be reshaped onto this grid.
+        else:
+            assert types.is_matplotlib_trimesh(cell_plot), (
+                types.assert_not_matplotlib_trimesh(cell_plot))
+
+            #FIXME: Duplicated from below.
+            # Reshape this data onto this grid.
+            cell_data = np.zeros(len(self._cells.voronoi_centres))
+            cell_data[self._cells.cell_to_grid] = cell_data
+
+            # Update this plot with this gridded data.
+            cell_plot.set_array(cell_data)
+
+
+    def _revive_cell_plots_sans_ecm(
+        self,
+        cell_plot: 'Collection',
+        cell_data: np.ndarray,
+        *args, **kwargs
+    ) -> 'Collection':
+        '''
+        Recreate the passed intracellular plot and return a similar plot of all
+        cells with colours corresponding to the passed vector of arbitrary cell
+        data (e.g., transmembrane cell voltages for the current time step) onto
+        the current figure's axes.
 
         This method is typically called to replot an animation of a cell cluster
         subject to physical cell changes (e.g., cutting, deformation). The type
@@ -657,8 +707,8 @@ class PlotCells(object, metaclass=ABCMeta):
         Parameters
         -----------
         cell_plot : Collection
-            Cell plot previously returned by either the `_plot_cells()` or
-            `_replot_cells()` methods.
+            Cell plot previously returned by either the `_plot_cells_sans_ecm()` _or_
+            `_revive_cell_plots_sans_ecm()` method.
         cell_data : np.ndarray
             Arbitrary cell data defined on an environmental grid to be plotted.
 
@@ -669,12 +719,9 @@ class PlotCells(object, metaclass=ABCMeta):
         --------
         Collection
             Plot produced by replotting the passed cell data.
-
-        See Also
-        -----------
-        `_plot_cells()`
-            Further details on cell plotting.
         '''
+        assert types.is_sequence_nonstr(cell_data), (
+            types.assert_not_sequence_nonstr(cell_data))
 
         # If plotting individual cells, the passed cell plot *MUST* be a polygon
         # collection previously returned by the _plot_cell_mosaic() method.
@@ -682,8 +729,11 @@ class PlotCells(object, metaclass=ABCMeta):
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
 
-            # Update this plot in-place and return the same plot.
+            # Update this plot in-place.
+            cell_plot.set_array(cell_data)
             cell_plot.set_verts(np.asarray(self._cells.cell_verts) * self._p.um)
+
+            # Return the same plot.
             return cell_plot
         # Else, the passed cell plot *MUST* be a triangle mesh previously
         # returned by the _plot_cell_mesh() method.
@@ -718,7 +768,7 @@ class PlotCells(object, metaclass=ABCMeta):
             # to break on Matplotlib updates. While inefficient, the current
             # approach is vastly more robust.
             cell_plot.remove()
-            return self._plot_cell_mesh(*args, **kwargs)
+            return self._plot_cell_mesh(cell_data=cell_data, *args, **kwargs)
 
 
     def _plot_cell_mosaic(self, cell_data: np.ndarray) -> PolyCollection:

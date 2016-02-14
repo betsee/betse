@@ -2050,22 +2050,6 @@ class Simulator(object):
             self._anim_cells_while_solving.close()
             self._anim_cells_while_solving = None
 
-
-    def _dereplot_loop(self, p: 'Parameters') -> None:
-        '''
-        Clear and recreate the currently displayed and/or saved animation
-        during solving with the results of the passed time step if requested
-        by the passed simulation configuration _or_ noop otherwise.
-
-        Parameters
-        ----------
-        p : Parameters
-            Current simulation configuration.
-        '''
-
-        if p.plot_while_solving is True:
-            self._anim_cells_while_solving.reinit()
-
     # ..................{ GETTERS                            }..................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
         """
@@ -4148,10 +4132,11 @@ class Simulator(object):
         cells.ecm_verts = np.asarray(cells.ecm_verts)
         cells.deformWorld(p)
 
+        #FIXME: Excise. And the winged creatins of the lavish valley did cheer!
         # Clear and recreate the currently displayed and/or saved animation.
         # Deformations require sufficiently "heavy" modifications to plot data
         # that starting over from scratch is the safest and simplest approach.
-        self._dereplot_loop(p)
+        # self._dereplot_loop(p)
 
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
