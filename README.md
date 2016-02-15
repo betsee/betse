@@ -48,7 +48,7 @@ installed manually via the system-wide package manager for your current
 operating system:
 
 * Python >= 3.3.
-* [Matplotlib](http://matplotlib.org) >= 1.3.0.
+* [Matplotlib](http://matplotlib.org) >= 1.4.0.
 * [NumPy](http://www.numpy.org) >= 1.8.0.
 * [Pillow](https://python-pillow.github.io) >= 2.3.0.
 * PySide >= 1.1.0.
@@ -62,13 +62,28 @@ To install these dependencies, the following instructions also install `pip3`,
 the Python 3-specific release of the popular Python package manager `pip`.
 That said, `betse` itself does _not_ require `pip3` at runtime.
 
+### Linux
+
+Under Linux, `betse` also requires:
+
+* [Tcl/Tk](https://www.tcl.tk).
+* Matplotlib compiled with Tcl/Tk support (i.e., the `tkagg` backend enabled).
+
 #### Linux Debian
 
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), these
 dependencies are installable in a system-wide manner as follows:
 
-    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyside python3-scipy python3-setuptools python3-six python3-yaml &&
+    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyside python3-scipy python3-setuptools python3-six python3-yaml tcl tk &&
       sudo pip3 install yamale
+
+If the version of Matplotlib provided by your Linux distribution is
+older than that required by `betse`, the newest stable version of Matplotlib
+may be manually installed as follows:
+
+    $ sudo apt-get uninstall python3-matplotlib &&
+      sudo apt-get install gcc gfortran libfreetype6-dev libpng-dev libpython3-all-dev tcl-dev tk-dev &&
+      sudo pip3 install matplotlib[all]
 
 #### Apple OS X
 
