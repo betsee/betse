@@ -110,7 +110,6 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
-
     def fileInit(self,p):
         '''
         Initializes the pathnames of top-level files and directories comprising
@@ -130,7 +129,6 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
         self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
-
 
     def baseInit(self,cells,p):
         """
@@ -746,7 +744,7 @@ class Simulator(object):
         # initialize the environmental diffusion matrix:
         self.initDenv(cells,p)
 
-    def _init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
+    def _tissue_init(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Prepares data structures pertaining to tissue profiles and dynamic
         activity.
@@ -883,9 +881,10 @@ class Simulator(object):
             'If you have selected features using other ions, '
             'they will be ignored.')
 
-
     #FIXME: This and the run_loop_with_ecm() method share a great deal of
-    #copy-and-pasted code in common. Evergreen groves in the ultrablack light!
+    #copy-and-pasted code in common. Please preserve this comment.
+    #Copy-and-pasted code makes it difficult to improve and maintain the
+    #codebase. Evergreen groves in the ultrablack light!
     def run_loop_no_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
@@ -901,7 +900,7 @@ class Simulator(object):
             written to the on-disk cache.
         '''
 
-        self._init_tissue(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
+        self._tissue_init(cells, p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
 
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
@@ -984,41 +983,13 @@ class Simulator(object):
         # get the net, unbalanced charge and corresponding voltage in each cell:
         self.update_V_ecm(cells,p,0)
 
-        # vm_to = copy.deepcopy(self.vm)   # create a copy of the original voltage
-        self.vm_to = self.vm[:]
+        # create a copy of the original voltage
+        self.vm_to = np.copy(self.vm)
 
         if p.Ca_dyn is True:
             self.cc_er = np.asarray(self.cc_er)
 
-            #FIXME: This doesn't do what you think it does. In Numpy, basic
-            #array slices return a *VIEW* rather than a *COPY* of the sliced
-            #array. Hence, the following two assignments are identical:
-            #
-            #    # This...
-            #    self.cc_er_to = self.cc_er[:]
-            #
-            #    # ...is the exact same as this.
-            #    self.cc_er_to = self.cc_er
-            #
-            #In both assignments, no copy is made! The two attributes will
-            #refer to the same underlying array. Changes made to the contents
-            #of one will affect the other.
-            #
-            #Is that the intention? If so, that's fine; but the slice should
-            #probably be dropped for clarity. If not, the most efficient means
-            #of copying Numpy arrays is interestingly the standard array()
-            #function:
-            #
-            #    # This actually makes a copy. Pretty fast, too.
-            #    self.cc_er_to = np.array(self.cc_er)
-            #
-            #Or did you actually mean these two arrays to be references to each
-            #other? Unfortunately, I'm seeing quite a bit of "[:]"-style
-            #slicing on Numpy arrays throughout the codebase. This might be a
-            #widespread issue. Or I might be a raving juggernaut of code love.
-            #
-            #Swimming pool waters in a shampagne pool hall!
-            self.cc_er_to = self.cc_er[:]
+            self.cc_er_to = np.copy(self.cc_er)
 
         # Display and/or save an animation during solving and calculate:
         #
@@ -1035,7 +1006,7 @@ class Simulator(object):
             self.fluxes_mem.fill(0)  # reinitialize flux storage device
 
             self.dvm = (self.vm - self.vm_to)/p.dt    # calculate the change in the voltage derivative
-            self.vm_to = self.vm[:]       # reassign the history-saving vm
+            self.vm_to = np.copy(self.vm)       # reassign the history-saving vm
 
             if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
                 self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
@@ -1443,7 +1414,6 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
-
     def run_loop_with_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
@@ -1454,7 +1424,7 @@ class Simulator(object):
 
         '''
 
-        self._init_tissue(cells,p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
+        self._tissue_init(cells, p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
 
         # Reinitialize all time-data structures
         self.cc_time = []  # data array holding the concentrations at time points
@@ -1551,10 +1521,7 @@ class Simulator(object):
         # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
         self.update_V_ecm(cells,p,0)
 
-        #FIXME: We're in trouble here. This does *NOT* make a copy. Numpy
-        #array slices return a view rather than a copy. See related FIXME
-        #comment above. Slipping slides down the loggerhead of time!
-        self.vm_to = self.vm[:]   # create a copy of the original voltage
+        self.vm_to = np.copy(self.vm)   # create a copy of the original voltage
 
         # Display and/or save an animation during solving and calculate:
         #
@@ -1574,14 +1541,12 @@ class Simulator(object):
             # Calculate the change in the voltage derivative.
             self.dvm = (self.vm - self.vm_to)/p.dt
 
-            #FIXME: Uh oh! More Numpy slicing horror show. Joyous inner voyage!
-            self.vm_to = self.vm[:]       # reassign the history-saving vm
+            self.vm_to = np.copy(self.vm)       # reassign the history-saving vm
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
                 self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
 
-                #FIXME: Uh oh! Numpy slicing bites back. Wondrous outer world!
-                self.cc_er_to = self.cc_er[:]
+                self.cc_er_to = np.copy(self.cc_er)
 
             # Calculate the values of scheduled and dynamic quantities (e.g.
             # ion channel multipliers).
@@ -1950,106 +1915,6 @@ class Simulator(object):
         plt.close()
         loggers.log_info('Simulation completed successfully.')
 
-
-    # ..................{ PLOTTERS                           }..................
-    def _plot_loop(self, cells: 'Cells', p: 'Parameters') -> (np.ndarray, set):
-        '''
-        Display and/or save an animation during solving if requested _and_
-        calculate data common to solving both with and without extracellular
-        spaces.
-
-        Returns
-        --------
-        tt : np.ndarray
-            Time-steps vector appropriate for the current run.
-        tsamples : set
-            Time-steps vector resampled to save data at substantially fewer
-            times. The length of this vector governs the number of frames in
-            plotted animations, for example.
-        '''
-
-        # Human-readable state of extracellular spaces simulation.
-        if p.sim_ECM is False:
-            ecm_state_label = ''
-        else:
-            ecm_state_label = '(with extracellular spaces) '
-
-        # Human-readable type and maximum number of steps of the current run.
-        if p.run_sim is False:
-            figure_type_label = 'Initializing'
-            loop_type_label = 'initialization'
-            loop_time_step_max = p.init_tsteps
-        else:
-            figure_type_label = 'Simulating'
-            loop_type_label = 'simulation'
-            loop_time_step_max = p.sim_tsteps
-
-        # Maximum number of seconds simulated by the current run.
-        loop_seconds_max = loop_time_step_max * p.dt
-
-        # Time-steps vector appropriate for the current run.
-        tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
-
-        #FIXME: Refactor into a for loop calling the range() builtin. Sunsets!
-        # Resample this vector to save data at substantially fewer times.
-        tsamples = set()
-        i = 0
-        while i < len(tt) - p.t_resample:
-            i += p.t_resample
-            tsamples.add(tt[i])
-
-        # Log this run.
-        loggers.log_info(
-            'Your {} {}is running from 0 to {:.3f} seconds of in-world time '
-            'with {} unsampled and {} sampled time steps.'.format(
-            loop_type_label,
-            ecm_state_label,
-            loop_seconds_max,
-            len(tt),
-            len(tsamples),
-        ))
-
-        # If displaying and/or saving an animation during solving, do so.
-        if p.plot_while_solving is True:
-            self._anim_cells_while_solving = AnimCellsWhileSolving(
-                sim=self, cells=cells, p=p,
-                type='Vmem',
-                figure_title='Cell Membrane Voltage While {}'.format(
-                    figure_type_label),
-                colorbar_title='Voltage [mV]',
-                is_color_autoscaled=p.autoscale_Vmem,
-                color_min=p.Vmem_min_clr,
-                color_max=p.Vmem_max_clr,
-            )
-
-        return tt, tsamples
-
-
-    def _replot_loop(self, p: 'Parameters') -> None:
-        '''
-        Update the currently displayed and/or saved animation during solving
-        with the results of the most recently solved time step, if requested.
-        '''
-
-        # Update this animation for the "last frame" if desired, corresponding
-        # to the results of the most recently solved time step.
-        if p.plot_while_solving is True:
-            self._anim_cells_while_solving.plot_frame(frame_number=-1)
-
-
-    def _deplot_loop(self) -> None:
-        '''
-        Explicitly close the previously displayed and/or saved animation if
-        any _or_ noop otherwise.
-
-        To conserve memory, this method nullifies and hence garbage
-        collects both this animation and this animation's associate figure.
-        '''
-
-        if self._anim_cells_while_solving is not None:
-            self._anim_cells_while_solving.close()
-            self._anim_cells_while_solving = None
-
     # ..................{ GETTERS                            }..................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
         """
@@ -2148,7 +2013,6 @@ class Simulator(object):
 
         return vm, v_cell, v_env
 
-
     def update_V_ecm(self,cells,p,t):
 
         if p.sim_ECM is True:
@@ -2159,7 +2023,6 @@ class Simulator(object):
         else:
              self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
              self.vm, _, _ = self.get_Vall(cells,p)
-
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -2174,7 +2037,6 @@ class Simulator(object):
 
         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
         self.cc_env[ion_i] = c_env + delta_env*p.dt
-
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -2197,7 +2059,6 @@ class Simulator(object):
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
-
 
     def Hplus_HKATP_ecm(self,cells,p,t):
 
@@ -2229,7 +2090,6 @@ class Simulator(object):
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
-
 
     def Hplus_VATP_ecm(self,cells,p,t):
 
@@ -2671,8 +2531,8 @@ class Simulator(object):
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
-        self.Dye_flux_x_gj = -fgj_x_dye[:]  # store gap junction flux for this ion
-        self.Dye_flux_y_gj = -fgj_y_dye[:]  # store gap junction flux for this ion
+        self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
+        self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
 
         if p.sim_ECM is False:
 
@@ -2881,8 +2741,8 @@ class Simulator(object):
 
         self.cIP3 = self.cIP3 + p.dt*delta_cc
 
-        self.IP3_flux_x_gj = -fgj_x_ip3[:]  # store gap junction flux for this ion
-        self.IP3_flux_y_gj = -fgj_y_ip3[:]  # store gap junction flux for this ion
+        self.IP3_flux_x_gj = fgj_x_ip3[:]  # store gap junction flux for this ion
+        self.IP3_flux_y_gj = fgj_y_ip3[:]  # store gap junction flux for this ion
 
         if p.sim_ECM is False:
 
@@ -4094,7 +3954,6 @@ class Simulator(object):
         # # sum the change over the membranes to get the total mass change of salts:
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
 
-
     def implement_deform_timestep(self,cells,t,p):
         # Map individual cell deformations to their membranes. In this case,
         # this is better than interpolation.
@@ -4137,6 +3996,104 @@ class Simulator(object):
         # Deformations require sufficiently "heavy" modifications to plot data
         # that starting over from scratch is the safest and simplest approach.
         # self._dereplot_loop(p)
+
+    # ..................{ PLOTTERS                           }..................
+
+    def _plot_loop(self, cells: 'Cells', p: 'Parameters') -> (np.ndarray, set):
+        '''
+        Display and/or save an animation during solving if requested _and_
+        calculate data common to solving both with and without extracellular
+        spaces.
+
+        Returns
+        --------
+        tt : np.ndarray
+            Time-steps vector appropriate for the current run.
+        tsamples : set
+            Time-steps vector resampled to save data at substantially fewer
+            times. The length of this vector governs the number of frames in
+            plotted animations, for example.
+        '''
+
+        # Human-readable state of extracellular spaces simulation.
+        if p.sim_ECM is False:
+            ecm_state_label = ''
+        else:
+            ecm_state_label = '(with extracellular spaces) '
+
+        # Human-readable type and maximum number of steps of the current run.
+        if p.run_sim is False:
+            figure_type_label = 'Initializing'
+            loop_type_label = 'initialization'
+            loop_time_step_max = p.init_tsteps
+        else:
+            figure_type_label = 'Simulating'
+            loop_type_label = 'simulation'
+            loop_time_step_max = p.sim_tsteps
+
+        # Maximum number of seconds simulated by the current run.
+        loop_seconds_max = loop_time_step_max * p.dt
+
+        # Time-steps vector appropriate for the current run.
+        tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
+
+        #FIXME: Refactor into a for loop calling the range() builtin. Sunsets!
+        # Resample this vector to save data at substantially fewer times.
+        tsamples = set()
+        i = 0
+        while i < len(tt) - p.t_resample:
+            i += p.t_resample
+            tsamples.add(tt[i])
+
+        # Log this run.
+        loggers.log_info(
+            'Your {} {}is running from 0 to {:.3f} seconds of in-world time '
+            'with {} unsampled and {} sampled time steps.'.format(
+            loop_type_label,
+            ecm_state_label,
+            loop_seconds_max,
+            len(tt),
+            len(tsamples),
+        ))
+
+        # If displaying and/or saving an animation during solving, do so.
+        if p.plot_while_solving is True:
+            self._anim_cells_while_solving = AnimCellsWhileSolving(
+                sim=self, cells=cells, p=p,
+                type='Vmem',
+                figure_title='Cell Membrane Voltage While {}'.format(
+                    figure_type_label),
+                colorbar_title='Voltage [mV]',
+                is_color_autoscaled=p.autoscale_Vmem,
+                color_min=p.Vmem_min_clr,
+                color_max=p.Vmem_max_clr,
+            )
+
+        return tt, tsamples
+
+    def _replot_loop(self, p: 'Parameters') -> None:
+        '''
+        Update the currently displayed and/or saved animation during solving
+        with the results of the most recently solved time step, if requested.
+        '''
+
+        # Update this animation for the "last frame" if desired, corresponding
+        # to the results of the most recently solved time step.
+        if p.plot_while_solving is True:
+            self._anim_cells_while_solving.plot_frame(frame_number=-1)
+
+    def _deplot_loop(self) -> None:
+        '''
+        Explicitly close the previously displayed and/or saved animation if
+        any _or_ noop otherwise.
+
+        To conserve memory, this method nullifies and hence garbage
+        collects both this animation and this animation's associate figure.
+        '''
+
+        if self._anim_cells_while_solving is not None:
+            self._anim_cells_while_solving.close()
+            self._anim_cells_while_solving = None
 
 
 def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
@@ -4463,7 +4420,6 @@ def check_v(vm):
         raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
                                        "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
-
 def vertData(data, cells, p):
     """
     Interpolate data from midpoints to verts
@@ -4501,7 +4457,6 @@ def vertData(data, cells, p):
 
     return dat_grid
 
-
 def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
 
     alpha = (D*z*p.q)/(p.kb*T)
@@ -4509,7 +4464,6 @@ def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
     fy =  D*gcy + alpha*gvy*c - uy*c
 
     return fx, fy
-
 
 def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
 

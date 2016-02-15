@@ -280,10 +280,6 @@ class AnimCellsWhileSolving(AnimCells):
 
         # Update the color bar with the content of the cell body plot *AFTER*
         # possibly recreating this plot above.
-
-        # If autoscaling this colorbar, do so only in an expanding manner. That
-        # is, permit this colorbar's range to expand but *NOT* contract, as the
-        # latter inhibits intelligibility and only invites confusion.
         if self._is_color_autoscaled:
             #FIXME: Mostly duplicated from above. (Ugh.)
             if not self._p.sim_ECM:
@@ -292,17 +288,28 @@ class AnimCellsWhileSolving(AnimCells):
                 cell_data_vm = plot.upscale_data(
                     self._sim.vm_time[self._time_step])
 
-            # If this is the first time step, ignore the previously calculated
-            # minimum and maximum colors. For unknown reasons, these colors for
-            # the first time step are quite ignorable garbage.
-            if self._is_time_step_first:
-                self._is_time_step_first = False
+            #FIXME: Permit this to be externally configured via a new __init__()
+            #parameter "is_colorbar_autoscaled_expansively" or some such.
+
+            # If autoscaling this colorbar strictly, do so.
+            if True:
                 self._color_min = np.min(cell_data_vm)
                 self._color_max = np.max(cell_data_vm)
-            # Else, recalculate these colors in an expanding manner.
+            # If autoscaling this colorbar expansively, do so. That is, permit
+            # this colorbar's range to expand but *NOT* contract, as the
+            # latter inhibits intelligibility and only invites confusion.
             else:
-                self._color_min = min(self._color_min, np.min(cell_data_vm))
-                self._color_max = max(self._color_max, np.max(cell_data_vm))
+                # If this is the first time step, ignore the previously calculated
+                # minimum and maximum colors. For unknown reasons, these colors for
+                # the first time step are quite ignorable garbage.
+                if self._is_time_step_first:
+                    self._is_time_step_first = False
+                    self._color_min = np.min(cell_data_vm)
+                    self._color_max = np.max(cell_data_vm)
+                # Else, recalculate these colors in an expanding manner.
+                else:
+                    self._color_min = min(self._color_min, np.min(cell_data_vm))
+                    self._color_max = max(self._color_max, np.max(cell_data_vm))
 
             self._cell_data_plot.set_clim(self._color_min, self._color_max)
 
