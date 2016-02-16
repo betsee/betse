@@ -148,15 +148,8 @@ class SimRunner(object):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             loggers.log_info('Cell cluster loaded.')
 
-            # #FIXME: This same test is duplicate in simulate(). Diadem trinkets!
-            # if p_old.config['general options'] != p.config['general options'] or \
-            #    p_old.config['world options'] != p.config['world options'] or \
-            #    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
-            #     raise BetseExceptionParameters(
-            #         'Important config file options are out of sync between '
-            #         'seed and this init attempt! '
-            #         'Run "betse seed" again to match the current settings of '
-            #         'this config file.')
+            # check to ensure compatibility between original and present sim files:
+            self.check_congruency(p_old,p)
 
         else:
             loggers.log_info("Ooops! No such cell cluster file found to load!")
@@ -221,13 +214,8 @@ class SimRunner(object):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
             p.sim_ECM = cells.sim_ECM
 
-            # #FIXME: This same test is duplicate in initialize(). Emerald sky!
-            # if p_old.config['general options'] != p.config['general options'] or \
-            #    p_old.config['world options'] != p.config['world options'] or \
-            #    p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
-            #     raise BetseExceptionParameters(
-            #         'Important config file options are out of sync between the seed and this sim attempt! '
-            #         'Run "betse seed" and "betse init" again to match the current settings of this config file.')
+            # check to ensure compatibility between original and present sim files:
+            self.check_congruency(p_old,p)
 
         else:
             loggers.log_info("No initialization file found to run this simulation!")
@@ -407,11 +395,6 @@ class SimRunner(object):
             col_cells.set_alpha(0.3)
             ax_x.add_collection(col_cells)
 
-            # cell_edges_flat = p.um*cells.mem_edges_flat
-            # coll = LineCollection(cell_edges_flat,color='k',linewidth=0.5)
-            # coll.set_alpha(0.5)
-            # ax_x.add_collection(coll)
-
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
         collection = LineCollection(connects,linewidths=1.0,color='b')
@@ -437,6 +420,14 @@ class SimRunner(object):
                 'defined in configuration file "{}".'.format(
                     self._config_basename))
 
+    def check_congruency(self, p_old, p):
 
-# The plot_all() function now resides in the new
-# "betse.science.plot.all" module, as befits its cool factor. Saucy eye ducts!
+            if p_old.config['general options'] != p.config['general options'] or \
+               p_old.config['world options'] != p.config['world options']:
+               # p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+                raise BetseExceptionParameters(
+                    'Important config file options are out of sync between '
+                    'seed and this init/sim attempt! '
+                    'Run "betse seed" again to match the current settings of '
+                    'this config file.')
+

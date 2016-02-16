@@ -114,7 +114,6 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
-
     def fileInit(self,p):
         '''
         Initializes the pathnames of top-level files and directories comprising
@@ -134,7 +133,6 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
         self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
-
 
     def baseInit(self,cells,p):
         """
@@ -324,12 +322,10 @@ class Simulator(object):
             # self.cH_cells = np.zeros(len(cells.cell_i))
             # cH_cells[:]=p.cH_cell
             self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
-            self.cH_cells = (10**(-self.pH_cell))  # units mmol/L
+            self.cH_cells = (10**(-self.pH_cell))*1e3  # units mmol/L
 
-            # self.cH_env = np.zeros(len(cells.cell_i))
-            # cH_env[:]=p.cH_env
             self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
-            self.cH_env = (10**(-self.pH_env)) # units mmol/L
+            self.cH_env = (10**(-self.pH_env))*1e3 # units mmol/L
 
             DmH = np.zeros(len(cells.cell_i))
             DmH[:] = p.Dm_H
@@ -427,7 +423,6 @@ class Simulator(object):
         self.z_array = np.asarray(self.z_array)
         self.D_gj = np.asarray(self.D_gj)
         # self.molar_mass = np.asarray(self.molar_mass)
-
 
     def baseInit_ECM(self,cells,p):
 
@@ -636,11 +631,11 @@ class Simulator(object):
             # self.cH_cells = np.zeros(len(cells.cell_i))
 
             self.pH_cell = 6.1 + np.log10(self.cM_cells/self.cHM_cells)
-            self.cH_cells = (10**(-self.pH_cell)) # units mmol/L
+            self.cH_cells = (10**(-self.pH_cell))*1e3 # units mmol/L
 
             # self.cH_env = np.zeros(len(cells.xypts))
             self.pH_env = 6.1 + np.log10(self.cM_env/self.cHM_env)
-            self.cH_env = (10**(-self.pH_env)) # units mmol/L
+            self.cH_env = (10**(-self.pH_env))*1e3 # units mmol/L
 
             DmH = np.zeros(len(cells.mem_i))
             DmH[:] = p.Dm_H
@@ -750,7 +745,6 @@ class Simulator(object):
 
         # initialize the environmental diffusion matrix:
         self.initDenv(cells,p)
-
 
     def init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -888,7 +882,6 @@ class Simulator(object):
             'If you have selected features using other ions, '
             'they will be ignored.')
 
-
     def run_loop_no_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
@@ -1023,7 +1016,7 @@ class Simulator(object):
 
                 # Calculate the new pH and H+ concentration:
                 self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
-                self.cc_cells[self.iH] = 10**(-self.pH_cell)
+                self.cc_cells[self.iH] = 10**(-self.pH_cell)*1e3
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
@@ -1044,7 +1037,7 @@ class Simulator(object):
 
                     # Calculate the new pH and H+ concentration:
                     self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
-                    self.cc_cells[self.iH] = 10**(-self.pH_cell)
+                    self.cc_cells[self.iH] = 10**(-self.pH_cell)*1e3
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V_ecm(cells,p,t)
@@ -1060,7 +1053,7 @@ class Simulator(object):
 
                     # Calculate the new pH and H+ concentration:
                     self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
-                    self.cc_cells[self.iH] = 10**(-self.pH_cell)
+                    self.cc_cells[self.iH] = 10**(-self.pH_cell)*1e3
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V_ecm(cells,p,t)
@@ -1213,7 +1206,6 @@ class Simulator(object):
         plt.close()
 
         loggers.log_info('Simulation completed successfully.')
-
 
     def run_loop_with_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -1580,7 +1572,6 @@ class Simulator(object):
 
             self.cDye_env_time = []
 
-
     def write2storage(self,t,cells,p):
 
         if p.GHK_calc is True:
@@ -1667,10 +1658,10 @@ class Simulator(object):
 
             self.efield_ecm_y_time.append(self.E_env_y[:])
 
-            ecmsc = np.copy(self.cc_env[:])
-            ecmsc.tolist()
-            self.cc_env_time.append(ecmsc)
-            ecmsc = None
+            # ecmsc = np.copy(self.cc_env[:])
+            # ecmsc.tolist()
+            # self.cc_env_time.append(ecmsc)
+            # ecmsc = None
 
             self.vcell_time.append(self.v_cell[:])
             self.venv_time.append(self.v_env[:])
@@ -1686,7 +1677,6 @@ class Simulator(object):
 
             if p.voltage_dye ==1:
                 self.cDye_env_time.append(self.cDye_env[:])
-
 
     def save_and_report(self,cells,p):
 
@@ -1852,7 +1842,6 @@ class Simulator(object):
 
         return vm, v_cell, v_env
 
-
     def update_V_ecm(self,cells,p,t):
 
         if p.sim_ECM is True:
@@ -1863,7 +1852,6 @@ class Simulator(object):
         else:
              self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
              self.vm, _, _ = self.get_Vall(cells,p)
-
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -1878,7 +1866,6 @@ class Simulator(object):
 
         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
         self.cc_env[ion_i] = c_env + delta_env*p.dt
-
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -1908,7 +1895,6 @@ class Simulator(object):
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
-
 
     def Hplus_HKATP_ecm(self,cells,p,t):
 
@@ -1941,7 +1927,6 @@ class Simulator(object):
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
 
-
     def Hplus_VATP_ecm(self,cells,p,t):
 
         # if HKATPase pump is desired, run the H-K-ATPase pump:
@@ -1957,14 +1942,13 @@ class Simulator(object):
         self.update_C_ecm(self.iM,-f_H3,cells,p)
 
         self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
-        self.cc_cells[self.iH] = 10**(-self.pH_cell)
+        self.cc_cells[self.iH] = 10**(-self.pH_cell)*1e3
 
         self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
-        self.cc_env[self.iH] = 10**(-self.pH_env)
+        self.cc_env[self.iH] = 10**(-self.pH_env)*1e3
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
-
 
     def update_gj(self,cells,p,t,i):
 
@@ -2028,7 +2012,6 @@ class Simulator(object):
 
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
-
 
     def update_ecm(self,cells,p,t,i):
 
@@ -2215,7 +2198,6 @@ class Simulator(object):
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
 
-
     def update_er(self,cells,p,t):
 
          # electrodiffusion of ions between cell and endoplasmic reticulum
@@ -2239,7 +2221,6 @@ class Simulator(object):
 
         q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
         self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p) - self.v_cell
-
 
     def update_dye(self,cells,p,t):
 
@@ -2557,7 +2538,6 @@ class Simulator(object):
             self.Dye_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
             self.Dye_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
 
-
     def update_IP3(self,cells,p,t):
 
         # Update dye concentration in the gj connected cell network:
@@ -2739,7 +2719,6 @@ class Simulator(object):
             self.IP3_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
             self.IP3_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
 
-
     def get_Efield(self,cells,p):
 
          # calculate voltage difference (gradient*len_gj) between gj-connected cells:
@@ -2764,7 +2743,6 @@ class Simulator(object):
         # get x and y components of the electric field:
         self.E_gj_x = cells.cell_nn_tx*self.Egj
         self.E_gj_y = cells.cell_nn_ty*self.Egj
-
 
     def get_current(self,cells,p):
 
@@ -2857,7 +2835,6 @@ class Simulator(object):
 
             self.I_tot_x = self.I_tot_x + I_env_x
             self.I_tot_y = self.I_tot_y + I_env_y
-
 
     def getFlow(self,cells,p):
         """
@@ -3111,7 +3088,6 @@ class Simulator(object):
         self.u_cells_x[cells.bflags_cells] = 0
         self.u_cells_y[cells.bflags_cells] = 0
 
-
     def eosmosis(self,cells,p):
 
         """
@@ -3217,7 +3193,6 @@ class Simulator(object):
         fix_inds2 = (self.rho_channel < 0).nonzero()
         self.rho_channel[fix_inds2] = 0
 
-
     def get_ion(self,label):
         """
         Given a string input, returns the simulation index of the appropriate ion.
@@ -3245,7 +3220,6 @@ class Simulator(object):
             ion = []
 
         return ion
-
 
     def initDenv(self,cells,p):
 
@@ -3324,7 +3298,6 @@ class Simulator(object):
             self.D_env_weight_v[:,-1] = 0
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
-
 
     def osmotic_P(self,cells,p):
 
@@ -3418,7 +3391,6 @@ class Simulator(object):
 
             self.cIP3 = self.cIP3*(vo/v1)
 
-
     def getHydroF(self,cells,p):
         #----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
 
@@ -3433,7 +3405,6 @@ class Simulator(object):
         self.F_hydro_y = np.dot(cells.M_sum_mems, F_hydro_y) / cells.num_mems
 
         self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
-
 
     def electro_P(self,cells,p):
         """
@@ -3468,7 +3439,6 @@ class Simulator(object):
         P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
 
         self.P_electro = np.sqrt(P_x**2 + P_y**2)
-
 
     def ghk_calculator(self,cells,p):
         """
@@ -3514,7 +3484,6 @@ class Simulator(object):
                     sum_PmCation_out = sum_PmCation_out + self.Dm_cells[i]*self.cc_env[i]*(1/p.tm)
 
         self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
-
 
     def getDeformation(self,cells,t,p):
         """
@@ -3617,7 +3586,6 @@ class Simulator(object):
             self.d_cells_y[cells.bflags_cells] = 0
             # self.d_cells_x[cells.nn_bound] = 0
             # self.d_cells_y[cells.nn_bound] = 0
-
 
     def timeDeform(self,cells,t,p):
         """
@@ -3795,7 +3763,6 @@ class Simulator(object):
         # check the displacement for NANs:
         check_v(self.d_cells_x)
 
-
     def get_mass_flux(self,cells,p):
         """
         Sum up individual trans-membrane and
@@ -3822,7 +3789,6 @@ class Simulator(object):
         # mass_change = self.mass_flux*p.dt*cells.mem_sa
         # # sum the change over the membranes to get the total mass change of salts:
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
-
 
     def implement_deform_timestep(self,cells,t,p):
         # Map individual cell deformations to their membranes. In this case,
@@ -3936,7 +3902,6 @@ class Simulator(object):
 
         return tt, tsamples
 
-
     def _replot_loop(self, p: 'Parameters') -> None:
         '''
         Update the currently displayed and/or saved animation during solving
@@ -3947,7 +3912,6 @@ class Simulator(object):
         # to the results of the most recently solved time step.
         if p.plot_while_solving is True:
             self._anim_cells_while_solving.plot_frame(frame_number=-1)
-
 
     def _deplot_loop(self) -> None:
         '''

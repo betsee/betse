@@ -3,8 +3,6 @@
 # See "LICENSE" for further details.
 
 
-# FIXME create a planaria-specific (aquatic invertebrate) ion profile
-
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib import matplotlibs
@@ -77,56 +75,11 @@ class Parameters(object):
         # Dictionary loaded from this YAML file.
         self.config = simconfig.load(self.config_filename)
 
-        self.grid_size = int(self.config['general options']['comp grid size'])
-        self.plot_grid_size = int(self.config['general options']['plot grid size'])
-        self.sim_ECM = self.config['general options']['simulate extracellular spaces']    # boolean letting us know if extracellular spaces are included
-        self.fluid_flow = self.config['world options']['fluid flow']['include fluid flow']
-        self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
-        self.deformation = self.config['world options']['deformation']['turn on']
-        self.td_deform = self.config['variable settings']['flow and deformation']['time dependent deformation']
-        self.deform_osmo = self.config['variable settings']['flow and deformation']['include osmotic pressure']
-        self.deform_electro = self.config['variable settings']['flow and deformation']['include electrostatic pressure']
-        self.fixed_cluster_bound = self.config['variable settings']['flow and deformation']['fixed cluster boundary']
-        self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
+        #---------------------------------------------------------------------------------------------------------------
+        # FILE HANDLING
+        #---------------------------------------------------------------------------------------------------------------
 
-        # calculate lame's parameters from young mod and the poisson ratio:
-        self.poi = 0.49 # Poisson's ratio for the biological medium
-
-        self.lame_mu = self.youngMod/(2*(1+self.poi))
-        self.lame_lamb = (self.youngMod*self.poi)/((1+self.poi)*(1-2*self.poi))
-
-        self.mu_membrane = 1.0 # membrane viscocity
-
-        # in-membrane diffusion coefficient
-        self.D_membrane = float(self.config['variable settings']['channel electroosmosis']['membrane mobility'])
-        # charge of membrane pumps and channels:
-        self.z_channel = float(self.config['variable settings']['channel electroosmosis']['channel charge'])
-
-        self.z_pump = float(self.config['variable settings']['channel electroosmosis']['pump charge'])
-
-        self.mu_water = float(self.config['variable settings']['flow and deformation']['water viscocity'])   # viscocity of water [Pa.s]
-
-        self.mu_tissue = float(self.config['variable settings']['flow and deformation']['viscous damping']) # viscocity of tissue medium [Pa s}
-
-        self.zeta = -70e-3  # zeta potential of cell membrane [V]
-
-        self.gj_surface = float(self.config['variable settings']['gap junctions']['gap junction surface area'])
-
-        self.gj_flux_sensitive = False
-
-        self.cavity_state = bool(self.config['variable settings']['cavity open'])
-        self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
-
-        # set time profile from yaml
-        self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
-        self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
-
-        self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
-        self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
-
-        self.autoInit = self.config['automatically run initialization']
-
-        # Define paths for saving initialization runs, simulation runs, and results:
+         # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(
             self.config_dirname, self.config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = paths.join(
@@ -141,9 +94,40 @@ class Parameters(object):
         self.sim_filename = self.config['sim file saving']['file']
         self.world_filename = self.config['init file saving']['worldfile']
 
-        self.backward_pumps = False   # boolean letting us know if pumps can run backwards
+        #---------------------------------------------------------------------------------------------------------------
+        # INIT & SIM SETTINGS
+        #---------------------------------------------------------------------------------------------------------------
 
-         # Geometric constants and factors
+        # set time profile from yaml
+        self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
+        self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
+
+        self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
+        self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
+
+        #---------------------------------------------------------------------------------------------------------------
+        # GENERAL OPTIONS
+        #---------------------------------------------------------------------------------------------------------------
+
+        self.autoInit = self.config['automatically run initialization']
+
+        self.grid_size = int(self.config['general options']['comp grid size'])
+        self.plot_grid_size = int(self.config['general options']['plot grid size'])
+          # boolean letting us know if extracellular spaces are included
+        self.sim_ECM = self.config['general options']['simulate extracellular spaces']
+
+       # set ion profile to be used: 'basic', 'basic_Ca', 'animal', 'xenopus', 'scratch'
+        self.ion_profile = self.config['general options']['ion profile']
+
+        #---------------------------------------------------------------------------------------------------------------
+        # WORLD OPTIONS
+        #---------------------------------------------------------------------------------------------------------------
+
+        self.fluid_flow = self.config['world options']['fluid flow']['include fluid flow']
+        self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
+        self.deformation = self.config['world options']['deformation']['turn on']
+
+        # Geometric constants and factors
         self.wsx = float(self.config['world options']['world size'])  # the x-dimension of the world space
         self.wsy = self.wsx  # the y-dimension of the world space [m]
         self.rc = float(self.config['world options']['cell radius'])  # radius of single cell
@@ -155,196 +139,17 @@ class Parameters(object):
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
 
-        self.T = float(self.config['variable settings']['temperature'])  # Cells temperature
-
-        self.gravity = False
-
-        self.aquaporins = float(self.config['variable settings']['flow and deformation']['membrane water conductivity'])
-
-        self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
-        self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
-
-        self.gj_respond_flow = False
-
-        self.v_sensitive_gj = self.config['variable settings']['gap junctions']['voltage sensitive gj']
-
-        self.env_type = True # for now, can't handle air boundaries
-
-        self.D_tj = float(self.config['variable settings']['tight junction scaling'])
-
-        self.D_adh = float(self.config['variable settings']['adherens junction scaling'])
-
-        # tight junction relative ion movement properties:
-        self.Dtj_rel = {}  # use a dictionary to hold the tj values:
-
-        self.Dtj_rel['Na']=float(self.config['variable settings']['tight junction relative diffusion']['Na'])
-        self.Dtj_rel['K']=float(self.config['variable settings']['tight junction relative diffusion']['K'])
-        self.Dtj_rel['Cl']=float(self.config['variable settings']['tight junction relative diffusion']['Cl'])
-        self.Dtj_rel['Ca']=float(self.config['variable settings']['tight junction relative diffusion']['Ca'])
-        self.Dtj_rel['M']=float(self.config['variable settings']['tight junction relative diffusion']['M'])
-        self.Dtj_rel['P']=float(self.config['variable settings']['tight junction relative diffusion']['P'])
-        self.Dtj_rel['H']=float(self.config['variable settings']['tight junction relative diffusion']['H'])
-
-        # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = float(self.config['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K = float(self.config['variable settings']['default tissue properties']['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(self.config['variable settings']['default tissue properties']['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(self.config['variable settings']['default tissue properties']['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H = float(self.config['variable settings']['default tissue properties']['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M = float(self.config['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P = float(self.config['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
-
-        # set ion profile to be used: 'basic' (4 ions), 'basic_Ca' (5 ions), 'animal' (7 ions), 'invertebrate' (7 ions)
-        self.ion_profile = self.config['general options']['ion profile']
-
-        # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
-        self.Ca_dyn = self.config['Ca dynamics']['turn on']
-
-        # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = self.config['variable settings']['optional pumps']['HKATPase pump']
-
-        # include V-ATPase in the simulation? Yes =1, No = 0
-        self.VATPase_dyn = self.config['variable settings']['optional pumps']['VATPase pump']
-
-        # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
-        self.voltage_dye = self.config['variable settings']['morphogen properties']['include morphogen']
-
-        self.Dm_Dye = float(self.config['variable settings']['morphogen properties']['Dm'])
-        self.Do_Dye = float(self.config['variable settings']['morphogen properties']['Do'])
-        self.z_Dye = float(self.config['variable settings']['morphogen properties']['z'])
-        self.cDye_to = float(self.config['variable settings']['morphogen properties']['env conc'])
-        self.cDye_to_cell = float(self.config['variable settings']['morphogen properties']['cell conc'])
-        self.Dye_target_channel = self.config['variable settings']['morphogen properties']['ion channel target']
-        self.Dye_Hill_K = float(self.config['variable settings']['morphogen properties']['target Hill coefficient'])
-        self.Dye_Hill_exp = float(self.config['variable settings']['morphogen properties']['target Hill exponent'])
-        self.Dye_peak_channel = float(self.config['variable settings']['morphogen properties']['peak channel opening'])
-        self.Dye_acts_extracell = bool(self.config['variable settings']['morphogen properties']['acts extracellularly'])
-
-        self.pump_Dye = bool(self.config['variable settings']['morphogen properties']['active pumping']['turn on'])
-        self.pump_Dye_out = bool(self.config['variable settings']['morphogen properties']
-                                ['active pumping']['pump to cell'])
-        self.pump_Dye_alpha = float(self.config['variable settings']['morphogen properties']
-                                ['active pumping']['maximum rate'])
-
-        # include noise in the simulation?
-        self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
-
-        self.dynamic_noise = self.config['variable settings']['noise']['dynamic noise']
-        self.dynamic_noise_level = float(self.config['variable settings']['noise']['dynamic noise level'])
-
-
         #---------------------------------------------------------------------------------------------------------------
-        # Global Interventions
+        # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
-
-        # initialize dictionary keeping track of global scheduled options for the sim:
-        self.global_options = {}
-
-        bool_Naenv = bool(self.config['change Na env']['event happens'])
-        bool_Kenv = bool(self.config['change K env']['event happens'])
-        bool_Clenv = bool(self.config['change Cl env']['event happens'])
-        bool_MorphEnv = bool(self.config['change morphogen']['event happens'])
-        bool_gjblock = bool(self.config['block gap junctions']['event happens'])
-        # bool_ecm = bool(self.config['change ecm junctions']['event happens'])
-        bool_temp =  bool(self.config['change temperature']['event happens'])
-        bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
-        bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
-        bool_Vblock = bool(self.config['block VATP pump']['event happens'])
-
-        if bool_Kenv is False:
-            self.global_options['K_env'] = 0
-        elif bool_Kenv is True:
-            on_Kenv = float(self.config['change K env']['change start'])
-            off_Kenv = float(self.config['change K env']['change finish'])
-            rate_Kenv = float(self.config['change K env']['change rate'])
-            multi_Kenv = float(self.config['change K env']['multiplier'])
-            kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
-            self.global_options['K_env'] = kenv
-
-        if bool_Clenv is False:
-            self.global_options['Cl_env'] = 0
-        elif bool_Clenv is True:
-            on_Clenv = float(self.config['change Cl env']['change start'])
-            off_Clenv = float(self.config['change Cl env']['change finish'])
-            rate_Clenv = float(self.config['change Cl env']['change rate'])
-            multi_Clenv = float(self.config['change Cl env']['multiplier'])
-            Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
-            self.global_options['Cl_env'] = Clenv
-
-        if bool_Naenv is False:
-            self.global_options['Na_env'] = 0
-        elif bool_Naenv is True:
-            on_Naenv = float(self.config['change Na env']['change start'])
-            off_Naenv = float(self.config['change Na env']['change finish'])
-            rate_Naenv = float(self.config['change Na env']['change rate'])
-            multi_Naenv = float(self.config['change Na env']['multiplier'])
-            Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
-            self.global_options['Na_env'] = Naenv
-
-        if bool_MorphEnv is False:
-            self.global_options['Morph_env'] = 0
-        elif bool_MorphEnv is True:
-            on_MorphEnv = float(self.config['change morphogen']['change start'])
-            off_MorphEnv = float(self.config['change morphogen']['change finish'])
-            rate_MorphEnv = float(self.config['change morphogen']['change rate'])
-            conc_MorphEnv = float(self.config['change morphogen']['concentration'])
-            MorphEnv = [on_MorphEnv, off_MorphEnv, rate_MorphEnv, conc_MorphEnv]
-            self.global_options['Morph_env'] = MorphEnv
-
-        if bool_gjblock is False:
-            self.global_options['gj_block'] = 0
-        elif bool_gjblock is True:
-            on_gj = float(self.config['block gap junctions']['change start'])
-            off_gj = float(self.config['block gap junctions']['change finish'])
-            rate_gj = float(self.config['block gap junctions']['change rate'])
-            fraction_gj = float(self.config['block gap junctions']['random fraction'])
-            gjb = [on_gj,off_gj,rate_gj,fraction_gj]
-            self.global_options['gj_block'] = gjb
-
-
-        if bool_temp is False:
-            self.global_options['T_change'] = 0
-        elif bool_temp is True:
-            on_T = float(self.config['change temperature']['change start'])
-            off_T = float(self.config['change temperature']['change finish'])
-            rate_T = float(self.config['change temperature']['change rate'])
-            multi_T = float(self.config['change temperature']['multiplier'])
-            temper = [on_T, off_T, rate_T, multi_T]
-            self.global_options['T_change'] = temper
-
-        if bool_NaKblock is False:
-            self.global_options['NaKATP_block'] = 0
-        elif bool_NaKblock is True:
-            on_nak = float(self.config['block NaKATP pump']['change start'])
-            off_nak = float(self.config['block NaKATP pump']['change finish'])
-            rate_nak = float(self.config['block NaKATP pump']['change rate'])
-            nak = [on_nak,off_nak,rate_nak]
-            self.global_options['NaKATP_block'] = nak
-
-        if bool_HKblock is False:
-            self.global_options['HKATP_block'] = 0
-        elif bool_HKblock is True:
-            on_hk = float(self.config['block HKATP pump']['change start'])
-            off_hk = float(self.config['block HKATP pump']['change finish'])
-            rate_hk = float(self.config['block HKATP pump']['change rate'])
-            hk = [on_hk,off_hk,rate_hk]
-            self.global_options['HKATP_block'] = hk
-
-        if bool_Vblock is False:
-            self.global_options['VATP_block'] = 0
-        elif bool_Vblock is True:
-            on_v = float(self.config['block VATP pump']['change start'])
-            off_v = float(self.config['block VATP pump']['change finish'])
-            rate_v = float(self.config['block VATP pump']['change rate'])
-            vk = [on_v,off_v,rate_v]
-            self.global_options['VATP_block'] = vk
 
         self._init_tissue_and_cut_profiles()
 
         #---------------------------------------------------------------------------------------------------------------
-        # Targeted Interventions
+        # TARGETED INTERVENTIONS
         #---------------------------------------------------------------------------------------------------------------
-         # initialize dictionary keeping track of targeted scheduled options for the sim:
+
+        # initialize dictionary keeping track of targeted scheduled options for the sim:
         self.scheduled_options = {}
 
         bool_Namem = bool(self.config['change Na mem']['event happens'])
@@ -450,40 +255,116 @@ class Parameters(object):
         # Parameterize the cutting event if enabled.
         self.scheduled_options['cuts'] = ActionCut.make(self)
 
-        #-----------------------------------------------------------------------
-        # Modulators
-        #-----------------------------------------------------------------------
-        self.gradient_x_properties = {}
-        self.gradient_y_properties = {}
-        self.gradient_r_properties = {}
+        #---------------------------------------------------------------------------------------------------------------
+        # GLOBAL INTERVENTIONS
+        #---------------------------------------------------------------------------------------------------------------
 
-        self.periodic_properties = {}
-        self.f_scan_properties = {}
+        # initialize dictionary keeping track of global scheduled options for the sim:
+        self.global_options = {}
 
-        self.gradient_x_properties['slope'] =float(self.config['modulator function properties']['gradient_x']['slope'])
-        self.gradient_x_properties['offset'] =float(self.config['modulator function properties']['gradient_x']['offset'])
+        bool_Naenv = bool(self.config['change Na env']['event happens'])
+        bool_Kenv = bool(self.config['change K env']['event happens'])
+        bool_Clenv = bool(self.config['change Cl env']['event happens'])
+        bool_MorphEnv = bool(self.config['change morphogen']['event happens'])
+        bool_gjblock = bool(self.config['block gap junctions']['event happens'])
+        bool_temp =  bool(self.config['change temperature']['event happens'])
+        bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
+        bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
+        bool_Vblock = bool(self.config['block VATP pump']['event happens'])
 
-        self.gradient_y_properties['slope'] =float(self.config['modulator function properties']['gradient_y']['slope'])
-        self.gradient_y_properties['offset'] = float(self.config['modulator function properties']['gradient_y']['offset'])
+        if bool_Kenv is False:
+            self.global_options['K_env'] = 0
+        elif bool_Kenv is True:
+            on_Kenv = float(self.config['change K env']['change start'])
+            off_Kenv = float(self.config['change K env']['change finish'])
+            rate_Kenv = float(self.config['change K env']['change rate'])
+            multi_Kenv = float(self.config['change K env']['multiplier'])
+            kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
+            self.global_options['K_env'] = kenv
 
-        self.gradient_r_properties['slope'] = float(self.config['modulator function properties']['gradient_r']['slope'])
-        self.gradient_r_properties['offset'] = float(self.config['modulator function properties']['gradient_r']['offset'])
+        if bool_Clenv is False:
+            self.global_options['Cl_env'] = 0
+        elif bool_Clenv is True:
+            on_Clenv = float(self.config['change Cl env']['change start'])
+            off_Clenv = float(self.config['change Cl env']['change finish'])
+            rate_Clenv = float(self.config['change Cl env']['change rate'])
+            multi_Clenv = float(self.config['change Cl env']['multiplier'])
+            Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
+            self.global_options['Cl_env'] = Clenv
 
-        self.periodic_properties['frequency'] = float(self.config['modulator function properties']['periodic']['frequency'])
-        self.periodic_properties['phase'] = float(self.config['modulator function properties']['periodic']['phase'])
+        if bool_Naenv is False:
+            self.global_options['Na_env'] = 0
+        elif bool_Naenv is True:
+            on_Naenv = float(self.config['change Na env']['change start'])
+            off_Naenv = float(self.config['change Na env']['change finish'])
+            rate_Naenv = float(self.config['change Na env']['change rate'])
+            multi_Naenv = float(self.config['change Na env']['multiplier'])
+            Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
+            self.global_options['Na_env'] = Naenv
 
-        self.f_scan_properties['f start'] = \
-                                float(self.config['modulator function properties']['f_sweep']['start frequency'])
+        if bool_MorphEnv is False:
+            self.global_options['Morph_env'] = 0
+        elif bool_MorphEnv is True:
+            on_MorphEnv = float(self.config['change morphogen']['change start'])
+            off_MorphEnv = float(self.config['change morphogen']['change finish'])
+            rate_MorphEnv = float(self.config['change morphogen']['change rate'])
+            conc_MorphEnv = float(self.config['change morphogen']['concentration'])
+            MorphEnv = [on_MorphEnv, off_MorphEnv, rate_MorphEnv, conc_MorphEnv]
+            self.global_options['Morph_env'] = MorphEnv
 
-        self.f_scan_properties['f stop'] = \
-                                float(self.config['modulator function properties']['f_sweep']['end frequency'])
+        if bool_gjblock is False:
+            self.global_options['gj_block'] = 0
+        elif bool_gjblock is True:
+            on_gj = float(self.config['block gap junctions']['change start'])
+            off_gj = float(self.config['block gap junctions']['change finish'])
+            rate_gj = float(self.config['block gap junctions']['change rate'])
+            fraction_gj = float(self.config['block gap junctions']['random fraction'])
+            gjb = [on_gj,off_gj,rate_gj,fraction_gj]
+            self.global_options['gj_block'] = gjb
 
-        #initialize the f vect field to None as it's set depending on the sim timestep:
 
-        self.f_scan_properties['f slope'] = None
+        if bool_temp is False:
+            self.global_options['T_change'] = 0
+        elif bool_temp is True:
+            on_T = float(self.config['change temperature']['change start'])
+            off_T = float(self.config['change temperature']['change finish'])
+            rate_T = float(self.config['change temperature']['change rate'])
+            multi_T = float(self.config['change temperature']['multiplier'])
+            temper = [on_T, off_T, rate_T, multi_T]
+            self.global_options['T_change'] = temper
+
+        if bool_NaKblock is False:
+            self.global_options['NaKATP_block'] = 0
+        elif bool_NaKblock is True:
+            on_nak = float(self.config['block NaKATP pump']['change start'])
+            off_nak = float(self.config['block NaKATP pump']['change finish'])
+            rate_nak = float(self.config['block NaKATP pump']['change rate'])
+            nak = [on_nak,off_nak,rate_nak]
+            self.global_options['NaKATP_block'] = nak
+
+        if bool_HKblock is False:
+            self.global_options['HKATP_block'] = 0
+        elif bool_HKblock is True:
+            on_hk = float(self.config['block HKATP pump']['change start'])
+            off_hk = float(self.config['block HKATP pump']['change finish'])
+            rate_hk = float(self.config['block HKATP pump']['change rate'])
+            hk = [on_hk,off_hk,rate_hk]
+            self.global_options['HKATP_block'] = hk
+
+        if bool_Vblock is False:
+            self.global_options['VATP_block'] = 0
+        elif bool_Vblock is True:
+            on_v = float(self.config['block VATP pump']['change start'])
+            off_v = float(self.config['block VATP pump']['change finish'])
+            rate_v = float(self.config['block VATP pump']['change rate'])
+            vk = [on_v,off_v,rate_v]
+            self.global_options['VATP_block'] = vk
 
 
-        #.........................DYNAMIC CHANNELS.....................................................................
+
+        #--------------------------------------------------------------------------------------------------------------
+        # DYNAMIC CHANNELS
+        #--------------------------------------------------------------------------------------------------------------
 
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         # self.gated_targets = self.config['ion channel target cells']
@@ -574,6 +455,9 @@ class Parameters(object):
 
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 
+        # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
+        self.Ca_dyn = self.config['Ca dynamics']['turn on']
+
         cdp = self.config['calcium dynamics parameters']
 
         bool_CICR = bool(self.config['Ca dynamics']['turn on'])
@@ -618,8 +502,151 @@ class Parameters(object):
             cicr = [ERstore_dyn,ca_reg,ip3_reg,apply_CICR]
             self.Ca_dyn_options['CICR'] = cicr
 
+        #--------------------------------------------------------------------------------------------------------------
+        # VARIABLE SETTINGS
+        #--------------------------------------------------------------------------------------------------------------
 
-        #........................RESULTS OUTPUT and PLOTTING............................................................
+        self.gravity = False
+
+        self.T = float(self.config['variable settings']['temperature'])  # system temperature
+
+        self.td_deform = self.config['variable settings']['flow and deformation']['time dependent deformation']
+        self.deform_osmo = self.config['variable settings']['flow and deformation']['include osmotic pressure']
+        self.deform_electro = self.config['variable settings']['flow and deformation']['include electrostatic pressure']
+        self.fixed_cluster_bound = self.config['variable settings']['flow and deformation']['fixed cluster boundary']
+        self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
+
+        # calculate lame's parameters from young mod and the poisson ratio:
+        self.poi = 0.49 # Poisson's ratio for the biological medium
+
+        self.lame_mu = self.youngMod/(2*(1+self.poi))
+        self.lame_lamb = (self.youngMod*self.poi)/((1+self.poi)*(1-2*self.poi))
+
+        self.mu_membrane = 1.0 # membrane viscocity
+
+        # in-membrane diffusion coefficient
+        self.D_membrane = float(self.config['variable settings']['channel electroosmosis']['membrane mobility'])
+        # charge of membrane pumps and channels:
+        self.z_channel = float(self.config['variable settings']['channel electroosmosis']['channel charge'])
+
+        self.z_pump = float(self.config['variable settings']['channel electroosmosis']['pump charge'])
+
+        self.mu_water = float(self.config['variable settings']['flow and deformation']['water viscocity'])   # viscocity of water [Pa.s]
+
+        self.mu_tissue = float(self.config['variable settings']['flow and deformation']['viscous damping']) # viscocity of tissue medium [Pa s}
+
+        self.zeta = -70e-3  # zeta potential of cell membrane [V]
+
+        self.gj_surface = float(self.config['variable settings']['gap junctions']['gap junction surface area'])
+
+        self.gj_flux_sensitive = False
+
+        self.cavity_state = bool(self.config['variable settings']['cavity open'])
+        self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
+
+        self.backward_pumps = False   # can pumps run backwards? (feature currently unsupported)
+
+        self.aquaporins = float(self.config['variable settings']['flow and deformation']['membrane water conductivity'])
+
+        self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
+        self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
+
+        self.gj_respond_flow = False # (feature currently unsupported)
+
+        self.v_sensitive_gj = self.config['variable settings']['gap junctions']['voltage sensitive gj']
+
+        self.env_type = True # for now, can't handle air boundaries
+
+        self.D_tj = float(self.config['variable settings']['tight junction scaling'])
+
+        self.D_adh = float(self.config['variable settings']['adherens junction scaling'])
+
+        # tight junction relative ion movement properties:
+        self.Dtj_rel = {}  # use a dictionary to hold the tj values:
+
+        self.Dtj_rel['Na']=float(self.config['variable settings']['tight junction relative diffusion']['Na'])
+        self.Dtj_rel['K']=float(self.config['variable settings']['tight junction relative diffusion']['K'])
+        self.Dtj_rel['Cl']=float(self.config['variable settings']['tight junction relative diffusion']['Cl'])
+        self.Dtj_rel['Ca']=float(self.config['variable settings']['tight junction relative diffusion']['Ca'])
+        self.Dtj_rel['M']=float(self.config['variable settings']['tight junction relative diffusion']['M'])
+        self.Dtj_rel['P']=float(self.config['variable settings']['tight junction relative diffusion']['P'])
+        self.Dtj_rel['H']=float(self.config['variable settings']['tight junction relative diffusion']['H'])
+
+        # default membrane diffusion constants: easy control of cell's base resting potential
+        self.Dm_Na = float(self.config['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K = float(self.config['variable settings']['default tissue properties']['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(self.config['variable settings']['default tissue properties']['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(self.config['variable settings']['default tissue properties']['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H = float(self.config['variable settings']['default tissue properties']['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M = float(self.config['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P = float(self.config['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
+
+        # include HK-ATPase in the simulation? Yes =1, No = 0
+        self.HKATPase_dyn = self.config['variable settings']['optional pumps']['HKATPase pump']
+
+        # include V-ATPase in the simulation? Yes =1, No = 0
+        self.VATPase_dyn = self.config['variable settings']['optional pumps']['VATPase pump']
+
+        # include diffusion of a morphogen (originally called a voltage-sensitive dye)?
+        self.voltage_dye = self.config['variable settings']['morphogen properties']['include morphogen']
+
+        self.Dm_Dye = float(self.config['variable settings']['morphogen properties']['Dm'])
+        self.Do_Dye = float(self.config['variable settings']['morphogen properties']['Do'])
+        self.z_Dye = float(self.config['variable settings']['morphogen properties']['z'])
+        self.cDye_to = float(self.config['variable settings']['morphogen properties']['env conc'])
+        self.cDye_to_cell = float(self.config['variable settings']['morphogen properties']['cell conc'])
+        self.Dye_target_channel = self.config['variable settings']['morphogen properties']['ion channel target']
+        self.Dye_Hill_K = float(self.config['variable settings']['morphogen properties']['target Hill coefficient'])
+        self.Dye_Hill_exp = float(self.config['variable settings']['morphogen properties']['target Hill exponent'])
+        self.Dye_peak_channel = float(self.config['variable settings']['morphogen properties']['peak channel opening'])
+        self.Dye_acts_extracell = bool(self.config['variable settings']['morphogen properties']['acts extracellularly'])
+
+        self.pump_Dye = bool(self.config['variable settings']['morphogen properties']['active pumping']['turn on'])
+        self.pump_Dye_out = bool(self.config['variable settings']['morphogen properties']
+                                ['active pumping']['pump to cell'])
+        self.pump_Dye_alpha = float(self.config['variable settings']['morphogen properties']
+                                ['active pumping']['maximum rate'])
+
+        # include noise in the simulation?
+        self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
+
+        self.dynamic_noise = self.config['variable settings']['noise']['dynamic noise']
+        self.dynamic_noise_level = float(self.config['variable settings']['noise']['dynamic noise level'])
+
+        # Modulator functions ------------------------------------------------------------------------------------------
+        self.gradient_x_properties = {}
+        self.gradient_y_properties = {}
+        self.gradient_r_properties = {}
+
+        self.periodic_properties = {}
+        self.f_scan_properties = {}
+
+        self.gradient_x_properties['slope'] =float(self.config['modulator function properties']['gradient_x']['slope'])
+        self.gradient_x_properties['offset'] =float(self.config['modulator function properties']['gradient_x']['offset'])
+
+        self.gradient_y_properties['slope'] =float(self.config['modulator function properties']['gradient_y']['slope'])
+        self.gradient_y_properties['offset'] = float(self.config['modulator function properties']['gradient_y']['offset'])
+
+        self.gradient_r_properties['slope'] = float(self.config['modulator function properties']['gradient_r']['slope'])
+        self.gradient_r_properties['offset'] = float(self.config['modulator function properties']['gradient_r']['offset'])
+
+        self.periodic_properties['frequency'] = float(self.config['modulator function properties']['periodic']['frequency'])
+        self.periodic_properties['phase'] = float(self.config['modulator function properties']['periodic']['phase'])
+
+        self.f_scan_properties['f start'] = \
+                                float(self.config['modulator function properties']['f_sweep']['start frequency'])
+
+        self.f_scan_properties['f stop'] = \
+                                float(self.config['modulator function properties']['f_sweep']['end frequency'])
+
+        #initialize the f vect field to None as it's set depending on the sim timestep:
+
+        self.f_scan_properties['f slope'] = None
+
+
+        #--------------------------------------------------------------------------------------------------------------
+        # RESULTS OUTPUT & PLOTTING
+        #--------------------------------------------------------------------------------------------------------------
 
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']
@@ -831,9 +858,9 @@ class Parameters(object):
 
         self.clip = 20e-6
 
-        #........................INTERNAL USE ONLY.....................................................................
-
-        # self.interp_type_2 ='tri'
+        #--------------------------------------------------------------------------------------------------------------
+        # INTERNAL USE ONLY
+        #--------------------------------------------------------------------------------------------------------------
 
         iu = self.config['internal parameters']
 
@@ -999,8 +1026,6 @@ class Parameters(object):
             self.cCa_er = 1.0e-3
             self.cM_er = self.cCa_er
 
-            #FIXME: Shouldn't these be "True" and "False" booleans rather than
-            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'P':self.cP_cell,'M':self.cM_cell}
@@ -1310,8 +1335,22 @@ class Parameters(object):
                 )
 
 
-#FIXME: Document us up the docstring bomb, please. Seed pouches and leather!
 def bal_charge(concentrations, zs):
+    """
+    Sums the concentrations of profile ions with their charge state to
+    determine how much net positive charge exists. Returns concentration
+    of the charge compensation anion M- needed to have zero net charge.
+
+    Parameters
+    -------------
+    concentrations:   array defining concentrations of all ions in a space
+    zs:               array (in complementary order to concentrations) of ion valence state
+
+    Returns
+    ---------
+    bal_conc         concentration of anion M- to create zero net charge
+    valence          charge of the bal_conc (should be -1)
+    """
     q = 0
 
     for conc,z in zip(concentrations,zs):

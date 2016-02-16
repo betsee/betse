@@ -141,19 +141,19 @@ general options:
                                # this is because an anion (M-) is used to create
                                # charge neutrality in each compartment.
 
-    extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
-    extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
-    extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
-    extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
+    extracellular Na+ concentration: 110.0          # extracellular sodium [mmol/L]
+    extracellular K+ concentration: 2.5             # extracellular potassium [mmol/L]
+    extracellular Cl- concentration: 100.0          # extracellular chloride [mmol/L]
+    extracellular Ca2+ concentration: 2.0           # extracellular calcium [mmol/L]
     extracellular H+ concentration: 3.98e-5         # extracellular protons [mmol/L]
-    extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
+    extracellular protein- concentration: 0.0       # extracellular protein [mmol/L]
 
-    cytosolic Na+ concentration: 13.0                # intracellular sodium [mmol/L]
-    cytosolic K+ concentration: 145.00              # intracellular potassium [mmol/L]
-    cytosolic Cl- concentration: 10.0                # intracellular chloride [mmol/L]
-    cytosolic Ca2+ concentration: 1.0e-3            # intracellular calcium [mmol/L]
+    cytosolic Na+ concentration: 11.0                # intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 110.00              # intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 45.0                # intracellular chloride [mmol/L]
+    cytosolic Ca2+ concentration: 3.0e-3            # intracellular calcium [mmol/L]
     cytosolic H+ concentration: 3.98e-5             # intracellular protons [mmol/L]
-    cytosolic protein- concentration: 80.0         # intracellular protein [mmol/L]
+    cytosolic protein- concentration: 50.0         # intracellular protein [mmol/L]
 
     endoplasmic reticulum Ca2+: 0.01             # starting level of Ca2+ in the ER store [mmol/L]
 
@@ -207,8 +207,7 @@ world options:
 # Tissues can be gap-junction connected or separated (isolated) from other tissues.
 # Cluster shape and individual tissues can be defined by bitmaps, or specified via various functional regimes.
 #
-# File synch warning: Tissues must be designed at the time of the 'betse seed' command. If bitmaps or tissue profiles
-# are changed in the config file after running a seed, the seed must be run over again with the new settings.
+# No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
 
 tissue profile definition:
 
@@ -324,7 +323,8 @@ tissue profile definition:
 # tissue profile.
 # Targeted interventions only occur durring sim runs, not durring and init.
 
-# Targeted intervention settings can be altered between seed, init and sim without affecting outcome (no synch issues).
+# No file synch issues: Targeted intervention settings can be altered between seed,
+# init and sim without affecting outcome (no synch issues).
 
 change Na mem:       # Change the membrane permeability to Na+
     event happens: False        # turn the event on (True) or off (False)
@@ -446,7 +446,8 @@ modulator function properties:   # set properties of modulating functions which 
 # Dynamic ion channels respond to simulation variables to change state (e.g. voltage gating)
 # Specify dynamic ion channels expressed by certain cells in the cluster using links to tissue profiles.
 # Dynamic ion channels only appear in sim runs (not in init).
-# Dynamic ion channel settings can be altered between seed, init and sim without affecting outcome.
+
+# No file synch issues: Dynamic ion channel settings can be altered between seed, init and sim.
 
 voltage gated Na+:
     turn on: False             # voltage gated sodium channel?
@@ -482,7 +483,7 @@ Ca dynamics:                   # include full calcium dynamics in the situation?
 # ----------------------------------------------------------------------------------------------------------------------
 # Schedule changes to globally-applied simulation variables such as membrane permeabilities,
 # pump and gap junction function and environmental concentrations of ions.
-# Global intervention settings can be changed at any time between seed, init and sim (no synch issues).
+# No file synch issues: Global intervention settings can be changed at any time between seed, init and sim.
 
 # The following global changes affect the entire cluster durring a sim run (not an init):
 
@@ -888,17 +889,13 @@ results options:
         min val: -70.0               # minimum colorbar value in mV
   
     Vcell Ani:
-        animate Vcell: True          # Plot a 2D animation of voltage in
-                                     # individual cells of the collective?
+        animate Vcell: True          # Plot a 2D animation of voltage in cells?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
 
-    #FIXME: How does this differ from the "Vcell Ani" animation above? They
-    #have identical descriptions, but that can't be right. Monkeys in a sauna!
     Venv Ani:
-        animate Venv: True           # Plot a 2D animation of voltage in
-                                     # individual cells of the collective?
+        animate Venv: True           # Plot a 2D animation of environmental voltage?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
@@ -952,11 +949,8 @@ results options:
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 500                # max colorbar value [V/m]
         min val: 0                  # min colorbar value [V/m]
-  
-    #FIXME: The "data type" key should probably be replaced by splitting this
-    #entire animation entry into two new animation entries: a new
-    #"Vmem Deformation Ani" and a new "Displacement Ani". Presumably, it might
-    #be helpful to be able to plot both animations at the same time. Zesty hum!
+
+
     Deformation Ani:
         animate Deformation: True   # Plot a 2D animation of cell deformation?
                                     # Ignored unless "turn on" under
