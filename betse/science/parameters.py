@@ -2,9 +2,6 @@
 # Copyright 2014-2015 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-# Lodish H, Berk A, Zipursky SL, et al. Molecular Cell Biology. 4th edition. New York: W. H. Freeman;
-# 2000. Section 15.4, Intracellular Ion Environment and Membrane Electric Potential.
-# Available from: http://www.ncbi.nlm.nih.gov/books/NBK21627/
 
 # FIXME create a planaria-specific (aquatic invertebrate) ion profile
 
@@ -954,8 +951,8 @@ class Parameters(object):
             assert self.z_M_env == -1
 
             self.cNa_cell = 11.0
-            self.cK_cell = 190.0
-            self.cP_cell = 138.0
+            self.cK_cell = 135.0
+            self.cP_cell = 80.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
@@ -963,8 +960,6 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            #FIXME: Shouldn't these be "True" and "False" booleans rather than
-            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':0,'H':0,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'P':self.cP_cell,'M':self.cM_cell}
@@ -991,9 +986,9 @@ class Parameters(object):
             assert self.z_M_env == -1
 
             self.cNa_cell = 11.0
-            self.cK_cell = 190.0
+            self.cK_cell = 135.0
             self.cCa_cell = 1.0e-3
-            self.cP_cell = 138.0
+            self.cP_cell = 80.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
 
@@ -1023,7 +1018,7 @@ class Parameters(object):
             self.cK_env = 5.0
             self.cCl_env = 105.0
             self.cCa_env = 1.0
-            self.cH_env = 3.98e-8
+            self.cH_env = 3.98e-5
             self.cP_env = 10.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
@@ -1034,11 +1029,11 @@ class Parameters(object):
             assert self.z_M_env == -1
 
             self.cNa_cell = 11.0
-            self.cK_cell = 190.0
+            self.cK_cell = 140.0
             self.cCl_cell = 52.0
             self.cCa_cell = 1.0e-3
-            self.cH_cell = 3.98e-8
-            self.cP_cell = 138.0
+            self.cH_cell = 3.98e-5
+            self.cP_cell = 80.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
@@ -1048,8 +1043,6 @@ class Parameters(object):
             self.cCa_er = 0.5
             self.cM_er = - self.cCa_er
 
-            #FIXME: Shouldn't these be "True" and "False" booleans rather than
-            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
@@ -1063,12 +1056,12 @@ class Parameters(object):
          # default environmental and cytoplasm values invertebrate cells
         elif self.ion_profile == 'xenopus':
 
-            self.cNa_env = 110.0
-            self.cK_env = 2.5
-            self.cCl_env = 100.0
-            self.cCa_env = 2.0
-            self.cH_env = 3.98e-8
-            self.cP_env = 10.0
+            self.cNa_env = 11.00
+            self.cK_env = 0.25
+            self.cCl_env = 10.0
+            self.cCa_env = 0.20
+            self.cH_env = 3.98e-5
+            self.cP_env = 0.0
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_H, self.z_P]
 
@@ -1078,11 +1071,11 @@ class Parameters(object):
             assert self.z_M_env == -1
 
             self.cNa_cell = 11.0
-            self.cK_cell = 120.0
-            self.cCl_cell = 50.0
-            self.cCa_cell = 3.0e-4
-            self.cH_cell = 3.98e-8
-            self.cP_cell = 70.0
+            self.cK_cell = 110.0
+            self.cCl_cell = 45.0
+            self.cCa_cell = 3.0e-3
+            self.cH_cell = 3.98e-5
+            self.cP_cell = 50.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
 
@@ -1093,8 +1086,6 @@ class Parameters(object):
             self.cCa_er = 0.5
             self.cM_er = -self.cCa_er
 
-            #FIXME: Shouldn't these be "True" and "False" booleans rather than
-            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
@@ -1118,10 +1109,10 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 145.0
-            self.cCl_cell = 80.0
-            self.cK_cell = 85.0
-            self.cP_cell = 138.0
+            self.cNa_cell = 120.0
+            self.cCl_cell = 60.0
+            self.cK_cell = 30.0
+            self.cP_cell = 80.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell,self.cP_cell]
 
@@ -1129,8 +1120,6 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            #FIXME: Shouldn't these be "True" and "False" booleans rather than
-            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':0,'H':0,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Cl':self.cCl_cell,'P':self.cP_cell,'M':self.cM_cell}
@@ -1184,8 +1173,6 @@ class Parameters(object):
             self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
             self.cM_er = -self.cCa_er
 
-            #FIXME: Shouldn't these be "True" and "False" booleans rather than
-            #1 or 0 integers? Humungous skyward catbuses scuttle onward!
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
             self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
@@ -1210,10 +1197,21 @@ class Parameters(object):
 
 
     def set_time_profile(self,time_profile):
+        """
+        Calculates simulation timestep number and resampling time steps for
+        user specified time profile strings or custom time settings.
+
+        Parameters
+        ----------
+        time_profile:    config file supplied string specifying the type of time profile desired.
+                         Options include "initialize" or "custom init" for inits or
+                         "simulate somatic", "simulate excitable" or "custom sim" for sims.
+
+        """
 
         if time_profile == 'simulate somatic':
             if self.sim_ECM is False:
-                self.dt = 1e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 1e-3     # timestep-size [s]
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 
@@ -1222,44 +1220,36 @@ class Parameters(object):
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
             elif self.sim_ECM is True:
-                self.dt = 1.0e-3    # Simulation step-size [s] recommended range 5e-3 to 1e-4 for regular sims; 5e-5 for neural
+                self.dt = 1.0e-3    # timestep-size [s]
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 0.1         # time to resample in world time
 
                 self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'simulate excitable':
             if self.sim_ECM is False:
-                self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.dt = 1.0e-4    # timestep-size [s]
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
 
                 self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-                # self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM is True:
-                self.dt = 1.0e-4    # Simulation step-size [bs] recommended range 5e-3 to 1e-4 for regular sims; 2.5e-5 for neural
+                self.dt = 1.0e-4     # timestep-size [s]
                 self.sim_end = self.time4sim         # world time to end the simulation
                 self.resamp = 5e-4         # time to resample in world time
 
                 self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-                # self.gj_radius = 1.0e-8              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'initialize':
             if self.sim_ECM is False:
-                self.dt = 5.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
+                self.dt = 5.0e-3    # timestep-size
                 self.init_end = self.time4init      # world time to end the initialization simulation time [s]
                 self.resamp = 0.1         # time to resample in world time
 
@@ -1267,8 +1257,6 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
             elif self.sim_ECM is True:
                 self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
@@ -1279,8 +1267,6 @@ class Parameters(object):
                 self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
                 self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
 
-                # self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)
-                # self.gjsa = math.pi*((self.gj_radius)**2)      # total gap junction surface area as fraction of cell surface area
 
         elif time_profile == 'custom init':
             self.dt = float(self.config['init time settings']['custom init time profile']['time step'])
@@ -1289,8 +1275,6 @@ class Parameters(object):
             self.resample = float(self.config['init time settings']['custom init time profile']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
-            # self.gj_radius = float(self.config['init time settings']['custom init time profile']['gap junction radius'])
-            # self.gjsa = math.pi*((self.gj_radius)**2)
 
         elif time_profile == 'custom sim':
             self.dt = float(self.config['sim time settings']['custom sim time profile']['time step'])
@@ -1327,9 +1311,6 @@ class Parameters(object):
 
 
 #FIXME: Document us up the docstring bomb, please. Seed pouches and leather!
-#FIXME: This feels a bit like a miscellaneous utility function rather than
-#something related to YAML configuration. We might want to contemplate shifting
-#this elsewhere -- say, to the "toolbox" module. Tasty thought food!
 def bal_charge(concentrations, zs):
     q = 0
 

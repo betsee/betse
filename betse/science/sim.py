@@ -16,6 +16,10 @@ from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 
+from betse.science.sim_toolbox import electroflux, pumpNaKATP, pumpCaATP, pumpCaER, pumpHKATP, pumpVATP, get_volt,\
+    get_charge, get_charge_density, get_molarity, cell_ave, check_v, vertData, nernst_planck_flux, np_flux_special
+
+
 
 class Simulator(object):
     '''
@@ -110,6 +114,7 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
+
     def fileInit(self,p):
         '''
         Initializes the pathnames of top-level files and directories comprising
@@ -129,6 +134,7 @@ class Simulator(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
         self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
+
 
     def baseInit(self,cells,p):
         """
@@ -421,6 +427,7 @@ class Simulator(object):
         self.z_array = np.asarray(self.z_array)
         self.D_gj = np.asarray(self.D_gj)
         # self.molar_mass = np.asarray(self.molar_mass)
+
 
     def baseInit_ECM(self,cells,p):
 
@@ -744,7 +751,8 @@ class Simulator(object):
         # initialize the environmental diffusion matrix:
         self.initDenv(cells,p)
 
-    def _tissue_init(self, cells: 'Cells', p: 'Parameters') -> None:
+
+    def init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Prepares data structures pertaining to tissue profiles and dynamic
         activity.
@@ -822,8 +830,7 @@ class Simulator(object):
             self.IP3_flux_mem = np.zeros(len(cells.mem_i))
 
             if p.sim_ECM is True:
-                # self.cIP3_ecm = np.zeros(len(cells.ecm_i))     # initialize IP3 concentration of the environment
-                # self.cIP3_ecm[:] = p.cIP3_to_env
+
                 self.cIP3_env = np.zeros(len(cells.xypts))
                 self.cIP3_env[:] = p.cIP3_to_env
 
@@ -881,10 +888,7 @@ class Simulator(object):
             'If you have selected features using other ions, '
             'they will be ignored.')
 
-    #FIXME: This and the run_loop_with_ecm() method share a great deal of
-    #copy-and-pasted code in common. Please preserve this comment.
-    #Copy-and-pasted code makes it difficult to improve and maintain the
-    #codebase. Evergreen groves in the ultrablack light!
+
     def run_loop_no_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
         Runs (and optionally saves) the current simulation phase with
@@ -900,85 +904,17 @@ class Simulator(object):
             written to the on-disk cache.
         '''
 
-        self._tissue_init(cells, p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
+        self.init_tissue(cells, p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
 
         # Reinitialize all time-data structures
-        self.cc_time = []  # data array holding the concentrations at time points
-        self.cc_env_time = [] # data array holding environmental concentrations at time points
+        self.clear_storage(cells, p)
 
-        self.dd_time = []  # data array holding membrane permeabilites at time points
-        self.vm_time = []  # data array holding voltage at time points
-        self.vm_GHK_time = [] # data array holding GHK vm estimates
-        self.dvm_time = []  # data array holding derivative of voltage at time points
-        self.time = []     # time values of the simulation
-        self.gjopen_time = []   # stores the fractional gap junction open state at each time
-        self.cc_er_time = []   # retains er concentrations as a function of time
-        self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
-        self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
-
-        self.I_mem_time = []    # initialize membrane current time vector
-
-        self.vm_Matrix = []    # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
-        self.I_gj_x_time = []
-        self.I_gj_y_time = []
-
-        self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
-        self.efield_gj_y_time = []
-
-        self.P_cells_time = []
-        self.u_cells_x_time = []
-        self.u_cells_y_time = []
-
-        self.rho_cells_time = []
-
-        self.I_tot_x_time = [0]
-        self.I_tot_y_time = [0]
-
-        self.F_electro_time = []
-        self.F_electro_x_time = []
-        self.F_electro_y_time = []
-        self.F_hydro_x_time = []
-        self.F_hydro_y_time = []
-        self.F_hydro_time = []
-        self.P_electro_time = []
-
-        self.rate_NaKATP_time =[]
-
-        if p.deformation is True and p.run_sim is True:
-            self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
-
-            self.cell_centres_time = []
-            self.mem_mids_time = []
-            self.maskM_time = []
-            self.mem_edges_time = []
-            self.cell_verts_time = []
-
-            self.dx_cell_time = []
-            self.dy_cell_time = []
-
-            self.dx_time = []
-            self.dy_time = []
-
-            self.phi = np.zeros(len(cells.cell_i))
-            self.phi_time = []
-
-        if p.voltage_dye is True:
-            self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
-
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            self.cIP3_time = []    # retains IP3 concentration as a function of time
-
-        if p.sim_eosmosis is True:
-            self.rho_channel_time = []
-            self.rho_pump_time = []
-
+        # FIXME: why is this happening?
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.mem_i))   # holds gap junction open fraction for each gj
         self.gjl = np.zeros(len(cells.mem_i))    # gj length for each gj
         self.gjl[:] = cells.gj_len
-
-        # self.rho_pump = np.ones(len(cells.mem_i))
 
         # get the net, unbalanced charge and corresponding voltage in each cell:
         self.update_V_ecm(cells,p,0)
@@ -987,13 +923,10 @@ class Simulator(object):
         self.vm_to = np.copy(self.vm)
 
         if p.Ca_dyn is True:
-            #FIXME: This is a noop. Did you mean to remove this? Shores of joy!
-            self.cc_er = np.asarray(self.cc_er)
 
             self.cc_er_to = np.copy(self.cc_er)
 
         # Display and/or save an animation during solving and calculate:
-        #
         # * "tt", a time-steps vector appropriate for the current run.
         # * "tsamples", that vector resampled to save data at fewer times.
         tt, tsamples = self._plot_loop(cells, p)
@@ -1248,85 +1181,10 @@ class Simulator(object):
             check_v(self.vm)
 
             if t in tsamples:
-                if p.GHK_calc is True:
-                    self.ghk_calculator(cells,p)
-                    self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
 
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
 
-                # add the new concentration and voltage data to the time-storage matrices:
-                self.efield_gj_x_time.append(self.E_gj_x[:])
-
-                self.efield_gj_y_time.append(self.E_gj_y[:])
-
-                concs = self.cc_cells[:]
-                self.cc_time.append(concs)
-                concs = None
-
-                envsc = self.cc_env[:]
-                self.cc_env_time.append(envsc)
-                envsc = None
-
-                ddc = np.copy(self.Dm_cells[:])
-                ddc.tolist()
-                self.dd_time.append(ddc)
-                ddc = None
-
-                self.I_gj_x_time.append(self.I_gj_x[:])
-                self.I_gj_y_time.append(self.I_gj_y[:])
-                self.I_tot_x_time.append(self.I_tot_x[:])
-                self.I_tot_y_time.append(self.I_tot_y[:])
-                self.I_mem_time.append(self.I_mem[:])
-                self.vm_time.append(self.vm[:])
-                self.dvm_time.append(self.dvm[:])
-                self.rho_cells_time.append(self.rho_cells[:])
-                self.rate_NaKATP_time.append(self.rate_NaKATP[:])
-                self.P_cells_time.append(self.P_cells[:])
-                self.F_hydro_x_time.append(self.F_hydro_x[:])
-                self.F_hydro_y_time.append(self.F_hydro_y[:])
-
-                if p.deform_osmo is True:
-                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-
-                if p.deform_electro is True:
-                    self.F_electro_time.append(self.F_electro[:])
-                    self.F_electro_x_time.append(self.F_electro_x[:])
-                    self.F_electro_y_time.append(self.F_electro_y[:])
-
-                    self.P_electro_time.append(self.P_electro[:])
-
-                if p.deformation is True and p.run_sim is True:
-                    self.implement_deform_timestep(cells, t, p)
-
-                    #FIXME: Shift into implement_deform_timestep(). Magical OK!
-                    self.cell_centres_time.append(cells.cell_centres[:])
-                    self.mem_mids_time.append(cells.mem_mids_flat[:])
-                    self.maskM_time.append(cells.maskM[:])
-                    self.mem_edges_time.append(cells.mem_edges_flat[:])
-                    self.cell_verts_time.append(cells.cell_verts[:])
-
-                    self.dx_cell_time.append(self.d_cells_x[:])
-                    self.dy_cell_time.append(self.d_cells_y[:])
-
-                if p.fluid_flow is True and p.run_sim is True:
-                    self.u_cells_x_time.append(self.u_cells_x[:])
-                    self.u_cells_y_time.append(self.u_cells_y[:])
-
-                if p.sim_eosmosis is True and p.run_sim is True:
-                    self.rho_channel_time.append(self.rho_channel[:])
-                    self.rho_pump_time.append(self.rho_pump[:])
-
-                self.gjopen_time.append(self.gjopen[:])
-                self.time.append(t)
-
-                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-                    self.cIP3_time.append(self.cIP3[:])
-
-                if p.voltage_dye ==1:
-                    self.cDye_time.append(self.cDye_cell[:])
-
-                if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-                    self.cc_er_time.append(np.copy(self.cc_er[:]))
+                self.write2storage(t,cells,p)  # write data values to storage
 
                 # Update the currently displayed and/or saved animation.
                 self._replot_loop(p)
@@ -1349,71 +1207,13 @@ class Simulator(object):
         # Explicitly close the prior animation to conserve memory.
         self._deplot_loop()
 
-        if p.run_sim is False:
-            datadump = [self, cells, p]
-            fh.saveSim(self.savedInit, datadump)
-            message_1 = 'Initialization run saved to' + ' ' + p.init_path
-            loggers.log_info(message_1)
-        else:
-            datadump = [self, cells, p]
-            fh.saveSim(self.savedSim, datadump)
-            message_2 = 'Simulation run saved to' + ' ' + p.sim_path
-            loggers.log_info(message_2)
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
-
-        for i in range(0,len(self.ionlabel)):
-            endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final environmental concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
-
-
-        final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
-        vmess = 'Final average cell Vmem of ' + ': '
-        loggers.log_info(vmess + str(final_vmean) + ' mV')
-
-        if p.GHK_calc is True:
-            final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
-            vmess = 'Final average cell Vmem calculated using GHK: ' + ': '
-            loggers.log_info(vmess + str(final_vmean_GHK) + ' mV')
-
-
-        if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])))
-            loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
-
-            final_pH_env = -np.log10(np.mean((self.cc_env_time[-1][self.iH])))
-            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
-
-
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            IP3_env_final = np.mean(self.cIP3_env)
-            IP3_cell_final = np.mean(self.cIP3)
-            loggers.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final,6)) + ' mmol/L')
-            loggers.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final,6)) + ' mmol/L')
-
-        if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-            endconc_er = np.round(np.mean(self.cc_er[0]),6)
-            label = self.ionlabel[self.iCa]
-            concmess = 'Final average ER concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
-
-        if p.voltage_dye ==1:
-            dye_env_final = np.mean(self.cDye_env)
-            dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final dye concentration in the environment: '+ str(np.round(dye_env_final,6))
-                             + ' mmol/L')
-            loggers.log_info('Final average dye concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
-                             ' mmol/L')
+        # save the simulation and report final vals of potential interest to user
+        self.save_and_report(cells,p)
 
         plt.close()
+
         loggers.log_info('Simulation completed successfully.')
+
 
     def run_loop_with_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -1425,94 +1225,12 @@ class Simulator(object):
 
         '''
 
-        self._tissue_init(cells, p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
+        self.init_tissue(cells, p)   # Initialize all structures used for gap junctions, ion channels, and other dynamics
 
         # Reinitialize all time-data structures
-        self.cc_time = []  # data array holding the concentrations at time points
-        self.cc_env_time = [] # data array holding extracellular concentrations at time points
+        self.clear_storage(cells,p)
 
-        self.dd_time = []  # data array storing cell membrane permeabilities
-
-        self.vm_time = []  # data array holding voltage at time points
-        self.vcell_time = []
-        self.venv_time = []
-
-        self.vm_GHK_time = [] # data array holding GHK vm estimate
-
-        self.dvm_time = []  # data array holding derivative of voltage at time points
-        self.time = []     # time values of the simulation
-
-        self.gjopen_time = []   # stores the fractional gap junction open state at each time
-
-        self.I_gj_x_time = []    # initialize gap junction current data storage
-        self.I_gj_y_time = []    # initialize gap junction current data storage
-        self.I_tot_x_time = []
-        self.I_tot_y_time = []
-
-        self.I_mem_time = []   # initialize membrane matrix data storage
-
-        self.cc_er_time = []   # retains er concentrations as a function of time
-        self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
-        self.cIP3_env_time = []
-
-        self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
-        self.efield_gj_y_time = []
-
-        self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
-        self.efield_ecm_y_time = []
-
-        # initialize time-storage vectors for electroosmotic data:
-        self.u_env_x_time = []
-        self.u_env_y_time = []
-
-        self.rate_NaKATP_time = []
-
-        self.u_cells_x_time = []
-        self.u_cells_y_time = []
-        self.P_cells_time = []
-
-        self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
-
-        self.rho_cells_time = []
-
-        self.rho_pump_time = []    # store pump and channel states as function of time...
-        self.rho_channel_time = []
-
-        self.vm_Matrix = [] # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
-        vm_dato = np.zeros(len(cells.mem_i))
-        dat_grid_vm = vertData(vm_dato,cells,p)
-        self.vm_Matrix.append(dat_grid_vm[:])
-
-        self.F_electro_time = []
-        self.F_electro_x_time = []
-        self.F_electro_y_time = []
-        self.F_hydro_x_time = []
-        self.F_hydro_y_time = []
-        self.P_electro_time = []
-
-        if p.deformation is True and p.run_sim is True:
-
-            self.ecm_verts_unique_to = cells.ecm_verts_unique[:]
-
-            self.cell_centres_time = []
-            self.mem_mids_time = []
-            self.maskM_time = []
-            self.mem_edges_time = []
-            self.cell_verts_time = []
-
-            self.dx_cell_time = []
-            self.dy_cell_time = []
-
-            self.dx_time = []
-            self.dy_time = []
-
-        if p.Ca_dyn is True:
-            self.cc_er_to = np.copy(self.cc_er[:])
-
-        if p.voltage_dye is True:
-            self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
-            self.cDye_env_time = []
-
+        #FIXME why are GJ being reinnted??
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.mem_i))   # holds gap junction open fraction for each gj
@@ -1727,106 +1445,10 @@ class Simulator(object):
             check_v(self.vm)
 
             if t in tsamples:
-                if p.GHK_calc is True:
-                    self.ghk_calculator(cells,p)
-                    self.vm_GHK_time.append(self.vm_GHK)
 
-                # #
                 self.get_current(cells,p)   # get the current in the gj network connection of cells
 
-                # add the new concentration and voltage data to the time-storage matrices:
-
-                self.efield_gj_x_time.append(self.E_gj_x[:])
-
-                self.efield_gj_y_time.append(self.E_gj_y[:])
-
-                self.efield_ecm_x_time.append(self.E_env_x[:])
-
-                self.efield_ecm_y_time.append(self.E_env_y[:])
-
-                concs = np.copy(self.cc_cells[:])
-                concs.tolist()
-                self.cc_time.append(concs)
-                concs = None
-
-                ecmsc = np.copy(self.cc_env[:])
-                ecmsc.tolist()
-                self.cc_env_time.append(ecmsc)
-                ecmsc = None
-
-                ddc = np.copy(self.Dm_cells[:])
-                ddc.tolist()
-                self.dd_time.append(ddc)
-                ddc = None
-
-                self.vm_time.append(self.vm[:])
-                self.dvm_time.append(self.dvm[:])
-                self.gjopen_time.append(self.gjopen[:])
-                self.vcell_time.append(self.v_cell[:])
-                self.venv_time.append(self.v_env[:])
-                self.I_gj_x_time.append(self.I_gj_x[:])
-                self.I_gj_y_time.append(self.I_gj_y[:])
-                self.I_mem_time.append(self.I_mem[:])
-                self.I_tot_x_time.append(self.I_tot_x)
-                self.I_tot_y_time.append(self.I_tot_y)
-                self.rho_cells_time.append(self.rho_cells[:])
-                self.rate_NaKATP_time.append(self.rate_NaKATP[:])
-
-                if p.fluid_flow is True and p.run_sim is True:
-                    self.u_env_x_time.append(self.u_env_x[:])
-                    self.u_env_y_time.append(self.u_env_y[:])
-
-                    self.u_cells_x_time.append(self.u_cells_x[:])
-                    self.u_cells_y_time.append(self.u_cells_y[:])
-
-                # calculate interpolated verts and midpoint data for Vmem:
-                dat_grid_vm = vertData(self.vm[:],cells,p)
-
-                self.vm_Matrix.append(dat_grid_vm[:])
-                self.time.append(t)
-                self.P_cells_time.append(self.P_cells[:])
-                self.F_hydro_x_time.append(self.F_hydro_x[:])
-                self.F_hydro_y_time.append(self.F_hydro_y[:])
-
-                if p.deform_osmo is True: # if osmotic pressure is enabled
-                    self.osmo_P_delta_time.append(self.osmo_P_delta[:])
-
-                if p.deform_electro is True:
-                    self.F_electro_time.append(self.F_electro[:])
-                    self.F_electro_x_time.append(self.F_electro_x[:])
-                    self.F_electro_y_time.append(self.F_electro_y[:])
-                    self.P_electro_time.append(self.P_electro[:])
-
-                if p.deformation is True and p.run_sim is True:
-                    self.implement_deform_timestep(cells,t,p)
-
-                    self.cell_centres_time.append(cells.cell_centres[:])
-                    self.mem_mids_time.append(cells.mem_mids_flat[:])
-                    self.maskM_time.append(cells.maskM[:])
-                    self.mem_edges_time.append(cells.mem_edges_flat[:])
-                    self.cell_verts_time.append(cells.cell_verts[:])
-
-                    self.dx_cell_time.append(self.d_cells_x[:])
-                    self.dy_cell_time.append(self.d_cells_y[:])
-
-                if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-                    ccIP3 = self.cIP3[:]
-                    self.cIP3_time.append(ccIP3)
-                    ccIP3 = None
-
-                if p.voltage_dye ==1:
-                    ccDye_cells = self.cDye_cell[:]
-                    self.cDye_time.append(ccDye_cells)
-                    ccDye_cells = None
-
-                    self.cDye_env_time.append(self.cDye_env[:])
-
-                if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-                    self.cc_er_time.append(np.copy(self.cc_er[:]))
-
-                if p.sim_eosmosis is True and p.run_sim is True:
-                    self.rho_channel_time.append(self.rho_channel[:])
-                    self.rho_pump_time.append(self.rho_pump[:])
+                self.write2storage(t,cells,p)  # write data to time storage vectors
 
                 # Update the currently displayed and/or saved animation.
                 self._replot_loop(p)
@@ -1850,18 +1472,237 @@ class Simulator(object):
         # Explicitly close the prior animation to conserve memory.
         self._deplot_loop()
 
+        # save the init or sim and report results of potential interest to the user.
+        self.save_and_report(cells,p)
+
+        plt.close()
+        loggers.log_info('Simulation completed successfully.')
+
+
+    #.................{  INITIALIZERS & FINALIZERS  }............................................
+    def clear_storage(self, cells, p):
+        """
+        Re-initializes time storage vectors at the begining of a sim or init.
+
+        """
+
+        self.cc_time = []  # data array holding the concentrations at time points
+        self.cc_env_time = [] # data array holding environmental concentrations at time points
+
+        self.dd_time = []  # data array holding membrane permeabilites at time points
+        self.vm_time = []  # data array holding voltage at time points
+        self.vm_GHK_time = [] # data array holding GHK vm estimates
+        self.dvm_time = []  # data array holding derivative of voltage at time points
+        self.time = []     # time values of the simulation
+        self.gjopen_time = []   # stores the fractional gap junction open state at each time
+        self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
+
+        self.I_mem_time = []    # initialize membrane current time vector
+
+        self.vm_Matrix = []    # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
+        self.I_gj_x_time = []
+        self.I_gj_y_time = []
+        self.I_tot_x_time = []
+        self.I_tot_y_time = []
+
+        self.efield_gj_x_time = []   # matrices storing smooth electric field in gj connected cells
+        self.efield_gj_y_time = []
+
+        self.P_cells_time = []
+        self.u_cells_x_time = []
+        self.u_cells_y_time = []
+
+        self.rho_cells_time = []
+
+        self.F_electro_time = []
+        self.F_electro_x_time = []
+        self.F_electro_y_time = []
+        self.F_hydro_x_time = []
+        self.F_hydro_y_time = []
+        self.F_hydro_time = []
+        self.P_electro_time = []
+
+        self.rate_NaKATP_time =[]
+
+        if p.deformation is True and p.run_sim is True:
+            self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
+
+            self.cell_centres_time = []
+            self.mem_mids_time = []
+            self.maskM_time = []
+            self.mem_edges_time = []
+            self.cell_verts_time = []
+
+            self.dx_cell_time = []
+            self.dy_cell_time = []
+
+            self.dx_time = []
+            self.dy_time = []
+
+            self.phi = np.zeros(len(cells.cell_i))
+            self.phi_time = []
+
+        if p.voltage_dye is True:
+            self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
+
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+            self.cIP3_time = []    # retains IP3 concentration as a function of time
+
+        if p.sim_eosmosis is True:
+            self.rho_channel_time = []
+            self.rho_pump_time = []
+
+        if p.Ca_dyn is True:
+            self.cc_er_to = np.copy(self.cc_er[:])
+
+        if p.sim_ECM is True:
+
+            self.vcell_time = []
+            self.venv_time = []
+
+            self.cc_er_time = []   # retains er concentrations as a function of time
+            self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
+            self.cIP3_env_time = []
+
+            self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
+            self.efield_ecm_y_time = []
+
+            # initialize time-storage vectors for electroosmotic data:
+            self.u_env_x_time = []
+            self.u_env_y_time = []
+
+            self.rho_pump_time = []    # store pump and channel states as function of time...
+            self.rho_channel_time = []
+
+            vm_dato = np.zeros(len(cells.mem_i))
+            dat_grid_vm = vertData(vm_dato,cells,p)
+            self.vm_Matrix.append(dat_grid_vm[:])
+
+            self.cDye_env_time = []
+
+
+    def write2storage(self,t,cells,p):
+
+        if p.GHK_calc is True:
+                self.ghk_calculator(cells,p)
+                self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
+
+        # add the new concentration and voltage data to the time-storage matrices:
+        self.efield_gj_x_time.append(self.E_gj_x[:])
+
+        self.efield_gj_y_time.append(self.E_gj_y[:])
+
+        concs = self.cc_cells[:]
+        self.cc_time.append(concs)
+        concs = None
+
+        envsc = self.cc_env[:]
+        self.cc_env_time.append(envsc)
+        envsc = None
+
+        ddc = np.copy(self.Dm_cells[:])
+        ddc.tolist()
+        self.dd_time.append(ddc)
+        ddc = None
+
+        self.I_gj_x_time.append(self.I_gj_x[:])
+        self.I_gj_y_time.append(self.I_gj_y[:])
+        self.I_tot_x_time.append(self.I_tot_x[:])
+        self.I_tot_y_time.append(self.I_tot_y[:])
+        self.I_mem_time.append(self.I_mem[:])
+        self.vm_time.append(self.vm[:])
+        self.dvm_time.append(self.dvm[:])
+        self.rho_cells_time.append(self.rho_cells[:])
+        self.rate_NaKATP_time.append(self.rate_NaKATP[:])
+        self.P_cells_time.append(self.P_cells[:])
+        self.F_hydro_x_time.append(self.F_hydro_x[:])
+        self.F_hydro_y_time.append(self.F_hydro_y[:])
+
+        if p.deform_osmo is True:
+            self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+
+        if p.deform_electro is True:
+            self.F_electro_time.append(self.F_electro[:])
+            self.F_electro_x_time.append(self.F_electro_x[:])
+            self.F_electro_y_time.append(self.F_electro_y[:])
+
+            self.P_electro_time.append(self.P_electro[:])
+
+        if p.deformation is True and p.run_sim is True:
+            self.implement_deform_timestep(cells, t, p)
+
+            #FIXME: Shift into implement_deform_timestep(). Magical OK!
+            self.cell_centres_time.append(cells.cell_centres[:])
+            self.mem_mids_time.append(cells.mem_mids_flat[:])
+            self.maskM_time.append(cells.maskM[:])
+            self.mem_edges_time.append(cells.mem_edges_flat[:])
+            self.cell_verts_time.append(cells.cell_verts[:])
+
+            self.dx_cell_time.append(self.d_cells_x[:])
+            self.dy_cell_time.append(self.d_cells_y[:])
+
+        if p.fluid_flow is True and p.run_sim is True:
+            self.u_cells_x_time.append(self.u_cells_x[:])
+            self.u_cells_y_time.append(self.u_cells_y[:])
+
+        if p.sim_eosmosis is True and p.run_sim is True:
+            self.rho_channel_time.append(self.rho_channel[:])
+            self.rho_pump_time.append(self.rho_pump[:])
+
+        self.gjopen_time.append(self.gjopen[:])
+        self.time.append(t)
+
+        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+            self.cIP3_time.append(self.cIP3[:])
+
+        if p.voltage_dye ==1:
+            self.cDye_time.append(self.cDye_cell[:])
+
+        if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
+            self.cc_er_time.append(np.copy(self.cc_er[:]))
+
+        if p.sim_ECM is True:
+
+            self.efield_ecm_x_time.append(self.E_env_x[:])
+
+            self.efield_ecm_y_time.append(self.E_env_y[:])
+
+            ecmsc = np.copy(self.cc_env[:])
+            ecmsc.tolist()
+            self.cc_env_time.append(ecmsc)
+            ecmsc = None
+
+            self.vcell_time.append(self.v_cell[:])
+            self.venv_time.append(self.v_env[:])
+
+            if p.fluid_flow is True and p.run_sim is True:
+                self.u_env_x_time.append(self.u_env_x[:])
+                self.u_env_y_time.append(self.u_env_y[:])
+
+            # calculate interpolated verts and midpoint data for Vmem:
+            dat_grid_vm = vertData(self.vm[:],cells,p)
+
+            self.vm_Matrix.append(dat_grid_vm[:])
+
+            if p.voltage_dye ==1:
+                self.cDye_env_time.append(self.cDye_env[:])
+
+
+    def save_and_report(self,cells,p):
+
+        # save the init or sim:
         if p.run_sim is False:
             datadump = [self, cells, p]
             fh.saveSim(self.savedInit, datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
             loggers.log_info(message_1)
         else:
-            # celf = copy.deepcopy(self)
             datadump = [self, cells, p]
             fh.saveSim(self.savedSim, datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
             loggers.log_info(message_2)
 
+        # report final output to user:
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
             label = self.ionlabel[i]
@@ -1871,31 +1712,30 @@ class Simulator(object):
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
             label = self.ionlabel[i]
-            concmess = 'Final extracellular concentration of'+ ' '+ label + ': '
+            concmess = 'Final environmental concentration of'+ ' '+ label + ': '
             loggers.log_info(concmess + str(endconc) + ' mmol/L')
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
-        vmess = 'Final average cell Vmem: ' + ': '
+        vmess = 'Final average cell Vmem of ' + ': '
         loggers.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.GHK_calc is True:
-
             final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
-            vmess = 'Final average cell Vmem calculated using GHK equation: ' + ': '
+            vmess = 'Final average cell Vmem calculated using GHK: ' + ': '
             loggers.log_info(vmess + str(final_vmean_GHK) + ' mV')
 
         if p.ions_dict['H'] == 1:
-            final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])))
+            final_pH = -np.log10(1.0e-3*np.mean((self.cc_time[-1][self.iH])))
             loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
 
-            final_pH_ecm = -np.log10(np.mean((self.cc_env_time[-1][self.iH])))
-            loggers.log_info('Final extracellular pH '+ str(np.round(final_pH_ecm,2)))
+            final_pH_env = -np.log10(np.mean(1.0e-3*(self.cc_env_time[-1][self.iH])))
+            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
+
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
             IP3_env_final = np.mean(self.cIP3_env)
             IP3_cell_final = np.mean(self.cIP3)
-            loggers.log_info('Final extracellular IP3 concentration: ' + str(np.round(IP3_env_final,6)) + ' mmol/L')
+            loggers.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final,6)) + ' mmol/L')
             loggers.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final,6)) + ' mmol/L')
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
@@ -1906,17 +1746,15 @@ class Simulator(object):
             loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
 
         if p.voltage_dye ==1:
-            dye_ecm_final = np.mean(self.cDye_env)
+            dye_env_final = np.mean(self.cDye_env)
             dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final extracellular morphogen concentration: '+ str(np.round(dye_ecm_final,6))
+            loggers.log_info('Final average morphogen concentration in the environment: '+ str(np.round(dye_env_final,6))
                              + ' mmol/L')
             loggers.log_info('Final average morphogen concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
                              ' mmol/L')
 
-        plt.close()
-        loggers.log_info('Simulation completed successfully.')
 
-    # ..................{ GETTERS                            }..................
+    # ................{  DOERS & GETTERS }...............................................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Calculates transmembrane voltage (Vmem) and voltages inside the cell
@@ -2014,6 +1852,7 @@ class Simulator(object):
 
         return vm, v_cell, v_env
 
+
     def update_V_ecm(self,cells,p,t):
 
         if p.sim_ECM is True:
@@ -2024,6 +1863,7 @@ class Simulator(object):
         else:
              self.rho_cells = get_charge_density(self.cc_cells, self.z_array, p)
              self.vm, _, _ = self.get_Vall(cells,p)
+
 
     def update_C_ecm(self,ion_i,flux,cells,p):
 
@@ -2038,6 +1878,7 @@ class Simulator(object):
 
         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
         self.cc_env[ion_i] = c_env + delta_env*p.dt
+
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -2060,13 +1901,14 @@ class Simulator(object):
 
         # Calculate the new pH and H+ concentration:
         self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
-        self.cc_cells[self.iH] = 10**(-self.pH_cell)
+        self.cc_cells[self.iH] = (10**(-self.pH_cell))*1e3  # multiply by 1e3 to get units in mmol/L
 
         self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
-        self.cc_env[self.iH] = 10**(-self.pH_env)
+        self.cc_env[self.iH] = (10**(-self.pH_env))*1e3 # multiply by 1e3 to get units in mmol/L
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
+
 
     def Hplus_HKATP_ecm(self,cells,p,t):
 
@@ -2091,13 +1933,14 @@ class Simulator(object):
         self.update_C_ecm(self.iM,-f_H2,cells,p)
 
         self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
-        self.cc_cells[self.iH] = 10**(-self.pH_cell)
+        self.cc_cells[self.iH] = (10**(-self.pH_cell))*1e3
 
         self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
-        self.cc_env[self.iH] = 10**(-self.pH_env)
+        self.cc_env[self.iH] = (10**(-self.pH_env))*1e3
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
+
 
     def Hplus_VATP_ecm(self,cells,p,t):
 
@@ -2121,6 +1964,7 @@ class Simulator(object):
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V_ecm(cells,p,t)
+
 
     def update_gj(self,cells,p,t,i):
 
@@ -2184,6 +2028,7 @@ class Simulator(object):
 
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
+
 
     def update_ecm(self,cells,p,t,i):
 
@@ -2370,6 +2215,7 @@ class Simulator(object):
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
 
+
     def update_er(self,cells,p,t):
 
          # electrodiffusion of ions between cell and endoplasmic reticulum
@@ -2393,6 +2239,7 @@ class Simulator(object):
 
         q_er = get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
         self.v_er = get_volt(q_er,p.ER_sa*cells.cell_sa,p) - self.v_cell
+
 
     def update_dye(self,cells,p,t):
 
@@ -2710,6 +2557,7 @@ class Simulator(object):
             self.Dye_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
             self.Dye_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
 
+
     def update_IP3(self,cells,p,t):
 
         # Update dye concentration in the gj connected cell network:
@@ -2891,6 +2739,7 @@ class Simulator(object):
             self.IP3_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
             self.IP3_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
 
+
     def get_Efield(self,cells,p):
 
          # calculate voltage difference (gradient*len_gj) between gj-connected cells:
@@ -2915,6 +2764,7 @@ class Simulator(object):
         # get x and y components of the electric field:
         self.E_gj_x = cells.cell_nn_tx*self.Egj
         self.E_gj_y = cells.cell_nn_ty*self.Egj
+
 
     def get_current(self,cells,p):
 
@@ -3007,6 +2857,7 @@ class Simulator(object):
 
             self.I_tot_x = self.I_tot_x + I_env_x
             self.I_tot_y = self.I_tot_y + I_env_y
+
 
     def getFlow(self,cells,p):
         """
@@ -3260,6 +3111,7 @@ class Simulator(object):
         self.u_cells_x[cells.bflags_cells] = 0
         self.u_cells_y[cells.bflags_cells] = 0
 
+
     def eosmosis(self,cells,p):
 
         """
@@ -3365,6 +3217,7 @@ class Simulator(object):
         fix_inds2 = (self.rho_channel < 0).nonzero()
         self.rho_channel[fix_inds2] = 0
 
+
     def get_ion(self,label):
         """
         Given a string input, returns the simulation index of the appropriate ion.
@@ -3392,6 +3245,7 @@ class Simulator(object):
             ion = []
 
         return ion
+
 
     def initDenv(self,cells,p):
 
@@ -3470,6 +3324,7 @@ class Simulator(object):
             self.D_env_weight_v[:,-1] = 0
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
+
 
     def osmotic_P(self,cells,p):
 
@@ -3563,6 +3418,7 @@ class Simulator(object):
 
             self.cIP3 = self.cIP3*(vo/v1)
 
+
     def getHydroF(self,cells,p):
         #----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
 
@@ -3577,6 +3433,7 @@ class Simulator(object):
         self.F_hydro_y = np.dot(cells.M_sum_mems, F_hydro_y) / cells.num_mems
 
         self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
+
 
     def electro_P(self,cells,p):
         """
@@ -3611,6 +3468,7 @@ class Simulator(object):
         P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
 
         self.P_electro = np.sqrt(P_x**2 + P_y**2)
+
 
     def ghk_calculator(self,cells,p):
         """
@@ -3656,6 +3514,7 @@ class Simulator(object):
                     sum_PmCation_out = sum_PmCation_out + self.Dm_cells[i]*self.cc_env[i]*(1/p.tm)
 
         self.vm_GHK = ((p.R*self.T)/p.F)*np.log((sum_PmCation_out + sum_PmAnion_in)/(sum_PmCation_in + sum_PmAnion_out))
+
 
     def getDeformation(self,cells,t,p):
         """
@@ -3758,6 +3617,7 @@ class Simulator(object):
             self.d_cells_y[cells.bflags_cells] = 0
             # self.d_cells_x[cells.nn_bound] = 0
             # self.d_cells_y[cells.nn_bound] = 0
+
 
     def timeDeform(self,cells,t,p):
         """
@@ -3935,6 +3795,7 @@ class Simulator(object):
         # check the displacement for NANs:
         check_v(self.d_cells_x)
 
+
     def get_mass_flux(self,cells,p):
         """
         Sum up individual trans-membrane and
@@ -3961,6 +3822,7 @@ class Simulator(object):
         # mass_change = self.mass_flux*p.dt*cells.mem_sa
         # # sum the change over the membranes to get the total mass change of salts:
         # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
+
 
     def implement_deform_timestep(self,cells,t,p):
         # Map individual cell deformations to their membranes. In this case,
@@ -3999,11 +3861,6 @@ class Simulator(object):
         cells.ecm_verts = np.asarray(cells.ecm_verts)
         cells.deformWorld(p)
 
-        #FIXME: Excise. And the winged creatins of the lavish valley did cheer!
-        # Clear and recreate the currently displayed and/or saved animation.
-        # Deformations require sufficiently "heavy" modifications to plot data
-        # that starting over from scratch is the safest and simplest approach.
-        # self._dereplot_loop(p)
 
     # ..................{ PLOTTERS                           }..................
 
@@ -4053,9 +3910,9 @@ class Simulator(object):
             i += p.t_resample
             tsamples.add(tt[i])
 
-        # Log this run.
+        # Log this run. # FIXME can we please say "with x total time steps (y sampled)" for brevity? XOXOXXX!
         loggers.log_info(
-            'Your {} {}is running from 0 to {:.3f} seconds of in-world time '
+            'Your {} {}is running from 0 to {:.1f} seconds of in-world time '
             'with {} unsampled and {} sampled time steps.'.format(
             loop_type_label,
             ecm_state_label,
@@ -4079,6 +3936,7 @@ class Simulator(object):
 
         return tt, tsamples
 
+
     def _replot_loop(self, p: 'Parameters') -> None:
         '''
         Update the currently displayed and/or saved animation during solving
@@ -4089,6 +3947,7 @@ class Simulator(object):
         # to the results of the most recently solved time step.
         if p.plot_while_solving is True:
             self._anim_cells_while_solving.plot_frame(frame_number=-1)
+
 
     def _deplot_loop(self) -> None:
         '''
@@ -4103,386 +3962,6 @@ class Simulator(object):
             self._anim_cells_while_solving.close()
             self._anim_cells_while_solving = None
 
-
-def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
-    """
-    Electro-diffusion between two connected volumes. Note for cell work, 'b' is
-    'inside', 'a' is outside, with a positive flux moving from a to b. The
-    voltage is defined as Vb - Va (Vba), which is equivalent to Vmem.
-
-    This function defaults to regular diffusion if Vba == 0.0.
-
-    This function takes numpy matrix values as input. All inputs must be
-    matrices of the same shape.
-
-    This is the Goldman Flux/Current Equation (not to be confused with the
-    Goldman Equation).
-
-    Parameters
-    ----------
-    cA          concentration in region A [mol/m3] (out)
-    cB          concentration in region B [mol/m3] (in)
-    Dc          Diffusion constant of c  [m2/s]
-    d           Distance between region A and region B [m]
-    zc          valence of ionic species c
-    vBA         voltage difference between region B (in) and A (out) = Vmem
-    p           an instance of the Parameters class
-
-    Returns
-    --------
-    flux        Chemical flux magnitude between region A and B [mol/s]
-
-    """
-
-    # modify the diffusion constant by the membrane density
-    Dc = rho*Dc
-
-    alpha = (zc*vBA*p.F)/(p.R*T)
-
-    exp_alpha = np.exp(-alpha)
-
-    deno = 1 - exp_alpha   # calculate the denominator for the electrodiffusion equation,..
-
-    izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
-    inotzero = (deno!=0).nonzero()
-
-    # initialize data matrices to the same shape as input data
-    flux = np.zeros(deno.shape)
-
-    if len(deno[izero]):   # if there's anything in the izero array:
-         # calculate the flux for those elements as standard diffusion [mol/m2s]:
-        flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
-
-    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
-
-        # calculate the flux for those elements:
-        flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
-                        cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
-
-    return flux
-
-def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
-
-    """
-    Parameters
-    ----------
-    cNai            Concentration of Na+ inside the cell
-    cNao            Concentration of Na+ outside the cell
-    cKi             Concentration of K+ inside the cell
-    cKo             Concentration of K+ outside the cell
-    Vm              Voltage across cell membrane [V]
-    p               An instance of Parameters object
-
-
-    Returns
-    -------
-    f_Na            Na+ flux (into cell +)
-    f_K             K+ flux (into cell +)
-    """
-    deltaGATP = 20*p.R*T
-
-    delG_Na = p.R*T*np.log(cNao/cNai) - p.F*Vm
-    delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
-    delG_NaKATP = deltaGATP - (3*delG_Na + 2*delG_K)
-    delG_pump = (delG_NaKATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG)
-
-    # alpha = block*p.alpha_NaK*(tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK))
-    alpha = block*p.alpha_NaK*(delG_pump - p.halfmax_NaK)
-
-    f_Na  = -alpha*(cNai**p.Na_exp)*(cKo**(p.K_exp))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
-
-    f_K = -(2/3)*f_Na          # flux as [mol/m2s]
-
-
-    return f_Na, f_K, -f_Na
-
-def pumpCaATP(cCai,cCao,Vm,T,p):
-
-    """
-    Parameters
-    ----------
-    cCai            Concentration of Ca2+ inside the cell
-    cCao            Concentration of Ca2+ outside the cell
-    voli            Volume of the cell [m3]
-    volo            Volume outside the cell [m3]
-    Vm              Voltage across cell membrane [V]
-    p               An instance of Parameters object
-
-
-    Returns
-    -------
-    cCai2           Updated Ca2+ inside cell
-    cCao2           Updated Ca2+ outside cell
-    f_Ca            Ca2+ flux (into cell +)
-    """
-
-    deltaGATP = 20*p.R*T
-
-    delG_Ca = p.R*T*np.log(cCao/cCai) - 2*p.F*Vm
-    delG_CaATP = deltaGATP - (delG_Ca)
-    delG_pump = (delG_CaATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG_pump)
-    #
-    # alpha = p.alpha_Ca*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
-    alpha = p.alpha_Ca*(delG_pump - p.halfmax_Ca)
-
-    f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
-
-    return f_Ca
-
-def pumpCaER(cCai,cCao,Vm,T,p):
-    """
-    Pumps calcium out of the cell and into the endoplasmic reticulum.
-    Vm is the voltage across the endoplasmic reticulum membrane.
-
-    """
-
-    deltaGATP = 20*p.R*T
-
-    delG_Ca = p.R*T*np.log(cCai/cCao) + 2*p.F*Vm
-    delG_CaATP = deltaGATP - (delG_Ca)
-    delG_pump = (delG_CaATP/1000)
-
-    alpha = p.alpha_CaER*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
-
-    f_Ca  = alpha*(cCao**(1/2))*(cCai**(1/2))      #flux as [mol/s]
-
-    return f_Ca
-
-def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
-
-    """
-    Parameters
-    ----------
-    cHi            Concentration of H+ inside the cell
-    cHo            Concentration of H+ outside the cell
-    cKi             Concentration of K+ inside the cell
-    cKo             Concentration of K+ outside the cell
-    voli            Volume of the cell [m3]
-    volo            Volume outside the cell [m3]
-    Vm              Voltage across cell membrane [V]
-    p               An instance of Parameters object
-
-
-    Returns
-    -------
-    cHi2           Updated H+ inside cell
-    cHo2           Updated H+ outside cell
-    cKi2            Updated K+ inside cell
-    cKo2            Updated K+ outside cell
-    f_Na            Na+ flux (into cell +)
-    f_K             K+ flux (into cell +)
-    """
-
-    deltaGATP = 20*p.R*T
-
-    delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm
-    delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
-
-    delG_HKATP = deltaGATP - (delG_H + delG_K)
-    delG_pump = (delG_HKATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG)
-
-    # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
-    alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
-    f_H  = -alpha*(cHi**(1/2))*(cKo**(1/2))      #flux as [mol/s], scaled by concentrations in and out
-
-    f_K = -f_H          # flux as [mol/s]
-
-    return f_H, f_K
-
-def pumpVATP(cHi,cHo,Vm,T,p,block):
-
-    deltaGATP = 20*p.R*T
-
-    delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm  # free energy to move H+ out of cell
-
-    delG_VATP = deltaGATP - delG_H   # free energy available to move H+ out of cell
-    delG_pump = (delG_VATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG)
-
-    # alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
-    alpha = block*p.alpha_V*(delG_pump - p.halfmax_V)
-    f_H  = -alpha*cHi**(1/2)      #flux as [mol/s], scaled by concentrations in and out
-
-    return f_H
-
-def get_volt(q,sa,p):
-
-    """
-    Calculates the voltage for a net charge on a capacitor.
-
-    Parameters
-    ----------
-    q           Net electrical charge [C]
-    sa          Surface area [m2]
-
-    Returns
-    -------
-    V               Voltage on the capacitive space holding charge
-
-    """
-
-    cap = sa*p.cm
-    V = (1/cap)*q
-
-    return V
-
-def get_charge(concentrations,zs,vol,p):
-    """
-    Calculates the total charge in a space given a set of concentrations
-    and their ionic charges, along with the space volume.
-
-    Parameters
-    ---------------
-    concentrations       An array of arrays listing concentrations of different ions in multiple spaces [mol/m2].
-    zs                   An array of ion charge states
-    vol                  Volume of the spaces [m3]
-    p                    Instance of Parameters module object
-
-    Returns
-    ----------------
-    netcharge            The unbalanced charge in the space or spaces [C]
-
-    """
-
-    netcharge = np.sum(p.F*vol*concentrations*zs,axis=0)
-
-    return netcharge
-
-def get_charge_density(concentrations,zs,p):
-
-    """
-    Calculates the charge density given ion concentrations in an array of spaces.
-
-    Parameters
-    --------------
-    concentrations:  an array of array of concentration of ions in spaces [mol/m3]
-    zs:              valence of each ion
-    p:               Parameters object instance
-
-    Returns
-    -------------
-    netcharge     the net charge density in spaces C/m3
-    """
-
-    netcharge = np.sum(p.F*zs*concentrations, axis=0)
-
-    return netcharge
-
-def get_molarity(concentrations,p):
-
-    q = 0
-
-    for conc in concentrations:
-        q = q+ conc
-
-    netmolarity = q
-
-    return netmolarity
-
-def cell_ave(cells,vm_at_mem):
-
-    """
-    Averages Vmem over membrane domains to return a mean value for each cell
-
-    Parameters
-    ----------
-    cells               An instance of the Cells module cells object
-    vm_at_mem           Vmem at individual membrane domains
-
-
-    Returns
-    --------
-    v_cell              Cell Vm averaged over the whole cell
-
-    """
-
-    v_cell = []
-
-    for i in cells.cell_i:
-        cellinds = (cells.mem_to_cells == i).nonzero()
-        v_cell_array = vm_at_mem[cellinds]
-        v_cell_ave = np.mean(v_cell_array)
-        v_cell.append(v_cell_ave)
-
-    v_cell = np.asarray(v_cell)
-
-    return v_cell
-
-def check_v(vm):
-    """
-    Does a quick check on Vmem values
-    and displays error warning or exception if the value
-    indicates the simulation is unstable.
-
-    """
-    isnans = np.isnan(vm)
-
-    if isnans.any():  # if there's anything in the isubzeros matrix...
-        raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
-                                       "reduce gap junction radius, and/or reduce pump rate coefficients.")
-
-def vertData(data, cells, p):
-    """
-    Interpolate data from midpoints to verts
-    and sample it over a uniform grid.
-    Produces data suitable for 2D mesh and
-    streamline plots.
-
-    Parameters
-    -----------
-    data          A numpy vector of data points on cell membrane mids
-    cells         An instance of the Cells object
-    p             An instance of the Parameters object
-
-    Returns
-    ----------
-    dat_grid      THe data sampled on a uniform grid
-    """
-
-    # interpolate vmem defined on mem mids to cell vertices:
-    verts_data = np.dot(data,cells.matrixMap2Verts)
-
-    # amalgamate both mem mids and verts data into one stack:
-    plot_data = np.hstack((data,verts_data))
-
-    # interpolate the stack to the plotting grid:
-    dat_grid = interp.griddata((cells.plot_xy[:,0],cells.plot_xy[:,1]),plot_data,(cells.Xgrid,cells.Ygrid),
-                               method=p.interp_type,
-                               fill_value=0)
-
-    # # smooth out the data a bit:
-    dat_grid = gaussian_filter(dat_grid,1)
-
-    # get rid of values that bleed into the environment:
-    dat_grid = np.multiply(dat_grid,cells.maskM)
-
-    return dat_grid
-
-def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
-
-    alpha = (D*z*p.q)/(p.kb*T)
-    fx =  D*gcx + alpha*gvx*c - ux*c
-    fy =  D*gcy + alpha*gvy*c - uy*c
-
-    return fx, fy
-
-def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
-
-    alphax = (Dx*z*p.q)/(p.kb*T)
-    alphay = (Dy*z*p.q)/(p.kb*T)
-
-    fx =  Dx*gcx + alphax*gvx*cx - cx*ux
-
-    fy =  Dy*gcy + alphay*gvy*cy - cy*uy
-
-    return fx, fy
 
 
 #-----------------------------------------------------------------------------------------------------------------------

@@ -116,6 +116,7 @@ class SimRunner(object):
 
             cells.save_cluster(p)
 
+            loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
             loggers.log_info('Cell cluster creation complete!')
 
             if p.turn_all_plots_off is False:
@@ -258,9 +259,6 @@ class SimRunner(object):
             'When ready, close all of the figure windows to end the program.')
 
         if p.turn_all_plots_off is False:
-            #FIXME: Is there no better way? As "Parameters" is a fairly heavy
-            #class, it'd be great to reuse the existing "p" object. Perhaps we
-            #could keep around colormaps somehow? Infants raised in the jungle!
 
             # As colormaps are deleted from p prior to saving in sim, create a
             # fresh instance of Parameters.
@@ -323,6 +321,10 @@ class SimRunner(object):
         sim = Simulator(p)
 
         cells = Cells(p,worldtype='basic')
+
+        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
+        loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
+
 
         if files.is_file(cells.savedWorld):
             cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache

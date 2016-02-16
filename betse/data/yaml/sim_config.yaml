@@ -39,23 +39,23 @@
 
 init file saving:
 
-    directory: betse_test         # directory to load/save init run
+    directory: betse_test/INITS         # directory to load/save init run
 
-    file: init.betse        # filename to load/save init run
+    file: init_1.betse        # filename to load/save init run
 
-    worldfile: world.betse      # filename to load/save cell cluster
+    worldfile: world_1.betse      # filename to load/save cell cluster
 
 
 sim file saving:
 
-    directory: betse_test/sims # directory to load/save sim run
+    directory: betse_test/SIMS # directory to load/save sim run
 
     file: sim_1.betse    # filename to load/save sim run
 
 results file saving:
 
-    init directory: betse_test/results_init  # directory to load/save data, plots, and animations after init
-    sim directory: betse_test/results_sim  # directory to load/save data, plots, and animations after sim
+    init directory: betse_test/results_init_1  # directory to load/save data, plots, and animations for init
+    sim directory: betse_test/results_sim_1  # directory to load/save data, plots, and animations for sim
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -80,8 +80,8 @@ init time settings:
                                 # setting above.
 
     time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 1.0             # end time [s] (recommend 3 seconds or more)
-    sampling rate: 0.1          # time interval to sample data [s] (at least time-step or larger)
+    total time: 1.0             # end time [s] (recommend 5 seconds or more)
+    sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # SIMULATION SETTINGS
@@ -120,21 +120,18 @@ sim time settings:
 general options:
 
   comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
-  plot grid size: 100                 # grid used for interpolated data plotting (recommend 50 to 250)
+  plot grid size: 100        # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: False    # include extracellular spaces and heterogeneous cell Vmem in sim?
 
   ion profile: basic   # ion profile options:
-                                # 'basic' (Na+, K+, and proteins-)
-                                # 'basic_Ca' (Na+, K+, Ca2+, and proteins-)
-                                # 'animal' (Na+, K+, Cl-, Ca2+, H+ and proteins-)
-                                # 'customized' (user-specified settings)
-                                # each profile also contains a charge-balance anion, M-
-                                # In 'animal' and 'invertebrate' profiles
-                                # M- represents HCO3- (bicarbonate).
-
-
-
+                                # 'basic' (Na+, K+, M-, and proteins-)
+                                # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
+                                # 'animal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
+                                # 'scratch' (Na+, K+, Cl-, M- and proteins) intra extra values close
+                                # 'xenopus' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) freshwater environment
+                                # 'customized' (user-specified settings, see below)
+                                # profiles contain an unidentified charge-balance anion, M-
 
 
   customized ion profile:      # set user-defined initial values of ion concentrations
@@ -149,14 +146,14 @@ general options:
     extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
     extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
     extracellular H+ concentration: 3.98e-5         # extracellular protons [mmol/L]
-    extracellular protein- concentration: 9.0       # extracellular protein [mmol/L]
+    extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
 
     cytosolic Na+ concentration: 13.0                # intracellular sodium [mmol/L]
     cytosolic K+ concentration: 145.00              # intracellular potassium [mmol/L]
     cytosolic Cl- concentration: 10.0                # intracellular chloride [mmol/L]
     cytosolic Ca2+ concentration: 1.0e-3            # intracellular calcium [mmol/L]
-    cytosolic H+ concentration: 6.31e-5             # intracellular protons [mmol/L]
-    cytosolic protein- concentration: 138.0         # intracellular protein [mmol/L]
+    cytosolic H+ concentration: 3.98e-5             # intracellular protons [mmol/L]
+    cytosolic protein- concentration: 80.0         # intracellular protein [mmol/L]
 
     endoplasmic reticulum Ca2+: 0.01             # starting level of Ca2+ in the ER store [mmol/L]
 

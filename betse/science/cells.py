@@ -1098,8 +1098,7 @@ class Cells(object):
         """
 
         # base parameter definitions
-        # self.delta = p.d_cell*(2/3)
-        self.delta = (p.wsx/p.grid_size) # spacing between grid points -- approximately 2/3 of one cell
+        self.delta = ((self.xmax-self.xmin)/p.grid_size) # spacing between grid points
 
         self.grid_obj = fd.FiniteDiffSolver()
 
