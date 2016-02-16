@@ -84,12 +84,24 @@ class AnimCellsWhileSolving(AnimCells):
         efficiently detect and respond to physical changes (e.g., deformation
         forces, cutting events) in the fundamental structure of the previously
         plotted cell cluster.
+    _is_colorbar_autoscaling_telescoped : bool
+        `True` if colorbar autoscaling is permitted to increase but _not_
+        decrease the colorbar range _or_ `False` otherwise (i.e., if
+        colorbar autoscaling is permitted to both increase and decrease the
+        colorbar range). Such telescoping assists in emphasizing stable
+        long-term patterns in cell data at a cost of deemphasizing unstable
+        short-term patterns. If colorbar autoscaling is disabled (i.e.,
+        `is_color_autoscaled` is `False`), this will be ignored.
     _is_time_step_first : bool
         `True` only if the current frame being animated is the first.
     '''
 
     def __init__(
         self,
+
+        #FIXME: Permit this option to be configured via a new configuration
+        #option in the YAML file.
+        is_colorbar_autoscaling_telescoped: bool = False,
         *args, **kwargs
     ) -> None:
         '''
@@ -97,6 +109,15 @@ class AnimCellsWhileSolving(AnimCells):
 
         Parameters
         ----------
+        is_colorbar_autoscaling_telescoped : bool
+            `True` if colorbar autoscaling is permitted to increase but _not_
+            decrease the colorbar range _or_ `False` otherwise (i.e., if
+            colorbar autoscaling is permitted to both increase and decrease the
+            colorbar range). Such telescoping assists in emphasizing stable
+            long-term patterns in cell data at a cost of deemphasizing unstable
+            short-term patterns. If colorbar autoscaling is disabled (i.e.,
+            `is_color_autoscaled` is `False`), this will be ignored. Defaults
+            to `False`.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
@@ -116,6 +137,10 @@ class AnimCellsWhileSolving(AnimCells):
             is_current_overlayable=False,
             *args, **kwargs
         )
+
+        # Classify all remaining parameters.
+        self._is_colorbar_autoscaling_telescoped = (
+            is_colorbar_autoscaling_telescoped)
 
         # Unique identifier for the array of cell vertices. (See docstring.)
         self._cell_verts_id = id(self._cells.cell_verts)
@@ -269,15 +294,6 @@ class AnimCellsWhileSolving(AnimCells):
             # Recreate the cell cluster.
             self._revive_cell_plots(cell_data=cell_data)
 
-        #FIXME: Ideally, this logic should be encapsulated into a new private
-        #superclass method accepting no parameters -- say,
-        #PlotCells._update_colorbar(). Since the PlotCells._prep_figure() method was
-        #previously passed the desired color mapping and series, it shouldn't
-        #be necessary to repass such parameters again.
-        #
-        #For orthogonality, the PlotCells._prep_figure() method should be refactored
-        #to call a new PlotCells._make_colorbar() method doing just that.
-
         # Update the color bar with the content of the cell body plot *AFTER*
         # possibly recreating this plot above.
         if self._is_color_autoscaled:
@@ -288,30 +304,26 @@ class AnimCellsWhileSolving(AnimCells):
                 cell_data_vm = plot.upscale_data(
                     self._sim.vm_time[self._time_step])
 
-            #FIXME: Permit this to be externally configured via a new __init__()
-            #parameter "is_colorbar_autoscaled_expansively" or some such.
-
-            # If autoscaling this colorbar strictly, do so.
-            if True:
+            # If autoscaling this colorbar in a telescoping manner and this is
+            # *NOT* the first time step, do so.
+            #
+            # If this is the first time step, the previously calculated minimum
+            # and maximum colors are garbage and thus *MUST* be ignored.
+            if (self._is_colorbar_autoscaling_telescoped and
+                not self._is_time_step_first):
+                self._color_min = min(self._color_min, np.min(cell_data_vm))
+                self._color_max = max(self._color_max, np.max(cell_data_vm))
+            # Else, autoscale this colorbar in an unrestricted manner.
+            else:
                 self._color_min = np.min(cell_data_vm)
                 self._color_max = np.max(cell_data_vm)
-            # If autoscaling this colorbar expansively, do so. That is, permit
-            # this colorbar's range to expand but *NOT* contract, as the
-            # latter inhibits intelligibility and only invites confusion.
-            else:
-                # If this is the first time step, ignore the previously calculated
-                # minimum and maximum colors. For unknown reasons, these colors for
-                # the first time step are quite ignorable garbage.
-                if self._is_time_step_first:
-                    self._is_time_step_first = False
-                    self._color_min = np.min(cell_data_vm)
-                    self._color_max = np.max(cell_data_vm)
-                # Else, recalculate these colors in an expanding manner.
-                else:
-                    self._color_min = min(self._color_min, np.min(cell_data_vm))
-                    self._color_max = max(self._color_max, np.max(cell_data_vm))
 
-            self._cell_data_plot.set_clim(self._color_min, self._color_max)
+                # If autoscaling this colorbar in a telescoping manner, do so
+                # for subsequent time steps.
+                self._is_time_step_first = False
+
+            # Autoscale the colorbar to these colors.
+            self._rescale_colors()
 
         # If displaying this frame, do so.
         if self._is_showing:
