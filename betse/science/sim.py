@@ -987,6 +987,7 @@ class Simulator(object):
         self.vm_to = np.copy(self.vm)
 
         if p.Ca_dyn is True:
+            #FIXME: This is a noop. Did you mean to remove this? Shores of joy!
             self.cc_er = np.asarray(self.cc_er)
 
             self.cc_er_to = np.copy(self.cc_er)
@@ -2040,10 +2041,17 @@ class Simulator(object):
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
-        # electrofuse the H+ ion between the cytoplasm and the ecms
-        f_H1 = \
-            electroflux(self.cc_env[self.iH][cells.map_mem2ecm],self.cc_cells[self.iH][cells.mem_to_cells],
-                self.Dm_cells[self.iH],self.tm[cells.mem_to_cells],self.zs[self.iH],self.vm,self.T,p)
+        # Electrofuse the H+ ion between the cytoplasm and the ecms.
+        f_H1 = electroflux(
+            self.cc_env[self.iH][cells.map_mem2ecm],
+            self.cc_cells[self.iH][cells.mem_to_cells],
+            self.Dm_cells[self.iH],
+            self.tm[cells.mem_to_cells],
+            self.zs[self.iH],
+            self.vm,
+            self.T,
+            p,
+        )
 
         self.fluxes_mem[self.iH] =  self.fluxes_mem[self.iH] + f_H1
 
