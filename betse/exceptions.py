@@ -41,6 +41,13 @@ class BetseExceptionFunction(BetseException):
     pass
 
 
+class BetseExceptionLambda(BetseException):
+    '''
+    Lambda-specific exception.
+    '''
+    pass
+
+
 class BetseExceptionMethod(BetseException):
     '''
     Method-specific exception.

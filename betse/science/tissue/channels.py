@@ -3,10 +3,12 @@
 # See "LICENSE" for further details.
 
 import numpy as np
+from betse.exceptions import BetseExceptionLambda
+from betse.util.type import types
 
 
 
-def vgSodium(dyna,sim,cells,p):
+def vgSodium_HH(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated sodium channels** (i.e., only
     applicable to specific tissue profiles) specified by the passed
@@ -49,11 +51,55 @@ def vgSodium(dyna,sim,cells,p):
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
 
+
+def vgSodium(dyna,sim,cells,p):
+    '''
+    Handle all **targeted voltage-gated sodium channels** (i.e., only
+    applicable to specific tissue profiles) specified by the passed
+    user-specified parameters on the passed tissue simulation and cellular
+    world for the passed time step.
+
+    Channel model uses Hodgkin-Huxley model for voltage gated sodium channels.
+
+    '''
+
+    V = sim.vm[dyna.targets_vgNa]*1000
+
+    alpha_m = (0.091*(V+38))/(1-np.exp((-V-38)/5))
+    beta_m = (-0.062*(V+38))/(1-np.exp((V+38)/5))
+
+
+    alpha_h = 0.016*np.exp((-55-V)/15)
+    beta_h = 2.07/(1 + np.exp((17-V)/21))
+
+    # calculate m channels
+    dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
+
+    dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
+
+    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
+    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
+    dyna.m_Na[inds_mNa_over] = 1.0
+
+    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
+    dyna.h_Na[inds_hNa_over] = 1.0
+
+    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
+    dyna.m_Na[inds_mNa_under] = 0.0
+
+    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
+    dyna.h_Na[inds_hNa_under] = 0.0
+
+    gNa_max = 5.0e-14#(FIXME should be 4.28e-14, testing with lower)
+
+    # Define ultimate activity of the vgNa channel:
+    sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
+
     print(sim.Dm_vg[sim.iNa].max())
-    print('-----')
+    print('---')
 
 
-def vgPotassium(dyna,sim,cells,p):
+def vgPotassium_HH(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated potassium channels** (i.e., only
     applicable to specific tissue profiles) specified by the passed
@@ -77,13 +123,108 @@ def vgPotassium(dyna,sim,cells,p):
     dyna.n_K[inds_nK_under] = 0.0
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.n_K**4)*gK_max
-    print(sim.Dm_vg[sim.iK].max())
-    print('****')
 
+def vgPotassium(dyna,sim,cells,p):
+    '''
+    Handle all **targeted voltage-gated potassium channels** (i.e., only
+    applicable to specific tissue profiles) specified by the passed
+    user-specified parameters on the passed tissue simulation and cellular
+    world for the passed time step.
+    '''
+     # detecting channels to turn on:
+    V = sim.vm[dyna.targets_vgK]*1000
+
+    # m_Inf = 1/(1 + np.exp(-(V+47)/29))
+    m_Inf_lambda = define_lambda("lambda V: 1/(1 + np.exp(-(V+47)/29))")
+    m_Inf = m_Inf_lambda(V)
+    m_Tau = (0.34+0.92*np.exp(-((V+71)/59)**2))
+    h_Inf = 1/(1 + np.exp(-(V+56)/-10))
+    h_Tau = (8+49*np.exp(-((V+73)/23)**2))
+
+    dyna.m_K = ((m_Inf - dyna.m_K)/m_Tau)*p.dt*1e3 + dyna.m_K
+    dyna.h_K = ((h_Inf - dyna.h_K)/h_Tau)*p.dt*1e3 + dyna.h_K
+
+    gK_max = 1.0e-14
+
+    inds_mK_over = (dyna.m_K > 1.0).nonzero()
+    dyna.m_K[inds_mK_over] = 1.0
+
+    inds_mK_under = (dyna.m_K < 0.0).nonzero()
+    dyna.m_K[inds_mK_under] = 0.0
+
+    inds_hK_over = (dyna.h_K > 1.0).nonzero()
+    dyna.h_K[inds_hK_over] = 1.0
+
+    inds_hK_under = (dyna.h_K < 0.0).nonzero()
+    dyna.h_K[inds_hK_under] = 0.0
+
+    sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.m_K)*(dyna.h_K)*gK_max
+
+    print(sim.Dm_vg[sim.iK].max())
+    print('*****')
+
+
+#FIXME: Shift into a "betse.util" module. Hefty superstrings in the cleft!
+def define_lambda(lambda_func: str, arg: object) -> 'lambda':
+    '''
+    Dynamically define and return a callable lambda function object defined by
+    the passed string.
+
+    The passed string _must_ conform to Python syntax for lambda functions. In
+    particular, this string _must_ be prefixed by the identifier `lambda `
+    (e.g., `lambda x: x**2`).
+
+    Parameters
+    ----------------------------
+    lambda_func : str
+        String defining the lambda function to be created and returned.
+
+    Returns
+    ----------------------------
+    lambda
+        Callable lambda function object defined by the passed string.
+    '''
+    assert types.is_str_nonempty(lambda_func), (
+        types.assert_not_str_nonempty(lambda_func, 'Lambda function'))
+
+    # If this is not a lambda function, raise an exception.
+    if not lambda_func.startswith('lambda '):
+        raise BetseExceptionLambda(
+            'Lambda function not preceded by "lambda ":\n{}'.format(
+                lambda_func))
+
+    # Define and return this lambda function.
+    exec('return {}'.format(lambda_func))
 
 
 # Wastelands
 #------------------------
+
+    # m_Inf = call_lambda("lambda V: 1/(1 + np.exp(-(V+47)/29))", V)
+
+# def call_lambda(lambda_func: str, arg: object) -> object:
+#     '''
+#     Dynamically call the lambda function defined by the passed string passed the
+#     passed argument _and_ return the value returned by this call.
+#
+#     Parameters
+#     ----------------------------
+#     lambda_func : str
+#         String defining the lambda function to be called.
+#     arg : object
+#         First and only argument to be passed to this lambda function.
+#     '''
+#     assert types.is_str_nonempty(lambda_func), (
+#         types.assert_not_str_nonempty(lambda_func, 'Lambda function'))
+#
+#     # If this is not a lambda function, raise an exception.
+#     if not lambda_func.startswith('lambda '):
+#         raise BetseExceptionLambda(
+#             'Lambda function not preceded by "lambda ":\n{}'.format(
+#                 lambda_func))
+#
+#     # Call this lambda function and return the return value.
+#     exec('return ({})(arg)'.format(lambda_func))
 
 #def sigmoid(V,po,p1,p2,p3):
 #     """

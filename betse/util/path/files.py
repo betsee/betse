@@ -119,33 +119,45 @@ def is_symlink(pathname: str) -> bool:
 # ....................{ COPIERS                            }....................
 def copy(filename_source: str, filename_target: str) -> None:
     '''
-    Copy the passed source to target non-directory file.
+    Copy the passed source file to the passed target file or directory.
 
-    Such file will be copied in a manner maximally preserving metadata (e.g.,
-    owner, group, permissions, times, extended file system attributes).
-    Likewise, if such source file is a symbolic link, such link (rather than its
+    If the source file is a symbolic link, this link (rather than its
     transitive target) will be copied and hence preserved.
 
-    If either the source file does not exist *or* the target file already
+    The target file will be copied in a manner maximally preserving metadata
+    (e.g., owner, group, permissions, times, extended file system attributes).
+    If the target file is a directory, the basename of the source file will be
+    appended to this directory -- much like the standard `cp` POSIX command.
+
+    If either the source file does not exist _or_ the target file already
     exists, an exception will be raised.
     '''
-    assert types.is_str_nonempty(filename_source),\
-        types.assert_not_str_nonempty(filename_source, 'source filename')
-    assert types.is_str_nonempty(filename_target),\
-        types.assert_not_str_nonempty(filename_target, 'target filename')
+    assert types.is_str_nonempty(filename_source), (
+        types.assert_not_str_nonempty(filename_source, 'source filename'))
+    assert types.is_str_nonempty(filename_target), (
+        types.assert_not_str_nonempty(filename_target, 'target filename'))
 
-    # Log such copy.
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, paths
+
+    # Log this copy.
     loggers.log_info(
         'Copying file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
     die_unless_file(filename_source)
 
-    # Raise an exception if the target file already exists.
-    die_if_file(filename_target)
+    # If the target file is a directory, append the basename of the passed
+    # source file to this directory -- much like the "cp" POSIX command.
+    if dirs.is_dir(filename_target):
+        filename_target = paths.join(
+            filename_target, paths.get_basename(filename_source))
 
-    # Perform such copy in a manner preserving metadata and symbolic links.
-    shutil.copy2(filename_source, filename_target, follow_symlinks = False)
+    # Raise an exception if the target file already exists.
+    paths.die_if_path(filename_target)
+
+    # Perform this copy in a manner preserving metadata and symbolic links.
+    shutil.copy2(filename_source, filename_target, follow_symlinks=False)
 
 # ....................{ REMOVERS                           }....................
 def remove(filename: str) -> None:

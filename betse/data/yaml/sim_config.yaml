@@ -44,7 +44,7 @@ init file saving:
     file: init_1.betse        # filename to load/save init run
 
     worldfile: world_1.betse      # filename to load/save cell cluster
-
+    channels: channels.yaml
 
 sim file saving:
 
@@ -119,7 +119,7 @@ sim time settings:
 
 general options:
 
-  comp grid size: 20         # grid used in computation of environmental parameters (keep smaller than 50)
+  comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
   plot grid size: 100        # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: False    # include extracellular spaces and heterogeneous cell Vmem in sim?
@@ -169,7 +169,7 @@ general options:
 
 world options:
 
-  world size: 100e-6      # dimension of the square world space [m]
+  world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -282,7 +282,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/circle/spot.png }
+              bitmap: { file: geo/circle/mini_spot.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -327,7 +327,7 @@ tissue profile definition:
 # init and sim without affecting outcome (no synch issues).
 
 change Na mem:       # Change the membrane permeability to Na+
-    event happens: False        # turn the event on (True) or off (False)
+    event happens: True        # turn the event on (True) or off (False)
     change start: 1.0e-3                # time to start change [s]
     change finish: 20.0e-3               # time to end change and return to original [s]
     change rate: 2.0e-3                 # rate of change [s]
@@ -452,22 +452,30 @@ modulator function properties:   # set properties of modulating functions which 
 voltage gated Na+:
     turn on: False             # voltage gated sodium channel?
     apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
+    channel type: NaV1.2   # specific ion channel to target
+    open value: 4.0e-14    # maximum diffusion constant when channel open
 
 voltage gated K+:              # voltage gated potassium channel?
     turn on: False
     apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
+    channel type: KV1.5
+    open value: 1.0e-14    # maximum diffusion constant when channel open
 
 voltage gated Ca2+:            # voltage gated calcium channel?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+    channel type: LCa
+    open value: 4.0e-14    # maximum diffusion constant when channel open
 
 calcium gated K+:              # calcium gated potassium channel ?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+    open value: 4.0e-14    # maximum diffusion constant when channel open
 
 stretch gated Na+:         # stretch activated depolarization (Na+) channel?
     turn on: False
     apply to: ['all']          # tissue profile(s) to apply to
+    open value: 4.0e-14    # maximum diffusion constant when channel open
 
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
@@ -987,7 +995,6 @@ results options:
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
 
     voltage gated Na:
-
         max Dmem Na: 2.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
         activation v: -50e-3      # voltage threshold above which vgNa is activated [V] -55e-3
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3

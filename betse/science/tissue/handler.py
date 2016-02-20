@@ -402,7 +402,8 @@ class TissueHandler(object):
             self.target_mask_vgK = np.zeros(self.data_length)
             self.target_mask_vgK[self.targets_vgK] = 1
 
-            self.n_K = np.zeros(len(self.targets_vgK))
+            self.m_K = np.zeros(len(self.targets_vgK))
+            self.h_K = np.zeros(len(self.targets_vgK))
 
         if p.vg_options['Ca_vg'] !=0:
             # Initialization of logic values for voltage gated calcium channel

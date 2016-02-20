@@ -50,7 +50,7 @@ This path is operating system-specific as follows:
 .. _XDG Base Directory Specification: http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 '''
 
-# ....................{ CONSTANTS ~ dir : data             }....................
+# ....................{ CONSTANTS ~ data                   }....................
 DATA_DIRNAME = None   # initialized below
 '''
 Absolute path of `betse`'s data directory.
@@ -77,6 +77,14 @@ typically corresponding to some species (e.g., planaria) or organ (e.g., heart),
 complete with internal cellular structure and exterior cellular boundary. Each
 spatial subdivision of this shape is then associated with a real-world tissue
 profile in the configuration file(s) referencing this image.
+'''
+
+DATA_CHANNELS_YAML_FILENAME = None   # initialized below
+'''
+Absolute path of the application-wide channel library file.
+
+This file is the BETSE-specific offline equivalent of Channelpedia, an online
+repository cataloguing constants for all known ion channels.
 '''
 
 # ....................{ CONSTANTS ~ file                   }....................
@@ -118,7 +126,7 @@ def _init_pathnames() -> None:
     # Declare such constants to be globals, permitting their modification below.
     global\
         HOME_DIRNAME, DOT_DIRNAME,\
-        DATA_DIRNAME, DATA_GEOMETRY_DIRNAME,\
+        DATA_DIRNAME, DATA_GEOMETRY_DIRNAME, DATA_CHANNELS_YAML_FILENAME,\
         LOG_DEFAULT_FILENAME, CONFIG_DEFAULT_FILENAME
 
     # Absolute path of the current user's home directory.
@@ -156,6 +164,9 @@ def _init_pathnames() -> None:
     # Initialize the absolute paths of data subdirectories.
     DATA_YAML_DIRNAME = paths.join(DATA_DIRNAME, 'yaml')
     DATA_GEOMETRY_DIRNAME = paths.join(DATA_YAML_DIRNAME, 'geo')
+
+    # Initialize the absolute paths of data files.
+    DATA_CHANNELS_YAML_FILENAME = paths.join(DATA_YAML_DIRNAME, 'channels.yaml')
     CONFIG_DEFAULT_FILENAME = paths.join(DATA_YAML_DIRNAME, 'sim_config.yaml')
 
     # Initialize the absolute path of betse's dot directory.

@@ -1,0 +1,58 @@
+%YAML 1.1
+---
+# Default BETSE channel library file.
+
+#-----------------------------------------------------------------------------------------------------------------------
+# SODIUM CHANNELS
+#------------------------------------------------------------------------------------------------------------------------
+# Settings specific to sodium ion channels.
+
+voltage gated Na:
+    max Dmem Na: 2.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
+    activation v: -50e-3      # voltage threshold above which vgNa is activated [V] -55e-3
+    inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3
+    deactivation v: -55e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
+    live time: 2e-3           # time activated state can exist (trans to inactivated) [s]  2.5e-3
+    dead time: 5e-3          # refractory time vgNa remains inactivated [s]  5e-3
+
+#-----------------------------------------------------------------------------------------------------------------------
+# POTASSIUM CHANNELS
+#------------------------------------------------------------------------------------------------------------------------
+# Settings specific to potassium ion channels.
+
+m_Inf: "lambda V: 1/(1 + np.exp(-(V+47)/29))"
+h_Inf: "lambda V: 1/(1 + np.exp(-(V+56)/-10))"
+m_Tau: "lambda V: (0.34 + 0.92*np.exp(-((V+71)/59)**2))"
+h_Tau: "lambda V: (8.00 + 49*np.exp(-((V+73)/23)**2))"
+
+voltage gated K:
+
+    max Dmem K: 0.5e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
+    activation v: -5e-3        # voltage threshold above which vgK is activated [V]    -10e-3
+    deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
+    live time: 5e-3            # time activated state can exist [s]   5e-3
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CALCIUM CHANNELS
+#------------------------------------------------------------------------------------------------------------------------
+# Settings specific to calcium ion channels.
+
+voltage gated Ca:
+
+    max Dmem Ca: 1.0e-15        # maximum Ca2+ membrane diffusion coefficient channel open [m2/s]
+    activation v: -40e-3        # voltage threshold above which vgK is activated [V]
+    inactivation v: 30e-3       # voltage threshold above which vgCa is inactivated [V]
+    inactivation Ca: 5.0e-3     # level of cytosolic Ca2+ above which vgCa is inactivated [mmol/L]
+    reactivation Ca: 200e-6     # level of cytosolic Ca2+ below which vgCa is un-inactivated [mmol/L]
+
+calcium gated K:
+
+    max Dmem K: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
+    hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
+    hill n: 3                   # Hill function coefficient
+
+stretch gated Na:
+
+    max Dmem Na: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
+    hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as strain)
+    hill n: 3                   # Hill function coefficient
