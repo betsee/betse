@@ -395,7 +395,7 @@ class Simulator(object):
             if p.ions_dict['P']==1:
                 self.cc_cells[self.iP] = self.cc_cells[self.iP]*(1+ self.protein_noise_factor)
 
-        self.fluxes_mem = np.asarray(self.fluxes_mem)
+
 
         # Initialize Dye and IP3
 
@@ -420,10 +420,14 @@ class Simulator(object):
 
             self.cDye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
             self.cDye_env[:] = p.cDye_to
-        #
+
+        #convert lists to arrays
         self.z_array = np.asarray(self.z_array)
         self.D_gj = np.asarray(self.D_gj)
         # self.molar_mass = np.asarray(self.molar_mass)
+        self.fluxes_mem = np.asarray(self.fluxes_mem)
+        self.fluxes_gj_x = np.asarray(self.fluxes_gj_x)
+        self.fluxes_gj_y = np.asarray(self.fluxes_gj_y)
 
     def baseInit_ECM(self,cells,p):
 
@@ -3910,7 +3914,7 @@ class Simulator(object):
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 sim=self, cells=cells, p=p,
                 type='Vmem',
-                figure_title='Cell Membrane Voltage While {}'.format(
+                figure_title='Vm while {}'.format(
                     figure_type_label),
                 colorbar_title='Voltage [mV]',
                 is_color_autoscaled=p.autoscale_Vmem,

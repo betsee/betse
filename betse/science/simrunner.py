@@ -310,8 +310,8 @@ class SimRunner(object):
 
         cells = Cells(p,worldtype='basic')
 
-        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-        loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
+        # loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
+        # loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
 
 
         if files.is_file(cells.savedWorld):

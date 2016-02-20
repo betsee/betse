@@ -341,6 +341,7 @@ class TissueHandler(object):
         '''
 
         if p.vg_options['Na_vg'] != 0:
+
             # Initialization of logic values for voltage gated sodium channel
             self.maxDmNa = p.vg_options['Na_vg'][0]
             self.v_activate_Na = p.vg_options['Na_vg'][1]
@@ -367,6 +368,10 @@ class TissueHandler(object):
 
             self.target_mask_vgNa = np.zeros(self.data_length)
             self.target_mask_vgNa[self.targets_vgNa] = 1
+
+            self.m_Na = np.zeros(len(self.targets_vgNa))
+            self.h_Na = np.zeros(len(self.targets_vgNa))
+
 
         if p.vg_options['K_vg'] !=0:
             # Initialization of logic values forr voltage gated potassium channel
@@ -396,6 +401,8 @@ class TissueHandler(object):
 
             self.target_mask_vgK = np.zeros(self.data_length)
             self.target_mask_vgK[self.targets_vgK] = 1
+
+            self.n_K = np.zeros(len(self.targets_vgK))
 
         if p.vg_options['Ca_vg'] !=0:
             # Initialization of logic values for voltage gated calcium channel
@@ -708,11 +715,11 @@ class TissueHandler(object):
 
         if p.vg_options['Na_vg'] != 0:
 
-            self.vgSodium(sim,cells,p,t)
+            vgSodium(self,sim,cells,p)
 
         if p.vg_options['K_vg'] !=0:
 
-            self.vgPotassium(sim,cells,p,t)
+            vgPotassium(self,sim,cells,p)
 
         if p.vg_options['Ca_vg'] !=0 and p.ions_dict['Ca'] != 0:
 
