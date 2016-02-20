@@ -119,7 +119,7 @@ sim time settings:
 
 general options:
 
-  comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
+  comp grid size: 20         # grid used in computation of environmental parameters (keep smaller than 50)
   plot grid size: 100        # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: False    # include extracellular spaces and heterogeneous cell Vmem in sim?
@@ -169,7 +169,7 @@ general options:
 
 world options:
 
-  world size: 250e-6      # dimension of the square world space [m]
+  world size: 100e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -1081,6 +1081,7 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
+  # FIXME get rid of this:
   simulate TEP: False     # favour low volume ecm spaces for true transepithelial potential modelling
 
 # Configuration file version that this file conforms to. For reliable

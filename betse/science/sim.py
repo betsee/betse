@@ -15,6 +15,7 @@ from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
+from scipy.sparse.linalg import lsmr
 
 from betse.science.sim_toolbox import electroflux, pumpNaKATP, pumpCaATP, pumpCaER, pumpHKATP, pumpVATP, get_volt,\
     get_charge, get_charge_density, get_molarity, cell_ave, check_v, vertData, nernst_planck_flux, np_flux_special
@@ -1387,7 +1388,7 @@ class Simulator(object):
 
                 self.electro_P(cells,p)
 
-            if p.fluid_flow is True and p.run_sim is True:
+            if p.fluid_flow is True and p.run_sim is True:  # FIXME fluid flow isn't plotting!
 
                 self.run_sim = True
 
@@ -1478,6 +1479,11 @@ class Simulator(object):
 
         """
 
+        # clear mass flux storage vectors:
+        self.fluxes_gj_x  = np.zeros(self.fluxes_gj_x.shape)
+        self.fluxes_gj_y = np.zeros(self.fluxes_gj_y.shape)
+        self.fluxes_mem = np.zeros(self.fluxes_mem.shape)
+
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding environmental concentrations at time points
 
@@ -1548,6 +1554,11 @@ class Simulator(object):
             self.cc_er_to = np.copy(self.cc_er[:])
 
         if p.sim_ECM is True:
+
+            # clear flux storage vectors for environment
+            self.fluxes_env_x = np.zeros(self.fluxes_env_x.shape)
+            self.fluxes_env_y = np.zeros(self.fluxes_env_y.shape)
+
 
             self.vcell_time = []
             self.venv_time = []
@@ -1774,45 +1785,47 @@ class Simulator(object):
 
             vm = (1/(p.cm*cells.cell_sa))*self.rho_cells*cells.cell_vol
 
-            # in this case, the voltage across the membrane is assumed to be equal and opposite to the cell voltage:
-            v_cell = vm/2
-            v_env = -vm/2
+            # in this case, the voltage in the environment is assumed to be zero:
+            v_cell = vm
+            v_env = 0
 
         else:
+            # total charge in cells:
             Qcells = (self.rho_cells*cells.cell_vol)
 
-            # Qcells = cells.integrator(Qcells)
-
             # smooth out the environmental charge:
-            self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
-            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
-            # self.rho_env = self.rho_env.reshape(cells.X.shape)
-
-            # make sure charge at the global boundary is zero:
-            # if p.closed_bound is False:
-            self.rho_env[:,0] = 0
-            self.rho_env[:,-1] = 0
-            self.rho_env[-1,:] = 0
-            self.rho_env[0,:] = 0
-
+            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
+            self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
             self.rho_env = self.rho_env.ravel()
 
-            # interpolate charge from environmental grid to the ecm_mids:v
+            # interpolate charge from environmental grid to the ecm_mids:
             rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
                                       self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
+
 
             if p.simulate_TEP is True:
                 Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
 
             else:
-                Qecm = rho_ecm*p.cell_space*cells.delta**2
+                # Qecm = rho_ecm*p.cell_height*cells.delta**2
+                # Qecm = rho_ecm*p.cell_height*cells.delta*p.cell_space
+
+                # total charge in the extracellular spaces:
+                Qecm = rho_ecm*cells.mem_sa[cells.ecm_to_mem_mids[:,0]]*p.cell_space
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
 
             # calculate the voltage for the system based on the max cap vector
-            v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
+            # use iterative least squares solver for sparse matrices (see scipy.sparse.linalg.lsmr)
+            # Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-3, btol=1.0e-3, conlim=1.0e13)
+            Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-6, btol=1.0e-6)
+
+            v_max_vect = Sln[0]
+
+            # original solver in terms of pseudo-inverse matrix:
+            # v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
 
             # separate voltages for cells and ecm spaces
             v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
@@ -1827,7 +1840,7 @@ class Simulator(object):
             v_env[cells.map_mem2ecm] = v_ecm_at_mem
 
             # smooth out the environmental voltage:
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),1)
             # v_env = fd.integrator(v_env.reshape(cells.X.shape))
             v_env = v_env.ravel()
 
@@ -2006,7 +2019,7 @@ class Simulator(object):
         # component of flux tangent to gap junctions:
         fgj = fgj_x*cells.cell_nn_tx + fgj_y*cells.cell_nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix,fgj*cells.mem_sa)/cells.cell_vol
+        delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
@@ -2154,8 +2167,8 @@ class Simulator(object):
         # # # calculate the divergence of the total flux, which is equivalent to the total change per unit time
         # delta_c = fd.flux_summer(f_env_x,f_env_y,cells.X)*(1/cells.delta)
 
-        d_fenvx = (f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
-        d_fenvy = (f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
+        d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
+        d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
 
         delta_c = d_fenvx + d_fenvy
 
@@ -2363,7 +2376,7 @@ class Simulator(object):
 
         fgj_dye = fgj_x_dye*cells.cell_nn_tx + fgj_y_dye*cells.cell_nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_dye*cells.mem_sa)/cells.cell_vol
+        delta_cc = -np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_dye*cells.mem_sa)/cells.cell_vol
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
@@ -2504,8 +2517,8 @@ class Simulator(object):
                 grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_Dye,self.T,p)
 
             # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
-            d_fenvx = (f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
-            d_fenvy = (f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
+            d_fenvx = -(f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
+            d_fenvy = -(f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
 
             delta_c = d_fenvx + d_fenvy
 
@@ -2535,8 +2548,9 @@ class Simulator(object):
             fenvx = (f_env_x_dye[:,1:] + f_env_x_dye[:,0:-1])/2
             fenvy = (f_env_y_dye[1:,:] + f_env_y_dye[0:-1,:])/2
 
-            self.Dye_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
-            self.Dye_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
+            # true flux is indeed negative
+            self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
+            self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
 
     def update_IP3(self,cells,p,t):
 
@@ -2573,7 +2587,7 @@ class Simulator(object):
 
         fgj_ip3 = fgj_x_ip3*cells.cell_nn_tx + fgj_y_ip3*cells.cell_nn_ty
 
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_ip3*cells.mem_sa)/cells.cell_vol
+        delta_cc = -np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_ip3*cells.mem_sa)/cells.cell_vol
 
         self.cIP3 = self.cIP3 + p.dt*delta_cc
 
@@ -2686,8 +2700,8 @@ class Simulator(object):
                 grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_IP3,self.T,p)
 
             # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
-            d_fenvx = (f_env_x_ip3[:,1:] - f_env_x_ip3[:,0:-1])/cells.delta
-            d_fenvy = (f_env_y_ip3[1:,:] - f_env_y_ip3[0:-1,:])/cells.delta
+            d_fenvx = -(f_env_x_ip3[:,1:] - f_env_x_ip3[:,0:-1])/cells.delta
+            d_fenvy = -(f_env_y_ip3[1:,:] - f_env_y_ip3[0:-1,:])/cells.delta
 
             delta_c = d_fenvx + d_fenvy
 
@@ -2716,8 +2730,9 @@ class Simulator(object):
             fenvx = (f_env_x_ip3[:,1:] + f_env_x_ip3[:,0:-1])/2
             fenvy = (f_env_y_ip3[1:,:] + f_env_y_ip3[0:-1,:])/2
 
-            self.IP3_flux_env_x = -fenvx.ravel()  # store ecm junction flux for this ion
-            self.IP3_flux_env_y = -fenvy.ravel()  # store ecm junction flux for this ion
+            # true flux is indeed negative
+            self.IP3_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
+            self.IP3_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
 
     def get_Efield(self,cells,p):
 
@@ -2760,7 +2775,8 @@ class Simulator(object):
 
             I_gj_x = I_gj_x + I_i_x
 
-        I_gj_y = np.zeros(len(cells.nn_i))
+        # calculate current across gap junctions in x direction:
+        I_gj_y = np.zeros(len(cells.mem_i))
 
         for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
 
@@ -2804,8 +2820,10 @@ class Simulator(object):
                                       method=p.interp_type,fill_value=0)
         # self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
 
-        self.I_tot_x = self.I_tot_x + self.I_mem_x
-        self.I_tot_y = self.I_tot_y + self.I_mem_y
+        # add membrane current to total current:
+
+        # self.I_tot_x = self.I_tot_x + self.I_mem_x
+        # self.I_tot_y = self.I_tot_y + self.I_mem_y
 
         if p.sim_ECM is True:
 

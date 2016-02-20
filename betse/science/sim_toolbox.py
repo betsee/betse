@@ -372,20 +372,64 @@ def vertData(data, cells, p):
     return dat_grid
 
 def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
+    """
+     Calculate the flux component of the Nernst-Planck equation
+
+     Parameters
+     ------------
+
+    c:     concentration
+    gcx:   concentration gradient, x component
+    gcy:   concentration gradient, y component
+    gvx:   voltage gradient, x component
+    gvy:   voltage gradient, y component
+    ux:    fluid velocity, x component
+    uy:    fluid velocity, y component
+    D:     diffusion constant, D
+    z:     ion charge
+    T:     temperature
+    p:     parameters object
+
+    Returns
+    --------
+    fx, fx        mass flux in x and y directions
+    """
 
     alpha = (D*z*p.q)/(p.kb*T)
-    fx =  D*gcx + alpha*gvx*c - ux*c
-    fy =  D*gcy + alpha*gvy*c - uy*c
+    fx =  -D*gcx - alpha*gvx*c + ux*c
+    fy =  -D*gcy - alpha*gvy*c + uy*c
 
     return fx, fy
 
 def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
+    """
+     Calculate the flux component of the Nernst-Planck equation on a MACs grid
+
+     Parameters
+     ------------
+
+    c:     concentration
+    gcx:   concentration gradient, x component
+    gcy:   concentration gradient, y component
+    gvx:   voltage gradient, x component
+    gvy:   voltage gradient, y component
+    ux:    fluid velocity, x component
+    uy:    fluid velocity, y component
+    D:     diffusion constant, D
+    z:     ion charge
+    T:     temperature
+    p:     parameters object
+
+    Returns
+    --------
+    fx, fx        mass flux in x and y directions
+    """
 
     alphax = (Dx*z*p.q)/(p.kb*T)
     alphay = (Dy*z*p.q)/(p.kb*T)
 
-    fx =  Dx*gcx + alphax*gvx*cx - cx*ux
+    fx =  -Dx*gcx - alphax*gvx*cx + cx*ux
 
-    fy =  Dy*gcy + alphay*gvy*cy - cy*uy
+    fy =  -Dy*gcy - alphay*gvy*cy + cy*uy
 
     return fx, fy

@@ -100,7 +100,6 @@ class Cells(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedWorld = os.path.join(betse_cache_dir, p.world_filename)
 
-
     def makeWorld(self, p):
         """
         Calls internal methods to set up the cell cluster.
@@ -154,7 +153,6 @@ class Cells(object):
 
         self.calc_gj_vects(p)
 
-
     def makeSeeds(self, p: 'Parameters') -> None:
         '''
         Creates the irregular scatter lattice of seed points defined on a 2D
@@ -203,7 +201,6 @@ class Cells(object):
 
         self.centre = xypts.mean(axis=0)
         self.clust_xy = xypts
-
 
     def makeVoronoi(self, p):
         """
@@ -1114,8 +1111,11 @@ class Cells(object):
         self.index_k = [x for x in range(0,len(self.xypts))]
 
         # properties of ecm spaces:
-        self.ecm_sa = self.delta*p.cell_height # surface area of ecm space in direction of cell flux
+        self.ecm_sa = self.delta*p.cell_height*np.ones(len(self.xypts)) # surface area of ecm space in direction of cell flux
+        # self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
         self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
+
+
 
     def environment(self,p):
 
@@ -1147,6 +1147,14 @@ class Cells(object):
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
         self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
         self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
+
+
+
+        # update ecm volumes and surface areas within the cell region:
+        self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:]
+        self.ecm_sa[self.map_mem2ecm] = self.mem_sa[:]
+
+
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -1230,7 +1238,6 @@ class Cells(object):
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-
     def graphLaplacian(self,p):
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
@@ -1298,7 +1305,7 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
-    def maxwellCapMatrix(self,p):
+    def maxwellCapMatrix_o(self,p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
@@ -1354,7 +1361,7 @@ class Cells(object):
             # set the diagonal element for cells:
             M_max_cap[cell_i,cell_i] = cm_sum
             # set the off-diagonal elements for cells:
-            M_max_cap[cell_i,ecm_i_set] = cm
+            M_max_cap[cell_i,ecm_i_set] = -cm
 
         # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
         for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
@@ -1378,7 +1385,112 @@ class Cells(object):
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
 
-        self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
+        # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
+        self.M_max_cap = M_max_cap
+
+    def maxwellCapMatrix(self,p):
+        """
+        This method defines the Maxwell Capacitance matrix
+        for the collection of cells with their structured
+        Voronoi lattice.
+
+        Each cell and respective extracellular space are
+        considered to be conductors separated by the insulating
+        region of the cell membrane.
+
+        Each cell interacts with its N nearest ecm spaces.
+        Likewise, each ecm space interacts with two neighbouring cells,
+        or if the ecm space is on an external boundary, with one
+        neighbouring cell.
+
+        The Maxwell Capacitance matrix is created by solving for the
+        charge in each cell or ecm space, given the voltages of the space
+        and the capacitive connections between spaces. The matrix is
+        then inverted, so that we can use it to solve for voltages
+        knowing charges.
+
+        As the capacitance of the membrane far exceeds the self
+        capacitance of cell or ecm space, self capacitances can
+        be safely ignored.
+
+        """
+        loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+        # First calculate ecm spaces on the boundary:
+        bpts_ecm = self.ecm_mids[self.mem_to_ecm_mids][self.bflags_mems]
+
+        bflags_ecm = []
+        ecm_list = self.ecm_mids.tolist()
+
+        for pt in bpts_ecm:
+
+            pt = pt.tolist()
+            ind = ecm_list.index(pt)
+            bflags_ecm.append(ind)
+
+        self.bflags_ecm = np.asarray(bflags_ecm)
+
+        # set the data length for compiled values:
+        data_length = len(self.cell_i) + len(self.ecm_mids)
+
+        # define ranges within the total data length where we can
+        # work with cell centres or ecm mids specifically:
+        self.cell_range_a = 0
+        self.cell_range_b = len(self.cell_i)
+        self.ecm_range_a = self.cell_range_b
+        self.ecm_range_b = len(self.ecm_mids) + len(self.cell_i)
+
+        M_max_cap = np.zeros((data_length, data_length))
+
+        # first do cells -- index of maxwell vector equal to cell index
+        for cell_i in range(self.cell_range_a, self.cell_range_b):
+
+            mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
+
+            cm = p.cm*self.mem_sa[mem_i_set]  # get the capacitance of each membrane
+
+            cm_sum = np.sum(cm)  # sum up the capacitances of all membranes for diagonal term
+
+            # get the ecm spaces for each membrane
+            # we must add on the cells data length to make these indices of the max cap vector and matrix:
+            ecm_i_set_o = self.mem_to_ecm_mids[mem_i_set]
+            # ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
+
+            # set the diagonal element for cells:
+            M_max_cap[cell_i,cell_i] = cm_sum
+            # set the off-diagonal elements for cells:
+            for i, ecm_io in enumerate(ecm_i_set_o):
+
+                if ecm_io not in self.bflags_ecm:
+
+                    ecm_i = ecm_io + len(self.cell_i)
+
+                    M_max_cap[cell_i,ecm_i] = -cm[i]
+
+        # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
+        for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
+
+            ecm_i_o = ecm_i - len(self.cell_i)  # get the true ecm index wrt to the cell world
+
+            mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of membranes corresponding to each ecm space
+
+            cm = p.cm*np.mean(self.mem_sa[mem_pair])  # get the capacitance of the individual membrane
+
+            cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
+            cell_k = self.mem_to_cells[mem_pair[1]]
+
+            if ecm_i_o in self.bflags_ecm:  # then we're on a boundary
+
+        #         M_max_cap[ecm_i,ecm_i] = cm
+                M_max_cap[ecm_i,cell_j] = -cm
+
+            else:
+                M_max_cap[ecm_i,ecm_i] = 2*cm
+                M_max_cap[ecm_i,cell_j] = -cm
+                M_max_cap[ecm_i,cell_k] = -cm
+
+        # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
+        self.M_max_cap = M_max_cap
+
 
     def redo_gj(self,dyna,p,savecells =True):
 
