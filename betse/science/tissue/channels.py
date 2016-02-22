@@ -7,8 +7,7 @@ from betse.exceptions import BetseExceptionLambda
 from betse.util.type import types
 
 
-
-def vgSodium_HH(dyna,sim,cells,p):
+def vgSodium(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated sodium channels** (i.e., only
     applicable to specific tissue profiles) specified by the passed
@@ -52,7 +51,32 @@ def vgSodium_HH(dyna,sim,cells,p):
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
 
 
-def vgSodium(dyna,sim,cells,p):
+def vgPotassium(dyna,sim,cells,p):
+    '''
+    Handle all **targeted voltage-gated potassium channels** (i.e., only
+    applicable to specific tissue profiles) specified by the passed
+    user-specified parameters on the passed tissue simulation and cellular
+    world for the passed time step.
+    '''
+     # detecting channels to turn on:
+    V = sim.vm[dyna.targets_vgK]*1000 + 20.0
+
+    alpha_n = (0.01*(10 - V))/(np.exp((10-V)/10)-1)
+    beta_n = 0.125*np.exp(-V/80)
+
+    dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
+
+    gK_max = 1.28e-14
+
+    inds_nK_over = (dyna.n_K > 1.0).nonzero()
+    dyna.n_K[inds_nK_over] = 1.0
+
+    inds_nK_under = (dyna.n_K < 0.0).nonzero()
+    dyna.n_K[inds_nK_under] = 0.0
+
+    sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.n_K**4)*gK_max
+
+def vgSodium_rat(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated sodium channels** (i.e., only
     applicable to specific tissue profiles) specified by the passed
@@ -98,33 +122,7 @@ def vgSodium(dyna,sim,cells,p):
     print(sim.Dm_vg[sim.iNa].max())
     print('---')
 
-
-def vgPotassium_HH(dyna,sim,cells,p):
-    '''
-    Handle all **targeted voltage-gated potassium channels** (i.e., only
-    applicable to specific tissue profiles) specified by the passed
-    user-specified parameters on the passed tissue simulation and cellular
-    world for the passed time step.
-    '''
-     # detecting channels to turn on:
-    V = sim.vm[dyna.targets_vgK]*1000 + 20.0
-
-    alpha_n = (0.01*(10 - V))/(np.exp((10-V)/10)-1)
-    beta_n = 0.125*np.exp(-V/80)
-
-    dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
-
-    gK_max = 1.28e-14
-
-    inds_nK_over = (dyna.n_K > 1.0).nonzero()
-    dyna.n_K[inds_nK_over] = 1.0
-
-    inds_nK_under = (dyna.n_K < 0.0).nonzero()
-    dyna.n_K[inds_nK_under] = 0.0
-
-    sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.n_K**4)*gK_max
-
-def vgPotassium(dyna,sim,cells,p):
+def vgPotassium_rat(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated potassium channels** (i.e., only
     applicable to specific tissue profiles) specified by the passed

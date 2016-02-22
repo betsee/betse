@@ -1115,8 +1115,6 @@ class Cells(object):
         # self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
         self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
 
-
-
     def environment(self,p):
 
         """
@@ -1149,12 +1147,9 @@ class Cells(object):
         self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
 
 
-
         # update ecm volumes and surface areas within the cell region:
         self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:]
         self.ecm_sa[self.map_mem2ecm] = self.mem_sa[:]
-
-
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -1330,6 +1325,9 @@ class Cells(object):
         capacitance of cell or ecm space, self capacitances can
         be safely ignored.
 
+        This version of the Maxwell Capacitance Matrix does not zero voltage at
+        the boundary of the cell cluster -- there are no boundary conditions.
+
         """
 
         loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
@@ -1413,6 +1411,9 @@ class Cells(object):
         capacitance of cell or ecm space, self capacitances can
         be safely ignored.
 
+        This version of the Maxwell Capacitance Matrix zeros voltage at
+        the boundary of the cell cluster.
+
         """
         loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
         # First calculate ecm spaces on the boundary:
@@ -1490,7 +1491,6 @@ class Cells(object):
 
         # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         self.M_max_cap = M_max_cap
-
 
     def redo_gj(self,dyna,p,savecells =True):
 

@@ -749,7 +749,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             plt.show(block=False)
 
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
-        pHdata = -np.log10(sim.cc_time[-1][sim.iH])
+        pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
 
         figH, axH, cbH = viz.plotPolyData(sim,cells,p,zdata=pHdata,
             number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,

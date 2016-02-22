@@ -1798,8 +1798,8 @@ class Simulator(object):
             Qcells = (self.rho_cells*cells.cell_vol)
 
             # smooth out the environmental charge:
-            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
-            self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
+            self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
+            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
             self.rho_env = self.rho_env.ravel()
 
             # interpolate charge from environmental grid to the ecm_mids:
@@ -1808,15 +1808,15 @@ class Simulator(object):
                                       fill_value = 0)
 
 
-            if p.simulate_TEP is True:
-                Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
-
-            else:
-                # Qecm = rho_ecm*p.cell_height*cells.delta**2
-                # Qecm = rho_ecm*p.cell_height*cells.delta*p.cell_space
+            # if p.simulate_TEP is True:
+            #     Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
+            #
+            # else:
+            #     # Qecm = rho_ecm*p.cell_height*cells.delta**2
+            #     # Qecm = rho_ecm*p.cell_height*cells.delta*p.cell_space
 
                 # total charge in the extracellular spaces:
-                Qecm = rho_ecm*cells.mem_sa[cells.ecm_to_mem_mids[:,0]]*p.cell_space
+            Qecm = rho_ecm*cells.mem_sa[cells.ecm_to_mem_mids[:,0]]*p.cell_space
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
@@ -1844,7 +1844,7 @@ class Simulator(object):
             v_env[cells.map_mem2ecm] = v_ecm_at_mem
 
             # smooth out the environmental voltage:
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),1)
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
             # v_env = fd.integrator(v_env.reshape(cells.X.shape))
             v_env = v_env.ravel()
 
@@ -2023,6 +2023,7 @@ class Simulator(object):
         # component of flux tangent to gap junctions:
         fgj = fgj_x*cells.cell_nn_tx + fgj_y*cells.cell_nn_ty
 
+        # divergence calculation (finite volume expression)
         delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
@@ -2344,6 +2345,32 @@ class Simulator(object):
 
                 self.cDye_cell = self.cDye_cell + d_dye_cells*p.dt
 
+        # electrodiffuse dye between cell and extracellular space--------------------------------------------------
+
+        if p.sim_ECM is False:
+
+            fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
+                self.T,p,rho=self.rho_channel_o)
+
+            # update dye concentration
+            self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
+
+        elif p.sim_ECM is True:
+
+            flux_dye = electroflux(self.cDye_env[cells.map_mem2ecm],self.cDye_cell[cells.mem_to_cells],
+                            np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
+
+            # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
+            d_c_cells = self.rho_channel*flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+            d_c_env = self.rho_channel*flux_dye*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+
+            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+
+            self.cDye_cell = self.cDye_cell + delta_cells*p.dt
+
+            self.cDye_env = self.cDye_env - delta_env*p.dt
+
         #------------------------------------------------------------
 
         # Update dye concentration in the gj connected cell network:
@@ -2380,38 +2407,17 @@ class Simulator(object):
 
         fgj_dye = fgj_x_dye*cells.cell_nn_tx + fgj_y_dye*cells.cell_nn_ty
 
-        delta_cc = -np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_dye*cells.mem_sa)/cells.cell_vol
+        # divergence calculation for individual cells (finite volume expression)
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_dye*cells.mem_sa)/cells.cell_vol
 
         self.cDye_cell = self.cDye_cell + p.dt*delta_cc
 
         self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
         self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
 
-        if p.sim_ECM is False:
+        # transport dye through environment: _________________________________________________________
+        if p.sim_ECM is True:
 
-            fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
-                self.T,p,rho=self.rho_channel_o)
-
-            # update dye concentration
-            self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
-
-        elif p.sim_ECM is True:
-
-            flux_dye = electroflux(self.cDye_env[cells.map_mem2ecm],self.cDye_cell[cells.mem_to_cells],
-                            np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
-
-            # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-            d_c_cells = self.rho_channel*flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_c_env = self.rho_channel*flux_dye*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
-
-            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
-
-            self.cDye_cell = self.cDye_cell + delta_cells*p.dt
-
-            self.cDye_env = self.cDye_env - delta_env*p.dt
-
-            # transport dye through environment: _________________________________________________________
             if p.closed_bound is True:
                 btag = 'closed'
 
@@ -2520,7 +2526,7 @@ class Simulator(object):
             f_env_x_dye, f_env_y_dye = np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
                 grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_Dye,self.T,p)
 
-            # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
+            # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
             d_fenvx = -(f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
             d_fenvy = -(f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
 
@@ -2549,10 +2555,10 @@ class Simulator(object):
             # self.v_env = self.v_env.ravel()
             self.cDye_env = cenv.ravel()
 
+            # average flux at the midpoint of the MACs grid:
             fenvx = (f_env_x_dye[:,1:] + f_env_x_dye[:,0:-1])/2
             fenvy = (f_env_y_dye[1:,:] + f_env_y_dye[0:-1,:])/2
 
-            # true flux is indeed negative
             self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
             self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
 
@@ -2591,7 +2597,7 @@ class Simulator(object):
 
         fgj_ip3 = fgj_x_ip3*cells.cell_nn_tx + fgj_y_ip3*cells.cell_nn_ty
 
-        delta_cc = -np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,fgj_ip3*cells.mem_sa)/cells.cell_vol
+        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_ip3*cells.mem_sa)/cells.cell_vol
 
         self.cIP3 = self.cIP3 + p.dt*delta_cc
 
@@ -2812,8 +2818,9 @@ class Simulator(object):
 
             self.I_mem = self.I_mem + I_i
 
-            I_mem_x = self.I_mem*cells.mem_vects_flat[:,2]
-            I_mem_y = self.I_mem*cells.mem_vects_flat[:,3]
+            # components are negative as transmembrane fluxes point into the cell, but mem normals point out:
+            I_mem_x = -self.I_mem*cells.mem_vects_flat[:,2]
+            I_mem_y = -self.I_mem*cells.mem_vects_flat[:,3]
 
          # interpolate the trans-membrane current components to the grid:
         self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.X,cells.Y),
@@ -2826,8 +2833,8 @@ class Simulator(object):
 
         # add membrane current to total current:
 
-        # self.I_tot_x = self.I_tot_x + self.I_mem_x
-        # self.I_tot_y = self.I_tot_y + self.I_mem_y
+        self.I_tot_x = self.I_tot_x + self.I_mem_x
+        self.I_tot_y = self.I_tot_y + self.I_mem_y
 
         if p.sim_ECM is True:
 
@@ -2882,20 +2889,30 @@ class Simulator(object):
             alpha = (1/p.mu_water)*self.D_env_weight
             #---------------------------------------------------------
 
+            # get an average value for the field at the outer membrane -- need to interpolate intracellular fields:
+            E_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_x,(cells.X,cells.Y),
+                                      method=p.interp_type,fill_value=0)
+
+            E_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_y,(cells.X,cells.Y),
+                                      method=p.interp_type,fill_value=0)
+
+            E_ave_x = (E_gj_x + self.E_env_x)/2
+            E_ave_y = (E_gj_y + self.E_env_y)/2
+
             if p.deform_electro is True:
 
                 # determine the geometric factor to map charge density from volume to surface:
-                if p.simulate_TEP is True:
-                    Qfactor = p.cell_space
+                # if p.simulate_TEP is True:
+                Qfactor = p.cell_space
 
-                else:
-                    Qfactor = cells.delta
+                # else:
+                #     Qfactor = cells.delta
 
                 # calculate the electroosmotic force:
-                self.rho_env[cells.inds_env] = 0
+                # self.rho_env[cells.inds_env] = 0
 
-                Fe_x = Qfactor*self.rho_env.reshape(cells.X.shape)*self.E_env_x
-                Fe_y = Qfactor*self.rho_env.reshape(cells.X.shape)*self.E_env_y
+                Fe_x = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_x
+                Fe_y = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_y
 
             else:
 
@@ -2907,24 +2924,14 @@ class Simulator(object):
             Fy = Fe_y
 
             source_x = -Fx*alpha
-            source_x = cells.grid_obj.grid_int(source_x,bounds=btag) # perform finite volume integration of source
+            # source_x = cells.grid_obj.grid_int(source_x,bounds=btag) # perform finite volume integration of source
 
             source_y = -Fy*alpha
-            source_y = cells.grid_obj.grid_int(source_y,bounds=btag) # perform finite volume integration of source
+            # source_y = cells.grid_obj.grid_int(source_y,bounds=btag) # perform finite volume integration of source
 
             # # calculated the fluid flow using the time-independent Stokes Flow equation:
             ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
             uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
-            # if p.closed_bound is True:
-            #
-            #     # enforce closed conditions on source:
-            #     ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
-            #     uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
-            #
-            # else:
-            #     ux_ecm_o = np.dot(cells.lapENV_P_inv,source_x.ravel())
-            #     uy_ecm_o = np.dot(cells.lapENV_P_inv,source_y.ravel())
-
 
             # calculate the divergence of the flow field as the sum of the two spatial derivatives:
             div_uo = fd.divergence(ux_ecm_o.reshape(cells.X.shape),uy_ecm_o.reshape(cells.X.shape),
@@ -2936,36 +2943,13 @@ class Simulator(object):
 
             # calculate the alpha-scaled internal pressure from the divergence of the force:
             P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-            P = P.reshape(cells.grid_obj.cents_shape)
+            P = P.reshape(cells.X.shape)
 
             # enforce zero normal gradient boundary conditions on P:
             P[:,0] = P[:,1]
             P[:,-1] = P[:,-2]
             P[0,:] = P[1,:]
             P[-1,:] = P[-2,:]
-
-
-            # if p.closed_bound is True:
-            #
-            #     P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-            #     P = P.reshape(cells.grid_obj.cents_shape)
-            #
-            #     # enforce zero normal gradient boundary conditions on P:
-            #     P[:,0] = P[:,1]
-            #     P[:,-1] = P[:,-2]
-            #     P[0,:] = P[1,:]
-            #     P[-1,:] = P[-2,:]
-            #
-            # else:
-            #
-            #     P = np.dot(cells.lapENVinv, div_uo.ravel())
-            #     P = P.reshape(cells.grid_obj.cents_shape)
-            #
-            #     # enforce zero pressure boundary conditions on P:
-            #     P[:,0] = 0
-            #     P[:,-1] = 0
-            #     P[0,:] = 0
-            #     P[-1,:] = 0
 
             # Take the grid gradient of the scaled internal pressure:
             gPx, gPy = fd.gradient(P,cells.delta)
@@ -2995,44 +2979,6 @@ class Simulator(object):
             # bottom
             self.u_env_y[0,:] = 0
 
-            # # reinforce boundary conditions
-            # if p.closed_bound is True:
-            #     #left
-            #     self.u_env_x[:,0] = 0
-            #     # right
-            #     self.u_env_x[:,-1] = 0
-            #     # top
-            #     self.u_env_x[-1,:] = 0
-            #     # bottom
-            #     self.u_env_x[0,:] = 0
-            #
-            #     # left
-            #     self.u_env_y[:,0] = 0
-            #     # right
-            #     self.u_env_y[:,-1] = 0
-            #     # top
-            #     self.u_env_y[-1,:] = 0
-            #     # bottom
-            #     self.u_env_y[0,:] = 0
-            #
-            # else:
-            #     # left
-            #     self.u_env_x[:,0] = self.u_env_x[:,1]
-            #     # right
-            #     self.u_env_x[:,-1] = self.u_env_x[:,-2]
-            #     # top
-            #     self.u_env_x[-1,:] = self.u_env_x[-2,:]
-            #     # bottom
-            #     self.u_env_x[0,:] = self.u_env_x[1,:]
-            #
-            #     # left
-            #     self.u_env_y[:,0] = self.u_env_y[:,1]
-            #     # right
-            #     self.u_env_y[:,-1] = self.u_env_y[:,-2]
-            #     # top
-            #     self.u_env_y[-1,:] = self.u_env_y[-2,:]
-            #     # bottom
-            #     self.u_env_y[0,:] = self.u_env_y[1,:]
 
         #---------------Flow through gap junction connected cells-------------------------------------------------------
 
@@ -3145,11 +3091,16 @@ class Simulator(object):
         gcx_ch = grad_c_ch*cells.cell_nn_tx
         gcy_ch = grad_c_ch*cells.cell_nn_ty
 
-        # total electric field at each membrane
+        # total average electric field at each membrane
         if p.sim_ECM is True:
 
-            Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
-            Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
+            Ex = (self.E_env_x.ravel()[cells.map_mem2ecm] + self.E_gj_x)/2
+            Ey = (self.E_env_y.ravel()[cells.map_mem2ecm] + self.E_gj_y)/2
+
+            # Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
+            # Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
+
+
 
         else:
             Ex = self.E_gj_x
@@ -3445,11 +3396,11 @@ class Simulator(object):
 
         else:
 
-            Eab_o = -(self.vm[cells.nn_i] -
-                    self.vm[cells.mem_i])/(cells.gj_len)
+            Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
+                    self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
-        F_x = Q_mem*Eab_o*cells.cell_nn_tx
-        F_y = Q_mem*Eab_o*cells.cell_nn_ty
+        F_x = (1/2)*Q_mem*Eab_o*cells.cell_nn_tx
+        F_y = (1/2)*Q_mem*Eab_o*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
         self.F_electro_x = np.dot(cells.M_sum_mems, F_x)/cells.num_mems
@@ -3914,7 +3865,7 @@ class Simulator(object):
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 sim=self, cells=cells, p=p,
                 type='Vmem',
-                figure_title='Vm while {}'.format(
+                figure_title='Vmem while {}'.format(
                     figure_type_label),
                 colorbar_title='Voltage [mV]',
                 is_color_autoscaled=p.autoscale_Vmem,
