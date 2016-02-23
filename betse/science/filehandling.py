@@ -68,6 +68,7 @@ def safe_pickle(sim, p):
     Removes interpolation functions, colormaps and lambda functions
     to make the simulator object pickle-able.
     """
+    sim.gj_funk = None
 
     for key, valu in vars(sim).items():
         if type(valu) == interp.interp1d or callable(valu):

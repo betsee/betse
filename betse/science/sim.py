@@ -11,6 +11,7 @@ from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science.tissue.handler import TissueHandler
+from betse.science.tissue.channels import Gap_Junction
 from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp
@@ -142,6 +143,8 @@ class Simulator(object):
         diffusion constants.
 
         """
+
+        self.gj_funk = Gap_Junction(p)
 
         # Identity matrix to easily make matrices out of scalars
         self.id_cells = np.ones(len(cells.cell_i))
@@ -430,6 +433,8 @@ class Simulator(object):
         self.fluxes_gj_y = np.asarray(self.fluxes_gj_y)
 
     def baseInit_ECM(self,cells,p):
+
+        self.gj_funk = Gap_Junction(p)
 
         self.cc_cells = []  # cell concentrations initialized
         self.cc_er = []   # endoplasmic reticulum ion concentrations in each cell
@@ -759,6 +764,8 @@ class Simulator(object):
         This method is called at the start of all simulation phases, regardless
         of whether extracellular spaces are being modelled or not.
         '''
+
+        self.gj_funk = Gap_Junction(p)
 
         if p.sim_ECM is True:
             #  Initialize diffusion constants for the extracellular transport:
@@ -1984,8 +1991,35 @@ class Simulator(object):
 
         if p.v_sensitive_gj is True:
             # determine the open state of gap junctions:
-            self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
-            # self.gjopen = self.gj_rho + self.gj_block*((1.0 - tb.hill(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+            # self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
+
+            # calculate the steady state value of gj conductivity for this voltage:
+
+            # gj_inf = ((1 - 0.04)/(1 + np.exp(0.217*(self.vgj*1e3 - p.gj_vthresh)))) + 0.04
+
+            gmin = self.gj_funk.gmin
+
+            alpha_gj = self.gj_funk.alpha_gj
+            beta_gj = self.gj_funk.beta_gj_p
+
+
+            dgjopen_dt = (1 - self.gjopen)*alpha_gj(self.vgj) - (self.gjopen - gmin)*beta_gj(self.vgj)
+
+            self.gjopen = self.gjopen + 1e3*dgjopen_dt*p.dt
+
+            # threshold to ensure 0 to 1 status
+            inds_gj_over = (self.gjopen > 1.0).nonzero()
+            self.gjopen[inds_gj_over] = 1.0
+
+            inds_gj_under = (self.gjopen < 0.0).nonzero()
+            self.gjopen[inds_gj_under] = 0.0
+
+            self.gjopen = self.gj_block*self.gjopen
+
+            # print(self.gjopen.min(),self.gjopen.max())
+            # print('---------------------------')
+
+
 
         else:
             self.gjopen = self.gj_block

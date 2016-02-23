@@ -7,6 +7,33 @@ from betse.exceptions import BetseExceptionLambda
 from betse.util.type import types
 
 
+
+
+class Gap_Junction(object):
+    """
+    Defines functions controling gap junction voltage gating characteristics.
+
+    From Harris et al. J of Neurosci.(1983) 3:79-100.
+    For Ambystoma Mexicanum (Axolotl!) early embryo gap junction gating.
+
+    """
+
+    def __init__(self,p):
+
+        # voltage-dependent rate constant for channel opening (1/ms, V in mV):
+        self.alpha_gj = lambda V: 0.0013*np.exp(-0.077*(V*1e3 - p.gj_vthresh))
+
+        # voltage-dependent rate constant for channel closing (1/ms, V in mV):
+        self.beta_gj = lambda V: 0.0013*np.exp(0.14*(V*1e3 - p.gj_vthresh))
+
+        self.gmin = 0.04
+
+        self.beta_gj_p = lambda V: 0.0013*np.exp(0.14*(V*1e3 - p.gj_vthresh))/(1+50*0.0013*np.exp(0.14*(V*1e3 -
+                                                                                                        p.gj_vthresh)))
+
+
+
+
 def vgSodium(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated sodium channels** (i.e., only
@@ -18,7 +45,7 @@ def vgSodium(dyna,sim,cells,p):
 
     '''
 
-    V = sim.vm[dyna.targets_vgNa]*1000 + 40.0
+    V = sim.vm[dyna.targets_vgNa]*1000 + 50.0
 
     alpha_m = (0.1*(25-V))/(np.exp((25-V)/10)-1)
     beta_m = 4.0*np.exp(-V/18)
@@ -45,7 +72,7 @@ def vgSodium(dyna,sim,cells,p):
     inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
     dyna.h_Na[inds_hNa_under] = 0.0
 
-    gNa_max = 4.28e-14#(FIXME should be 4.28e-14, testing with lower)
+    gNa_max = 4.0e-14
 
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
@@ -66,7 +93,7 @@ def vgPotassium(dyna,sim,cells,p):
 
     dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
 
-    gK_max = 1.28e-14
+    gK_max = 2.0e-14    # gK_max from 1/5 of gNa_max to 1/10th produces "bistable" state
 
     inds_nK_over = (dyna.n_K > 1.0).nonzero()
     dyna.n_K[inds_nK_over] = 1.0

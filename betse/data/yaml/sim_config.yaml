@@ -649,12 +649,12 @@ variable settings:
 
     voltage sensitive gj: True    # gj close with voltage difference between cells?
 
-    gj voltage threshold: 25e-3    # cell-cell voltage at which gj close [V]
-                                 # suggested range from 10e-3 to 80e-3 V
+    gj voltage threshold: 15    # cell-cell voltage at which gj are half closed [mV]
+                                 # suggested range from 10 mV to 80 mV
 
-    gj voltage window: 15e-3      # range over which gj goes from open to shut
-                                  # with the gj voltage threshold as midpoint [V]
-                                  # suggested range from 5e-3 to 50e-3
+    gj voltage window: 15         # FIXME not used! range over which gj goes from open to shut
+                                  # with the gj voltage threshold as midpoint [mV]
+                                  # suggested range from 5 to 50
 
 
   environmental boundary: # set conditions for the global (environmental) boundary
