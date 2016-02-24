@@ -1605,11 +1605,11 @@ class Simulator(object):
 
         self.efield_gj_y_time.append(self.E_gj_y[:])
 
-        concs = self.cc_cells[:]
+        concs = np.copy(self.cc_cells[:])
         self.cc_time.append(concs)
         concs = None
 
-        envsc = self.cc_env[:]
+        envsc = np.copy(self.cc_env[:])
         self.cc_env_time.append(envsc)
         envsc = None
 
@@ -1803,6 +1803,9 @@ class Simulator(object):
         else:
             # total charge in cells:
             Qcells = (self.rho_cells*cells.cell_vol)
+
+
+            # self.rho_env[cells.inds_env] = 0
 
             # smooth out the environmental charge:
             self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)

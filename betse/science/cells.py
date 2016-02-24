@@ -1300,7 +1300,7 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
-    def maxwellCapMatrix_o(self,p):
+    def maxwellCapMatrix(self,p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
@@ -1386,7 +1386,7 @@ class Cells(object):
         # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         self.M_max_cap = M_max_cap
 
-    def maxwellCapMatrix(self,p):
+    def maxwellCapMatrix_zeroed(self,p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
