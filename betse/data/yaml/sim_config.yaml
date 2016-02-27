@@ -452,30 +452,30 @@ modulator function properties:   # set properties of modulating functions which 
 voltage gated Na+:
     turn on: False             # voltage gated sodium channel?
     apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
-    channel type: NaV1.2   # specific ion channel to target
-    open value: 4.0e-14    # maximum diffusion constant when channel open
+    channel type: vgNa_rat   # specific ion channel to target
+    max value: 4.0e-14    # maximum diffusion constant when channel open
 
 voltage gated K+:              # voltage gated potassium channel?
     turn on: False
     apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
-    channel type: KV1.5
-    open value: 1.0e-14    # maximum diffusion constant when channel open
+    channel type: vgK_slow
+    max value: 2.0e-14    # maximum diffusion constant when channel open
 
 voltage gated Ca2+:            # voltage gated calcium channel?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
     channel type: LCa
-    open value: 4.0e-14    # maximum diffusion constant when channel open
+    max value: 4.0e-14    # maximum diffusion constant when channel open
 
 calcium gated K+:              # calcium gated potassium channel ?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    open value: 4.0e-14    # maximum diffusion constant when channel open
+    max value: 4.0e-14    # maximum diffusion constant when channel open
 
 stretch gated Na+:         # stretch activated depolarization (Na+) channel?
     turn on: False
     apply to: ['all']          # tissue profile(s) to apply to
-    open value: 4.0e-14    # maximum diffusion constant when channel open
+    max value: 4.0e-14    # maximum diffusion constant when channel open
 
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and

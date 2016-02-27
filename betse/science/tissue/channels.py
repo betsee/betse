@@ -8,7 +8,6 @@ from betse.util.type import types
 
 
 
-
 class Gap_Junction(object):
     """
     Defines functions controling gap junction voltage gating characteristics.
@@ -30,6 +29,150 @@ class Gap_Junction(object):
 
         self.beta_gj_p = lambda V: 0.0013*np.exp(0.14*(V*1e3 - p.gj_vthresh))/(1+50*0.0013*np.exp(0.14*(V*1e3 -
                                                                                                         p.gj_vthresh)))
+
+
+#----------------------------------------------------------------------------------------------------------------------
+#  Voltage Gated Sodium Channels
+#----------------------------------------------------------------------------------------------------------------------
+
+def vgNa_squid(self, sim, dyna, p):
+
+    V = sim.vm[dyna.targets_vgNa]*1000 + 50.0
+
+    alpha_m = (0.1*(25-V))/(np.exp((25-V)/10)-1)
+    beta_m = 4.0*np.exp(-V/18)
+
+
+    alpha_h = 0.07*np.exp(-V/20)
+    beta_h = 1/(1 + np.exp((30-V)/10))
+
+    # calculate m channels
+    dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
+
+    dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
+
+    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
+    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
+    dyna.m_Na[inds_mNa_over] = 1.0
+
+    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
+    dyna.h_Na[inds_hNa_over] = 1.0
+
+    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
+    dyna.m_Na[inds_mNa_under] = 0.0
+
+    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
+    dyna.h_Na[inds_hNa_under] = 0.0
+
+    gNa_max = 4.0e-14
+
+    # Define ultimate activity of the vgNa channel:
+    sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
+
+def vgNa_rat(self,sim,dyna,p):
+    '''
+    Handle all **targeted voltage-gated sodium channels** (i.e., only
+    applicable to specific tissue profiles) specified by the passed
+    user-specified parameters on the passed tissue simulation and cellular
+    world for the passed time step.
+
+    Channel model uses Hodgkin-Huxley model for voltage gated sodium channels.
+
+    '''
+
+    V = sim.vm[dyna.targets_vgNa]*1000
+
+    alpha_m = (0.091*(V+38))/(1-np.exp((-V-38)/5))
+    beta_m = (-0.062*(V+38))/(1-np.exp((V+38)/5))
+
+
+    alpha_h = 0.016*np.exp((-55-V)/15)
+    beta_h = 2.07/(1 + np.exp((17-V)/21))
+
+    # calculate m channels
+    dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
+
+    dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
+
+    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
+    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
+    dyna.m_Na[inds_mNa_over] = 1.0
+
+    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
+    dyna.h_Na[inds_hNa_over] = 1.0
+
+    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
+    dyna.m_Na[inds_mNa_under] = 0.0
+
+    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
+    dyna.h_Na[inds_hNa_under] = 0.0
+
+    gNa_max = 5.0e-14
+
+    # Define ultimate activity of the vgNa channel:
+    sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
+
+def vgNa_1p6(self,sim,dyna,p):
+
+    pass
+
+#---------------------------------------------------------------------------------------------------------------------
+# Voltage Gated Potassium Channels
+#---------------------------------------------------------------------------------------------------------------------
+
+
+def vgK_slow(self,sim,dyna,p):
+
+    pass
+
+def vgK_fast(self,sim,dyna,p):
+    """
+    A "fast" voltage gated potassium channel from:
+    A Korngreen et. al; J. Physiol. (Lond.) 2000 Jun 15
+
+    Has a very wide response making firing of action potentials
+    difficult.
+
+    """
+
+    # detecting channels to turn on:
+    V = sim.vm[dyna.targets_vgK]*1000
+
+    m_Inf = 1/(1 + np.exp(-(V+47)/29))
+    m_Tau = (0.34+0.92*np.exp(-((V+71)/59)**2))
+    h_Inf = 1/(1 + np.exp(-(V+56)/-10))
+    h_Tau = (8+49*np.exp(-((V+73)/23)**2))
+
+    dyna.m_K = ((m_Inf - dyna.m_K)/m_Tau)*p.dt*1e3 + dyna.m_K
+    dyna.h_K = ((h_Inf - dyna.h_K)/h_Tau)*p.dt*1e3 + dyna.h_K
+
+    gK_max = 1.0e-14
+
+    inds_mK_over = (dyna.m_K > 1.0).nonzero()
+    dyna.m_K[inds_mK_over] = 1.0
+
+    inds_mK_under = (dyna.m_K < 0.0).nonzero()
+    dyna.m_K[inds_mK_under] = 0.0
+
+    inds_hK_over = (dyna.h_K > 1.0).nonzero()
+    dyna.h_K[inds_hK_over] = 1.0
+
+    inds_hK_under = (dyna.h_K < 0.0).nonzero()
+    dyna.h_K[inds_hK_under] = 0.0
+
+    sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.m_K)*(dyna.h_K)*gK_max
+
+def vgK_1p5(self,sim,dyna,p):
+
+    pass
+
+def vgK_squid(self, sim, dyna,p):
+
+    pass
+
+def vgK_Kir2p1(self,sim,dyna,p):
+
+    pass
 
 
 
@@ -103,51 +246,8 @@ def vgPotassium(dyna,sim,cells,p):
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.n_K**4)*gK_max
 
-def vgSodium_rat(dyna,sim,cells,p):
-    '''
-    Handle all **targeted voltage-gated sodium channels** (i.e., only
-    applicable to specific tissue profiles) specified by the passed
-    user-specified parameters on the passed tissue simulation and cellular
-    world for the passed time step.
-
-    Channel model uses Hodgkin-Huxley model for voltage gated sodium channels.
-
-    '''
-
-    V = sim.vm[dyna.targets_vgNa]*1000
-
-    alpha_m = (0.091*(V+38))/(1-np.exp((-V-38)/5))
-    beta_m = (-0.062*(V+38))/(1-np.exp((V+38)/5))
 
 
-    alpha_h = 0.016*np.exp((-55-V)/15)
-    beta_h = 2.07/(1 + np.exp((17-V)/21))
-
-    # calculate m channels
-    dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
-
-    dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
-
-    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
-    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-    dyna.m_Na[inds_mNa_over] = 1.0
-
-    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-    dyna.h_Na[inds_hNa_over] = 1.0
-
-    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-    dyna.m_Na[inds_mNa_under] = 0.0
-
-    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-    dyna.h_Na[inds_hNa_under] = 0.0
-
-    gNa_max = 5.0e-14#(FIXME should be 4.28e-14, testing with lower)
-
-    # Define ultimate activity of the vgNa channel:
-    sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
-
-    print(sim.Dm_vg[sim.iNa].max())
-    print('---')
 
 def vgPotassium_rat(dyna,sim,cells,p):
     '''
@@ -185,8 +285,6 @@ def vgPotassium_rat(dyna,sim,cells,p):
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.m_K)*(dyna.h_K)*gK_max
 
-    print(sim.Dm_vg[sim.iK].max())
-    print('*****')
 
 
 #FIXME: Shift into a "betse.util" module. Hefty superstrings in the cleft!
