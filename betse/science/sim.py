@@ -1834,12 +1834,23 @@ class Simulator(object):
             # calculate the voltage for the system based on the max cap vector
             # use iterative least squares solver for sparse matrices (see scipy.sparse.linalg.lsmr)
             # Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-3, btol=1.0e-3, conlim=1.0e13)
+
+            # norm_inds = (M_max_cap > 0).nonzero()
+            # norm_val = M_max_cap[norm_inds].min()
+            #
+            #
+            # M_max_cap = M_max_cap/norm_val
+
+            # FIXME: conditioning of the matrix is low, leading to this being an approximate solution
+            # reconditioning (damp = 1.0e-8) can be applied, but the results become non-ideal biologically...
+            #likewise, the matrix can be scaled, but results become non-realistic
             Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-6, btol=1.0e-6)
 
             v_max_vect = Sln[0]
 
             # original solver in terms of pseudo-inverse matrix:
-            # v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
+            # v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect*cells.norm_val)
+
 
             # separate voltages for cells and ecm spaces
             v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]

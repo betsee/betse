@@ -1357,7 +1357,7 @@ class Cells(object):
             ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
 
             # set the diagonal element for cells:
-            M_max_cap[cell_i,cell_i] = cm_sum
+            M_max_cap[cell_i,cell_i] = cm_sum + 1.0e-15 # plus small self-capacitance
             # set the off-diagonal elements for cells:
             M_max_cap[cell_i,ecm_i_set] = -cm
 
@@ -1375,14 +1375,20 @@ class Cells(object):
 
             if cell_j == cell_k:  # then we're on a boundary
 
-                M_max_cap[ecm_i,ecm_i] = cm
+                M_max_cap[ecm_i,ecm_i] = cm + 1.0e-16 # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm
+                M_max_cap[ecm_i,ecm_i] = 2*cm + 1.0e-16 # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
 
+        # norm_inds = (M_max_cap > 0).nonzero()
+        # self.norm_val = M_max_cap[norm_inds].min()
+        #
+        #
+        # M_max_cap = M_max_cap/self.norm_val
+        #
         # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         self.M_max_cap = M_max_cap
 
@@ -1481,7 +1487,7 @@ class Cells(object):
 
             if ecm_i_o in self.bflags_ecm:  # then we're on a boundary
 
-        #         M_max_cap[ecm_i,ecm_i] = cm
+                M_max_cap[ecm_i,ecm_i] = 1e-15  # self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
             else:
@@ -1489,8 +1495,8 @@ class Cells(object):
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
 
-        # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
-        self.M_max_cap = M_max_cap
+        self.M_max_cap_inv = np.linalg.pinv(M_max_cap,rcond=1.0e-10)
+        # self.M_max_cap = M_max_cap
 
     def redo_gj(self,dyna,p,savecells =True):
 

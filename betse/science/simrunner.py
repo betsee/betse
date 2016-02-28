@@ -382,6 +382,10 @@ class SimRunner(object):
             plt.colorbar()
             plt.title('Cluster Masking Matrix')
 
+            if p.autosave is True:
+                savename = savedImg + 'cluster_mask' + '.png'
+                plt.savefig(savename,format='png',transparent=True)
+
             if p.turn_all_plots_off is False:
                 plt.show(block = False)
 

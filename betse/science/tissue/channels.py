@@ -251,7 +251,7 @@ def vgSodium(dyna,sim,cells,p):
     inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
     dyna.h_Na[inds_hNa_under] = 0.0
 
-    gNa_max = 4.0e-14
+    gNa_max = dyna.maxDmNa
 
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
@@ -272,7 +272,7 @@ def vgPotassium(dyna,sim,cells,p):
 
     dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
 
-    gK_max = 2.0e-14    # gK_max from 1/5 of gNa_max to 1/10th produces "bistable" state
+    gK_max = dyna.maxDmK    # gK_max from 1/5 of gNa_max to 1/10th produces "bistable" state
 
     inds_nK_over = (dyna.n_K > 1.0).nonzero()
     dyna.n_K[inds_nK_over] = 1.0

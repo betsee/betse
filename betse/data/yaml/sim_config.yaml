@@ -664,7 +664,7 @@ variable settings:
                             # otherwise this is ignored.
 
 
-  tight junction scaling: 1.0e-5   # factor by which tight junctions scale free-diffusion
+  tight junction scaling: 1.0e-7   # factor by which tight junctions scale free-diffusion
 
   tight junction relative diffusion:  # relative values for tight junction ion permeability:
 
@@ -995,7 +995,7 @@ results options:
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
 
     voltage gated Na:
-        max Dmem Na: 2.0e-15        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
+        max Dmem Na: 4.0e-14        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
         activation v: -50e-3      # voltage threshold above which vgNa is activated [V] -55e-3
         inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3
         deactivation v: -55e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
@@ -1004,7 +1004,7 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     voltage gated K:
 
-        max Dmem K: 0.5e-15           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
+        max Dmem K: 2.5e-14           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
         activation v: -5e-3        # voltage threshold above which vgK is activated [V]    -10e-3
         deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
         live time: 5e-3            # time activated state can exist [s]   5e-3
@@ -1076,7 +1076,7 @@ internal parameters:
   Na pump exponent: 0.5       # the factor by which intracelluar sodium activates the NaK-ATPase pump
   K pump exponent: 0.5        # the factor by which extracellular potassium activates the NaK-ATPase pump
 
-  alpha_Ca:  1.0e-5    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  1.0e-6    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
   alpha_CaER:  1.0e-7  # pump rate for calcium ATPase in endoplasmic reticulum [m/mol*s]
   halfmax_Ca:  5       # the free energy level at which pump activity is zero [kJ]
 
