@@ -135,8 +135,9 @@ def _write_default_dir(config_filename: str) -> None:
     # Create this directory if needed.
     dirs.make_unless_dir(target_dirname)
 
+    #FIXME: Unused. Remove me, maybe.
     # Copy the source channel library to this directory.
-    files.copy(pathtree.DATA_CHANNELS_YAML_FILENAME, target_dirname)
+    # files.copy(pathtree.DATA_CHANNELS_YAML_FILENAME, target_dirname)
 
     # Absolute path of the target geometry subdirectory to be created below.
     target_geometry_dirname = paths.join(

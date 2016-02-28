@@ -12,7 +12,7 @@ from betse.util.type import types
 from random import shuffle
 from scipy import spatial as sps
 from scipy import interpolate as interp
-from betse.science.tissue.channels import vgSodium, vgPotassium
+from betse.science.tissue.channels import vgSodium, vgPotassium, cagPotassium, vgCalcium
 
 
 class TissueHandler(object):
@@ -432,6 +432,12 @@ class TissueHandler(object):
             self.target_mask_vgCa = np.zeros(self.data_length)
             self.target_mask_vgCa[self.targets_vgCa] = 1
 
+            self.m_Ca = np.zeros(self.data_length)
+            self.h_Ca = np.zeros(self.data_length)
+
+            self.m_Ca[:] = 1.0000/(1+ np.exp(-((sim.vm*1e3 - 10) + 30.000)/6))
+            self.h_Ca[:] = 1.0000/(1+ np.exp(((sim.vm*1e3 - 10) + 80.000)/6.4))
+
         if p.vg_options['K_cag'] != 0:
             self.maxDmKcag = p.vg_options['K_cag'][0]
             self.Kcag_halfmax = p.vg_options['K_cag'][1]
@@ -725,11 +731,11 @@ class TissueHandler(object):
 
         if p.vg_options['Ca_vg'] !=0 and p.ions_dict['Ca'] != 0:
 
-            self.vgCalcium(sim,cells,p,t)
+            vgCalcium(self,sim,cells,p)
 
         if p.vg_options['K_cag'] != 0 and p.ions_dict['Ca'] != 0:
 
-            self.cagPotassium(sim,cells,p,t)
+            cagPotassium(self,sim,cells,p)
 
         if p.vg_options['Na_stretch'] != 0 and p.deformation is True:
 
@@ -758,161 +764,53 @@ class TissueHandler(object):
 
                 sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.map_mem2ecm]
 
-    # def vgSodium(self,sim,cells,p,t):
+    # def vgCalcium(self,sim,cells,p,t):
     #     '''
-    #     Handle all **targeted voltage-gated sodium channels** (i.e., only
+    #     Handle all **targeted voltage-gated calcium channels** (i.e., only
     #     applicable to specific tissue profiles) specified by the passed
     #     user-specified parameters on the passed tissue simulation and cellular
     #     world for the passed time step.
     #     '''
     #
-    #     # Logic phase 1: find out which cells have activated their vgNa channels
-    #     truth_vmGTvon_Na = sim.vm > self.v_activate_Na  # returns bools of vm that are bigger than threshhold
-    #     #truth_depol_Na = dvsign==1  # returns bools of vm that are bigger than threshhold
-    #     truth_not_inactivated_Na = self.inactivated_Na == 0  # return bools of vm that can activate
-    #     truth_vgNa_Off = self.vgNa_state == 0 # hasn't been turned on yet
+    #      # detect condition to turn vg_Ca channel on:
+    #     truth_vmGTvon_Ca = sim.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
     #
-    #     # find the cell indicies that correspond to all statements of logic phase 1:
-    #     inds_activate_Na = (truth_vmGTvon_Na*truth_not_inactivated_Na*truth_vgNa_Off*self.target_mask_vgNa).nonzero()
+    #     if p.sim_ECM is False:
+    #         truth_caLTcaOff = sim.cc_cells[sim.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
     #
-    #     self.vgNa_state[inds_activate_Na] = 1 # open the channel
-    #     self.vgNa_aliveTimer[inds_activate_Na] = t + self.t_alive_Na # set the timers for the total active state
-    #     self.vgNa_deadTimer[inds_activate_Na] = 0  # reset any timers for an inactivated state to zero
+    #     else:
+    #         truth_caLTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
     #
-    #     # Logic phase 2: find out which cells have closed their gates due to crossing inactivating voltage:
-    #     truth_vgNa_On = self.vgNa_state == 1  # channel must be on already
-    #     truth_vmGTvoff_Na = sim.vm > self.v_inactivate_Na  # bools of cells that have vm greater than shut-off volts
-    #
-    #     inds_inactivate_Na = (truth_vgNa_On*truth_vmGTvoff_Na*self.target_mask_vgNa).nonzero()
-    #
-    #     self.vgNa_state[inds_inactivate_Na] = 0    # close the vg sodium channels
-    #     self.inactivated_Na[inds_inactivate_Na] = 1   # switch these so cells do not re-activate
-    #     self.vgNa_aliveTimer[inds_inactivate_Na] = 0            # reset any alive timers to zero
-    #     self.vgNa_deadTimer[inds_inactivate_Na] = t + self.t_dead_Na # set the timer of the inactivated state
-    #
-    #      # Logic phase 3: find out if cell activation state has timed out, also rendering inactivated state:
-    #
-    #     truth_vgNa_act_timeout = self.vgNa_aliveTimer < t   # find cells that have timed out their vgNa open state
-    #     truth_vgNa_On = self.vgNa_state == 1 # ensure the vgNa is indeed open
-    #     inds_timeout_Na_act = (truth_vgNa_act_timeout*truth_vgNa_On*self.target_mask_vgNa).nonzero()
-    #
-    #     self.vgNa_state[inds_timeout_Na_act] = 0             # set the state to closed
-    #     self.vgNa_aliveTimer[inds_timeout_Na_act] = 0            # reset the timers to zero
-    #     self.inactivated_Na[inds_timeout_Na_act] = 1    # inactivate the channel so it can't reactivate
-    #     self.vgNa_deadTimer[inds_timeout_Na_act] = t + self.t_dead_Na # set the timer of the inactivated state
-    #
-    #     # Logic phase 4: find out if inactivation timers have timed out:
-    #     truth_vgNa_inact_timeout = self.vgNa_deadTimer <t  # find cells that have timed out their vgNa inact state
-    #     truth_vgNa_Off = self.vgNa_state == 0 # check to make sure these channels are indeed closed
-    #     inds_timeout_Na_inact = (truth_vgNa_inact_timeout*truth_vgNa_Off*self.target_mask_vgNa).nonzero()
-    #
-    #     self.vgNa_deadTimer[inds_timeout_Na_inact] = 0    # reset the inactivation timer
-    #     self.inactivated_Na[inds_timeout_Na_inact] = 0    # remove inhibition to activation
-    #
-    #     # Logic phase 5: find out if cells have passed below threshhold to become deactivated:
-    #     truth_vmLTvreact_Na = sim.vm < self.v_deactivate_Na # voltage is lower than the deactivate voltage
-    #
-    #     inds_deactivate_Na = (truth_vmLTvreact_Na*self.target_mask_vgNa).nonzero()
-    #
-    #     self.inactivated_Na[inds_deactivate_Na] = 0  # turn any inhibition to activation off
-    #     self.vgNa_state[inds_deactivate_Na] = 0   # shut the Na channel off if it's on
-    #     self.vgNa_aliveTimer[inds_deactivate_Na] = 0       # reset any alive-timers to zero
-    #     self.vgNa_deadTimer[inds_deactivate_Na] = 0   # reset any dead-timers to zero
-    #
-    #     # Define ultimate activity of the vgNa channel:
-    #     sim.Dm_vg[sim.iNa] = self.maxDmNa*self.vgNa_state
-    #
-    # def vgPotassium(self,sim,cells,p,t):
-    #     '''
-    #     Handle all **targeted voltage-gated potassium channels** (i.e., only
-    #     applicable to specific tissue profiles) specified by the passed
-    #     user-specified parameters on the passed tissue simulation and cellular
-    #     world for the passed time step.
-    #     '''
-    #      # detecting channels to turn on:
-    #
-    #     truth_vmGTvon_K = sim.vm > self.v_on_K  # bools for cells with vm greater than the on threshold for vgK
-    #     truth_depol_K = self.dvsign == 1  # bools matrix for cells that are depolarizing
-    #     truth_vgK_OFF = self.vgK_state == 0   # bools matrix for cells that are in the off state
+    #     truth_depol_Ca = self.dvsign == 1  # bools matrix for cells that are depolarizing
+    #     truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
     #
     #     # cells at these indices will become activated in this time step:
-    #     inds_activate_K = (truth_vmGTvon_K*truth_depol_K*truth_vgK_OFF*self.target_mask_vgK).nonzero()
-    #     self.vgK_state[inds_activate_K] = 1  # set the state of these channels to "open"
-    #     self.vgK_OFFtime[inds_activate_K] = self.t_alive_K + t  # set the time at which these channels will close
+    #     inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_mask_vgCa).nonzero()
+    #     self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
     #
-    #     #  detecting channels to turn off:
-    #     truth_vgK_ON = self.vgK_state == 1  # detect cells that are in their on state
-    #     truth_vgK_timeout = self.vgK_OFFtime < t     # detect the cells that have expired off timers
-    #     inds_deactivate_K = (truth_vgK_ON*truth_vgK_timeout*self.target_mask_vgK).nonzero()
-    #     self.vgK_state[inds_deactivate_K] = 0 # turn off the channels to closed
-    #     self.vgK_OFFtime[inds_deactivate_K] = 0
+    #     # detect condition to turn off vg_Ca channel:
+    #     if p.sim_ECM is False:
+    #         truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
     #
-    #     inds_open_K = (self.vgK_state == 1).nonzero()
-    #     self.active_K[inds_open_K] = 1
+    #     else:
+    #         truth_caGTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] > self.ca_upper_ca   # check that calcium exceeds maximum
     #
-    #     inds_closed_K =(self.vgK_state == 0).nonzero()
-    #     self.active_K[inds_closed_K] = 0
+    #     truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
+    #     inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_mask_vgCa).nonzero()
+    #     self.vgCa_state[inds_inactivate_Ca] = 0
     #
-    #     sim.Dm_vg[sim.iK] = self.maxDmK*self.active_K
-
-    def vgCalcium(self,sim,cells,p,t):
-        '''
-        Handle all **targeted voltage-gated calcium channels** (i.e., only
-        applicable to specific tissue profiles) specified by the passed
-        user-specified parameters on the passed tissue simulation and cellular
-        world for the passed time step.
-        '''
-
-         # detect condition to turn vg_Ca channel on:
-        truth_vmGTvon_Ca = sim.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
-
-        if p.sim_ECM is False:
-            truth_caLTcaOff = sim.cc_cells[sim.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
-
-        else:
-            truth_caLTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
-
-        truth_depol_Ca = self.dvsign == 1  # bools matrix for cells that are depolarizing
-        truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
-
-        # cells at these indices will become activated in this time step:
-        inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_mask_vgCa).nonzero()
-        self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
-
-        # detect condition to turn off vg_Ca channel:
-        if p.sim_ECM is False:
-            truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
-
-        else:
-            truth_caGTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] > self.ca_upper_ca   # check that calcium exceeds maximum
-
-        truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
-        inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_mask_vgCa).nonzero()
-        self.vgCa_state[inds_inactivate_Ca] = 0
-
-        # additional condition to turn off vg_Ca via depolarizing voltage:
-        truth_vmGTvcaOff = sim.vm > self.v_off_Ca
-        inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_mask_vgCa*truth_vgCa_ON).nonzero()
-        self.vgCa_state[inds_inactivate_Ca_2] = 0
-
-        inds_open_Ca = (self.vgCa_state == 1).nonzero()
-        self.active_Ca[inds_open_Ca] = 1
-
-        inds_closed_Ca =(self.vgCa_state == 0).nonzero()
-        self.active_Ca[inds_closed_Ca] = 0
-
-        sim.Dm_vg[sim.iCa] = self.maxDmCa*self.active_Ca
-
-    def cagPotassium(self,sim,cells,p,t):
-        if p.sim_ECM is False:
-            self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][self.targets_cagK],
-                self.Kcag_halfmax,self.Kcag_n)
-
-        else:
-            self.active_cagK[self.targets_cagK] = tb.hill(sim.cc_cells[sim.iCa][cells.mem_to_cells][self.targets_cagK],
-                self.Kcag_halfmax,self.Kcag_n)
-
-        sim.Dm_cag[sim.iK] = self.maxDmKcag*self.active_cagK
+    #     # additional condition to turn off vg_Ca via depolarizing voltage:
+    #     truth_vmGTvcaOff = sim.vm > self.v_off_Ca
+    #     inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_mask_vgCa*truth_vgCa_ON).nonzero()
+    #     self.vgCa_state[inds_inactivate_Ca_2] = 0
+    #
+    #     inds_open_Ca = (self.vgCa_state == 1).nonzero()
+    #     self.active_Ca[inds_open_Ca] = 1
+    #
+    #     inds_closed_Ca =(self.vgCa_state == 0).nonzero()
+    #     self.active_Ca[inds_closed_Ca] = 0
+    #
+    #     sim.Dm_vg[sim.iCa] = self.maxDmCa*self.active_Ca
 
     def stretchChannel(self,sim,cells,p,t):
 

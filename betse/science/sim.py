@@ -1917,6 +1917,10 @@ class Simulator(object):
         self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
         self.cc_cells[self.iH] = (10**(-self.pH_cell))*1e3  # multiply by 1e3 to get units in mmol/L
 
+        # search for point of buffer exhaustion:
+        trouble_inds = (self.cc_env[self.iM] < 0.1).nonzero()
+        self.cc_env[self.iM][trouble_inds] = 0.1
+
         self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
         self.cc_env[self.iH] = (10**(-self.pH_env))*1e3 # multiply by 1e3 to get units in mmol/L
 
@@ -1948,6 +1952,10 @@ class Simulator(object):
         self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
         self.cc_cells[self.iH] = (10**(-self.pH_cell))*1e3
 
+        # search for point of buffer exhaustion:
+        trouble_inds = (self.cc_env[self.iM] < 0.1).nonzero()
+        self.cc_env[self.iM][trouble_inds] = 0.1
+
         self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
         self.cc_env[self.iH] = (10**(-self.pH_env))*1e3
 
@@ -1970,6 +1978,9 @@ class Simulator(object):
 
         self.pH_cell = 6.1 + np.log10(self.cc_cells[self.iM]/self.cHM_cells)
         self.cc_cells[self.iH] = 10**(-self.pH_cell)*1e3
+
+        trouble_inds = (self.cc_env[self.iM] < 0.1).nonzero()
+        self.cc_env[self.iM][trouble_inds] = 0.1
 
         self.pH_env = 6.1 + np.log10(self.cc_env[self.iM]/self.cHM_env)
         self.cc_env[self.iH] = 10**(-self.pH_env)*1e3
@@ -3131,13 +3142,11 @@ class Simulator(object):
         # total average electric field at each membrane
         if p.sim_ECM is True:
 
-            Ex = (self.E_env_x.ravel()[cells.map_mem2ecm] + self.E_gj_x)/2
-            Ey = (self.E_env_y.ravel()[cells.map_mem2ecm] + self.E_gj_y)/2
+            Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
+            Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
 
             # Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
             # Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
-
-
 
         else:
             Ex = self.E_gj_x

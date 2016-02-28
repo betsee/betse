@@ -174,6 +174,42 @@ def vgK_Kir2p1(self,sim,dyna,p):
 
     pass
 
+# calcium (and voltage) gated K+ channel-------------------------------------------------------------------------------
+#
+def cagPotassium(dyna,sim,cells,p):
+    """
+    Model of a high-conductance calcium activated potassium channel (SK channel), obtained from
+    the allosteric model of Cox DH, Cui J, Aldrich RW. J Gen Physiology. 1997. 110: 257-281.
+
+    """
+
+    # get data on cytosolic calcium levels in target cells
+    if p.sim_ECM is False:
+
+        ca = sim.cc_cells[sim.iCa][dyna.targets_cagK]
+
+    else:
+
+        ca = sim.cc_cells[sim.iCa][cells.mem_to_cells][dyna.targets_cagK]
+
+    # calculate different terms:
+    t1 = 1 + ((ca*1e3)/10.22)
+    t2 = 1 + ((ca*1e3)/0.89)
+
+    # calculate probability of channel being open or closed:
+    P = 1/(1+((t1/t2)**4)*6182*np.exp(-(1.64*p.F*sim.vm)/(p.R*sim.T)))
+
+    print(P.mean())
+
+    # ensure proper probability behaviour:
+    inds_P_over = (P > 1.0).nonzero()
+    P[inds_P_over] = 1.0
+
+    inds_P_under = (P < 0.0).nonzero()
+    P[inds_P_under] = 0.0
+
+    # calculate conductance of this potassium channel:
+    sim.Dm_cag[sim.iK] = dyna.maxDmKcag*P
 
 
 
@@ -284,6 +320,64 @@ def vgPotassium_rat(dyna,sim,cells,p):
     dyna.h_K[inds_hK_under] = 0.0
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.m_K)*(dyna.h_K)*gK_max
+
+#----------------------------------------------------------------------------------------------------------------------
+# Voltage gated Calcium Channels
+#----------------------------------------------------------------------------------------------------------------------
+
+def vgCalcium(dyna,sim,cells,p):
+
+    v = 1e3*sim.vm  # FIXME must be at targets!
+
+    # model of: K P Carlin et. al; Eur. J. Neurosci. 2000--------------
+    mInf = 1.0/(1+ np.exp(-((v - 10) + 30.0)/6))
+    hInf = 1.0/(1+ np.exp(((v-10)+80.0)/6.4))
+    mTau = 5.0 + 20.0/(1 + np.exp(((v-10)+25.0)/5))
+    hTau = 20.0 + (50.0/(1 + np.exp(((v-10)+40.0)/7)))
+
+    # model of: R B Avery et. al; J. Neurosci. 1996 Sep 15 ------------
+
+    # mInf = 1.0000/(1+ np.exp(-(v + 30.000)/6))
+    # mTau = 10
+    # hInf = 1.0000/(1+ np.exp((v + 80.000)/6.4))
+    # hTau = 59
+
+    # T-type calcium channel---------------------------------------
+    # mInf = 1 /(1+np.exp((v-(-42.921064))/-5.163208))
+    #
+    # inds_vn10 = (v < -10).nonzero()
+    # inds_vp10 = (v >= -10).nonzero()
+    #
+    # mTau = np.zeros(len(v))
+    #
+    # mTau[inds_vn10] = -0.855809 + (1.493527*np.exp(-v[inds_vn10]/27.414182))
+    # mTau[inds_vp10] = 1.0
+    #
+    # hInf = 1 /(1+np.exp((v-(-72.907420))/4.575763))
+    # hTau = 9.987873 + (0.002883 * np.exp(-v/5.598574))
+
+    #-------------------------------------------------------------------
+
+    dyna.m_Ca = ((mInf - dyna.m_Ca)/mTau)*p.dt*1e3 + dyna.m_Ca
+    dyna.h_Ca = ((hInf - dyna.h_Ca)/hTau)*p.dt*1e3 + dyna.h_Ca
+
+    inds_mCa_over = (dyna.m_Ca > 1.0).nonzero()
+    dyna.m_Ca[inds_mCa_over] = 1.0
+
+    inds_mCa_under = (dyna.m_Ca < 0.0).nonzero()
+    dyna.m_Ca[inds_mCa_under] = 0.0
+
+    inds_hCa_over = (dyna.h_Ca > 1.0).nonzero()
+    dyna.h_Ca[inds_hCa_over] = 1.0
+
+    inds_hCa_under = (dyna.h_Ca < 0.0).nonzero()
+    dyna.h_Ca[inds_hCa_under] = 0.0
+
+    P = (dyna.m_Ca**2)*(dyna.h_Ca)
+
+    sim.Dm_vg[sim.iCa] = dyna.maxDmCa*P
+
+
 
 
 

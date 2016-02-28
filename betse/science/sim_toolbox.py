@@ -192,10 +192,11 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     delG_pump = (delG_HKATP/1000)
     # delG = np.absolute(delG_pump)
     # signG = np.sign(delG)
+    # print(delG_pump.mean())
 
     # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
     alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
-    f_H  = -alpha*(cHi**(1/2))*(cKo**(1/2))      #flux as [mol/s], scaled by concentrations in and out
+    f_H  = -alpha*(cHi**(1))*(cKo**(1))      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
 
@@ -211,10 +212,10 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
     delG_pump = (delG_VATP/1000)
     # delG = np.absolute(delG_pump)
     # signG = np.sign(delG)
-
+    # print(delG_pump.mean(), Vm.mean(),cHi.mean(),cHo.mean())
     # alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
     alpha = block*p.alpha_V*(delG_pump - p.halfmax_V)
-    f_H  = -alpha*cHi**(1/2)      #flux as [mol/s], scaled by concentrations in and out
+    f_H  = -alpha*cHi**(1)      #flux as [mol/s], scaled by concentrations in and out
 
     return f_H
 

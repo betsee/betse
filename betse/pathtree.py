@@ -79,13 +79,14 @@ spatial subdivision of this shape is then associated with a real-world tissue
 profile in the configuration file(s) referencing this image.
 '''
 
-DATA_CHANNELS_YAML_FILENAME = None   # initialized below
-'''
-Absolute path of the application-wide channel library file.
-
-This file is the BETSE-specific offline equivalent of Channelpedia, an online
-repository cataloguing constants for all known ion channels.
-'''
+#FIXME: Unused. Remove me, maybe.
+# DATA_CHANNELS_YAML_FILENAME = None   # initialized below
+# '''
+# Absolute path of the application-wide channel library file.
+#
+# This file is the BETSE-specific offline equivalent of Channelpedia, an online
+# repository cataloguing constants for all known ion channels.
+# '''
 
 # ....................{ CONSTANTS ~ file                   }....................
 LOG_DEFAULT_FILENAME = None   # initialized below
