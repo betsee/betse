@@ -223,6 +223,10 @@ def sigmoid(x,g,y_sat):
 
     """
     y = (y_sat*np.exp(g*x))/(y_sat + (np.exp(g*x)-1))
+
+    if np.isnan(y):
+        y= 0
+
     return y
 
 def hill(x,K,n):
@@ -269,6 +273,10 @@ def step(t,t_on,t_change):
     # y = 1/(1 + (np.exp(-g*(t-t_on))))
     x = g*(t-t_on)
     y = expit(x)
+
+    if np.isnan(y):
+        y= 0
+
     return y
 
 def pulse(t,t_on,t_off,t_change):
@@ -298,6 +306,12 @@ def pulse(t,t_on,t_off,t_change):
     y2 = expit(x2)
 
     y = y1 - y2
+
+    if np.isnan(y):
+        y=0
+
+    print(x1,x2,y)
+
     return y
 
 def H(x):

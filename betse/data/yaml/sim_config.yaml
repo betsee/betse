@@ -331,7 +331,7 @@ change Na mem:       # Change the membrane permeability to Na+
     change start: 1.0e-3                # time to start change [s]
     change finish: 20.0e-3               # time to end change and return to original [s]
     change rate: 2.0e-3                 # rate of change [s]
-    multiplier: 1500.0                # factor to multiply base level
+    multiplier: 500.0                # factor to multiply base level
     modulator function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
 
@@ -433,7 +433,7 @@ modulator function properties:   # set properties of modulating functions which 
       offset: 0
 
   periodic:              # generate a sinusoidal oscillation of a property
-      frequency: 2e3     # frequency of oscillation [Hz]
+      frequency: 10e3     # frequency of oscillation [Hz]
       phase: 0           # phase-offset of oscillation
 
   f_sweep:                    # apply a sinusoidal oscillation of a property as a sequence of frequencies

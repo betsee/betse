@@ -174,117 +174,6 @@ def vgK_Kir2p1(self,sim,dyna,p):
 
     pass
 
-# calcium (and voltage) gated K+ channel-------------------------------------------------------------------------------
-#
-def cagPotassium(dyna,sim,cells,p):
-    """
-    Model of a high-conductance calcium activated potassium channel (SK channel), obtained from
-    the allosteric model of Cox DH, Cui J, Aldrich RW. J Gen Physiology. 1997. 110: 257-281.
-
-    """
-
-    # get data on cytosolic calcium levels in target cells
-    if p.sim_ECM is False:
-
-        ca = sim.cc_cells[sim.iCa][dyna.targets_cagK]
-
-    else:
-
-        ca = sim.cc_cells[sim.iCa][cells.mem_to_cells][dyna.targets_cagK]
-
-    # calculate different terms:
-    t1 = 1 + ((ca*1e3)/10.22)
-    t2 = 1 + ((ca*1e3)/0.89)
-
-    # calculate probability of channel being open or closed:
-    P = 1/(1+((t1/t2)**4)*6182*np.exp(-(1.64*p.F*sim.vm)/(p.R*sim.T)))
-
-    print(P.mean())
-
-    # ensure proper probability behaviour:
-    inds_P_over = (P > 1.0).nonzero()
-    P[inds_P_over] = 1.0
-
-    inds_P_under = (P < 0.0).nonzero()
-    P[inds_P_under] = 0.0
-
-    # calculate conductance of this potassium channel:
-    sim.Dm_cag[sim.iK] = dyna.maxDmKcag*P
-
-
-
-def vgSodium(dyna,sim,cells,p):
-    '''
-    Handle all **targeted voltage-gated sodium channels** (i.e., only
-    applicable to specific tissue profiles) specified by the passed
-    user-specified parameters on the passed tissue simulation and cellular
-    world for the passed time step.
-
-    Channel model uses Hodgkin-Huxley model for voltage gated sodium channels.
-
-    '''
-
-    V = sim.vm[dyna.targets_vgNa]*1000 + 50.0
-
-    alpha_m = (0.1*(25-V))/(np.exp((25-V)/10)-1)
-    beta_m = 4.0*np.exp(-V/18)
-
-
-    alpha_h = 0.07*np.exp(-V/20)
-    beta_h = 1/(1 + np.exp((30-V)/10))
-
-    # calculate m channels
-    dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
-
-    dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
-
-    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
-    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-    dyna.m_Na[inds_mNa_over] = 1.0
-
-    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-    dyna.h_Na[inds_hNa_over] = 1.0
-
-    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-    dyna.m_Na[inds_mNa_under] = 0.0
-
-    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-    dyna.h_Na[inds_hNa_under] = 0.0
-
-    gNa_max = dyna.maxDmNa
-
-    # Define ultimate activity of the vgNa channel:
-    sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = gNa_max*(dyna.m_Na**3)*(dyna.h_Na)
-
-
-def vgPotassium(dyna,sim,cells,p):
-    '''
-    Handle all **targeted voltage-gated potassium channels** (i.e., only
-    applicable to specific tissue profiles) specified by the passed
-    user-specified parameters on the passed tissue simulation and cellular
-    world for the passed time step.
-    '''
-     # detecting channels to turn on:
-    V = sim.vm[dyna.targets_vgK]*1000 + 20.0
-
-    alpha_n = (0.01*(10 - V))/(np.exp((10-V)/10)-1)
-    beta_n = 0.125*np.exp(-V/80)
-
-    dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
-
-    gK_max = dyna.maxDmK    # gK_max from 1/5 of gNa_max to 1/10th produces "bistable" state
-
-    inds_nK_over = (dyna.n_K > 1.0).nonzero()
-    dyna.n_K[inds_nK_over] = 1.0
-
-    inds_nK_under = (dyna.n_K < 0.0).nonzero()
-    dyna.n_K[inds_nK_under] = 0.0
-
-    sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.n_K**4)*gK_max
-
-
-
-
 def vgPotassium_rat(dyna,sim,cells,p):
     '''
     Handle all **targeted voltage-gated potassium channels** (i.e., only
@@ -320,6 +209,44 @@ def vgPotassium_rat(dyna,sim,cells,p):
     dyna.h_K[inds_hK_under] = 0.0
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.m_K)*(dyna.h_K)*gK_max
+
+# calcium (and voltage) gated K+ channel-------------------------------------------------------------------------------
+#
+def cagPotassium(dyna,sim,cells,p):
+    """
+    Model of a high-conductance calcium activated potassium channel (SK channel), obtained from
+    the allosteric model of Cox DH, Cui J, Aldrich RW. J Gen Physiology. 1997. 110: 257-281.
+
+    """
+
+    # get data on cytosolic calcium levels in target cells
+    if p.sim_ECM is False:
+
+        ca = sim.cc_cells[sim.iCa][dyna.targets_cagK]
+
+    else:
+
+        ca = sim.cc_cells[sim.iCa][cells.mem_to_cells][dyna.targets_cagK]
+
+    # calculate different terms:
+    t1 = 1 + ((ca*1e3)/10.22)
+    t2 = 1 + ((ca*1e3)/0.89)
+
+    # calculate probability of channel being open or closed:
+    P = 1/(1+((t1/t2)**4)*6182*np.exp(-(1.64*p.F*sim.vm)/(p.R*sim.T)))
+
+    # print(P.mean())
+
+    # ensure proper probability behaviour:
+    inds_P_over = (P > 1.0).nonzero()
+    P[inds_P_over] = 1.0
+
+    inds_P_under = (P < 0.0).nonzero()
+    P[inds_P_under] = 0.0
+
+    # calculate conductance of this potassium channel:
+    sim.Dm_cag[sim.iK] = dyna.maxDmKcag*P
+
 
 #----------------------------------------------------------------------------------------------------------------------
 # Voltage gated Calcium Channels
@@ -376,6 +303,232 @@ def vgCalcium(dyna,sim,cells,p):
     P = (dyna.m_Ca**2)*(dyna.h_Ca)
 
     sim.Dm_vg[sim.iCa] = dyna.maxDmCa*P
+
+# defaults--------------------------------------------------------------------------------------------------------------
+
+def vgSodium(dyna,sim,cells,p):
+    '''
+    Handle all **targeted voltage-gated sodium channels** (i.e., only
+    applicable to specific tissue profiles) specified by the passed
+    user-specified parameters on the passed tissue simulation and cellular
+    world for the passed time step.
+
+    Channel model uses Hodgkin-Huxley model for voltage gated sodium channels.
+
+    '''
+
+    V = sim.vm[dyna.targets_vgNa]*1000
+
+    #----HH squid model------------------------
+
+    # V = V + 50
+    #
+    # mAlpha = (0.1*(25-V))/(np.exp((25-V)/10) -1.0)
+    # mBeta = 4.0 * (np.exp(-V/18))
+    # mInf = mAlpha/(mAlpha + mBeta)
+    # mTau = 1/(mAlpha + mBeta)
+    # hAlpha = 0.07 * np.exp(-V/20)
+    # hBeta = 1/(np.exp((30-V)/10) + 1.0)
+    # hInf = hAlpha/(hAlpha + hBeta)
+    # hTau = 1/(hAlpha + hBeta)
+    #
+    # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
+
+
+    #--------McCormack Model---------------(very persistant...)
+    #
+    # mAlpha = 0.091*(V+38)/(1-np.exp((-V-38)/5))
+    # mBeta = -0.062*(V+38)/(1-np.exp((V+38)/5))
+    # hAlpha = 0.016*np.exp((-55-V)/15)
+    # hBeta = 2.07/(np.exp((17-V)/21)+1)
+    #
+    # mInf = mAlpha/(mAlpha + mBeta)
+    # mTau = 1/(mAlpha + mBeta)
+    #
+    # hInf = hAlpha/(hAlpha + hBeta)
+    # hTau = 1/(hAlpha + hBeta)
+
+    #------NaS model Hammil 1991------(produces cool, well behaved AP with p.sim_ECM=True. Slow to activate. use!)
+
+    mAlpha = (0.182 * ((V-10)- -35))/(1-(np.exp(-((V-10)- -35)/9)))
+    mBeta = (0.124 * (-(V-10) -35))/(1-(np.exp(-(-(V-10) -35)/9)))
+
+    mInf = mAlpha/(mAlpha + mBeta)
+    mTau = 1/(mAlpha + mBeta)
+    hInf = 1.0/(1+np.exp((V- -65-10)/6.2))
+    hTau = 1/((0.024 * ((V-10)- -50))/(1-(np.exp(-((V-10)- -50)/5))) +(0.0091 * (-(V-10) - 75.000123))/(1-(np.exp(-(-(V-10) - 75.000123)/5))))
+
+    #--Neonatal NaV1.3---------------
+    # mAlpha = (0.182 * ((V)- -26))/(1-(np.exp(-((V)- -26)/9)))
+    # mBeta = (0.124 * (-(V) -26))/(1-(np.exp(-(-(V) -26)/9)))
+    # mInf = mAlpha/(mAlpha + mBeta)
+    # mTau = 1/(mAlpha + mBeta)
+    # hInf = 1 /(1+np.exp((V-(-65.0))/8.1))
+    # hTau = 0.40 + (0.265 * np.exp(-V/9.47))
+
+    #-----action-potential promising vgNa---------(slow, persistent, weak)
+    # qt = 2.3**((34-21)/10)
+    # mInf = 1.0/(1+np.exp((V - -52.6)/-4.6))
+    # mAlpha = (0.182 * (V- -38))/(1-(np.exp(-(V- -38)/6)))
+    # mBeta  = (0.124 * (-V -38))/(1-(np.exp(-(-V -38)/6)))
+    # mTau = 6*(1/(mAlpha + mBeta))/qt
+    # hInf = 1.0/(1+np.exp((V- -48.8)/10))
+    # hAlpha = -2.88e-6 * (V + 17) / (1 - np.exp((V + 17)/4.63))
+    # hBeta = 6.94e-6 * (V + 64.4) / (1 - np.exp(-(V + 64.4)/2.63))
+    # hTau = (1/(hAlpha + hBeta))/qt
+
+    # Nat-------------------------------------(fast, strong, persistent)
+    # qt = 2.3**((34-21)/10)
+    #
+    # mAlpha = (0.182 * (V- -38))/(1-(np.exp(-(V- -38)/6)))
+    # mBeta  = (0.124 * (-V -38))/(1-(np.exp(-(-V -38)/6)))
+    # mTau = (1/(mAlpha + mBeta))/qt
+    # mInf = mAlpha/(mAlpha + mBeta)
+    # hAlpha = (-0.015 * (V- -66))/(1-(np.exp((V- -66)/6)))
+    # hBeta  = (-0.015 * (-V -66))/(1-(np.exp((-V -66)/6)))
+    # hTau = (1/(hAlpha + hBeta))/qt
+    # hInf = hAlpha/(hAlpha + hBeta)
+
+    # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
+
+    # calculate m channels
+    #  dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
+    #  dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
+
+    # alternative expression:
+    dyna.m_Na = ((mInf - dyna.m_Na)/mTau)*p.dt*1e3 + dyna.m_Na
+    dyna.h_Na = ((hInf - dyna.h_Na)/hTau)*p.dt*1e3 + dyna.h_Na
+
+    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
+    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
+    dyna.m_Na[inds_mNa_over] = 1.0
+
+    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
+    dyna.h_Na[inds_hNa_over] = 1.0
+
+    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
+    dyna.m_Na[inds_mNa_under] = 0.0
+
+    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
+    dyna.h_Na[inds_hNa_under] = 0.0
+
+    # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
+
+    P = (dyna.m_Na**3)*(dyna.h_Na)
+
+    # inds_P_over = (P > 1.0).nonzero()
+    # P[inds_P_over] = 1.0
+    #
+    # inds_P_under = (P < 0.0).nonzero()
+    # P[inds_P_under] = 0.0
+
+    # Define ultimate activity of the vgNa channel:
+    sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa*P
+
+
+def vgPotassium(dyna,sim,cells,p):
+    '''
+    Handle all **targeted voltage-gated potassium channels** (i.e., only
+    applicable to specific tissue profiles) specified by the passed
+    user-specified parameters on the passed tissue simulation and cellular
+    world for the passed time step.
+    '''
+     # detecting channels to turn on:
+    V = sim.vm[dyna.targets_vgK]*1000
+
+    # Hodgkin Huxley--------------------------
+
+    V= V + 15
+
+    mAlpha = (0.01*(10-V))/(np.exp((10-V)/10) - 1.0)
+    mBeta = 0.125 * (np.exp(-V/80))
+    mInf = mAlpha/(mAlpha + mBeta)
+    mTau = 1/(mAlpha + mBeta)
+
+    mexp = 4.0
+
+
+    #dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
+
+    # inds_nK_over = (dyna.n_K > 1.0).nonzero()
+    # dyna.n_K[inds_nK_over] = 1.0
+    #
+    # inds_nK_under = (dyna.n_K < 0.0).nonzero()
+    # dyna.n_K[inds_nK_under] = 0.0
+    #
+    # sim.Dm_vg[sim.iK][dyna.targets_vgK] = (dyna.n_K**4)*gK_max
+    #
+    # mexp = 1
+
+    # Kv1.2-----------------------------------------
+
+    # mInf = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
+    # mTau = 150.0000/(1+ np.exp((V + 67.5600)/34.1479))
+    # hInf = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
+    # hTau = 15000.0000/(1+ np.exp(-(V + 46.5600)/44.1479))
+    #
+    # mexp = 1
+
+    # Kv1.5-------------------------------------------------
+    #
+    # mInf = 1.0000/(1+ np.exp(-(V + 6.0000)/6.4000))
+    # mTau = (-0.1163 * V) + 8.3300
+    # hInf = 1.0000/(1+ np.exp((V + 25.3000)/3.5000))
+    # hTau = (-15.5000 * V) + 1620.0000
+    #
+    # mexp = 1
+    #- Fast Kv3.3-------------------------------------------
+    # mInf = 1/(1+np.exp((V-35)/-7.3))
+    # mTau = 0.676808 +( 27.913114 / (1 + np.exp((V - 22.414149)/9.704638)))
+    # hInf = 0.25+( 0.75 /(1+ np.exp((V-(-28.293856))/29.385636)))
+    # hTau = 199.786728 + (2776.119438*np.exp(-V/7.309565))
+    # #
+    # mexp = 1
+    #--K slow rat-------------------------------------------------------
+
+    # mInf = (1/(1 + np.exp(-(V+14)/14.6)))
+    # inds_lt50 = (V < -50).nonzero()
+    # inds_gt50 = (V >= -50).nonzero()
+    # mTau = np.zeros(len(V))
+    # mTau[inds_lt50] = (1.25+175.03*np.exp(V*0.026))
+    # mTau[inds_gt50] = (1.25+13*np.exp(-V*0.026))
+    # hInf = 1/(1 + np.exp((V+54)/11))
+    # hTau = 360+(1010+24*(V+55))*np.exp(-((V+75)/48)**2)
+    #
+    # mexp = 2
+
+    #-------------------------------#
+    dyna.m_K = ((mInf - dyna.m_K)/mTau)*p.dt*1e3 + dyna.m_K
+    # dyna.h_K = ((hInf - dyna.h_K)/hTau)*p.dt*1e3 + dyna.h_K
+    dyna.h_K[:] = 1
+
+    inds_mK_over = (dyna.m_K > 1.0).nonzero()
+    dyna.m_K[inds_mK_over] = 1.0
+
+    inds_mK_under = (dyna.m_K < 0.0).nonzero()
+    dyna.m_K[inds_mK_under] = 0.0
+
+    inds_hK_over = (dyna.h_K > 1.0).nonzero()
+    dyna.h_K[inds_hK_over] = 1.0
+
+    inds_hK_under = (dyna.h_K < 0.0).nonzero()
+    dyna.h_K[inds_hK_under] = 0.0
+
+    # open probability
+    P =  (dyna.m_K**mexp)*(dyna.h_K)
+
+    # inds_P_over = (P > 1.0).nonzero()
+    # P[inds_P_over] = 1.0
+    #
+    # inds_P_under = (P < 0.0).nonzero()
+    # P[inds_P_under] = 0.0
+
+    sim.Dm_vg[sim.iK][dyna.targets_vgK] = P*dyna.maxDmK
+
+
+
+
+
 
 
 
