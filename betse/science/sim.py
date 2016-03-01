@@ -2948,15 +2948,15 @@ class Simulator(object):
             alpha = (1/p.mu_water)*self.D_env_weight
             #---------------------------------------------------------
 
-            # get an average value for the field at the outer membrane -- need to interpolate intracellular fields:
-            E_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_x,(cells.X,cells.Y),
-                                      method=p.interp_type,fill_value=0)
+            # # get an average value for the field at the outer membrane -- need to interpolate intracellular fields:
+            # E_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_x,(cells.X,cells.Y),
+            #                           method=p.interp_type,fill_value=0)
+            #
+            # E_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_y,(cells.X,cells.Y),
+            #                           method=p.interp_type,fill_value=0)
 
-            E_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_y,(cells.X,cells.Y),
-                                      method=p.interp_type,fill_value=0)
-
-            E_ave_x = (E_gj_x + self.E_env_x)/2
-            E_ave_y = (E_gj_y + self.E_env_y)/2
+            E_ave_x = self.E_env_x
+            E_ave_y = self.E_env_y
 
             if p.deform_electro is True:
 
@@ -3072,10 +3072,6 @@ class Simulator(object):
         # integrate body forces:
         F_net_x = cells.integrator(F_net_x)
         F_net_y = cells.integrator(F_net_y)
-
-        # set boundary values (applicable to u_gj_x/y solution):
-        # F_net_x[cells.bflags_cells] = 0
-        # F_net_y[cells.bflags_cells] = 0
 
         # Calculate flow under body forces:
         u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
@@ -3382,7 +3378,8 @@ class Simulator(object):
         # pressure developing in the cell depends on how much the volume can change:
         P_react = (1 - (1/p.youngMod))*div_u_osmo
 
-        # the inflow of mass adds to base pressure in cells:
+        # the inflow of mass adds to base pressure in cells
+        # (this format is used to avoid conflict with pressure channels):
         if p.run_sim is True:
             self.P_base = self.P_base + P_react[:]
 
@@ -3402,6 +3399,7 @@ class Simulator(object):
 
         self.cc_cells =self.cc_cells*(vo/v1)
 
+        # reassign cell volume:
         cells.cell_vol = v1[:]
 
         if p.sim_ECM is True:
