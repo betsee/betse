@@ -270,9 +270,9 @@ def step(t,t_on,t_change):
 
     """
     g = (1/t_change)*10
-    # y = 1/(1 + (np.exp(-g*(t-t_on))))
-    x = g*(t-t_on)
-    y = expit(x)
+    y = 1/(1 + (np.exp(-g*(t-t_on))))
+    # x = g*(t-t_on)
+    # y = expit(x)
 
     if np.isnan(y):
         y= 0
@@ -300,10 +300,10 @@ def pulse(t,t_on,t_off,t_change):
     g = (1/t_change)*10
     x1 = g*(t-t_on)
     x2 = g*(t-t_off)
-    # y1 = 1/(1 + (np.exp(-g*(t-t_on))))
-    # y2 = 1/(1 + (np.exp(-g*(t-t_off))))
-    y1 = expit(x1)
-    y2 = expit(x2)
+    y1 = 1/(1 + (np.exp(-g*(t-t_on))))
+    y2 = 1/(1 + (np.exp(-g*(t-t_off))))
+    # y1 = expit(x1)
+    # y2 = expit(x2)
 
     y = y1 - y2
 

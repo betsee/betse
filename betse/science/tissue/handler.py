@@ -12,7 +12,7 @@ from betse.util.type import types
 from random import shuffle
 from scipy import spatial as sps
 from scipy import interpolate as interp
-from betse.science.tissue.channels import vgSodium, vgPotassium, cagPotassium, vgCalcium
+from betse.science.tissue.channels import vgSodium, vgPotassium, cagPotassium, vgCalcium, vgSodium_init, vgPotassium_init
 
 
 class TissueHandler(object):
@@ -369,8 +369,14 @@ class TissueHandler(object):
             self.target_mask_vgNa = np.zeros(self.data_length)
             self.target_mask_vgNa[self.targets_vgNa] = 1
 
-            self.m_Na = np.zeros(len(self.targets_vgNa))
-            self.h_Na = np.zeros(len(self.targets_vgNa))
+            # self.m_Na = np.zeros(len(self.targets_vgNa))
+            # self.h_Na = np.zeros(len(self.targets_vgNa))
+
+            if p.run_sim is True:
+                vgSodium_init(self,sim,p)
+
+            # self.m_Na = self.mInf_o
+            # self.h_Na = self.hInf_o
 
 
         if p.vg_options['K_vg'] !=0:
@@ -402,9 +408,14 @@ class TissueHandler(object):
             self.target_mask_vgK = np.zeros(self.data_length)
             self.target_mask_vgK[self.targets_vgK] = 1
 
-            self.m_K = np.zeros(len(self.targets_vgK))
-            self.h_K = np.zeros(len(self.targets_vgK))
-            self.n_K = np.zeros(len(self.targets_vgK))
+            # self.m_K = np.zeros(len(self.targets_vgK))
+            # self.h_K = np.zeros(len(self.targets_vgK))
+            # self.n_K = np.zeros(len(self.targets_vgK))
+
+            if p.run_sim is True:
+
+                vgPotassium_init(self,sim,p)
+
 
         if p.vg_options['Ca_vg'] !=0:
             # Initialization of logic values for voltage gated calcium channel

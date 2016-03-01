@@ -496,6 +496,33 @@ def vgSodium(dyna,sim,cells,p):
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa*P
 
+def vgSodium_init(dyna,sim,p):
+
+    V = sim.vm[dyna.targets_vgNa]*1000
+
+     # Find areas where the differential equation is intrinsically ill-behaved:
+    truth_inds_ha = V < -39
+    truth_inds_hb = V > -41
+
+    v_inds_h = (truth_inds_ha*truth_inds_hb).nonzero()
+
+    truth_inds_ma = V < -24
+    truth_inds_mb = V > -26
+
+    v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
+
+    # small correction constant on the voltage
+    corr_const = 1.0e-10
+
+    V[v_inds_m] = V + corr_const
+    V[v_inds_h] = V + corr_const
+    #
+    mAlpha = (0.182 * ((V-10.0)- -35.0))/(1-(np.exp(-((V-10.0)- -35.0)/9)))
+    mBeta = (0.124 * (-(V-10.0) -35.0))/(1-(np.exp(-(-(V-10.0) -35.0)/9)))
+
+    dyna.m_Na = mAlpha/(mAlpha + mBeta)
+    dyna.h_Na = 1.0/(1+np.exp((V- -65.0-10.0)/6.2))
+
 
 def vgPotassium(dyna,sim,cells,p):
     '''
@@ -624,6 +651,17 @@ def vgPotassium(dyna,sim,cells,p):
     # P[inds_P_under] = 0.0
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = P*dyna.maxDmK
+
+
+def vgPotassium_init(dyna,sim,p):
+
+     # detecting channels to turn on:
+    V = sim.vm[dyna.targets_vgK]*1000
+
+    dyna.m_K = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
+    dyna.h_K = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
+
+
 
 
 
