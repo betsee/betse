@@ -310,8 +310,6 @@ def pulse(t,t_on,t_off,t_change):
     if np.isnan(y):
         y=0
 
-    print(x1,x2,y)
-
     return y
 
 def H(x):

@@ -319,7 +319,11 @@ def vgSodium(dyna,sim,cells,p):
 
     V = sim.vm[dyna.targets_vgNa]*1000
 
-    #----HH squid model------------------------
+        # add in random noise:
+    # corr_const = 1.e-6*np.random.random(len(V))
+    # corr_const2 = 1.e-6*np.random.random(len(V))
+
+    #----HH squid model modified (sustains pulses)------------------------
 
     # V = V + 50
     #
@@ -335,7 +339,21 @@ def vgSodium(dyna,sim,cells,p):
     # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
 
 
-    #--------McCormack Model---------------(very persistant...)
+    #--------McCormack Model---------------(very persistant...)-----------------------
+
+    # # Find areas where the differential equation is intrinsically ill-behaved:
+    # v_inds_h = []
+    #
+    # truth_inds_ma = V < -37
+    # truth_inds_mb = V > -39
+    #
+    # v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
+    #
+    # # small correction constant on the voltage
+    # corr_const = 1.0e-6
+    #
+    # V[v_inds_m] = V + corr_const
+    # V[v_inds_h] = V + corr_const
     #
     # mAlpha = 0.091*(V+38)/(1-np.exp((-V-38)/5))
     # mBeta = -0.062*(V+38)/(1-np.exp((V+38)/5))
@@ -349,16 +367,48 @@ def vgSodium(dyna,sim,cells,p):
     # hTau = 1/(hAlpha + hBeta)
 
     #------NaS model Hammil 1991------(produces cool, well behaved AP with p.sim_ECM=True. Slow to activate. use!)
+    #
+    # Find areas where the differential equation is intrinsically ill-behaved:
+    truth_inds_ha = V < -39
+    truth_inds_hb = V > -41
 
-    mAlpha = (0.182 * ((V-10)- -35))/(1-(np.exp(-((V-10)- -35)/9)))
-    mBeta = (0.124 * (-(V-10) -35))/(1-(np.exp(-(-(V-10) -35)/9)))
+    v_inds_h = (truth_inds_ha*truth_inds_hb).nonzero()
+
+    truth_inds_ma = V < -24
+    truth_inds_mb = V > -26
+
+    v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
+
+    # small correction constant on the voltage
+    corr_const = 1.0e-10
+
+    V[v_inds_m] = V + corr_const
+    V[v_inds_h] = V + corr_const
+    #
+    mAlpha = (0.182 * ((V-10.0)- -35.0))/(1-(np.exp(-((V-10.0)- -35.0)/9)))
+    mBeta = (0.124 * (-(V-10.0) -35.0))/(1-(np.exp(-(-(V-10.0) -35.0)/9)))
 
     mInf = mAlpha/(mAlpha + mBeta)
     mTau = 1/(mAlpha + mBeta)
-    hInf = 1.0/(1+np.exp((V- -65-10)/6.2))
-    hTau = 1/((0.024 * ((V-10)- -50))/(1-(np.exp(-((V-10)- -50)/5))) +(0.0091 * (-(V-10) - 75.000123))/(1-(np.exp(-(-(V-10) - 75.000123)/5))))
+    hInf = 1.0/(1+np.exp((V- -65.0-10.0)/6.2))
+    hTau = 1/((0.024 * ((V-10.0)- -50.0))/(1-(np.exp(-((V-10.0)- -50.0)/5))) +(0.0091 * (-(V-10.0) -
+                                                                75.000123))/(1-(np.exp(-(-(V-10) - 75.000123)/5))))
 
-    #--Neonatal NaV1.3---------------
+    #--Neonatal NaV1.3---------------activates at very high depolarizations----
+    # # Find areas where the differential equation is intrinsically ill-behaved:
+    # v_inds_h = []
+    #
+    # truth_inds_ma = V < -25
+    # truth_inds_mb = V > -27
+    #
+    # v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
+    #
+    # # small correction constant on the voltage
+    # corr_const = 1.0e-6
+    #
+    # V[v_inds_m] = V + corr_const
+    # V[v_inds_h] = V + corr_const
+    #
     # mAlpha = (0.182 * ((V)- -26))/(1-(np.exp(-((V)- -26)/9)))
     # mBeta = (0.124 * (-(V) -26))/(1-(np.exp(-(-(V) -26)/9)))
     # mInf = mAlpha/(mAlpha + mBeta)
@@ -377,7 +427,27 @@ def vgSodium(dyna,sim,cells,p):
     # hBeta = 6.94e-6 * (V + 64.4) / (1 - np.exp(-(V + 64.4)/2.63))
     # hTau = (1/(hAlpha + hBeta))/qt
 
-    # Nat-------------------------------------(fast, strong, persistent)
+    # NaTa_t-------Costa 2002 -----(fast, strong, persistent)
+
+
+
+    # Find areas where the differential equation is intrinsically in need of correction:
+    # truth_inds_ma = V < -37
+    # truth_inds_mb = V > -39
+    #
+    # v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
+    #
+    # truth_inds_ha = V < -65
+    # truth_inds_hb = V > -67
+    #
+    # v_inds_h = (truth_inds_ha*truth_inds_hb).nonzero()
+    #
+    # # small correction constant on the voltage
+    # corr_const = 1.0e-6
+    #
+    # V[v_inds_m] = V + corr_const
+    # V[v_inds_h] = V + corr_const
+
     # qt = 2.3**((34-21)/10)
     #
     # mAlpha = (0.182 * (V- -38))/(1-(np.exp(-(V- -38)/6)))
@@ -389,17 +459,24 @@ def vgSodium(dyna,sim,cells,p):
     # hTau = (1/(hAlpha + hBeta))/qt
     # hInf = hAlpha/(hAlpha + hBeta)
 
-    # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
+    #-----------------------------------------------------------------------------------
 
-    # calculate m channels
-    #  dyna.m_Na = (alpha_m*(1-dyna.m_Na) - beta_m*(dyna.m_Na))*p.dt*1e3 + dyna.m_Na
-    #  dyna.h_Na = (alpha_h*(1-dyna.h_Na) - beta_h*(dyna.h_Na))*p.dt*1e3 + dyna.h_Na
-
-    # alternative expression:
+    # calculate m and h channel states:
     dyna.m_Na = ((mInf - dyna.m_Na)/mTau)*p.dt*1e3 + dyna.m_Na
     dyna.h_Na = ((hInf - dyna.h_Na)/hTau)*p.dt*1e3 + dyna.h_Na
 
-    # as equations are sort of ill-behaved, threshhold to ensure 0 to 1 status
+    # dyna.m_Na = (1+corr_const)*dyna.m_Na
+    # dyna.h_Na = (1+corr_const2)*dyna.h_Na
+
+    # correction strategy for voltages (to prevent stalling at nullclines)----------
+    dyna.m_Na[v_inds_m] = dyna.m_Na*(1 + corr_const)
+    dyna.m_Na[v_inds_h] = dyna.m_Na*(1 + corr_const)
+    dyna.h_Na[v_inds_m] = dyna.h_Na*(1 + corr_const)
+    dyna.h_Na[v_inds_h] = dyna.h_Na*(1 + corr_const)
+
+    #--------------------------------------------------------------------------------
+
+    # threshhold to ensure 0 to 1 status of gates
     inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
     dyna.m_Na[inds_mNa_over] = 1.0
 
@@ -412,15 +489,9 @@ def vgSodium(dyna,sim,cells,p):
     inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
     dyna.h_Na[inds_hNa_under] = 0.0
 
-    # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
+    # final probability of open-closed state:
 
     P = (dyna.m_Na**3)*(dyna.h_Na)
-
-    # inds_P_over = (P > 1.0).nonzero()
-    # P[inds_P_over] = 1.0
-    #
-    # inds_P_under = (P < 0.0).nonzero()
-    # P[inds_P_under] = 0.0
 
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa*P
@@ -438,14 +509,14 @@ def vgPotassium(dyna,sim,cells,p):
 
     # Hodgkin Huxley--------------------------
 
-    V= V + 15
-
-    mAlpha = (0.01*(10-V))/(np.exp((10-V)/10) - 1.0)
-    mBeta = 0.125 * (np.exp(-V/80))
-    mInf = mAlpha/(mAlpha + mBeta)
-    mTau = 1/(mAlpha + mBeta)
-
-    mexp = 4.0
+    # V= V + 15
+    #
+    # mAlpha = (0.01*(10-V))/(np.exp((10-V)/10) - 1.0)
+    # mBeta = 0.125 * (np.exp(-V/80))
+    # mInf = mAlpha/(mAlpha + mBeta)
+    # mTau = 1/(mAlpha + mBeta)
+    #
+    # mexp = 4.0
 
 
     #dyna.n_K = (alpha_n*(1-dyna.n_K) - beta_n*dyna.n_K)*p.dt*1e3 + dyna.n_K
@@ -462,21 +533,44 @@ def vgPotassium(dyna,sim,cells,p):
 
     # Kv1.2-----------------------------------------
 
-    # mInf = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
-    # mTau = 150.0000/(1+ np.exp((V + 67.5600)/34.1479))
-    # hInf = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
-    # hTau = 15000.0000/(1+ np.exp(-(V + 46.5600)/44.1479))
-    #
-    # mexp = 1
+    mInf = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
+    mTau = 150.0000/(1+ np.exp((V + 67.5600)/34.1479))
+    hInf = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
+    hTau = 15000.0000/(1+ np.exp(-(V + 46.5600)/44.1479))
+
+    mexp = 1
 
     # Kv1.5-------------------------------------------------
-    #
+
+    # inds_lt50 = (V < 50).nonzero()
+    # inds_gt50 = (V>=50).nonzero()
+    # inds_lt100 = (V<100).nonzero()
+    # inds_gt100 = (V > 100).nonzero()
+
     # mInf = 1.0000/(1+ np.exp(-(V + 6.0000)/6.4000))
     # mTau = (-0.1163 * V) + 8.3300
     # hInf = 1.0000/(1+ np.exp((V + 25.3000)/3.5000))
     # hTau = (-15.5000 * V) + 1620.0000
     #
+
+    # need to redo this channel with the following:
+    #		mInf = 1.0000/(1+ exp((v - -6.0000)/-6.4000))
+		# if(v < 50){
+		# 	mTau = (-0.1163 * v) + 8.3300
+		# }
+		# if(v >= 50){
+		# 	mTau =  2
+		# }
+		# hInf = 1.0000/(1+ exp((v - -25.3000)/3.5000))
+		# if(v < 100){
+		# 	hTau = (-15.5000 * v) + 1620.0000
+		# }
+		# if(v >= 100){
+		# 	hTau =  50
+    #
     # mexp = 1
+
+
     #- Fast Kv3.3-------------------------------------------
     # mInf = 1/(1+np.exp((V-35)/-7.3))
     # mTau = 0.676808 +( 27.913114 / (1 + np.exp((V - 22.414149)/9.704638)))
@@ -484,6 +578,7 @@ def vgPotassium(dyna,sim,cells,p):
     # hTau = 199.786728 + (2776.119438*np.exp(-V/7.309565))
     # #
     # mexp = 1
+
     #--K slow rat-------------------------------------------------------
 
     # mInf = (1/(1 + np.exp(-(V+14)/14.6)))
@@ -499,8 +594,8 @@ def vgPotassium(dyna,sim,cells,p):
 
     #-------------------------------#
     dyna.m_K = ((mInf - dyna.m_K)/mTau)*p.dt*1e3 + dyna.m_K
-    # dyna.h_K = ((hInf - dyna.h_K)/hTau)*p.dt*1e3 + dyna.h_K
-    dyna.h_K[:] = 1
+    dyna.h_K = ((hInf - dyna.h_K)/hTau)*p.dt*1e3 + dyna.h_K
+    # dyna.h_K[:] = 1
 
     inds_mK_over = (dyna.m_K > 1.0).nonzero()
     dyna.m_K[inds_mK_over] = 1.0
@@ -517,6 +612,11 @@ def vgPotassium(dyna,sim,cells,p):
     # open probability
     P =  (dyna.m_K**mexp)*(dyna.h_K)
 
+    # correction factors to push out of stall points:
+    # v_inds5 = (np.round(V,0) == -5).nonzero()
+    #
+    # P[v_inds5] = P - 1.0e-6
+    #
     # inds_P_over = (P > 1.0).nonzero()
     # P[inds_P_over] = 1.0
     #
