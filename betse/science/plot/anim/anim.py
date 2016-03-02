@@ -426,6 +426,7 @@ class AnimCellsTimeSeries(AnimCells):
         self,
         time_series: np.ndarray,
         is_ecm_ignored: bool = True,
+        scaling_series: np.ndarray = None,
         *args, **kwargs
     ) -> None:
         '''
@@ -479,6 +480,7 @@ class AnimCellsTimeSeries(AnimCells):
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
 
+
         #FIXME: Is "frame_count=len(self._sim.time)," effectively *ALWAYS* the
         #case, even for animations currently setting the frame count otherwise?
         #We suspect this might be the case, but let's test this up. Winged sun!
@@ -502,7 +504,7 @@ class AnimCellsTimeSeries(AnimCells):
         self._animate(
             frame_count=len(self._sim.time),
             color_mapping=self.collection,
-            color_series=self._time_series,
+            color_series=scaling_series if scaling_series else self._time_series,
         )
 
 

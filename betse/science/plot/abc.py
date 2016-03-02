@@ -109,6 +109,7 @@ class PlotCells(object, metaclass=ABCMeta):
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
         colormap: 'Colormap' = None,
+        # scaling_series: np.nadarray = None,
     ) -> None:
         '''
         Initialize this plot.
@@ -201,6 +202,7 @@ class PlotCells(object, metaclass=ABCMeta):
         self._color_min = color_min
         self._color_max = color_max
         self._colormap = colormap
+        # self._scaling_series = scaling_series
 
         # Classify attributes to be subsequently defined.
         self._color_mappings = color_min
@@ -332,8 +334,8 @@ class PlotCells(object, metaclass=ABCMeta):
             time_series_flat = np.ravel(color_series)
 
             # Overwrite the current minimum and maximum color values.
-            self._color_min = np.min(time_series_flat)
-            self._color_max = np.max(time_series_flat)
+            self._color_min = np.ma.min(time_series_flat)
+            self._color_max = np.ma.max(time_series_flat)
 
         # If a single mappable rather than a list of mappables was passed,
         # convert the former to the latter.
@@ -609,7 +611,7 @@ class PlotCells(object, metaclass=ABCMeta):
             grid_x, grid_y, x, y,
             density=self._p.stream_density,
             linewidth=(3.0*magnitude/magnitude_max) + 0.5,
-            color='k',
+            color=self._p.vcolor,
             cmap=self._colormap,
             arrowsize=1.5,
 

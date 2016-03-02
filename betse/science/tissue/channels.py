@@ -304,6 +304,14 @@ def vgCalcium(dyna,sim,cells,p):
 
     sim.Dm_vg[sim.iCa] = dyna.maxDmCa*P
 
+def vgCalcium_init(dyna,sim,p):
+
+    v = 1e3*sim.vm  # FIXME must be at targets!
+
+    # model of: K P Carlin et. al; Eur. J. Neurosci. 2000--------------
+    dyna.m_Ca = 1.0/(1+ np.exp(-((v - 10) + 30.0)/6))
+    dyna.h_Ca = 1.0/(1+ np.exp(((v-10)+80.0)/6.4))
+
 # defaults--------------------------------------------------------------------------------------------------------------
 
 def vgSodium(dyna,sim,cells,p):

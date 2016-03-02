@@ -3,6 +3,7 @@
 # See "LICENSE" for further details.
 
 import numpy as np
+import numpy.ma as ma
 from betse.exceptions import BetseExceptionSimulation
 from betse.science import toolbox as tb
 from scipy import interpolate as interp
@@ -368,7 +369,9 @@ def vertData(data, cells, p):
     dat_grid = gaussian_filter(dat_grid,1)
 
     # get rid of values that bleed into the environment:
-    dat_grid = np.multiply(dat_grid,cells.maskM)
+    # dat_grid = np.multiply(dat_grid,cells.maskM)
+
+    dat_grid = ma.masked_array(dat_grid, np.logical_not(cells.maskM))
 
     return dat_grid
 

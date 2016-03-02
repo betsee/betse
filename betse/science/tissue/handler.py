@@ -12,7 +12,8 @@ from betse.util.type import types
 from random import shuffle
 from scipy import spatial as sps
 from scipy import interpolate as interp
-from betse.science.tissue.channels import vgSodium, vgPotassium, cagPotassium, vgCalcium, vgSodium_init, vgPotassium_init
+from betse.science.tissue.channels import vgSodium, vgPotassium, cagPotassium, vgCalcium, vgSodium_init, \
+    vgPotassium_init, vgCalcium_init
 
 
 class TissueHandler(object):
@@ -443,11 +444,15 @@ class TissueHandler(object):
             self.target_mask_vgCa = np.zeros(self.data_length)
             self.target_mask_vgCa[self.targets_vgCa] = 1
 
-            self.m_Ca = np.zeros(self.data_length)
-            self.h_Ca = np.zeros(self.data_length)
+            # self.m_Ca = np.zeros(self.data_length)
+            # self.h_Ca = np.zeros(self.data_length)
+            #
+            # self.m_Ca[:] = 1.0000/(1+ np.exp(-((sim.vm*1e3 - 10) + 30.000)/6))
+            # self.h_Ca[:] = 1.0000/(1+ np.exp(((sim.vm*1e3 - 10) + 80.000)/6.4))
 
-            self.m_Ca[:] = 1.0000/(1+ np.exp(-((sim.vm*1e3 - 10) + 30.000)/6))
-            self.h_Ca[:] = 1.0000/(1+ np.exp(((sim.vm*1e3 - 10) + 80.000)/6.4))
+            if p.run_sim is True:
+
+                vgCalcium_init(self,sim,p)
 
         if p.vg_options['K_cag'] != 0:
             self.maxDmKcag = p.vg_options['K_cag'][0]
