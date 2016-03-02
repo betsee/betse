@@ -1147,9 +1147,9 @@ class Cells(object):
         self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
 
 
-        # update ecm volumes and surface areas within the cell region:
+        # # update ecm volumes and surface areas within the cell region:
         self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:]
-        self.ecm_sa[self.map_mem2ecm] = self.mem_sa[:]
+        self.ecm_sa[self.map_mem2ecm] = 2*self.mem_sa[:]
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]

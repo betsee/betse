@@ -1804,18 +1804,22 @@ class Simulator(object):
             # total charge in cells per unit surface area:
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
+            # null out charge in the environmental space
+            # self.rho_env[cells.inds_env] = 0
+
             # smooth out the environmental charge:
             self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
             # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
             self.rho_env = self.rho_env.ravel()
 
             # interpolate charge from environmental grid to the ecm_mids:
+            # FIXME this may be putting zeros where there shouldn't be...try smoothing after?
             rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
                                       self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
 
                 # total charge per unit surface area in the extracellular spaces:
-            Qecm = rho_ecm*p.cell_space
+            Qecm = rho_ecm*(p.cell_space/2)
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
