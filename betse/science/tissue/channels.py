@@ -473,9 +473,6 @@ def vgSodium(dyna,sim,cells,p):
     dyna.m_Na = ((mInf - dyna.m_Na)/mTau)*p.dt*1e3 + dyna.m_Na
     dyna.h_Na = ((hInf - dyna.h_Na)/hTau)*p.dt*1e3 + dyna.h_Na
 
-    # dyna.m_Na = (1+corr_const)*dyna.m_Na
-    # dyna.h_Na = (1+corr_const2)*dyna.h_Na
-
     # correction strategy for voltages (to prevent stalling at nullclines)----------
     dyna.m_Na[v_inds_m] = dyna.m_Na*(1 + corr_const)
     dyna.m_Na[v_inds_h] = dyna.m_Na*(1 + corr_const)

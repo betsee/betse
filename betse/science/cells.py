@@ -1300,7 +1300,7 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
-    def maxwellCapMatrix(self,p):
+    def maxwellCapMatrix_o(self,p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
@@ -1392,7 +1392,7 @@ class Cells(object):
         # self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         self.M_max_cap = M_max_cap
 
-    def maxwellCapMatrix_zeroed(self,p):
+    def maxwellCapMatrix(self,p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
@@ -1417,26 +1417,13 @@ class Cells(object):
         capacitance of cell or ecm space, self capacitances can
         be safely ignored.
 
-        This version of the Maxwell Capacitance Matrix zeros voltage at
-        the boundary of the cell cluster.
+        This version of the Maxwell Capacitance Matrix does not zero voltage at
+        the boundary of the cell cluster -- there are no boundary conditions.
 
         """
+
         loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
-        # First calculate ecm spaces on the boundary:
-        bpts_ecm = self.ecm_mids[self.mem_to_ecm_mids][self.bflags_mems]
 
-        bflags_ecm = []
-        ecm_list = self.ecm_mids.tolist()
-
-        for pt in bpts_ecm:
-
-            pt = pt.tolist()
-            ind = ecm_list.index(pt)
-            bflags_ecm.append(ind)
-
-        self.bflags_ecm = np.asarray(bflags_ecm)
-
-        # set the data length for compiled values:
         data_length = len(self.cell_i) + len(self.ecm_mids)
 
         # define ranges within the total data length where we can
@@ -1453,25 +1440,18 @@ class Cells(object):
 
             mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
 
-            cm = p.cm*self.mem_sa[mem_i_set]  # get the capacitance of each membrane
+            # cm = p.cm*self.mem_sa[mem_i_set]  # get the capacitance of each membrane
 
-            cm_sum = np.sum(cm)  # sum up the capacitances of all membranes for diagonal term
+            cm_sum = p.cm + self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
 
             # get the ecm spaces for each membrane
             # we must add on the cells data length to make these indices of the max cap vector and matrix:
-            ecm_i_set_o = self.mem_to_ecm_mids[mem_i_set]
-            # ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
+            ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
 
             # set the diagonal element for cells:
-            M_max_cap[cell_i,cell_i] = cm_sum
+            M_max_cap[cell_i,cell_i] = cm_sum + 1.0e-6 # plus small self-capacitance
             # set the off-diagonal elements for cells:
-            for i, ecm_io in enumerate(ecm_i_set_o):
-
-                if ecm_io not in self.bflags_ecm:
-
-                    ecm_i = ecm_io + len(self.cell_i)
-
-                    M_max_cap[cell_i,ecm_i] = -cm[i]
+            M_max_cap[cell_i,ecm_i_set] = -p.cm
 
         # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
         for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
@@ -1480,23 +1460,24 @@ class Cells(object):
 
             mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of membranes corresponding to each ecm space
 
-            cm = p.cm*np.mean(self.mem_sa[mem_pair])  # get the capacitance of the individual membrane
+            cm = p.cm  # get the capacitance of the individual membrane (per unit surface area)
 
             cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
             cell_k = self.mem_to_cells[mem_pair[1]]
 
-            if ecm_i_o in self.bflags_ecm:  # then we're on a boundary
+            if cell_j == cell_k:  # then we're on a boundary
 
-                M_max_cap[ecm_i,ecm_i] = 1e-15  # self capacitance
+                M_max_cap[ecm_i,ecm_i] = cm + 1.0e-6 # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm
+                M_max_cap[ecm_i,ecm_i] = 2*cm + 1.0e-6 # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
 
-        self.M_max_cap_inv = np.linalg.pinv(M_max_cap,rcond=1.0e-10)
+        self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         # self.M_max_cap = M_max_cap
+
 
     def redo_gj(self,dyna,p,savecells =True):
 

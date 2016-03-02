@@ -1801,11 +1801,8 @@ class Simulator(object):
             v_env = 0
 
         else:
-            # total charge in cells:
-            Qcells = (self.rho_cells*cells.cell_vol)
-
-
-            # self.rho_env[cells.inds_env] = 0
+            # total charge in cells per unit surface area:
+            Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
             # smooth out the environmental charge:
             self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
@@ -1817,40 +1814,20 @@ class Simulator(object):
                                       self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
 
-
-            # if p.simulate_TEP is True:
-            #     Qecm = (1/cells.num_mems.mean())*rho_ecm*p.cell_space*cells.mem_sa.mean()
-            #
-            # else:
-            #     # Qecm = rho_ecm*p.cell_height*cells.delta**2
-            #     # Qecm = rho_ecm*p.cell_height*cells.delta*p.cell_space
-
-                # total charge in the extracellular spaces:
-            Qecm = rho_ecm*cells.mem_sa[cells.ecm_to_mem_mids[:,0]]*p.cell_space
+                # total charge per unit surface area in the extracellular spaces:
+            Qecm = rho_ecm*p.cell_space
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
 
-            # calculate the voltage for the system based on the max cap vector
-            # use iterative least squares solver for sparse matrices (see scipy.sparse.linalg.lsmr)
-            # Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-3, btol=1.0e-3, conlim=1.0e13)
-
-            # norm_inds = (M_max_cap > 0).nonzero()
-            # norm_val = M_max_cap[norm_inds].min()
+            # Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-3, btol=1.0e-3)
             #
+            # v_max_vect = Sln[0]
             #
-            # M_max_cap = M_max_cap/norm_val
+            # print(Sln[1])
 
-            # FIXME: conditioning of the matrix is low, leading to this being an approximate solution
-            # reconditioning (damp = 1.0e-8) can be applied, but the results become non-ideal biologically...
-            #likewise, the matrix can be scaled, but results become non-realistic
-            Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-6, btol=1.0e-6)
-
-            v_max_vect = Sln[0]
-
-            # original solver in terms of pseudo-inverse matrix:
-            # v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect*cells.norm_val)
-
+           # original solver in terms of pseudo-inverse matrix:
+            v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
 
             # separate voltages for cells and ecm spaces
             v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
