@@ -3,11 +3,13 @@
 # See "LICENSE" for further details.
 
 import numpy as np
+
 import numpy.ma as ma
 from betse.exceptions import BetseExceptionSimulation
 from betse.science import toolbox as tb
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
+from betse.util.io import loggers
 
 # Toolbox of functions used in the Simulator class to calculate key bioelectric properties.
 
@@ -86,6 +88,10 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     f_Na            Na+ flux (into cell +)
     f_K             K+ flux (into cell +)
     """
+    # print("Na",cNai.min(),cNao.min(),cNao.mean())
+    # print("K",cKi.min(),cKo.min(),cKo.mean())
+    # print('---------')
+
     deltaGATP = 20*p.R*T
 
     delG_Na = p.R*T*np.log(cNao/cNai) - p.F*Vm
@@ -124,6 +130,9 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     cCao2           Updated Ca2+ outside cell
     f_Ca            Ca2+ flux (into cell +)
     """
+
+    # print(cCai.min(),cCao.min())
+
 
     deltaGATP = 20*p.R*T
 
@@ -330,6 +339,8 @@ def check_v(vm):
     indicates the simulation is unstable.
 
     """
+
+
     isnans = np.isnan(vm)
 
     if isnans.any():  # if there's anything in the isubzeros matrix...
@@ -437,3 +448,18 @@ def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
     fy =  -Dy*gcy - alphay*gvy*cy + cy*uy
 
     return fx, fy
+
+def no_negs(data):
+
+    # ensure no NaNs:
+    inds_nan = (np.isnan(data)).nonzero()
+    data[inds_nan] = 0
+
+    # ensure that data has no less than zero values:
+    inds_neg = (data < 0).nonzero()
+    data[inds_neg] = 0
+
+    if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
+        loggers.log_info("Warning: invalid value (0 or Nan) found in concentration data.")
+
+    return data

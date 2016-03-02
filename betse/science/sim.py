@@ -19,7 +19,8 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.sparse.linalg import lsmr
 
 from betse.science.sim_toolbox import electroflux, pumpNaKATP, pumpCaATP, pumpCaER, pumpHKATP, pumpVATP, get_volt,\
-    get_charge, get_charge_density, get_molarity, cell_ave, check_v, vertData, nernst_planck_flux, np_flux_special
+    get_charge, get_charge_density, get_molarity, cell_ave, check_v, vertData, nernst_planck_flux, np_flux_special,\
+    no_negs
 
 
 
@@ -1255,6 +1256,8 @@ class Simulator(object):
         do_once = True  # a variable to time the loop only once
 
         for t in tt:   # run through the loop
+
+            # start the timer to approximate time for the simulation
             if do_once is True:
                 loop_measure = time.time()
 
@@ -1305,6 +1308,9 @@ class Simulator(object):
             self.update_V_ecm(cells,p,t)
 
             if p.ions_dict['Ca'] == 1:
+
+                # self.cc_cells[self.iCa] = no_negs(self.cc_cells[self.iCa])
+
                 f_CaATP = pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],self.cc_env[self.iCa][cells.map_mem2ecm],
                         self.vm,self.T,p)
 
@@ -1351,6 +1357,7 @@ class Simulator(object):
                 if p.VATPase_dyn == 1 and p.run_sim is True:
                     self.Hplus_VATP_ecm(cells,p,t)
 
+
             #----------------ELECTRODIFFUSION---------------------------------------------------------------------------
 
             # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
@@ -1383,6 +1390,7 @@ class Simulator(object):
 
                 # # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V_ecm(cells,p,t)
+
 
             self.get_Efield(cells,p)
 
@@ -1804,9 +1812,6 @@ class Simulator(object):
             # total charge in cells per unit surface area:
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
-            # null out charge in the environmental space
-            # self.rho_env[cells.inds_env] = 0
-
             # smooth out the environmental charge:
             self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
             # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
@@ -1859,6 +1864,10 @@ class Simulator(object):
             # calculate the vm
             vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
 
+            # null out charge and voltage in the environmental space:
+            self.rho_env[cells.inds_env] = 0
+            v_env[cells.inds_env] = 0
+
         return vm, v_cell, v_env
 
     def update_V_ecm(self,cells,p,t):
@@ -1885,6 +1894,12 @@ class Simulator(object):
 
         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
         self.cc_env[ion_i] = c_env + delta_env*p.dt
+
+        # ensure that there are no negative values in the cells or the extracellular spaces:
+        for i, arr in enumerate(self.cc_cells):
+            self.cc_cells[i] = no_negs(arr)
+        for i, arr in enumerate(self.cc_env):
+            self.cc_env[i] = no_negs(arr)
 
     def Hplus_electrofuse_ecm(self,cells,p,t):
 
@@ -2287,6 +2302,7 @@ class Simulator(object):
 
         if p.sim_ECM is True:
 
+
             if p.pump_Dye is True:
 
                 if p.pump_Dye_out is True:
@@ -2337,6 +2353,9 @@ class Simulator(object):
 
                 self.cDye_env = self.cDye_env + delta_env*p.dt
 
+                # ensure that there are no negative values
+                self.cDye_cell = no_negs(self.cDye_cell)
+                self.cDye_env = no_negs(self.cDye_env)
 
         elif p.sim_ECM is False:
 
@@ -2386,7 +2405,7 @@ class Simulator(object):
                 self.cDye_cell = self.cDye_cell + d_dye_cells*p.dt
 
         # electrodiffuse dye between cell and extracellular space--------------------------------------------------
-
+        # FIXME!!! ARE THESE GOING THE WRONG WAY BECAUSE OF DIVERGENCE ISSUE?!?!
         if p.sim_ECM is False:
 
             fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
@@ -2410,6 +2429,10 @@ class Simulator(object):
             self.cDye_cell = self.cDye_cell + delta_cells*p.dt
 
             self.cDye_env = self.cDye_env - delta_env*p.dt
+
+            # ensure that there are no negative values
+            self.cDye_cell = no_negs(self.cDye_cell)
+            self.cDye_env = no_negs(self.cDye_env)
 
         #------------------------------------------------------------
 
@@ -2601,6 +2624,10 @@ class Simulator(object):
 
             self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
             self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
+
+            # ensure that there are no negative values
+            self.cDye_cell = no_negs(self.cDye_cell)
+            self.cDye_env = no_negs(self.cDye_env)
 
     def update_IP3(self,cells,p,t):
 
