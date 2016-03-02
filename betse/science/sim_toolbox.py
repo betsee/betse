@@ -459,7 +459,7 @@ def no_negs(data):
     inds_neg = (data < 0).nonzero()
     data[inds_neg] = 0
 
-    if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
-        loggers.log_info("Warning: invalid value (0 or Nan) found in concentration data.")
+    # if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
+    #     loggers.log_info("Warning: invalid value (0 or Nan) found in concentration data.")
 
     return data
