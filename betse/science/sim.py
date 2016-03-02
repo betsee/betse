@@ -2872,8 +2872,8 @@ class Simulator(object):
 
         # self.I_gj_y = np.multiply(self.I_gj_y,cells.maskECM)
 
-        self.I_tot_x = self.I_tot_x + self.I_gj_x
-        self.I_tot_y = self.I_tot_y + self.I_gj_y
+        # self.I_tot_x = self.I_tot_x + self.I_gj_x
+        # self.I_tot_y = self.I_tot_y + self.I_gj_y
 
         # calculate current across cell membranes:
 
@@ -2900,8 +2900,8 @@ class Simulator(object):
 
         # add membrane current to total current:
 
-        self.I_tot_x = self.I_tot_x + self.I_mem_x
-        self.I_tot_y = self.I_tot_y + self.I_mem_y
+        # self.I_tot_x = self.I_tot_x + self.I_mem_x
+        # self.I_tot_y = self.I_tot_y + self.I_mem_y
 
         if p.sim_ECM is True:
 
@@ -2910,18 +2910,18 @@ class Simulator(object):
 
             for flux_array, zi in zip(self.fluxes_env_x,self.zs):
 
-                I_i = flux_array*zi*p.F
+                I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
 
                 self.I_env_x = self.I_env_x + I_i
 
             for flux_array, zi in zip(self.fluxes_env_y,self.zs):
 
-                I_i = flux_array*zi*p.F
+                I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
 
                 self.I_env_y = self.I_env_y + I_i
 
-            I_env_x = self.I_env_x.reshape(cells.X.shape)
-            I_env_y = self.I_env_y.reshape(cells.X.shape)
+            I_env_x = self.I_env_x.reshape(cells.X.shape)/(cells.delta*p.cell_height)
+            I_env_y = self.I_env_y.reshape(cells.X.shape)/(cells.delta*p.cell_height)
 
             # I_env_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_x,(cells.Xgrid,cells.Ygrid),
             #                           method=p.interp_type,fill_value=0)
@@ -2929,8 +2929,9 @@ class Simulator(object):
             # I_env_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_y,(cells.Xgrid,cells.Ygrid),
             #                           method=p.interp_type,fill_value=0)
 
-            self.I_tot_x = self.I_tot_x + I_env_x
-            self.I_tot_y = self.I_tot_y + I_env_y
+            self.I_tot_x = I_env_x
+            self.I_tot_y = I_env_y
+
 
     def getFlow(self,cells,p):
         """
