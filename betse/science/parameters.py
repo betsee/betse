@@ -1042,7 +1042,7 @@ class Parameters(object):
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cCl_env = 105.0
-            self.cCa_env = 1.0
+            self.cCa_env = 2.0
             self.cH_env = 3.98e-5
             self.cP_env = 10.0
 

@@ -1146,16 +1146,18 @@ class Cells(object):
         self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
         self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
 
-
-        # # update ecm volumes and surface areas within the cell region:
-        self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:]
-        self.ecm_sa[self.map_mem2ecm] = 2*self.mem_sa[:]
-
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
         all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
+
+        # update ecm volumes and surface areas within the cell region:
+        self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:] # volume of ecm spaces between cells of cluster
+        self.ecm_sa[self.map_mem2ecm] = 2*self.mem_sa[:]  # surface area of ecm spaces between cells of the cluster
+
+        self.ecm_vol[self.ecm_bound_k] = (p.cell_height*self.delta**2) # set spaces on cluster boundary to be full-vol
+        self.ecm_sa[self.ecm_bound_k] = p.cell_height*self.delta  # set spaces on cluster boundary to have grid-SA
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 

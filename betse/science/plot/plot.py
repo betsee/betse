@@ -53,11 +53,6 @@ def plotSingleCellCData(simdata_time,simtime,ioni,celli,fig=None,ax=None,lncolor
 
     lab = ionname
 
-    # xmin = simtime[0]
-    # xmax = simtime[-1]
-    # ymin = np.min(ccIon_cell)
-    # ymax = np.max(ccIon_cell)
-
     ax.plot(simtime, ccIon_cell,lncolor,label=lab)
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('Concentration [mol/m3]')
@@ -732,7 +727,7 @@ def streamingCurrent(
         J_y = sim.I_gj_y_time[-1]/Jmag_M
 
         meshplot = plt.imshow(
-            Jmag_M,
+            100*Jmag_M,
             origin='lower',
             extent=[xmin,xmax,ymin,ymax],
             cmap=clrmap,
@@ -757,7 +752,7 @@ def streamingCurrent(
         J_y = sim.I_tot_y_time[-1]/Jmag_M
 
         meshplot = plt.imshow(
-            Jmag_M,
+            100*Jmag_M,
             origin='lower',
             extent=[xmin,xmax,ymin,ymax],
             cmap=clrmap,

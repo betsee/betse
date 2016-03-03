@@ -131,7 +131,7 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     f_Ca            Ca2+ flux (into cell +)
     """
 
-    # print(cCai.min(),cCao.min())
+    # print("Ca",cCai.min(),cCao.min(),cCao.mean())
 
 
     deltaGATP = 20*p.R*T

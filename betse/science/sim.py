@@ -1813,12 +1813,11 @@ class Simulator(object):
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
             # smooth out the environmental charge:
-            self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
+            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
             # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
-            self.rho_env = self.rho_env.ravel()
+            # self.rho_env = self.rho_env.ravel()
 
             # interpolate charge from environmental grid to the ecm_mids:
-            # FIXME this may be putting zeros where there shouldn't be...try smoothing after?
             rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
                                       self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
@@ -1828,12 +1827,6 @@ class Simulator(object):
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
-
-            # Sln = lsmr(cells.M_max_cap,Q_max_vect,atol=1.0e-3, btol=1.0e-3)
-            #
-            # v_max_vect = Sln[0]
-            #
-            # print(Sln[1])
 
            # original solver in terms of pseudo-inverse matrix:
             v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
@@ -1851,7 +1844,7 @@ class Simulator(object):
             v_env[cells.map_mem2ecm] = v_ecm_at_mem
 
             # smooth out the environmental voltage:
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),1)
             # v_env = fd.integrator(v_env.reshape(cells.X.shape))
             v_env = v_env.ravel()
 
@@ -2237,6 +2230,8 @@ class Simulator(object):
         #-----------------------
         cenv = cenv + delta_c*p.dt
 
+        cenv = fd.integrator(cenv)  # smooth out the concentration
+
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
             # zero flux boundaries for concentration:
@@ -2405,7 +2400,6 @@ class Simulator(object):
                 self.cDye_cell = self.cDye_cell + d_dye_cells*p.dt
 
         # electrodiffuse dye between cell and extracellular space--------------------------------------------------
-        # FIXME!!! ARE THESE GOING THE WRONG WAY BECAUSE OF DIVERGENCE ISSUE?!?!
         if p.sim_ECM is False:
 
             fdye_ED = electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
@@ -2540,8 +2534,8 @@ class Simulator(object):
             denv_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
                     (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=p.Do_Dye)
 
-            denv_x = denv_x*self.D_env_weight_u
-            denv_y = denv_y*self.D_env_weight_v
+            # denv_x = denv_x*self.D_env_weight_u
+            # denv_y = denv_y*self.D_env_weight_v
 
             # calculate gradients in the environment
             grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
@@ -2596,6 +2590,8 @@ class Simulator(object):
             delta_c = d_fenvx + d_fenvy
 
             cenv = cenv + delta_c*p.dt
+
+            cenv = fd.integrator(cenv)
 
             if p.closed_bound is True:
                 # Neumann boundary condition (flux at boundary)
@@ -2784,6 +2780,8 @@ class Simulator(object):
 
             cenv = cenv + delta_c*p.dt
 
+            cenv = fd.integrator(cenv)
+
             if p.closed_bound is True:
                 # Neumann boundary condition (flux at boundary)
                 # zero flux boundaries for concentration:
@@ -2931,7 +2929,6 @@ class Simulator(object):
 
             self.I_tot_x = I_env_x
             self.I_tot_y = I_env_y
-
 
     def getFlow(self,cells,p):
         """
