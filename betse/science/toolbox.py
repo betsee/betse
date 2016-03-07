@@ -274,8 +274,8 @@ def step(t,t_on,t_change):
     # x = g*(t-t_on)
     # y = expit(x)
 
-    if np.isnan(y):
-        y= 0
+    # if np.isnan(y):
+    #     y= 0
 
     return y
 
@@ -307,8 +307,8 @@ def pulse(t,t_on,t_off,t_change):
 
     y = y1 - y2
 
-    if np.isnan(y):
-        y=0
+    # if np.isnan(y):
+    #     y=0
 
     return y
 

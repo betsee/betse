@@ -780,54 +780,6 @@ class TissueHandler(object):
 
                 sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.map_mem2ecm]
 
-    # def vgCalcium(self,sim,cells,p,t):
-    #     '''
-    #     Handle all **targeted voltage-gated calcium channels** (i.e., only
-    #     applicable to specific tissue profiles) specified by the passed
-    #     user-specified parameters on the passed tissue simulation and cellular
-    #     world for the passed time step.
-    #     '''
-    #
-    #      # detect condition to turn vg_Ca channel on:
-    #     truth_vmGTvon_Ca = sim.vm > self.v_on_Ca  # bools for cells with vm greater than the on threshold for vgK
-    #
-    #     if p.sim_ECM is False:
-    #         truth_caLTcaOff = sim.cc_cells[sim.iCa] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
-    #
-    #     else:
-    #         truth_caLTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] < self.ca_lower_ca # check that cellular calcium is below inactivating Ca
-    #
-    #     truth_depol_Ca = self.dvsign == 1  # bools matrix for cells that are depolarizing
-    #     truth_vgCa_OFF = self.vgCa_state == 0   # bools matrix for cells that are in the off state
-    #
-    #     # cells at these indices will become activated in this time step:
-    #     inds_activate_Ca = (truth_vmGTvon_Ca*truth_depol_Ca*truth_caLTcaOff*truth_vgCa_OFF*self.target_mask_vgCa).nonzero()
-    #     self.vgCa_state[inds_activate_Ca] = 1  # set the state of these channels to "open"
-    #
-    #     # detect condition to turn off vg_Ca channel:
-    #     if p.sim_ECM is False:
-    #         truth_caGTcaOff = sim.cc_cells[sim.iCa] > self.ca_upper_ca   # check that calcium exceeds maximum
-    #
-    #     else:
-    #         truth_caGTcaOff = sim.cc_cells[sim.iCa][cells.mem_to_cells] > self.ca_upper_ca   # check that calcium exceeds maximum
-    #
-    #     truth_vgCa_ON = self.vgCa_state == 1 # check that the channel is on
-    #     inds_inactivate_Ca = (truth_caGTcaOff*truth_vgCa_ON*self.target_mask_vgCa).nonzero()
-    #     self.vgCa_state[inds_inactivate_Ca] = 0
-    #
-    #     # additional condition to turn off vg_Ca via depolarizing voltage:
-    #     truth_vmGTvcaOff = sim.vm > self.v_off_Ca
-    #     inds_inactivate_Ca_2 = (truth_vmGTvcaOff*self.target_mask_vgCa*truth_vgCa_ON).nonzero()
-    #     self.vgCa_state[inds_inactivate_Ca_2] = 0
-    #
-    #     inds_open_Ca = (self.vgCa_state == 1).nonzero()
-    #     self.active_Ca[inds_open_Ca] = 1
-    #
-    #     inds_closed_Ca =(self.vgCa_state == 0).nonzero()
-    #     self.active_Ca[inds_closed_Ca] = 0
-    #
-    #     sim.Dm_vg[sim.iCa] = self.maxDmCa*self.active_Ca
-
     def stretchChannel(self,sim,cells,p,t):
 
         dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)

@@ -949,7 +949,7 @@ class Simulator(object):
             self.vm_to = np.copy(self.vm)       # reassign the history-saving vm
 
             if p.Ca_dyn ==1 and p.ions_dict['Ca'] == 1:
-                self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
+                self.dcc_ER = (np.asarray(self.cc_er) - np.asarray(self.cc_er_to))/p.dt
                 # self.cc_er_to = copy.deepcopy(self.cc_er)
                 self.cc_er_to = self.cc_er[:]
 
@@ -1270,6 +1270,7 @@ class Simulator(object):
             self.vm_to = np.copy(self.vm)       # reassign the history-saving vm
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
+
                 self.dcc_ER = (self.cc_er - self.cc_er_to)/p.dt
 
                 self.cc_er_to = np.copy(self.cc_er)
@@ -1327,6 +1328,7 @@ class Simulator(object):
                 self.update_V_ecm(cells,p,t)
 
                 if p.Ca_dyn ==1:
+
                     f_Ca_ER = pumpCaER(
                         self.cc_er[0],
                         self.cc_cells[self.iCa],
@@ -1570,6 +1572,7 @@ class Simulator(object):
             self.rho_pump_time = []
 
         if p.Ca_dyn is True:
+            self.cc_er_time = []
             self.cc_er_to = np.copy(self.cc_er[:])
 
         if p.sim_ECM is True:
@@ -1844,7 +1847,7 @@ class Simulator(object):
             v_env[cells.map_mem2ecm] = v_ecm_at_mem
 
             # smooth out the environmental voltage:
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),1)
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)  # FIXME make the smoothing value a config variable
             # v_env = fd.integrator(v_env.reshape(cells.X.shape))
             v_env = v_env.ravel()
 
@@ -2016,8 +2019,10 @@ class Simulator(object):
             alpha_gj = self.gj_funk.alpha_gj
             beta_gj = self.gj_funk.beta_gj_p
 
+            vgj = np.abs(self.vgj)
 
-            dgjopen_dt = (1 - self.gjopen)*alpha_gj(self.vgj) - (self.gjopen - gmin)*beta_gj(self.vgj)
+
+            dgjopen_dt = (1 - self.gjopen)*alpha_gj(vgj) - (self.gjopen - gmin)*beta_gj(vgj)
 
             self.gjopen = self.gjopen + 1e3*dgjopen_dt*p.dt
 

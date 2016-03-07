@@ -235,8 +235,6 @@ def cagPotassium(dyna,sim,cells,p):
     # calculate probability of channel being open or closed:
     P = 1/(1+((t1/t2)**4)*6182*np.exp(-(1.64*p.F*sim.vm)/(p.R*sim.T)))
 
-    # print(P.mean())
-
     # ensure proper probability behaviour:
     inds_P_over = (P > 1.0).nonzero()
     P[inds_P_over] = 1.0
@@ -256,13 +254,33 @@ def vgCalcium(dyna,sim,cells,p):
 
     v = 1e3*sim.vm  # FIXME must be at targets!
 
-    # model of: K P Carlin et. al; Eur. J. Neurosci. 2000--------------
+
+    # # Find areas where the differential equation is intrinsically ill-behaved:
+    # truth_inds_ha = v < -69
+    # truth_inds_hb = v > -71
+    #
+    # v_inds_h = (truth_inds_ha*truth_inds_hb).nonzero()
+    #
+    # truth_inds_ma = v < -19
+    # truth_inds_mb = v > -21
+    #
+    # v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
+    #
+    # # small correction constant on the voltage
+    # corr_const = 1.0e-6
+    #
+    # v[v_inds_m] = v + corr_const
+    # v[v_inds_h] = v + corr_const
+
+    # model of: K P Carlin et. al; Eur. J. Neurosci. 2000 L-Type------------
     mInf = 1.0/(1+ np.exp(-((v - 10) + 30.0)/6))
     hInf = 1.0/(1+ np.exp(((v-10)+80.0)/6.4))
     mTau = 5.0 + 20.0/(1 + np.exp(((v-10)+25.0)/5))
     hTau = 20.0 + (50.0/(1 + np.exp(((v-10)+40.0)/7)))
 
-    # model of: R B Avery et. al; J. Neurosci. 1996 Sep 15 ------------
+    mpower = 2
+
+    # model of: R B Avery et. al; J. Neurosci. 1996 Sep 15 L-Type--------
 
     # mInf = 1.0000/(1+ np.exp(-(v + 30.000)/6))
     # mTau = 10
@@ -280,27 +298,42 @@ def vgCalcium(dyna,sim,cells,p):
     # mTau[inds_vn10] = -0.855809 + (1.493527*np.exp(-v[inds_vn10]/27.414182))
     # mTau[inds_vp10] = 1.0
     #
+    # # mTau = -0.855809 + (1.493527*np.exp(-v/27.414182))
+    #
     # hInf = 1 /(1+np.exp((v-(-72.907420))/4.575763))
     # hTau = 9.987873 + (0.002883 * np.exp(-v/5.598574))
+    #
+    # mpower = 1
 
     #-------------------------------------------------------------------
 
     dyna.m_Ca = ((mInf - dyna.m_Ca)/mTau)*p.dt*1e3 + dyna.m_Ca
     dyna.h_Ca = ((hInf - dyna.h_Ca)/hTau)*p.dt*1e3 + dyna.h_Ca
 
-    inds_mCa_over = (dyna.m_Ca > 1.0).nonzero()
-    dyna.m_Ca[inds_mCa_over] = 1.0
+    # print(dyna.m_Ca.max(),dyna.h_Ca.max())
 
-    inds_mCa_under = (dyna.m_Ca < 0.0).nonzero()
-    dyna.m_Ca[inds_mCa_under] = 0.0
+    # dyna.m_Ca[v_inds_m] = dyna.m_Ca*(1 + corr_const)
+    # dyna.m_Ca[v_inds_h] = dyna.m_Ca*(1 + corr_const)
+    # dyna.h_Ca[v_inds_m] = dyna.h_Ca*(1 + corr_const)
+    # dyna.h_Ca[v_inds_h] = dyna.h_Ca*(1 + corr_const)
 
-    inds_hCa_over = (dyna.h_Ca > 1.0).nonzero()
-    dyna.h_Ca[inds_hCa_over] = 1.0
+    # inds_mCa_over = (dyna.m_Ca > 1.0).nonzero()
+    # dyna.m_Ca[inds_mCa_over] = 1.0
+    #
+    # inds_mCa_under = (dyna.m_Ca < 0.0).nonzero()
+    # dyna.m_Ca[inds_mCa_under] = 0.0
+    #
+    # inds_hCa_over = (dyna.h_Ca > 1.0).nonzero()
+    # dyna.h_Ca[inds_hCa_over] = 1.0
+    #
+    # inds_hCa_under = (dyna.h_Ca < 0.0).nonzero()
+    # dyna.h_Ca[inds_hCa_under] = 0.0
 
-    inds_hCa_under = (dyna.h_Ca < 0.0).nonzero()
-    dyna.h_Ca[inds_hCa_under] = 0.0
+    P = (dyna.m_Ca**mpower)*(dyna.h_Ca)
 
-    P = (dyna.m_Ca**2)*(dyna.h_Ca)
+    # print("P",P.max())
+    #
+    # print('-----')
 
     sim.Dm_vg[sim.iCa] = dyna.maxDmCa*P
 
@@ -311,6 +344,10 @@ def vgCalcium_init(dyna,sim,p):
     # model of: K P Carlin et. al; Eur. J. Neurosci. 2000--------------
     dyna.m_Ca = 1.0/(1+ np.exp(-((v - 10) + 30.0)/6))
     dyna.h_Ca = 1.0/(1+ np.exp(((v-10)+80.0)/6.4))
+
+    # T-type channel:
+    # dyna.m_Ca = 1 /(1+np.exp((v-(-42.921064))/-5.163208))
+    # dyna.h_Ca = 1 /(1+np.exp((v-(-72.907420))/4.575763))
 
 # defaults--------------------------------------------------------------------------------------------------------------
 
@@ -482,17 +519,17 @@ def vgSodium(dyna,sim,cells,p):
     #--------------------------------------------------------------------------------
 
     # threshhold to ensure 0 to 1 status of gates
-    inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-    dyna.m_Na[inds_mNa_over] = 1.0
-
-    inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-    dyna.h_Na[inds_hNa_over] = 1.0
-
-    inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-    dyna.m_Na[inds_mNa_under] = 0.0
-
-    inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-    dyna.h_Na[inds_hNa_under] = 0.0
+    # inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
+    # dyna.m_Na[inds_mNa_over] = 1.0
+    #
+    # inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
+    # dyna.h_Na[inds_hNa_over] = 1.0
+    #
+    # inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
+    # dyna.m_Na[inds_mNa_under] = 0.0
+    #
+    # inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
+    # dyna.h_Na[inds_hNa_under] = 0.0
 
     # final probability of open-closed state:
 
@@ -629,17 +666,17 @@ def vgPotassium(dyna,sim,cells,p):
     dyna.h_K = ((hInf - dyna.h_K)/hTau)*p.dt*1e3 + dyna.h_K
     # dyna.h_K[:] = 1
 
-    inds_mK_over = (dyna.m_K > 1.0).nonzero()
-    dyna.m_K[inds_mK_over] = 1.0
-
-    inds_mK_under = (dyna.m_K < 0.0).nonzero()
-    dyna.m_K[inds_mK_under] = 0.0
-
-    inds_hK_over = (dyna.h_K > 1.0).nonzero()
-    dyna.h_K[inds_hK_over] = 1.0
-
-    inds_hK_under = (dyna.h_K < 0.0).nonzero()
-    dyna.h_K[inds_hK_under] = 0.0
+    # inds_mK_over = (dyna.m_K > 1.0).nonzero()
+    # dyna.m_K[inds_mK_over] = 1.0
+    #
+    # inds_mK_under = (dyna.m_K < 0.0).nonzero()
+    # dyna.m_K[inds_mK_under] = 0.0
+    #
+    # inds_hK_over = (dyna.h_K > 1.0).nonzero()
+    # dyna.h_K[inds_hK_over] = 1.0
+    #
+    # inds_hK_under = (dyna.h_K < 0.0).nonzero()
+    # dyna.h_K[inds_hK_under] = 0.0
 
     # open probability
     P =  (dyna.m_K**mexp)*(dyna.h_K)

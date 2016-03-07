@@ -162,9 +162,9 @@ def pumpCaER(cCai,cCao,Vm,T,p):
     delG_CaATP = deltaGATP - (delG_Ca)
     delG_pump = (delG_CaATP/1000)
 
-    alpha = p.alpha_CaER*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
+    alpha = p.alpha_CaER*(delG_pump - p.halfmax_Ca)
 
-    f_Ca  = alpha*(cCao**(1/2))*(cCai**(1/2))      #flux as [mol/s]
+    f_Ca  = alpha*(cCao)*(cCai)      #flux as [mol/s]
 
     return f_Ca
 
