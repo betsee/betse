@@ -2926,12 +2926,6 @@ class Simulator(object):
             I_env_x = self.I_env_x.reshape(cells.X.shape)/(cells.delta*p.cell_height)
             I_env_y = self.I_env_y.reshape(cells.X.shape)/(cells.delta*p.cell_height)
 
-            # I_env_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_x,(cells.Xgrid,cells.Ygrid),
-            #                           method=p.interp_type,fill_value=0)
-            #
-            # I_env_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),self.I_env_y,(cells.Xgrid,cells.Ygrid),
-            #                           method=p.interp_type,fill_value=0)
-
             self.I_tot_x = I_env_x
             self.I_tot_y = I_env_y
 
