@@ -162,6 +162,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if p.ani_vm2d is True:
         if p.sim_ECM is False:
             vmplt = [1000*arr for arr in sim.vm_time[1:]]
+            scale_v = [1000*arr for arr in sim.vm_time[1:]]
         else:
             vmplt = [1000*arr for arr in sim.vm_Matrix[1:]]
             scale_v = [1000*arr for arr in sim.vm_time[1:]]

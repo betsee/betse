@@ -1034,7 +1034,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         ax_x = plt.subplot(111)
         con_segs = cells.nn_edges
         connects = p.um*np.asarray(con_segs)
-        collection = LineCollection(connects, array=sim.gjopen, cmap= p.default_cm, linewidths=2.0)
+        collection = LineCollection(connects, array=sim.gjopen, cmap= p.background_cm, linewidths=2.0)
         ax_x.add_collection(collection)
         cb = fig_x.colorbar(collection)
         plt.axis('equal')

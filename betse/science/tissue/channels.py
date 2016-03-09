@@ -425,7 +425,7 @@ def vgSodium(dyna,sim,cells,p):
     v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
 
     # small correction constant on the voltage
-    corr_const = 1.0e-10
+    corr_const = 1.0e-6
 
     V[v_inds_m] = V + corr_const
     V[v_inds_h] = V + corr_const
@@ -535,6 +535,9 @@ def vgSodium(dyna,sim,cells,p):
 
     P = (dyna.m_Na**3)*(dyna.h_Na)
 
+    if P.min() < 0.0 or P.max() > 1.0:
+        print(P.min(),P.max())
+
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa*P
 
@@ -554,7 +557,7 @@ def vgSodium_init(dyna,sim,p):
     v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
 
     # small correction constant on the voltage
-    corr_const = 1.0e-10
+    corr_const = 1.0e-6
 
     V[v_inds_m] = V + corr_const
     V[v_inds_h] = V + corr_const
