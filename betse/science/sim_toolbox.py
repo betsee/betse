@@ -164,7 +164,7 @@ def pumpCaER(cCai,cCao,Vm,T,p):
 
     alpha = p.alpha_CaER*(delG_pump - p.halfmax_Ca)
 
-    f_Ca  = alpha*(cCao)*(cCai)      #flux as [mol/s]
+    f_Ca  = alpha*(cCao)      #flux as [mol/s]
 
     return f_Ca
 

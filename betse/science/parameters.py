@@ -1023,7 +1023,7 @@ class Parameters(object):
 
             assert self.z_M_cell == -1
 
-            self.cCa_er = 1.0e-3
+            self.cCa_er = 0.5
             self.cM_er = self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':0,'Ca':1,'H':0,'P':1,'M':1}

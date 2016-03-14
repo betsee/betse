@@ -792,7 +792,9 @@ class TissueHandler(object):
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
 
     def calciumDynamics(self,sim,cells,p):
+
         if p.Ca_dyn_options['CICR'] != 0:
+
             if len(p.Ca_dyn_options['CICR'][1])==0:
                 term_Ca_reg = 1.0
 
