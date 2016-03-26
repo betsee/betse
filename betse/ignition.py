@@ -17,6 +17,16 @@ High-level application initialization common to both the CLI and GUI.
 #
 #    https://stackoverflow.com/a/19350234/2809027
 
+#FIXME: Consider optimizing frequently used matrix and vector computations with
+#Theano, a general-purpose Python mathematical optimization framework. One
+#particularly compelling use case for Theano is to portably distribute
+#computational work across multiple GPUs. In general, Theano can be used to
+#reduce arbitrarily complex symbolic expressions expressed in pure Python to
+#dynamically compiled machine code on-the-fly. Fairly amazing, all around. For
+#the high-level synopsis, see:
+#
+#    http://deeplearning.net/software/theano/introduction.html
+
 # ....................{ IMPORTS                            }....................
 from betse import pathtree
 from betse.lib import libs

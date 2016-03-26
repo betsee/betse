@@ -74,16 +74,36 @@ Under Linux, `betse` also requires:
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), these
 dependencies are installable in a system-wide manner as follows:
 
-    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyside python3-scipy python3-setuptools python3-six python3-yaml tcl tk &&
+    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyqt5 python3-scipy python3-setuptools python3-six python3-yaml tcl tk &&
       sudo pip3 install yamale
 
-If the version of Matplotlib provided by your Linux distribution is
-older than that required by `betse`, the newest stable version of Matplotlib
-may be manually installed as follows:
+Under some (especially older) Debian-based Linux distributions, the above
+instructions may not entirely suffice to satisfy all installation-time or
+runtime requirements. Under these ditributions, dependencies may require some
+form of recompilation, relinking, or reinstallation.
+
+##### Updated Matplotlib
+
+`betse` requires a fairly recent version of Matplotlib. If the newest version of
+Matplotlib installed by your distribution is insufficient, the newest version of
+Matplotlib may be manually installed as follows:
 
     $ sudo apt-get uninstall python3-matplotlib &&
       sudo apt-get install gcc gfortran libfreetype6-dev libpng-dev libpython3-all-dev tcl-dev tk-dev &&
       sudo pip3 install matplotlib[all]
+
+##### Optimized BLAS and LAPACK
+
+`betse` strongly recommends that optimized (rather than the unoptimized default)
+implementations of the BLAS and LAPACK APIs for linear algebra be used. While
+there exist numerous alternatives both open-source (e.g., CBLAS) and
+proprietary (e.g., MKL), the following instructions assume use of ATLAS -- the
+standard baseline for BLAS and LAPACK optimizations. ATLAS is installable in a
+system-wide manner as follows:
+
+    $ sudo apt-get install build-essential libatlas-dev libatlas3gf-base &&
+      sudo update-alternatives --set libblas.so.3 /usr/lib/atlas-base/atlas/libblas.so.3 &&
+      sudo update-alternatives --set liblapack.so.3 /usr/lib/atlas-base/atlas/liblapack.so.3
 
 #### Apple OS X
 
