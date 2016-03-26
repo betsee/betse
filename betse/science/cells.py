@@ -120,7 +120,6 @@ class Cells(object):
 
             self.lapGJinv = None
 
-
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
@@ -132,6 +131,10 @@ class Cells(object):
             self.environment(p)   # features of the environment, without Poisson solvers...
 
             self.lapGJinv = None
+
+        # factors for heterostructure averaging
+        self.ave2cellV = (self.mem_sa*p.cell_space)/self.cell_vol[self.mem_to_cells]
+        self.ave2ecmV =  (self.ecm_vol/(p.cell_height*self.delta**2))
 
     def deformWorld(self,p):
         """

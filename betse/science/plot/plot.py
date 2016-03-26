@@ -1065,7 +1065,6 @@ def exportData(cells,sim,p):
 
     headr = headr + ',' + 'Displacement_um'
 
-
     # FFT of voltage :
     sample_size = len(sim.time)
     sample_spacing = sim.time[1] - sim.time[0]

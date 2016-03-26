@@ -1816,7 +1816,7 @@ class Simulator(object):
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
             # smooth out the environmental charge:
-            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),1)
+            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),2)
             # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
             # self.rho_env = self.rho_env.ravel()
 
@@ -1847,7 +1847,7 @@ class Simulator(object):
             v_env[cells.map_mem2ecm] = v_ecm_at_mem
 
             # smooth out the environmental voltage:
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)  # FIXME make the smoothing value a config variable
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),2)
             # v_env = fd.integrator(v_env.reshape(cells.X.shape))
             v_env = v_env.ravel()
 
@@ -2827,13 +2827,17 @@ class Simulator(object):
             venv = self.v_env.reshape(cells.X.shape)
             genv_x, genv_y = fd.gradient(venv, cells.delta)
 
-            self.E_env_x = -genv_x
-            self.E_env_y = -genv_y
+            self.E_env_x = -genv_x.ravel()*cells.ave2ecmV
+            self.E_env_y = -genv_y.ravel()*cells.ave2ecmV
+
+            self.E_env_x = gaussian_filter(self.E_env_x.reshape(cells.X.shape),2)
+            self.E_env_y = gaussian_filter(self.E_env_y.reshape(cells.X.shape),2)
 
         else:
 
-            # vmem = self.vm[cells.mem_to_cells]
             self.Egj = - (self.vm[cells.cell_nn_i[:,1]] - self.vm[cells.cell_nn_i[:,0]])/cells.gj_len
+
+        # self.Egj = self.Egj*cells.ave2cellV # scale from cell space volume to whole cell volume
 
         # get x and y components of the electric field:
         self.E_gj_x = cells.cell_nn_tx*self.Egj
@@ -2851,7 +2855,7 @@ class Simulator(object):
 
         for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
 
-            I_i_x = flux_array*zi*p.F
+            I_i_x = flux_array*zi*p.F*cells.mem_sa
 
             I_gj_x = I_gj_x + I_i_x
 
@@ -2860,7 +2864,7 @@ class Simulator(object):
 
         for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
 
-            I_i_y = flux_array*zi*p.F
+            I_i_y = flux_array*zi*p.F*cells.mem_sa
 
             I_gj_y = I_gj_y + I_i_y
 
@@ -2873,18 +2877,20 @@ class Simulator(object):
         self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.X,cells.Y),
                                       method=p.interp_type,fill_value=0)
 
+        self.I_gj_x = self.I_gj_x/(cells.delta*p.cell_height)
+        self.I_gj_y = self.I_gj_y/(cells.delta*p.cell_height)
+
         # self.I_gj_y = np.multiply(self.I_gj_y,cells.maskECM)
 
-        # self.I_tot_x = self.I_tot_x + self.I_gj_x
-        # self.I_tot_y = self.I_tot_y + self.I_gj_y
+        self.I_tot_x = self.I_tot_x + self.I_gj_x
+        self.I_tot_y = self.I_tot_y + self.I_gj_y
 
         # calculate current across cell membranes:
 
         self.I_mem = np.zeros(len(cells.mem_i))
         for flux_array, zi in zip(self.fluxes_mem,self.zs):
 
-            # I_i = (flux_array*zi*p.F)/(self.gjopen*self.gjsa)
-            I_i = flux_array*zi*p.F
+            I_i = flux_array*zi*p.F*cells.mem_sa
 
             self.I_mem = self.I_mem + I_i
 
@@ -2901,10 +2907,13 @@ class Simulator(object):
                                       method=p.interp_type,fill_value=0)
         # self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
 
+        self.I_mem_x = self.I_mem_x/(cells.delta*p.cell_height)
+        self.I_mem_y = self.I_mem_y/(cells.delta*p.cell_height)
+
         # add membrane current to total current:
 
-        # self.I_tot_x = self.I_tot_x + self.I_mem_x
-        # self.I_tot_y = self.I_tot_y + self.I_mem_y
+        self.I_tot_x = self.I_tot_x + self.I_mem_x
+        self.I_tot_y = self.I_tot_y + self.I_mem_y
 
         if p.sim_ECM is True:
 
@@ -2926,10 +2935,11 @@ class Simulator(object):
             I_env_x = self.I_env_x.reshape(cells.X.shape)/(cells.delta*p.cell_height)
             I_env_y = self.I_env_y.reshape(cells.X.shape)/(cells.delta*p.cell_height)
 
-            self.I_tot_x = I_env_x
-            self.I_tot_y = I_env_y
+            self.I_tot_x = self.I_tot_x + I_env_x
+            self.I_tot_y = self.I_tot_y + I_env_y
 
-    def getFlow(self,cells,p):
+    def getFlow(self,cells,p): # FIXME I think this may need to go back to hygen-poussille pipe flow
+
         """
         Calculate the electroosmotic fluid flow in the cell and extracellular
         networks.
@@ -2938,7 +2948,6 @@ class Simulator(object):
 
         if p.sim_ECM is True:
 
-            # method 1-------------------------------------------------------------------------------------------------
             # force of gravity:
             if p.closed_bound is True:
 
@@ -2950,15 +2959,7 @@ class Simulator(object):
 
             # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
             # for the world:
-            alpha = (1/p.mu_water)*self.D_env_weight
-            #---------------------------------------------------------
-
-            # # get an average value for the field at the outer membrane -- need to interpolate intracellular fields:
-            # E_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_x,(cells.X,cells.Y),
-            #                           method=p.interp_type,fill_value=0)
-            #
-            # E_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),self.E_gj_y,(cells.X,cells.Y),
-            #                           method=p.interp_type,fill_value=0)
+            alpha = (1/p.mu_water)*self.D_env_weight*1.0e-6
 
             E_ave_x = self.E_env_x
             E_ave_y = self.E_env_y
@@ -2966,17 +2967,21 @@ class Simulator(object):
             if p.deform_electro is True:
 
                 # determine the geometric factor to map charge density from volume to surface:
-                # if p.simulate_TEP is True:
-                Qfactor = p.cell_space
+                # Qfactor = p.cell_space
+                #
+                # Fe_x = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_x
+                # Fe_y = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_y
 
-                # else:
-                #     Qfactor = cells.delta
+                # map charge density to rectangular grid volume:
+                Qenv = self.rho_env*cells.ave2ecmV
 
-                # calculate the electroosmotic force:
-                # self.rho_env[cells.inds_env] = 0
+                # Qenv = Qenv.reshape(cells.X.shape)
 
-                Fe_x = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_x
-                Fe_y = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_y
+                Qenv = gaussian_filter(Qenv.reshape(cells.X.shape),2)
+
+                Fe_x = Qenv*E_ave_x
+                Fe_y = Qenv*E_ave_y
+
 
             else:
 
@@ -3003,7 +3008,7 @@ class Simulator(object):
 
             # perform finite volume integration on the divergence:
             # div_uo = fd.integrator(div_uo)
-            div_uo = cells.grid_obj.grid_int(div_uo,bounds=btag)
+            # div_uo = cells.grid_obj.grid_int(div_uo,bounds=btag)
 
             # calculate the alpha-scaled internal pressure from the divergence of the force:
             P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
@@ -3071,12 +3076,12 @@ class Simulator(object):
             F_osmo_y = np.zeros(len(cells.cell_i))
 
         # net force is the sum of electrostatic and hydrostatic pressure induced body forces:
-        F_net_x = Fe_cell_x + self.F_hydro_x
-        F_net_y = Fe_cell_y + self.F_hydro_y
+        F_net_x = Fe_cell_x + F_osmo_x
+        F_net_y = Fe_cell_y + F_osmo_y
 
         # integrate body forces:
-        F_net_x = cells.integrator(F_net_x)
-        F_net_y = cells.integrator(F_net_y)
+        # F_net_x = cells.integrator(F_net_x)
+        # F_net_y = cells.integrator(F_net_y)
 
         # Calculate flow under body forces:
         u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
@@ -3446,21 +3451,22 @@ class Simulator(object):
 
         """
 
-        # map charge in cell to the membrane:
-        Q_mem = self.rho_cells[cells.mem_to_cells]
+        # map charge in cell to the membrane, averaging between two cells:
+        Q_mem = (self.rho_cells[cells.cell_nn_i[:,1]] + self.rho_cells[cells.cell_nn_i[:,0]])/2
+        Q_mem = Q_mem*cells.ave2cellV
 
-        if p.sim_ECM is False:
+        # if p.sim_ECM is False:
+        #
+        #     Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
+        #             self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
+        #
+        # else:
+        #
+        #     Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
+        #             self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
 
-            Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
-                    self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
-
-        else:
-
-            Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
-                    self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
-
-        F_x = (1/2)*Q_mem*Eab_o*cells.cell_nn_tx
-        F_y = (1/2)*Q_mem*Eab_o*cells.cell_nn_ty
+        F_x = Q_mem*self.Egj*cells.cell_nn_tx
+        F_y = Q_mem*self.Egj*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
         self.F_electro_x = np.dot(cells.M_sum_mems, F_x)/cells.num_mems
