@@ -106,7 +106,7 @@ Automatically Tuned Linear Algebra Software (ATLAS) is the standard baseline
 for all optimized BLAS and LAPACK implementations. ATLAS is installable in a
 system-wide manner as follows:
 
-    $ sudo apt-get install build-essential libatlas-dev libatlas3gf-base &&
+    $ sudo apt-get install build-essential libatlas-dev libatlas-base-dev libatlas3gf-base &&
       sudo update-alternatives --set libblas.so.3 /usr/lib/atlas-base/atlas/libblas.so.3 &&
       sudo update-alternatives --set liblapack.so.3 /usr/lib/atlas-base/atlas/liblapack.so.3
 
