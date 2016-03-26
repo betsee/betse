@@ -16,6 +16,10 @@ High-level application initialization common to both the CLI and GUI.
 #established at this point. We can't really see it going away. See also:
 #
 #    https://stackoverflow.com/a/19350234/2809027
+#FIXME: Phenomenal Python code for profiling system metadata, including BLAS,
+#LAPACK, Atlas, OpenBLAS, and numpy-specific system metadata is available at:
+#
+#    https://gist.github.com/sandys/258707dae9b79308594b#file-system_info-py
 
 #FIXME: Consider optimizing frequently used matrix and vector computations with
 #Theano, a general-purpose Python mathematical optimization framework. One
