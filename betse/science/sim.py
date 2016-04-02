@@ -715,7 +715,14 @@ class Simulator(object):
 
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(len(cells.mem_i))
+
         self.Dm_cells[self.iK] = (p.channel_noise_level*self.channel_noise_factor + 1)*self.Dm_cells[self.iK]
+
+        # indsNeg = (self.Dm_cells[self.iK] < 0).nonzero()
+        #
+        # self.Dm_cells[self.iK][indsNeg] = 1.0e-18
+
+        # print(self.Dm_cells[self.iK].min(),self.Dm_cells[self.iK].max())
 
         if p.dynamic_noise is True:
             # add a random walk on protein concentration to generate dynamic noise:
