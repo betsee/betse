@@ -2945,7 +2945,7 @@ class Simulator(object):
             self.I_tot_x = self.I_tot_x + I_env_x
             self.I_tot_y = self.I_tot_y + I_env_y
 
-    def getFlow(self,cells,p): # FIXME I think this may need to go back to hygen-poussille pipe flow
+    def getFlow_o(self,cells,p):
 
         """
         Calculate the electroosmotic fluid flow in the cell and extracellular
@@ -3123,6 +3123,156 @@ class Simulator(object):
 
         self.u_cells_x = u_gj_xo - gPx_cell
         self.u_cells_y = u_gj_yo - gPy_cell
+
+        # enforce the boundary conditions:
+        self.u_cells_x[cells.bflags_cells] = 0
+        self.u_cells_y[cells.bflags_cells] = 0
+
+    def getFlow(self, cells, p):
+
+        """
+        Calculate the electroosmotic fluid flow in the cell and extracellular
+        networks using Hagen–Poiseuille "pipe flow" equation.
+
+        """
+
+        # First do extracellular space electroosmotic flow--------------------------------------------------------------
+
+        if p.sim_ECM is True:
+
+            # force of gravity:
+            if p.closed_bound is True:
+
+                btag = 'closed'
+
+            else:
+
+                btag = 'open'
+
+            # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
+            # for the world:
+            alpha = ((p.cell_space**2)/(p.mu_water*32))*self.D_env_weight
+
+            if p.deform_electro is True:
+
+                # map charge density to rectangular grid volume:
+                Qenv = self.rho_env*cells.ave2ecmV
+
+                Qenv = gaussian_filter(Qenv.reshape(cells.X.shape), 1)
+
+                Fe_x = Qenv*self.E_env_x
+                Fe_y = Qenv*self.E_env_y
+
+
+            else:
+
+                Fe_x = np.zeros(cells.X.shape)
+                Fe_y = np.zeros(cells.Y.shape)
+
+            # sum the forces:
+            Fx = Fe_x
+            Fy = Fe_y
+
+            # calculated the base fluid flow using the Hagen-Poiseuille equation:
+            ux_ecm_o = gaussian_filter(Fx*alpha,1)
+            uy_ecm_o = gaussian_filter(Fy*alpha,1)
+
+            # calculate the divergence of the flow field as the sum of the two spatial derivatives:
+            div_uo = fd.divergence(ux_ecm_o, uy_ecm_o,cells.delta, cells.delta)
+
+            # calculate the alpha-scaled internal pressure from the divergence of the force:
+            P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
+            P = P.reshape(cells.X.shape)
+
+            # enforce zero normal gradient boundary conditions on P:
+            P[:, 0] = P[:, 1]
+            P[:, -1] = P[:, -2]
+            P[0, :] = P[1, :]
+            P[-1, :] = P[-2, :]
+
+            # Take the grid gradient of the scaled internal pressure:
+            gPx, gPy = fd.gradient(P, cells.delta)
+
+            # subtract the pressure term from the solution to yield a divergence-free flow field
+            u_env_x = ux_ecm_o.reshape(cells.X.shape) - gPx
+            u_env_y = uy_ecm_o.reshape(cells.X.shape) - gPy
+
+            # velocities at grid-cell centres:
+            self.u_env_x = u_env_x[:]
+            self.u_env_y = u_env_y[:]
+
+            # boundary conditions reinforced:
+            self.u_env_x[:, 0] = 0
+            # right
+            self.u_env_x[:, -1] = 0
+            # top
+            self.u_env_x[-1, :] = 0
+            # bottom
+            self.u_env_x[0, :] = 0
+
+            # left
+            self.u_env_y[:, 0] = 0
+            # right
+            self.u_env_y[:, -1] = 0
+            # top
+            self.u_env_y[-1, :] = 0
+            # bottom
+            self.u_env_y[0, :] = 0
+
+        #-------Next do flow through gap junction connected cells-------------------------------------------------------
+
+        # calculate the inverse viscosity for the cell collection, which is scaled by gj state:
+        alpha_gj = (1/(32*p.mu_water))*((self.gjopen*5e-10)**2)
+        # alpha_gj = (1/(128*p.mu_water))*((self.gjopen*10e-9)**2)*(1/(cells.mem_sa*p.gj_surface))
+
+        if p.deform_electro is True:
+
+            Fe_cell_x = self.F_gj_x
+            Fe_cell_y = self.F_gj_y
+
+        else:
+            Fe_cell_x = np.zeros(len(cells.mem_i))
+            Fe_cell_y = np.zeros(len(cells.mem_i))
+
+        if p.deform_osmo is True:
+
+            F_osmo_x = self.F_hydro_x_gj
+            F_osmo_y = self.F_hydro_y_gj
+
+        else:
+
+            F_osmo_x = np.zeros(len(cells.mem_i))
+            F_osmo_y = np.zeros(len(cells.mem_i))
+
+        # net force is the sum of electrostatic and hydrostatic pressure induced body forces:
+        F_net_x = Fe_cell_x + F_osmo_x
+        F_net_y = Fe_cell_y + F_osmo_y
+
+        # Calculate flow under body forces:
+        u_gj_xo = F_net_x*alpha_gj
+        u_gj_yo = F_net_y*alpha_gj
+
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        u_gj = np.sqrt(u_gj_xo**2 + u_gj_yo**2)
+
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        div_u = (np.dot(cells.M_sum_mems, u_gj*cells.mem_sa*p.gj_surface*self.gjopen)/cells.cell_vol)
+
+        # calculate the reaction pressure required to counter-balance the flow field:
+        P_react = np.dot(cells.lapGJ_P_inv, div_u)
+
+        # calculate its gradient:
+        gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+        gP_x = gradP_react * cells.cell_nn_tx
+        gP_y = gradP_react * cells.cell_nn_ty
+
+        u_gj_x = u_gj_xo - gP_x
+        u_gj_y = u_gj_yo - gP_y
+
+        # average the components at cell centres:
+        self.u_cells_x = np.dot(cells.M_sum_mems, u_gj_x)/cells.num_mems
+        self.u_cells_y = np.dot(cells.M_sum_mems, u_gj_y)/cells.num_mems
 
         # enforce the boundary conditions:
         self.u_cells_x[cells.bflags_cells] = 0
@@ -3440,14 +3590,15 @@ class Simulator(object):
         #----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
 
         # determine body force due to hydrostatic pressure gradient between cells:
+
         gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
 
-        F_hydro_x = gPcells*cells.cell_nn_tx
-        F_hydro_y = gPcells*cells.cell_nn_ty
+        self.F_hydro_x_gj = gPcells*cells.cell_nn_tx
+        self.F_hydro_y_gj = gPcells*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
-        self.F_hydro_x = np.dot(cells.M_sum_mems, F_hydro_x) / cells.num_mems
-        self.F_hydro_y = np.dot(cells.M_sum_mems, F_hydro_y) / cells.num_mems
+        self.F_hydro_x = np.dot(cells.M_sum_mems, self.F_hydro_x_gj)/cells.num_mems
+        self.F_hydro_y = np.dot(cells.M_sum_mems, self.F_hydro_y_gj)/cells.num_mems
 
         self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
 
@@ -3460,24 +3611,14 @@ class Simulator(object):
 
         # map charge in cell to the membrane, averaging between two cells:
         Q_mem = (self.rho_cells[cells.cell_nn_i[:,1]] + self.rho_cells[cells.cell_nn_i[:,0]])/2
-        Q_mem = Q_mem*cells.ave2cellV
 
-        # if p.sim_ECM is False:
-        #
-        #     Eab_o = -(self.vm[cells.cell_nn_i[:,1]] -
-        #             self.vm[cells.cell_nn_i[:,0]])/(cells.gj_len)
-        #
-        # else:
-        #
-        #     Eab_o = -(self.v_cell[cells.cell_nn_i[:,1]] -
-        #             self.v_cell[cells.cell_nn_i[:,0]])/(cells.gj_len)
-
-        F_x = Q_mem*self.Egj*cells.cell_nn_tx
-        F_y = Q_mem*self.Egj*cells.cell_nn_ty
+        # calculate force at each membrane:
+        self.F_gj_x = Q_mem*self.Egj*cells.cell_nn_tx
+        self.F_gj_y = Q_mem*self.Egj*cells.cell_nn_ty
 
         # calculate a shear electrostatic body force at the cell centre:
-        self.F_electro_x = np.dot(cells.M_sum_mems, F_x)/cells.num_mems
-        self.F_electro_y = np.dot(cells.M_sum_mems, F_y)/cells.num_mems
+        self.F_electro_x = np.dot(cells.M_sum_mems, self.F_gj_x)/cells.num_mems
+        self.F_electro_y = np.dot(cells.M_sum_mems, self.F_gj_y)/cells.num_mems
 
         self.F_electro = np.sqrt(self.F_electro_x**2 + self.F_electro_y**2)
 
