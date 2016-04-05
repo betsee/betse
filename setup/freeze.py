@@ -258,7 +258,8 @@ class freeze(Command, metaclass = ABCMeta):
         self._pyinstaller_dist_dirname = path.join(pyinstaller_dirname, 'dist')
 
         # Relative path of the input hooks subdirectory.
-        self._pyinstaller_hooks_dirname = path.join(pyinstaller_dirname, 'hooks')
+        self._pyinstaller_hooks_dirname = path.join(
+            pyinstaller_dirname, 'hooks')
 
         # Relative path of the intermediate build subdirectory.
         pyinstaller_work_dirname = path.join(pyinstaller_dirname, 'build')
@@ -280,7 +281,8 @@ class freeze(Command, metaclass = ABCMeta):
             '--distpath=' + util.shell_quote(self._pyinstaller_dist_dirname),
 
             # Non-default log level.
-            '--log-level=DEBUG',
+            # '--log-level=DEBUG',
+            '--log-level=INFO',
         ])
 
         # Forward all custom boolean options passed by the user to the current
