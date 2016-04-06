@@ -88,7 +88,7 @@ import sys
 from betse.exceptions import BetseExceptionMatplotlib
 from betse.util.io import loggers
 from betse.util.path import dirs, paths
-from betse.util.python import modules, pythons
+from betse.util.py import modules, pythons
 from betse.util.os import oses
 from betse.util.type import containers, strs, types
 from collections import OrderedDict

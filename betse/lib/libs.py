@@ -57,7 +57,7 @@ def die_unless_satisfiable_all() -> None:
     requirements.
     '''
     # Avoid circular import dependencies.
-    from betse.util.python import modules
+    from betse.util.py import modules
 
     # If the "pkg_resources" setuptools dependency is missing, raise an
     # exception *BEFORE* importing such dependency below.
@@ -77,7 +77,7 @@ def get_metadata() -> OrderedDict:
     '''
     # Imports deferred to their point of use, as documented above.
     from betse.lib import setuptool
-    from betse.util.python import modules, pythons
+    from betse.util.py import modules, pythons
     from betse.util.type import containers
     import pkg_resources
 

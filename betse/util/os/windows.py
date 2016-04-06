@@ -16,8 +16,8 @@ necessary.
 
 # ....................{ CONSTANTS ~ error codes            }....................
 # For conformance, the names of all error code constants defined below are
-# exactly as specified by Microsoft themselves. Sadly, Python fails to provide
-# these magic numbers for us.
+# exactly as specified by Microsoft itself. Sadly, Python fails to provide these
+# magic numbers for us.
 
 ERROR_INVALID_NAME = 123
 '''
@@ -28,5 +28,3 @@ See Also
 https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx
     Official listing of all such codes.
 '''
-
-# --------------------( WASTELANDS                         )--------------------

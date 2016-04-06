@@ -72,7 +72,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
         '"{}" not a setuptools-specific requirement.'.format(requirement)
 
     # Avoid circular import dependencies.
-    from betse.util.python import modules, pythons
+    from betse.util.py import modules, pythons
 
     # Human-readable exception to be raised below if any.
     exception = None

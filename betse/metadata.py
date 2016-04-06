@@ -146,8 +146,8 @@ we pretend to require `setuptools` itself. This is non-ideal, of course.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # NOTE: Changes to dependency names declared by this set *MUST* be synchronized
-# with the corresponding keys of the "DEPENDENCY_TO_MODULE_NAME" dictionary,
-# declared below.
+# with the corresponding keys of the
+# "betse.util.py.modules.SETUPTOOLS_PROJECT_TO_MODULE_NAME" dictionary.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME = [
     # setuptools is currently required at both install and runtime. At runtime,
@@ -186,96 +186,5 @@ requirements strings whose:
 See Also
 ----------
 README.md
-    Human-readable list of such dependencies.
+    Human-readable list of these dependencies.
 '''
-
-# --------------------( WASTELANDS                         )--------------------
-#DEPENDENCY_TO_MODULE_NAME = {
-#    'setuptools': 'setuptools',
-#    'six': 'six',
-#    'yamale': 'yamale',
-#    'Matplotlib': 'matplotlib',
-#    'Numpy': 'numpy',
-#    'Pillow': 'PIL',
-#    'PyYAML': 'yaml',
-#    'SciPy': 'numpy',
-#}
-#'''
-#Dictionary mapping the `setuptools`-specific name of each dependency declared by
-#the `DEPENDENCIES_RUNTIME` set (e.g., `PyYAML`) to the fully-qualified name of
-#that dependency's top-level module or package (e.g., `yaml`).
-#
-#For consistency, the size of this dictionary is necessarily the same as the size
-#of the `DEPENDENCIES_RUNTIME` set.
-#'''
-
-    # matplotlib 1.4.0 switched Python compatability layers from "2to3" to
-    # "six". PyInstaller does *NOT* yet support the latter, preventing freezing
-    # and hence end-user use of such version of matplotlib.
-
-# DEPENDENCY_TO_MODULE_VERSION_ATTR_NAME = collections.defaultdict(
-#     # Default attribute name to be returned for all unmapped dependencies.
-#     lambda: '__version__',
-#
-#     # Dependency-specific attribute names.
-#     Pillow = 'PILLOW_VERSION',
-# )
-# '''
-# Dictionary mapping the `setuptools`-specific name of each dependency declared by
-# the `DEPENDENCIES_RUNTIME` set (e.g., `Pillow`) to the name of the attribute
-# (e.g., `PILLOW_VERSION`) declared by that dependency's top-level module or
-# package (e.g., `PIL`).
-#
-# For convenience, the size of this dictionary is _not_ necessarily the same as
-# the size of the `DEPENDENCIES_RUNTIME` set. All dependencies unmapped by this
-# dictionary default to the canonical `__version__` attribute name.
-# '''
-
-# Such dependencies are also checked for importability as modules at runtime and
-# hence case-sensitive (e.g., "PySide" is importable but "pyside" is *NOT*).
-#FUXME: Reenable commented dependencies when actually imported by the codebase.
-
-    # 'simpo >= 3.10',
-    # 'PyYAML < 3.10',
-    #FUXME: Terrible. Should be "pyyaml", but that currently breaks "betse"!
-    # 'yaml >= 3.10',
-    # 'voluptuous >= 0.8.7',
-    # 'matplotlib < 1.4.0',
-#FUXME: There appears to be no way to provide build-time dependencies to
-#setuptools. Nonetheless, there should be, so we preserve this for posterity.
-
-# DEPENDENCIES_INSTALL = [
-#     'setuptools >= 7.0',
-# ]
-# '''
-# Set of all mandatory install-time dependencies for `betse`.
-#
-# For simplicity, such set is formatted as a list of `setuptools`-specific
-# requirements strings.
-#
-# See Also
-# ----------
-# README.md
-#     Human-readable list of such dependencies.
-# '''
-
-# See "README.md" for human-readable versions of such dependency lists.
-# For simplicity, such set is formatted as a list of `setuptools`-specific
-# requirements strings.
-
-    #FUXME: Reenable after installation.
-# COMMAND_NAME_PREFIX = NAME.lower()
-# '''
-# Substring prefixing the basenames of all `betse`-specific Python script wrappers
-# created by `setuptools` installation.
-# '''
-
-#  In particular, this implies that
-# packages possibly installed by such installation (e.g., mandatory
-# dependencies) must *NOT* be imported from.
-#
-# Yes, this is terrible. No, we didn't make the ad-hoc rules.
-
-# Such type is validated by comparison of
-# And yes: this *IS* the typical way
-# for validating Python versions. Note that

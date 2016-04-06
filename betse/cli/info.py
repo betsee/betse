@@ -15,7 +15,7 @@ from betse import metadata, pathtree
 from betse.lib import libs
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.util.io import loggers
-from betse.util.python import pythons
+from betse.util.py import pythons
 from betse.util.os import oses, processes
 from io import StringIO
 

@@ -35,7 +35,7 @@ High-level application initialization common to both the CLI and GUI.
 from betse import pathtree
 from betse.lib import libs
 from betse.util.io import loggers
-from betse.util.python import pythons
+from betse.util.py import pythons
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:

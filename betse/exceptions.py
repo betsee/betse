@@ -69,7 +69,7 @@ class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
     '''
     def __init__():
         # Avoid circular import dependencies.
-        from betse.util.python import callers
+        from betse.util.py import callers
         super().__init__(
             'Optional method {}() unimplemented.'.format(
                 callers.get_caller_name()))
