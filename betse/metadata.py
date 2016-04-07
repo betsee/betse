@@ -145,9 +145,11 @@ we pretend to require `setuptools` itself. This is non-ideal, of course.
 '''
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# NOTE: Changes to dependency names declared by this set *MUST* be synchronized
-# with the corresponding keys of the
-# "betse.util.py.modules.SETUPTOOLS_PROJECT_TO_MODULE_NAME" dictionary.
+# Changes to this list *MUST* be synchronized with:
+# * Front-facing documentation (e.g., the top-level "README.md").
+# * The "betse.util.py.modules.SETUPTOOLS_PROJECT_TO_MODULE_NAME" dictionary,
+#   converting between the setuptools-specific names listed below and the
+#   Python-specific module names imported by BETSE.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME = [
     # setuptools is currently required at both install and runtime. At runtime,
@@ -182,6 +184,25 @@ requirements strings whose:
 * Second word is a numeric comparison operator.
 * Third word is the version specifier of that project required by that
   comparison.
+
+See Also
+----------
+README.md
+    Human-readable list of these dependencies.
+'''
+
+# For simplicity, py.test should remain the only hard dependency for testing on
+# local machines. While our setuptools-driven testing regime optionally
+# leverages third-party py.test plugins (e.g., "pytest-xdist"), these plugins
+# are *NOT* required for simple testing.
+DEPENDENCIES_TESTING = [
+    'pytest >= 2.5.0',
+]
+'''
+Set of all mandatory testing dependencies for `betse`.
+
+For simplicity, this set is formatted as a list of `setuptools`-specific
+requirements strings in the same manner as `DEPENDENCIES_RUNTIME`.
 
 See Also
 ----------

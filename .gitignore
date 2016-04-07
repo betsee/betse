@@ -20,6 +20,9 @@
 /freeze/build/
 /freeze/dist/
 
+# Ignore all top-level py.test-specific temporary directories.
+/.cache/
+
 # Ignore all top-level setuptools-specific temporary directories.
 /build/
 /dist/

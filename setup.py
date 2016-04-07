@@ -120,7 +120,7 @@ setup_options = {
 
     #FIXME; This isn't quite true. Undesirable files are excludable in this
     #file via the whitelist approach of "package_data" and/or blacklist approach
-    #of "exclude_package_data". Such functionality may or may not require the
+    #of "exclude_package_data". This functionality may or may not require the
     #external "setuptools-git" plugin, but is certainly feasible. See also the
     #comprehensive documentation at:
     #https://pythonhosted.org/setuptools/setuptools.html#including-data-files
@@ -142,13 +142,13 @@ setup_options = {
     # Data files are *NOT* Python modules and hence should *NOT* be embedded in
     # the Python package tree. Sadly, the 'data_files' key supported by
     # setuptools for this purpose is *NOT* cross-platform-portable and hence
-    # inherently broken. Why? Because such key either requires usage of absolute
+    # inherently broken. Why? Because this key either requires usage of absolute
     # paths *OR* relative paths relative to absolute paths defined by
-    # "setup.cfg"; in either case, such paths are absolute. While the current
+    # "setup.cfg"; in either case, these paths are absolute. While the current
     # platform could be detected and the corresponding absolute path embedded in
-    # 'data_files', such implementation would be inherently fragile. (That's
+    # 'data_files', that implementation would be inherently fragile. (That's
     # bad.) In lieu of sane setuptools support, we defer to the methodology
-    # employed by everyone. setuptools, your death is coming.
+    # employed by everyone. Setuptools, your death is coming.
     'include_package_data': True,
 
     # Install to uncompressed directories rather than compressed archives.
@@ -164,21 +164,19 @@ setup_options = {
     'zip_safe': False,
 
     # ..................{ DEPENDENCY                         }..................
-    # Runtime dependencies. See "README.md".
+    # Runtime dependencies.
     'install_requires': DEPENDENCIES_RUNTIME,
 
     #FIXME; Switch to "py.test". Setuptools integration isn't terribly arduous,
     #but does require some unctuous boilerplate:
     #    https://pytest.org/latest/goodpractices.html
 
-    # Unit test-specific dependencies. While such tests should also be runnable
-    # under "py.test", "py.test" does *NOT* provide out-of-the-box support for
-    # setuptools and hence is non-ideal.
-    'tests_require': ['nose >= 1.3.0'],
+    # Testing dependencies.
+    'tests_require': DEPENDENCIES_TESTING,
 
     # ..................{ TEST                               }..................
     # Name of the package running unit tests.
-    'test_suite': 'nose.collector',
+    # 'test_suite': 'nose.collector',
 }
 '''
 Dictionary passed to the subsequent call to `setup()`.

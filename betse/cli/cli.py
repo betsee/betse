@@ -85,12 +85,12 @@ class CLI(metaclass = ABCMeta):
             # Exit with successful exit status from the current process.
             return 0
         except Exception as exception:
-            # Print such exception.
+            # Print this exception.
             self._print_exception(exception)
 
-            # Exit with failure exit status from the current process. If such
-            # exception provides a system-specific exit status, use such status;
-            # else, use the default such status.
+            # Exit with failure exit status from the current process. If this
+            # exception provides a system-specific exit status, use this status;
+            # else, use the default failure status (i.e., 1).
             return getattr(exception, 'errno', 1)
 
     # ..................{ ARGS                               }..................

@@ -40,13 +40,3 @@ def main() -> int:
 # exit status.
 if __name__ == '__main__':
     sys.exit(main())
-
-# --------------------( WASTELANDS                         )--------------------
-# Unconditionally nun BETSE's CLI, regardless of whether this module is directly
-# imported from the command line or indirectly imported by another module.
-# print('Before main')
-# main()
-# sys.exit(main())
-# If this module is imported from the command line, run betse's CLI; else, noop.
-# if __name__ == '__main__':
-#     main()

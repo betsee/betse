@@ -34,8 +34,10 @@ Dictionary mapping each relevant `setuptools`-specific project name (e.g.,
 `PyYAML`) to the fully-qualified name of the corresponding top-level module or
 package providing that project (e.g., `yaml`).
 
-For consistency, the size of this dictionary should be greater than or equal to
-the size of the `betse.metadata.DEPENDENCIES_RUNTIME` unordered set.
+This dictionary is principally used to validate the importability of runtime
+dependencies at startup. For consistency, the size of this dictionary should be
+greater than or equal to the size of the `betse.metadata.DEPENDENCIES_RUNTIME`
+list.
 '''
 
 MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(

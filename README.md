@@ -388,7 +388,7 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 `betse` optionally leverages (but does _not_ strictly require) the following
 dependencies where available at runtime:
 
-* [py.test](http://pytest.org) >= 2.3, for optionally running unit tests.
+* [py.test](http://pytest.org) >= 2.5.0, for optionally running unit tests.
 * [PyInstaller](http://www.pyinstaller.org) >= 3.0, for optionally freezing
   `betse`.
 * [UPX](http://upx.sourceforge.net) (any version), for optionally compressing
@@ -408,6 +408,22 @@ test harness. This dependency is installable in a system-wide manner as follows:
 * Under Apple OS X:
 
         $ pip3 install pytest
+
+##### `py.test` Plugins
+
+While optional, `betse` provides out-of-the-box support for the following
+third-party `py.test` plugins:
+
+* `pytest-xdist`, parallelizing test runs across all available processors.
+  `py.test` itself provides _no_ built-in support for parallelization! Since
+  `betse`'s test suite is computationally expensive (if not prohibitive), this
+  plugin is a hard prerequisite for sanity preservation.
+
+Contributors are strongly encouraged to install these optional dependencies,
+which `betse`'s test suite will then implicitly detect and set accordingly.
+These dependencies are installable in a system-wide manner as follows:
+
+    $ pip3 install pytest-xdist
 
 #### PyInstaller
 
@@ -598,17 +614,19 @@ Such installation is uninstallable as follows:
 
 ## Testing
 
-`betse` is testable via `nose` as follows:
+`betse` is testable via `py.test` as follows. Either:
 
-    $ cd "${BETSE_DIR}"
-    $ ./setup.py test
+* Run all available tests.
 
-If `nose` is already installed under the active Python 3 interpreter, improved
-unit test output is available by either of the following two (effectively)
-equivalent commands:
+        $ cd "${BETSE_DIR}"
+        $ ./setup.py test
 
-    $ nosetests             # this works...
-    $ ./setup.py nosetest   # ...as does this.
+* Run all tests matching a passed Python-evaluatable expression. For example, to
+  run all test functions and classes whose names contain either `test_tartarus`
+  _or_ `test_thalassa`:
+
+        $ cd "${BETSE_DIR}"
+        $ ./setup.py test -k 'test_tartarus or test_thalassa'
 
 ## Freezing
 
