@@ -25,7 +25,7 @@ class Gap_Junction(object):
         # voltage-dependent rate constant for channel closing (1/ms, V in mV):
         self.beta_gj = lambda V: 0.0013*np.exp(0.14*(V*1e3 - p.gj_vthresh))
 
-        self.gmin = 0.04
+        self.gmin = p.gj_min
 
         self.beta_gj_p = lambda V: 0.0013*np.exp(0.14*(V*1e3 - p.gj_vthresh))/(1+50*0.0013*np.exp(0.14*(V*1e3 -
                                                                                                         p.gj_vthresh)))

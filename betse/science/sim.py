@@ -11,7 +11,7 @@ from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science.tissue.handler import TissueHandler
-from betse.science.tissue.channels import Gap_Junction
+from betse.science.tissue.channels_o import Gap_Junction
 from betse.util.io import loggers
 from random import shuffle
 from scipy import interpolate as interp

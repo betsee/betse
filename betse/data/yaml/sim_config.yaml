@@ -44,7 +44,6 @@ init file saving:
     file: init_1.betse        # filename to load/save init run
 
     worldfile: world_1.betse      # filename to load/save cell cluster
-    channels: channels.yaml
 
 sim file saving:
 
@@ -190,7 +189,7 @@ world options:
                               # square grid. If equal to 0 a perfect
                               # square grid is created.
 
-  fluid flow:
+  fluid flow:  # FIXME move these to variable settings and adapt code to follow
       include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
@@ -652,9 +651,7 @@ variable settings:
     gj voltage threshold: 15    # cell-cell voltage at which gj are half closed [mV]
                                  # suggested range from 10 mV to 80 mV
 
-    gj voltage window: 15         # FIXME not used! range over which gj goes from open to shut
-                                  # with the gj voltage threshold as midpoint [mV]
-                                  # suggested range from 5 to 50
+    gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 
   environmental boundary: # set conditions for the global (environmental) boundary
