@@ -191,11 +191,15 @@ README.md
     Human-readable list of these dependencies.
 '''
 
-# For simplicity, py.test should remain the only hard dependency for testing on
-# local machines. While our setuptools-driven testing regime optionally
-# leverages third-party py.test plugins (e.g., "pytest-xdist"), these plugins
-# are *NOT* required for simple testing.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Changes to this list *MUST* be synchronized with:
+# * Front-facing documentation (e.g., the top-level "README.md").
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_TESTING = [
+    # For simplicity, py.test should remain the only hard dependency for testing
+    # on local machines. While our setuptools-driven testing regime optionally
+    # leverages third-party py.test plugins (e.g., "pytest-xdist"), these
+    # plugins are *NOT* required for simple testing.
     'pytest >= 2.5.0',
 ]
 '''

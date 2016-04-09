@@ -46,7 +46,7 @@ with open('betse/metadata.py') as betse_metadata:
     exec(betse_metadata.read())
 
 # ....................{ IMPORTS                            }....................
-from setup import build, freeze, symlink
+from setup import build, freeze, symlink, test
 import setuptools
 
 # ....................{ OPTIONS                            }....................
@@ -188,7 +188,7 @@ defining custom commands).
 
 # ....................{ COMMANDS                           }....................
 # Define all BETSE-specific setuptools commands.
-for setup_module in (build, freeze, symlink):
+for setup_module in (build, freeze, symlink, test):
     setup_module.add_setup_commands(metadata, setup_options)
 
 # ....................{ SETUP                              }....................

@@ -26,6 +26,7 @@
 # Ignore all top-level setuptools-specific temporary directories.
 /build/
 /dist/
+/.eggs/
 /*.egg-info/
 
 # ....................{ DIRECTORIES ~ general              }....................

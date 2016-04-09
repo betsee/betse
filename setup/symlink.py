@@ -41,7 +41,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
         metadata, setup_options,
         symlink, symlink_lib, symlink_scripts, unsymlink)
 
-# ....................{ INSTALLERS                         }....................
+# ....................{ CLASSES ~ install                  }....................
 class symlink(install):
     '''
     Editably install (e.g., in a symbolically linked manner) `betse` into the
@@ -69,6 +69,7 @@ class symlink(install):
     * `None` signifying that such command should always be run.
     '''
 
+
     def finalize_options(self):
         '''
         Default undefined command-specific options to the options passed to the
@@ -81,21 +82,21 @@ class symlink(install):
         # If the current system is OS X *AND* the OS X-specific Homebrew package
         # manager is installed...
         if util.is_os_os_x() and util.is_pathable('brew'):
-	     # Absolute path of Homebrew's top-level system-wide cellar
-	     # directory (e.g., "/usr/local/Cellar").
+             # Absolute path of Homebrew's top-level system-wide cellar
+             # directory (e.g., "/usr/local/Cellar").
              brew_cellar_dir = util.get_command_output('brew', '--cellar')
              #print('Here!')
-             
-	     # Absolute path of Homebrew's top-level system-wide directory
-	     # (e.g., "/usr/local").
+
+             # Absolute path of Homebrew's top-level system-wide directory
+             # (e.g., "/usr/local").
              brew_dir = util.get_command_output('brew', '--prefix')
 
-	     # Absolute path of Homebrew's top-level system-wide binary
-	     # directory (e.g., "/usr/local/bin").
+             # Absolute path of Homebrew's top-level system-wide binary
+             # directory (e.g., "/usr/local/bin").
              brew_binary_dir = path.join(brew_dir, 'bin')
 
              # If this directory does not exist, raise an exception.
-             util.die_unless_dir(brew_binary_dir)             
+             util.die_unless_dir(brew_binary_dir)
 
              # If the directory to which wrappers will be installed is a Python-
              # specific subdirectory of this cellar directory (e.g.,
@@ -109,6 +110,7 @@ class symlink(install):
                  print('Detected Homebrew installation directory "{}".'.format(
                      brew_binary_dir))
 
+
     def run(self):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is POSIX-incompatible, this system
@@ -119,8 +121,10 @@ class symlink(install):
 
             # Print a non-fatal warning.
             util.output_warning(
-                'Symbolic links require POSIX compatibility. Since the current platform is\n'
-                'POSIX-incompatible (e.g., Windows), symbolic links will be faked with black magic.'
+                'Symbolic links require POSIX compatibility. '
+                'Since the current platform is\n'
+                'POSIX-incompatible (e.g., Windows), '
+                'symbolic links will be faked with black magic.'
             )
 
             # Absolute path of the parent directory containing the top-level
@@ -145,6 +149,7 @@ sys.path.insert(1, {})
         for subcommand_name in self.get_sub_commands():
             self.run_command(subcommand_name)
 
+# ....................{ CLASSES ~ install : subcommands    }....................
 class symlink_lib(install_lib):
     '''
     Install the symbolic link for `betse`'s current editable installation,
@@ -156,6 +161,7 @@ class symlink_lib(install_lib):
     '''
     Command description printed when running `./setup.py --help-commands`.
     '''
+
 
     def finalize_options(self):
         '''
@@ -169,6 +175,7 @@ class symlink_lib(install_lib):
 
         # Default all remaining options.
         super().finalize_options()
+
 
     def run(self):
         # If the current operating system is POSIX-incompatible, such system
@@ -188,6 +195,7 @@ class symlink_lib(install_lib):
         # (Re)create such link.
         util.make_symlink(package_dirname, symlink_filename)
 
+
 class symlink_scripts(install_scripts):
     '''
     Install all scripts wrapping `betse`'s current editable installation,
@@ -199,6 +207,7 @@ class symlink_scripts(install_scripts):
     '''
     Command description printed when running `./setup.py --help-commands`.
     '''
+
 
     def finalize_options(self):
         '''
@@ -243,6 +252,7 @@ class unsymlink(install):
     Command description printed when running `./setup.py --help-commands`.
     '''
 
+
     def initialize_options(self):
         '''
         Declare option-specific attributes subsequently initialized by
@@ -257,6 +267,7 @@ class unsymlink(install):
         super().initialize_options()
         self.install_package_dirname = None
         self.install_wrapper_dirname = None
+
 
     def finalize_options(self):
         '''
@@ -274,6 +285,7 @@ class unsymlink(install):
         # Default all remaining options.
         super().finalize_options()
 
+
     def run(self):
         '''Run the current command and all subcommands thereof.'''
         # If the current operating system is POSIX-compatible, such system
@@ -289,176 +301,3 @@ class unsymlink(install):
         for script_basename, _, _ in util.command_entry_points(self):
             util.remove_file(path.join(
                 self.install_wrapper_dirname, script_basename))
-
-# --------------------( WASTELANDS                         )--------------------
-            # Absolute path of the parent directory containing the top-level
-            # "betse" package, which Python makes available as the first entry
-            # of the "sys.path" list. While you know what they say about
-            # assumptions, computing such path in a cross-platform manner turns
-            # out to be non-trivial. In theory, the following should work:
-            #
-            #     parent_dirname = util.get_path_canonicalized(
-            #         path.join('..', util.get_path_dirname(__file__)))
-            #
-            # Since path.join() implicitly discards all passed paths preceding
-            # the first absolute path *AND* since the second passed path is
-            # absolute, this fails. Fixing this would require stripping the
-            # optional drive letter and directory separator prefixing such path,
-            # which is certainly feasible but tiresome. "Die, path.join()! Die!"
-            # parent_dirname = util.get_path_dirname(
-            #     util.get_path_dirname(__file__))
-            # parent_dirname = util.get_setup_dirname()
-
-            # parent_dirname = util.get_path_canonicalized(
-            #     path.join('..', util.get_path_dirname(__file__)[1:]))
-            # print('subpath: ' + path.join('..', util.get_path_dirname(__file__)))
-            # print('parent: ' + parent_dirname)
-
-            # Prepend the template for subsequently installed entry points by a
-            # Python statement prepending the "sys.path" list of search dirnames
-            # with the absolute path  -- which largely has the same effect.
-        # # If such link currently exists, remove such link.
-        # if util.is_symlink(symlink_filename):
-        #     util.remove_symlink(symlink_filename)
-        #
-        # # (Re)create such link.
-        # print('Symbolically linking "{}" to "{}".'.format(
-        #     package_dirname, symlink_filename))
-        # os.symlink(package_dirname, symlink_filename)
-
-# ....................{ WARNERS                            }....................
-# def warn_if_os_non_posix() -> None:
-#     '''
-#     Print a non-fatal warning if the current operating system does _not_ comply
-#     with POSIX standards and hence does _not_ support symbolic linking.
-#
-#     ## Microsoft Windows
-#
-#     Typically, this implies such system to be Microsoft Windows. While
-#     post-Vista Microsoft Windows systems _do_ purport to support symbolic
-#     linking, the (Ana|Mini)conda Python distribution does _not_ appear to.
-#     Since this renders symbolic linking useless for common Windows use, we
-#     currently assume Windows to _never_ support symbolic linking regardless of
-#     operating system version.
-#     '''
-#     if not util.is_os_posix():
-#         util.output_warning(
-#             'Symbolic links require POSIX-compatibility, but the current\n'
-#             'platform is POSIX-incompatible (e.g., Windows). For usability, such links\n'
-#             'will be faked via Python-specific "sys.path" manipulation.'
-#         )
-
-        # Declare all attributes subsequently set by the call to
-        # self.set_undefined_options(). (Such method raises exceptions if such
-        # attributes have *NOT* been declared. This is rather terrible but par
-        # for the setuptools course.)
-        # Declare all attributes subsequently set by the call to
-        # self.set_undefined_options(). (Such method raises exceptions if such
-        # attributes have *NOT* been declared.)
-    #FUXME: Insufficient. This obviously needs to uninstall *ALL* previously
-    #symlinked scripts as well.
-
-        # Absolute path of the library-specific symbolic link.
-        # symlink_filename = path.join(
-        #     self.install_package_dirname,
-        #     self._setup_options['name'])
-        #
-        # # Remove such link.
-        # remove_symlink(symlink_filename)
-    # def finalize_options(self):
-    #     '''
-    #     Default undefined command-specific options to the options passed to the
-    #     current parent command if any (e.g., `symlink`).
-    #     '''
-    #     # Copy the "install_dirname" attribute from the existing "install_lib"
-    #     # attribute of a temporarily instantiated "symlink" object.
-    #     #
-    #     # Welcome to setuptools hell.
-    #     self.set_undefined_options(
-    #         'symlink',
-    #         ('install_lib', 'install_package_dirname'),
-    #         ('install_scripts', 'install_wrapper_dirname'),
-    #     )
-
-    #FUXME: Insufficient. This obviously needs to uninstall *ALL* previously
-    #symlinked scripts as well.
-    # assert isinstance(setup_options, dict),\
-    #     '"{}" not a dictionary.'.format(setup_options)
-    #
-    # # For the name of each command class to be registered as a new command...
-    # for command_class_name in (
-    #     'symlink', 'symlink_lib', 'symlink_scripts', 'unsymlink'):
-    #     # Class object for the class with such name.
-    #     command_class = globals()[command_class_name]
-    #
-    #     # Register such command.
-    #     setup_options['cmdclass'][command_class_name] = command_class
-    #
-    #     # Expose the passed dictionary of "setuptools" options to such class by
-    #     # adding a new private class field "_setup_options" to such class. While
-    #     # merely passing such dictionary to instances of such classes would be
-    #     # obviously preferable, setuptools and hence setuputils requires commands
-    #     # be specified as uninstantiated classes rather than instances. Hence,
-    #     # the current approach.
-    #     command_class._setup_options = setup_options
-
-    # user_options = [('install-dir=', 'd', 'directory to install to'),]
-    # '''List of command-specific options.'''
-
-    # def initialize_options(self):
-    #     '''
-    #     Initialize command-specific options.
-    #     '''
-    #     self.install_dirname = None
-# ....................{ GETTERS                            }....................
-# def get_command_symlink_filename(setuptools_command):
-#     '''
-#     Get the absolute path of the symbolic link for `betse`'s top-level Python
-#     package under the active Python 3 interpreter.
-#
-#     Parameters
-#     ----------
-#     setuptools_command : setuptools.Command
-#         Command with which to inspect such interpreter.
-#
-#     Returns
-#     ----------
-#     string
-#         Absolute path of such link for subsequent caller manipulation.
-#     '''
-#     return path.join(
-#         setuptools_command.install_lib,
-#         setuptools_command._setup_options['name'])
-
-    # setup_options['cmdclass']['symlink'] = symlink
-    # setup_options['cmdclass']['symlink_lib'] = symlink_lib
-    # setup_options['cmdclass']['symlink_scripts'] = symlink_scripts
-    # setup_options['cmdclass']['unsymlink'] = unsymlink
-
-    # Expose such options to such classes by adding a new private class field
-    # "_setup_options" to each such class. While merely passing such dictionary
-    # to instances of such classes would be obviously preferable, setuptools and
-    # hence setuputils requires commands be specified as uninstantiated classes
-    # rather than instances. Hence, the current approach.
-    # for command_class in setup_options['cmdclass']:
-    #     command_class._setup_options = setup_options
-
-# ....................{ GLOBALS                            }....................
-# _setup_options = {}
-# '''
-# Dictionary of `setuptools` options, initialized by the call to `add_commands()`
-# and subsequentled accessed from within command classes.
-#
-# While merely passing such dictionary to instances of such classes would be
-# obviously preferable, `setuptools` requires uninstantiated classes rather than
-# instances. Hence, the currently lackluster approach.
-# '''
-#     global _setup_options
-
-    # Add the passed dictionary of `setuptools` options to .
-    # for command_class in setup_options['cmdclass']:
-    #FUXME: Rethink this. A class-based approach would probably be significantly
-    #more intelligible, if slightly more verbose.
-
-    # Define such functions as closures to provide such functions read-only
-    # access to such dictionary.

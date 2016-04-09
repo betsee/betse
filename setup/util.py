@@ -6,7 +6,8 @@
 '''Error-handling functions for `betse`-specific `setuptools` commands.'''
 
 # ....................{ IMPORTS                            }....................
-from distutils.errors import DistutilsExecError, DistutilsFileError
+from distutils.errors import (
+    DistutilsExecError, DistutilsFileError, DistutilsModuleError)
 from os import path
 from setuptools import Command
 import importlib, os, platform, pkg_resources, shutil, subprocess, sys, time
@@ -21,6 +22,7 @@ def die_unless_command_succeeds(*command_words) -> None:
     elements the command-line arguments to be passed to such command (e.g.,
     `['ls', '/']`).
     '''
+
     # If the first passed shell word is *NOT* pathable, raise an exception.
     die_unless_pathable(command_words[0])
 
@@ -64,6 +66,7 @@ def die_unless_command_succeeds(*command_words) -> None:
     # Run such command.
     subprocess.check_call(command_words, **popen_kwargs)
 
+
 def die_unless_pathable(command_basename: str, exception_message: str = None):
     '''
     Raise an exception with the passed message if the passed **pathable** (i.e.,
@@ -75,13 +78,14 @@ def die_unless_pathable(command_basename: str, exception_message: str = None):
     if not is_pathable(command_basename):
         # If no such message was passed, default such message.
         if not exception_message:
-             exception_message =\
-                 'Command "{}" not found in the current ${{PATH}} or found but not an executable file.'.format(
-                    command_basename)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+             exception_message = (
+                 'Command "{}" not found in the current ${{PATH}} or '
+                 'found but not an executable file.'.format(
+                    command_basename))
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
 
-        # Raise such exception.
+        # Raise this exception.
         raise DistutilsExecError(exception_message)
 
 # ....................{ EXCEPTIONS ~ path                  }....................
@@ -108,8 +112,9 @@ def die_unless_dir_or_not_found(
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 
-        # Raise such exception.
+        # Raise this exception.
         raise DistutilsFileError(exception_message)
+
 
 def die_unless_file_or_not_found(
     pathname: str, exception_message: str = None) -> None:
@@ -133,8 +138,9 @@ def die_unless_file_or_not_found(
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 
-        # Raise such exception.
+        # Raise this exception.
         raise DistutilsFileError(exception_message)
+
 
 def die_unless_path(pathname: str, exception_message: str = None) -> None:
     '''
@@ -148,8 +154,9 @@ def die_unless_path(pathname: str, exception_message: str = None) -> None:
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 
-        # Raise such exception.
+        # Raise this exception.
         raise DistutilsFileError(exception_message)
+
 
 def die_unless_dir(dirname: str, exception_message: str = None) -> None:
     '''
@@ -163,9 +170,10 @@ def die_unless_dir(dirname: str, exception_message: str = None) -> None:
         assert isinstance(exception_message, str),\
             '"{}" not a string.'.format(exception_message)
 
-        # Raise such exception. Since there exists no
-        # DistutilsDirError(), we raise the next best thing.
+        # Raise this exception. Since there exists no
+        # "DistutilsDirError" class, the next best thing is raised.
         raise DistutilsFileError(exception_message)
+
 
 def die_unless_file(filename: str, exception_message: str = None) -> None:
     '''
@@ -176,22 +184,45 @@ def die_unless_file(filename: str, exception_message: str = None) -> None:
         # If no such message was passed, default such message.
         if not exception_message:
             exception_message = 'File "{}" not found.'.format(filename)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
 
-        # Raise such exception.
+        # Raise this exception.
         raise DistutilsFileError(exception_message)
+
 
 def die_unless_symlink(filename: str) -> None:
     '''
     Raise an exception unless the passed symbolic link exists.
     '''
-    assert isinstance(filename, str),\
-        '"{}" not a string.'.format(filename)
+    assert isinstance(filename, str), (
+        '"{}" not a string.'.format(filename))
 
     if not is_symlink(filename):
         raise DistutilsFileError(
             'Symbolic link "{}" not found.'.format(filename))
+
+# ....................{ EXCEPTIONS ~ python                }....................
+def die_unless_module(module_name: str, exception_message: str = None):
+    '''
+    Raise an exception with the passed message if the module with the passed
+    fully-qualified name (e.g., `astarte.ashtoreth.ishtar`) is unimportable.
+    '''
+    assert isinstance(module_name, str), (
+        '"{}" not a string.'.format(module_name))
+
+    # If this module is unimportable, raise an exception.
+    if not is_module(module_name):
+        # If no message was passed, default this message.
+        if not exception_message:
+             exception_message = (
+                 'Module "{}" not installed or not importable under '
+                 'the current Python interpreter.'.format(module_name))
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
+
+        # Raise this exception.
+        raise DistutilsModuleError(exception_message)
 
 # ....................{ TESTERS ~ os                       }....................
 def is_os_linux() -> bool:
@@ -199,6 +230,7 @@ def is_os_linux() -> bool:
     `True` if the current operating system is Linux.
     '''
     return platform.system() == 'Linux'
+
 
 def is_os_posix() -> bool:
     '''
@@ -209,6 +241,7 @@ def is_os_posix() -> bool:
     '''
     return os.name == 'posix'
     # return False
+
 
 def is_os_os_x() -> bool:
     '''
@@ -225,12 +258,14 @@ def is_os_windows() -> bool:
     '''
     return is_os_windows_vanilla() or is_os_windows_cygwin()
 
+
 def is_os_windows_cygwin() -> bool:
     '''
     `True` if the current operating system is **Cygwin Microsoft Windows**
     (i.e., running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'cygwin'
+
 
 def is_os_windows_vanilla() -> bool:
     '''
@@ -247,12 +282,14 @@ def is_path(pathname: str) -> bool:
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     return path.exists(pathname)
 
+
 def is_dir(pathname: str) -> bool:
     '''
     `True` if the passed directory exists.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     return path.isdir(pathname)
+
 
 def is_file(pathname: str) -> bool:
     '''
@@ -276,6 +313,7 @@ def is_file(pathname: str) -> bool:
     '''
     return is_path(pathname) and not is_dir(pathname)
 
+
 def is_symlink(filename: str) -> bool:
     '''
     `True` if the passed symbolic link exists.
@@ -287,6 +325,7 @@ def is_symlink(filename: str) -> bool:
     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
     return path.islink(filename)
 
+
 def is_pathable(command_basename: str) -> bool:
     '''
     True if the external command with the passed basename exists.
@@ -295,16 +334,16 @@ def is_pathable(command_basename: str) -> bool:
     the current `${PATH}`. If such basename contains a directory separator and
     is hence *not* a basename, an exception is raised.
     '''
-    assert isinstance(command_basename, str),\
-        '"{}" not a string.'.format(command_basename)
+    assert isinstance(command_basename, str), (
+        '"{}" not a string.'.format(command_basename))
 
-    # If such pathname is *NOT* a basename, such pathname erroneously contains a
-    # directory separator. In such case, fail.
+    # If this pathname is *NOT* a basename, this pathname erroneously contains a
+    # directory separator. In this case, fail.
     if command_basename != path.basename(command_basename):
         raise DistutilsExecError(
             '"{}" contains a directory separator.'.format(command_basename))
 
-    # Return whether such command is found.
+    # Return whether this command is found.
     return shutil.which(command_basename) is not None
 
 # ....................{ TESTERS ~ module                   }....................
@@ -320,8 +359,8 @@ def is_module(module_name: str) -> bool:
     itself may also be imported as a side effect.
     '''
     # See betse.util.python.modules.is_module() for implementation details.
-    assert isinstance(module_name, str),\
-        '"{}" not a string.'.format(module_name)
+    assert isinstance(module_name, str), (
+        '"{}" not a string.'.format(module_name))
     try:
         return importlib.util.find_spec(module_name) is not None
     except ValueError:
@@ -429,6 +468,7 @@ def get_path_filetype(pathname: str) -> str:
     # the prior call if such path has a filetype or returning None otherwise.
     return filetype[1:] if filetype else None
 
+
 def get_path_sans_filetype(pathname: str) -> str:
     '''
     Get the passed path without last filetype (including prefixing `.`) if such
@@ -438,6 +478,91 @@ def get_path_sans_filetype(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.splitext(pathname)[0]
 
+# ....................{ GETTERS ~ path : filetype          }....................
+def get_command_basename(command_basename: str) -> str:
+    '''
+    Convert the passed platform-agnostic command basename (e.g., `pytest`) into
+    a platform-specific command basename (e.g., `pytest.exe`).
+
+    Under:
+
+    * Windows, the passed basename is returned appended by `.exe`. To avoid
+      confusion with non-Windows executables in the current `${PATH}` when
+      running under Wine emulation, only Windows executables are accepted when
+      running under Windows.
+    * All other platforms, the passed basename is returned as is.
+    '''
+    assert isinstance(command_basename, str), (
+        '"{}" not a string.'.format(command_basename))
+    return command_basename + '.exe' if is_os_windows() else command_basename
+
+
+def get_command_basename_python(
+    command_basename: str, exception_message: str = None) -> str:
+    '''
+    Convert the passed platform- and Python-agnostic command basename (e.g.,
+    `pytest`) into a platform- and Python-specific command basename (e.g.,
+    `pytest3.exe`).
+
+    This function helps prefer Python 3- to 2-specific commands for commands
+    publicly available in both Python 3- and 2-specific variants (e.g.,
+    `pyinstaller3` and `pyinstaller2` for the Python 3- and 2-specific variants
+    of PyInstaller respectively). Under:
+
+    * Windows:
+      . If the passed basename appended by `3.exe` is pathable (i.e., an
+        external command in the current `${PATH}`), that basename is returned.
+      . Else if the passed basename appended by `2.exe` is pathable, that
+        basename is returned.
+      . Else if the passed basename appended by `.exe` is pathable, that
+        basename is returned.
+      . Else an exception with the passed message is raised.
+    * All other platforms:
+      . If the passed basename appended by `3` is pathable, that basename is
+        returned.
+      . Else if the passed basename appended by `2` is pathable, that basename
+        is returned.
+      . Else if the passed basename is pathable, that basename is returned.
+      . Else an exception with the passed message is raised.
+
+    Parameters
+    ----------
+    command_basename : str
+        Platform- and Python-agnostic command basename to be converted.
+    exception_message : Optional[str]
+        Exception message to be raised if the passed basename cannot be
+        converted into a pathable platform- and Python-specific command basename
+        _or_ `None` if a default exception message is to be raised.
+
+    See Also
+    ----------
+    get_command_basename()
+        Further details on platform-agnostic to platform-specific conversions.
+    '''
+    assert isinstance(command_basename, str), (
+        '"{}" not a string.'.format(command_basename))
+
+    # For each major Python version and no version (in order of descending
+    # preference)...
+    for python_version in ('3', '2', ''):
+        # Platform- and Python-specific command basename.
+        command_basename = get_command_basename(
+            command_basename + python_version)
+
+        # If this command is pathable, return this basename.
+        if is_pathable(command_basename):
+            return command_basename
+
+    # Else, no commands are pathable. Raise a fatal exception.
+    die_unless_pathable(command_basename, exception_message)
+
+# ....................{ QUITTERS                           }....................
+def exit_with_status(exit_status: int) -> None:
+    '''
+    Terminate the current Python process with the passed 0-based exit status.
+    '''
+    sys.exit(exit_status)
+
 # ....................{ OUTPUTTERS                         }....................
 def output_sans_newline(*strings) -> None:
     '''
@@ -446,6 +571,7 @@ def output_sans_newline(*strings) -> None:
     By default, printed strings are suffixed by a newline.
     '''
     print(*strings, end = '')
+
 
 def output_warning(*warnings) -> None:
     '''
@@ -510,6 +636,7 @@ def make_dir_unless_found(dirname: str) -> None:
         # Create such directory if still needed.
         os.makedirs(dirname, exist_ok = True)
 
+
 def make_symlink(pathname_source: str, filename_target: str) -> None:
     '''
     Symbolically link the passed source path to the passed target symlink.
@@ -564,6 +691,7 @@ def remove_path(pathname: str) -> None:
     else:
         remove_file(pathname)
 
+
 def remove_dir(dirname: str) -> None:
     '''
     Recursively remove the passed directory in a safe manner (e.g., *not*
@@ -585,6 +713,7 @@ def remove_dir(dirname: str) -> None:
     shutil.rmtree(dirname)
     print('Removed directory "{}".'.format(dirname))
 
+
 def remove_file(filename: str) -> None:
     '''
     Remove the passed non-special file.
@@ -595,6 +724,7 @@ def remove_file(filename: str) -> None:
     # Remove such file.
     print('Removing file "{}".'.format(filename))
     os.unlink(filename)
+
 
 def remove_symlink(filename: str) -> None:
     '''
@@ -675,6 +805,7 @@ def command_entry_points(command: Command):
 
     # Defer to the generator provided by such function.
     yield from package_distribution_entry_points(distribution)
+
 
 def package_distribution_entry_points(distribution: pkg_resources.Distribution):
     '''

@@ -60,7 +60,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     util.add_setup_command_classes(
         metadata, setup_options, freeze_dir, freeze_file)
 
-# ....................{ CLASSES                            }....................
+# ....................{ CLASSES ~ base                     }....................
 class freeze(Command, metaclass = ABCMeta):
     '''
     Abstract command class creating either one platform-specific executable file
@@ -108,7 +108,7 @@ class freeze(Command, metaclass = ABCMeta):
     '''
     List of 3-tuples specifying command-line options accepted by this command.
 
-    For each such option, an attribute of the same name as such option's long
+    For each such option, an attribute of the same name as this option's long
     form _must_ be explicitly initialized in the `initialize_options()` method.
     `setuptools` fails to recognize options for which this is _not_ the case.
     (You fail a simple sanity check yet again, `setuptools`.)
@@ -133,7 +133,7 @@ class freeze(Command, metaclass = ABCMeta):
         `finalize_options()`.
 
         If this function is _not_ defined, the default implementation of this
-        method raises an inscrutable `distutils` exception. If such attributes
+        method raises an inscrutable `distutils` exception. If these attributes
         are _not_ declared, the subsequent call to
         `self.set_undefined_options()` raises an inscrutable `setuptools`
         exception. (This is terrible. So much hate.)
@@ -144,7 +144,7 @@ class freeze(Command, metaclass = ABCMeta):
         #"self.clean = False".
 
         # Option-specific public attributes. For each option declared by the
-        # "user_options" list above, a public attribute of the same name as such
+        # "user_options" list above, a public attribute of the same name as this
         # option's long form *MUST* be initialized here to its default value.
         self.clean = True
         self.debug = False
@@ -158,6 +158,7 @@ class freeze(Command, metaclass = ABCMeta):
         self._pyinstaller_dist_dirname = None
         self._pyinstaller_hooks_dirname = None
 
+
     def finalize_options(self):
         '''
         Default undefined command-specific options to the options passed to the
@@ -167,6 +168,7 @@ class freeze(Command, metaclass = ABCMeta):
         # the current object under different attribute names.
         self.set_undefined_options(
             'symlink', ('install_scripts', 'install_dir'))
+
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
@@ -191,14 +193,14 @@ class freeze(Command, metaclass = ABCMeta):
                 self._pyinstaller_dist_dirname,
                 util.get_path_sans_filetype(script_basename))
 
-            # If cleaning and such path exists, remove such path *BEFORE*
-	    # validating such path. Why? Such path could be an existing file
-	    # and the current command freezing to a directory (or vice versa),
-	    # in which case subsequent validation would raise an exception.
+            # If cleaning and this path exists, remove this path *BEFORE*
+            # validating this path. Why? This path could be an existing file
+            # and the current command freezing to a directory (or vice versa),
+            # in which case subsequent validation would raise an exception.
             if self.clean and util.is_path(frozen_pathname):
                 util.remove_path(frozen_pathname)
 
-            # Validate such path.
+            # Validate this path.
             self._check_frozen_path(frozen_pathname)
 
             # Set all environment variables used to communicate with the BETSE-
@@ -210,9 +212,9 @@ class freeze(Command, metaclass = ABCMeta):
             self._run_pyinstaller(
                 script_basename, script_type, entry_point)
 
-            # Report such results to the user.
-            frozen_pathtype =\
-                'directory' if util.is_dir(frozen_pathname) else 'file'
+            # Report these results to the user.
+            frozen_pathtype = (
+                'directory' if util.is_dir(frozen_pathname) else 'file')
             print('Froze {} "{}".\n'.format(frozen_pathtype, frozen_pathname))
 
             #FIXME: Excise when beginning GUI work.
@@ -230,21 +232,13 @@ class freeze(Command, metaclass = ABCMeta):
         Initialize the list of all shell words of the PyInstaller command to be
         run.
         '''
-        # Basename of the PyInstaller command to be run. To avoid confusion with
-        # non-Windows executables in the current ${PATH} when running under Wine
-        # emulation, accept only Windows executables when running under Windows.
-        pyinstaller_command_name = 'pyinstaller'
-        if util.is_os_windows():
-            pyinstaller_command_name += '.exe'
 
-        # If PyInstaller is not found, fail.
-        util.die_unless_pathable(
-            pyinstaller_command_name,
-            'PyInstaller not installed or "{}" not in the current ${{PATH}}.'.format(
-                pyinstaller_command_name))
-
-        # List of all shell words of the PyInstaller command to be run.
-        self._pyinstaller_command = [pyinstaller_command_name]
+        # List of all shell words of the PyInstaller command to be run, starting
+        # with the basename of this command.
+        self._pyinstaller_command = [util.get_command_basename_python(
+            'pyinstaller', exception_message=(
+                'PyInstaller not installed or '
+                '"pyinstaller" not in the current ${PATH}.'))]
 
         # Relative path of the top-level PyInstaller directory.
         pyinstaller_dirname = 'freeze'
@@ -499,6 +493,7 @@ class freeze(Command, metaclass = ABCMeta):
         '''
         pass
 
+# ....................{ CLASSES ~ sub                      }....................
 class freeze_dir(freeze):
     '''
     Create one platform-specific executable file in one subdirectory of the
@@ -511,10 +506,12 @@ class freeze_dir(freeze):
         For further details.
     '''
 
-    description =\
-        'freeze all installed scripts to platform-specific executable directories'
+    description = (
+        'freeze each installed entry point to a directory containing '
+        'a platform-specific executable and all requisite dependencies'
+    )
     '''
-    Command description printed when running `./setup.py --help-commands`.
+    Command description printed on running `./setup.py --help-commands`.
     '''
 
     def _check_frozen_path(self, frozen_pathname: str) -> None:
@@ -536,6 +533,7 @@ class freeze_dir(freeze):
             '--onedir',
         ]
 
+
 class freeze_file(freeze):
     '''
     Create one platform-specific executable file in the top-level `dist`
@@ -547,10 +545,11 @@ class freeze_file(freeze):
         For further details.
     '''
 
-    description =\
-        'freeze all installed scripts to platform-specific executable files'
+    description = (
+        'freeze each installed entry point to a platform-specific executable'
+    )
     '''
-    Command description printed when running `./setup.py --help-commands`.
+    Command description printed on running `./setup.py --help-commands`.
     '''
 
     def _check_frozen_path(self, frozen_pathname: str) -> None:
@@ -570,185 +569,3 @@ class freeze_file(freeze):
         return [
             '--onefile',
         ]
-
-# --------------------( WASTELANDS                         )--------------------
-        # if not is_entry_point:
-        #     # Human-readable list of the basenames of such script wrappers.
-        #     script_wrapper_basenames = '" and "'.join(
-        #         self._metadata['entry_point_basenames'])
-        #
-        #     # Die, you! Die!
-        #     raise DistutilsExecError(
-        #         'Entry points "{}" not found. {}'.format(
-        #             script_wrapper_basenames, freeze.EXCEPTION_ADVICE))
-
-        #FUXME: Oh, boy. We need to verify here that "betse" has actually been
-        #installed under the active Python interpreter. The mere existence of
-        #script wrappers is a necessary though insufficient condition! Peruse
-        #the main codebase for module detection utility functions.
-        #FUXME: Such verification *MUST* be duplicated in the script wrappers as
-        #well. We absolutely can't permit this issue to persist in the future.
-        #FUXME: Something has gone horribly wrong. To help debug this, let's
-        #improve build.py to print the "__file__" attribute of the imported
-        #"betse.cli.clicli" module in script wrappers: e.g.,
-        #
-        #    from betse.cli import clicli
-        #
-        #    # For debugging purposes, print the absolute path of this module.
-        #    print('betse.cli.clicli: ' + clicli.__file__)
-        #
-        #    # Propagate the return value of such function (hopefully a single-
-        #    # byte integer) to the calling shell as this script's exit status.
-        #    sys.exit(clicli.main())
-
-    # @abstractmethod
-    # def _get_script_spec_basename(self, script_basename: str) -> str:
-    #     '''
-    #     Get the subclass-specific basename of the PyInstaller spec file
-    #     converting the platform-independent Python script with the passed
-    #     basename into a platform-specific executable file or directory.
-    #
-    #     To ensure such spec file is recreated and reused in the same directory
-    #     as the top-level setuptools script `setup.py`, such file is returned as
-    #     a basename relative to such directory.
-    #
-    #     This method may also perform subclass-specific validation pertaining to
-    #     such basename.
-    #     '''
-    #     pass
-
-    #FUXME: Refactor this method everywhere to accept no arguments.
-    # def _get_script_spec_basename(self, script_basename: str) -> str:
-    #     assert isinstance(script_basename, str),\
-    #         '"{}" not a string.'.format(script_basename)
-    #     return 'dir.spec'
-    #     # return '{}.dir.spec'.format(script_basename)
-    # def _get_script_spec_basename(self, script_basename: str) -> str:
-    #     assert isinstance(script_basename, str),\
-    #         '"{}" not a string.'.format(script_basename)
-    #     return 'file.spec'
-        # return '{}.file.spec'.format(script_basename)
-
-            # self._pyinstaller_spec_filename = path.join('.spec')
-            #     pyinstaller_dirname,
-            #     self._get_script_spec_basename(script_basename))
-
-#FUXME: We'll almost certainly want to modify the output ".spec" file to
-#transparently detect the current OS and modify its behaviour accordingly.
-#Happily, ".spec" files appear to be mostly Python. As a trivial example, see:
-#    https://github.com/suurjaak/Skyperious/blob/master/packaging/pyinstaller.spec
-#Also note the platform-specific instructions at:
-#    http://irwinkwan.com/2013/04/29/python-executables-pyinstaller-and-a-48-hour-game-design-compo
-
-                # 'Consider running either the "install" or "symlink" '
-                # 'subcommand and trying again. '
-                # 'See "README.md" for details.'.format(script_wrapper_basenames)
-            #FUXME: The following paths should be shell-quoted. Sadly,
-            #we were unable to grok a simple solution, so the current
-            #lethargic approach stands.
-
-                # Append all common options.
-                # pyinstaller_command.extend(pyinstaller_options_common)
-
-#hasattr(self, 'clean')
-    # user_options = freeze.user_options
-    # user_options = [
-    #     ('clean', 'c',
-    #      'clean PyInstaller cache of temporary paths before building'),
-    # ]
-
-#  Note that
-                # "pyinstaller" supports substantially command-line options
-                # under this mode of operation than when passed a Python script.
-        # Validate that the file to be generated is *NOT* an existing directory
-        # (e.g., due to a prior run of the "freeze_dir" command).
-        # util.die_unless_file_or_not_found(path.join('dist', script_basename))
-    #FUXME: Call such method above and define below as well.
-        # Type of freezing performed by this subclass implementation (e.g.,
-        # "file" when performing one-file freezing).
-        # freeze_type = self.__class__.__name__[len('freeze_'):]
-
-            # To ensure such file is recreated and reused in the same directory
-            # as the top-level "setup.py" script, such file's path is specified
-            # as a basename and hence relative to such directory.
-            # script_spec_basename = '{}.{}.spec'.format(
-            #     script_basename, freeze_type)
-#FUXME: Also make a "freeze_dir" class. Since such class is intended only for
-#debugging, such class' run() method should also pass the "--debug" option to
-#"pyinstaller".
-
-        # Copy the "install_dir" attribute from the existing "install_scripts"
-        # attribute of a temporarily instantiated "symlink" object.
-        #
-        # Why? Because setuptools.
-    #FUXME: Does this actually work? If so, replicate to the other modules in
-    #this package as well.
-
-            # Basename of the PyInstaller ".spec" file converting such
-            # platform-independent script into a platform-specific executable.
-            # Since such file is specific to both the basename of such script
-            # *AND* the type of the current operating system, such substrings
-            # are embedded in such filename.
-            # script_spec_basename = '{}.{}.spec'.format(
-            #     script_basename, util.get_os_type())
-
-                # # Basename of the currently generated spec file.
-                # script_spec_basename_current = '{}.spec'.format(script_basename)
-                #
-                # # Rename such file to have the operating system-specific
-                # # basename expected by the prior conditional (on the next
-                # # invocation of this setuptools command).
-                # #
-                # # Note that "pyinstaller" accepts an option "--name" permitting
-                # # the basename of such file to be specified prior to generating
-                # # such file. Unfortunately, such option *ALSO* specifies the
-                # # basename of the generated executable. Since we only
-                # util.move_file(
-                #     script_spec_basename_current, script_spec_basename)
-
-                #FUXME: If a ".spec" file exists, such file should be passed rather
-                #than such script's basename. Note that, when passing such file,
-                #most CLI options are ignored; of those we use below, only
-                #"--noconfirm" appears to still be respected.
-
-                    # path.basename(script_spec_basename))
-            # Absolute path of the PyInstaller ".spec" file converting such
-            # platform-independent script into a platform-specific executable.
-            # Since such file is specific to both the basename of such script
-            # *AND* the type of the current operating system, such substrings
-            # are embedded in such filename.
-            # self._pyinstaller_spec_filename = path.join(
-            #     script_basename, util.get_os_type()
-            # )
-
-            # util.output_sans_newline(
-            #     'Searching for existing spec file "{}"... '.format(
-            #         path.basename(self._pyinstaller_spec_filename)))
-#".app"-suffixed
-        # # List of shell words common to all "pyinstaller" commands called below.
-        # command_words_base = [
-        #     'pyinstaller',
-        #     '--onefile',
-        #     # Overwrite existing output paths under the "dist/" subdirectory
-        #     # without confirmation, the default behaviour.
-        #     '--noconfirm',
-        # ]
-            # command_words_base
-            #
-            # if script_type == 'console':
-            #     --console
-                # 'Disabling compression of output executables.'
-# from setuptools.command.install import install
-# from setuptools.command.install_lib import install_lib
-# from setuptools.command.install_scripts import install_scripts
-# from distutils.errors import DistutilsFileError
-    # Class Design
-    # ----------
-    # Despite subclassing the `install_scripts` class, this class does *not*
-    # install scripts. This class subclasses such class merely to obtain access to
-    # metadata on installed scripts (e.g., installation directory).
-
-#FUXME: We may need to actually subclass "install" instead. No idea. Just try
-#accessing "self.install_dir" below. If that fails, try "self.install_scripts".
-#If that fails, try subclassing "install" instead and repeating such access
-#attempts. Yes, this sucks. That's setuptools for you.
