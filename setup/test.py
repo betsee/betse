@@ -112,14 +112,6 @@ class test(Command):
     def run(self):
         '''Run the current command and all subcommands thereof.'''
 
-        # If py.test is unimportable, raise an exception.
-        util.die_unless_module('pytest', exception_message=(
-            'py.test not installed under the current Python interpreter.'))
-
-        # Import py.test. While py.test may also be run as an external command,
-        # doing so only invites otherwise ignorable ${PATH} complications.
-        import pytest
-
         # List of all shell words to be passed as arguments to py.test.
         pytest_args = []
 
@@ -127,12 +119,10 @@ class test(Command):
         if self.match_name is not None:
             pytest_args.extend(['-k', util.shell_quote(self.match_name)])
 
-        #FIXME: Correct this module name and command options.
-
         # If the optional third-party "pytest-xdist" plugin is installed, pass
         # options specific to this plugin implicitly parallelizing tests to a
         # number of processors (hopefully) autodetected at runtime.
-        if util.is_module('pytest_xdist'):
+        if util.is_module('xdist'):
             pytest_args.extend(['-n', 'auto'])
         # Else, print a non-fatal warning. Due to the cost of running tests,
         # parallelization is highly recommended.
@@ -142,5 +132,30 @@ class test(Command):
             util.output_warning(
                 'Tests will *NOT* be parallelized across multiple processors.')
 
-        # Run py.test, propagating its exit status to our caller.
+        # py.test's top-level "main" module, providing programmatic access to
+        # its CLI implementation. While py.test is also runnable as an external
+        # command, doing so invites non-trivial complications. Unlike most
+        # Python applications (e.g., PyInstaller), py.test is *NOT* dynamically
+        # importable via the following import machinery:
+        #
+        #     # Don't do this.
+        #     pytest_main = util.import_module(
+        #         'pytest.main', exception_message=(
+        #         'py.test not installed under the current Python interpreter.'))
+        #
+        # Attempting to do so reliably raises exceptions resembling:
+        #
+        #     AttributeError: 'module' object has no attribute '__path__'
+        #
+        # The reason why appears to be package "__path__" manipulations
+        # dynamically performed by the private "_pytest" package. Sadly,
+        # attempting to import "_pytest.main" fails with an even more
+        # inscrutable exception. The solution, of course, is to brute-force it
+        # by only dynamically importing the root "pytest" package. *SHRUG*
+        pytest = util.import_module(
+            'pytest', exception_message=(
+            'py.test not installed under the current Python interpreter.'))
+
+        # Run py.test, propagating its exit status as our own up to the caller.
+        print('Running py.test with arguments: {}'.format(pytest_args))
         util.exit_with_status(pytest.main(pytest_args))

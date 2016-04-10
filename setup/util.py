@@ -71,12 +71,11 @@ def die_unless_pathable(command_basename: str, exception_message: str = None):
     '''
     Raise an exception with the passed message if the passed **pathable** (i.e.,
     external command in the current `${PATH}`) does _not_ exist.
-
-    If such pathable contains a directory separator, an exception is raised.
     '''
-    # If such pathable is not found, raise an exception.
+
+    # If this pathable is not found, raise an exception.
     if not is_pathable(command_basename):
-        # If no such message was passed, default such message.
+        # If no message was passed, default this message.
         if not exception_message:
              exception_message = (
                  'Command "{}" not found in the current ${{PATH}} or '
@@ -208,8 +207,6 @@ def die_unless_module(module_name: str, exception_message: str = None):
     Raise an exception with the passed message if the module with the passed
     fully-qualified name (e.g., `astarte.ashtoreth.ishtar`) is unimportable.
     '''
-    assert isinstance(module_name, str), (
-        '"{}" not a string.'.format(module_name))
 
     # If this module is unimportable, raise an exception.
     if not is_module(module_name):
@@ -328,22 +325,14 @@ def is_symlink(filename: str) -> bool:
 
 def is_pathable(command_basename: str) -> bool:
     '''
-    True if the external command with the passed basename exists.
-
-    Specifically, return True if such basename is that of an executable file in
-    the current `${PATH}`. If such basename contains a directory separator and
-    is hence *not* a basename, an exception is raised.
+    `True` only if the external command with the passed basename exists (i.e.,
+    is that of an executable file in the current `${PATH}`).
     '''
-    assert isinstance(command_basename, str), (
-        '"{}" not a string.'.format(command_basename))
 
-    # If this pathname is *NOT* a basename, this pathname erroneously contains a
-    # directory separator. In this case, fail.
-    if command_basename != path.basename(command_basename):
-        raise DistutilsExecError(
-            '"{}" contains a directory separator.'.format(command_basename))
+    # Sanitize this command basename.
+    command_basename = sanitize_command_basename(command_basename)
 
-    # Return whether this command is found.
+    # Return whether this command is found or not.
     return shutil.which(command_basename) is not None
 
 # ....................{ TESTERS ~ module                   }....................
@@ -358,9 +347,11 @@ def is_module(module_name: str) -> bool:
     mechanisms (e.g., the OS X-specific `PyObjCTools` package), the module
     itself may also be imported as a side effect.
     '''
+
     # See betse.util.python.modules.is_module() for implementation details.
     assert isinstance(module_name, str), (
         '"{}" not a string.'.format(module_name))
+    assert len(module_name), 'Module name empty.'
     try:
         return importlib.util.find_spec(module_name) is not None
     except ValueError:
@@ -369,8 +360,6 @@ def is_module(module_name: str) -> bool:
             return True
         except ImportError:
             return False
-        # print('ValueError!')
-        # return False
 
 # ....................{ GETTERS                            }....................
 def get_project_dirname():
@@ -411,11 +400,11 @@ def get_command_output(*args) -> str:
         # Redirect standard error to output.
         stderr = subprocess.STDOUT,
 
-        # Decode such output via the current locale's preferred encoding.
+        # Decode this output using the current locale's preferred encoding.
         universal_newlines = True,
     )
 
-    # Get such output, stripped of all trailing newlines.
+    # Get this output, stripped of all trailing newlines.
     return command_output.rstrip('\n')
 
 # ....................{ GETTERS ~ path                     }....................
@@ -436,6 +425,7 @@ def get_path_canonicalized(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.abspath(path.expanduser(pathname))
 
+
 def get_path_dirname(pathname: str) -> str:
     '''
     Get the **dirname** (i.e., parent directory) of the passed path if such path
@@ -452,11 +442,11 @@ def get_path_dirname(pathname: str) -> str:
 def get_path_filetype(pathname: str) -> str:
     '''
     Get the **last filetype** (i.e., last `.`-prefixed substring of the
-    basename *not* including such `.`) of the passed path if such path has a
-    filetype or `None` otherwise.
+    basename *not* including such `.`) of the passed path if this path has a
+    filetype _or_ `None` otherwise.
 
-    If such path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
-    last such filetype will be returned.
+    If this path contains multiple filetypes (e.g., `odium.reigns.tar.gz`), this
+    function returns only the last filetype.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
     assert len(pathname), 'Pathname empty.'
@@ -478,8 +468,8 @@ def get_path_sans_filetype(pathname: str) -> str:
     assert len(pathname), 'Pathname empty.'
     return path.splitext(pathname)[0]
 
-# ....................{ GETTERS ~ path : filetype          }....................
-def get_command_basename(command_basename: str) -> str:
+# ....................{ SANITIZERS                         }....................
+def sanitize_command_basename(command_basename: str) -> str:
     '''
     Convert the passed platform-agnostic command basename (e.g., `pytest`) into
     a platform-specific command basename (e.g., `pytest.exe`).
@@ -491,70 +481,43 @@ def get_command_basename(command_basename: str) -> str:
       running under Wine emulation, only Windows executables are accepted when
       running under Windows.
     * All other platforms, the passed basename is returned as is.
+
+    Additionally, if the passed basename contains a directory separator and
+    hence is _not_ a basename, an exception is raised.
     '''
     assert isinstance(command_basename, str), (
         '"{}" not a string.'.format(command_basename))
-    return command_basename + '.exe' if is_os_windows() else command_basename
+    assert len(command_basename), 'Command basename empty.'
 
+    # If this pathname is *NOT* a basename, this pathname erroneously contains a
+    # directory separator. In this case, fail.
+    if command_basename != path.basename(command_basename):
+        raise DistutilsExecError(
+            '"{}" contains a directory separator.'.format(command_basename))
 
-def get_command_basename_python(
-    command_basename: str, exception_message: str = None) -> str:
+    if is_os_windows():
+        # If this basename has no filetype, suffix this basename by ".exe".
+        if get_path_filetype(command_basename) is None:
+            return command_basename + '.exe'
+
+    # Else, return this basename as is.
+    return command_basename
+
+# ....................{ IMPORTERS                          }....................
+def import_module(module_name: str, exception_message: str = None) -> type(sys):
     '''
-    Convert the passed platform- and Python-agnostic command basename (e.g.,
-    `pytest`) into a platform- and Python-specific command basename (e.g.,
-    `pytest3.exe`).
+    Dynamically import and return the module, package, or C extension with the
+    passed fully-qualified name.
 
-    This function helps prefer Python 3- to 2-specific commands for commands
-    publicly available in both Python 3- and 2-specific variants (e.g.,
-    `pyinstaller3` and `pyinstaller2` for the Python 3- and 2-specific variants
-    of PyInstaller respectively). Under:
-
-    * Windows:
-      . If the passed basename appended by `3.exe` is pathable (i.e., an
-        external command in the current `${PATH}`), that basename is returned.
-      . Else if the passed basename appended by `2.exe` is pathable, that
-        basename is returned.
-      . Else if the passed basename appended by `.exe` is pathable, that
-        basename is returned.
-      . Else an exception with the passed message is raised.
-    * All other platforms:
-      . If the passed basename appended by `3` is pathable, that basename is
-        returned.
-      . Else if the passed basename appended by `2` is pathable, that basename
-        is returned.
-      . Else if the passed basename is pathable, that basename is returned.
-      . Else an exception with the passed message is raised.
-
-    Parameters
-    ----------
-    command_basename : str
-        Platform- and Python-agnostic command basename to be converted.
-    exception_message : Optional[str]
-        Exception message to be raised if the passed basename cannot be
-        converted into a pathable platform- and Python-specific command basename
-        _or_ `None` if a default exception message is to be raised.
-
-    See Also
-    ----------
-    get_command_basename()
-        Further details on platform-agnostic to platform-specific conversions.
+    If this module is unimportable, an exception with the passed message is
+    raised.
     '''
-    assert isinstance(command_basename, str), (
-        '"{}" not a string.'.format(command_basename))
 
-    # For each major Python version and no version (in order of descending
-    # preference)...
-    for python_version in ('3', '2', ''):
-        # Platform- and Python-specific command basename.
-        command_basename = get_command_basename(
-            command_basename + python_version)
+    # If this module is unimportable, raise an exception.
+    die_unless_module(module_name, exception_message)
 
-        # If this command is pathable, return this basename.
-        if is_pathable(command_basename):
-            return command_basename
-
-    # Else, no commands are pathable. Raise a fatal exception.
-    die_unless_pathable(command_basename, exception_message)
+    # Else, import and return this module.
+    return importlib.import_module(module_name)
 
 # ....................{ QUITTERS                           }....................
 def exit_with_status(exit_status: int) -> None:
@@ -779,11 +742,11 @@ def command_entry_points(command: Command):
 
     See Also
     ----------
-    `dist_entry_points`
-        For further details on tuple contents.
+    `package_distribution_entry_points()`
+        Further details on tuple contents.
     '''
-    assert isinstance(command, Command),\
-        '"{}" not a setuptools command.'.format(command)
+    assert isinstance(command, Command), (
+        '"{}" not a setuptools command.'.format(command))
 
     # Make a "pkg_resources"-specific distribution from the passed command. Yes,
     # this code was ripped wholesale from the run() method defined by module
@@ -813,13 +776,14 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
     passed `pkg_resources`-specific distribution identifying a top-level Python
     package.
 
-    Such 3-tuple consists of each such script's (in order):
+    This 3-tuple consists of each such script's (in order):
 
-    * Basename (e.g., `betse`). On both vanilla and Cygwin Microsoft Windows,
-      such basename will be suffixed by the `.exe` filetype. On all other
-      platforms, such basename will have no filetype.
+    * Script basename (e.g., `betse`). Under:
+      * Both vanilla and Cygwin Microsoft Windows, this basename is suffixed by
+        the `.exe` filetype.
+      * All other platforms, this basename has no filetype.
     * Type string, guaranteed to be either:
-      * `console` if such script is console-specific.
+      * `console` if this script is console-specific.
       * `gui` otherwise.
     * `EntryPoint` object, whose attributes specify the module to be imported
       and function to be run by such script.
@@ -831,143 +795,11 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
     for script_type in 'console', 'gui':
         script_type_group = script_type + '_scripts'
 
-        # for each script of such type...
-        for script_basename, entry_point in\
-            distribution.get_entry_map(script_type_group).items():
-            # If the current platform is Windows and such script's basename has
-            # no filetype, suffix such basename by ".exe".
-            if is_os_windows() and get_path_filetype(script_basename) is None:
-                script_basename += '.exe'
+        # For each script of this type...
+        for script_basename, entry_point in (
+            distribution.get_entry_map(script_type_group).items()):
+            # Sanitize this script's basename.
+            script_basename = sanitize_command_basename(script_basename)
 
             # Yield such 3-tuple.
             yield script_basename, script_type, entry_point
-
-# --------------------( WASTELANDS                         )--------------------
-# def is_file(filename: str) -> bool:
-#     '''
-#     `True` if the passed non-special file exists.
-#
-#     `False` is returned if the passed file exists but is **special** (e.g.,
-#     directory, symbolic link).
-#     '''
-#     assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-#     return path.isfile(filename)
-
-    # Python, you win the balls.
-    # return sys.path[0]
-    # assert isinstance(pathname_source, str),\
-    #     '"{}" not a string.'.format(pathname_source)
-    # assert len(), 'Source pathname empty.'
-# ....................{ EXCEPTIONS ~ os                    }....................
-# def die_if_os_non_posix() -> None:
-#     '''
-#     Raise a fatal exception if the current operating system does `not` comply
-#     with POSIX standards (e.g., as required for symbolic link manipulation).
-#
-#     Typically, this implies such system to be Windows.
-#     '''
-#     if not is_os_posix():
-#         raise DistutilsPlatformError(
-#             'This command requires POSIX compatibility.\n'
-#             'However, the current operating system is POSIX-incompatible (e.g., Windows).'
-#         )
-
-    # return platform.system().startswith('CYGWIN_NT-')
-    # return platform.system() == 'Windows'
-
-    # The latter constraint implies shell quo this function to *not* be a general-purpose  inherently
-    # If such path is *NOT* a symbolic link, fail.
-    # Remove such link.
-    # print('Removing symbolic link "{}".'.format(filename))
-    # os.unlink(filename)
-
-# ....................{ GETTERS                            }....................
-# def get_os_type() -> bool:
-#     '''
-#     Get the type of the current operating system as a human-readable word.
-#
-#     Specifically, this is:
-#
-#     * `Darwin` if such system is Apple OS X.
-#     * `Linux` if such system is a Linux distribution.
-#     * `Windows` if such system is Microsoft Windows.
-#     '''
-#     return platform.system()
-
-    # # Iterate script types.
-    # for script_type in 'console', 'gui':
-    #     script_type_group = script_type + '_scripts'
-    #
-    #     # Yield such 3-tuple for each script of such type.
-    #     for script_basename, entry_point in\
-    #         command.dist.get_entry_map(script_type_group).items():
-    #         yield script_basename, script_type, entry_point
-    # * `:`-delimited entry point (e.g., `betse.cli.clicli:main`).
-#             for entry_point_spec in entry_point_specs:
-#                 # Basename (e.g., "betse") and entry point (e.g.,
-#                 # "betse.cli.cli:main") of such script split from such
-#                 # specification on "=", stripping all leading and trailing
-#                 # whitespace from such substrings after doing so.
-#                 script_basename, entry_point = entry_point_spec.split('=')
-#                 script_basename = script_basename.strip()
-#                 entry_point = entry_point.strip()
-
-    # for script_category, script_basename_to_entry_point\
-    #     in command_object._setup_options['entry_points'].items():
-    #     for script_basename, entry_point in\
-    #         script_basename_to_entry_point.items():
-    #         # Strip the suffix "_scripts" from such category.
-    #         script_type = script_category[:-len('_scripts')]
-    #
-    #         # Yield such 3-tuple.
-    #         yield script_basename, script_type, entry_point
-    #
-    # Generator yielding a 3-tuple detailing each script installed by the
-    # dictionary of `setuptools` options provided by the passed `setuptools`
-    # command's private attribute `_setup_options`.
-#Such dictionary *must* be a private attribute `_setup_options` of such
-    # command object.
-    # assert isinstance(command_words, list),\
-    #     '"{}" not a list.'.format(command_words)
-
-# def die_unless_command_succeeds(
-#     command_words: list,
-#     *args, **kwargs) -> None:
-#     '''
-#     Raise an exception unless running the passed command succeeds, passing all
-#     passed arguments and keyword arguments to `subprocess.call()`.
-#
-#     The first passed argument *must* be the command to be run. For portability,
-#     such command should typically be specified as a list of shell words whose
-#     first element is the pathname of such command and all subsequent elements
-#     the command-line arguments to be passed such command (e.g., `['ls', '/']`).
-#     If the keyword argument `shell = True` is also subsequently passed *and* a
-#     Unix shell is available to the active Python3 interpreter (thus excluding
-#     non-Cygwin Windows), such command may also be specified as a simple string.
-#     '''
-    # die_unless_pathable(command)
-    # If such command fails, a CalledProcessError exception is raised.
-#FUXME: Common functionality. Contemplate a utility function. To implement
-#such function, we'd probably want such function to accept a list of class
-#objects rather than class names, and then simply access the "__name__"
-#attribute of each class object to dynamically obtain its name. Quite a bit
-#simpler than the current approach, when one considers it.
-
-# from setuptools.cmd import Command
-#FUXME: Actually, this function currently only searches for command basenames in
-#the current ${PATH} -- the most common usage. *shrug*
-
-# def die_unless_pathable(command_name: str):
-#     '''
-#     Raise a fatal exception if the external command with the passed pathname
-#     either does *not* exist *or* does but is *not* executable.
-#
-#     Such command will be searched for in a manner dependent on such pathname.
-#     Specifically, if such pathname is:
-#
-#     * A basename (e.g., `ls`), the current `${PATH}` will be searched.
-#     * A relative filename (e.g., `./ls`), such filename's dirname will be
-#       searched relative to the current directory.
-#     * An absolute filename (e.g., `/usr/bin/ls`), such filename will be
-#       searched for as is.
-#     '''

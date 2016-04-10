@@ -57,6 +57,8 @@ All modules and packages unmapped by this dictionary default to the canonical
 '''
 
 # ....................{ EXCEPTIONS                         }....................
+#FIXME: Rename to die_unless_module(). The current nomenclature is overly
+#ambiguous, particularly when called from whithin this module.
 def die_unless(
     module_name: str, exception_message: str = None) -> None:
     '''
@@ -132,9 +134,10 @@ def is_module(module_name: str) -> bool:
 
 def is_imported(*module_names) -> bool:
     '''
-    `True` if all modules with the passed fully-qualified names have already
-    been imported at least once by the current process.
+    `True` only if all modules with the passed fully-qualified names have
+    already been imported under the current Python process.
     '''
+
     for module_name in module_names:
         assert types.is_str_nonempty(module_name), (
             types.assert_not_str_nonempty(module_name, 'Module name'))
@@ -191,7 +194,8 @@ def get_version_or_none(mod) -> str:
       dynamically imported.
     * A previously imported module instance.
     '''
-    # If a module name was passed, dynamically import that module.
+
+    # If a module name was passed, dynamically import this module.
     if types.is_str(mod):
         assert types.is_str_nonempty(mod), (
             types.assert_not_str_nonempty(mod, 'Module name'))
@@ -205,11 +209,19 @@ def get_version_or_none(mod) -> str:
     return getattr(mod, version_attr_name, None)
 
 # ....................{ IMPORTERS                          }....................
-def import_module(module_name: str) -> type(sys):
+def import_module(module_name: str, exception_message: str = None) -> type(sys):
     '''
     Dynamically import and return the module, package, or C extension with the
     passed fully-qualified name.
+
+    If this module is unimportable, an exception with the passed message is
+    raised.
     '''
     assert types.is_str_nonempty(module_name), (
         types.assert_not_str_nonempty(module_name, 'Module name'))
+
+    # If this module is unimportable, raise an exception.
+    die_unless(module_name, exception_message)
+
+    # Else, import and return this module.
     return importlib.import_module(module_name)

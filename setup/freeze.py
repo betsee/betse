@@ -87,7 +87,7 @@ class freeze(Command, metaclass = ABCMeta):
     install_dir : str
         Absolute path of the directory to which our wrapper scripts were
         previously installed.
-    _pyinstaller_command : list
+    _pyinstaller_args : list
         List of all shell words of the PyInstaller command to be run.
     _pyinstaller_spec_filename : str
         Relative path of the PyInstaller spec file converting the current
@@ -153,7 +153,7 @@ class freeze(Command, metaclass = ABCMeta):
         self.install_dir = None
 
         # Custom private attributes.
-        self._pyinstaller_command = None
+        self._pyinstaller_args = None
         self._pyinstaller_spec_filename = None
         self._pyinstaller_dist_dirname = None
         self._pyinstaller_hooks_dirname = None
@@ -172,6 +172,7 @@ class freeze(Command, metaclass = ABCMeta):
 
     def run(self):
         '''Run the current command and all subcommands thereof.'''
+
         # List of all shell words of the PyInstaller command to be run.
         self._init_pyinstaller_command()
 
@@ -233,13 +234,6 @@ class freeze(Command, metaclass = ABCMeta):
         run.
         '''
 
-        # List of all shell words of the PyInstaller command to be run, starting
-        # with the basename of this command.
-        self._pyinstaller_command = [util.get_command_basename_python(
-            'pyinstaller', exception_message=(
-                'PyInstaller not installed or '
-                '"pyinstaller" not in the current ${PATH}.'))]
-
         # Relative path of the top-level PyInstaller directory.
         pyinstaller_dirname = 'freeze'
 
@@ -262,10 +256,14 @@ class freeze(Command, metaclass = ABCMeta):
         # will induce fatal PyInstaller errors.
         util.make_dir_unless_found(self._pyinstaller_hooks_dirname)
 
+        # List of all shell words of the PyInstaller command to be run, starting
+        # with the basename of this command.
+        self._pyinstaller_args = []
+
         # Append all PyInstaller command options common to running such command
         # for both reuse and regeneration of spec files. (Most such options are
         # specific to the latter only and hence omitted.)
-        self._pyinstaller_command.extend([
+        self._pyinstaller_args = [
             # Overwrite existing output paths under the "dist/" subdirectory
             # without confirmation, the default behaviour.
             '--noconfirm',
@@ -277,14 +275,14 @@ class freeze(Command, metaclass = ABCMeta):
             # Non-default log level.
             # '--log-level=DEBUG',
             '--log-level=INFO',
-        ])
+        ]
 
         # Forward all custom boolean options passed by the user to the current
         # setuptools command (e.g., "--clean") to the "pyinstaller" command.
         if self.clean:
-            self._pyinstaller_command.append('--clean')
+            self._pyinstaller_args.append('--clean')
         if self.debug:
-            self._pyinstaller_command.extend((
+            self._pyinstaller_args.extend((
                 '--debug',
 
                 # UPX-based compression uselessly consumes non-trivial time
@@ -307,6 +305,15 @@ class freeze(Command, metaclass = ABCMeta):
                 'Frozen binaries will *NOT* be compressed.')
 
     # ..................{ SETTERS                            }..................
+    #FIXME: Refactor to:
+    #
+    #1. Set global variables of this module rather than environment variables of
+    #   the current Python process.
+    #2. Refactor our spec file to import such global variables from this module.
+    #
+    #Since we now run PyInstaller via import in the current Python process
+    #rather than as an external command in a different Python process, this
+    #should be feasible.
     def _set_environment_variables(
         self, script_basename: str, script_type: str, entry_point: str) -> None:
         '''
@@ -317,6 +324,7 @@ class freeze(Command, metaclass = ABCMeta):
         While hardly ideal, PyInstaller appears to provide no other means of
         communicating with such file.
         '''
+
         # Absolute path of the entry module.
         #
         # This module's relative path to the top-level project directory is
@@ -348,25 +356,44 @@ class freeze(Command, metaclass = ABCMeta):
 
     # ..................{ RUNNERS                            }..................
     def _run_pyinstaller(
-        self, script_basename: str, script_type: str, entry_point: str) -> None:
+        self,
+        script_basename: str,
+        script_type: str,
+        entry_point: 'EntryPoint',
+    ) -> None:
         '''
-        Run the desired PyInstaller command.
+        Run the currently configured PyInstaller command finalized by the passed
+        command-line arguments.
+
+        Attributes
+        ----------
+        script_basename : str
+            Basename of the executable wrapper script running this entry point.
+        script_type : str
+            Type of the executable wrapper script running this entry point,
+            guaranteed to be either:
+            * `console` if this script is console-specific.
+            * `gui` otherwise..
+        entry_point : EntryPoint
+            `EntryPoint` object, whose attributes specify the module to be
+            imported and function to be run by this script.
         '''
-        # If such spec exists, instruct PyInstaller to reuse rather than
-        # recreate such file, thus preserving edits to such file.
+
+        # If this spec exists, instruct PyInstaller to reuse rather than
+        # recreate this file, thus preserving edits to this file.
         if util.is_file(self._pyinstaller_spec_filename):
             print('Reusing spec file "{}".'.format(
                 self._pyinstaller_spec_filename))
 
-            # Append the relative path of such spec file.
-            self._pyinstaller_command.append(
+            # Append the relative path of this spec file.
+            self._pyinstaller_args.append(
                 util.shell_quote(self._pyinstaller_spec_filename))
 
-            # Freeze such script with such spec file.
-            util.die_unless_command_succeeds(*self._pyinstaller_command)
-        # Else, instruct PyInstaller to (re)create such spec file.
+            # Freeze this script with this spec file.
+            self._run_pyinstaller_imported()
+        # Else, instruct PyInstaller to (re)create this spec file.
         else:
-            # Absolute path of the directory containing such files.
+            # Absolute path of the directory containing this files.
             pyinstaller_spec_dirname = util.get_path_dirname(
                 self._pyinstaller_spec_filename)
 
@@ -377,7 +404,7 @@ class freeze(Command, metaclass = ABCMeta):
                 script_filename, 'File "{}" not found. {}'.format(
                     script_filename, freeze.EXCEPTION_ADVICE))
 
-            # Inform the user of such action *AFTER* the above validation.
+            # Inform the user of this action *AFTER* the above validation.
             # Since specification files should typically be reused rather
             # than regenerated, do so as a non-fatal warning.
             util.output_warning(
@@ -385,7 +412,7 @@ class freeze(Command, metaclass = ABCMeta):
                     self._pyinstaller_spec_filename))
 
             # Append all options specific to spec file generation.
-            self._pyinstaller_command.extend([
+            self._pyinstaller_args.extend([
                 # If this is a console script, configure standard input and
                 # output for console handling; else, do *NOT* and, if the
                 # current operating system is OS X, generate an ".app"-suffixed
@@ -399,29 +426,53 @@ class freeze(Command, metaclass = ABCMeta):
             ])
 
             # Append all subclass-specific options.
-            self._pyinstaller_command.extend(self._get_pyinstaller_options())
+            self._pyinstaller_args.extend(self._get_pyinstaller_options())
 
-            # Append the absolute path of such script.
-            self._pyinstaller_command.append(util.shell_quote(script_filename))
+            # Append the absolute path of this script.
+            self._pyinstaller_args.append(util.shell_quote(script_filename))
 
-            # Freeze such script and generate a spec file.
-            util.die_unless_command_succeeds(*self._pyinstaller_command)
+            # Freeze this script and generate a spec file.
+            self._run_pyinstaller_imported()
 
-            # Absolute path of such file.
+            # Absolute path of this file.
             script_spec_filename = path.join(
                 pyinstaller_spec_dirname, script_basename + '.spec')
 
-            # Rename such file to have the basename expected by the prior
+            # Rename this file to have the basename expected by the prior
             # conditional on the next invocation of this setuptools command.
             #
             # Note that "pyinstaller" accepts an option "--name" permitting
-            # the basename of such file to be specified prior to generating
-            # such file. Unfortunately, such option *ALSO* specifies the
+            # the basename of this file to be specified prior to generating
+            # this file. Unfortunately, this option *ALSO* specifies the
             # basename of the generated executable. While the former is reliably
             # renamable, the former is *NOT* (e.g., due to code signing). Hence,
-            # such file is manually renamed without passing such option.
+            # this file is manually renamed without passing this option.
             util.move_file(
                 script_spec_filename, self._pyinstaller_spec_filename)
+
+
+    def _run_pyinstaller_imported(self) -> None:
+        '''
+        Run the currently configured PyInstaller command within the current
+        Python process -- rather than as an external command in a different
+        Python process.
+
+        This function imports and executes PyInstaller's CLI implementation in
+        the current Python process, circumventing the inevitable complications
+        that arise when running PyInstaller as an external command.
+        '''
+
+        # PyInstaller's top-level "__main__" module, providing programmatic
+        # access to its CLI implementation.
+        pyinstaller_main = util.import_module(
+            'PyInstaller.__main__', exception_message=(
+            'PyInstaller not installed under the current Python interpreter.'))
+
+        # Run PyInstaller and propagate its exit status as ours to the caller.
+        print('Running PyInstaller with arguments: {}'.format(
+            self._pyinstaller_args))
+        util.exit_with_status(
+            pyinstaller_main.run(pyi_args=self._pyinstaller_args))
 
     # ..................{ CLASS                              }..................
     @classmethod
