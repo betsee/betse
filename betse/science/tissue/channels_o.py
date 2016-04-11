@@ -535,8 +535,8 @@ def vgSodium(dyna,sim,cells,p):
 
     P = (dyna.m_Na**3)*(dyna.h_Na)
 
-    if P.min() < 0.0 or P.max() > 1.0:
-        print(P.min(),P.max())
+    # if P.min() < 0.0 or P.max() > 1.0:
+    #     print(P.min(),P.max())
 
     # Define ultimate activity of the vgNa channel:
     sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa*P

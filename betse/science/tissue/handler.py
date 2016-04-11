@@ -12,8 +12,9 @@ from betse.util.type import types
 from random import shuffle
 from scipy import spatial as sps
 from scipy import interpolate as interp
-from betse.science.tissue.channels_o import vgSodium, vgPotassium, cagPotassium, vgCalcium, vgSodium_init, \
+from betse.science.tissue.channels_o import vgPotassium, cagPotassium, vgCalcium, vgSodium_init, \
     vgPotassium_init, vgCalcium_init
+from betse.science.tissue.channels import vg_na as vgna
 
 
 class TissueHandler(object):

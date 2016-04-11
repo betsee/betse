@@ -36,25 +36,27 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
     def init(self, dyna, sim, cells, p):
         '''
+        Initialize targeted voltage-gated sodium channels at the initial
+        time step of the simulation based on the initial cell Vmems.
+
+        Channel model uses Hodgkin-Huxley kinetic model style
+        for voltage gated channels.
         '''
 
         V = sim.vm[dyna.targets_vgNa] * 1000
 
         self._init_state(V=V, dyna=dyna, sim=sim, cells=cells, p=p)
 
-        #FIXME: This looks totally bjorked.
-        dyna.m_Na = self._mAlpha / (self._mAlpha + self._mBeta)
-        dyna.h_Na = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
-
 
     def run(self, dyna, sim, cells, p):
         '''
-        Handle all **targeted voltage-gated sodium channels** (i.e., only
-        applicable to specific tissue profiles) specified by the passed
-        user-specified parameters on the passed tissue simulation and cellular
-        world for the passed time step.
+        Handle all targeted voltage-gated sodium channels by working with the passed
+        user-specified parameters on the tissue simulation and cellular
+        world for a time step.
 
-        Channel model uses Hodgkin-Huxley model for voltage gated sodium channels.
+        Channel model uses Hodgkin-Huxley kinetic model style
+        for voltage gated channels.
+
         '''
 
         self._calculate_state(
@@ -71,9 +73,18 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         dyna.h_Na[self._v_inds_m] = dyna.h_Na * (1 + self._corr_const)
         dyna.h_Na[self._v_inds_h] = dyna.h_Na * (1 + self._corr_const)
 
+        # calculate the open-probability of the channel:
+        P = (dyna.m_Na ** self._mpower) * (dyna.h_Na**self._hpower)
+
+        # if P.min() < 0.0 or P.max() > 1.0:
+        #     print(P.min(),P.max())
+
+        # Define ultimate activity of the vgNa channel:
+        sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
+
 
     @abstractmethod
-    def _init_state(self, dyna, sim, cells, p):
+    def _init_state(self, V, dyna, sim, p):
         '''
         Do something.
         '''
@@ -81,7 +92,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
 
     @abstractmethod
-    def _calculate_state(self, dyna, sim, cells, p):
+    def _calculate_state(self, V, dyna, sim, p):
         '''
         Do something.
         '''
@@ -90,12 +101,22 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 # ....................{ SUBCLASS                           }....................
 class VgNaHammil(VgNaABC):
     '''
-    NaS model Hammil 1991
+    NaV model from Hammil et al 1991, rat neocortical neurons.
 
-    This channel produces cool, well behaved AP with `.sim_ECM=True`. Slow to activate. Use!
+    This channel produces well behaved action-potentials with a variety of vgK channels. Good general-purpose
+    vgNa channel.
+
+    Reference: Hammil, OP et al. Patch-clamp studies of voltage-gated currents in identified neurons
+    of the rat cerebral cortex. Cereb. Cortex, 1991, 1, 48-61
+
     '''
 
-    def _init_state(self, V, dyna, sim, cells, p):
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
         # Find areas where the differential equation is intrinsically ill-behaved:
         truth_inds_ha = V < -39
         truth_inds_hb = V > -41
@@ -107,17 +128,32 @@ class VgNaHammil(VgNaABC):
 
         v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
 
-        # small correction constant on the voltage
-        corr_const = 1.0e-6
+        # define small correction constant on the voltage
+        self._corr_const = 1.0e-6
 
-        V[v_inds_m] = V + corr_const
-        V[v_inds_h] = V + corr_const
+        # bump the V at nulclines with a small perturbation factor
+        V[v_inds_m] = V + self._corr_const
+        V[v_inds_h] = V + self._corr_const
 
-        self._mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
-        self._mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
+        mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
+        mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_Na = mAlpha / (mAlpha + mBeta)
+        dyna.h_Na = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 3
+        self._hpower = 1
 
 
-    def _calculate_state(self, V, dyna, sim, cells, p):
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
         # Find areas where the differential equation is intrinsically ill-behaved:
         truth_inds_ha = V < -39
         truth_inds_hb = V > -41
