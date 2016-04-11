@@ -1255,7 +1255,7 @@ class AnimCurrent(AnimCells):
 
 
 #FIXME: Use below in lieu of string constants.
-AnimDeformStyle = Enum('AnimDeformStyle', ('streamline', 'vector'))
+AnimDeformStyle = Enum('AnimDeformStyle', ('STREAMLINE', 'VECTOR'))
 
 #FIXME: Reenable after we deduce why the "AnimDeform" class defined
 #below no longer animates physical displacement. Since the

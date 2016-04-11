@@ -8,6 +8,7 @@ Abstract command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
+import sys, traceback
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata
@@ -16,8 +17,27 @@ from betse.util.py import identifiers
 from betse.util.os import processes
 from betse.util.os.args import HelpFormatterParagraph
 from betse.util.type import regexes, strs, types
+from enum import Enum
 from io import StringIO
-import sys, traceback
+
+# ....................{ ENUMERATIONS                       }....................
+LogType = Enum('LogType', ('NONE', 'FILE'))
+'''
+Enumeration of all possible types of logging performed by `betse`, corresponding
+to the global `--log-type` option configured below.
+
+Attributes
+----------
+none : enum
+    Enumeration member redirecting all logging to standard file handles, in
+    which case:
+    * All `INFO` and `DEBUG` log messages will be printed to stdout.
+    * All `ERROR` and `WARNING` log messages will be printed to stderr.
+    * All uncaught exceptions will be printed to stderr.
+file : enum
+    Enumeration member redirecting all logging to the currently configured
+    logfile for `betse`.
+'''
 
 # ....................{ CLASS                              }....................
 class CLI(metaclass = ABCMeta):
@@ -30,43 +50,67 @@ class CLI(metaclass = ABCMeta):
     _arg_parser : ArgumentParser
         `argparse`-specific parser of command-line arguments.
     _arg_parser_kwargs : dict
-        Dictionary of keyword arguments to initialize `ArgumentParser` objects
-        with. This dictionary is suitable for passing to both the
-        `ArgumentParser` constructor *and* the `add_parser()` method of
-        `ArgumentParser` objects.
+        Dictionary of keyword arguments which which to initialize
+        `ArgumentParser` instances, suitable for passing to both the
+        `ArgumentParser.__init__()` and `ArgumentParser.add_parser()` methods.
     _args : argparse.Namespace
-        `argparse`-specific object of all passed command-line arguments.
+        `argparse`-specific object of all passed command-line arguments. See
+        "Attributes (_args)" below for details.
+    _log_filename : str
+        Absolute or relative path of the file to log to if `log_type` is
+        `LogType.FILE` _or_ ignored otherwise.
+    _log_type : LogType
+        Type of logging if any to be performed.
     _script_basename : str
         Basename of the current process (e.g., `betse`).
+
+    Attributes (_args)
+    ----------
+    is_verbose : bool
+        `True` only if low-level debugging messages are to be logged. Defaults
+        to `False`.
+    log_filename : str
+        Absolute or relative path of the file to log to if `log_type` is `file`
+        _or_ ignored otherwise. Defaults to the absolute path of the default
+        user-specific logfile for `betse` on the current platform.
+    log_type : str
+        Type of logging if any to be performed. For simplicity, this is a
+        `LogType` enumeration member as a lowercase string. Defaults to `none`.
     '''
     def __init__(self):
         super().__init__()
 
         # Since the basename of the current process is *ALWAYS* available,
-        # initialize such basename here for simplicity.
+        # initialize this basename here for simplicity.
         self._script_basename = processes.get_current_basename()
 
-        # Initialize such keyword arguments.
+        # Initialize these keyword arguments.
         self._arg_parser_kwargs = {
             # Wrap non-indented lines in help and description text as paragraphs
             # while preserving indented lines in such text as is.
             'formatter_class': HelpFormatterParagraph,
         }
 
-        # Initialize such fields to None to avoid subtle issues elsewhere (e.g.,
-        # attempting to access such logger within _print_exception()).
+        # Initialize these fields to "None" to avoid subtle issues elsewhere
+        # (e.g., attempting to access this logger within _print_exception()).
         self._arg_parser = None
         self._args = None
+
+        #FIXME: Use the default logfile pathname here.
+
+        # Default values for options globally applicable to *ALL* subcommands.
+        self._log_filename = ''
+        self._log_type = LogType.NONE
 
     # ..................{ PUBLIC                             }..................
     def run(self) -> int:
         '''
-        Run the command line interface (CLI) defined by the current subclass.
+        Command-line interface (CLI) defined by the current subclass.
 
         Returns
         ----------
         int
-            Exit status of such interface, guaranteed to be a non-negative
+            Exit status of this interface, guaranteed to be a non-negative
             integer in `[0, 255]`, where 0 signifies success and all other
             values failure.
         '''
@@ -91,6 +135,11 @@ class CLI(metaclass = ABCMeta):
             # Exit with failure exit status from the current process. If this
             # exception provides a system-specific exit status, use this status;
             # else, use the default failure status (i.e., 1).
+            #
+            # Ignore the Windows-specific "winerror" attribute provided by
+            # "WindowsError"-based exceptions. While more fine-grained than the
+            # "errno" attribute, "winerror" values are *ONLY* intended to be
+            # used internally rather than returned as exit status.
             return getattr(exception, 'errno', 1)
 
     # ..................{ ARGS                               }..................
@@ -105,12 +154,23 @@ class CLI(metaclass = ABCMeta):
           defaulting to a noop.
         * Parses all arguments with such parser.
         '''
-        # Program version specifier.
-        program_version = '{} {}'.format(
-            self._script_basename, metadata.__version__)
 
-        # Dictionary of keyword arguments with which to initialize the top-level
-        # argument parser.
+        # Configure argument parsing.
+        self._make_arg_parser()
+
+        # Parse arguments.
+        self._args = self._arg_parser.parse_args()
+
+        # Parse top-level options globally applicable to *ALL* subcommands.
+        self._parse_global_options()
+
+
+    def _make_arg_parser(self) -> None:
+        '''
+        Create and classify the top-level argument parser.
+        '''
+
+        # Dictionary of keyword arguments initializing the core argument parser.
         arg_parser_kwargs = {
             # Script name.
             'prog': self._script_basename,
@@ -119,54 +179,99 @@ class CLI(metaclass = ABCMeta):
             'description': metadata.DESCRIPTION,
         }
 
-        # Update such dictionary with preinitialized such arguments.
+        # Update this dictionary with preinitialized arguments.
         arg_parser_kwargs.update(self._arg_parser_kwargs)
 
-        # Update such dictionary with subclass-specific such arguments.
+        # Update this dictionary with subclass-specific arguments.
         arg_parser_kwargs.update(self._get_arg_parser_top_kwargs())
 
-        # Make a command-line argument parser.
+        # Core argument parser.
         self._arg_parser = ArgumentParser(**arg_parser_kwargs)
-        self._arg_parser.add_argument(
-            '-v', '--verbose',
-            dest = 'is_verbose',
-            action = 'store_true',
-            help = 'print low-level debugging messages',
-        )
-        self._arg_parser.add_argument(
-            '-V', '--version',
-            action = 'version',
-            version = program_version,
-            help='print program version and exit',
-        )
+
+        # Configure top-level options globally applicable to *ALL* subcommands.
+        self._config_global_options()
 
         # Perform subclass-specific argument parsing configuration.
         self._configure_arg_parsing()
 
-        # Parse arguments.
-        self._args = self._arg_parser.parse_args()
+    # ..................{ ARGS ~ options                     }..................
+    def _config_global_options(self) -> None:
+        '''
+        Configure argument parsing for top-level options globally applicable to
+        _all_ subcommands.
+        '''
+
+        # Program version specifier.
+        program_version = '{} {}'.format(
+            self._script_basename, metadata.__version__)
+
+        # Configure top-level options globally applicable to *ALL* subcommands.
+        self._arg_parser.add_argument(
+            '-v', '--verbose',
+            dest='is_verbose',
+            action='store_true',
+            help='print low-level debugging messages',
+        )
+        self._arg_parser.add_argument(
+            '--log-type',
+            dest='log_type',
+            action='store',
+            choices=tuple(log_type.name.lower() for log_type in LogType),
+            default=self._log_type.name.lower(),
+            help=(
+                'type of logging to be performed, defaulting to "file":\n'
+                ';* "none", logging to only stdout and stderr\n'
+                ';* "file", logging to the "--log-file" file (default)'
+            ),
+        )
+        self._arg_parser.add_argument(
+            '--log-file',
+            dest='log_filename',
+            action='store',
+            default=self._log_filename,
+            help='filename to log to if "--log-type" is "file"',
+        )
+        self._arg_parser.add_argument(
+            '-V', '--version',
+            action='version',
+            version=program_version,
+            help='print program version and exit',
+        )
+
+
+    def _parse_global_options(self) -> None:
+        '''
+        Parse top-level options globally applicable to _all_ subcommands.
+        '''
 
         # If the user requested verbosity, set the log level for the standard
         # output logger handler to the all-inclusive "ALL".
         if self._args.is_verbose:
             loggers.config.handler_stdout.setLevel(loggers.ALL)
 
-    def _format_help_template(self, text: str) -> str:
-        '''
-        Format the passed help string template.
+        #FIXME: Actually use this. As low-hanging fruit, let's support by adding
+        #support for this to the _print_exception() method defined below.
+        #FIXME: After adding that, we'll probably want to add an additional
+        #"log type:" field to "betse info" output. See the "info.py" module.
+        #FIXME: After adding that, we'll want to refactor logging to:
+        #
+        #* Default to "LogType.NONE" and hence to *NOT* log to any files. The
+        #  reason why, of course, is that the file to be logged to should be
+        #  configurable at runtime. Since chicken-and-the-egg issues rapidly
+        #  ensue, the only sane solution is to log only to the terminal on
+        #  initial startup.
+        #* Add a new method to "betse.util.io.logging", permitting logging to be
+        #  reconfigured to log to a file. Shouldn't be terribly arduous.
 
-        Specifically:
+        # Convert the logging type from a lowercase string into an uppercase
+        # enumeration member. Since the former is guaranteed by the
+        # configuration above to be valid, validation need *NOT* be performed.
+        self._log_type = LogType[self._args.log_type.upper()]
 
-        * Replace all instances in such template of:
-          * `{script_basename}` by the basename of the current script (e.g.,
-            `betse`).
-          * `{program_name}` by the name of the current program (e.g., `BETSE`).
-        '''
-        assert isinstance(text, str), '"{}" not a string.'.format(text)
-        return text.format(
-            program_name = metadata.NAME,
-            script_basename = self._script_basename,
-        )
+        #FIXME: Actually use this, please.
+
+        # Copy the desired logfile path as is.
+        self._log_filename = self._args.log_filename
 
     # ..................{ EXCEPTIONS                         }..................
     def _print_exception(self, exception: Exception) -> None:
@@ -357,6 +462,23 @@ class CLI(metaclass = ABCMeta):
             stderr.output('_print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
+    # ..................{ UTILITIES                          }..................
+    def _format_help_template(self, text: str) -> str:
+        '''
+        Format the passed help string template.
+
+        Specifically, this method replaces all instances in this template of:
+
+        * `{script_basename}` by the basename of the current script (e.g.,
+          `betse`).
+        * `{program_name}` by the name of the current program (e.g., `BETSE`).
+        '''
+        assert isinstance(text, str), '"{}" not a string.'.format(text)
+        return text.format(
+            program_name=metadata.NAME,
+            script_basename=self._script_basename,
+        )
+
     # ..................{ SUBCLASS ~ mandatory               }..................
     # The following methods *MUST* be implemented by subclasses.
 
@@ -377,6 +499,9 @@ class CLI(metaclass = ABCMeta):
         '''
         return {}
 
+
+    #FIXME: Rename to _config_arg_parsing() and likewise for similar subclass
+    #methods (e.g., _configure_arg_parsing_plot()).
     def _configure_arg_parsing(self):
         '''
         Configure subclass-specific argument parsing.

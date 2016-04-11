@@ -8,22 +8,23 @@ Metadata constants synopsizing high-level `betse` behaviour.
 
 Python Version
 ----------
-For uniformity between both the main BETSE codebase and the "setup.py"
-setuptools script importing this module, this module also validates the version
-of the active Python 3 interpreter. An exception is raised if such version is
-insufficient.
+For uniformity between the BETSE codebase and the `setup.py` setuptools script
+importing this module, this module also validates the version of the active
+Python 3 interpreter. An exception is raised if this version is insufficient.
 
-BETSE currently requires **Python 3.4**, as:
+BETSE currently requires **Python 3.4**, as Python < 3.4:
 
-* Python 3.3 provides insufficient machinery for dynamically inspecting modules
-  at runtime. In particular, both the long-standing `imp.find_module()` function
-  and the `importlib.find_loader()` function introduced by Python 3.3 require
-  all parent packages of the passed module to be recursively imported _before_
-  such functions are called; failing to do so results in such functions
+* Provides insufficient machinery for dynamically inspecting modules at runtime.
+  In particular, both the long-standing `imp.find_module()` function and the
+  `importlib.find_loader()` function introduced by Python 3.3 require all parent
+  packages of the passed module to be recursively imported _before_ these
+  functions are called; failing to do so results in these functions
   unconditionally returning `None`. Since this has been the source of numerous
-  subtle issues throughout the codebase, Python 3.3 is strictly out. Since
-  modern Linux distributions have long since switched away from Python 3.3 as
-  their default Python 3 interpreters, this _should_ impose no hardships.
+  subtle issues throughout the BETSE codebase, Python 3.3 is strictly out. Since
+  most modern Linux distributions have adopted Python 3.4 as the default Python
+  3 interpreters, this _should_ impose no hardship.
+* Fails to provide the `enum` module introduced by Python 3.4, which both
+  standardizes and simplifies enumeration implementations.
 '''
 
 # ....................{ IMPORTS                            }....................

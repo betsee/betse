@@ -9,7 +9,7 @@
 
 #FIXME: The "~/.betse/cache" directory grows fairly large fairly quickly. It'd
 #be great to emit non-fatal warnings if its size exceeds some reasonable
-#threshold (e.g., 1GB).
+#threshold (e.g., 1MB).
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
@@ -35,16 +35,18 @@ class CLICLI(CLI):
     def __init__(self):
         super().__init__()
 
-        # For safety, initialize such attributes.
+        # Nullify attributes for safety.
         self._arg_subparsers_top = None
         self._arg_subparsers_plot = None
         self._arg_parser_plot = None
 
-    # ..................{ SUPERCLASS                         }..................
+    # ..................{ SUPERCLASS ~ args                  }..................
     def _get_arg_parser_top_kwargs(self):
+        # Keyword arguments passed to the top-level argument parser.
         return {
             'epilog': help.TEMPLATE_SUBCOMMANDS_SUFFIX,
         }
+
 
     def _configure_arg_parsing(self):
         # Top-level subcommands.
@@ -100,10 +102,12 @@ class CLICLI(CLI):
                 help.TEMPLATE_SUBCOMMAND_TRY),
         )
 
+    # ..................{ SUPERCLASS ~ cli                   }..................
     def _do(self) -> None:
         '''
-        Run `betse`'s command line interface (CLI).
+        Command-line interface (CLI) for `betse`.
         '''
+
         # If no subcommand was passed, print help output and return. Note that
         # this does *NOT* constitute a fatal error.
         if not self._args.subcommand_name_top:
@@ -112,23 +116,24 @@ class CLICLI(CLI):
 
         # Else, a subcommand was passed.
         #
-        # Name of the method running such subcommand.
+        # Name of the method running this subcommand.
         subcommand_method_name = '_do_' + self._args.subcommand_name_top
 
-        # Method running such subcommand. If such method does *NOT* exist,
-        # getattr() will raise a non-layman-readable exception. Typically, this
+        # Method running this subcommand. If this method does *NOT* exist,
+        # getattr() will raise a non-human-readable exception. Usually, that
         # would be bad. In this case, however, argument parsing coupled with a
-        # reliable class implementation guarantees such method to exist.
+        # reliable class implementation guarantees this method to exist.
         subcommand_method = getattr(self, subcommand_method_name)
 
-        # Run such subcommand.
+        # Run this subcommand.
         subcommand_method()
 
-    # ..................{ SUBCOMMAND ~ sim                   }..................
+    # ..................{ SUBCOMMAND ~ plot                  }..................
     def _configure_arg_parsing_plot(self):
         '''
         Configure argument parsing for the `plot` subcommand.
         '''
+
         # This subcommand.
         self._arg_parser_plot = self._add_arg_subparser_top(
             name='plot',
@@ -173,16 +178,17 @@ class CLICLI(CLI):
         self, *args, **kwargs) -> ArgumentParser:
         '''
         Create a new argument subparser requiring a configuration filename, add
-        such subparser to the collection of top-level argument subparsers, and
-        return such subparser.b
+        this subparser to the collection of top-level argument subparsers, and
+        return this subparser.
         '''
         return self._add_arg_subparser_configured(
             self._arg_subparsers_top, *args, **kwargs)
 
+
     def _add_arg_subparser_top(self, *args, **kwargs) -> ArgumentParser:
         '''
-        Create a new argument subparser, add such subparser to the collection of
-        top-level argument subparsers, and return such subparser.
+        Create a new argument subparser, add such subparser to the collection
+        of top-level argument subparsers, and return this subparser.
         '''
         return self._add_arg_subparser(
             self._arg_subparsers_top, *args, **kwargs)

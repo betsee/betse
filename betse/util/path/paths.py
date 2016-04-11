@@ -217,9 +217,11 @@ def is_pathname(pathname: str) -> bool:
             except OSError as exc:
                 if (
                     hasattr(exc, 'winerror') and
-                    exc.winerror == windows.ERROR_INVALID_NAME) or (
+                    exc.winerror == windows.ERROR_INVALID_NAME
+                ) or (
                     not hasattr(exc, 'winerror') and
-                    exc.errno in {errno.ENAMETOOLONG, errno.ERANGE}):
+                    exc.errno in {errno.ENAMETOOLONG, errno.ERANGE}
+                ):
                     loggers.log_warning(
                         'Pathname "{}" invalid: {}'.format(
                             pathname, exc.strerror))
