@@ -346,19 +346,19 @@ class TissueHandler(object):
 
             # Initialization of logic values for voltage gated sodium channel
             self.maxDmNa = p.vg_options['Na_vg'][0]
-            self.v_activate_Na = p.vg_options['Na_vg'][1]
-            self.v_inactivate_Na = p.vg_options['Na_vg'][2]
-            self.v_deactivate_Na = p.vg_options['Na_vg'][3]
-            self.t_alive_Na = p.vg_options['Na_vg'][4]
-            self.t_dead_Na = p.vg_options['Na_vg'][5]
+            # self.v_activate_Na = p.vg_options['Na_vg'][1]
+            # self.v_inactivate_Na = p.vg_options['Na_vg'][2]
+            # self.v_deactivate_Na = p.vg_options['Na_vg'][3]
+            # self.t_alive_Na = p.vg_options['Na_vg'][4]
+            # self.t_dead_Na = p.vg_options['Na_vg'][5]
             self.apply_vgNa = p.vg_options['Na_vg'][6]
 
             # Initialize matrices defining states of vgNa channels for each cell membrane:
-            self.inactivated_Na = np.zeros(self.data_length)
-            self.vgNa_state = np.zeros(self.data_length)
-
-            self.vgNa_aliveTimer = np.zeros(self.data_length) # sim time at which vgNa starts to close if activated
-            self.vgNa_deadTimer = np.zeros(self.data_length) # sim time at which vgNa reactivates after inactivation
+            # self.inactivated_Na = np.zeros(self.data_length)
+            # self.vgNa_state = np.zeros(self.data_length)
+            #
+            # self.vgNa_aliveTimer = np.zeros(self.data_length) # sim time at which vgNa starts to close if activated
+            # self.vgNa_deadTimer = np.zeros(self.data_length) # sim time at which vgNa reactivates after inactivation
 
             self.targets_vgNa = []
             for profile in self.apply_vgNa:
@@ -368,14 +368,21 @@ class TissueHandler(object):
             self.targets_vgNa = [item for sublist in self.targets_vgNa for item in sublist]
             self.targets_vgNa = np.asarray(self.targets_vgNa)
 
-            self.target_mask_vgNa = np.zeros(self.data_length)
-            self.target_mask_vgNa[self.targets_vgNa] = 1
+            # self.target_mask_vgNa = np.zeros(self.data_length)
+            # self.target_mask_vgNa[self.targets_vgNa] = 1
 
             # self.m_Na = np.zeros(len(self.targets_vgNa))
             # self.h_Na = np.zeros(len(self.targets_vgNa))
 
+            # create the desired voltage gated sodium channel instance:
+
+            Na_class_ = getattr(vgna,'vgNa_Default','vgNa_Default')
+            self.vgNa_object = Na_class_()
+
             if p.run_sim is True:
-                vgSodium_init(self,sim,p)
+                # initialize the voltage-gated sodium object
+                self.vgNa_object.init(self, sim, p)
+                # vgSodium_init(self,sim,p)
 
             # self.m_Na = self.mInf_o
             # self.h_Na = self.hInf_o
@@ -740,7 +747,10 @@ class TissueHandler(object):
 
         if p.vg_options['Na_vg'] != 0:
 
-            vgSodium(self,sim,cells,p)
+            # update the voltage-gated sodium object
+            self.vgNa_object.run(self, sim, p)
+
+            # vgSodium(self,sim,cells,p)
 
         if p.vg_options['K_vg'] !=0:
 

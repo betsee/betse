@@ -651,6 +651,8 @@ variable settings:
     gj voltage threshold: 15    # cell-cell voltage at which gj are half closed [mV]
                                  # suggested range from 10 mV to 80 mV
 
+    gj voltage window: 15    # steepness of gating function (not currently used)
+
     gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 

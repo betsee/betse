@@ -549,8 +549,9 @@ class Parameters(object):
         self.aquaporins = float(self.config['variable settings']['flow and deformation']['membrane water conductivity'])
 
         self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
-        # self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
-        self.gj_min = float(self.config['variable settings']['gap junctions']['gj minimum'])
+        self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
+
+        self.gj_min = float(self.config['variable settings']['gap junctions'].get('gj minimum',0.04))
 
         self.gj_respond_flow = False # (feature currently unsupported)
 

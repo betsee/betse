@@ -34,7 +34,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         Document me.
     '''
 
-    def init(self, dyna, sim, cells, p):
+    def init(self, dyna, sim, p):
         '''
         Initialize targeted voltage-gated sodium channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -45,10 +45,10 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
         V = sim.vm[dyna.targets_vgNa] * 1000
 
-        self._init_state(V=V, dyna=dyna, sim=sim, cells=cells, p=p)
+        self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
 
-    def run(self, dyna, sim, cells, p):
+    def run(self, dyna, sim, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -61,7 +61,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
         self._calculate_state(
             V=sim.vm[dyna.targets_vgNa] * 1000,
-            dyna=dyna, sim=sim, cells=cells, p=p)
+            dyna=dyna, sim=sim, p=p)
 
         # calculate m and h channel states:
         dyna.m_Na = ((self._mInf - dyna.m_Na) / self._mTau) * p.dt * 1e3 + dyna.m_Na
@@ -99,7 +99,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
-class VgNaHammil(VgNaABC):
+class vgNa_Default(VgNaABC):
     '''
     NaV model from Hammil et al 1991, rat neocortical neurons.
 

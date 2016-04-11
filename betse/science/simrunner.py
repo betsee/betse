@@ -227,7 +227,7 @@ class SimRunner(object):
                 sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             elif p.autoInit is False:
-                raise BetseExceptionSimulation("Simulation terminated due to missing initialization. Please run"
+                raise BetseExceptionSimulation("Simulation terminated due to missing initialization. Please run "
                                                "an initialization and try again.")
 
         # Reinitialize save and load directories in case params defines new ones

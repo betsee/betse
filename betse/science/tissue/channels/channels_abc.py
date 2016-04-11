@@ -19,14 +19,14 @@ class ChannelsABC(object, metaclass=ABCMeta):
     '''
 
     @abstractmethod
-    def init(self, dyna,sim,cells,p):
+    def init(self, dyna,sim,p):
         '''
         Do something.
         '''
         pass
 
     @abstractmethod
-    def run(self, dyna,sim,cells,p):
+    def run(self, dyna,sim,p):
         '''
         Do something.
         '''
