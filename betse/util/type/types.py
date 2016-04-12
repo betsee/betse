@@ -27,7 +27,7 @@ from enum import Enum
 def trim(obj: object) -> str:
     '''
     Convert the passed object to a terse human-readable string suitable for use
-    in end user messages.
+    in end-user messages.
     '''
 
     # Maximum length of the string to be returned, defined to be the customary
@@ -83,30 +83,40 @@ def trim(obj: object) -> str:
 # ....................{ TESTERS                            }....................
 def is_bool(obj: object) -> bool:
     '''
-    `True` if the passed object is **boolean** (i.e., either `True` or `False`).
+    `True` only if the passed object is **boolean** (i.e., either `True` or
+    `False`).
     '''
     return isinstance(obj, bool)
 
 
 def is_char(obj: object) -> bool:
     '''
-    `True` if the passed object is a **character** (i.e., a string of length 1).
+    `True` only if the passed object is a **character** (i.e., string of length
+    1).
     '''
     return is_str(obj) and len(obj) == 1
 
 
 def is_mapping(obj: object) -> bool:
     '''
-    `True` if the passed object is a **mapping** (i.e., indexable by strings).
+    `True` only if the passed object is a **mapping** (i.e., indexable by
+    strings).
 
     The canonical examples are `dict` and `OrderedDict` instances.
     '''
     return isinstance(obj, Mapping)
 
+# ....................{ TESTERS ~ error                    }....................
+def is_exception(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an **exception**.
+    '''
+    return isinstance(obj, Exception)
+
 # ....................{ TESTERS ~ iterable                 }....................
 def is_iterable(obj: object) -> bool:
     '''
-    `True` if the passed object is an **iterable**.
+    `True` only if the passed object is an **iterable**.
 
     Iterables are objects capable of returning their members one at a time.
     Equivalently, iterables implement the abstract base class
@@ -117,15 +127,16 @@ def is_iterable(obj: object) -> bool:
 
 def is_iterable_nonstr(obj: object) -> bool:
     '''
-    `True` if the passed object is a **non-string iterable** (i.e., implements
-    the abstract base class `collections.Iterable` _and_ is not a string).
+    `True` only if the passed object is a **non-string iterable** (i.e.,
+    implements the abstract base class `collections.Iterable` _and_ is not a
+    string).
     '''
     return is_iterable(obj) and not is_str(obj)
 
 # ....................{ TESTERS ~ lib                      }....................
 def is_numpy_array(obj: object) -> bool:
     '''
-    `True` if the passed object is a Numpy array or matrix.
+    `True` only if the passed object is a Numpy array or matrix.
 
     This function returns true if the passed object is an instance of the
     Numpy-specific `ndarray` superclass.
@@ -137,7 +148,7 @@ def is_numpy_array(obj: object) -> bool:
 # ....................{ TESTERS ~ lib : matplotlib         }....................
 def is_matplotlib_collection(obj: object) -> bool:
     '''
-    `True` if the passed object is a Matplotlib collection.
+    `True` only if the passed object is a Matplotlib collection.
     '''
     # Avoid importing third-party packages at the top level.
     from matplotlib.collections import Collection
@@ -146,7 +157,7 @@ def is_matplotlib_collection(obj: object) -> bool:
 
 def is_matplotlib_colormap(obj: object) -> bool:
     '''
-    `True` if the passed object is a Matplotlib colormap.
+    `True` only if the passed object is a Matplotlib colormap.
     '''
     # Avoid importing third-party packages at the top level.
     from matplotlib.colors import Colormap
@@ -155,7 +166,7 @@ def is_matplotlib_colormap(obj: object) -> bool:
 
 def is_matplotlib_mappable(obj: object) -> bool:
     '''
-    `True` if the passed object is a Matplotlib mappable.
+    `True` only if the passed object is a Matplotlib mappable.
     '''
     # Avoid importing third-party packages at the top level.
     from matplotlib.cm import ScalarMappable
@@ -164,8 +175,8 @@ def is_matplotlib_mappable(obj: object) -> bool:
 
 def is_matplotlib_polycollection(obj: object) -> bool:
     '''
-    `True` if the passed object is a Matplotlib **polygon collection** (i.e., an
-    instance of the `PolyCollection` class).
+    `True` only if the passed object is a Matplotlib **polygon collection**
+    (i.e., an instance of the `PolyCollection` class).
     '''
     # Avoid importing third-party packages at the top level.
     from matplotlib.collections import PolyCollection
@@ -174,8 +185,8 @@ def is_matplotlib_polycollection(obj: object) -> bool:
 
 def is_matplotlib_streamplot(obj: object) -> bool:
     '''
-    `True` if the passed object is a Matplotlib **streamplot** (i.e., an object
-    returned by the `matplotlib.plt.streamplot()` function).
+    `True` only if the passed object is a Matplotlib **streamplot** (i.e., an
+    object returned by the `matplotlib.plt.streamplot()` function).
     '''
     # Avoid importing third-party packages at the top level.
     from matplotlib.streamplot import StreamplotSet
@@ -184,7 +195,7 @@ def is_matplotlib_streamplot(obj: object) -> bool:
 
 def is_matplotlib_trimesh(obj: object) -> bool:
     '''
-    `True` if the passed object is a Matplotlib **triangle mesh** (i.e., an
+    `True` only if the passed object is a Matplotlib **triangle mesh** (i.e., an
     instance of the `TriMesh` class).
     '''
     # Avoid importing third-party packages at the top level.
@@ -194,14 +205,14 @@ def is_matplotlib_trimesh(obj: object) -> bool:
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
     '''
-    `True` if the passed object is an integer.
+    `True` only if the passed object is an integer.
     '''
     return isinstance(obj, int)
 
 
 def is_int_ge(obj: object, ge: int) -> bool:
     '''
-    `True` if the passed object is an integer greater than or equal to the
+    `True` only if the passed object is an integer greater than or equal to the
     second passed integer.
     '''
     assert is_int(ge), assert_not_int(ge)
@@ -210,15 +221,15 @@ def is_int_ge(obj: object, ge: int) -> bool:
 
 def is_numeric(obj: object) -> bool:
     '''
-    `True` if the passed object is **numeric** (i.e., instance of either the
-    `int` or `float` classes).
+    `True` only if the passed object is **numeric** (i.e., instance of either
+    the `int` or `float` classes).
     '''
     return isinstance(obj, (int, float))
 
 # ....................{ TESTERS ~ sequence                 }....................
 def is_sequence(obj: object) -> bool:
     '''
-    `True` if the passed object is a **sequence**.
+    `True` only if the passed object is a **sequence**.
 
     Sequences are iterables supporting efficient element access via integer
     indices. Equivalently, sequences implement the abstract base class
@@ -237,8 +248,9 @@ def is_sequence(obj: object) -> bool:
 
 def is_sequence_nonstr(obj: object) -> bool:
     '''
-    `True` if the passed object is a **non-string sequence** (i.e., implements
-    the abstract base class `collections.Sequence` _and_ is not a string).
+    `True` only if the passed object is a **non-string sequence** (i.e.,
+    implements the abstract base class `collections.Sequence` _and_ is not a
+    string).
 
     For generality, this functions returns `True` for both pure-Python
     non-string sequences _and_ non-Pythonic Fortran-based `numpy` arrays and
@@ -257,17 +269,17 @@ def is_sequence_nonstr(obj: object) -> bool:
 
 def is_sequence_nonstr_nonempty(obj: object) -> bool:
     '''
-    `True` if the passed object is a **nonempty non-string sequence** (i.e.,
-    implements the abstract base class `collections.Sequence`, is not a string,
-    and contains at least one element).
+    `True` only if the passed object is a **nonempty non-string sequence**
+    (i.e., implements the abstract base class `collections.Sequence`, is not a
+    string, _and_ contains at least one element).
     '''
     return is_sequence_nonstr(obj) and len(obj)
 
 # ....................{ TESTERS ~ science                  }....................
 def is_cells(obj: object) -> bool:
     '''
-    `True` if the passed object is an instance of the BETSE-specific `Cells`
-    class.
+    `True` only if the passed object is an instance of the BETSE-specific
+    `Cells` class.
     '''
     # Avoid circular import dependencies.
     from betse.science.cells import Cells
@@ -276,7 +288,7 @@ def is_cells(obj: object) -> bool:
 
 def is_parameters(obj: object) -> bool:
     '''
-    `True` if the passed object is an instance of the BETSE-specific
+    `True` only if the passed object is an instance of the BETSE-specific
     `Parameters` class.
     '''
     # Avoid circular import dependencies.
@@ -286,8 +298,8 @@ def is_parameters(obj: object) -> bool:
 
 def is_simulator(obj: object) -> bool:
     '''
-    `True` if the passed object is an instance of the BETSE-specific `Simulator`
-    class.
+    `True` only if the passed object is an instance of the BETSE-specific
+    `Simulator` class.
     '''
     # Avoid circular import dependencies.
     from betse.science.sim import Simulator
@@ -296,7 +308,7 @@ def is_simulator(obj: object) -> bool:
 
 def is_tissue_picker(obj: object) -> bool:
     '''
-    `True` if the passed object is an instance of the BETSE-specific
+    `True` only if the passed object is an instance of the BETSE-specific
     `TissuePicker` class.
     '''
     # Avoid circular import dependencies.
@@ -306,16 +318,16 @@ def is_tissue_picker(obj: object) -> bool:
 # ....................{ TESTERS ~ str                      }....................
 def is_str(obj: object) -> bool:
     '''
-    `True` if the passed object is a **string** (i.e., instance of the `str`
-    class).
+    `True` only if the passed object is a **string** (i.e., instance of the
+    `str` class).
     '''
     return isinstance(obj, str)
 
 
 def is_str_nonempty(obj: object) -> bool:
     '''
-    `True` if the passed object is a **nonempty string* (i.e., string comprising
-    one or more characters and hence _not_ the empty string).
+    `True` only if the passed object is a **nonempty string* (i.e., string
+    comprising one or more characters and hence _not_ the empty string).
     '''
     return is_str(obj) and len(obj)
 
@@ -346,7 +358,14 @@ def assert_not_in_enum(obj: object, enum: Enum) -> str:
     '''
     String asserting the passed object to _not_ be in the passed enumeration.
     '''
-    return '"{}" not in the "{}" enumeration.'.format(trim(obj), trim(enum))
+    return '"{}" not in the enumeration "{}".'.format(trim(obj), trim(enum))
+
+# ....................{ ASSERTERS ~ error                  }....................
+def assert_not_exception(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an exception.
+    '''
+    return '"{}" not an exception.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ iterable               }....................
 def assert_not_iterable_nonstr(obj: object) -> str:

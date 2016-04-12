@@ -114,6 +114,11 @@ class CLICLI(CLI):
             self._arg_parser.print_help()
             return
 
+        # Log the passed subcommand to the debug level.
+        loggers.log_debug(
+            'Running subcommand "{}".'.format(
+                self._args.subcommand_name_top))
+
         # Else, a subcommand was passed.
         #
         # Name of the method running this subcommand.

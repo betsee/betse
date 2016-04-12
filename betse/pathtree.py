@@ -117,13 +117,16 @@ def init() -> None:
     support caller-specific exception handling, this function *must* be manually
     called early in program startup.
     '''
+
     _init_pathnames()
     _test_pathnames()
 
+
 def _init_pathnames() -> None:
     '''
-    Initialize all module constants (e.g., `DOT_DIRNAME`).
+    Define all pathnames (e.g., `DOT_DIRNAME`) declared by this module.
     '''
+
     # Declare such constants to be globals, permitting their modification below.
     global\
         HOME_DIRNAME, DOT_DIRNAME,\
@@ -191,50 +194,15 @@ def _init_pathnames() -> None:
     LOG_DEFAULT_FILENAME = paths.join(
         DOT_DIRNAME, metadata.NAME.lower() + '.log')
 
+
 def _test_pathnames() -> None:
     '''
-    Validate all module constants (e.g., `DOT_DIRNAME`).
+    Validate all pathnames (e.g., `DOT_DIRNAME`) declared by this module.
     '''
-    # Ensure that all requisite paths exist.
+
+    # Ensure all requisite paths exist.
     dirs.die_unless_dir(DATA_DIRNAME, DATA_GEOMETRY_DIRNAME)
     files.die_unless_file(CONFIG_DEFAULT_FILENAME)
 
-    # Make betse's top-level dot directory if not found.
+    # Create BETSE's top-level dot directory if not found.
     dirs.make_unless_dir(DOT_DIRNAME)
-
-# --------------------( WASTELANDS                         )--------------------
-    # Absolute path of the application-wide YAML file providing the default
-    # tissue simulation configuration.
-    #FUXME: Uncomment this after we ascertain the correct path for DATA_DIRNAME,
-    #which we should probably get around to!
-
-    #FUXME: This *OBVIOUSLY* isn't right. We appear to have two options,
-    #depending on how "betse" was installed:
-    #
-    #* If via "setup.py install", we should probably use "pkg_resources" to
-    #  obtain the data directory.
-    #* Else, assume it was via "setup.py symlink", in which case the data
-    #  directory can probably be located in one of two ways (in order of
-    #  inreasing complexity):
-    #  * Use the "__file__" attribute of the current module to obtain the
-    #    absolute path of such module. Given that, we can then obtain the
-    #    absolute path of the data directory via path munging and the
-    #    os.path.abspath(pathname) function, converting relative to absolute
-    #    paths. (Double-check that, of course.)
-    #  * Manually follow the symlink at
-    #    "/usr/lib64/python3.3/site-packages/betse". Yeah. That seems horrid.
-    #    Happily, the former approach should work.
-#FUXME: The top-level "setup.py" script should be instructed to install the
-#top-level "data" directory. Yeah!
-#FUXME: Actually use this. More work than we currently care to invest.
-
-# PROGRAM_CONFIG_DEFAULT_FILENAME = None   # initialized below
-# '''
-# Absolute path of the default user-specific file with which `betse` configures
-# application-wide behaviour (e.g., log settings).
-# '''
-#     # Absolute path of the default user-specific file with which `betse`
-#     # configures application-wide behaviour (e.g., log settings).
-#     CORE_CONFIG_DEFAULT_FILENAME = paths.join(DOT_DIRNAME, 'core_config.yaml')
-
-    # Defer such imports to avoid circular dependencies.

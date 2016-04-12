@@ -20,10 +20,14 @@ from betse.util.os import oses, processes
 from io import StringIO
 
 # ..................{ SUBCOMMANDS ~ info                     }..................
+#FIXME: This function should probably accept new parameters describing current
+#logging state.
+
 def output_info() -> None:
     '''
     Print all output for the `info` subcommand.
     '''
+
     loggers.log_info(
         'Harvesting system information. (This may take a moment.)')
 
@@ -41,6 +45,8 @@ def output_info() -> None:
             ('data directory', pathtree.DATA_DIRNAME),
             ('default config file', pathtree.CONFIG_DEFAULT_FILENAME),
             ('default config geometry directory', pathtree.DATA_GEOMETRY_DIRNAME),
+
+            #FIXME: Incorrect now! This is configurable at runtime.
             ('log file', pathtree.LOG_DEFAULT_FILENAME),
         ))),
 

@@ -11,7 +11,7 @@ Abstract command line interface (CLI).
 import sys, traceback
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
-from betse import ignition, metadata
+from betse import ignition, metadata, pathtree
 from betse.util.io import loggers, stderr
 from betse.util.py import identifiers
 from betse.util.os import processes
@@ -56,9 +56,14 @@ class CLI(metaclass = ABCMeta):
     _args : argparse.Namespace
         `argparse`-specific object of all passed command-line arguments. See
         "Attributes (_args)" below for details.
+    _is_log_file : bool
+        `True` only if logging to a file (i.e., if `_log_type` is
+        `LogType.FILE`).
+    _is_verbose : bool
+        `True` only if low-level debugging messages are to be logged.
     _log_filename : str
-        Absolute or relative path of the file to log to if `log_type` is
-        `LogType.FILE` _or_ ignored otherwise.
+        Absolute or relative path of the file to log to if logging to a file
+        _or_ ignored otherwise.
     _log_type : LogType
         Type of logging if any to be performed.
     _script_basename : str
@@ -75,8 +80,9 @@ class CLI(metaclass = ABCMeta):
         user-specific logfile for `betse` on the current platform.
     log_type : str
         Type of logging if any to be performed. For simplicity, this is a
-        `LogType` enumeration member as a lowercase string. Defaults to `none`.
+        `LogType` enumeration member as a lowercase string. Defaults to `file`.
     '''
+
     def __init__(self):
         super().__init__()
 
@@ -95,12 +101,9 @@ class CLI(metaclass = ABCMeta):
         # (e.g., attempting to access this logger within _print_exception()).
         self._arg_parser = None
         self._args = None
-
-        #FIXME: Use the default logfile pathname here.
-
-        # Default values for options globally applicable to *ALL* subcommands.
-        self._log_filename = ''
-        self._log_type = LogType.NONE
+        self._is_verbose = None
+        self._log_filename = None
+        self._log_type = None
 
     # ..................{ PUBLIC                             }..................
     def run(self) -> int:
@@ -201,6 +204,12 @@ class CLI(metaclass = ABCMeta):
         _all_ subcommands.
         '''
 
+        # Default values for top-level options configured below, deferred until
+        # *AFTER* the ignition.init() function setting these defaults has been
+        # called above.
+        log_filename_default = pathtree.LOG_DEFAULT_FILENAME
+        log_type_default = LogType.FILE.name.lower()
+
         # Program version specifier.
         program_version = '{} {}'.format(
             self._script_basename, metadata.__version__)
@@ -217,19 +226,23 @@ class CLI(metaclass = ABCMeta):
             dest='log_type',
             action='store',
             choices=tuple(log_type.name.lower() for log_type in LogType),
-            default=self._log_type.name.lower(),
+            default=log_type_default,
             help=(
-                'type of logging to be performed, defaulting to "file":\n'
-                ';* "none", logging to only stdout and stderr\n'
-                ';* "file", logging to the "--log-file" file (default)'
+                'type of logging to perform (defaults to "{}"):\n'
+                ';* "none", logging to stdout and stderr\n'
+                ';* "file", logging to the "--log-file" file'.format(
+                    log_type_default)
             ),
         )
         self._arg_parser.add_argument(
             '--log-file',
             dest='log_filename',
             action='store',
-            default=self._log_filename,
-            help='filename to log to if "--log-type" is "file"',
+            default=log_filename_default,
+            help=(
+                'file to log to if "--log-type" is "file" '
+                '(defaults to "{}")'.format(log_filename_default)
+            ),
         )
         self._arg_parser.add_argument(
             '-V', '--version',
@@ -244,10 +257,11 @@ class CLI(metaclass = ABCMeta):
         Parse top-level options globally applicable to _all_ subcommands.
         '''
 
-        # If the user requested verbosity, set the log level for the standard
-        # output logger handler to the all-inclusive "ALL".
-        if self._args.is_verbose:
-            loggers.config.handler_stdout.setLevel(loggers.ALL)
+        #FIXME: Actually use "self._log_filename", please.
+
+        # Classify options requiring no conversion as is.
+        self._is_verbose = self._args.is_verbose
+        self._log_filename = self._args.log_filename
 
         #FIXME: Actually use this. As low-hanging fruit, let's support by adding
         #support for this to the _print_exception() method defined below.
@@ -268,68 +282,81 @@ class CLI(metaclass = ABCMeta):
         # configuration above to be valid, validation need *NOT* be performed.
         self._log_type = LogType[self._args.log_type.upper()]
 
-        #FIXME: Actually use this, please.
+        # True only if logging to a file.
+        self._is_log_file = self._log_type is LogType.FILE
 
-        # Copy the desired logfile path as is.
-        self._log_filename = self._args.log_filename
+        #FIXME: Reconfigure logging to do so, as detailed above.
+
+        # If logging to a file...
+        if self._is_log_file:
+            pass
+
+        # If the user requested verbosity, set the log level for the standard
+        # output logger handler to the all-inclusive "ALL".
+        if self._is_verbose:
+            loggers.config.handler_stdout.setLevel(loggers.ALL)
 
     # ..................{ EXCEPTIONS                         }..................
     def _print_exception(self, exception: Exception) -> None:
         '''
         Print the passed exception to standard error *and* log such exception.
         '''
-        assert isinstance(exception, Exception),\
-            '"{}" not an exception.'.format(exception)
+        assert types.is_exception(exception), (
+            types.assert_not_exception(exception))
 
         try:
-            # Log a descriptive header as an error, thus printing such header to
-            # standard error as well by default.
-            loggers.log_error(
-                'Exiting prematurely due to fatal error:\n')
-
             # While all loggers provide an exception() method for logging
-            # exceptions, the output produced by such method is in the same
+            # exceptions, the output produced by these methods is in the same
             # format as that produced by the Python interpreter on uncaught
             # exceptions. In order, this is:
             #
-            # * Such exception's non-layman-readable stack trace.
-            # * Such exception's layman-readable error message.
+            # * This exception's non-human-readable stack trace.
+            # * This exception's human-readable error message.
             #
-            # Since such format is (arguably) unreadable for non-developers,
-            # such exception is reformatted for readability. Sadly, this
+            # Since this format is (arguably) unreadable for non-developers,
+            # this exception is reformatted for readability. Sadly, this
             # precludes us from calling our logger's exception() method.
 
-            # Traceback object for such exception.
+            # Traceback object for this exception.
             _, _, exception_traceback = sys.exc_info()
 
-            # List of tuple pairs comprising both the parent exceptions of
-            # such exception *AND* such exception. The first and second
-            # items of such pairs are those exceptions and those exception's
-            # tracebacks respectively. (Sadly, this is only accessible as a
-            # private module function.)
+            # List of 2-tuples "(exception, traceback)" for all parent
+            # exceptions of this exception *AND* this exception (in order),
+            # where:
+            #
+            # * "exception" is each exception.
+            # * "traceback" is each exception's traceback.
+            #
+            # Sadly, this list is only gettable via a private module function.
             exception_parents = traceback._iter_chain(
                 exception, exception_traceback)
 
-            # String buffer to be printed to standard error, formatting such
-            # exception and all parents of such exception in the current
-            # exception chain in a user-centric [read: terse] manner.
-            stderr_buffer = StringIO()
+            # String buffer containing a human-readable synopsis of each
+            # exception in this chain, unconditionally output to stderr.
+            exception_iota_buffer = StringIO()
 
-            # String buffer to be logged to the current logfile, formatting
-            # such metadata in a developer-centric [read: verbose] manner.
-            log_buffer = StringIO()
+            # String buffer containing a non-human-readable traceback of each
+            # exception in this chain, conditionally logged to the logfile.
+            exception_full_buffer = StringIO()
 
-            # Append each parent exception and such exception's traceback.
-            for exception_parent, exception_parent_traceback in\
-                exception_parents:
-                # If such exception is a string, append such string to such
-                # buffers as is and continue to the next parent.
-                if isinstance(exception_parent, str):
-                    stderr_buffer.write(exception_parent + '\n')
-                    log_buffer   .write(exception_parent + '\n')
+            # Human-readable header prefixing each such buffer.
+            buffer_header = 'Exiting prematurely due to fatal error:\n\n'
+
+            # Initialize these buffers to this header.
+            exception_iota_buffer.write(buffer_header)
+            exception_full_buffer.write(buffer_header)
+
+            # Append each parent exception and that exception's traceback.
+            for exception_parent, exception_parent_traceback in (
+                exception_parents):
+                # If this exception is a string, append this string to the
+                # synopsis buffer as is and continue to the next parent. This is
+                # an edge case that should *NEVER* happen... but could.
+                if types.is_str(exception_parent):
+                    exception_iota_buffer.write(exception_parent + '\n')
                     continue
 
-                # List of traceback lines, excluding the exception message.
+                # List of traceback lines, excluding this exception's message.
                 exception_traceback_lines = traceback.format_exception(
                     type(exception_parent),
                     exception_parent,
@@ -341,10 +368,10 @@ class CLI(metaclass = ABCMeta):
                 exception_message_lines = traceback.format_exception_only(
                     type(exception_parent), exception_parent)
 
-                # Append this message to the log buffer *BEFORE* appending this
-                # message to the standard error buffer. (The latter requires
-                # truncating this message for human-readability.)
-                log_buffer.write(strs.join(exception_message_lines))
+                # Append this message as is to the traceback buffer *BEFORE*
+                # appending a truncation of this message to the message buffer.
+                exception_full_buffer.write(
+                    strs.join(exception_message_lines))
                 #print('exception string: '+ exception_message_lines[-1])
 
                 # Split the last line of this message into a non-human-readable
@@ -354,13 +381,15 @@ class CLI(metaclass = ABCMeta):
                 # and _format_final_exc_line() guarantee this line to be
                 # formatted as follows:
                 #     "${exception_class}: ${exception_message}"
-                assert len(exception_message_lines),\
-                    'Exception message lines empty.'
-                exception_message_match_groups = \
+                assert types.is_sequence_nonstr_nonempty(
+                    exception_message_lines), (
+                        types.assert_not_sequence_nonstr_nonempty(
+                            exception_message_lines, 'Exception message lines'))
+                exception_message_match_groups = (
                     regexes.get_match_groups_numbered(
                         exception_message_lines[-1],
                         r'^({})(?:\s*|:\s+(.+))$'.format(
-                            identifiers.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
+                            identifiers.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW)))
 
                 # This message is guaranteed to be prefixed by a class name.
                 exception_class_name = exception_message_match_groups[0]
@@ -402,61 +431,67 @@ class CLI(metaclass = ABCMeta):
                     exception_message = 'Dictionary key {} not found.'.format(
                         exception_message)
 
-                # Append this message to the standard error buffer. For
-                # readability, wrap this message to the default terminal width
-                # and prefix each wrapped line with indentation.
-                stderr_buffer.write(
-                    strs.wrap(
-                        text = exception_message,
-                        line_prefix = '    ',))
+                # Append this message to the synopsis buffer. For readability,
+                # this message is wrapped to the default terminal width and
+                # each wrapped line prefixed by indentation.
+                exception_iota_buffer.write(strs.wrap(
+                    text=exception_message, line_prefix='    '))
 
-                # If such exception has a traceback, append this traceback to
-                # this log but *NOT* standard error buffer.
+                # If this exception has a traceback, append this traceback to
+                # the traceback but *NOT* synopsis buffer.
                 if exception_parent_traceback:
                     # Append a traceback header.
-                    log_buffer.write('\nTraceback (most recent call last):\n')
+                    exception_full_buffer.write(
+                        '\nTraceback (most recent call last):\n')
 
-                    # Append such traceback.
-                    log_buffer.write(strs.join(
+                    # Append this traceback.
+                    exception_full_buffer.write(strs.join(
                         # List of lines formatted from this list.
                         traceback.format_list(
                             # List of stack trace entries from this traceback.
                             traceback.extract_tb(
                                 exception_parent_traceback))))
 
-            # Append a logfile reference to this standard error message.
-            stderr_buffer.write('\n\nFor details, see "{}".'.format(
-                loggers.config.filename))
+            # Append a random error haiku to the traceback buffer... *BECAUSE*!
+            exception_full_buffer.write(
+                '\n{}'.format(stderr.get_haiku_random()))
 
-            # Append a random error haiku to this log message.
-            log_buffer.write('\n{}\n'.format(stderr.get_haiku_random()))
+            # If logging to a file, append a reference to this file to the
+            # synopsis buffer.
+            if self._is_log_file:
+                exception_iota_buffer.write(
+                    '\n\nFor details, see "{}".'.format(
+                        loggers.config.filename))
 
-            # Exception messages.
-            stderr_message = stderr_buffer.getvalue()
-            log_message = log_buffer.getvalue()
+            # String contents of these buffers.
+            exception_iota = exception_iota_buffer.getvalue()
+            exception_full = exception_full_buffer.getvalue()
 
-            # True if the user requested verbosity.
-            is_verbose = getattr(self._args, 'is_verbose', False)
-
-            # If a logger has been initialized, log this exception as a debug
-            # message. Unless the user explicitly passed command-line option
-            # "--verbose" to this script, logging with the debug level confines
-            # such traceback to the logfile. This is a (largely) good thing;
-            # tracebacks convey more details than expected by customary users.
+            # If logging has been initialized...
             if loggers.config.is_initted:
-                # Log such message.
-                loggers.log_debug(log_message)
+                # If logging to a file...
+                if self._is_log_file:
+                    # If verbosity is disabled, output this synopsis to stderr;
+                    # else, tracebacks containing this synopsis are already
+                    # output to stderr by logging performeb below.
+                    if not self._is_verbose:
+                        stderr.output(exception_iota)
 
-                # If the user did *NOT* request verbosity, print a terse message
-                # to standard error.
-                if not is_verbose:
-                    stderr.output(stderr_message)
-            # Else, print such exception to standard error. Since the log
-            # message is more verbose than and hence subsumes the standard error
-            # message, only the former is printed.
+                    # Log tracebacks to the debug level and hence *NOT* stderr
+                    # by default, confining these tracebacks to the logfile.
+                    # This is a Good Thing (TM). Tracebacks provide more detail
+                    # than desirable by the typical user.
+                    loggers.log_debug(exception_full)
+                # Else, standard file handles are being logged to. In this case,
+                # log tracebacks to the error level and hence stderr. Do *NOT*
+                # output the synopsis already output in these tracebacks.
+                else:
+                    loggers.log_error(exception_full)
+            # Else, print this synopsis and tracebacks directly to stderr.
             else:
-                stderr.output(log_message)
-        # If such printing raises an exception, catch and print such exception
+                stderr.output(exception_iota)
+                stderr.output(exception_full)
+        # If this handling raises an exception, catch and print this exception
         # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
             stderr.output('_print_exception() recursively raised exception:\n')

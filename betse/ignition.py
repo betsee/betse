@@ -17,7 +17,7 @@ High-level application initialization common to both the CLI and GUI.
 #
 #    https://stackoverflow.com/a/19350234/2809027
 #FIXME: Phenomenal Python code for profiling system metadata, including BLAS,
-#LAPACK, Atlas, OpenBLAS, and numpy-specific system metadata is available at:
+#LAPACK, Atlas, OpenBLAS, and numpy-specific system metadata:
 #
 #    https://gist.github.com/sandys/258707dae9b79308594b#file-system_info-py
 
@@ -55,10 +55,14 @@ def init() -> None:
     called immediately *after* such application begins catching otherwise
     uncaught exceptions.
     '''
+
     # Validate core directories and files required at program startup.
     pathtree.init()
 
-    # Configure logging *AFTER* creating such directories, as such logging
+    #FIXME: After refactoring logging to merely log to standard file handles,
+    #call this function *BEFORE* anything else, including pathtree.init().
+
+    # Configure logging *AFTER* creating these directories, as such logging
     # writes to files in such directories.
     loggers.config.init(filename=pathtree.LOG_DEFAULT_FILENAME)
     # self._logger.error('ERROR!')
@@ -66,8 +70,8 @@ def init() -> None:
     # self._logger.info('INFO!')
     # self._logger.debug('DEBUG!')
 
-    # Validate mandatory dependencies *AFTER* configuring logging,
-    # ensuring that exceptions raised by such validation will be logged.
+    # Validate mandatory dependencies *AFTER* configuring logging, thereby
+    # logging exceptions raised by this validation.
     libs.init()
 
     # Validate the active Python interpreter *AFTER* validating mandatory
@@ -75,14 +79,3 @@ def init() -> None:
     # recommendations, the latter comprises enforced requirements and hence is
     # performed first.
     pythons.init()
-
-# --------------------( WASTELANDS                         )--------------------
-    #FUXME: This appears to be required due to a PyInstaller bug. Research.
-    # import tkinter.filedialog
-
-# FUXME dear Sessums B. Delightful -- the issue with the dependancies.init() is
-# still crashing the program... :(
-    #FUXME: Reenable *AFTER* we integrate the CLI frontend with our
-    #scientific backend. For the moment, this unacceptably provokes
-    #fatal exceptions in frozen applications.
-    # FUXME! This is still causing issues (AP)
