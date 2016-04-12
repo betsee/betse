@@ -369,7 +369,7 @@ class Parameters(object):
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         # self.gated_targets = self.config['ion channel target cells']
 
-        bool_vgNa = bool(self.config['voltage gated Na+']['turn on'])
+        # bool_vgNa = bool(self.config['voltage gated Na+']['turn on'])
         bool_vgK = bool(self.config['voltage gated K+']['turn on'])
         bool_vgCa = bool(self.config['voltage gated Ca2+']['turn on'])
         bool_cagK = bool(self.config['calcium gated K+']['turn on'])
@@ -377,7 +377,7 @@ class Parameters(object):
 
 
         # set specific character of gated ion channel dynamics:
-        opNa = self.config['gated ion channel options']['voltage gated Na']
+        opNa = self.config['voltage gated Na+']
         opK = self.config['gated ion channel options']['voltage gated K']
         opCa = self.config['gated ion channel options']['voltage gated Ca']
         opcK = self.config['gated ion channel options']['calcium gated K']
@@ -385,12 +385,17 @@ class Parameters(object):
 
         # voltage gated sodium
 
-        vgNa = [float(opNa['max Dmem Na']),float(opNa['activation v']),float(opNa['inactivation v']),float(opNa['deactivation v']),
-            float(opNa['live time']),float(opNa['dead time'])]
+        # vgNa = [float(opNa['max Dmem Na']),float(opNa['activation v']),float(opNa['inactivation v']),float(opNa['deactivation v']),
+        #     float(opNa['live time']),float(opNa['dead time'])]
+        #
+        # apply_vgNa = self.config['voltage gated Na+']['apply to']
+        #
+        # vgNa.append(apply_vgNa)
 
-        apply_vgNa = self.config['voltage gated Na+']['apply to']
-
-        vgNa.append(apply_vgNa)
+        self.vgNa_bool = opNa['turn on']
+        self.vgNa_type = opNa.get('channel type', 'vgNa_Default')
+        self.vgNa_max = float(opNa.get('max value','2e-14'))
+        self.vgNa_apply = opNa['apply to']
 
         # voltage gated potassium
 
@@ -428,10 +433,10 @@ class Parameters(object):
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
 
-        if bool_vgNa is False:
-            self.vg_options['Na_vg'] = 0
-        elif bool_vgNa is True:
-            self.vg_options['Na_vg'] = vgNa
+        # if bool_vgNa is False:
+        #     self.vg_options['Na_vg'] = 0
+        # elif bool_vgNa is True:
+        #     self.vg_options['Na_vg'] = vgNa
 
         if bool_vgK is False:
             self.vg_options['K_vg'] = 0

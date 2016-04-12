@@ -342,16 +342,16 @@ class TissueHandler(object):
         cellular world.
         '''
 
-        if p.vg_options['Na_vg'] != 0:
+        if p.vgNa_bool:
 
             # Initialization of logic values for voltage gated sodium channel
-            self.maxDmNa = p.vg_options['Na_vg'][0]
+            self.maxDmNa = p.vgNa_max
             # self.v_activate_Na = p.vg_options['Na_vg'][1]
             # self.v_inactivate_Na = p.vg_options['Na_vg'][2]
             # self.v_deactivate_Na = p.vg_options['Na_vg'][3]
             # self.t_alive_Na = p.vg_options['Na_vg'][4]
             # self.t_dead_Na = p.vg_options['Na_vg'][5]
-            self.apply_vgNa = p.vg_options['Na_vg'][6]
+            self.apply_vgNa = p.vgNa_apply
 
             # Initialize matrices defining states of vgNa channels for each cell membrane:
             # self.inactivated_Na = np.zeros(self.data_length)
@@ -376,13 +376,14 @@ class TissueHandler(object):
 
             # create the desired voltage gated sodium channel instance:
 
-            Na_class_ = getattr(vgna,'vgNa_Default','vgNa_Default')
+            Na_class_ = getattr(vgna,p.vgNa_type,'vgNa_Default')
             self.vgNa_object = Na_class_()
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium object
                 self.vgNa_object.init(self, sim, p)
                 # vgSodium_init(self,sim,p)
+
 
             # self.m_Na = self.mInf_o
             # self.h_Na = self.hInf_o
@@ -745,7 +746,7 @@ class TissueHandler(object):
 
         self.dvsign = np.sign(sim.dvm)
 
-        if p.vg_options['Na_vg'] != 0:
+        if p.vgNa_bool:
 
             # update the voltage-gated sodium object
             self.vgNa_object.run(self, sim, p)

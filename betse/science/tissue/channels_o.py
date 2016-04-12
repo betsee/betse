@@ -364,24 +364,6 @@ def vgSodium(dyna,sim,cells,p):
 
     V = sim.vm[dyna.targets_vgNa]*1000
 
-        # add in random noise:
-    # corr_const = 1.e-6*np.random.random(len(V))
-    # corr_const2 = 1.e-6*np.random.random(len(V))
-
-    #----HH squid model modified (sustains pulses)------------------------
-
-    # V = V + 50
-    #
-    # mAlpha = (0.1*(25-V))/(np.exp((25-V)/10) -1.0)
-    # mBeta = 4.0 * (np.exp(-V/18))
-    # mInf = mAlpha/(mAlpha + mBeta)
-    # mTau = 1/(mAlpha + mBeta)
-    # hAlpha = 0.07 * np.exp(-V/20)
-    # hBeta = 1/(np.exp((30-V)/10) + 1.0)
-    # hInf = hAlpha/(hAlpha + hBeta)
-    # hTau = 1/(hAlpha + hBeta)
-    #
-    # print(dyna.m_Na.min(),dyna.m_Na.max(),dyna.h_Na.min(),dyna.h_Na.max())
 
 
     #--------McCormack Model---------------(very persistant...)-----------------------
@@ -439,27 +421,6 @@ def vgSodium(dyna,sim,cells,p):
     hTau = 1/((0.024 * ((V-10.0)- -50.0))/(1-(np.exp(-((V-10.0)- -50.0)/5))) +(0.0091 * (-(V-10.0) -
                                                                 75.000123))/(1-(np.exp(-(-(V-10) - 75.000123)/5))))
 
-    #--Neonatal NaV1.3---------------activates at very high depolarizations----
-    # # Find areas where the differential equation is intrinsically ill-behaved:
-    # v_inds_h = []
-    #
-    # truth_inds_ma = V < -25
-    # truth_inds_mb = V > -27
-    #
-    # v_inds_m = (truth_inds_ma*truth_inds_mb).nonzero()
-    #
-    # # small correction constant on the voltage
-    # corr_const = 1.0e-6
-    #
-    # V[v_inds_m] = V + corr_const
-    # V[v_inds_h] = V + corr_const
-    #
-    # mAlpha = (0.182 * ((V)- -26))/(1-(np.exp(-((V)- -26)/9)))
-    # mBeta = (0.124 * (-(V) -26))/(1-(np.exp(-(-(V) -26)/9)))
-    # mInf = mAlpha/(mAlpha + mBeta)
-    # mTau = 1/(mAlpha + mBeta)
-    # hInf = 1 /(1+np.exp((V-(-65.0))/8.1))
-    # hTau = 0.40 + (0.265 * np.exp(-V/9.47))
 
     #-----action-potential promising vgNa---------(slow, persistent, weak)
     # qt = 2.3**((34-21)/10)
@@ -473,8 +434,6 @@ def vgSodium(dyna,sim,cells,p):
     # hTau = (1/(hAlpha + hBeta))/qt
 
     # NaTa_t-------Costa 2002 -----(fast, strong, persistent)
-
-
 
     # Find areas where the differential equation is intrinsically in need of correction:
     # truth_inds_ma = V < -37

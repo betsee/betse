@@ -451,8 +451,8 @@ modulator function properties:   # set properties of modulating functions which 
 voltage gated Na+:
     turn on: False             # voltage gated sodium channel?
     apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
-    channel type: vgNa_rat   # specific ion channel to target
-    max value: 4.0e-14    # maximum diffusion constant when channel open
+    channel type: vgNa_Default   # specific ion channel type: vgNa_Default, vgNa_1p3, vgNa_1p6, vgNa_Squid
+    max value: 2.0e-14    # maximum diffusion constant when channel open
 
 voltage gated K+:              # voltage gated potassium channel?
     turn on: False
@@ -992,14 +992,6 @@ results options:
 # BETSE requires these parameters for its internal use only.
 
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
-
-    voltage gated Na:
-        max Dmem Na: 4.0e-14        # maximum Na+ membrane diffusion coefficient channel open [m2/s]  5e-14
-        activation v: -50e-3      # voltage threshold above which vgNa is activated [V] -55e-3
-        inactivation v: 20e-3     # voltage threshold above which vgNa is inactivated [V] 20e-3
-        deactivation v: -55e-3    # voltage threshold below which vgNa is deactivated [V] -60e-3
-        live time: 2e-3           # time activated state can exist (trans to inactivated) [s]  2.5e-3
-        dead time: 5e-3          # refractory time vgNa remains inactivated [s]  5e-3
 
     voltage gated K:
 
