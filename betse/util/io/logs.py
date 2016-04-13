@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 #FIXME: Warnings should be prefixed by "<Warning> " in standard error or some
@@ -30,10 +30,9 @@ Low-level logging facilities.
 
 Logging Levels
 ----------
-Logging levels are integer-comparable according to the conventional semantics of
-the `<` comparator such that levels assigned smaller integers are more
-**inclusive** (i.e., strictly log more messages than) levels assigned larger
-integers: e.g.,
+Logging levels are integer-comparable according to the standard semantics of
+the `<` comparator. Levels assigned smaller integers are more inclusive (i.e.,
+log strictly more messages than) levels assigned larger integers: e.g.,
 
     # "DEBUG" is less than and hence more inclusive than "INFO".
     >>> logging.DEBUG < logging.INFO
@@ -42,18 +41,17 @@ integers: e.g.,
 Logging Hierarchy
 ----------
 Loggers are hierarchically structured according to their `.`-delimited names.
-Since the name of the root logger is *always* the empty string, such logger is
-*always* the parent of all user-defined loggers. Such hierarchy is an implicit
+Since the name of the root logger is _always_ the empty string, this logger is
+_always_ the parent of all user-defined loggers. This hierarchy is an implicit
 consequence of logger names and hence requires no manual intervention (e.g., the
 root logger `` is implicitly the parent of a user-defined logger `A` is
 implicitly the parent of a user-defined logger `A.B`).
 
 By default, logger messages are implicitly propagated up the logger hierarchy
 (e.g., messages to logger `A.B` are implicitly progagated to logger `A` are
-are implicitly progagated to the root logger). This is a good thing, as it
-permits child loggers to consist essentially *only* of a name; assuming all
-loggers except the root logger to be unconfigured, messages will be logged
-*only* by the root logger.
+are implicitly progagated to the root logger). This is a good thing, effectively
+reducing child loggers to symbolic names; assuming all loggers except the root
+logger to be unconfigured, messages will be logged _only_ by the root logger.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -501,155 +499,3 @@ Such configuration provides access to root logger handlers. In particular, this
 simplifies modification of logging levels at runtime (e.g., in response to
 command-line arguments or configuration file settings).
 '''
-
-# --------------------( WASTELANDS                         )--------------------
-#FUXME; *ALL* messages output to either the standard output or error handlers
-#should be wrapped to the standard line length. While we were oddly unable to
-#successfully google a working implementation, it should be reasonably trivial
-#to modify answers at the URL below for warning- and error-specific prefixes.
-#Actually, yes. This is absolutely trivial, once we've implemented that. So:
-#"Hey, ho! Let'sa go!"
-
-#Why not simply pass such filename to such class's __init__()? Because the
-#desired log filename will only be available sometime after startup (e.g., after
-#parsing command-line arguments and/or configuration files), whereas we would
-#prefer that all LoggerConfig() objects come preconfigured with logfile output.
-#Why? Because this ensures that, in the event of sufficiently early exceptions,
-#there will still exist a logfile for clients to send us.
-
-# from betse.util.path import dirs
-# from betse.util.type import ints
-# and hence logging globally configured. at least once
-    # Since logging under the root logger is inherently unsafe, assert such
-    # constraint.
-        # Prevent the root logger from ignoring *ANY* log requests. (By default,
-        # such logger ignores
-        # stream_format = '[{processName}] {message}'
-        # file_format =\
-        #     '[{asctime}] {processName} {levelname} ({module}.py:{funcName}():{lineno}):\n{message}'
-
-            # '[{asctime}] {processName} {levelname:8s} ({module}.py:{funcName}():{lineno}):\n{message}'
-# def _copy_logging_levels():
-#     '''
-#     Copy all logging levels from the `logging` module complete with docstrings
-#     into this module on the first importation of this module. Following such
-#     importation, all such levels will be publicly accessible as
-#     `logger.{logging_level_name}` (e.g., `logger.DEBUG`).
-#     '''
-#     import sys
-#     # thismodule = sys.modules[__name__]
-#
-#     module_constant = globals()
-#     for logging_level_name in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL',):
-#         logging_level = getattr(logging, logging_level_name)
-#         # setattr(thismodule, logging_level_name, logging_level)
-#         globals()[logging_level_name] = logging_level
-#
-#     global INFO
-#     print('INFO: '+INFO)
-#
-# # Make it so.
-# _copy_logging_levels
-#
-# # For mild safety, delete such function after use. Python's lack of support for
-# # multiline anonymous functions becomes unctuous, with time.
-# del(_copy_logging_levels)
-
-# class LoggerFilterInfoOnly(logging.Filter):
-#     '''
-#     Filter ignoring log records with logging level *not* `INFO`.
-#
-#     This filter retains only log records with a logging level of `INFO`.
-#     '''
-#     def filter(self, log_record: logging.LogRecord) -> str:
-#         '''
-#         True if the passed log record has a logging level of `INFO`.
-#         '''
-#         assert isinstance(log_record, logging.LogRecord),\
-#             '"{}" not a string.'.format(log_record)
-#         return log_record.levelno == logging.INFO
-
-    # Since logging under the root logger is inherently unsafe, an exception is
-    # raised.
-    # if logger_name == '':
-    #     raise BetseExceptionLog('Logger name empty.')
-# from betse.util.exceptions import BetseExceptionLog
-        # Note that "{{" and "}}" substrings in format() strings escape literal
-        # "{" and "}" characters, respectively.
-        # file_format =\
-        #     '[{{asctime}}] {} {{levelname:8s}} ({{module}}.py:{{lineno}}): {{message}}'.format(
-        #         script_basename)
-        # stream_format = '[{}] {{message}}'.format(script_basename)
-        # Basename of the current process (e.g., "betse").
-        # script_basename = process.get_current_basename()
-
-    # Ideally, this function would automatically get such name by inspecting the
-    # current call stack for such name. Unfortunately, a recent stackoverflow
-    # comment suggests such inspection fails under PyInstaller: "Also note that
-    # this logic fails to work properly when you compile your python code into an
-    # exe using pyinstaller." See also:
-    #
-    #     https://stackoverflow.com/questions/1095543/get-name-of-calling-functions-module-in-python
-    # This function should *always* be called on a module-specific basis before
-    # attempting to log. In particular, the root logger should *not* be logged to.
-
-            # '[{asctime}] {name} {levelname:8s} ({module}.py:{lineno}): {message}',
-        # # Basename of the currently executed external script (e.g., `betse`).
-        # script_basename =
-
-    # def __init__(self, script_basename: str):
-    #     '''
-    #     Initialize the root logger for application-wide logging.
-    #
-    #     Parameters
-    #     ----------
-    #     script_basename
-    #         Basename of the currently executed external script (e.g., `betse`).
-    #     '''
-        # assert isinstance(script_basename, str),\
-        #     '"{}" not a string.'.format(script_basename)
-    # Filter ignoring log records whose logging level strictly greater than
-    # `INFO`.
-    #
-    # Equivalently, this filter retains only log records with a logging level of
-    # either `INFO` or `DEBUG`.
-    # '''
-    # def filter(self, log_record: logging.LogRecord) -> str:
-    #     '''
-    #     True if the passed log record has a logging level of `INFO` or less
-    #     (i.e., is either `INFO` or `DEBUG`).
-    #     '''
-    #     assert isinstance(log_record, logging.LogRecord),\
-    #         '"{}" not a string.'.format(log_record)
-    #     return log_record.levelno <= logging.INFO
-
-        # self._logger_root_handler_file.setLevel()
-        # Root logger wrapper, preconfigured as documented above.
-    # Callers may customize such handlers by calling the appropriate getters.
-    # requiring user-specified
-    # provides convenient access to such handlers
-
-    # Return such wrapper.
-    # return logger_root
-    # assert isinstance(script_basename, str), '"{}" not a string.'.format(
-    #     script_basename)
-
-# def get_root(script_basename: str) -> None:
-      # * Labelled as originating from the external script with the passed
-      #   basename (e.g., `betse-qt`).
-        # ''.join((
-        #     '[{asctime}] {name}',
-        #     script_basename,
-        #     ' {levelname:8s} ({module}.py:{lineno}): {message}',
-        #     '{asctime}   {message}',
-        # )),
-
-# such that One logging level being less than another implies the
-# former is more inclusive than the latter:
-# ....................{ CLASSES                            }....................
-# ....................{ SINGLETONS                         }....................
-#FUXME: Implement me.
-# logger = None
-# '''
-# Singleton logger usable by both the CLI and GUI interfaces.
-# '''
