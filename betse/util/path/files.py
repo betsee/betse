@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -13,7 +13,7 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 # ....................{ IMPORTS                            }....................
 import os, re, shutil, tempfile
 from betse.exceptions import BetseExceptionFile
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 from os import path
 
@@ -141,7 +141,7 @@ def copy(filename_source: str, filename_target: str) -> None:
     from betse.util.path import dirs, paths
 
     # Log this copy.
-    loggers.log_info(
+    logs.log_info(
         'Copying file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
@@ -168,7 +168,7 @@ def remove(filename: str) -> None:
         types.assert_not_str_nonempty(filename, 'filename')
 
     # Log such removal.
-    loggers.log_info('Removing file "%s".', filename)
+    logs.log_info('Removing file "%s".', filename)
 
     # Raise an exception unless such file exists.
     die_unless_file(filename)
@@ -326,10 +326,10 @@ def substitute_substrings(
 
     # Log this substitution.
     if filename_source == filename_target:
-        loggers.log_debug(
+        logs.log_debug(
             'Munging file "%s" in-place.', filename_source)
     else:
-        loggers.log_debug(
+        logs.log_debug(
             'Munging file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.

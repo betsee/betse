@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -34,8 +34,8 @@ High-level application initialization common to both the CLI and GUI.
 # ....................{ IMPORTS                            }....................
 from betse import pathtree
 from betse.lib import libs
-from betse.util.io import loggers
-from betse.util.py import pythons
+from betse.util.io import logs
+from betse.util.py import pys
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -64,7 +64,7 @@ def init() -> None:
 
     # Configure logging *AFTER* creating these directories, as such logging
     # writes to files in such directories.
-    loggers.config.init(filename=pathtree.LOG_DEFAULT_FILENAME)
+    logs.config.init(filename=pathtree.LOG_DEFAULT_FILENAME)
     # self._logger.error('ERROR!')
     # self._logger.warning('WARNING!')
     # self._logger.info('INFO!')
@@ -78,4 +78,4 @@ def init() -> None:
     # dependencies. While the former (mostly) comprises unenforced
     # recommendations, the latter comprises enforced requirements and hence is
     # performed first.
-    pythons.init()
+    pys.init()

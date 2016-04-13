@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -14,8 +14,8 @@ from collections import OrderedDict
 from betse import metadata, pathtree
 from betse.lib import libs
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.util.io import loggers
-from betse.util.py import pythons
+from betse.util.io import logs
+from betse.util.py import pys
 from betse.util.os import oses, processes
 from io import StringIO
 
@@ -28,7 +28,7 @@ def output_info() -> None:
     Print all output for the `info` subcommand.
     '''
 
-    loggers.log_info(
+    logs.log_info(
         'Harvesting system information. (This may take a moment.)')
 
     # Dictionary of human-readable labels to dictionaries of all
@@ -57,7 +57,7 @@ def output_info() -> None:
         ('matplotlib', mpl_config.get_metadata()),
 
         # Python metadata.
-        ('python', pythons.get_metadata()),
+        ('python', pys.get_metadata()),
 
         # Operating system (OS) metadata.
         ('os', oses.get_metadata()),
@@ -87,7 +87,7 @@ def output_info() -> None:
 
     # Log rather than merely output such string, as logging simplifies
     # cliest-side bug reporting.
-    loggers.log_info(info_buffer.getvalue())
+    logs.log_info(info_buffer.getvalue())
 
 # --------------------( WASTELANDS                         )--------------------
     # info_buffer.write('\n')

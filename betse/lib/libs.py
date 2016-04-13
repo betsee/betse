@@ -77,7 +77,7 @@ def get_metadata() -> OrderedDict:
     '''
     # Imports deferred to their point of use, as documented above.
     from betse.lib import setuptool
-    from betse.util.py import modules, pythons
+    from betse.util.py import modules, pys
     from betse.util.type import containers
     import pkg_resources
 
@@ -88,7 +88,7 @@ def get_metadata() -> OrderedDict:
     # manually rather than via setuptools machinery. See the
     # setuptool.die_unless_requirement_satisfiable() function for related logic
     # and further commentary.
-    if pythons.is_frozen():
+    if pys.is_frozen():
     # if True:
         # List of the setuptools-specific project names of all BETSE
         # dependencies, lexicographically sorted for readability.

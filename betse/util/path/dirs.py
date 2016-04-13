@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -13,7 +13,7 @@ builtin.
 # ....................{ IMPORTS                            }....................
 import os, shutil
 from betse.exceptions import BetseExceptionDir
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 from os import path
 
@@ -93,7 +93,7 @@ def make_unless_dir(dirname: str) -> None:
     # "exist_ok = True" below.
     if not is_dir(dirname):
         # Log this creation.
-        loggers.log_debug('Creating directory "%s".', dirname)
+        logs.log_debug('Creating directory "%s".', dirname)
 
         # Create this directory if still needed.
         os.makedirs(dirname, exist_ok = True)
@@ -188,7 +188,7 @@ def copy(dirname_source: str, dirname_target: str) -> None:
         types.assert_not_str_nonempty(dirname_target, 'Target dirname'))
 
     # Log this copy.
-    loggers.log_debug(
+    logs.log_debug(
         'Copying directory "%s" to "%s".', dirname_source, dirname_target)
 
     # Raise an exception unless the source directory exists.

@@ -21,7 +21,7 @@ from betse.science import toolbox as tb
 from betse.science.tissue.handler import TissueHandler
 from betse.science.finitediff import gradient
 from betse.exceptions import BetseExceptionSimulation
-from betse.util.io import loggers
+from betse.util.io import logs
 
 
 class SimGrid(object):
@@ -439,11 +439,11 @@ class SimGrid(object):
         # Initialize all user-specified interventions and dynamic channels.
         self.dyna.runAllInit(self,cells,p)
 
-        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-        loggers.log_info('You are running the ion profile: '+ p.ion_profile)
+        logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
+        logs.log_info('You are running the ion profile: ' + p.ion_profile)
 
-        loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-        loggers.log_info('If you have selected features using other ions, they will be ignored.')
+        logs.log_info('Ions in this simulation: ' + str(self.ionlabel))
+        logs.log_info('If you have selected features using other ions, they will be ignored.')
 
     def runSim(self,cells,p,save=None):
 
@@ -531,12 +531,12 @@ class SimGrid(object):
         # report
         if p.run_sim is True:
 
-            loggers.log_info('Your simulation (quasi-continuous) is running from '+ str(0) + ' to '+ str(round(p.sim_tsteps*p.dt,3))
-                         + ' s of in-world time.')
+            logs.log_info('Your simulation (quasi-continuous) is running from ' + str(0) + ' to ' + str(round(p.sim_tsteps * p.dt, 3))
+                          + ' s of in-world time.')
 
         else:
-            loggers.log_info('Your initialization (quasi-continuous) is running from '+ str(0) + ' to '+ str(round(p.init_tsteps*p.dt,3))
-                         + ' s of in-world time.')
+            logs.log_info('Your initialization (quasi-continuous) is running from ' + str(0) + ' to ' + str(round(p.init_tsteps * p.dt, 3))
+                          + ' s of in-world time.')
 
 
         if p.plot_while_solving is True:
@@ -776,7 +776,7 @@ class SimGrid(object):
                     time_estimate = round(loop_time*p.sim_tsteps,2)
                 else:
                     time_estimate = round(loop_time*p.init_tsteps,2)
-                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
+                logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
 
@@ -792,63 +792,63 @@ class SimGrid(object):
             datadump = [self,cells,p]
             fh.saveSim(self.savedInit,datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
-            loggers.log_info(message_1)
+            logs.log_info(message_1)
 
         elif p.run_sim is True:
 
             datadump = [self,cells,p]
             fh.saveSim(self.savedSim,datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
-            loggers.log_info(message_2)
+            logs.log_info(message_2)
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
+            logs.log_info(concmess + str(endconc) + ' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final extracellular concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
+            logs.log_info(concmess + str(endconc) + ' mmol/L')
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),4)
         vmess = 'Final average cell Vmem of ' + ': '
-        loggers.log_info(vmess + str(final_vmean) + ' mV')
+        logs.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(np.mean((self.cc_time[-1][self.iH])/1000))
-            loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
+            logs.log_info('Final average cell pH ' + str(np.round(final_pH, 2)))
 
             final_pH_ecm = -np.log10(np.mean((self.cc_env_time[-1][self.iH])/1000))
-            loggers.log_info('Final extracellular pH '+ str(np.round(final_pH_ecm,2)))
+            logs.log_info('Final extracellular pH ' + str(np.round(final_pH_ecm, 2)))
 
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             IP3_ecm_final = np.mean(self.cIP3_ecm)
             IP3_cell_final = np.mean(self.cIP3)
-            loggers.log_info('Final extracellular IP3 concentration: ' + str(np.round(IP3_ecm_final,6)) + ' mmol/L')
-            loggers.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final,6)) + ' mmol/L')
+            logs.log_info('Final extracellular IP3 concentration: ' + str(np.round(IP3_ecm_final, 6)) + ' mmol/L')
+            logs.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final, 6)) + ' mmol/L')
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
             endconc_er = np.round(np.mean(self.cc_er[0]),6)
             label = self.ionlabel[self.iCa]
             concmess = 'Final average ER concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
+            logs.log_info(concmess + str(endconc_er) + ' mmol/L')
 
         if p.voltage_dye ==1:
             dye_ecm_final = np.mean(self.cDye_ecm)
             dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final extracellular dye concentration: '+ str(np.round(dye_ecm_final,6))
-                             + ' mmol/L')
-            loggers.log_info('Final average dye concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
+            logs.log_info('Final extracellular dye concentration: ' + str(np.round(dye_ecm_final, 6))
+                          + ' mmol/L')
+            logs.log_info('Final average dye concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
                              ' mmol/L')
 
         plt.close()
-        loggers.log_info('Simulation completed successfully.')
+        logs.log_info('Simulation completed successfully.')
 
     def update_V(self,cells,p):
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -8,36 +8,18 @@ Abstract command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
-import sys, traceback
+import sys
+import traceback
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
-from betse.util.io import loggers, stderr
-from betse.util.py import identifiers
+from betse.util.io import logs, stderrs
+from betse.util.io.logs import LogType
 from betse.util.os import processes
 from betse.util.os.args import HelpFormatterParagraph
+from betse.util.py import identifiers, pys
 from betse.util.type import regexes, strs, types
-from enum import Enum
 from io import StringIO
-
-# ....................{ ENUMERATIONS                       }....................
-LogType = Enum('LogType', ('NONE', 'FILE'))
-'''
-Enumeration of all possible types of logging performed by `betse`, corresponding
-to the global `--log-type` option configured below.
-
-Attributes
-----------
-none : enum
-    Enumeration member redirecting all logging to standard file handles, in
-    which case:
-    * All `INFO` and `DEBUG` log messages will be printed to stdout.
-    * All `ERROR` and `WARNING` log messages will be printed to stderr.
-    * All uncaught exceptions will be printed to stderr.
-file : enum
-    Enumeration member redirecting all logging to the currently configured
-    logfile for `betse`.
-'''
 
 # ....................{ CLASS                              }....................
 class CLI(metaclass = ABCMeta):
@@ -153,7 +135,7 @@ class CLI(metaclass = ABCMeta):
         In order, this method:
 
         * Creates and configures an argument parser with sensible defaults.
-        * Calls the subclass-specific `_configure_arg_parsing()` method,
+        * Calls the subclass-specific `_config_arg_parsing()` method,
           defaulting to a noop.
         * Parses all arguments with such parser.
         '''
@@ -195,7 +177,7 @@ class CLI(metaclass = ABCMeta):
         self._config_global_options()
 
         # Perform subclass-specific argument parsing configuration.
-        self._configure_arg_parsing()
+        self._config_arg_parsing()
 
     # ..................{ ARGS ~ options                     }..................
     def _config_global_options(self) -> None:
@@ -294,9 +276,32 @@ class CLI(metaclass = ABCMeta):
         # If the user requested verbosity, set the log level for the standard
         # output logger handler to the all-inclusive "ALL".
         if self._is_verbose:
-            loggers.config.handler_stdout.setLevel(loggers.ALL)
+            logs.config.handler_stdout.setLevel(logs.ALL)
+
+        # Log a high-level synopsis of current program, Python, and platform
+        # state *AFTER* configuring all logging-based options. This resembles:
+        #
+        #     [betse] { BETSE 6.6.6 | PyPy 9.9.9 | Gentoo Linux 3.3.3 | 64-bit }
+        logs.log_debug(
+            'Welcome to  ~{{ '
+            '{program_name} {program_version} | '
+            '{py_name} {py_version} | '
+            '{os_name} {os_version} | '
+            '{word_size} '
+            '}}~'.format(
+                program_name=metadata.NAME,
+                program_version=metadata.__version__,
+                py_name=pys.get_name(),
+                py_version=pys.get_version(),
+
+                #FIXME: Define these, please!
+                os_name='???',
+                os_version='???',
+                word_size='???',
+            ))
 
     # ..................{ EXCEPTIONS                         }..................
+    #FIXME: Consider shifting most of this into the "stderrs" module.
     def _print_exception(self, exception: Exception) -> None:
         '''
         Print the passed exception to standard error *and* log such exception.
@@ -454,47 +459,48 @@ class CLI(metaclass = ABCMeta):
 
             # Append a random error haiku to the traceback buffer... *BECAUSE*!
             exception_full_buffer.write(
-                '\n{}'.format(stderr.get_haiku_random()))
+                '\n{}'.format(stderrs.get_haiku_random()))
 
             # If logging to a file, append a reference to this file to the
             # synopsis buffer.
             if self._is_log_file:
                 exception_iota_buffer.write(
                     '\n\nFor details, see "{}".'.format(
-                        loggers.config.filename))
+                        logs.config.filename))
 
             # String contents of these buffers.
             exception_iota = exception_iota_buffer.getvalue()
             exception_full = exception_full_buffer.getvalue()
 
             # If logging has been initialized...
-            if loggers.config.is_initted:
+            if logs.config.is_initted:
                 # If logging to a file...
                 if self._is_log_file:
                     # If verbosity is disabled, output this synopsis to stderr;
                     # else, tracebacks containing this synopsis are already
                     # output to stderr by logging performeb below.
                     if not self._is_verbose:
-                        stderr.output(exception_iota)
+                        stderrs.output(exception_iota)
 
                     # Log tracebacks to the debug level and hence *NOT* stderr
                     # by default, confining these tracebacks to the logfile.
                     # This is a Good Thing (TM). Tracebacks provide more detail
                     # than desirable by the typical user.
-                    loggers.log_debug(exception_full)
+                    logs.log_debug(exception_full)
                 # Else, standard file handles are being logged to. In this case,
                 # log tracebacks to the error level and hence stderr. Do *NOT*
                 # output the synopsis already output in these tracebacks.
                 else:
-                    loggers.log_error(exception_full)
-            # Else, print this synopsis and tracebacks directly to stderr.
+                    logs.log_error(exception_full)
+            # Else, output only these tracebacks directly to stderr. Since this
+            # is an edge case resulting only from fatal exceptions raised
+            # exceptionally early in program startup, no effort is expended.
             else:
-                stderr.output(exception_iota)
-                stderr.output(exception_full)
+                stderrs.output(exception_full)
         # If this handling raises an exception, catch and print this exception
         # via the standard Python library, guaranteed not to raise exceptions.
         except Exception:
-            stderr.output('_print_exception() recursively raised exception:\n')
+            stderrs.output('_print_exception() recursively raised exception:\n')
             traceback.print_exc()
 
     # ..................{ UTILITIES                          }..................
@@ -508,7 +514,7 @@ class CLI(metaclass = ABCMeta):
           `betse`).
         * `{program_name}` by the name of the current program (e.g., `BETSE`).
         '''
-        assert isinstance(text, str), '"{}" not a string.'.format(text)
+        assert types.is_str(text), types.assert_not_str(text)
         return text.format(
             program_name=metadata.NAME,
             script_basename=self._script_basename,
@@ -535,9 +541,7 @@ class CLI(metaclass = ABCMeta):
         return {}
 
 
-    #FIXME: Rename to _config_arg_parsing() and likewise for similar subclass
-    #methods (e.g., _configure_arg_parsing_plot()).
-    def _configure_arg_parsing(self):
+    def _config_arg_parsing(self):
         '''
         Configure subclass-specific argument parsing.
         '''

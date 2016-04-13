@@ -16,7 +16,7 @@
 #
 #    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
 
-#FIXME: It would be great to augment LoggerConfig() with functionality
+#FIXME: It would be great to augment LogConfig() with functionality
 #permitting the log filename to be explicitly set *AFTER* such object's
 #construction. To support this, define a new getter-setter pair of such class
 #called simply "filename". Such property's setter should:
@@ -67,6 +67,7 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 
 import logging, os, sys
 from betse.util.type import types
+from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
@@ -128,7 +129,7 @@ def get(logger_name: str = None) -> logging.Logger:
     basename of the current process (e.g., `betse`) implying the *global logger*
     (i.e., the default application-wide logger).
 
-    This function expects the `LoggerConfig` class to have been previously
+    This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
 
     Logger Name
@@ -159,7 +160,7 @@ def log_debug(message: str, *args, **kwargs) -> None:
     Log the passed debug message with the root logger, formatted with the passed
     `%`-style positional and keyword arguments.
 
-    This function expects the `LoggerConfig` class to have been previously
+    This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
     assert types.is_str(message), types.assert_not_str(message)
@@ -171,7 +172,7 @@ def log_info(message: str, *args, **kwargs) -> None:
     Log the passed informational message with the root logger, formatted with
     the passed `%`-style positional and keyword arguments.
 
-    This function expects the `LoggerConfig` class to have been previously
+    This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
     assert types.is_str(message), types.assert_not_str(message)
@@ -183,7 +184,7 @@ def log_warning(message: str, *args, **kwargs) -> None:
     Log the passed warning message with the root logger, formatted with the
     passed `%`-style positional and keyword arguments.
 
-    This function expects the `LoggerConfig` class to have been previously
+    This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
     assert types.is_str(message), types.assert_not_str(message)
@@ -195,14 +196,33 @@ def log_error(message: str, *args, **kwargs) -> None:
     Log the passed error message with the root logger, formatted with the
     passed `%`-style positional and keyword arguments.
 
-    This function expects the `LoggerConfig` class to have been previously
+    This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
     assert types.is_str(message), types.assert_not_str(message)
     logging.error(message, *args, **kwargs)
 
+# ....................{ ENUMERATIONS                       }....................
+LogType = Enum('LogType', ('NONE', 'FILE'))
+'''
+Enumeration of all possible types of logging performed by `betse`, corresponding
+to the global `--log-type` option configured below.
+
+Attributes
+----------
+none : enum
+    Enumeration member redirecting all logging to standard file handles, in
+    which case:
+    * All `INFO` and `DEBUG` log messages will be printed to stdout.
+    * All `ERROR` and `WARNING` log messages will be printed to stderr.
+    * All uncaught exceptions will be printed to stderr.
+file : enum
+    Enumeration member redirecting all logging to the currently configured
+    logfile for `betse`.
+'''
+
 # ....................{ CONFIG                             }....................
-class LoggerConfig(object):
+class LogConfig(object):
     '''
     Default logging configuration.
 
@@ -491,7 +511,7 @@ class LoggerFormatterStream(Formatter):
     #     )
 
 # ....................{ SINGLETON                          }....................
-config = LoggerConfig()
+config = LogConfig()
 '''
 Singleton logging configuration.
 

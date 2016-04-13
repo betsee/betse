@@ -46,7 +46,7 @@ import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim import pipeline
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection, LineCollection
@@ -1084,7 +1084,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if p.turn_all_plots_off is False:
         plt.show()
     else:
-        loggers.log_info(
+        logs.log_info(
             'As the config file results option "plot after saving" is set to "True",\n'
             'plots and data have been exported to the results folder defined in the config\n'
             'file.'

@@ -35,7 +35,7 @@ from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.science.plot.anim.abc import (
     AnimCells, AnimField, AnimVelocity)
 from betse.science.plot import plot
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
 from enum import Enum
@@ -1561,7 +1561,7 @@ class AnimateDeformation(object):
                 plt.show()
             # Else if saving animation frames, do so.
             elif self.p.saveAnimations is True:
-                loggers.log_info(
+                logs.log_info(
                     'Saving animation "{}" frames...'.format(self._type))
                 ani.save(
                     filename=self._save_frame_template,

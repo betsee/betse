@@ -36,7 +36,7 @@ import scipy.spatial as sps
 from betse.science.tissue.bitmapper import BitMapper
 from betse.science import toolbox as tb
 from betse.science import filehandling as fh
-from betse.util.io import loggers
+from betse.util.io import logs
 
 
 class GridWorld(object):
@@ -60,11 +60,11 @@ class GridWorld(object):
         self.generalMask = self.makeMask(mask_type='exterior bound')
         self.cellMask = self.makeMask(mask_type = 'cluster bound')
 
-        loggers.log_info('Creating environmental Poisson solver...')
+        logs.log_info('Creating environmental Poisson solver...')
 
         self.Ainv = self.makeLaplacian(self.generalMask)
 
-        loggers.log_info('Creating cluster-specific Poisson solver...')
+        logs.log_info('Creating cluster-specific Poisson solver...')
         self.Ainv_cells = self.makeLaplacian(self.cellMask)
 
         # loggers.log_info('Cell cluster creation complete!')
@@ -161,7 +161,7 @@ class GridWorld(object):
         """
 
         # load the bitmap used to clip the cell cluster and create a clipping function
-        loggers.log_info('Clipping geometry to cluster shape... ')
+        logs.log_info('Clipping geometry to cluster shape... ')
         bitmasker = BitMapper(
             p.clipping_bitmap_matcher,
             self.xmin, self.xmax, self.ymin, self.ymax)
@@ -227,7 +227,7 @@ class GridWorld(object):
 
         """
 
-        loggers.log_info('Creating gap junctions... ')
+        logs.log_info('Creating gap junctions... ')
 
         cell_tree = sps.KDTree(self.cell_centres)
         self.cell_nn=cell_tree.query_ball_point(self.cell_centres,p.search_d*p.d_cell)
@@ -335,7 +335,7 @@ class GridWorld(object):
 
         """
 
-        loggers.log_info('Tagging environmental boundary points... ')
+        logs.log_info('Tagging environmental boundary points... ')
 
         con_hull = tb.alpha_shape(points, alpha/p.d_cell)  # get the concave hull for the membrane midpoints
         con_hull = np.asarray(con_hull)
@@ -367,7 +367,7 @@ class GridWorld(object):
 
         """
 
-        loggers.log_info('Setting global environmental conditions... ')
+        logs.log_info('Setting global environmental conditions... ')
 
         # first obtain a structure to map to total xypts vector index:
         points_tree = sps.KDTree(self.xypts)
@@ -616,13 +616,13 @@ class GridWorld(object):
         if savecells is True:
 
             # save the cell cluster
-            loggers.log_info('Saving the cell cluster... ')
+            logs.log_info('Saving the cell cluster... ')
 
             # celf = copy.deepcopy(self)
             datadump = [self,p]
             fh.saveSim(self.savedWorld,datadump)
             message = 'Cell cluster saved to' + ' ' + self.savedWorld
-            loggers.log_info(message)
+            logs.log_info(message)
 
     # def makeLaplacian(self):
     #     """

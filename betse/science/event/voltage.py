@@ -10,7 +10,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 from betse.exceptions import BetseExceptionParameters
 from betse.science import toolbox
 from betse.science.event.abc import Pulse
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 
 # ....................{ EVENT                              }....................
@@ -65,7 +65,7 @@ class PulseVoltage(Pulse):
                 )
             # Else, print a non-fatal warning.
             else:
-                loggers.log_warning(
+                logs.log_warning(
                     'Ignoring voltage event, '
                     'as extracellular spaces are disabled.')
 

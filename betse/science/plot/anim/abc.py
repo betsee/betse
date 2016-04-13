@@ -48,7 +48,7 @@ from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.science.plot.abc import PlotCells
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
 from matplotlib import pyplot
@@ -219,7 +219,7 @@ class AnimCells(PlotCells):
 
         # Log this animation as early as reasonably feasible.
         if animation_verb is not None:
-            loggers.log_info(
+            logs.log_info(
                 '{} animation "{}"...'.format(animation_verb, self._type))
 
         # Classify attributes to be possibly redefined below.

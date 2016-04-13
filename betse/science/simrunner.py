@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 import os, os.path, time
@@ -14,7 +14,7 @@ from betse.science.plot import plot as viz
 from betse.science.plot.pipeline import plot_all
 from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.path import files, paths
 from matplotlib.collections import LineCollection, PolyCollection
 
@@ -57,7 +57,7 @@ class SimRunner(object):
             in which case no plot will be displayed.
         """
 
-        loggers.log_info(
+        logs.log_info(
             'Seeding simulation with configuration file "{}".'.format(
                 self._config_basename))
 
@@ -69,11 +69,11 @@ class SimRunner(object):
 
             cells = Cells(p,worldtype='basic')  # create an instance of world
             cells.containsECM = False
-            loggers.log_info('Cell cluster is being created...')
+            logs.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
 
             # define the tissue and boundary profiles for plotting:
-            loggers.log_info('Defining tissue and boundary profiles...')
+            logs.log_info('Defining tissue and boundary profiles...')
             sim.baseInit(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
@@ -83,26 +83,26 @@ class SimRunner(object):
             if p.fluid_flow is True or p.deformation is True: # if user desires fluid flow:
 
                 # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                loggers.log_info('Creating cell network Poisson solver...')
+                logs.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
 
             cells.save_cluster(p)
 
-            loggers.log_info('Cell cluster creation complete!')
+            logs.log_info('Cell cluster creation complete!')
 
             if p.turn_all_plots_off is False:
-                loggers.log_info('Close all plot windows to continue...')
+                logs.log_info('Close all plot windows to continue...')
                 self.plotWorld()
 
         else:
 
             cells = Cells(p,worldtype='full')  # create an instance of world
             cells.containsECM = True
-            loggers.log_info('Cell cluster is being created...')
+            logs.log_info('Cell cluster is being created...')
             cells.makeWorld(p)     # call function to create the world
 
             # define the tissue and boundary profiles for plotting:
-            loggers.log_info('Defining tissue and boundary profiles...')
+            logs.log_info('Defining tissue and boundary profiles...')
             sim.baseInit_ECM(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
@@ -116,11 +116,11 @@ class SimRunner(object):
 
             cells.save_cluster(p)
 
-            loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-            loggers.log_info('Cell cluster creation complete!')
+            logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
+            logs.log_info('Cell cluster creation complete!')
 
             if p.turn_all_plots_off is False:
-                loggers.log_info('Close all plot windows to continue...')
+                logs.log_info('Close all plot windows to continue...')
                 self.plotWorld()
 
                 plt.show()
@@ -131,7 +131,7 @@ class SimRunner(object):
         initialization cache.
         '''
 
-        loggers.log_info(
+        logs.log_info(
             'Initializing simulation with configuration file "{}".'.format(
                 self._config_basename))
 
@@ -146,19 +146,19 @@ class SimRunner(object):
 
         if files.is_file(cells.savedWorld):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            loggers.log_info('Cell cluster loaded.')
+            logs.log_info('Cell cluster loaded.')
 
             # check to ensure compatibility between original and present sim files:
             self.check_congruency(p_old,p)
 
         else:
-            loggers.log_info("Ooops! No such cell cluster file found to load!")
+            logs.log_info("Ooops! No such cell cluster file found to load!")
 
             if p.autoInit is True:
-                loggers.log_info(
+                logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
                 self.makeWorld()  # create an instance of world
-                loggers.log_info(
+                logs.log_info(
                     'Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
@@ -179,8 +179,8 @@ class SimRunner(object):
             sim.baseInit_ECM(cells, p)
             sim.run_loop_with_ecm(cells, p)
 
-        loggers.log_info('Initialization run complete!')
-        loggers.log_info(
+        logs.log_info('Initialization run complete!')
+        logs.log_info(
             'The initialization took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
@@ -188,7 +188,7 @@ class SimRunner(object):
             # as colormaps are deleted from p prior to saving in sim, create a fresh instance of Parameters:
             p = Parameters(config_filename = self._config_filename)
 
-            loggers.log_info(
+            logs.log_info(
                 'When ready, close all of the figure windows to proceed with '
                 'scheduled simulation runs.')
 
@@ -199,7 +199,7 @@ class SimRunner(object):
         '''
         Run simulation from a previously saved initialization.
         '''
-        loggers.log_info(
+        logs.log_info(
             'Running simulation with configuration file "{}".'.format(
                 self._config_basename))
 
@@ -218,12 +218,12 @@ class SimRunner(object):
             self.check_congruency(p_old,p)
 
         else:
-            loggers.log_info("No initialization file found to run this simulation!")
+            logs.log_info("No initialization file found to run this simulation!")
 
             if p.autoInit is True:
-                loggers.log_info("Automatically running initialization...")
+                logs.log_info("Automatically running initialization...")
                 self.initialize()
-                loggers.log_info('Now using initialization to run simulation.')
+                logs.log_info('Now using initialization to run simulation.')
                 sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             elif p.autoInit is False:
@@ -240,10 +240,10 @@ class SimRunner(object):
         else:
             sim.run_loop_with_ecm(cells, p)
 
-        loggers.log_info(
+        logs.log_info(
             'The simulation took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
-        loggers.log_info(
+        logs.log_info(
             'When ready, close all of the figure windows to end the program.')
 
         if p.turn_all_plots_off is False:
@@ -258,7 +258,7 @@ class SimRunner(object):
         '''
         Load and visualize a previously solved initialization.
         '''
-        loggers.log_info(
+        logs.log_info(
             'Plotting initialization with configuration "{}".'.format(
                 self._config_basename))
 
@@ -280,7 +280,7 @@ class SimRunner(object):
         '''
         Load and visualize a previously solved simulation.
         '''
-        loggers.log_info(
+        logs.log_info(
             'Plotting simulation with configuration "{}".'.format(
                 self._config_basename))
 
@@ -300,7 +300,7 @@ class SimRunner(object):
 
     def plotWorld(self):
 
-        loggers.log_info(
+        logs.log_info(
             'Plotting cell cluster with configuration file "{}".'.format(
                 self._config_basename))
 
@@ -317,7 +317,7 @@ class SimRunner(object):
         if files.is_file(cells.savedWorld):
             cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             p.sim_ECM = cells.sim_ECM
-            loggers.log_info('Cell cluster loaded.')
+            logs.log_info('Cell cluster loaded.')
         else:
             raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
 
@@ -419,7 +419,7 @@ class SimRunner(object):
             plt.show()
 
         else:
-            loggers.log_info(
+            logs.log_info(
                 'Plots exported to init results folder '
                 'defined in configuration file "{}".'.format(
                     self._config_basename))

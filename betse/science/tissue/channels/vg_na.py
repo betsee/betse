@@ -10,7 +10,7 @@ Voltage-gated sodium channel classes.
 import numpy as np
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from abc import ABCMeta, abstractmethod
-from betse.util.io import loggers
+from betse.util.io import logs
 
 # ....................{ BASE                               }....................
 class VgNaABC(ChannelsABC, metaclass=ABCMeta):
@@ -102,7 +102,7 @@ class vgNa_Default(VgNaABC):
 
         """
 
-        loggers.log_info('You are using the vgNa channel type: vgNa_Default')
+        logs.log_info('You are using the vgNa channel type: vgNa_Default')
         # Find areas where the differential equation is intrinsically ill-behaved:
         truth_inds_ha = V < -39
         truth_inds_hb = V > -41
@@ -216,7 +216,7 @@ class vgNa_Squid(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
-        loggers.log_info('You are using the vgNa channel type: vgNa_Squid')
+        logs.log_info('You are using the vgNa channel type: vgNa_Squid')
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 3
@@ -300,7 +300,7 @@ class vgNa_1p3(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
-        loggers.log_info('You are using the vgNa channel type: vgNa_1p3')
+        logs.log_info('You are using the vgNa channel type: vgNa_1p3')
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 3
@@ -373,7 +373,7 @@ class vgNa_1p6(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
-        loggers.log_info('You are using the vgNa channel type: vgNa_1p6')
+        logs.log_info('You are using the vgNa channel type: vgNa_1p6')
 
         self._mpower = 1.0
         self._hpower = 0.0

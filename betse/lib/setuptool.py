@@ -11,7 +11,7 @@ dependency simplifying inspection of `betse` dependencies.
 # ....................{ IMPORTS                            }....................
 from betse import metadata
 from betse.exceptions import BetseExceptionModule
-from betse.util.io import loggers
+from betse.util.io import logs
 from pkg_resources import DistributionNotFound, Requirement, VersionConflict
 import pkg_resources
 
@@ -72,7 +72,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
         '"{}" not a setuptools-specific requirement.'.format(requirement)
 
     # Avoid circular import dependencies.
-    from betse.util.py import modules, pythons
+    from betse.util.py import modules, pys
 
     # Human-readable exception to be raised below if any.
     exception = None
@@ -91,7 +91,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
     # dependency validation, the latter remains the default under
     # non-frozen Python interpreters.
     # print('Validating dependency: ' + requirement.project_name)
-    if pythons.is_frozen():
+    if pys.is_frozen():
     # if True:
         # If this requirement's setuptools-specific distribution name has *NOT*
         # been mapped to a module name, raise an exception.
@@ -121,7 +121,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
 
         # If such version does *NOT* exist, log a non-fatal warning.
         if module_version is None:
-            loggers.log_info(
+            logs.log_info(
                 'Mandatory dependency "%s" version not found.', module_name)
         # Else if such version does *NOT* satisfy the current requirement, raise
         # an exception.

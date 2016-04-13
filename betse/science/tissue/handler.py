@@ -7,7 +7,7 @@
 import numpy as np
 from betse.science import toolbox as tb
 from betse.science.event import modulators as mod
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 from random import shuffle
 from scipy import spatial as sps
@@ -703,12 +703,12 @@ class TissueHandler(object):
         soc = p.scheduled_options['cuts']
         if soc is not None and not soc._is_fired and t >= soc.time:
             for cut_profile_name in soc.profile_names:
-                loggers.log_info(
+                logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
                     cut_profile_name)
                 removeCells(p.profiles[cut_profile_name].picker, sim, cells, p)
 
-            loggers.log_info("Cutting event successful! Resuming simulation...")
+            logs.log_info("Cutting event successful! Resuming simulation...")
 
             #FIXME: Duplicate logic. See above. The snow bear dances at noon.
 
@@ -1171,7 +1171,7 @@ def removeCells(
     cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
 
     #-----------------------------------------------------------------
-    loggers.log_info('Recalculating cluster variables for new configuration...')
+    logs.log_info('Recalculating cluster variables for new configuration...')
 
     if p.sim_ECM is True:
         cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
@@ -1193,9 +1193,9 @@ def removeCells(
 
         if p.fluid_flow is True or p.deformation is True:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-            loggers.log_info('Creating cell network Poisson solver...')
+            logs.log_info('Creating cell network Poisson solver...')
             cells.graphLaplacian(p)
-            loggers.log_info('Completed major world-building computations.')
+            logs.log_info('Completed major world-building computations.')
 
         sim.initDenv(cells,p)
 
@@ -1207,6 +1207,6 @@ def removeCells(
 
         if p.fluid_flow is True or p.deformation is True:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-            loggers.log_info('Creating cell network Poisson solver...')
+            logs.log_info('Creating cell network Poisson solver...')
             cells.graphLaplacian(p)
-            loggers.log_info('Completed major world-building computations.')
+            logs.log_info('Completed major world-building computations.')

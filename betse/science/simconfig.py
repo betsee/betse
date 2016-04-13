@@ -12,7 +12,7 @@ Simulation configuration in YAML format.
 # ....................{ IMPORTS                            }....................
 import yaml
 from betse import pathtree
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.path import dirs, files, paths
 from betse.util.type import types
 
@@ -97,7 +97,7 @@ def _write_default_check(config_filename: str) -> None:
     config_filetype = paths.get_filetype(config_basename)
 
     # Announce the ugly shape of things to come.
-    loggers.log_info('Writing default simulation configuration.')
+    logs.log_info('Writing default simulation configuration.')
 
     # If this file already exists, fail. (For safety, we avoid silently
     # overwriting existing files.)
@@ -105,7 +105,7 @@ def _write_default_check(config_filename: str) -> None:
 
     # If this filename is *NOT* suffixed by ".yaml", log a warning.
     if config_filetype != 'yaml':
-        loggers.log_warning(
+        logs.log_warning(
             'File "{}" filetype "{}" not "yaml".'.format(
                 config_basename, config_filetype))
 
@@ -145,7 +145,7 @@ def _write_default_dir(config_filename: str) -> None:
 
     # If this directory already exists, log a non-fatal warning.
     if dirs.is_dir(target_geometry_dirname):
-        loggers.log_warning(
+        logs.log_warning(
             'Ignoring existing subdirectory "{}".'.format(
                 target_geometry_dirname))
     # Else, copy the source geometry subdirectory to this directory.

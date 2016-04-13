@@ -9,7 +9,7 @@ from betse.exceptions import BetseExceptionSimulation
 from betse.science import toolbox as tb
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.util.io import loggers
+from betse.util.io import logs
 
 # Toolbox of functions used in the Simulator class to calculate key bioelectric properties.
 

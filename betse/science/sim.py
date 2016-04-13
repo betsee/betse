@@ -12,7 +12,7 @@ from betse.science import toolbox as tb
 from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science.tissue.handler import TissueHandler
 from betse.science.tissue.channels_o import Gap_Junction
-from betse.util.io import loggers
+from betse.util.io import logs
 from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
@@ -893,12 +893,12 @@ class Simulator(object):
         # Initialize all user-specified interventions and dynamic channels.
         self.dyna.runAllInit(self,cells,p)
 
-        loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-        loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
-        loggers.log_info('You are running the ion profile: '+ p.ion_profile)
+        logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
+        logs.log_info('Each cell has an average of ' + str(round(cells.average_nn, 2)) + ' nearest-neighbours.')
+        logs.log_info('You are running the ion profile: ' + p.ion_profile)
 
-        loggers.log_info('Ions in this simulation: ' + str(self.ionlabel))
-        loggers.log_info(
+        logs.log_info('Ions in this simulation: ' + str(self.ionlabel))
+        logs.log_info(
             'If you have selected features using other ions, '
             'they will be ignored.')
 
@@ -1209,7 +1209,7 @@ class Simulator(object):
                     time_estimate = round(loop_time*p.sim_tsteps,2)
                 else:
                     time_estimate = round(loop_time*p.init_tsteps,2)
-                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
+                logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
         # Find embeded functions that can't be pickled...
@@ -1225,7 +1225,7 @@ class Simulator(object):
 
         plt.close()
 
-        loggers.log_info('Simulation completed successfully.')
+        logs.log_info('Simulation completed successfully.')
 
     def run_loop_with_ecm(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -1482,7 +1482,7 @@ class Simulator(object):
                     time_estimate = round(loop_time*p.sim_tsteps,2)
                 else:
                     time_estimate = round(loop_time*p.init_tsteps,2)
-                loggers.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
+                logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                 do_once = False
 
         # Find embedded functions that can't be pickled...
@@ -1497,7 +1497,7 @@ class Simulator(object):
         self.save_and_report(cells,p)
 
         plt.close()
-        loggers.log_info('Simulation completed successfully.')
+        logs.log_info('Simulation completed successfully.')
 
 
     #.................{  INITIALIZERS & FINALIZERS  }............................................
@@ -1725,62 +1725,62 @@ class Simulator(object):
             datadump = [self, cells, p]
             fh.saveSim(self.savedInit, datadump)
             message_1 = 'Initialization run saved to' + ' ' + p.init_path
-            loggers.log_info(message_1)
+            logs.log_info(message_1)
         else:
             datadump = [self, cells, p]
             fh.saveSim(self.savedSim, datadump)
             message_2 = 'Simulation run saved to' + ' ' + p.sim_path
-            loggers.log_info(message_2)
+            logs.log_info(message_2)
 
         # report final output to user:
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
+            logs.log_info(concmess + str(endconc) + ' mmol/L')
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
             label = self.ionlabel[i]
             concmess = 'Final environmental concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc) + ' mmol/L')
+            logs.log_info(concmess + str(endconc) + ' mmol/L')
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
         vmess = 'Final average cell Vmem of ' + ': '
-        loggers.log_info(vmess + str(final_vmean) + ' mV')
+        logs.log_info(vmess + str(final_vmean) + ' mV')
 
         if p.GHK_calc is True:
             final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
             vmess = 'Final average cell Vmem calculated using GHK: ' + ': '
-            loggers.log_info(vmess + str(final_vmean_GHK) + ' mV')
+            logs.log_info(vmess + str(final_vmean_GHK) + ' mV')
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(1.0e-3*np.mean((self.cc_time[-1][self.iH])))
-            loggers.log_info('Final average cell pH '+ str(np.round(final_pH,2)))
+            logs.log_info('Final average cell pH ' + str(np.round(final_pH, 2)))
 
             final_pH_env = -np.log10(np.mean(1.0e-3*(self.cc_env_time[-1][self.iH])))
-            loggers.log_info('Final environmental pH '+ str(np.round(final_pH_env,2)))
+            logs.log_info('Final environmental pH ' + str(np.round(final_pH_env, 2)))
 
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             IP3_env_final = np.mean(self.cIP3_env)
             IP3_cell_final = np.mean(self.cIP3)
-            loggers.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final,6)) + ' mmol/L')
-            loggers.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final,6)) + ' mmol/L')
+            logs.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final, 6)) + ' mmol/L')
+            logs.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final, 6)) + ' mmol/L')
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
             endconc_er = np.round(np.mean(self.cc_er[0]),6)
             label = self.ionlabel[self.iCa]
             concmess = 'Final average ER concentration of'+ ' '+ label + ': '
-            loggers.log_info(concmess + str(endconc_er) + ' mmol/L')
+            logs.log_info(concmess + str(endconc_er) + ' mmol/L')
 
         if p.voltage_dye ==1:
             dye_env_final = np.mean(self.cDye_env)
             dye_cell_final = np.mean(self.cDye_cell)
-            loggers.log_info('Final average morphogen concentration in the environment: '+ str(np.round(dye_env_final,6))
-                             + ' mmol/L')
-            loggers.log_info('Final average morphogen concentration in cells: ' +  str(np.round(dye_cell_final,6)) +
+            logs.log_info('Final average morphogen concentration in the environment: ' + str(np.round(dye_env_final, 6))
+                          + ' mmol/L')
+            logs.log_info('Final average morphogen concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
                              ' mmol/L')
 
 
@@ -3409,7 +3409,7 @@ class Simulator(object):
             ion = self.iCl
 
         else:
-            loggers.warning('Oops! Morphogen gated ion channel target not found!')
+            logs.warning('Oops! Morphogen gated ion channel target not found!')
             ion = []
 
         return ion
@@ -3847,13 +3847,13 @@ class Simulator(object):
             wave_speed = np.float(wave_speed)
             wave_speed = np.round(wave_speed,2)
 
-            loggers.log_info(
+            logs.log_info(
                 'Your wave speed is approximately: ' +
                  str(wave_speed) + ' m/s '
             )
 
-            loggers.log_info('Try a world size of at least: ' + str(round((5/3)*(wave_speed/500)*1e6))
-                             + ' um for resonance.')
+            logs.log_info('Try a world size of at least: ' + str(round((5 / 3) * (wave_speed / 500) * 1e6))
+                          + ' um for resonance.')
 
             if p.fixed_cluster_bound is True:
 
@@ -4064,7 +4064,7 @@ class Simulator(object):
             tsamples.add(tt[i])
 
         # Log this run. # FIXME can we please say "with x total time steps (y sampled)" for brevity? XOXOXXX!
-        loggers.log_info(
+        logs.log_info(
             'Your {} {}is running from 0 to {:.1f} seconds of in-world time '
             'with {} unsampled and {} sampled time steps.'.format(
             loop_type_label,

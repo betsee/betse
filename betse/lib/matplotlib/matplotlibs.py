@@ -86,9 +86,9 @@ Footnote descriptions are as follows:
 
 import sys
 from betse.exceptions import BetseExceptionMatplotlib
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.path import dirs, paths
-from betse.util.py import modules, pythons
+from betse.util.py import modules, pys
 from betse.util.os import oses
 from betse.util.type import containers, strs, types
 from collections import OrderedDict
@@ -567,8 +567,8 @@ class MatplotlibConfig(object):
                 # If the active Python interpreter is frozen, this is expected
                 # and hence ignorable; else, this is unexpected, in which case a
                 # non-fatal warning is logged and such list is cleared.
-                if not pythons.is_frozen():
-                    loggers.log_warning(
+                if not pys.is_frozen():
+                    logs.log_warning(
                         'Directory "{}" not found. '
                         'Matplotlib backends not queryable.'.format(
                             backends_dir))
@@ -619,13 +619,13 @@ class MatplotlibConfig(object):
         # a human-readable error on catching such exception before reraising
         # such exception.
         except Exception:
-            loggers.log_error(
+            logs.log_error(
                 'Matplotlib backend "{}" not found or not loadable.'.format(
                     backend_name))
             raise
 
         # Log such setting *AFTER* succeeding.
-        loggers.log_debug(
+        logs.log_debug(
             'Enabled matplotlib backend "{}".'.format(backend_name))
 
 # ....................{ SINGLETONS                         }....................

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -8,7 +8,7 @@ Low-level external process facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.path import paths
 import sys
 
@@ -59,7 +59,7 @@ def exit(exit_status: int = 1, exit_message: str = '') -> None:
     # Log such message if nonempty.
     if exit_message:
         # Get an appropriate child logger.
-        logger = loggers.get()
+        logger = logs.get()
 
         # If such status signifies success, log accordingly.
         if exit_status == 0:

@@ -32,7 +32,7 @@ from betse.science import toolbox as tb
 from betse.science import finitediff as fd
 from betse.science.tissue.bitmapper import BitMapper
 from betse.science import filehandling as fh
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.exceptions import BetseExceptionParameters
 
 
@@ -234,7 +234,7 @@ class Cells(object):
 
         """
 
-        loggers.log_info('Creating Voronoi geometry... ')
+        logs.log_info('Creating Voronoi geometry... ')
 
         # define the Voronoi diagram from the seed points:
         vor = sps.Voronoi(self.clust_xy)
@@ -294,7 +294,7 @@ class Cells(object):
 
         # Clip the Voronoi cluster to the shape of the clipping bitmap -------------------------------------------------
 
-        loggers.log_info('Clipping Voronoi geometry to cluster shape...')
+        logs.log_info('Clipping Voronoi geometry to cluster shape...')
 
 
         self.ecm_verts = [] # voronoi verts of clipped cluster
@@ -344,7 +344,7 @@ class Cells(object):
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
         #--------------------Remove small edges---------------------------------------------------
-        loggers.log_info('Cleaning Voronoi geometry... ')
+        logs.log_info('Cleaning Voronoi geometry... ')
 
         perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
 
@@ -452,7 +452,7 @@ class Cells(object):
         """
         self.cell_verts = []
 
-        loggers.log_info('Defining cell-specific geometric properties... ')
+        logs.log_info('Defining cell-specific geometric properties... ')
 
         for centre,poly in zip(self.cell_centres,self.ecm_verts):
             pt_scale = []
@@ -576,7 +576,7 @@ class Cells(object):
         self.cell_sa = np.asarray(self.cell_sa)
 
         #----------------MATRIX CALCULATIONs----------------------------------------
-        loggers.log_info('Creating computational matrices for cell-cell transfers... ')
+        logs.log_info('Creating computational matrices for cell-cell transfers... ')
 
         # define matrix for updating cells with fluxes from membranes:
         if self.worldtype == 'full':
@@ -755,7 +755,7 @@ class Cells(object):
 
         if p.deformation is True:
 
-            loggers.log_info('Creating computational tools for mechanical deformation... ')
+            logs.log_info('Creating computational tools for mechanical deformation... ')
 
             #---------Deformation matrices-----------------------------------------------------------------------------
 
@@ -983,7 +983,7 @@ class Cells(object):
 
         """
 
-        loggers.log_info('Creating gap junctions... ')
+        logs.log_info('Creating gap junctions... ')
 
 
         self.nn_i = [] # gives the partnering membrane index at the vectors' index
@@ -1017,7 +1017,7 @@ class Cells(object):
                 self.cell_nn_i[i].append(cell_j)
 
             else:
-                loggers.log_info("WARNING: entry not placed in seed nearest neighbour construction. "
+                logs.log_info("WARNING: entry not placed in seed nearest neighbour construction. "
                                  "Results may not be accurate.")
 
         self.nn_i = np.asarray(self.nn_i)
@@ -1140,7 +1140,7 @@ class Cells(object):
 
         """
 
-        loggers.log_info('Setting global environmental conditions... ')
+        logs.log_info('Setting global environmental conditions... ')
 
         # first obtain a structure to map to total xypts vector index:
         self.points_tree = sps.KDTree(self.xypts)
@@ -1201,11 +1201,11 @@ class Cells(object):
 
             if p.fluid_flow is True:
 
-                loggers.log_info('Creating environmental Poisson solver for voltage...')
+                logs.log_info('Creating environmental Poisson solver for voltage...')
                 self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
                 self.lapENV = None   # get rid of the non-inverse matrix as it only hogs memory...
 
-                loggers.log_info('Creating environmental Poisson solver for pressure...')
+                logs.log_info('Creating environmental Poisson solver for pressure...')
                 bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
                 self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
@@ -1256,7 +1256,7 @@ class Cells(object):
 
         '''
 
-        loggers.log_info("Creating Poisson solvers for cell cluster...")
+        logs.log_info("Creating Poisson solvers for cell cluster...")
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
         # zero-gradient, free boundary version (Neumann condition)
@@ -1335,7 +1335,7 @@ class Cells(object):
 
         """
 
-        loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+        logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
 
         data_length = len(self.cell_i) + len(self.ecm_mids)
 
@@ -1427,7 +1427,7 @@ class Cells(object):
 
         """
 
-        loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+        logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
 
         data_length = len(self.cell_i) + len(self.ecm_mids)
 
@@ -1519,7 +1519,7 @@ class Cells(object):
         the boundary of the cell cluster.
 
         """
-        loggers.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+        logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
         # First calculate ecm spaces on the boundary:
         bpts_ecm = self.ecm_mids[self.mem_to_ecm_mids][self.bflags_mems]
 
@@ -1835,12 +1835,12 @@ class Cells(object):
                     setattr(p,key,None)
 
             # save the cell cluster
-            loggers.log_info('Saving the cell cluster... ')
+            logs.log_info('Saving the cell cluster... ')
 
             datadump = [self,p]
             fh.saveSim(self.savedWorld,datadump)
             message = 'Cell cluster saved to' + ' ' + self.savedWorld
-            loggers.log_info(message)
+            logs.log_info(message)
 
     def voronoiGrid(self,p):
 

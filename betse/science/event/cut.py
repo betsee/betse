@@ -8,7 +8,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.event.abc import Action
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 
 # ....................{ EVENT                              }....................
@@ -61,7 +61,7 @@ class ActionCut(Action):
 
             # Else, print a non-fatal warning.
             else:
-                loggers.log_warning(
+                logs.log_warning(
                     'Ignoring cutting event, as cut profiles are disabled.')
 
         return action

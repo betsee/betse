@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2015 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -14,7 +14,7 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 # ....................{ IMPORTS                            }....................
 import errno, os, shutil
 from betse.exceptions import BetseExceptionPath
-from betse.util.io import loggers
+from betse.util.io import logs
 from betse.util.type import types
 from os import path
 
@@ -222,14 +222,14 @@ def is_pathname(pathname: str) -> bool:
                     not hasattr(exc, 'winerror') and
                     exc.errno in {errno.ENAMETOOLONG, errno.ERANGE}
                 ):
-                    loggers.log_warning(
+                    logs.log_warning(
                         'Pathname "{}" invalid: {}'.format(
                             pathname, exc.strerror))
                     return False
     # If a "TypeError" exception was raised, it almost certainly has the
     # error message "embedded NUL character" indicating an invalid pathname.
     except TypeError as exc:
-        loggers.log_warning(
+        logs.log_warning(
             'Pathname "{}" invalid: {}'.format(pathname, str(exc)))
         return False
     # If no exception was raised, all path components and hence this
@@ -487,7 +487,7 @@ def move(pathname_source: str, pathname_target: str) -> None:
         types.assert_not_str_nonempty(pathname_target, 'Target pathname')
 
     # Log such move in a contextual manner.
-    loggers.log_debug(
+    logs.log_debug(
         'Moving %s "%s" to "%s".',
         get_type_label(pathname_source), pathname_source, pathname_target)
 
