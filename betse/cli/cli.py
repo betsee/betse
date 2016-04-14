@@ -13,11 +13,12 @@ import traceback
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
+from betse.cli import info
 from betse.util.io import logs, stderrs
 from betse.util.io.logs import LogType
 from betse.util.os import processes
 from betse.util.os.args import HelpFormatterParagraph
-from betse.util.py import identifiers, pys
+from betse.util.py import identifiers
 from betse.util.type import regexes, strs, types
 from io import StringIO
 
@@ -278,27 +279,16 @@ class CLI(metaclass = ABCMeta):
         if self._is_verbose:
             logs.config.handler_stdout.setLevel(logs.ALL)
 
-        # Log a high-level synopsis of current program, Python, and platform
-        # state *AFTER* configuring all logging-based options. This resembles:
-        #
-        #     [betse] { BETSE 6.6.6 | PyPy 9.9.9 | Gentoo Linux 3.3.3 | 64-bit }
-        logs.log_debug(
-            'Welcome to  ~{{ '
-            '{program_name} {program_version} | '
-            '{py_name} {py_version} | '
-            '{os_name} {os_version} | '
-            '{word_size} '
-            '}}~'.format(
-                program_name=metadata.NAME,
-                program_version=metadata.__version__,
-                py_name=pys.get_name(),
-                py_version=pys.get_version(),
+        # Log a one-line synopsis of metadata logged by the "info" subcommand.
+        info.log_info_header()
 
-                #FIXME: Define these, please!
-                os_name='???',
-                os_version='???',
-                word_size='???',
-            ))
+        #FIXME: Replace this rather unuseful debug logging by logging of all
+        #arguments passed to the current command.
+
+        # # Log the passed subcommand to the debug level.
+        # logs.log_debug(
+        #     'Running subcommand "{}".'.format(
+        #         self._args.subcommand_name_top))
 
     # ..................{ EXCEPTIONS                         }..................
     #FIXME: Consider shifting most of this into the "stderrs" module.

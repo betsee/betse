@@ -14,7 +14,7 @@
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
 from betse import metadata
-from betse.cli import help
+from betse.cli import help, info
 from betse.cli.cli import CLI
 from betse.util.io import logs
 from betse.util.path import files, paths
@@ -111,13 +111,9 @@ class CLICLI(CLI):
         # If no subcommand was passed, print help output and return. Note that
         # this does *NOT* constitute a fatal error.
         if not self._args.subcommand_name_top:
+            print()
             self._arg_parser.print_help()
             return
-
-        # Log the passed subcommand to the debug level.
-        logs.log_debug(
-            'Running subcommand "{}".'.format(
-                self._args.subcommand_name_top))
 
         # Else, a subcommand was passed.
         #
@@ -260,9 +256,6 @@ class CLICLI(CLI):
         '''
         Run the `info` subcommand.
         '''
-        # The following module imports heavy-weight dependencies and hence is
-        # imported in a just-in-time (JIT) manner.
-        from betse.cli import info
         info.output_info()
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................

@@ -10,26 +10,58 @@
 #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
 
 # ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To avoid non-trivial delays on importing this module, this module
+# should import *ONLY* from modules and packages whose importation is unlikely
+# to incur such delays. This includes all standard Python packages and all BETSE
+# packages required by the log_info_header() function, which is called
+# sufficiently early in application startup as to render these imports
+# effectively mandatory.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from collections import OrderedDict
-from betse import metadata, pathtree
-from betse.lib import libs
-from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse import metadata
 from betse.util.io import logs
 from betse.util.py import pys
-from betse.util.os import oses, processes
+from betse.util.os import oses
 from io import StringIO
 
-# ..................{ SUBCOMMANDS ~ info                     }..................
-#FIXME: This function should probably accept new parameters describing current
-#logging state.
+# ..................{ LOGGERS                                }..................
+def log_info_header() -> None:
+    '''
+    Log a one-line synopsis of metadata logged by the `info` subcommand.
+    '''
 
+    logs.log_info(
+        'Welcome to <<'
+        '{program_name} {program_version} | '
+        '{py_name} {py_version} | '
+        '{os_name} {os_version}'
+        '>>.'.format(
+            program_name=metadata.NAME,
+            program_version=metadata.__version__,
+            py_name=pys.get_name(),
+            py_version=pys.get_version(),
+            os_name=oses.get_name(),
+            os_version=oses.get_version(),
+        ))
+
+# ..................{ OUTPUTTERS                             }..................
 def output_info() -> None:
     '''
     Print all output for the `info` subcommand.
     '''
 
+    # Notify the current user of a possible wait *BEFORE* importing modules
+    # whose importation contributes to this wait.
     logs.log_info(
         'Harvesting system information. (This may take a moment.)')
+
+    # Avoid inefficient import delays.
+    from betse import pathtree
+    from betse.lib import libs
+    from betse.lib.matplotlib.matplotlibs import mpl_config
+    from betse.util.os import kernels, processes
 
     # Dictionary of human-readable labels to dictionaries of all
     # human-readable keys and values categorized by such labels. All such
@@ -60,6 +92,7 @@ def output_info() -> None:
         ('python', pys.get_metadata()),
 
         # Operating system (OS) metadata.
+        ('kernel', kernels.get_metadata()),
         ('os', oses.get_metadata()),
     ))
 
@@ -88,7 +121,3 @@ def output_info() -> None:
     # Log rather than merely output such string, as logging simplifies
     # cliest-side bug reporting.
     logs.log_info(info_buffer.getvalue())
-
-# --------------------( WASTELANDS                         )--------------------
-    # info_buffer.write('\n')
-#FUXME: Also print the versions of installed mandatory dependencies.
