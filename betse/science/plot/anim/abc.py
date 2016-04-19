@@ -42,17 +42,19 @@ Abstract base classes of all Matplotlib-based animation classes.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import abstractmethod
-from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.lib.matplotlib.anim import FileFrameWriter
-from betse.science.plot.abc import PlotCells
-from betse.util.io import logs
-from betse.util.path import dirs, paths
-from betse.util.type import types
+
+import numpy as np
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
+
+from betse.exceptions import BetseExceptionParameters
+from betse.lib.matplotlib.anim import FileFrameWriter
+from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse.science.plot.abc import PlotCells
+from betse.util.io.log import logs
+from betse.util.path import dirs, paths
+from betse.util.type import types
 
 #FIXME: Shift these functions into our superclass.
 from betse.science.plot.plot import (env_stream, cell_stream)

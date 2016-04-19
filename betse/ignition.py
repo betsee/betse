@@ -34,10 +34,10 @@ High-level application initialization common to both the CLI and GUI.
 # ....................{ IMPORTS                            }....................
 from betse import pathtree
 from betse.lib import libs
-from betse.util.io import logs
 from betse.util.py import pys
 
 # ....................{ INITIALIZERS                       }....................
+#FIXME: Update docstring whet time and kindness affords.
 def init() -> None:
     '''
     Initialize the current application.
@@ -47,9 +47,6 @@ def init() -> None:
     * Validate core directories and files required at program startup, creating
       all such directories and files that do *not* already exist and are
       feasible to be created.
-    * Create the root logger and default handlers for such logger (e.g.,
-      printing informational messages to standard output, warnings and errors to
-      standard error, and appending debug messages to the default logfile).
 
     To support caller-specific error handling, this function is intended to be
     called immediately *after* such application begins catching otherwise
@@ -58,17 +55,6 @@ def init() -> None:
 
     # Validate core directories and files required at program startup.
     pathtree.init()
-
-    #FIXME: After refactoring logging to merely log to standard file handles,
-    #call this function *BEFORE* anything else, including pathtree.init().
-
-    # Configure logging *AFTER* creating these directories, as such logging
-    # writes to files in such directories.
-    logs.config.init(filename=pathtree.LOG_DEFAULT_FILENAME)
-    # self._logger.error('ERROR!')
-    # self._logger.warning('WARNING!')
-    # self._logger.info('INFO!')
-    # self._logger.debug('DEBUG!')
 
     # Validate mandatory dependencies *AFTER* configuring logging, thereby
     # logging exceptions raised by this validation.

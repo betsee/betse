@@ -16,10 +16,13 @@ poor form. Call these functions _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse import metadata
-from betse.util.io import logs
+import platform
+import sys
 from collections import OrderedDict
-import platform, sys
+
+from betse import metadata
+from betse.util.io.log import logs
+
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:

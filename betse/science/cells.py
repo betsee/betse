@@ -28,12 +28,12 @@ import scipy.spatial as sps
 from scipy import interpolate as interp
 from scipy import ndimage
 
-from betse.science import toolbox as tb
-from betse.science import finitediff as fd
-from betse.science.tissue.bitmapper import BitMapper
-from betse.science import filehandling as fh
-from betse.util.io import logs
 from betse.exceptions import BetseExceptionParameters
+from betse.science import filehandling as fh
+from betse.science import finitediff as fd
+from betse.science import toolbox as tb
+from betse.science.tissue.bitmapper import BitMapper
+from betse.util.io.log import logs
 
 
 class Cells(object):

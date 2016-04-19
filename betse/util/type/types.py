@@ -18,7 +18,7 @@ objects).
 
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from enum import Enum
+from enum import Enum, EnumMeta
 
 # ....................{ FORMATTER                          }....................
 # This string-centric function is defined in this module rather than in the
@@ -105,6 +105,24 @@ def is_mapping(obj: object) -> bool:
     The canonical examples are `dict` and `OrderedDict` instances.
     '''
     return isinstance(obj, Mapping)
+
+# ....................{ TESTERS ~ enum                     }....................
+def is_enum(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an enumeration.
+    '''
+    return isinstance(obj, EnumMeta)
+
+
+def is_in_enum(obj: object, enum: Enum) -> bool:
+    '''
+    `True` only if the passed object is in the passed enumeration.
+
+    While trivial, this tester is provided for orthogonality with the
+    `assert_not_in_enum()` function.
+    '''
+    assert is_enum(enum), assert_not_enum(enum)
+    return obj in enum
 
 # ....................{ TESTERS ~ error                    }....................
 def is_exception(obj: object) -> bool:
@@ -353,7 +371,14 @@ def assert_not_mapping(obj: object) -> str:
     '''
     return '"{}" not a mapping (e.g., "dict", "OrderedDict").'.format(trim(obj))
 
-# ....................{ ASSERTERS ~ contains               }....................
+# ....................{ ASSERTERS ~ enum                   }....................
+def assert_not_enum(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an enumeration.
+    '''
+    return '"{}" not an enumeration "{}".'.format(trim(obj))
+
+
 def assert_not_in_enum(obj: object, enum: Enum) -> str:
     '''
     String asserting the passed object to _not_ be in the passed enumeration.

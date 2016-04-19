@@ -4,17 +4,18 @@
 
 # FIXME include other channels in morphogen (dye) dynamics
 
+from random import shuffle
+
 import numpy as np
+from scipy import interpolate as interp
+from scipy import spatial as sps
+
 from betse.science import toolbox as tb
 from betse.science.event import modulators as mod
-from betse.util.io import logs
-from betse.util.type import types
-from random import shuffle
-from scipy import spatial as sps
-from scipy import interpolate as interp
-from betse.science.tissue.channels_o import vgPotassium, cagPotassium, vgCalcium, vgSodium_init, \
-    vgPotassium_init, vgCalcium_init
 from betse.science.tissue.channels import vg_na as vgna
+from betse.science.tissue.channels_o import vgPotassium, cagPotassium, vgCalcium, vgPotassium_init, vgCalcium_init
+from betse.util.io.log import logs
+from betse.util.type import types
 
 
 class TissueHandler(object):

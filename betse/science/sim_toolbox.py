@@ -3,13 +3,12 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-
 import numpy.ma as ma
-from betse.exceptions import BetseExceptionSimulation
-from betse.science import toolbox as tb
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.util.io import logs
+
+from betse.exceptions import BetseExceptionSimulation
+
 
 # Toolbox of functions used in the Simulator class to calculate key bioelectric properties.
 

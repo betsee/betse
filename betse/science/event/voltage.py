@@ -10,7 +10,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 from betse.exceptions import BetseExceptionParameters
 from betse.science import toolbox
 from betse.science.event.abc import Pulse
-from betse.util.io import logs
+from betse.util.io.log import logs
 from betse.util.type import types
 
 # ....................{ EVENT                              }....................

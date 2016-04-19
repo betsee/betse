@@ -2,26 +2,28 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-import copy, os, os.path, time
+import copy
+import os
+import os.path
+import time
+from random import shuffle
+
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import interpolate as interp
+from scipy.ndimage.filters import gaussian_filter
+
 from betse.exceptions import BetseExceptionSimulation
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.plot.anim.anim import AnimCellsWhileSolving
-from betse.science.tissue.handler import TissueHandler
-from betse.science.tissue.channels_o import Gap_Junction
-from betse.util.io import logs
-from random import shuffle
-from scipy import interpolate as interp
-from scipy.ndimage.filters import gaussian_filter
-from scipy.sparse.linalg import lsmr
-
 from betse.science.sim_toolbox import electroflux, pumpNaKATP, pumpCaATP, pumpCaER, pumpHKATP, pumpVATP, get_volt,\
-    get_charge, get_charge_density, get_molarity, cell_ave, check_v, vertData, nernst_planck_flux, np_flux_special,\
+    get_charge, get_charge_density, check_v, vertData, nernst_planck_flux, np_flux_special,\
     no_negs
-
+from betse.science.tissue.channels_o import Gap_Junction
+from betse.science.tissue.handler import TissueHandler
+from betse.util.io.log import logs
 
 
 class Simulator(object):

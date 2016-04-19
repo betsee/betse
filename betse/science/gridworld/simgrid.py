@@ -10,18 +10,23 @@
 # FIXME create new viz module
 # FIXME check cutting holes and other dynamics
 
-import copy, time, os, os.path
+import copy
+import os
+import os.path
+import time
+from random import shuffle
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate as interp
-from random import shuffle
-from betse.science import filehandling as fh
-from betse.science.gridworld import vizgrid as viz
-from betse.science import toolbox as tb
-from betse.science.tissue.handler import TissueHandler
-from betse.science.finitediff import gradient
+
 from betse.exceptions import BetseExceptionSimulation
-from betse.util.io import logs
+from betse.science import filehandling as fh
+from betse.science import toolbox as tb
+from betse.science.finitediff import gradient
+from betse.science.gridworld import vizgrid as viz
+from betse.science.tissue.handler import TissueHandler
+from betse.util.io.log import logs
 
 
 class SimGrid(object):

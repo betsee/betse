@@ -42,14 +42,17 @@ animations.
 
 # ....................{ IMPORTS                            }....................
 import os
+
 import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.collections import PolyCollection, LineCollection
+
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim import pipeline
-from betse.util.io import logs
+from betse.util.io.log import logs
 from betse.util.type import types
-from matplotlib import pyplot as plt
-from matplotlib.collections import PolyCollection, LineCollection
+
 
 # ....................{ PIPELINES                          }....................
 def plot_all(cells, sim, p, plot_type: str = 'init'):

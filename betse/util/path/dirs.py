@@ -11,11 +11,14 @@ builtin.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, shutil
-from betse.exceptions import BetseExceptionDir
-from betse.util.io import logs
-from betse.util.type import types
+import os
+import shutil
 from os import path
+
+from betse.exceptions import BetseExceptionDir
+from betse.util.io.log import logs
+from betse.util.type import types
+
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_dir(*dirnames) -> None:

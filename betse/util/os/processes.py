@@ -8,9 +8,10 @@ Low-level external process facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.io import logs
-from betse.util.path import paths
 import sys
+
+from betse.util.io.log import logs
+from betse.util.path import paths
 
 # ....................{ CONSTANTS                          }....................
 EXIT_STATUS_SUCCESS = 0

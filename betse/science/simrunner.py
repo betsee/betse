@@ -3,9 +3,14 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-import os, os.path, time
+import os
+import os.path
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import LineCollection, PolyCollection
+
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
@@ -14,9 +19,8 @@ from betse.science.plot import plot as viz
 from betse.science.plot.pipeline import plot_all
 from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
-from betse.util.io import logs
+from betse.util.io.log import logs
 from betse.util.path import files, paths
-from matplotlib.collections import LineCollection, PolyCollection
 
 
 class SimRunner(object):

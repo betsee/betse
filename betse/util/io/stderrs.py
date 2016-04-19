@@ -89,41 +89,9 @@ def get_haiku_random() -> str:
 # ....................{ OUTPUTTERS                         }....................
 def output(*objects) -> None:
     '''
-    Print all passed objects to standard error *without* logging such objects.
+    Print all passed objects to standard error _without_ logging these objects.
 
-    This function is *not* named `print`, as doing so induces spurious errors
+    This function is _not_ named `print()`, as doing so induces spurious errors
     elsewhere.
     '''
-    print(*objects, file = sys.stderr)
-
-# --------------------( WASTELANDS                         )--------------------
-# from betse.util.type import strs
-# from betse.io.file.log import logger
-# ....................{ CLASSES                            }....................
-# class LoggingPrinter(object):
-#     '''
-#     Low-level printing and logging of arbitrary objects.
-#
-#     Attributes
-#     ----------
-#     '''
-#
-#     #FUXME: Cache a logging implementation here as a new private field
-#     #"_logger".
-#
-#     def __init__(self):
-#         #FUXME: Actually, this should just be a global variable of the new
-#         #"betse.io.file.log" module.
-#         #FUXME: Right. And since we no longer need this as a field, there's
-#         #really no justification for having this as a class. Revert back to
-#         #simple functions, please.
-
-# # ....................{ SINGLETONS                         }....................
-# printer = LoggingPrinter()
-# '''
-# Singleton instance of LoggingPrinter(), simplifying printing and logging of
-# arbitrary objects in both the CLI and GUI interfaces.
-# '''
-
-# Utility functions manipulating **standard error** (i.e., the canonical file
-# handle to which human-readable errors are written).
+    print(*objects, file=sys.stderr)

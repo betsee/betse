@@ -19,15 +19,15 @@
 # effectively mandatory.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from collections import OrderedDict
 from betse import metadata
-from betse.util.io import logs
-from betse.util.py import pys
+from betse.util.io.log import log_config, logs
 from betse.util.os import oses
+from betse.util.py import pys
+from collections import OrderedDict
 from io import StringIO
 
 # ..................{ LOGGERS                                }..................
-def log_info_header() -> None:
+def log_header() -> None:
     '''
     Log a one-line synopsis of metadata logged by the `info` subcommand.
     '''
@@ -76,11 +76,12 @@ def output_info() -> None:
             ('dot directory',  pathtree.DOT_DIRNAME),
             ('data directory', pathtree.DATA_DIRNAME),
             ('default config file', pathtree.CONFIG_DEFAULT_FILENAME),
-            ('default config geometry directory', pathtree.DATA_GEOMETRY_DIRNAME),
-
-            #FIXME: Incorrect now! This is configurable at runtime.
-            ('log file', pathtree.LOG_DEFAULT_FILENAME),
+            ('default config geometry directory',
+             pathtree.DATA_GEOMETRY_DIRNAME),
         ))),
+
+        # Logging metadata.
+        ('logging', log_config.get_metadata()),
 
         # Dependencies metadata.
         ('dependencies', libs.get_metadata()),

@@ -33,10 +33,10 @@ import os.path
 import numpy as np
 import scipy.spatial as sps
 
-from betse.science.tissue.bitmapper import BitMapper
-from betse.science import toolbox as tb
 from betse.science import filehandling as fh
-from betse.util.io import logs
+from betse.science import toolbox as tb
+from betse.science.tissue.bitmapper import BitMapper
+from betse.util.io.log import logs
 
 
 class GridWorld(object):

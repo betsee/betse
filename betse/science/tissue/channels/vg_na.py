@@ -7,10 +7,13 @@ Voltage-gated sodium channel classes.
 '''
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
-from betse.science.tissue.channels.channels_abc import ChannelsABC
 from abc import ABCMeta, abstractmethod
-from betse.util.io import logs
+
+import numpy as np
+
+from betse.science.tissue.channels.channels_abc import ChannelsABC
+from betse.util.io.log import logs
+
 
 # ....................{ BASE                               }....................
 class VgNaABC(ChannelsABC, metaclass=ABCMeta):

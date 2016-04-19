@@ -29,21 +29,23 @@ Matplotlib-based animation classes.
 #existing streamplot each animation frame instead. Investigate the aged pandas!
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
-from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.anim import FileFrameWriter
-from betse.science.plot.anim.abc import (
-    AnimCells, AnimField, AnimVelocity)
-from betse.science.plot import plot
-from betse.util.io import logs
-from betse.util.path import dirs, paths
-from betse.util.type import types
 from enum import Enum
+
+import numpy as np
 from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 from numpy import ma as ma
 from scipy import interpolate
+
+from betse.exceptions import BetseExceptionParameters
+from betse.lib.matplotlib.anim import FileFrameWriter
+from betse.science.plot import plot
+from betse.science.plot.anim.abc import (
+    AnimCells, AnimField, AnimVelocity)
+from betse.util.io.log import logs
+from betse.util.path import dirs, paths
+from betse.util.type import types
 
 #FIXME: Shift functions called only by this module either to a new
 #"betse.science.plot.animation.helper" module or possibly as private

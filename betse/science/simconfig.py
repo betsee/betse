@@ -11,10 +11,12 @@ Simulation configuration in YAML format.
 
 # ....................{ IMPORTS                            }....................
 import yaml
+
 from betse import pathtree
-from betse.util.io import logs
+from betse.util.io.log import logs
 from betse.util.path import dirs, files, paths
 from betse.util.type import types
+
 
 # ....................{ LOADERS                            }....................
 def load(config_filename: str) -> dict:

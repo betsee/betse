@@ -12,11 +12,15 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-import errno, os, shutil
-from betse.exceptions import BetseExceptionPath
-from betse.util.io import logs
-from betse.util.type import types
+import errno
+import os
+import shutil
 from os import path
+
+from betse.exceptions import BetseExceptionPath
+from betse.util.io.log import logs
+from betse.util.type import types
+
 
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:

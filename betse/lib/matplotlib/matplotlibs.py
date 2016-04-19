@@ -85,17 +85,19 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from betse.exceptions import BetseExceptionMatplotlib
-from betse.util.io import logs
-from betse.util.path import dirs, paths
-from betse.util.py import modules, pys
-from betse.util.os import oses
-from betse.util.type import containers, strs, types
 from collections import OrderedDict
+
 from matplotlib import cm as colormaps
 from matplotlib import rcParams
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
+
+from betse.exceptions import BetseExceptionMatplotlib
+from betse.util.io.log import logs
+from betse.util.os import oses
+from betse.util.path import dirs, paths
+from betse.util.py import modules, pys
+from betse.util.type import containers, strs, types
 
 # ....................{ IMPORTS ~ matplotlib               }....................
 # Import matplotlib in a safe manner. Unfortunately, the "matplotlib.__init__"

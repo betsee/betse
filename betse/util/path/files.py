@@ -11,11 +11,16 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, re, shutil, tempfile
-from betse.exceptions import BetseExceptionFile
-from betse.util.io import logs
-from betse.util.type import types
+import os
+import re
+import shutil
+import tempfile
 from os import path
+
+from betse.exceptions import BetseExceptionFile
+from betse.util.io.log import logs
+from betse.util.type import types
+
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
