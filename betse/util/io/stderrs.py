@@ -95,3 +95,16 @@ def output(*objects) -> None:
     elsewhere.
     '''
     print(*objects, file=sys.stderr)
+
+
+def output_traceback() -> None:
+    '''
+    Print the current call stack to standard output.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py import callers
+
+    # Print this call stack, excluding the calls to both this and the
+    # callers.get_traceback() functions.
+    output(callers.get_traceback(-2))

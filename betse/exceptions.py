@@ -67,12 +67,13 @@ class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
     decorator, there currently exists no canonical alternative for defining
     optional methods. Hence, this exception.
     '''
+
     def __init__():
         # Avoid circular import dependencies.
         from betse.util.py import callers
         super().__init__(
             'Optional method {}() unimplemented.'.format(
-                callers.get_caller_name()))
+                callers.get_caller_basename()))
 
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetseExceptionPath(BetseException):

@@ -3,7 +3,9 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-'''`betse`'s `setuptools`-based makefile.'''
+'''
+`betse`'s `setuptools`-based makefile.
+'''
 
 #FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
 #following URL, which appears to be the only online reference to such practice.

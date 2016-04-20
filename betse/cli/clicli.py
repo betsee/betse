@@ -23,7 +23,8 @@ from betse.util.path import files, paths
 
 # ....................{ CLASS                              }....................
 class CLICLI(CLI):
-    '''`betse`'s command line interface (CLI).
+    '''
+    `betse`'s command line interface (CLI).
 
     Attributes
     ----------
@@ -234,6 +235,7 @@ class CLICLI(CLI):
         # Get such subparser.
         return arg_subparser
 
+
     def _add_arg_subparser(
         self, arg_subparsers, *args, **kwargs) -> ArgumentParser:
         '''
@@ -258,6 +260,7 @@ class CLICLI(CLI):
         '''
         Run the `info` subcommand.
         '''
+
         info.output_info()
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
@@ -265,6 +268,7 @@ class CLICLI(CLI):
         '''
         Run the `try` subcommand.
         '''
+
         # Basename of the sample configuration file to be created.
         config_basename = 'sample_sim.yaml'
 
@@ -296,8 +300,8 @@ class CLICLI(CLI):
         '''
         Run the `config` subcommand.
         '''
-        # The following module imports heavy-weight dependencies and hence is
-        # imported in a just-in-time (JIT) manner.
+
+        # Delay importing this module, which imports heavy-weight dependencies.
         from betse.science import simconfig
         simconfig.write_default(self._args.config_filename)
 

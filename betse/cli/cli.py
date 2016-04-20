@@ -21,7 +21,7 @@ from betse.util.type import types
 
 
 # ....................{ CLASS                              }....................
-class CLI(metaclass = ABCMeta):
+class CLI(metaclass=ABCMeta):
     '''
     Abstract command line interface (CLI) suitable for use by both CLI and GUI
     front-ends for `betse`.
