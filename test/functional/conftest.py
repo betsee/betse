@@ -11,6 +11,7 @@ test modules, which may use this functionality as if explicitly imported.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.science.config import sim_config
 import pytest
 
 # ....................{ FIXTURES ~ public                  }....................
@@ -33,6 +34,8 @@ import pytest
 #
 #    http://pytest.org/latest/tmpdir.html
 
+#FIXME: Refactor to return an instance of the new "SimTestConfig" class.
+
 #FIXME: This *MUST* either:
 #
 #* Be parametrized to explicitly accept the basename of the temporary
@@ -41,7 +44,7 @@ import pytest
 #  PyInstaller fixtures do this, but can't quite recall. Surely "pytest"
 #  provides some automated means of doing so?
 @pytest.fixture(scope='session')
-def _sim_config_filename(tmpdir_factory, request) -> 'py.path.local':
+def _sim_config(tmpdir_factory, request) -> 'py.path.local':
     '''
     Context manager-driven fixture creating and returning the absolute path of a
     temporary simulation configuration file specific to the parent fixture, with
@@ -85,8 +88,6 @@ def _sim_config_filename(tmpdir_factory, request) -> 'py.path.local':
         Official `tmpdir_factory` fixture parameter documentation.
     https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
         Official `request` fixture parameter documentation.
-    https://py.readthedocs.org/en/latest/path.html
-        Official `py.path` class documentation.
     '''
 
     #FIXME: Ah ha! While there's no direct means of finding this name, there is
@@ -101,6 +102,8 @@ def _sim_config_filename(tmpdir_factory, request) -> 'py.path.local':
     # specific to the parent fixture.
     sim_config_dirname = tmpdir_factory.mktemp(sim_config_type)
 
+    #FIXME: Return an instance of "SimTestConfig" instead.
+
     # Absolute path of this configuration file.
     sim_config_filename = sim_config_dirname.join('sim_config.yaml')
 
@@ -114,3 +117,58 @@ def _sim_config_filename(tmpdir_factory, request) -> 'py.path.local':
     # deletes this path's parent directory on session completion *WITHOUT* any
     # explicit intervention (e.g., via finalizers) on our part. Isn't that nice?
     return sim_config_filename
+
+# ....................{ CLASSES                            }....................
+class SimTestConfig(object):
+    '''
+    Simulation-specific test configuration.
+
+    Returns
+    ----------
+    config : dict
+        Dictionary of all configuration data deserialized from the YAML-
+        formatted file with path `config_filename`. Note that the contents of
+        this in-memory dictionary differ from that of this on-disk file. For
+        efficiency, callers are expected to additionally modify this dictionary
+        to suite test requirements before finally reserializing this dictionary
+        to this file.
+    config_filename : py.path.local
+        Absolute path of a temporary simulation configuration file specific to
+        the parent fixture as a `py.path.local` instance, defining an
+        object-oriented superset of the non-object-oriented `os.path` module.
+
+    See Also
+    ----------
+    https://py.readthedocs.org/en/latest/path.html
+        Official `py.path` class documentation.
+    '''
+
+    def __init__(self, config_filename : 'py.path.local') -> None:
+        '''
+        Initialize this test configuration.
+
+        Parameters
+        ----------
+        config_filename : py.path.local
+            Absolute path to which this method copies BETSE's default simulation
+            configuration file. If this file already exists, an exception is
+            raised.
+        '''
+
+        # Configuration filename.
+        self.config_filename = config_filename
+
+        # Configuration deserialized from this file, reducing this filename from
+        # a high-level "py.path.local" instance to a low-level string.
+        self.config = sim_config.read(str(self.config_filename))
+
+
+    #FIXME: Implement me as a convenience for fixtures!
+    def write(self) -> None:
+        '''
+        Write the current configuration to the current configuration file.
+
+        If this file already exists, this file will be silently overwritten.
+        '''
+
+        pass

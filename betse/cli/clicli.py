@@ -279,7 +279,7 @@ class CLICLI(CLI):
         #FIXME: Insufficient. We only want to reuse this file if this file's
         #version is identical to that of the default YAML configuration file's
         #version. Hence, this logic should (arguably) be shifted elsewhere --
-        #probably into "betse.science.simconfig".
+        #probably into "betse.science.sim_config".
 
         # If this file already exists, reuse this file.
         if files.is_file(self._args.config_filename):
@@ -302,8 +302,8 @@ class CLICLI(CLI):
         '''
 
         # Delay importing this module, which imports heavy-weight dependencies.
-        from betse.science import simconfig
-        simconfig.write_default(self._args.config_filename)
+        from betse.science.config import sim_config
+        sim_config.write_default(self._args.config_filename)
 
 
     def _do_seed(self) -> None:

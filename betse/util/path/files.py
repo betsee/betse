@@ -11,16 +11,11 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-import os
-import re
-import shutil
-import tempfile
-from os import path
-
+import os, re, shutil, tempfile
 from betse.exceptions import BetseExceptionFile
 from betse.util.io.log import logs
 from betse.util.type import types
-
+from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
@@ -183,50 +178,65 @@ def remove(filename: str) -> None:
     os.remove(filename)
 
 # ....................{ OPENERS                            }....................
-def open_for_text_reading(filename: str):
+def open_for_text_reading(filename: str) -> 'file':
     '''
-    Open the passed file for line-oriented reading.
+    Open and return the passed file for line-oriented reading.
 
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
-    '''
-    assert types.is_str_nonempty(filename),\
-        types.assert_not_str_nonempty(filename, 'filename')
 
-    # Raise an exception unless such file exists.
+    Returns
+    ----------
+    file
+        `file`-like object encapsulating the opened file.
+    '''
+    assert types.is_str_nonempty(filename), (
+        types.assert_not_str_nonempty(filename, 'filename'))
+
+    # Raise an exception unless this file exists.
     die_unless_file(filename)
 
-    # Open such file.
-    return open(filename, mode = 'rt')
+    # Open this file.
+    return open(filename, mode='rt')
 
 
-def open_for_text_writing(filename: str):
+def open_for_text_writing(filename: str, encoding='utf-8'):
     '''
-    Open the passed file for line-oriented writing.
+    Open and return the passed file for line-oriented writing.
 
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
+
+    Parameters
+    ----------
+    encoding : optional[str]
+        Optional encoding to be used. Defaults to UTF-8.
+
+    Returns
+    ----------
+    file
+        `file`-like object encapsulating the opened file.
     '''
-    assert types.is_str_nonempty(filename),\
-        types.assert_not_str_nonempty(filename, 'filename')
+    assert types.is_str_nonempty(filename), (
+        types.assert_not_str_nonempty(filename, 'filename'))
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs
 
-    # Raise an exception if such path is an existing special file. Such files
+    # Raise an exception if this path is an existing special file. Such files
     # must *NEVER* be opened for line-oriented writing.
     die_if_special(filename)
 
-    # Create the parent directory of such file if needed.
+    # Create the parent directory of this file if needed.
     dirs.make_parent_unless_dir(filename)
 
-    # Open such file.
-    return open(filename, mode = 'wt')
+    # Open this file.
+    return open(filename, mode='wt', encoding=encoding)
 
 # ....................{ OPENERS ~ temporary                }....................
-def open_for_text_writing_temporary():
+def open_for_text_writing_temporary(encoding='utf-8'):
     '''
-    Open a temporary named file for line-oriented writing.
+    Open and return a temporary named file for line-oriented writing.
 
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
@@ -248,22 +258,45 @@ def open_for_text_writing_temporary():
 
         >>> from betse.util.path imports files
         >>> import os
-        >>> tempfile = files.open_for_byte_writing_temporary()
-        >>> tempfile.write(bytes('Eaarth' + os.linesep, encoding = 'utf-8'))
+        >>> tempfile = files.open_for_byte_writing_temporary(encoding='utf-8')
+        >>> tempfile.write(bytes('Eaarth' + os.linesep))
+
+    Parameters
+    ----------
+    encoding : optional[str]
+        Optional encoding to be used. Defaults to UTF-8.
+
+    Returns
+    ----------
+    file
+        `file`-like object encapsulating the opened file.
     '''
-    return tempfile.NamedTemporaryFile(mode='w+', delete=False)
+
+    return tempfile.NamedTemporaryFile(
+        mode='w+', delete=False, encoding=encoding)
 
 
-def open_for_byte_writing_temporary():
+def open_for_byte_writing_temporary(encoding='utf-8'):
     '''
-    Open a temporary named file for byte-oriented writing.
+    Open and return a temporary named file for byte-oriented writing.
+
+    Parameters
+    ----------
+    encoding : optional[str]
+        Optional encoding to be used. Defaults to UTF-8.
 
     See Also
     ----------
     `open_for_text_writing_temporary()`
         For further details.
+
+    Returns
+    ----------
+    file
+        `file`-like object encapsulating the opened file.
     '''
-    return tempfile.NamedTemporaryFile(delete=False)
+
+    return tempfile.NamedTemporaryFile(delete=False, encoding=encoding)
 
 # ....................{ OPENERS ~ temporary                }....................
 def substitute_substrings_inplace(
@@ -350,7 +383,7 @@ def substitute_substrings(
         for (regex, substitution) in substitutions
     )
 
-    #FIXME: Such functionality is probably quite useful, where at least one
+    #FIXME: This functionality is probably quite useful, where at least one
     #matching line is absolutely expected. Consider formalizing into a passed
     #argument, as lackluster time permits.
     # is_line_matches = False
@@ -385,61 +418,3 @@ def substitute_substrings(
 
     # Move the temporary to the target file.
     shutil.move(file_target_temp.name, filename_target)
-
-# --------------------( WASTELANDS                         )--------------------
-#FUXME: Correct documentation here and below to reflect the passing of multiple
-#regexes and substitutions.
-
-                    # print('Yay!')
-                    # print('Line: {}'.format(line))
-                    # if re.search(regex, line, **kwargs) is not None:
-                    #     is_line_matches = True
-                    #     loggers.log_info('Line "%s" matches!', line)
-                    # if re.search(
-                    #     # r'^(\s*turn all plots off)',
-                    #     r'turn all plots off', line) is not None:
-                    #     is_line_matches = True
-                    #     loggers.log_info('Line "%s" really matches!', line)
-                    # line = re.sub(regex, substitution, line, **kwargs)
-
-        # (regex, substitution)
-        # for substitution_pair in substitutions
-        # for regex, substitution in substitution_pair
-
-#     assert types.is_sequence_nonstr_nonempty(regexes),\
-#         types.assert_not_sequence_nonstr_nonempty(
-#             regexes, 'regular expressions')
-#     assert types.is_sequence_nonstr_nonempty(substitutions),\
-#         types.assert_not_sequence_nonstr_nonempty(
-#             substitutions, 'substitutions')
-#     assert len(regexes) == len(substitutions),\
-#         '{} regular expressions unequal to {} substitutions.'.format(
-#             len(regexes), len(substitutions))
-# #The number of passed regular expressions _must_ equal the number of passed substitutions.
-#     # return path.isfile(filename)
-#     # Versus path.isfile()
-#     # ----------
-#     # This function fundamentally differs from the stock `path.isfile()` function.
-#     # Whereas the latter returns True only for non-special files and hence False
-#     # for all non-directory special files (e.g., device nodes, symbolic links),
-#     # this function returns True for for *all* non-directory files regardless of
-#     # whether such files are special or not.
-#     #
-#     # Why? Because this function complies with POSIX semantics, whereas
-#     # `path.isfile()` does *not*. Under POSIX, it is largely irrelevant whether a non-directory
-#     # file is special or not; it simply matters whether such file is a directory
-#     # or not. For example, the external command `rm` removes only non-directory
-#     # files and the external command `rmdir` removes only empty directories.
-#     # '''
-#     # assert isinstance(filename, str), '"{}" not a string.'.format(filename)
-#     # return path.exists(filename) and not path.isdir(filename)
-
-    # Such file will be copied in a manner preserving some but *not* all metadata,
-    # in accordance with standard POSIX behaviour. Specifically, the permissions
-    # but *not* owner, group, or times of such file
-
-    # Such file will be copied in a manner maximally preserving metadata (e.g.,
-    # owner, group, permissions, times, extended file system attributes
-    # If such source file is a symbolic link, such link rather than the target
-    # file of such link will be copied.
-    # If such file does *not* exist, an exception is raised.

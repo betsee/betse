@@ -6,7 +6,7 @@
 import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib import matplotlibs
-from betse.science import simconfig
+from betse.science.config import sim_config
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import TissuePickerBitmap
@@ -73,7 +73,7 @@ class Parameters(object):
         self.config_dirname = paths.get_dirname(self.config_filename)
 
         # Dictionary loaded from this YAML file.
-        self.config = simconfig.load(self.config_filename)
+        self.config = sim_config.read(self.config_filename)
 
         #---------------------------------------------------------------------------------------------------------------
         # FILE HANDLING

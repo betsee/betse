@@ -102,7 +102,7 @@ def is_mapping(obj: object) -> bool:
     `True` only if the passed object is a **mapping** (i.e., indexable by
     strings).
 
-    The canonical examples are `dict` and `OrderedDict` instances.
+    Customary mappings include `dict` and `OrderedDict` instances.
     '''
     return isinstance(obj, Mapping)
 

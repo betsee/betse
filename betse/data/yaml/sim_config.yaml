@@ -658,15 +658,17 @@ variable settings:
 
   environmental boundary: # set conditions for the global (environmental) boundary
 
-    closed boundary: False  # Are global environmental boundaries closed (True) or open (False)?
-                            # Applies only if the "simulate extracellular spaces" option is enabled,
+    closed boundary: False  # Are global environmental boundaries closed (True)
+                            # or open (False)? Applies only if the "simulate
+                            # extracellular spaces" option is enabled,
                             # otherwise this is ignored.
 
 
-  tight junction scaling: 1.0e-7   # factor by which tight junctions scale free-diffusion
+  tight junction scaling: 1.0e-7   # factor by which tight junctions scale
+                                   # free-diffusion
 
-  tight junction relative diffusion:  # relative values for tight junction ion permeability:
-
+  tight junction relative diffusion:  # relative values for tight junction ion 
+                                      # permeability
     Na:  1
     K: 1
     Cl: 1
@@ -675,12 +677,14 @@ variable settings:
     M: 1
     P: 1
 
-  adherens junction scaling: 1.0   # factor by which cell-cell junctions scale free-diffusion
+  adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
+                                   # free-diffusion
 
-  cavity open: False  # do internally cut cavities have free env boundaries (True) or sealed by TJ (False)?
+  cavity open: False  # do internally cut cavities have free env boundaries
+                      # (True) or sealed by TJ (False)?
 
-  use Goldman calculator: False    # calculate alternative Vmem using GHK equation for model params and plot results?
-
+  use Goldman calculator: False   # calculate alternative Vmem using GHK
+                                  # equation for model params and plot results?
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RESULTS
@@ -690,14 +694,15 @@ variable settings:
 
 results options:
 
-    plot after solving: True     # This option allows you to turn all plots on/off
-                                 # note this doesn't turn plot while solving off.
+    plot after solving: True     # This option allows you to turn all plots
+                                 # on/off. Note this doesn't turn plot while
+                                 # solving off. If 'automatically save plots"
+                                 # is also "True", plots will be exported to
+                                 # results without displaying.
                                  # options True or False (case sensitive)
-                                 # If 'automatically save plots" is "True"
-                                 # plots will be exported to results without displaying.
   
-    plot while solving: True     # shows a continuously updating 2d plot of cell Vmems
-                                 # while the sim run is computing
+    plot while solving: True     # shows a continuously updating 2d plot of
+                                 # cell Vmems while the sim run is computing
                                  # options True or False (case sensitive)
   
     save solving plot: True      # save the plot while solving figure
@@ -706,12 +711,12 @@ results options:
                                  # warning this can slow down simulations
                                  # options True or False (case sensitive)
   
-    automatically save plots: True     # autosave all still images (as 300 dpi pngs)
-                                       # to the results directory
+    automatically save plots: True     # autosave all still images (as 300 dpi
+                                       # pngs) to the results directory
                                        # options True or False (case sensitive)
   
     create all animations: True     # Display and save animations (True) or not
-                                    # (False)? Even if True, only animations
+                                    # (False)? Even if "True", only animations
                                     # enabled below are displayed and saved.
   
     save animations:            # save animations in animation-specific folders
@@ -729,8 +734,8 @@ results options:
             encoders: ['ffmpeg', 'avconv', 'mencoder']
   
   
-    export data to file: True      # export all stored data for the plot cell to a
-                                   # comma-delimited (csv) text file
+    export data to file: True      # export all stored data for the plot cell
+                                   # to a comma-delimited (csv) text file
                                    # options True or False (case sensitive)
   
     enumerate cells: False         # number the cells on 2D plots with their simulation index?
