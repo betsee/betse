@@ -10,6 +10,9 @@ Placeholder functional tests.
 # ....................{ IMPORTS                            }....................
 # from betse.util.py import callers
 # from betse.util.io import stdouts
+# from test.func.conftest.sim_context import SimTestContext
+# from func.conftest.sim_context import SimTestContext
+from betse_test_func.util.context import fixture
 import pytest
 
 # ....................{ FIXTURES                           }....................
@@ -24,13 +27,13 @@ def null_fixture(_sub_fixture):
     pass
 
 # ....................{ COMMANDS                           }....................
-def test_failure(tmpdir, null_fixture) -> None:
+def test_cli_failure(tmpdir, null_fixture) -> None:
     '''
     Placeholder failing test.
     '''
     raise ValueError('Placeholder failing test.')
 
-def test_success(null_fixture) -> None:
+def test_cli_success(null_fixture) -> None:
     '''
     Placeholder successful test.
     '''

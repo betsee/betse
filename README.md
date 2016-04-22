@@ -1,13 +1,20 @@
-betse
+BETSE
 ===========
 
-`betse` (BioElectric Tissue Simulation Engine) bio-realistic modelling
-of dynamic electrochemical phenomena in gap junction networked cell collectives,
-with a focus on spatio-temporal pattern formation.
+**BETSE** (**B**io**E**lectric **T**issue **S**imulation **E**ngine) is an open-
+source cross-platform suite of scientific software for the life sciences –
+emphasizing bio-realistic modelling of dynamic electrochemical phenomena in gap
+junction-networked cell collectives and spatio-temporal pattern formation. For
+usability _and_ scriptability, this suite includes both high-level graphical
+user (GUI) and low-level command line (CLI) interfaces. 
+
+BETSE is portably implemented in pure Python 3, [rigorously tested](#testing)
+with [`py.test`](http://pytest.org), and [permissively distributed](#license)
+under the [BSD 2-clause license](https://opensource.org/licenses/BSD-2-Clause).
 
 ## Requirements
 
-`betse` currently runs *only* on:
+BETSE currently runs _only_ on:
 
 * **64-bit systems**. This is principally due to the increasing obsolescence and
   hence irrelevance of 32-bit systems for scientific work. [Read: no clients or
@@ -29,20 +36,25 @@ with a focus on spatio-temporal pattern formation.
 
 ## Recommendations
 
-`betse` currently recommends but does *not* require:
+BETSE currently recommends but does *not* require:
 
 * **At least 8GB RAM**. Again, this is due to the memory intensiveness of
   even small-scale tissue simulations.
 
 ## Dependencies
 
-`betse` has both mandatory dependencies that must be installed before `betse`
-itself is installed _and_ optional dependencies that may be installed at the
-user's discretion at any time. The uncomputable fun begins now!
+BETSE has both:
+
+* Mandatory dependencies that must be installed _before_ BETSE itself is
+  installed.
+* Optional dependencies that may be installed at any time, at the user's
+  discretion.
+
+The uncomputable joy-luck installation begins now!
 
 ### Mandatory
 
-`betse` requires the following non-pure-Python packages – which themselves
+BETSE requires the following non-pure-Python packages – which themselves
 require non-Python precompiled libraries (e.g., C, Fortran) and hence are best
 installed manually via the system-wide package manager for your current
 operating system:
@@ -60,11 +72,11 @@ operating system:
 
 To install these dependencies, the following instructions also install `pip3`,
 the Python 3-specific release of the popular Python package manager `pip`.
-That said, `betse` itself does _not_ require `pip3` at runtime.
+That said, BETSE itself does _not_ require `pip3` at runtime.
 
 ### Linux
 
-Under Linux, `betse` also requires:
+Under Linux, BETSE also requires:
 
 * [Tcl/Tk](https://www.tcl.tk).
 * Matplotlib compiled with Tcl/Tk support (i.e., the `tkagg` backend enabled).
@@ -84,7 +96,7 @@ form of recompilation, relinking, or reinstallation.
 
 ##### Updated Matplotlib
 
-`betse` requires a fairly recent version of Matplotlib. If the newest version of
+BETSE requires a fairly recent version of Matplotlib. If the newest version of
 Matplotlib installed by your distribution is insufficient, the newest version of
 Matplotlib may be manually installed as follows:
 
@@ -94,7 +106,7 @@ Matplotlib may be manually installed as follows:
 
 ##### Optimized BLAS and LAPACK
 
-`betse` strongly recommends that optimized (rather than the unoptimized default)
+BETSE strongly recommends that optimized (rather than the unoptimized default)
 implementations of the BLAS and LAPACK APIs for linear algebra be used. While
 there exist numerous alternatives both open-source (e.g., CBLAS) and
 proprietary (e.g., MKL), the following instructions assume use of either ATLAS
@@ -132,11 +144,11 @@ via either:
 
 * **(Recommended)** [Homebrew](http://brew.sh), an unofficial OS X package
   manager. Homebrew provides robust support for features commonly required by
-  `betse` developers, including the capacity to install older rather than
+  BETSE developers, including the capacity to install older rather than
   merely the newest versions of packages.
 * **(Not recommended)** [MacPorts](https://www.macports.org), an alternative
   unofficial OS X package manager. MacPorts lacks robust support for features
-  commonly required by `betse` developers, as described above. Since
+  commonly required by BETSE developers, as described above. Since
   Homebrew and MacPorts install packages into different system directories
   (i.e., `/usr/local` for Homebrew and `/opt` for MacPorts), the two _can_
   technically be used on the same system. However, this is generally
@@ -214,7 +226,7 @@ For simplicity, the following instructions assume use of Homebrew:
 1. Download and install [Homebrew](http://brew.sh). While these dependencies are
    also technically installable via [MacPorts](https://www.macports.org),
    Homebrew provides significantly more robust support for features of interest
-   to `betse` users. Critically, this includes the capacity to install
+   to BETSE users. Critically, this includes the capacity to install
    alternative versions of dependencies rather than merely the newest.
 
         $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
@@ -259,7 +271,7 @@ several days, depending on hardware performance. We wish we were kidding.
 
 #### Microsoft Windows
 
-Such dependencies are installable under both Microsoft Windows *and* Wine
+These dependencies are installable under both Microsoft Windows *and* Wine
 prefixes emulating Windows on non-Windows systems (e.g., Linux, OS X).
 
 ##### Native
@@ -282,7 +294,7 @@ For simplicity, the following instructions assume use of the
 1. Double click the desktop shortcut `babun` to open a new terminal window.
 1. Prioritize Miniconda- over Babun-installed Python packages. By default, Babun
    prioritizes Babun- over Miniconda-installed Python packages. Since Babun
-   packages only a subset of the dependencies required by `betse`, Miniconda's
+   packages only a subset of the dependencies required by BETSE, Miniconda's
    `conda` rather than Babun's `pact` package manager must be used to install
    such dependencies. To permit this, modify the `${PATH}` global exported at
    Babun startup by editing the `.zshrc` file in your home directory as follows:
@@ -303,7 +315,7 @@ For simplicity, the following instructions assume use of the
         $ conda install numpy matplotlib pyside pyyaml pywin32 scipy
 
 1. Symbolically link the Python 3 executable `python.exe` installed by Miniconda
-   to `python3`. For disambiguity, numerous core scripts including `betse`'s
+   to `python3`. For disambiguity, numerous core scripts including BETSE's
    `setup.py` installer run Python 3 as `python3` rather than `python`. For
    unknown reasons, the Python 3-specific version of Miniconda under Windows
    does *not* appear to provide a `python3` executable. To fix this:
@@ -312,13 +324,13 @@ For simplicity, the following instructions assume use of the
 
 ##### Wine
 
-**FIXME:** While `betse` may indeed be installable _and_ runnable under Wine,
+**FIXME:** While BETSE may indeed be installable _and_ runnable under Wine,
 there's little point in doing so, as the resulting PyInstaller-frozen binaries
 are likely to embed Wine-specific shared libraries unlikely to behave as
 expected under actual Windows systems. Excise this entire subsection, please.
 
-Under non-Windows systems, such dependencies are installable in a system-wide
-manner via Wine emulation. Such emulation requires the following packages:
+Under non-Windows systems, these dependencies are installable in a system-wide
+manner via Wine emulation. This emulation requires the following packages:
 
 * Wine >= 1.7.41. Prior versions of Wine fail to implement Windows API functions
   transitively required by Anaconda (e.g., `GetSystemTime()`).
@@ -385,20 +397,20 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 
 ### Optional
 
-`betse` optionally leverages (but does _not_ strictly require) the following
+BETSE optionally leverages (but does _not_ strictly require) the following
 dependencies where available at runtime:
 
 * [py.test](http://pytest.org) >= 2.5.0, for optionally running unit tests.
 * [PyInstaller](http://www.pyinstaller.org) >= 3.0, for optionally freezing
-  `betse`.
+  BETSE.
 * [UPX](http://upx.sourceforge.net) (any version), for optionally compressing
-  frozen `betse` executables.
+  frozen BETSE executables.
 
 These dependencies are installable as follows.
 
 #### `py.test`
 
-To optionally [run tests](#testing), `betse` requires `py.test`, a pure-Python 
+To optionally [run tests](#testing), BETSE requires `py.test`, a pure-Python 
 test harness. This dependency is installable in a system-wide manner as follows:
 
 * Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):
@@ -411,23 +423,23 @@ test harness. This dependency is installable in a system-wide manner as follows:
 
 ##### `py.test` Plugins
 
-While optional, `betse` provides out-of-the-box support for the following
+While optional, BETSE provides out-of-the-box support for the following
 third-party `py.test` plugins:
 
 * `pytest-xdist`, parallelizing test runs across all available processors.
   `py.test` itself provides _no_ built-in support for parallelization! Since
-  `betse`'s test suite is computationally expensive (if not prohibitive), this
+  BETSE's test suite is computationally expensive (if not prohibitive), this
   plugin is a hard prerequisite for sanity preservation.
 
 Contributors are strongly encouraged to install these optional dependencies,
-which `betse`'s test suite will then implicitly detect and set accordingly.
+which BETSE's test suite will then implicitly detect and set accordingly.
 These dependencies are installable in a system-wide manner as follows:
 
     $ pip3 install pytest-xdist
 
 #### PyInstaller
 
-To optionally [freeze `betse`](#freezing), `betse` requires PyInstaller, a
+To optionally [freeze BETSE](#freezing), BETSE requires PyInstaller, a
 non-pure-Python cross-platform command-line utility for freezing Python
 applications. This dependency is installable in a system-wide manner as
 follows:
@@ -442,7 +454,7 @@ follows:
 
 #### UPX (Ultimate Packer for eXecutables)
 
-To optionally compress executables while [freezing `betse`](#freezing), `betse`
+To optionally compress executables while [freezing BETSE](#freezing), BETSE
 requires UPX, a non-Python cross-platform command-line utility for compressing
 arbitrary executables. This dependency is installable in a system-wide manner
 as follows:
@@ -457,31 +469,31 @@ as follows:
 
 ## Installation
 
-`betse` itself is installable into either:
+BETSE itself is installable into either:
 
 * A system-wide directory accessible to all users of the current system.
 * A venv (i.e., virtual environment) isolated to the current user.
 
 The latter has the advantage of avoiding conflicts with already installed
-system-wide Python and non-Python packages (e.g., in the event that `betse`
+system-wide Python and non-Python packages (e.g., in the event that BETSE
 requires different versions of such packages), but the corresponding
 disadvantage of requiring reinstallation of such packages and all transitive
 dependencies of such packages. Since several dependencies are heavy-weight
 (e.g., Qt4) and hence costly to reinstall, this is a notable disadvantage.
 
 Note that the string `${BETSE\_DIR}` should be replaced everywhere below by the
-absolute path of the top-level directory containing the source for `betse`.
+absolute path of the top-level directory containing the source for BETSE.
 
 ### System-wide
 
-`betse` is installable into a system-wide directory as follows:
+BETSE is installable into a system-wide directory as follows:
 
-* Compile `betse`.
+* Compile BETSE.
 
         $ cd "${BETSE_DIR}"
         $ python3 setup.py build
 
-* Install `betse`.
+* Install BETSE.
 
         $ sudo python3 setup.py easy_install --no-deps .
 
@@ -489,57 +501,57 @@ Curiously, although the `develop` command for `setuptools` provides a
 `--no-deps` option, the `install` command does not. Hence, the `easy_install`
 command is called above instead.
 
-`betse` is subsequently uninstallable via `pip` as follows:
+BETSE is subsequently uninstallable via `pip` as follows:
 
     $ sudo pip uninstall betse
 
 ### User-specific
 
-`betse` is installable into a user-specific venv by running the following
+BETSE is installable into a user-specific venv by running the following
 command **from within such venv**:
 
     $ cd "${BETSE_DIR}"
     $ ./setup.py install
 
 This command should *not* be run outside of a venv. Doing so will reinstall all
-dependencies of `betse` already installed by the system-wide package manager
+dependencies of BETSE already installed by the system-wide package manager
 (e.g., `apt-get`). This may superficially appear to work but invites obscure and
-difficult to debug conflicts at `betse` runtime between dependencies reinstalled
+difficult to debug conflicts at BETSE runtime between dependencies reinstalled
 by `setuptools` and dependencies already installed by such package maneger.
 
-`betse` is subsequently uninstallable via `pip` as follows:
+BETSE is subsequently uninstallable via `pip` as follows:
 
     $ pip uninstall betse
 
 ## Usage
 
-`betse` is a front-facing application rather than backend framework. While
-`betse`'s Python packages are importable by other packages, `betse` is typically
+BETSE is a front-facing application rather than backend framework. While
+BETSE's Python packages are importable by other packages, BETSE is typically
 run by executing Python wrapper scripts installed to the current `${PATH}`.
 
 ### CLI
 
-`betse` installs a low-level command line interface (CLI), runnable as follows:
+BETSE installs a low-level command line interface (CLI), runnable as follows:
 
     $ betse
 
-Such CLI is also runnable by invoking the main CLI module under the active
+This CLI is also runnable by invoking the main CLI module under the active
 Python 3 interpreter as follows:
 
     $ cd "${BETSE_DIR}"
     $ python3 -m betse.cli
 
-This has the minor advantage of working regardless of whether `betse` has been
+This has the minor advantage of working regardless of whether BETSE has been
 installed or not, but the corresponding disadvantage of requiring more typing.
 
 ### GUI
 
-`betse` also installs a high-level graphical user interface (GUI) implemented in
+BETSE also installs a high-level graphical user interface (GUI) implemented in
 the popular cross-platform windowing toolkit Qt4, runnable as follows:
 
     $ betse-qt &
 
-Such GUI is also runnable by invoking the main GUI module under the active
+This GUI is also runnable by invoking the main GUI module under the active
 Python 3 interpreter as follows:
 
     $ cd "${BETSE_DIR}"
@@ -547,24 +559,24 @@ Python 3 interpreter as follows:
 
 ## Development
 
-For development purposes, `betse` is *editably installable* (i.e., as a symbolic
+For development purposes, BETSE is *editably installable* (i.e., as a symbolic
 link rather than physical copy). As the name implies, editable installations are
 modifiable at runtime and hence suitable for development. Thanks to the magic
-of symbolic links, changes to the copy of `betse` from which an editable
+of symbolic links, changes to the copy of BETSE from which an editable
 installation was installed will be silently prograpagated back to such
 installation.
 
 ### System-wide
 
-`betse` is installable into a system-wide directory as follows:
+BETSE is installable into a system-wide directory as follows:
 
 * **(Optional).** Set the current umask to "002" as above.
     $ umask 002
-* Editably install `betse`.
+* Editably install BETSE.
     $ cd "${BETSE_DIR}"
     $ sudo python3 setup.py symlink
 
-The `symlink` command is a `betse`-specific `setuptools` command inspired by the
+The `symlink` command is a BETSE-specific `setuptools` command inspired by the
 IPython `setuptools` command of the same name, generalizing the behaviour of the
 default `develop` command to system-wide editable installations.
 
@@ -582,7 +594,7 @@ MinRK](http://mail.scipy.org/pipermail/ipython-dev/2014-February/013209.html):
 
 ### User-specific
 
-`betse` is editably installable into a user-specific venv via either `pip` or
+BETSE is editably installable into a user-specific venv via either `pip` or
 `setuptools` **from within such venv.** While there appears to be no particular
 advantage to using one over the other, it remains helpful to note that both
 apply. In either case, external executables (e.g., `betse`, `betse-qt`) will
@@ -590,31 +602,31 @@ also be installed and usable in the expected manner.
 
 #### pip
 
-`betse` is editably installable into a user-specific venv via `pip` as follows:
+BETSE is editably installable into a user-specific venv via `pip` as follows:
 
     $ cd "${BETSE_DIR}"
     $ pip3 install --no-deps --editable .
 
-Such installation is uninstallable as follows:
+This installation is uninstallable as follows:
 
     $ pip3 uninstall betse
 
 #### setuptools
 
-`betse` is editably installable into a user-specific venv via `setuptools` as
+BETSE is editably installable into a user-specific venv via `setuptools` as
 follows:
 
     $ cd "${BETSE_DIR}"
     $ ./setup.py develop --no-deps
 
-Such installation is uninstallable as follows:
+This installation is uninstallable as follows:
 
     $ cd "${BETSE_DIR}"
     $ ./setup.py develop --uninstall
 
 ## Testing
 
-`betse` is testable via `py.test` as follows. Either:
+BETSE is testable via `py.test` as follows. Either:
 
 * Run all available tests.
 
@@ -630,23 +642,23 @@ Such installation is uninstallable as follows:
 
 ## Freezing
 
-`betse` is **freezable** (i.e., convertable to platform-specific executable
+BETSE is **freezable** (i.e., convertable to platform-specific executable
 binaries distributable to end users) via PyInstaller, a cross-platform open-
 source utility for performing such freezing. While other such utilities exist
 (e.g., the Windows-specific `py2exe`, the OS X-specific `py2app`), only
 PyInstaller satisfies the basic requirements of both platform portability and
-freedom (as in both beer and speech). `betse` offers setuptools-automated
+freedom (as in both beer and speech). BETSE offers setuptools-automated
 support for *only* PyInstaller.
 
 ### Dependencies
 
-`betse`'s setuptools-automated freezing support has additional dependencies
-beyond those required for core `betse` installation and usage. In no particular
+BETSE's setuptools-automated freezing support has additional dependencies
+beyond those required for core BETSE installation and usage. In no particular
 order, these are:
 
-#### `betse` Installation
+#### BETSE Installation
 
-`betse` *must* be installed in a system-wide manner first -- either:
+BETSE *must* be installed in a system-wide manner first -- either:
 
 * Editably (e.g., via `sudo python3 setup.py symlink`).
 * Non-editably (e.g., via `sudo python3 setup.py install`).
@@ -712,20 +724,20 @@ installable in a system-wide manner as follows:
 
 ### Usage
 
-`betse` is freezable in either:
+BETSE is freezable in either:
 
 * One-file mode, in which case PyInstaller generates one executable file for
-  each of `betse`'s wrapper scripts (e.g., `betse`, `betse-qt`).
+  each of BETSE's wrapper scripts (e.g., `betse`, `betse-qt`).
 * One-directory mode, in which case PyInstaller generates one directory
   containing one executable file (along with various ancillary libraries and
-  archives) for each of `betse`'s wrapper scripts.
+  archives) for each of BETSE's wrapper scripts.
 
-`betse` is freezable in one-file mode as follows:
+BETSE is freezable in one-file mode as follows:
 
     $ cd "${BETSE_DIR}"
     $ ./setup.py freeze_file
 
-`betse` is freezable in one-directory mode as follows:
+BETSE is freezable in one-directory mode as follows:
 
     $ cd "${BETSE_DIR}"
     $ ./setup.py freeze_dir
@@ -735,35 +747,35 @@ installable in a system-wide manner as follows:
 Assuming one-file mode, executables will be frozen to the following paths:
 
 * Under Linux:
-  * `freeze/dist/betse` for `betse`'s CLI wrapper.
-  * `freeze/dist/betse-qt` for `betse`'s GUI wrapper.
+  * `freeze/dist/betse` for BETSE's CLI wrapper.
+  * `freeze/dist/betse-qt` for BETSE's GUI wrapper.
 * Under OS X:
-  * `freeze/dist/betse` for `betse`'s CLI wrapper.
-  * `freeze/dist/betse-qt.app` for `betse`'s GUI wrapper.
+  * `freeze/dist/betse` for BETSE's CLI wrapper.
+  * `freeze/dist/betse-qt.app` for BETSE's GUI wrapper.
 * Under Windows:
-  * `freeze/dist/betse.exe` for `betse`'s CLI wrapper.
-  * `freeze/dist/betse-qt.exe` for `betse`'s GUI wrapper.
+  * `freeze/dist/betse.exe` for BETSE's CLI wrapper.
+  * `freeze/dist/betse-qt.exe` for BETSE's GUI wrapper.
 
-Such executables may be moved (and hence distributed to end users) as is but
-should *not* be renamed. Doing so typically invalidates code signing (as well as
+These executables may be moved (and hence distributed to end users) as is but
+should _not_ be renamed. Doing so typically invalidates code signing (as well as
 other embedded metadata).
 
 ### Caveats
 
 While commonly regarded as the best utility for freezing Python applications,
-PyInstaller is *not* without the occasional caveat. Most if not all such caveats
+PyInstaller is _not_ without the occasional caveat. Most if not all such caveats
 apply to alternative utilities (e.g., `cx_Freeze`, `py2app`, `py2exe`).
 
 #### Switching Freeze Modes
 
-For safety, attempting to switch freeze modes (i.e., to refreeze `betse` in
+For safety, attempting to switch freeze modes (i.e., to refreeze BETSE in
 one-directory mode when already frozen in one-file mode *or* in one-file mode
 when already frozen in one-directory mode) currently results in an error.
 
 This is correctable by either manually removing the previously frozen file or
 directory *or* passing option `--clean` to the desired `freeze_file` or
 `freeze_dir` command, which automatically removes such path on your behalf. For
-example, `betse` is switchable from one-directory to one-file mode and then back
+example, BETSE is switchable from one-directory to one-file mode and then back
 again as follows:
 
     $ cd "${BETSE_DIR}"
@@ -793,7 +805,7 @@ run) such versions of such systems as virtual guests of the current system via a
 
 For this purpose, we recommend Oracle's open-source hypervisor VirtualBox rather
 than VMware's closed-source hypervisor VMware Workstation. The former supports
-all operating systems supported by `betse` out of the box, including OS X; the
+all operating systems supported by BETSE out of the box, including OS X; the
 latter supports Linux and Windows but *not* OS X out of the box. Moreover, the
 former is free (as in both beer and speech); the latter is non-free (as in both
 beer and speech).
@@ -809,7 +821,7 @@ system and architecture. As example, if the current system is 64-bit Linux,
 executables generated under such system will be executable only under other
 64-bit Linux systems.
 
-In practice, the lack of cross-compilation support is ignorable. `betse` is
+In practice, the lack of cross-compilation support is ignorable. BETSE is
 sufficiently memory-intensive that running under a 32-bit architecture would be
 strongly inadvisable and hence unsupported.
 
@@ -822,22 +834,6 @@ We recommend the open-source product VMware for this purpose.
 
 ## License
 
-`betse` is open-source software licensed under the BSD-compatible [NetBSD
-license](https://www.netbsd.org/about/redistribution.html). equivalent to the
-[2-clause BSD license](http://opensource.org/licenses/BSD-2-Clause) excluding
-the following proviso:
-
-    The views and conclusions contained in the software and documentation are
-    those of the authors and should not be interpreted as representing official
-    policies, either expressed or implied, of the FreeBSD Project.
-
-We regard this proviso as evasive legerdemain. If "the views and conclusions
-contained in the software and documentation" become sufficiently desynchronized
-from official project policies as to constitute a legal risk (e.g., due to
-permissive defamation law such as exists in the United Kingdom), the remedy is
-to bridge the gap -- not to decry its existence. That is, to amend the software,
-its policies, or both until no desynchronization between the two remains.
-
-The software _is_ the project. Strident claims to the contrary notwithstanding,
-the software _is_ fundamentally representative of project policies. This is
-always and irrevocably the case, and claims otherwise merit little standing.
+BETSE is open-source software licensed under the permissive [BSD 2-clause
+license](https://opensource.org/licenses/BSD-2-Clause). See [`LICENSE`](LICENSE)
+for exhaustive details.

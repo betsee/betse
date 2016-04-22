@@ -11,7 +11,7 @@ test modules, which may use this functionality as if explicitly imported.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config import sim_config
+from betse_test_func.util.context.context import SimTestContext
 import pytest
 
 # ....................{ FIXTURES ~ public                  }....................
@@ -44,7 +44,7 @@ import pytest
 #  PyInstaller fixtures do this, but can't quite recall. Surely "pytest"
 #  provides some automated means of doing so?
 @pytest.fixture(scope='session')
-def _sim_config(tmpdir_factory, request) -> 'py.path.local':
+def _betse_sim_config(tmpdir_factory, request) -> 'py.path.local':
     '''
     Context manager-driven fixture creating and returning the absolute path of a
     temporary simulation configuration file specific to the parent fixture, with
@@ -90,6 +90,9 @@ def _sim_config(tmpdir_factory, request) -> 'py.path.local':
         Official `request` fixture parameter documentation.
     '''
 
+    # This module's importation imports dependencies and is hence delayed.
+    from betse_test_func.context.context import SimTestContext
+
     #FIXME: Ah ha! While there's no direct means of finding this name, there is
     #a sneaky alternative: search the "request.fixturenames" list for the set of
     #all fixture names suffixed by "_sim_config_file". This set should contain
@@ -117,58 +120,3 @@ def _sim_config(tmpdir_factory, request) -> 'py.path.local':
     # deletes this path's parent directory on session completion *WITHOUT* any
     # explicit intervention (e.g., via finalizers) on our part. Isn't that nice?
     return sim_config_filename
-
-# ....................{ CLASSES                            }....................
-class SimTestConfig(object):
-    '''
-    Simulation-specific test configuration.
-
-    Returns
-    ----------
-    config : dict
-        Dictionary of all configuration data deserialized from the YAML-
-        formatted file with path `config_filename`. Note that the contents of
-        this in-memory dictionary differ from that of this on-disk file. For
-        efficiency, callers are expected to additionally modify this dictionary
-        to suite test requirements before finally reserializing this dictionary
-        to this file.
-    config_filename : py.path.local
-        Absolute path of a temporary simulation configuration file specific to
-        the parent fixture as a `py.path.local` instance, defining an
-        object-oriented superset of the non-object-oriented `os.path` module.
-
-    See Also
-    ----------
-    https://py.readthedocs.org/en/latest/path.html
-        Official `py.path` class documentation.
-    '''
-
-    def __init__(self, config_filename : 'py.path.local') -> None:
-        '''
-        Initialize this test configuration.
-
-        Parameters
-        ----------
-        config_filename : py.path.local
-            Absolute path to which this method copies BETSE's default simulation
-            configuration file. If this file already exists, an exception is
-            raised.
-        '''
-
-        # Configuration filename.
-        self.config_filename = config_filename
-
-        # Configuration deserialized from this file, reducing this filename from
-        # a high-level "py.path.local" instance to a low-level string.
-        self.config = sim_config.read(str(self.config_filename))
-
-
-    #FIXME: Implement me as a convenience for fixtures!
-    def write(self) -> None:
-        '''
-        Write the current configuration to the current configuration file.
-
-        If this file already exists, this file will be silently overwritten.
-        '''
-
-        pass

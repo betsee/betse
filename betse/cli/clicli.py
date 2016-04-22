@@ -301,7 +301,7 @@ class CLICLI(CLI):
         Run the `config` subcommand.
         '''
 
-        # Delay importing this module, which imports heavy-weight dependencies.
+        # This module's importation imports dependencies and is hence delayed.
         from betse.science.config import sim_config
         sim_config.write_default(self._args.config_filename)
 
