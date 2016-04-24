@@ -16,12 +16,11 @@ import shutil
 # ....................{ TESTERS                            }....................
 def is_pathable(command_basename: str) -> bool:
     '''
-    `True` if the external command with the passed basename exists _or_ `False`
-    otherwise.
+    `True` only if the external command with the passed basename exists.
 
-    Specifically, `True` if this basename is that of an executable file in the
-    current `${PATH}`. If this basename contains a directory separator and is
-    hence _not_ a basename, an exception is raised.
+    This function returns `True` only if this basename is that of an executable
+    file in the current `${PATH}`. If this basename contains a directory
+    separator and is hence _not_ a basename, an exception is raised.
     '''
     assert types.is_str_nonempty(command_basename), (
         types.assert_not_str_nonempty(command_basename, 'Command name'))
@@ -37,5 +36,3 @@ def is_pathable(command_basename: str) -> bool:
 
     # Get whether this command exists or not.
     return shutil.which(command_basename) is not None
-
-# --------------------( WASTELANDS                         )--------------------

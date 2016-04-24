@@ -4,13 +4,10 @@
 # See "LICENSE" for further details.
 
 '''
-Simulation-specific test context classes.
+Simulation-specific fixture context classes.
 
-This module is _only_ intended to be imported by `py.test`-driven functional
-tests rather than the main BETSE codebase, but nonetheless resides in the main
-BETSE codebase . Rather,
-Instances of these classes are internally passed between fixture calls during
-functional tests, simplifying communication between such fixtures.
+Simulation-specific fixtures typically return instances of these classes to
+caller fixtures and tests, formalizing communication between functional tests.
 '''
 
 # ....................{ IMPORTS                            }....................

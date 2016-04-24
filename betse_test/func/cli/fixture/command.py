@@ -4,47 +4,27 @@
 # See "LICENSE" for further details.
 
 '''
-Global `py.test` configuration.
+External command fixtures.
 
-`py.test` implicitly imports all functionality defined by this module into all
-test modules, which may use this functionality as if explicitly imported.
+These fixtures automate testing of the current versions of BETSE's externally
+runnable CLI and GUI commands (e.g., `betse`, `betse-qt4`) in subprocesses of
+the current test process, regardless of whether these commands have been
+editably installed (i.e., as synchronized symlinks rather than desynchronized
+copies) into the current Python environment or not.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test_func.util.context.context import SimTestContext
-import pytest
+from pytest import fixture
 
-# ....................{ FIXTURES ~ public                  }....................
+# ....................{ FIXTURES ~ low-level               }....................
+#FIXME: Run "python3 -m betse.cli.__main__". Questions include:
+#
+#* How do we get the absolute path of the currently running Python interpreter,
+#  for use in rerunning this exact same interpreter?
 
-# ....................{ FIXTURES ~ private                 }....................
-#FIXME: It would appear that we want to:
-#
-#* For each possible "sample_sim.yaml" configuration and corresponding cached
-#  simulation results to be reused across multiple tests, creating one
-#  session-scoped fixture accepting the predefined "tmpdir_factory"
-#  session-scoped fixture, creating the appropriate "sample_sim.yaml"
-#  configuration file, and returning the absolute path of this file.
-#* Since all BETSE commands *SHOULD* be intelligent enough to implicitly run the
-#  "seed", "init", and "sim" subcommands as needed, this fixture should *NOT*
-#  explicitly call these subcommands. After all, only a subset of these
-#  subcommands may be required by actual tests. Due to the computational expense
-#  of everything in BETSE, that's for tests to decide.
-#
-#For an incredibly helpful documentation, see:
-#
-#    http://pytest.org/latest/tmpdir.html
-
-#FIXME: Refactor to return an instance of the new "SimTestConfig" class.
-
-#FIXME: This *MUST* either:
-#
-#* Be parametrized to explicitly accept the basename of the temporary
-#  subdirectory to isolate this specific configuration file to.
-#* Implicitly inspect the call stack to derive this name. We believe that
-#  PyInstaller fixtures do this, but can't quite recall. Surely "pytest"
-#  provides some automated means of doing so?
-@pytest.fixture(scope='session')
-def _betse_sim_config(tmpdir_factory, request) -> 'py.path.local':
+# Command execution is
+@fixture(scope='function')
+def betse_command(tmpdir_factory, request) -> 'py.path.local':
     '''
     Context manager-driven fixture creating and returning the absolute path of a
     temporary simulation configuration file specific to the parent fixture, with

@@ -27,6 +27,17 @@ class BetseExceptionLog(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ python                }....................
+class BetseExceptionInterpreter(BetseException):
+    '''
+    General-purpose low-level Python interpreter exception.
+
+    This exception is appropriate for use in relation to low-level issues
+    concerning the active Python interpreter (e.g., inability to retrieve this
+    interpreter's absolute path).
+    '''
+    pass
+
+
 class BetseExceptionModule(BetseException):
     '''
     Module-specific exception.
@@ -82,11 +93,13 @@ class BetseExceptionPath(BetseException):
     '''
     pass
 
+
 class BetseExceptionDir(BetseExceptionPath):
     '''
     Directory-specific exception.
     '''
     pass
+
 
 class BetseExceptionFile(BetseExceptionPath):
     '''
@@ -114,6 +127,7 @@ class BetseExceptionParameters(BetseException):
     Parameters-specific exception.
     '''
     pass
+
 
 class BetseExceptionSimulation(BetseException):
     '''

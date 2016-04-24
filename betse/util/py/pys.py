@@ -16,13 +16,11 @@ poor form. Call these functions _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import platform
-import sys
-from collections import OrderedDict
-
+import platform, sys
 from betse import metadata
+from betse.exceptions import BetseExceptionInterpreter
 from betse.util.io.log import logs
-
+from collections import OrderedDict
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -104,6 +102,47 @@ def get_version() -> str:
     interpreter (e.g., `2.7.10`, `3.4.1`).
     '''
     return platform.python_version()
+
+# ....................{ GETTERS ~ path                     }....................
+#FIXME: Implement us up!
+def get_command_line_prefix() -> list:
+    '''
+    List of one or more shell words unambiguously running the executable binary
+    for the active Python interpreter and machine architecture.
+
+    Since the absolute path of the executable binary for the active Python
+    interpreter is insufficient to unambiguously run this binary under the
+    active machine architecture, this function should _always_ be called in lieu
+    of `get_filename()` when attempting to rerun this interpreter as a
+    subprocess of the current Python process. As example:
+
+    * Under OS X, the executable binary for this interpreter may be bundled with
+      one or more other executable binaries targetting different machine
+      architectures (e.g., 32-bit, 64-bit) in a single so-called "universal
+      binary." Distinguishing between these bundled binaries requires passing
+      this interpreter to a prefixing OS X-specific command, `arch`.
+    '''
+
+    pass
+
+
+def get_filename() -> str:
+    '''
+    Absolute path of the executable binary for the active Python interpreter.
+    '''
+
+    # Absolute path of the executable binary for the active Python interpreter
+    # if this path is retrievable by Python *OR* either "None" or the empty
+    # string otherwise.
+    py_filename = sys.executable
+
+    # If this path is retrievable by Python, raise an exception.
+    if not py_filename:
+        raise BetseExceptionInterpreter(
+            'Absolute path of Python interpreter not retrievable.')
+
+    # Return this path.
+    return py_filename
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedDict:

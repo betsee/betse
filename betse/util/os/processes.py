@@ -9,9 +9,9 @@ Low-level external process facilities.
 
 # ....................{ IMPORTS                            }....................
 import sys
-
 from betse.util.io.log import logs
 from betse.util.path import paths
+from betse.util.type import types
 
 # ....................{ CONSTANTS                          }....................
 EXIT_STATUS_SUCCESS = 0
@@ -24,11 +24,12 @@ EXIT_STATUS_FAILURE_DEFAULT = 1
 Canonical exit status returned on process failure.
 '''
 
-# ....................{ GETTERS                            }....................
+# ....................{ GETTERS ~ path                     }....................
 def get_current_basename() -> str:
     '''
     Get the basename of the executable originating the current process.
     '''
+
     # Since "sys.argv[0]" is either an absolute or relative path, get only such
     # path's basename.
     return paths.get_basename(sys.argv[0])
@@ -45,33 +46,32 @@ def exit_with_failure(exit_message: str = '') -> None:
         exit_message = exit_message,
     )
 
-def exit(exit_status: int = 1, exit_message: str = '') -> None:
-    '''
-    Exit from the current process with the passed exit status (defaulting to 1),
-    logging the passed message (defaulting to the empty string) if nonempty.
 
-    If such exit status is 0 signifying success, such message will be logged
-    with level `INFO`; else, such such message will be logged with level
-    `ERROR`.
+def exit(
+    exit_status: int = EXIT_STATUS_FAILURE_DEFAULT,
+    exit_message: str = ''
+) -> None:
     '''
-    assert isinstance(exit_message, str),\
-        '"{}" not a string.'.format(exit_message)
+    Exit from the current process with the passed exit status (defaulting to
+    `EXIT_STATUS_FAILURE_DEFAULT`), logging the passed message (defaulting to
+    the empty string) if nonempty.
 
-    # Log such message if nonempty.
+    This message will be logged with level:
+
+    * `INFO` if this exit status signifies success.
+    * `ERROR` otherwise.
+    '''
+    assert types.is_str(exit_message), (
+        types.assort_not_str(exit_message, 'Exit message'))
+
+    # Log this message if nonempty.
     if exit_message:
-        # Get an appropriate child logger.
-        logger = logs.get()
-
-        # If such status signifies success, log accordingly.
-        if exit_status == 0:
-            logger.info(exit_message)
-        # Else, such status signifies failure. Log accordingly.
+        # If this status signifies success, log accordingly.
+        if exit_status == EXIT_STATUS_SUCCESS:
+            logs.log_info(exit_message)
+        # Else, this status signifies failure. Log accordingly.
         else:
-            logger.error(exit_message)
+            logs.log_error(exit_message)
 
     # Exit the current process with such status.
     sys.exit(exit_status)
-
-# --------------------( WASTELANDS                         )--------------------
-    # printing *without* logging the passed message (defaulting to the empty
-    # string) to standard error if nonempty.
