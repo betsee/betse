@@ -30,10 +30,9 @@ Maximum value of unsigned bytes.
 
 INT_VALUE_MAX_32_BIT = 1 << 32
 '''
-Maximum value of variables of internal type `Py_ssize_t` on 32-bit systems.
+Maximum value for integer variables of internal type `Py_ssize_t` on 32-bit
+Python interpreters.
 
-Such value is suitable for comparison against `sys.maxsize`, the maximum value
-for such variables on the current system.
+This value is suitable for comparison with `sys.maxsize`, the maximum value of
+these variables on the current system.
 '''
-
-# --------------------( WASTELANDS                         )--------------------

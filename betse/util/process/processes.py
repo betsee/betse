@@ -16,13 +16,33 @@ from betse.util.type import types
 # ....................{ CONSTANTS                          }....................
 EXIT_STATUS_SUCCESS = 0
 '''
-Exit status returned on process success.
+Exit status signifying a process to have terminated successfully.
 '''
 
 EXIT_STATUS_FAILURE_DEFAULT = 1
 '''
-Canonical exit status returned on process failure.
+Exit status typically signifying a process to have terminated prematurely with a
+fatal error.
+
+While any exit status in the range `[1, 255]` signifies failure, this exit
+status is the most common and hence preferred default.
 '''
+
+# ....................{ TESTERS                            }....................
+def is_exit_status_success(exit_status: int) -> bool:
+    '''
+    `True` only if the passed exit status signifies success.
+    '''
+    assert types.is_int(exit_status), types.assert_not_int(exit_status)
+    return exit_status == EXIT_STATUS_SUCCESS
+
+
+def is_exit_status_failure(exit_status: int) -> bool:
+    '''
+    `True` only if the passed exit status signifies failure.
+    '''
+    assert types.is_int(exit_status), types.assert_not_int(exit_status)
+    return exit_status != EXIT_STATUS_SUCCESS
 
 # ....................{ GETTERS ~ path                     }....................
 def get_current_basename() -> str:
@@ -41,10 +61,8 @@ def exit_with_failure(exit_message: str = '') -> None:
     logging the passed message (defaulting to the empty string) with logging
     level `ERROR` if such message is nonempty.
     '''
-    exit(
-        exit_status = EXIT_STATUS_FAILURE_DEFAULT,
-        exit_message = exit_message,
-    )
+
+    exit(exit_status=EXIT_STATUS_FAILURE_DEFAULT, exit_message=exit_message)
 
 
 def exit(

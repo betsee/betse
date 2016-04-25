@@ -169,7 +169,7 @@ def get_version() -> str:
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedDict:
     '''
-    Get an ordered dictionary synopsizing the current operating system.
+    Ordered dictionary synopsizing the current operating system.
     '''
 
     return OrderedDict((

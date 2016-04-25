@@ -57,9 +57,13 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging, sys, traceback
-from betse.util.type import types
+import logging
+import sys
+import traceback
 from io import StringIO
+
+from betse.util.type import types
+
 
 # ....................{ GETTERS                            }....................
 def get(logger_name: str = None) -> logging.Logger:
@@ -83,7 +87,7 @@ def get(logger_name: str = None) -> logging.Logger:
     # (e.g., "betse").
     if logger_name is None:
         # Avoid circular import dependencies.
-        from betse.util.os import processes
+        from betse.util.process import processes
         return processes.get_current_basename()
 
     # If such name is the empty string, this function would get the root logger.

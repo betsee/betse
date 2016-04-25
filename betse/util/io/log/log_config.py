@@ -29,14 +29,17 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging, os, sys
-from betse.exceptions import BetseExceptionFile
-from betse.util.type import types
+import logging
+import os
+import sys
 from collections import OrderedDict
 from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
+
+from betse.exceptions import BetseExceptionFile
+from betse.util.type import types
 
 # ....................{ CONSTANTS ~ int                    }....................
 # Originally, we attempted to dynamically copy such constants from the "logging"
@@ -223,7 +226,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.os import processes
+        from betse.util.process import processes
 
         # Initialize the stdout handler.
         #
@@ -281,7 +284,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.os import processes
+        from betse.util.process import processes
         from betse.util.type import ints
 
         # Remove the previously registered file handler if any *BEFORE*

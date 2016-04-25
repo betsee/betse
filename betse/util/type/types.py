@@ -106,6 +106,14 @@ def is_mapping(obj: object) -> bool:
     '''
     return isinstance(obj, Mapping)
 
+# ....................{ TESTERS ~ callable                 }....................
+def is_callable(obj: object) -> bool:
+    '''
+    `True` only if the passed object is **callable** (e.g., function, method,
+    class defining the special `__call__()` method).
+    '''
+    return callable(obj)
+
 # ....................{ TESTERS ~ enum                     }....................
 def is_enum(obj: object) -> bool:
     '''
@@ -240,7 +248,7 @@ def is_int_ge(obj: object, ge: int) -> bool:
 def is_numeric(obj: object) -> bool:
     '''
     `True` only if the passed object is **numeric** (i.e., instance of either
-    the `int` or `float` classes).
+    the `int` or `float` types).
     '''
     return isinstance(obj, (int, float))
 
@@ -370,6 +378,13 @@ def assert_not_mapping(obj: object) -> str:
     String asserting the passed object to _not_ be a mapping.
     '''
     return '"{}" not a mapping (e.g., "dict", "OrderedDict").'.format(trim(obj))
+
+# ....................{ TESTERS ~ callable                 }....................
+def assert_not_callable(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be callable.
+    '''
+    return '"{}" not callable.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ enum                   }....................
 def assert_not_enum(obj: object) -> str:

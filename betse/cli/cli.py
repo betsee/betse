@@ -13,10 +13,10 @@ from argparse import ArgumentParser
 
 from betse import ignition, metadata, pathtree
 from betse.cli import info
+from betse.util.command.args import HelpFormatterParagraph
 from betse.util.io.log import logs
 from betse.util.io.log.log_config import LogType, log_config
-from betse.util.os import processes
-from betse.util.os.args import HelpFormatterParagraph
+from betse.util.process import processes
 from betse.util.type import types
 
 

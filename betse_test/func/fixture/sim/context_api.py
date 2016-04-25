@@ -19,6 +19,9 @@ class SimTestContext(object):
     Simulation-specific test context encapsulating simulation configuration,
     state, and metadata.
 
+    Simulation-specific fixtures typically return instances of this class as a
+    means of communicating this context to other fixtures and tests.
+
     Attributes
     ----------
     config : dict

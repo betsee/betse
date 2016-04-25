@@ -19,12 +19,14 @@
 # effectively mandatory.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from collections import OrderedDict
+from io import StringIO
+
 from betse import metadata
 from betse.util.io.log import log_config, logs
 from betse.util.os import oses
 from betse.util.py import pys
-from collections import OrderedDict
-from io import StringIO
+
 
 # ..................{ LOGGERS                                }..................
 def log_header() -> None:
@@ -61,7 +63,8 @@ def output_info() -> None:
     from betse import pathtree
     from betse.lib import libs
     from betse.lib.matplotlib.matplotlibs import mpl_config
-    from betse.util.os import kernels, processes
+    from betse.util.os import kernels
+    from betse.util.process import processes
 
     # Dictionary of human-readable labels to dictionaries of all
     # human-readable keys and values categorized by such labels. All such

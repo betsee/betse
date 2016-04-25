@@ -17,7 +17,7 @@ def die_unless_command_succeeds(*command_words) -> None:
     '''
     Raise an exception unless running the passed command succeeds.
 
-    For portability, such command *must* be passed as a list of shell words
+    For portability, this command _must_ be passed as a list of shell words
     whose first element is the pathname of such command and all subsequent
     elements the command-line arguments to be passed to such command (e.g.,
     `['ls', '/']`).
@@ -33,7 +33,7 @@ def die_unless_command_succeeds(*command_words) -> None:
     # accepts all arguments accepted by subprocess.Popen.__init__().
     popen_kwargs = {}
 
-    # If the current platform is vanilla Windows, permit such command to inherit
+    # If the current platform is vanilla Windows, permit this command to inherit
     # all file handles (including stdin, stdout, and stderr) from the current
     # process. By default, subprocess.Popen documentation insists that:
     #
@@ -45,25 +45,25 @@ def die_unless_command_succeeds(*command_words) -> None:
     # terminal devices and hence file handles will remain the same, in which
     # case this is *NOT* an issue. If the current terminal is Cygwin-based
     # (e.g.,, MinTTY), however, the underlying terminal devices and hence file
-    # handles will differ, in which case such behaviour prevents interaction
+    # handles will differ, in which case this behaviour prevents interaction
     # between the current shell and the vanilla Windows command to be run below.
-    # In particular, all output from such command will be squelched.
+    # In particular, all output from this command will be squelched.
     #
     # If at least one of stdin, stdout, or stderr are redirected to a blocking
     # pipe, setting "close_fds" to False can induce deadlocks under certain
     # edge-case scenarios. Since all such file handles default to None and hence
     # are *NOT* redirected in this case, "close_fds" may be safely set to False.
     #
-    # On all other platforms, if "close_fds" is True then no handles *EXCEPT*
+    # On all other platforms, if "close_fds" is True, no file handles *EXCEPT*
     # stdin, stdout, and stderr will be inherited by the child process. Hence,
     # this function fundamentally differs in subtle (and only slightly
-    # documented ways) between vanilla Windows and all other platforms. Such
+    # documented ways) between vanilla Windows and all other platforms. These
     # discrepancies appear to be harmful but probably unavoidable, given the
     # philosophical gulf between vanilla Windows and all other platforms.
     if is_os_windows_vanilla():
         popen_kwargs['close_fds'] = False
 
-    # Run such command.
+    # Run this command.
     subprocess.check_call(command_words, **popen_kwargs)
 
 
@@ -398,10 +398,10 @@ def get_command_output(*args) -> str:
     '''
     command_output = subprocess.check_output(args,
         # Redirect standard error to output.
-        stderr = subprocess.STDOUT,
+        stderr=subprocess.STDOUT,
 
         # Decode this output using the current locale's preferred encoding.
-        universal_newlines = True,
+        universal_newlines=True,
     )
 
     # Get this output, stripped of all trailing newlines.

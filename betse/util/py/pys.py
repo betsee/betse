@@ -80,11 +80,17 @@ def is_wordsize_64() -> bool:
     # Avoid circular import dependencies.
     from betse.util.type import ints
 
-    # There exist several alternative means of testing the same condition: e.g.,
+    # Return whether or not the maximum integer size supported by this Python
+    # interpreter is larger than the maximum value for variables of internal
+    # type `Py_ssize_t` under 32-bit Python interpreters. While somewhat obtuse,
+    # this condition is well-recognized by the Python community as the optimal
+    # means of portably testing this. Less preferable alternatives include:
     #
-    #     return 'PROCESSOR_ARCHITEW6432' in os.environ
-    #
-    # The current approach, however, is the most portable and hence ideal.
+    # * "return 'PROCESSOR_ARCHITEW6432' in os.environ", which depends upon
+    #   optional environment variables and hence is clearly unreliable.
+    # * "return platform.architecture()[0] == '64bit'", which fails under:
+    #   * OS X, returning "64bit" even when the active Python interpreter is a
+    #     32-bit executable binary embedded in a so-called "universal binary."
     return sys.maxsize > ints.INT_VALUE_MAX_32_BIT
 
 # ....................{ GETTERS                            }....................
@@ -108,7 +114,7 @@ def get_version() -> str:
 def get_command_line_prefix() -> list:
     '''
     List of one or more shell words unambiguously running the executable binary
-    for the active Python interpreter and machine architecture.
+    specific to the active Python interpreter and machine architecture.
 
     Since the absolute path of the executable binary for the active Python
     interpreter is insufficient to unambiguously run this binary under the
@@ -123,7 +129,24 @@ def get_command_line_prefix() -> list:
       this interpreter to a prefixing OS X-specific command, `arch`.
     '''
 
-    pass
+    # Avoid circular import dependencies.
+    from betse.util.os import oses
+
+    # List of such shell words.
+    command_line = None
+
+    # Mac OS X supports universal binaries (binary for multiple architectures.
+    # We need to ensure that subprocess binaries are running for the same
+    # architecture as python executable.
+    # It is necessary to run binaries with 'arch' command.
+    if oses.is_os_x():
+        mapping = {'32bit': '-i386', '64bit': '-x86_64'}
+        command_line = ['arch', mapping[architecture()], get_filename()]
+    else:
+        command_line = [get_filename()]
+
+    # Return this list.
+    return command_line
 
 
 def get_filename() -> str:
