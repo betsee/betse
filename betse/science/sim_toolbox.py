@@ -2,6 +2,9 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# FIXME the NaKATPase has been changed, but all other pumps need updating
+# FIXME all pumps should now take and return cATP, cADP and cP as parameters (or a "metabo" object)
+
 import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
@@ -87,28 +90,39 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     f_Na            Na+ flux (into cell +)
     f_K             K+ flux (into cell +)
     """
-    # print("Na",cNai.min(),cNao.min(),cNao.mean())
-    # print("K",cKi.min(),cKo.min(),cKo.mean())
-    # print('---------')
 
-    deltaGATP = 20*p.R*T
+    deltaGATP_o = p.deltaGATP  # standard free energy of ATP hydrolysis reaction in J/(mol K)
 
-    delG_Na = p.R*T*np.log(cNao/cNai) - p.F*Vm
-    delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
-    delG_NaKATP = deltaGATP - (3*delG_Na + 2*delG_K)
-    delG_pump = (delG_NaKATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG)
+    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
+    cATP = 1.5  # concentration of ATP in mmol/L
+    cADP = 0.2  # concentration of ADP in mmol/L
+    cPi = 0.5  # concentration of Pi in mmol/L
 
-    # alpha = block*p.alpha_NaK*(tb.step(delG_pump,p.halfmax_NaK,p.slope_NaK))
-    alpha = block*p.alpha_NaK*(delG_pump - p.halfmax_NaK)
+    # calculate the reaction coefficient Q:
+    Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
+    Qdenomo = cATP * (cNai ** 3) * (cKo ** 2)
 
-    f_Na  = -alpha*(cNai**p.Na_exp)*(cKo**(p.K_exp))      #flux as [mol/m2s]   scaled to concentrations Na in and K out
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-6
+
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-deltaGATP_o / (p.R * T) + ((p.F * Vm) / (p.R * T)))
+
+    # calculate the reaction rate coefficient
+    alpha = block * p.alpha_NaK * (1 - (Q / Keq))
+
+    # calculate the enzyme coefficient:
+    numo_E = (cNai**3) * (cKo**2) * (cATP)    # FIXME not sure if we want the powers on cNa and cK or not...
+    denomo_E = 1 + (cNai**3) + (cKo**2) + (cATP)
+
+    f_Na = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     f_K = -(2/3)*f_Na          # flux as [mol/m2s]
 
-
-    return f_Na, f_K, -f_Na
+    return f_Na, f_K, -f_Na  # FIXME get rid of this return of extra -f_Na!!
 
 def pumpCaATP(cCai,cCao,Vm,T,p):
 
@@ -130,25 +144,39 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     f_Ca            Ca2+ flux (into cell +)
     """
 
-    # print("Ca",cCai.min(),cCao.min(),cCao.mean())
 
+    deltaGATP_o = p.deltaGATP
 
-    deltaGATP = 20*p.R*T
+    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
+    cATP = 1.5  # concentration of ATP in mmol/L
+    cADP = 0.2  # concentration of ADP in mmol/L
+    cPi = 0.5  # concentration of Pi in mmol/L
 
-    delG_Ca = p.R*T*np.log(cCao/cCai) - 2*p.F*Vm
-    delG_CaATP = deltaGATP - (delG_Ca)
-    delG_pump = (delG_CaATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG_pump)
-    #
-    # alpha = p.alpha_Ca*tb.step(delG_pump,p.halfmax_Ca,p.slope_Ca)
-    alpha = p.alpha_Ca*(delG_pump - p.halfmax_Ca)
+    # calculate the reaction coefficient Q:
+    Qnumo = cADP * cPi * cCao
+    Qdenomo = cATP * cCai
 
-    f_Ca  = -alpha*(cCai)      #flux as [mol/s], scaled to concentration in cell
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-12
+
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-deltaGATP_o / (p.R * T) + 2*((p.F * Vm) / (p.R * T)))
+
+    # calculate the reaction rate coefficient
+    alpha = p.alpha_Ca * (1 - (Q / Keq))
+
+    # calculate the enzyme coefficient:
+    numo_E = cCai * cATP
+    denomo_E = 1 + cCai  + cATP
+
+    f_Ca = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
     return f_Ca
 
-def pumpCaER(cCai,cCao,Vm,T,p):
+def pumpCaER(cCai,cCao,Vm,T,p):  # FIXME this should be replaced and use only pumpCaATP, defined above!
     """
     Pumps calcium out of the cell and into the endoplasmic reticulum.
     Vm is the voltage across the endoplasmic reticulum membrane.
@@ -199,11 +227,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     delG_HKATP = deltaGATP - (delG_H + delG_K)
     delG_pump = (delG_HKATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG)
-    # print(delG_pump.mean())
 
-    # alpha = block*p.alpha_HK*tb.step(delG_pump,p.halfmax_HK,p.slope_HK)
     alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
     f_H  = -alpha*(cHi**(1))*(cKo**(1))      #flux as [mol/s], scaled by concentrations in and out
 
@@ -213,18 +237,34 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
 def pumpVATP(cHi,cHo,Vm,T,p,block):
 
-    deltaGATP = 20*p.R*T
+    deltaGATP_o = p.deltaGATP
 
-    delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm  # free energy to move H+ out of cell
+    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
+    cATP = 1.5  # concentration of ATP in mmol/L
+    cADP = 0.2  # concentration of ADP in mmol/L
+    cPi = 0.5  # concentration of Pi in mmol/L
 
-    delG_VATP = deltaGATP - delG_H   # free energy available to move H+ out of cell
-    delG_pump = (delG_VATP/1000)
-    # delG = np.absolute(delG_pump)
-    # signG = np.sign(delG)
-    # print(delG_pump.mean(), Vm.mean(),cHi.mean(),cHo.mean())
-    # alpha = block*p.alpha_V*tb.step(delG_pump,p.halfmax_V,p.slope_V)
-    alpha = block*p.alpha_V*(delG_pump - p.halfmax_V)
-    f_H  = -alpha*cHi**(1)      #flux as [mol/s], scaled by concentrations in and out
+    # calculate the reaction coefficient Q:
+    Qnumo = cADP * cPi * cHo
+    Qdenomo = cATP * cHi
+
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-6
+
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-deltaGATP_o / (p.R * T) + ((p.F * Vm) / (p.R * T)))
+
+    # calculate the reaction rate coefficient
+    alpha = block * p.alpha_V * (1 - Q / Keq)
+
+    # calculate the enzyme coefficient:
+    numo_E = cHi * cATP
+    denomo_E = 1 + cHi + cATP
+
+    f_H = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
     return f_H
 

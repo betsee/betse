@@ -939,7 +939,7 @@ class Parameters(object):
         self.q = 1.602e-19    # electron charge [C]
         self.mu = 1.275e-6   # magnetic permeability [H/m or N/A2]
 
-        self.deltaGATP = 20*self.R*self.T    # free energy released in ATP hydrolysis [J/mol]
+        self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 
         self.ac = 1.0e-6  # cell-cell separation for drawing
         self.scale_cell = 0.90          # the amount to scale cell membranes in from ecm edges (only affects drawing)

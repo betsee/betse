@@ -57,14 +57,9 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging
-import sys
-import traceback
-from io import StringIO
-
-import betse.util.command.commands
+import logging, sys, traceback
 from betse.util.type import types
-
+from io import StringIO
 
 # ....................{ GETTERS                            }....................
 def get(logger_name: str = None) -> logging.Logger:
@@ -88,12 +83,12 @@ def get(logger_name: str = None) -> logging.Logger:
     # (e.g., "betse").
     if logger_name is None:
         # Avoid circular import dependencies.
-        from betse.util.command import exits
-        return betse.util.command.commands.get_current_basename()
+        from betse.util.command import commands
+        return commands.get_current_basename()
 
-    # If such name is the empty string, this function would get the root logger.
-    # Since such name being empty typically constitutes an implicit error rather
-    # than an attempt to get the root logger, such constraint is asserted.
+    # If this name is the empty string, this function would get the root logger.
+    # Since this name being empty typically constitutes an implicit error rather
+    # than an attempt to get the root logger, this constraint is asserted.
     assert types.is_str_nonempty(logger_name), (
         types.assert_not_str_nonempty(logger_name, 'Logger name'))
 
