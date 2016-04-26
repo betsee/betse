@@ -94,9 +94,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     deltaGATP_o = p.deltaGATP  # standard free energy of ATP hydrolysis reaction in J/(mol K)
 
     # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = 1.5  # concentration of ATP in mmol/L
-    cADP = 0.2  # concentration of ADP in mmol/L
-    cPi = 0.5  # concentration of Pi in mmol/L
+    cATP = p.cATP  # concentration of ATP in mmol/L
+    cADP = p.cADP  # concentration of ADP in mmol/L
+    cPi = p.cPi  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
@@ -115,8 +115,8 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     alpha = block * p.alpha_NaK * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = (cNai**3) * (cKo**2) * (cATP)    # FIXME not sure if we want the powers on cNa and cK or not...
-    denomo_E = 1 + (cNai**3) + (cKo**2) + (cATP)
+    numo_E = ((cNai/p.KmNK_Na)**3) * ((cKo/p.KmNK_K)**2) * (cATP/p.KmNK_ATP)
+    denomo_E = 1 + ((cNai/p.KmNK_Na)**3) + ((cKo/p.KmNK_K)**2) + (cATP/p.KmNK_ATP)
 
     f_Na = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
@@ -148,9 +148,9 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     deltaGATP_o = p.deltaGATP
 
     # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = 1.5  # concentration of ATP in mmol/L
-    cADP = 0.2  # concentration of ADP in mmol/L
-    cPi = 0.5  # concentration of Pi in mmol/L
+    cATP = p.cATP  # concentration of ATP in mmol/L
+    cADP = p.cADP  # concentration of ADP in mmol/L
+    cPi = p.cPi  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cCao
@@ -169,8 +169,8 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
     alpha = p.alpha_Ca * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = cCai * cATP
-    denomo_E = 1 + cCai  + cATP
+    numo_E = (cCai/p.KmCa_Ca) * (cATP/p.KmCa_ATP)
+    denomo_E = 1 + (cCai/p.KmCa_Ca)  + (cATP/p.KmCa_ATP)
 
     f_Ca = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
@@ -220,12 +220,17 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     f_K             K+ flux (into cell +)
     """
 
-    deltaGATP = 20*p.R*T
+    deltaGATP_o = p.deltaGATP
+
+    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
+    cATP = p.cATP  # concentration of ATP in mmol/L
+    cADP = p.cADP  # concentration of ADP in mmol/L
+    cPi = p.cPi  # concentration of Pi in mmol/L
 
     delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm
     delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
 
-    delG_HKATP = deltaGATP - (delG_H + delG_K)
+    delG_HKATP = deltaGATP_o - (delG_H + delG_K)
     delG_pump = (delG_HKATP/1000)
 
     alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
@@ -261,8 +266,8 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
     alpha = block * p.alpha_V * (1 - Q / Keq)
 
     # calculate the enzyme coefficient:
-    numo_E = cHi * cATP
-    denomo_E = 1 + cHi + cATP
+    numo_E = (cHi/1e-3) * (cATP/p.KmV_ATP)
+    denomo_E = 1 + (cHi/1e-3) + (cATP/p.KmV_ATP)
 
     f_H = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 

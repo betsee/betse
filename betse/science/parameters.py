@@ -882,21 +882,36 @@ class Parameters(object):
         self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
+        # ATP charge in the cell (for metabolism mode off)
+        # FIXME add these as options to the config
+        self.cATP = 1.5
+        self.cADP = 0.1
+        self.cPi = 0.1
+
         # pump parameters
         self.alpha_NaK = float(iu['alpha_NaK']) # maximum rate constant sodium-potassium ATPase per unit surface area
-        self.halfmax_NaK = float(iu['halfmax_NaK'])   # the free energy level at which pump activity is halved [kJ]
-        self.Na_exp = float(iu['Na pump exponent'])
-        self.K_exp = float(iu['K pump exponent'])
+
+        # FIXME add these as options to the config
+        self.KmNK_Na = 12.0   # NaKATPase enzyme ext Na half-max sat value (alpha1 = 12, alpha2 = 20, alpha3 = 60)
+        self.KmNK_K = 0.2     # NaKATPase enzyme ext K half-max sat value (alpha1 = 0.2, alpha2 = 0.20, alpha3 = 0.09)
+        self.KmNK_ATP = 0.35   # NaKATPase enzyme ATP half-max sat value
 
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
-        self.alpha_CaER = float(iu['alpha_CaER'])  # pump rate for calcium ATPase in endoplasmic reticulum
-        self.halfmax_Ca = float(iu['halfmax_Ca'])
+
+        # FIXME add these as options to the config:
+        self.KmCa_Ca = 0.25e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
+        self.KmCa_ATP = 0.35    # CaATPase enzyme ATP half-max sat value
 
         self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
-        self.halfmax_HK = float(iu['halfmax_HK'])
+
+        # FIXME add this to config:
+        self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
+        self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
 
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
-        self.halfmax_V = float(iu['halfmax_V'])
+
+        # FIXME add this to config:
+        self.KmV_ATP = 0.15    # V-ATPase half-max sat value for ATP (0.13 to 0.5 )
 
          # Calcium dynamics parameters
         self.ER_vol = float(cdp['ER_vol'])   # volume of endoplasmic reticulum as a fraction of cell volume
