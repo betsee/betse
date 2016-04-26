@@ -14,10 +14,13 @@ Low-level standard output facilities.
 # ....................{ OUTPUTTERS                         }....................
 def output(*objects) -> None:
     '''
-    Print all passed objects to standard output *without* logging such objects.
+    Print all passed objects to stdout _without_ logging these objects.
 
-    This is a convenience provided only for orthogonality with the function of
-    the same name defined by the `stderr` module.
+    This function is provided only for orthogonality with the function of the
+    same name defined by the `stderr` module.
+
+    This function is intentionally _not_ named `print()`. Doing so introduces
+    subtle issues elsewhere.
     '''
 
     print(*objects)

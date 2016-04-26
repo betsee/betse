@@ -347,7 +347,16 @@ def is_str(obj: object) -> bool:
     `True` only if the passed object is a **string** (i.e., instance of the
     `str` class).
     '''
+
     return isinstance(obj, str)
+
+
+def is_str_or_none(obj: object) -> bool:
+    '''
+    `True` only if the passed object is either a string _or_ `None`.
+    '''
+
+    return isinstance(obj, str) or obj is None
 
 
 def is_str_nonempty(obj: object) -> bool:
@@ -355,7 +364,16 @@ def is_str_nonempty(obj: object) -> bool:
     `True` only if the passed object is a **nonempty string* (i.e., string
     comprising one or more characters and hence _not_ the empty string).
     '''
+
     return is_str(obj) and len(obj)
+
+
+def is_str_nonempty_or_none(obj: object) -> bool:
+    '''
+    `True` only if the passed object is either a nonempty string _or_ `None`.
+    '''
+
+    return is_str_nonempty(obj) or obj is None
 
 # ....................{ ASSERTERS                          }....................
 def assert_not_bool(obj: object) -> str:
@@ -550,7 +568,16 @@ def assert_not_str(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be a string.
     '''
+
     return '"{}" not a string.'.format(trim(obj))
+
+
+def assert_not_str_or_none(obj: object) -> str:
+    '''
+    String asserting the passed object to be neither a string _nor_ `None`.
+    '''
+
+    return '"{}" not a string or "None".'.format(trim(obj))
 
 
 def assert_not_str_nonempty(obj: object, label: str) -> str:
@@ -558,5 +585,20 @@ def assert_not_str_nonempty(obj: object, label: str) -> str:
     String asserting the passed object categorized by the passed human-readable
     label to _not_ be a nonempty string.
     '''
-    return (assert_not_str(obj) if not is_str(obj) else
-        '{} empty.'.format(label.capitalize()))
+
+    if not is_str(obj):
+        return assert_not_str(obj)
+    else:
+        return '{} empty.'.format(label.capitalize())
+
+
+def assert_not_str_nonempty_or_none(obj: object, label: str) -> str:
+    '''
+    String asserting the passed object categorized by the passed human-readable
+    label to be neither a nonempty string _nor_ `None`.
+    '''
+
+    if not is_str_or_none(obj):
+        return assert_not_str_or_none(obj)
+    else:
+        return assert_not_str_nonempty(obj, label)

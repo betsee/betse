@@ -8,7 +8,7 @@ Low-level standard error facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import random, sys
+import random, sys, traceback
 
 # ....................{ CONSTANTS                          }....................
 HAIKU = [
@@ -82,24 +82,48 @@ https://www.gnu.org/fun/jokes/error-haiku.html
 # ....................{ GETTERS                            }....................
 def get_haiku_random() -> str:
     '''
-    Get a random haiku to be printed in the event of fatal errors.
+    Random haiku to be printed in the event of fatal errors.
     '''
+
     return '\n'.join(random.choice(HAIKU))
 
 # ....................{ OUTPUTTERS                         }....................
 def output(*objects) -> None:
     '''
-    Print all passed objects to standard error _without_ logging these objects.
+    Print all passed objects to stderr _without_ logging these objects.
 
-    This function is _not_ named `print()`, as doing so induces spurious errors
-    elsewhere.
+    This function is intentionally _not_ named `print()`. Doing so introduces
+    subtle issues elsewhere.
     '''
+
     print(*objects, file=sys.stderr)
+
+
+def output_exception(heading: str = None) -> None:
+    '''
+    Print the currently caught exception to stderr _without_ logging this
+    exception optionally preceded by the passed human-readable heading if any.
+
+    Parameters
+    ----------
+    heading : optional[str]
+        Optional human-readable heading to be printed before this exception if
+        any _or_ `None` if no heading is to be printed.
+    '''
+
+    #FIXME: Assert that an exception has actually been raised here.
+
+    # If a heanding is passed, print this heading to stderr.
+    if heading is not None:
+        output(heading)
+
+    # Print this exception to stderr.
+    traceback.print_exc(file=sys.stderr)
 
 
 def output_traceback() -> None:
     '''
-    Print the current call stack to standard output.
+    Print the current call stack to stderr _without_ logging this call stack.
     '''
 
     # Avoid circular import dependencies.
