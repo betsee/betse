@@ -33,11 +33,15 @@ constructor. Frequently passed options of interest include:
 '''
 
 # ....................{ IMPORTS                            }....................
-import shutil, subprocess
+import shutil
+import subprocess
+import sys
+from subprocess import CalledProcessError, TimeoutExpired
+
 from betse.exceptions import BetseExceptionPath
 from betse.util.io.log import logs
+from betse.util.path import paths
 from betse.util.type import types
-from subprocess import CalledProcessError, TimeoutExpired
 
 # ....................{ TESTERS                            }....................
 def is_pathable(command_basename: str) -> bool:
@@ -63,6 +67,16 @@ def is_pathable(command_basename: str) -> bool:
     # Return whether this command exists or not.
     return shutil.which(command_basename) is not None
 
+# ....................{ GETTERS ~ path                     }....................
+def get_current_basename() -> str:
+    '''
+    Get the basename of the command originating the current Python process.
+    '''
+
+    # Since "sys.argv[0]" is either an absolute or relative path, get only such
+    # path's basename.
+    return paths.get_basename(sys.argv[0])
+
 # ....................{ RUNNERS                            }....................
 def run(command_words: list, **popen_kwargs) -> None:
     '''
@@ -85,14 +99,14 @@ def run(command_words: list, **popen_kwargs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.process import processes
+    from betse.util.command import exits
 
     # Run this command, raising an exception on command failure. For
     # reusability, reimplement the subprocess.check_call() function here rather
     # than explicitly call this function. The latter approach would require
     # duplicating logic between this and the run_nonfatal() function.
     exit_status = run_nonfatal(command_words, popen_kwargs)
-    if processes.is_exit_status_failure(exit_status):
+    if exits.is_failure(exit_status):
         raise CalledProcessError(exit_status, command_words)
 
 
@@ -118,7 +132,7 @@ def run_nonfatal(command_words: list, **popen_kwargs) -> int:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.process.processes import EXIT_STATUS_FAILURE_DEFAULT
+    from betse.util.command.exits import FAILURE_DEFAULT
 
     # Sanitize these arguments.
     _init_run_args(popen_kwargs)
@@ -131,7 +145,7 @@ def run_nonfatal(command_words: list, **popen_kwargs) -> int:
     # Since the prior call has already guaranteeably terminated this command,
     # this exception is safely convertable into failure exit status.
     except TimeoutExpired:
-        exit_status = EXIT_STATUS_FAILURE_DEFAULT
+        exit_status = FAILURE_DEFAULT
 
     # Return this exit status.
     return exit_status
@@ -207,36 +221,6 @@ def run_with_output_interleaved(command_words: list, **popen_kwargs) -> str:
     # Capture and return this command's stdout and stderr.
     return run_with_stdout_captured(command_words, **popen_kwargs)
 
-# ....................{ RUNNERS ~ python                   }....................
-def run_python(command_args: list, **popen_kwargs) -> None:
-    '''
-    Rerun the active Python interpreter as a subprocess of the current Python
-    process, raising an exception on subprocess failure.
-
-    Parameters
-    ----------
-    command_args : list
-        List of zero or more arguments to be passed to this interpreter.
-    popen_kwargs : dict
-        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
-
-    See Also
-    ----------
-    run()
-        Low-level commentary on subprocess execution.
-    '''
-    assert types.is_sequence_nonstr(command_args), (
-        types.assert_not_sequence_nonstr(command_args))
-
-    # Avoid circular import dependencies.
-    from betse.util.py import pys
-
-    # List of one or more shell words comprising this command.
-    command_words = pys.get_command_line_prefix() + command_args
-
-    # Rerun this interpreter.
-    return run(command_words, **popen_kwargs)
-
 # ....................{ PRIVATE                            }....................
 def _init_run_args(command_words: list, popen_kwargs: dict) -> None:
     '''
@@ -296,7 +280,7 @@ def _init_run_args(command_words: list, popen_kwargs: dict) -> None:
     logs.log_debug('Running command: {}'.format(' '.join(command_words)))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and dicts.is_keys(
+    if oses.is_windows_vanilla() and not dicts.is_keys(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

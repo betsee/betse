@@ -16,13 +16,13 @@ from argparse import ArgumentParser
 
 from betse import metadata
 from betse.cli import help, info
-from betse.cli.cli import CLI
+from betse.cli.cliabc import CLIABC
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 
 
 # ....................{ CLASS                              }....................
-class CLICLI(CLI):
+class CLICLI(CLIABC):
     '''
     `betse`'s command line interface (CLI).
 

@@ -62,6 +62,7 @@ import sys
 import traceback
 from io import StringIO
 
+import betse.util.command.commands
 from betse.util.type import types
 
 
@@ -87,8 +88,8 @@ def get(logger_name: str = None) -> logging.Logger:
     # (e.g., "betse").
     if logger_name is None:
         # Avoid circular import dependencies.
-        from betse.util.process import processes
-        return processes.get_current_basename()
+        from betse.util.command import exits
+        return betse.util.command.commands.get_current_basename()
 
     # If such name is the empty string, this function would get the root logger.
     # Since such name being empty typically constitutes an implicit error rather

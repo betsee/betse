@@ -13,30 +13,37 @@ managed by `setuptools` (e.g., `betse`).
 '''
 
 # ....................{ IMPORTS                            }....................
-import sys
 from betse.cli.clicli import CLICLI
+from betse.util.command import exits
 
 # ....................{ MAIN                               }....................
-def main() -> int:
-    '''Run `betse`'s command line interface (CLI).
+def main(arg_list: list = None) -> int:
+    '''
+    Run BETSE's command-line interface (CLI) with the passed arguments if
+    non-`None` _or_ with the arguments passed on the command line (i.e.,
+    `sys.argv`) otherwise.
 
     This function is provided as a convenience to callers requiring procedural
     functions rather than conventional methods (e.g., `setuptools`).
 
+    Parameters
+    ----------
+    arg_list : list
+        List of zero or more arguments to pass to this interface. Defaults to
+        `None`, in which case arguments passed on the command line (i.e.,
+        `sys.argv`) will be used instead.
+
     Returns
     ----------
     int
-        Exit status of such interface. This is a non-negative integer in
-        `[0, 255]` where 0 signifies success and all other values failure.
+        Exit status of this interface, in the range `[0, 255]`.
     '''
-    # print('In main')
-    return CLICLI().run()
+
+    return CLICLI().run(arg_list)
 
 # ....................{ MAIN                               }....................
 # If this module is imported from the command line, run BETSE's CLI; else, noop.
-#
-# For POSIX compliance, the value returned by this function (ideally a single-
-# byte integer) will be propagated back to the calling shell as this script's
-# exit status.
+# For POSIX compliance, the exit status returned by this function is propagated
+# to the caller as this script's exit status.
 if __name__ == '__main__':
-    sys.exit(main())
+    exits.exit(main())

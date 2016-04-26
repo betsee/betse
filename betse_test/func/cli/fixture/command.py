@@ -17,7 +17,7 @@ copies) into the current Python environment or not.
 from pytest import fixture
 
 # ....................{ CLASSES                            }....................
-class CLIRunner(object):
+class CLITestRunner(object):
     '''
     CLI-specific test runner, efficiently executing the external command for the
     BETSE CLI (i.e., `betse`) in the active Python interpreter.
@@ -34,12 +34,37 @@ class CLIRunner(object):
     means of communicating this runner to other fixtures and tests.
     '''
 
-    #FIXME: Implement me to accept zero or more arguments, import
-    #"betse.cli.__main__", and pass these arguments to that entry point.
+    def __call__(self, *args) -> None:
+        '''
+        Call the entry point for BETSE's CLI with the passed arguments.
 
+        This special method is a negligible convenience permitting this fixture
+        to be called as is rather than via thie `run()` method.
+
+        See Also
+        ----------
+        `run()`
+            For further details, which this special method internally defers to.
+        '''
+
+        return self.run(*args)
+
+    @staticmethod
     def run(*args) -> None:
         '''
-        Call the entry point for the BETSE CLI with the passed arguments.
+        Call the entry point for BETSE's CLI with the passed arguments.
+
+        To improve debuggability for failing tests, this function
+        unconditionally passes these options to this call as well:
+
+        * `--verbose`, logging low-level debugging messages to stdout, which
+          `py.test` captures for all tests and displays for all failing tests.
+        * `--log-type=none`, redirecting all log messages to either stdout or
+          stderr but _not_ a logfile. While `py.test` can be configured to
+          capture logfile messages, doing so sanely is complicated by the fact
+          that `py.test` already captures both stdout and stderr by default.  As
+          there is no benefit in recapturing logfile messages already logged to
+          either stdout or stderr, we avoid doing so entirely.
 
         Parameters
         ----------
@@ -51,21 +76,35 @@ class CLIRunner(object):
         See Also
         ----------
         `betse --help`
-            Further details on such arguments.
+            Further details on these arguments.
         '''
 
-        pass
+        # Defer heavyweight imports to their point of use.
+        from betse.cli.__main__ import main
+        from betse.util.command import exits
+
+        # List of arguments:
+        #
+        # * Converted from this tuple of arguments.
+        # * Prefixed by failure-friendly options.
+        arg_list = ['--verbose', '--log-type=none'] + list(args)
+
+        # Exit status of the entry point for BETSE's CLI passed these arguments.
+        exit_status = main(arg_list)
+
+        # If this exit status connotes failure, fail the caller test or fixture.
+        assert exits.is_success(exit_status), (
+            'BETSE CLI failed with exit status {} '
+            'given argument list {}.'.format(exit_status, arg_list))
 
 # ....................{ FIXTURES ~ low-level               }....................
 @fixture(scope='session')
-def betse_cli(tmpdir_factory, request) -> CLIRunner:
+def betse_cli(tmpdir_factory, request) -> CLITestRunner:
     '''
-    Fixture returning a singleton instance of the `CLIRunner` class.
+    Fixture returning a singleton instance of the `CLITestRunner` class.
 
-    Returns
-    ----------
-    CLIRunner
-        This instance.
+    For efficiency, this instance is shared by all invocations of this fixture
+    for the current test session.
     '''
 
-    return CLIRunner()
+    return CLITestRunner()

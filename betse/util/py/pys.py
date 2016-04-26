@@ -20,6 +20,7 @@ import platform, sys
 from betse import metadata
 from betse.exceptions import BetseExceptionInterpreter
 from betse.util.io.log import logs
+from betse.util.type import types
 from collections import OrderedDict
 
 # ....................{ INITIALIZERS                       }....................
@@ -110,7 +111,6 @@ def get_version() -> str:
     return platform.python_version()
 
 # ....................{ GETTERS ~ path                     }....................
-#FIXME: Implement us up!
 def get_command_line_prefix() -> list:
     '''
     List of one or more shell words unambiguously running the executable binary
@@ -135,13 +135,22 @@ def get_command_line_prefix() -> list:
     # List of such shell words.
     command_line = None
 
-    # Mac OS X supports universal binaries (binary for multiple architectures.
-    # We need to ensure that subprocess binaries are running for the same
-    # architecture as python executable.
-    # It is necessary to run binaries with 'arch' command.
+    # If this is OS X, this interpreter is only unambiguously runnable via the
+    # OS X-specific "arch" command.
     if oses.is_os_x():
-        mapping = {'32bit': '-i386', '64bit': '-x86_64'}
-        command_line = ['arch', mapping[architecture()], get_filename()]
+        # Run the "arch" command.
+        command_line = ['arch']
+
+        # Instruct this command to run the architecture-specific binary in
+        # Python's universal binary corresponding to the current architecture.
+        if is_wordsize_64():
+            command_line.append('-i386')
+        else:
+            command_line.append('-x86_64')
+
+        # Instruct this command, lastly, to run this interpreter.
+        command_line.append(get_filename())
+    # Else, this interpreter is unambiguously runnable as is.
     else:
         command_line = [get_filename()]
 
@@ -170,7 +179,7 @@ def get_filename() -> str:
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedDict:
     '''
-    Get an ordered dictionary synopsizing the active Python interpreter.
+    Ordered dictionary synopsizing the active Python interpreter.
 
     This function aggregates the metadata reported by the reasonably
     cross-platform module `platform` into a simple dictionary.
@@ -193,3 +202,33 @@ def get_metadata() -> OrderedDict:
 
     # Return this dictionary.
     return metadata
+
+# ....................{ RUNNERS                            }....................
+def run(command_args: list, **popen_kwargs) -> None:
+    '''
+    Rerun the active Python interpreter as a subprocess of the current Python
+    process, raising an exception on subprocess failure.
+
+    Parameters
+    ----------
+    command_args : list
+        List of zero or more arguments to be passed to this interpreter.
+    popen_kwargs : dict
+        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
+
+    See Also
+    ----------
+    run()
+        Low-level commentary on subprocess execution.
+    '''
+    assert types.is_sequence_nonstr(command_args), (
+        types.assert_not_sequence_nonstr(command_args))
+
+    # Avoid circular import dependencies.
+    from betse.util.command import commands
+
+    # List of one or more shell words comprising this command.
+    command_words = get_command_line_prefix() + command_args
+
+    # Rerun this interpreter.
+    return commands.run(command_words, **popen_kwargs)

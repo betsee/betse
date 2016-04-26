@@ -38,6 +38,7 @@ from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
 
+import betse.util.command.commands
 from betse.exceptions import BetseExceptionFile
 from betse.util.type import types
 
@@ -226,7 +227,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.process import processes
+        from betse.util.command import exits
 
         # Initialize the stdout handler.
         #
@@ -259,7 +260,7 @@ class LogConfig(object):
         # Note that "{{" and "}}" substrings in format() strings escape literal
         # "{" and "}" characters, respectively.
         stream_format = '[{}] {{message}}'.format(
-            processes.get_current_basename())
+            betse.util.command.commands.get_current_basename())
 
         # Formatters for these formats.
         stream_formatter = LoggerFormatterStream(stream_format, style='{')
@@ -284,7 +285,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.process import processes
+        from betse.util.command import exits
         from betse.util.type import ints
 
         # Remove the previously registered file handler if any *BEFORE*
@@ -332,7 +333,7 @@ class LogConfig(object):
         file_format = (
             '[{{asctime}}] {} {{levelname}} '
             '({{module}}.py:{{funcName}}():{{lineno}}):\n'
-            '    {{message}}'.format(processes.get_current_basename()))
+            '    {{message}}'.format(betse.util.command.commands.get_current_basename()))
 
         # Format this file according to this format.
         file_formatter = LoggerFormatterStream(file_format, style='{')

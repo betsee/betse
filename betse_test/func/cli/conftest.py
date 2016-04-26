@@ -7,10 +7,10 @@
 Global functional test configuration for BETSE's command-line interface (CLI).
 
 `py.test` implicitly imports all functionality defined by this module into all
-functional test modules. As this functionality includes all publicly declared
-functional fixtures in the `fixture` subpackage, functional tests may depend on
-functional fixtures without explicitly importing those fixtures.
+CLI-specific functional test modules. As this functionality includes all
+publicly declared functional fixtures in this `fixture` subpackage, these tests
+may reference these fixtures without explicit imports.
 '''
 
 # ....................{ IMPORTS ~ fixture                  }....................
-# from betse_test_func.util.context.context import SimTestContext
+from betse_test.func.cli.fixture.command import betse_cli

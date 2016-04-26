@@ -8,26 +8,29 @@ Abstract command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
+import sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
-
 from betse import ignition, metadata, pathtree
 from betse.cli import info
+from betse.util.command import commands
 from betse.util.command.args import HelpFormatterParagraph
+from betse.util.command.exits import (
+    SUCCESS, FAILURE_DEFAULT)
 from betse.util.io.log import logs
 from betse.util.io.log.log_config import LogType, log_config
-from betse.util.process import processes
 from betse.util.type import types
 
-
 # ....................{ CLASS                              }....................
-class CLI(metaclass=ABCMeta):
+class CLIABC(metaclass=ABCMeta):
     '''
     Abstract command line interface (CLI) suitable for use by both CLI and GUI
     front-ends for `betse`.
 
     Attributes
     ----------
+    _arg_list : list
+        List of all passed command-line arguments as unparsed raw strings.
     _arg_parser : ArgumentParser
         `argparse`-specific parser of command-line arguments.
     _arg_parser_kwargs : dict
@@ -36,7 +39,7 @@ class CLI(metaclass=ABCMeta):
         `ArgumentParser.__init__()` and `ArgumentParser.add_parser()` methods.
     _args : argparse.Namespace
         `argparse`-specific object of all passed command-line arguments. See
-        "Attributes (_args)" below for details.
+        "Attributes (_args)" below for further details.
     _script_basename : str
         Basename of the current process (e.g., `betse`).
 
@@ -59,7 +62,7 @@ class CLI(metaclass=ABCMeta):
 
         # Since the basename of the current process is *ALWAYS* available,
         # initialize this basename here for simplicity.
-        self._script_basename = processes.get_current_basename()
+        self._script_basename = commands.get_current_basename()
 
         # Initialize these keyword arguments.
         self._arg_parser_kwargs = {
@@ -69,35 +72,55 @@ class CLI(metaclass=ABCMeta):
         }
 
         # Initialize these fields to "None" to avoid subtle issues elsewhere.
+        self._arg_list = None
         self._arg_parser = None
         self._args = None
 
     # ..................{ PUBLIC                             }..................
-    def run(self) -> int:
+    def run(self, arg_list: list = None) -> int:
         '''
-        Command-line interface (CLI) defined by the current subclass.
+        Run the command-line interface (CLI) defined by the current subclass
+        with the passed arguments if non-`None` _or_ with the arguments passed
+        on the command line (i.e., `sys.argv`) otherwise.
+
+        Parameters
+        ----------
+        args : list
+            List of zero or more arguments to pass to this interface. Defaults
+            to `None`, in which case arguments passed on the command line (i.e.,
+            `sys.argv`) will be used instead.
 
         Returns
         ----------
         int
-            Exit status of this interface, guaranteed to be a non-negative
-            integer in `[0, 255]`, where 0 signifies success and all other
-            values failure.
+            Exit status of this interface, in the range `[0, 255]`.
         '''
+
+        # Default unpassed arguments to those passed on the command line,
+        # ignoring the first element of "sys.argv" (i.e., the filename of the
+        # command from which the current Python process was spawned).
+        if arg_list is None:
+            arg_list = sys.argv[1:]
+        assert types.is_sequence_nonstr(arg_list), (
+            types.assert_not_sequence_nonstr(arg_list))
+
+        # Classify arguments for subsequent use.
+        self._arg_list = arg_list
+
         try:
             # Initialize the current application *BEFORE* subsequent logic. This
             # initializes logging and validates paths -- among other chores.
             ignition.init()
 
-            # Parse CLI arguments *AFTER* initializing logging, ensuring that
-            # exceptions raised by such parsing will be logged.
+            # Parse these arguments *AFTER* initializing logging, ensuring
+            # logging of exceptions raised by this parsing.
             self._parse_args()
 
             # Perform subclass-specific logic.
             self._do()
 
             # Exit with successful exit status from the current process.
-            return 0
+            return SUCCESS
         except Exception as exception:
             # Log this exception.
             logs.log_exception(exception)
@@ -110,7 +133,7 @@ class CLI(metaclass=ABCMeta):
             # "WindowsError"-based exceptions. While more fine-grained than the
             # "errno" attribute, "winerror" values are *ONLY* intended to be
             # used internally rather than returned as exit status.
-            return getattr(exception, 'errno', 1)
+            return getattr(exception, 'errno', FAILURE_DEFAULT)
 
     # ..................{ ARGS                               }..................
     def _parse_args(self) -> None:
@@ -128,8 +151,8 @@ class CLI(metaclass=ABCMeta):
         # Configure argument parsing.
         self._make_arg_parser()
 
-        # Parse arguments.
-        self._args = self._arg_parser.parse_args()
+        # Parse unnamed string arguments into named, typed arguments.
+        self._args = self._arg_parser.parse_args(self._arg_list)
 
         # Parse top-level options globally applicable to *ALL* subcommands.
         self._parse_global_options()
@@ -240,13 +263,8 @@ class CLI(metaclass=ABCMeta):
         # Log a one-line synopsis of metadata logged by the "info" subcommand.
         info.log_header()
 
-        #FIXME: Replace this rather unuseful debug logging by logging of all
-        #arguments passed to the current command.
-
-        # # Log the passed subcommand to the debug level.
-        # logs.log_debug(
-        #     'Running subcommand "{}".'.format(
-        #         self._args.subcommand_name_top))
+        # Log all string arguments passed to this command.
+        logs.log_debug('Passed argument list {}.'.format(self._arg_list))
 
     # ..................{ UTILITIES                          }..................
     def _format_help_template(self, text: str) -> str:

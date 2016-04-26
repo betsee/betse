@@ -22,6 +22,7 @@
 from collections import OrderedDict
 from io import StringIO
 
+import betse.util.command.commands
 from betse import metadata
 from betse.util.io.log import log_config, logs
 from betse.util.os import oses
@@ -64,7 +65,7 @@ def output_info() -> None:
     from betse.lib import libs
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.util.os import kernels
-    from betse.util.process import processes
+    from betse.util.command import exits
 
     # Dictionary of human-readable labels to dictionaries of all
     # human-readable keys and values categorized by such labels. All such
@@ -72,7 +73,7 @@ def output_info() -> None:
     info_type_to_dict = OrderedDict((
         # Application metadata.
         (metadata.NAME.lower(), OrderedDict((
-            ('basename', processes.get_current_basename()),
+            ('basename', betse.util.command.commands.get_current_basename()),
             ('version', metadata.__version__),
             ('authors', metadata.AUTHORS),
             ('home directory', pathtree.HOME_DIRNAME),
