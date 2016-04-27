@@ -907,11 +907,20 @@ class Parameters(object):
         # FIXME add this to config:
         self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
         self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
+        self.KmHK_H = 6.6e-6   # HKATPase enzyme H half-max sat value
 
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
 
         # FIXME add this to config:
         self.KmV_ATP = 0.15    # V-ATPase half-max sat value for ATP (0.13 to 0.5 )
+        self.KmV_H = 6.6e-3    # V-ATPase half-max sat value for H
+
+        # FIXME add this to config (ATP Synthase parameters, metabolism module)
+        self.alpha_AS = 1.0e-5
+        self.KmAS_ADP = 0.3
+        self.KmAS_H = 6.6e-3
+        self.KmAS_P = 2.0
+        self.KmAS_ATP = 0.1
 
          # Calcium dynamics parameters
         self.ER_vol = float(cdp['ER_vol'])   # volume of endoplasmic reticulum as a fraction of cell volume

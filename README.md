@@ -400,7 +400,7 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 BETSE optionally leverages (but does _not_ strictly require) the following
 dependencies where available at runtime:
 
-* [py.test](http://pytest.org) >= 2.5.0, for optionally running unit tests.
+* [py.test](http://pytest.org) >= 2.8.0, for optionally running unit tests.
 * [PyInstaller](http://www.pyinstaller.org) >= 3.0, for optionally freezing
   BETSE.
 * [UPX](http://upx.sourceforge.net) (any version), for optionally compressing
@@ -419,7 +419,7 @@ test harness. This dependency is installable in a system-wide manner as follows:
 
 * Under Apple OS X:
 
-        $ pip3 install pytest
+        $ sudo pip3 install pytest
 
 ##### `py.test` Plugins
 
@@ -435,7 +435,7 @@ Contributors are strongly encouraged to install these optional dependencies,
 which BETSE's test suite will then implicitly detect and set accordingly.
 These dependencies are installable in a system-wide manner as follows:
 
-    $ pip3 install pytest-xdist
+    $ sudo pip3 install pytest-xdist
 
 #### PyInstaller
 
@@ -631,14 +631,14 @@ BETSE is testable via `py.test` as follows. Either:
 * Run all available tests.
 
         $ cd "${BETSE_DIR}"
-        $ ./setup.py test
+        $ python3 setup.py test
 
 * Run all tests matching a passed Python-evaluatable expression. For example, to
   run all test functions and classes whose names contain either `test_tartarus`
   _or_ `test_thalassa`:
 
         $ cd "${BETSE_DIR}"
-        $ ./setup.py test -k 'test_tartarus or test_thalassa'
+        $ python3 setup.py test -k 'test_tartarus or test_thalassa'
 
 ## Freezing
 

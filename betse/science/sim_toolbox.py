@@ -227,14 +227,28 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     cADP = p.cADP  # concentration of ADP in mmol/L
     cPi = p.cPi  # concentration of Pi in mmol/L
 
-    delG_H = p.R*T*np.log(cHo/cHi) - p.F*Vm
-    delG_K = p.R*T*np.log(cKi/cKo) + p.F*Vm
+    # calculate the reaction coefficient Q:
+    Qnumo = cADP * cPi * (cHo) * (cKi)
+    Qdenomo = cATP * (cHi) * (cKo)
 
-    delG_HKATP = deltaGATP_o - (delG_H + delG_K)
-    delG_pump = (delG_HKATP/1000)
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-6
 
-    alpha = block*p.alpha_HK*(delG_pump - p.halfmax_HK)
-    f_H  = -alpha*(cHi**(1))*(cKo**(1))      #flux as [mol/s], scaled by concentrations in and out
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-deltaGATP_o / (p.R * T))
+
+    # calculate the reaction rate coefficient
+    alpha = block * p.alpha_HK * (1 - (Q / Keq))
+
+    # calculate the enzyme coefficient:
+    numo_E = (cHi / p.KmHK_H) * (cKo / p.KmHK_K) * (cATP / p.KmHK_ATP)
+    denomo_E = 1 + (cHi / p.KmHK_H) + (cKo / p.KmHK_K) + (cATP / p.KmHK_ATP)
+
+
+    f_H  = -alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
 
@@ -266,12 +280,65 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
     alpha = block * p.alpha_V * (1 - Q / Keq)
 
     # calculate the enzyme coefficient:
-    numo_E = (cHi/1e-3) * (cATP/p.KmV_ATP)
-    denomo_E = 1 + (cHi/1e-3) + (cATP/p.KmV_ATP)
+    numo_E = (cHi/p.KmV_H) * (cATP/p.KmV_ATP)
+    denomo_E = 1 + (cHi/p.KmV_H) + (cATP/p.KmV_ATP)
 
     f_H = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
     return f_H
+
+
+def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
+    """
+    Calculates H+ flux into the mitochondrial matrix (+
+    flow is into the mitochondria), which is equivalent
+    to ATP created and ADP consumed in the ATP Synthase
+    enzyme reaction of the mitochondria.
+
+    Parameters
+    ------------
+    cHi      Hydrogen concentration in the mitocondrial matrix
+    cHo      Hydrogen concentration outside of the mitochondria
+    cATP     ATP concentration in the mitochondrial matrix
+    cADP     ADP concentration in the mitochondrial matrix
+    cPi      Phosphate concentration in the mitochondrial matrix
+    Vm        Mitochondrial membrane potential
+    T         Temperature
+    p         Parameters object p
+
+    Returns
+    -------
+    f_h      hydrogen flux into the matrix and ATP synthesis rate
+
+    """
+
+    deltaGATP_o = p.deltaGATP
+
+    # calculate the reaction coefficient Q:
+    Qnumo = cATP * (cHi ** 3)
+    Qdenomo = cADP * cPi * (cHo ** 3)
+
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-6
+
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(deltaGATP_o / (p.R * T) - 3 * ((p.F * Vm) / (p.R * T)))
+
+    # calculate the reaction rate coefficient
+    alpha = p.alpha_AS * (1 - Q / Keq)
+
+    # calculate the enzyme coefficient:
+    numo_E = (cHo / p.KmAS_H) * (cADP / p.KmAS_ADP) * (cPi / p.KmAS_P)
+    denomo_E = 1 + (cHo / p.KmAS_H) + (cADP / p.KmAS_ADP) + (cPi / p.KmAS_P)
+
+    f_H = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
+
+    return f_H
+
+
 
 def get_volt(q,sa,p):
 
