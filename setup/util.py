@@ -3,14 +3,16 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-'''Error-handling functions for `betse`-specific `setuptools` commands.'''
+'''
+Utility and convenience functions for BETSE-specific `setuptools` subcommands.
+'''
 
 # ....................{ IMPORTS                            }....................
+import importlib, os, platform, pkg_resources, shutil, subprocess, sys, time
 from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsModuleError)
 from os import path
 from setuptools import Command
-import importlib, os, platform, pkg_resources, shutil, subprocess, sys, time
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_command_succeeds(*command_words) -> None:

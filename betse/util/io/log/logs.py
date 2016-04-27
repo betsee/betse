@@ -343,5 +343,5 @@ def log_exception(exception: Exception) -> None:
     # If this handling raises an exception, catch and print this exception
     # via the standard Python library, guaranteed not to raise exceptions.
     except Exception:
-        stderrs.output('log_exception() recursively raised exception:\n')
-        traceback.print_exc()
+        stderrs.output_exception(
+            heading='log_exception() recursively raised exception:\n')

@@ -13,6 +13,47 @@ editably installed (i.e., as synchronized symlinks rather than desynchronized
 copies) into the current Python environment or not.
 '''
 
+#FIXME: We've added a new "--dist-dir" option to our "freeze_*" family of
+#setuptools subcommands. Now, let's add support for fixtures running these
+#subcommands. Is there any means of programmatically running setuptools
+#subcommands in the current Python process? We suspect not, sadly.
+
+#FIXME: Add seemless support for exercising all CLI-specific functional tests
+#leveraging the "betse_cli" fixture against a frozen rather than unfrozen
+#version of BETSE's CLI. Do *NOT* parametrize this fixture to unconditionally
+#run each such test against both frozen and unfrozen versions of BETSE's CLI, as
+#doing so would substantially increase space and time complexity with little to
+#no tangible gain. Instead:
+#
+#* Define a new "--is-frozen" command-line option specific to our setuptools
+#  "test" subcommand, defaulting to disabled.
+#* When this option is *NOT* passed:
+#  * One and only one PyInstaller test should be run -- say, test_pyi_try().
+#    This test is intended only to provide a coarse-grained sanity check of
+#    whether or not:
+#    * BETSE is actually freezable under PyInstaller.
+#    * The resulting executable is successfully simulatable with the default
+#      simulation configuration via "betse try".
+#  * Consequently, this test should (in order):
+#    1. Freeze BETSE in one-dir mode (which requires no additional compression
+#       and decompression steps and hence is slightly more time efficient for
+#       our simple purposes) into a temporary subdirectory.
+#    2. Run "betse try" against this frozen executable.
+#  * All other CLI tests should be run as is against the unfrozen version of
+#    BETSE importable by the active Python interpreter.
+#* When this option is passed:
+#  * The aforementioned test_pyi_try() test should *NOT* be run, as doing so
+#    would be wholly redundant.
+#  * BETSE should be frozen in one-dir mode, as discussed above.
+#  * All other CLI tests should be run against this frozen executable rather
+#    than the unfrozen, importable version of BETSE.
+#
+#Hence, the "--is-frozen" CLI option serves as a high-level switch fundamentally
+#changing testing behaviour. The intention, of course, is that this option would
+#only be passed immediately before producing an official new frozen version of
+#BETSE. This provides a sanity check on frozen executable behaviour otherwise
+#difficult (if not infeasible) to do manually.
+
 # ....................{ IMPORTS                            }....................
 from pytest import fixture
 
@@ -48,6 +89,7 @@ class CLITestRunner(object):
         '''
 
         return self.run(*args)
+
 
     @staticmethod
     def run(*args) -> None:
@@ -99,7 +141,7 @@ class CLITestRunner(object):
 
 # ....................{ FIXTURES ~ low-level               }....................
 @fixture(scope='session')
-def betse_cli(tmpdir_factory, request) -> CLITestRunner:
+def betse_cli() -> CLITestRunner:
     '''
     Fixture returning a singleton instance of the `CLITestRunner` class.
 

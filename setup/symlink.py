@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`-specific `symlink` subcommands for `setuptools`.
+BETSE-specific `symlink` subcommands for `setuptools`.
 
 ## Microsoft Windows
 

@@ -628,10 +628,18 @@ This installation is uninstallable as follows:
 
 BETSE is testable via `py.test` as follows. Either:
 
-* Run all available tests.
+* Run all available tests. Either:
+  * Run `test`, the provided Bash shell script wrapper. For convenience, this
+    script is runnable from any directory (including this directory) _and_
+    accepts all arguments accepted by the `test` subcommand (detailed below):
 
-        $ cd "${BETSE_DIR}"
-        $ python3 setup.py test
+            $ ./test
+
+  * Run the `setuptools`-driven `test` subcommand. Due to `setuptools`
+    constraints, this subcommand is runnable _only_ from this directory:
+
+            $ cd "${BETSE_DIR}"
+            $ python3 setup.py test
 
 * Run all tests matching a passed Python-evaluatable expression. For example, to
   run all test functions and classes whose names contain either `test_tartarus`
@@ -666,6 +674,9 @@ BETSE *must* be installed in a system-wide manner first -- either:
 See above for further details.
 
 #### PyInstaller
+
+**NOTE: _This section is largely obsolete, and should either be significantly
+revised or completely deleted.**
 
 The `scipy` branch of [Cecil Curry](https://github.com/leycec)'s [unofficial
 PyInstaller fork](https://github.com/leycec/pyinstaller) *must* be installed as
@@ -732,15 +743,37 @@ BETSE is freezable in either:
   containing one executable file (along with various ancillary libraries and
   archives) for each of BETSE's wrapper scripts.
 
-BETSE is freezable in one-file mode as follows:
+#### One-file Mode
 
-    $ cd "${BETSE_DIR}"
-    $ ./setup.py freeze_file
+BETSE is freezable in one-file mode as follows. Either:
 
-BETSE is freezable in one-directory mode as follows:
+* Run `freeze_file`, the provided Bash shell script wrapper. For convenience,
+  this script is runnable from any directory (including this directory) _and_
+  accepts all arguments accepted by the `freeze_file` subcommand:
 
-    $ cd "${BETSE_DIR}"
-    $ ./setup.py freeze_dir
+        $ ./freeze_file
+
+* Run the `setuptools`-driven `freeze_file` subcommand. Due to `setuptools`
+  constraints, this subcommand is runnable _only_ from this directory:
+
+        $ cd "${BETSE_DIR}"
+        $ python3 setup.py freeze_file
+
+#### One-directory Mode
+
+BETSE is freezable in one-directory mode as follows. Either:
+
+* Run `freeze_dir`, the provided Bash shell script wrapper. For convenience,
+  this script is runnable from any directory (including this directory) _and_
+  accepts all arguments accepted by the `freeze_dir` subcommand:
+
+        $ ./freeze_dir
+
+* Run the `setuptools`-driven `freeze_dir` subcommand. Due to `setuptools`
+  constraints, this subcommand is runnable _only_ from this directory:
+
+        $ cd "${BETSE_DIR}"
+        $ python3 setup.py freeze_dir
 
 ### Paths
 

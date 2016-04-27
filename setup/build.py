@@ -4,10 +4,10 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`-specific monkey patching of `setuptools`'s `ScriptWriter` class.
+BETSE-specific monkey patching of `setuptools`'s `ScriptWriter` class.
 
 Such patching renders such class for use with editable installations of Python
-packages (e.g., via `betse`'s `symlink` command). The default `ScriptWriter`
+packages (e.g., via BETSE's `symlink` command). The default `ScriptWriter`
 implementation writes scripts attempting to import the `setuptools`-installed
 package resources for such packages. Since no such resources are installed for
 editable installations, such scripts *always* fail and hence are suitable *only*

@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`-specific `test` subcommand for `setuptools`.
+BETSE-specific `test` subcommand for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................

@@ -40,7 +40,7 @@
 #    https://github.com/pyinstaller/pyinstaller/wiki/Recipe-Setuptools-Entry-Point
 
 '''
-`betse`-specific `freeze` subcommands for `setuptools`.
+BETSE-specific `freeze` subcommands for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -57,6 +57,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add `freeze` subcommands to the passed dictionary of `setuptools` options.
     '''
+
     util.add_setup_command_classes(
         metadata, setup_options, freeze_dir, freeze_file)
 
@@ -64,39 +65,52 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
 class freeze(Command, metaclass = ABCMeta):
     '''
     Abstract command class creating either one platform-specific executable file
-    *or* one directory containing such file in the top-level `dist` directory
+    _or_ one directory containing such file in the top-level `dist` directory
     for each previously installed script of the current application.
 
     Each such file is created by running the external `pyinstaller` command with
-    sane command-line arguments. Since such command does *not* support
+    sane command-line arguments. Since this command does _not_ support
     **cross-bundling** (i.e., creation of executable files for operating systems
-    other than the current), such files apply *only* to the current such system.
+    other than the current), these files apply _only_ to the current system.
     Specifically:
 
-    * Under Linux, such files will be ELF (Executable and Linkable Format)
+    * Under Linux, these files will be ELF (Executable and Linkable Format)
       binaries.
-    * Under OS X, such files will be conventional ".app"-suffixed directories.
+    * Under OS X, these files will be conventional `.app`-suffixed directories.
       (Of course, that's not a file. So sue us.)
-    * Under Windows, such files will be conventional ".exe"-suffixed binaries.
+    * Under Windows, such files will be conventional `.exe`-suffixed binaries.
 
     Attributes
     ----------
-    clean : bool
-        True if the user passed the `--clean` option to the current `setuptools`
-        command.
+    clean : optional[bool]
+        `True` only if the user passed the `--clean` option to the current
+        `setuptools` subcommand. Defaults to `True`, for safety.
+    debug : optional[bool]
+        `True` only if the user passed the `--debug` option to the current
+        `setuptools` subcommand. Defaults to `False`.
+    dist_dir : optional[str]
+        Absolute or relative path of the output directory to which frozen
+        executables (as either files or directories) are written. Defaults to
+        the relative path `freeze/dist/`.
     install_dir : str
         Absolute path of the directory to which our wrapper scripts were
         previously installed.
     _pyinstaller_args : list
         List of all shell words of the PyInstaller command to be run.
     _pyinstaller_spec_filename : str
-        Relative path of the PyInstaller spec file converting the current
-        platform-independent wrapper script into a platform-specific executable.
-    _pyinstaller_dist_dirname : str
-        Relative path of the PyInstaller directory to which the final executable
-        (as either a file or directory) is written.
+        Relative path of our input PyInstaller custom spec file, freezing
+        platform-agnostic wrapper scripts into platform-specific executables.
     _pyinstaller_hooks_dirname : str
-        Relative path of the input hooks subdirectory.
+        Relative path of our input PyInstaller custom hooks subdirectory.
+    '''
+
+    # ..................{ ATTRIBUTES                         }..................
+    EXCEPTION_ADVICE = (
+        'Consider running either:\n'
+        '\tsudo python3 setup.py install\n'
+        '\tsudo python3 setup.py symlink')
+    '''
+    Human-readable advice appended to exception messages raised by this class.
     '''
 
     user_options = [
@@ -104,6 +118,8 @@ class freeze(Command, metaclass = ABCMeta):
          'clean PyInstaller cache of temporary paths before building'),
         ('debug', None,
          'print debug messages during PyInstaller bootloader startup'),
+        ('dist-dir=', None,
+         'absolute or relative path of the output directory to which executables will be frozen'),
     ]
     '''
     List of 3-tuples specifying command-line options accepted by this command.
@@ -116,15 +132,8 @@ class freeze(Command, metaclass = ABCMeta):
     See Also
     ----------
     http://ilostmynotes.blogspot.ca/2009/04/python-distutils-installer-and.html
-        Inarguably, the best (albeit unofficial) documentation on such list.
+        Inarguably, the best (albeit unofficial) documentation on this list.
     '''
-
-    # ..................{ ATTRIBUTES                         }..................
-    # Advice to be appended to exceptions raised below.
-    EXCEPTION_ADVICE = (
-        'Consider running either:\n'
-        '\tsudo python3 setup.py install\n'
-        '\tsudo python3 setup.py symlink')
 
     # ..................{ SUPERCLASS                         }..................
     def initialize_options(self):
@@ -148,6 +157,7 @@ class freeze(Command, metaclass = ABCMeta):
         # option's long form *MUST* be initialized here to its default value.
         self.clean = True
         self.debug = False
+        self.dist_dir = None
 
         # setuptools-specific public attributes.
         self.install_dir = None
@@ -155,7 +165,6 @@ class freeze(Command, metaclass = ABCMeta):
         # Custom private attributes.
         self._pyinstaller_args = None
         self._pyinstaller_spec_filename = None
-        self._pyinstaller_dist_dirname = None
         self._pyinstaller_hooks_dirname = None
 
 
@@ -164,6 +173,7 @@ class freeze(Command, metaclass = ABCMeta):
         Default undefined command-specific options to the options passed to the
         current parent command if any (e.g., `symlink`).
         '''
+
         # Copy attributes from a temporarily instantiated "symlink" object into
         # the current object under different attribute names.
         self.set_undefined_options(
@@ -171,61 +181,16 @@ class freeze(Command, metaclass = ABCMeta):
 
 
     def run(self):
-        '''Run the current command and all subcommands thereof.'''
+        '''
+        Run the current command and all subcommands thereof.
+        '''
 
-        # List of all shell words of the PyInstaller command to be run.
+        # Construct the PyInstaller command to be run.
         self._init_pyinstaller_command()
 
-        # True if the current distribution has at least one entry point.
-        is_entry_point = False
+        # Run this command for each entry point.
+        self._run_pyinstaller_commands()
 
-        # Freeze each previously installed script wrapper.
-        for script_basename, script_type, entry_point in\
-            util.command_entry_points(self):
-            # Note at least one entry point to be installed.
-            is_entry_point = True
-
-            # Validate this wrapper's entry point.
-            # freeze._check_entry_point(entry_point)
-
-            # Relative path of the output frozen executable file or directory,
-            # created by stripping the suffixing ".exe" filetype on Windows.
-            frozen_pathname = path.join(
-                self._pyinstaller_dist_dirname,
-                util.get_path_sans_filetype(script_basename))
-
-            # If cleaning and this path exists, remove this path *BEFORE*
-            # validating this path. Why? This path could be an existing file
-            # and the current command freezing to a directory (or vice versa),
-            # in which case subsequent validation would raise an exception.
-            if self.clean and util.is_path(frozen_pathname):
-                util.remove_path(frozen_pathname)
-
-            # Validate this path.
-            self._check_frozen_path(frozen_pathname)
-
-            # Set all environment variables used to communicate with the BETSE-
-            # specific PyInstaller specification file run below.
-            self._set_environment_variables(
-                script_basename, script_type, entry_point)
-
-            # Run the desired PyInstaller command.
-            self._run_pyinstaller(
-                script_basename, script_type, entry_point)
-
-            # Report these results to the user.
-            frozen_pathtype = (
-                'directory' if util.is_dir(frozen_pathname) else 'file')
-            print('Froze {} "{}".\n'.format(frozen_pathtype, frozen_pathname))
-
-            #FIXME: Excise when beginning GUI work.
-            break
-
-        # If no entry points are registered for the current distribution, raise
-        # an exception.
-        if not is_entry_point:
-            raise DistutilsExecError(
-                'No entry points found. {}'.format(freeze.EXCEPTION_ADVICE))
 
     # ..................{ INITIALIZERS                       }..................
     def _init_pyinstaller_command(self) -> None:
@@ -242,8 +207,15 @@ class freeze(Command, metaclass = ABCMeta):
         self._pyinstaller_spec_filename = path.join(
             pyinstaller_dirname, '.spec')
 
-        # Relative path of the final output subdirectory.
-        self._pyinstaller_dist_dirname = path.join(pyinstaller_dirname, 'dist')
+        # If the frozen executable directory was *NOT* explicitly passed on the
+        # command-line, default to a subdirectory of this top-level directory.
+        if self.dist_dir is None:
+            self.dist_dir = path.join(pyinstaller_dirname, 'dist')
+        # Else, canonicalize the passed directory.
+        else:
+            self.dist_dir = util.get_path_canonicalized(self.dist_dir)
+        assert isinstance(self.dist_dir, str), (
+            '"{}" not a string.'.format(self.dist_dir))
 
         # Relative path of the input hooks subdirectory.
         self._pyinstaller_hooks_dirname = path.join(
@@ -270,7 +242,7 @@ class freeze(Command, metaclass = ABCMeta):
 
             # Non-default PyInstaller directories.
             '--workpath=' + util.shell_quote(pyinstaller_work_dirname),
-            '--distpath=' + util.shell_quote(self._pyinstaller_dist_dirname),
+            '--distpath=' + util.shell_quote(self.dist_dir),
 
             # Non-default log level.
             # '--log-level=DEBUG',
@@ -304,7 +276,68 @@ class freeze(Command, metaclass = ABCMeta):
             util.output_warning(
                 'Frozen binaries will *NOT* be compressed.')
 
-    # ..................{ SETTERS                            }..................
+    # ..................{ RUNNERS                            }..................
+    def _run_pyinstaller_commands(self):
+        '''
+        Run the PyInstaller command previously constructed by the
+        `_init_pyinstaller_command()` method for each entry point.
+        '''
+
+        # True if the current distribution has at least one entry point.
+        is_entry_point = False
+
+        # Freeze each previously installed script wrapper.
+        for script_basename, script_type, entry_point in\
+            util.command_entry_points(self):
+            # Note at least one entry point to be installed.
+            is_entry_point = True
+
+            #FIXME: We went to a great deal of trouble to implement this method.
+            #Why don't we call it anymore, again?
+
+            # Validate this wrapper's entry point.
+            # freeze._check_entry_point(entry_point)
+
+            # Relative path of the output frozen executable file or directory,
+            # created by stripping the suffixing ".exe" filetype on Windows.
+            frozen_pathname = path.join(
+                self.dist_dir,
+                util.get_path_sans_filetype(script_basename))
+
+            # If cleaning *AND* this path exists, remove this path before
+            # validating this path. Why? This path could be an existing file
+            # and the current command freezing to a directory (or vice versa),
+            # in which case subsequent validation would raise an exception.
+            if self.clean and util.is_path(frozen_pathname):
+                util.remove_path(frozen_pathname)
+
+            # Validate this path.
+            self._check_frozen_path(frozen_pathname)
+
+            # Set all environment variables used to communicate with the BETSE-
+            # specific PyInstaller specification file run below.
+            self._set_environment_variables(
+                script_basename, script_type, entry_point)
+
+            # Run this PyInstaller command for this entry point.
+            self._run_pyinstaller_command(
+                script_basename, script_type, entry_point)
+
+            # Report these results to the user.
+            frozen_pathtype = (
+                'directory' if util.is_dir(frozen_pathname) else 'file')
+            print('Froze {} "{}".\n'.format(frozen_pathtype, frozen_pathname))
+
+            #FIXME: Excise when beginning GUI work.
+            break
+
+        # If no entry points are registered for the current distribution, raise
+        # an exception.
+        if not is_entry_point:
+            raise DistutilsExecError(
+                'No entry points found. {}'.format(freeze.EXCEPTION_ADVICE))
+
+
     #FIXME: Refactor to:
     #
     #1. Set global variables of this module rather than environment variables of
@@ -354,16 +387,16 @@ class freeze(Command, metaclass = ABCMeta):
         # Whether to freeze a CLI- or GUI-based application.
         os.environ['__FREEZE_INTERFACE_TYPE'] = script_type
 
-    # ..................{ RUNNERS                            }..................
-    def _run_pyinstaller(
+
+    def _run_pyinstaller_command(
         self,
         script_basename: str,
         script_type: str,
         entry_point: 'EntryPoint',
     ) -> None:
         '''
-        Run the currently configured PyInstaller command finalized by the passed
-        command-line arguments.
+        Run the currently configured PyInstaller command for the passed entry
+        point's script wrapper.
 
         Attributes
         ----------
@@ -481,8 +514,8 @@ class freeze(Command, metaclass = ABCMeta):
         Validate the passed entry point, describing the current script wrapper
         to be frozen.
         '''
-        assert isinstance(entry_point, EntryPoint),\
-            '"{}" not an entry point.'.format(entry_point)
+        assert isinstance(entry_point, EntryPoint), (
+            '"{}" not an entry point.'.format(entry_point))
 
         # If this entry module is unimportable, raise an exception.
         if not util.is_module(entry_point.module_name):
