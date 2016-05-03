@@ -116,7 +116,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
     # calculate the enzyme coefficient:
     numo_E = ((cNai/p.KmNK_Na)**3) * ((cKo/p.KmNK_K)**2) * (cATP/p.KmNK_ATP)
-    denomo_E = 1 + ((cNai/p.KmNK_Na)**3) + ((cKo/p.KmNK_K)**2) + (cATP/p.KmNK_ATP)
+    denomo_E = (1 + (cNai/p.KmNK_Na)**3)*(1+(cKo/p.KmNK_K)**2)*(1+(cATP/p.KmNK_ATP))
 
     f_Na = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
@@ -170,7 +170,7 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
 
     # calculate the enzyme coefficient:
     numo_E = (cCai/p.KmCa_Ca) * (cATP/p.KmCa_ATP)
-    denomo_E = 1 + (cCai/p.KmCa_Ca)  + (cATP/p.KmCa_ATP)
+    denomo_E = (1 + (cCai/p.KmCa_Ca)) * (1+ (cATP/p.KmCa_ATP))
 
     f_Ca = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
@@ -245,7 +245,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     # calculate the enzyme coefficient:
     numo_E = (cHi / p.KmHK_H) * (cKo / p.KmHK_K) * (cATP / p.KmHK_ATP)
-    denomo_E = 1 + (cHi / p.KmHK_H) + (cKo / p.KmHK_K) + (cATP / p.KmHK_ATP)
+    denomo_E = (1 + (cHi / p.KmHK_H)) *(1+ (cKo / p.KmHK_K)) *(1+ (cATP / p.KmHK_ATP))
 
 
     f_H  = -alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
@@ -281,7 +281,7 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
 
     # calculate the enzyme coefficient:
     numo_E = (cHi/p.KmV_H) * (cATP/p.KmV_ATP)
-    denomo_E = 1 + (cHi/p.KmV_H) + (cATP/p.KmV_ATP)
+    denomo_E = (1 + (cHi/p.KmV_H)) * (1 + (cATP/p.KmV_ATP))
 
     f_H = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
@@ -332,7 +332,7 @@ def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
 
     # calculate the enzyme coefficient:
     numo_E = (cHo / p.KmAS_H) * (cADP / p.KmAS_ADP) * (cPi / p.KmAS_P)
-    denomo_E = 1 + (cHo / p.KmAS_H) + (cADP / p.KmAS_ADP) + (cPi / p.KmAS_P)
+    denomo_E = (1 + (cHo / p.KmAS_H)) *(1+ (cADP / p.KmAS_ADP)) *(1 + (cPi / p.KmAS_P))
 
     f_H = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
