@@ -287,7 +287,6 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
 
     return f_H
 
-
 def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
     """
     Calculates H+ flux into the mitochondrial matrix (+
@@ -337,8 +336,6 @@ def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
     f_H = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
     return f_H
-
-
 
 def get_volt(q,sa,p):
 
