@@ -183,11 +183,11 @@ class SimRunner(object):
         if p.sim_ECM is False:
             sim.baseInit_all(cells, p)
             sim.sim_info_report(cells, p)
-            sim.run_loop_no_ecm(cells, p)
+            sim.run_sim_core(cells, p)
         else:
             sim.baseInit_all(cells, p)
             sim.sim_info_report(cells, p)
-            sim.run_loop_with_ecm(cells, p)
+            sim.run_sim_core(cells, p)
 
         logs.log_info('Initialization run complete!')
         logs.log_info(
@@ -248,9 +248,9 @@ class SimRunner(object):
         sim.sim_info_report(cells, p)
 
         if p.sim_ECM is False:
-            sim.run_loop_no_ecm(cells, p)
+            sim.run_sim_core(cells, p)
         else:
-            sim.run_loop_with_ecm(cells, p)
+            sim.run_sim_core(cells, p)
 
         logs.log_info(
             'The simulation took {} seconds to complete.'.format(

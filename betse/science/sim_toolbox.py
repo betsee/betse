@@ -598,3 +598,50 @@ def bicarbonate_buffer(cH, cCO2, cHCO3, p):
     pH = -np.log10(cH*1e-3)
 
     return cH, cCO2, cHCO3, pH
+
+
+def ghk_calculator(sim, cells, p):
+    """
+    Uses simulation parameters in the Goldman (GHK) equation
+    to calculate an alternative Vmem for validation purposes.
+
+    """
+
+    # begin by initializing all summation arrays for the cell network:
+    sum_PmAnion_out = np.zeros(len(cells.cell_i))
+    sum_PmAnion_in = np.zeros(len(cells.cell_i))
+    sum_PmCation_out = np.zeros(len(cells.cell_i))
+    sum_PmCation_in = np.zeros(len(cells.cell_i))
+
+    for i, z in enumerate(sim.zs):
+
+        ion_type = np.sign(z)
+
+        if ion_type == -1:
+
+            if p.sim_ECM is True:
+
+                Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
+
+                sum_PmAnion_in = sum_PmAnion_in + Dm * sim.cc_cells[i] * (1 / p.tm)
+                sum_PmAnion_out = sum_PmAnion_out + Dm * sim.cc_env[i][cells.map_cell2ecm] * (1 / p.tm)
+
+            else:
+                sum_PmAnion_in = sum_PmAnion_in + sim.Dm_cells[i] * sim.cc_cells[i] * (1 / p.tm)
+                sum_PmAnion_out = sum_PmAnion_out + sim.Dm_cells[i] * sim.cc_env[i] * (1 / p.tm)
+
+        if ion_type == 1:
+
+            if p.sim_ECM is True:
+
+                Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
+
+                sum_PmCation_in = sum_PmCation_in + Dm * sim.cc_cells[i] * (1 / p.tm)
+                sum_PmCation_out = sum_PmCation_out + Dm * sim.cc_env[i][cells.map_cell2ecm] * (1 / p.tm)
+
+            else:
+                sum_PmCation_in = sum_PmCation_in + sim.Dm_cells[i] * sim.cc_cells[i] * (1 / p.tm)
+                sum_PmCation_out = sum_PmCation_out + sim.Dm_cells[i] * sim.cc_env[i] * (1 / p.tm)
+
+    sim.vm_GHK = ((p.R * sim.T) / p.F) * np.log(
+        (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
