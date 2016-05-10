@@ -907,13 +907,13 @@ class Parameters(object):
         # FIXME add this to config:
         self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
         self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
-        self.KmHK_H = 6.6e-6   # HKATPase enzyme H half-max sat value
+        self.KmHK_H = 1.0e-5   # HKATPase enzyme H half-max sat value
 
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
 
         # FIXME add this to config:
         self.KmV_ATP = 0.15    # V-ATPase half-max sat value for ATP (0.13 to 0.5 )
-        self.KmV_H = 6.6e-3    # V-ATPase half-max sat value for H
+        self.KmV_H = 1.0e-5    # V-ATPase half-max sat value for H
 
         # FIXME add this to config (ATP Synthase parameters, metabolism module)
         self.alpha_AS = 1.0e-5
@@ -993,6 +993,11 @@ class Parameters(object):
         self.water_const = (80.0*self.eo/self.mu_water)*self.zeta    # electroosmosis constant
 
         self.rho = 1050 # mass density of system [kg/m3]
+
+        self.Keqm_ph = 7.94e-4          # equilibrium constant for bicarbonate buffer
+
+        # FIXME add rate to config file
+        self.vm_ph = 5.0e-3             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':

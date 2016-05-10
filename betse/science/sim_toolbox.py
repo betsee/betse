@@ -104,7 +104,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-6
+    Qdenomo[inds_Z] = 1.0e-10
 
     Q = Qnumo / Qdenomo
 
@@ -233,7 +233,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-6
+    Qdenomo[inds_Z] = 1.0e-10
 
     Q = Qnumo / Qdenomo
 
@@ -269,7 +269,7 @@ def pumpVATP(cHi,cHo,Vm,T,p,block):
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-6
+    Qdenomo[inds_Z] = 1.0e-10
 
     Q = Qnumo / Qdenomo
 
@@ -571,3 +571,30 @@ def no_negs(data):
     #     loggers.log_info("Warning: invalid value (0 or Nan) found in concentration data.")
 
     return data
+
+def bicarbonate_buffer(cH, cCO2, cHCO3, p):
+    """
+    This most amazing buffer handles influx of H+,
+    HCO3-, H2CO3 (from dissolved carbon dioxide) to
+    handle pH in real time.
+
+    Uses the bicarbonate dissacociation reaction:
+
+    H2CO3 ----> HCO3 + H
+
+    Where all dissolved carbon dioxide is assumed
+    converted to carbonic acid via carbonic anhydrase enzyme.
+
+    """
+
+    Q = (cH*cHCO3)/(cCO2)
+
+    v_ph = p.vm_ph*(cCO2/(1+cCO2))*(1 - (Q/p.Keqm_ph))
+
+    cCO2 = cCO2 - v_ph*p.dt
+    cHCO3 = cHCO3 + v_ph*p.dt
+    cH = cH + v_ph*p.dt
+
+    pH = -np.log10(cH*1e-3)
+
+    return cH, cCO2, cHCO3, pH

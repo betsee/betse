@@ -210,7 +210,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 
         if edgeOverlay is True:
             # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-            cell_edges_flat = cells.um*cells.mem_edges_flat
+            cell_edges_flat = p.um*cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(0.5)
             ax.add_collection(coll)
@@ -487,7 +487,7 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
         if ax is None:
             ax = plt.subplot(111)
 
-        cell_edges_flat = cells.um*cells.mem_edges_flat
+        cell_edges_flat = p.um*cells.mem_edges_flat
 
         if zdata is None:
             z = np.ones(len(cell_edges_flat))
@@ -672,7 +672,7 @@ def plotVects(cells, p, fig=None, ax=None):
         # ax.quiver(s*cells.ecm_vects[:,0],s*cells.ecm_vects[:,1],s*cells.ecm_vects[:,2],s*cells.ecm_vects[:,3],color='r')
 
         # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-        cell_edges_flat = cells.um*cells.mem_edges_flat
+        cell_edges_flat = p.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         ax.add_collection(coll)
 
@@ -778,7 +778,7 @@ def streamingCurrent(
 
     # if p.showCells is True:
     #     # cell_edges_flat, _ , _= tb.flatten(cells.mem_edges)
-    #     cell_edges_flat = cells.um*cells.mem_edges_flat
+    #     cell_edges_flat = p.um*cells.mem_edges_flat
     #     coll = LineCollection(cell_edges_flat,colors='k')
     #     coll.set_alpha(0.2)
     #     ax.add_collection(coll)
@@ -1262,7 +1262,7 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
 
 
     if showing_cells is True:
-        cell_edges_flat = cells.um*cells.mem_edges_flat
+        cell_edges_flat = p.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.3)
         ax.add_collection(coll)
@@ -1406,7 +1406,7 @@ def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
                 extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],cmap=clrmap)
 
     if p.showCells is True and ignore_showCells is False:
-        cell_edges_flat = cells.um*cells.mem_edges_flat
+        cell_edges_flat = p.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
         coll.set_alpha(0.5)
         ax.add_collection(coll)

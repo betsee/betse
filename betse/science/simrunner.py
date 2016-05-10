@@ -362,7 +362,7 @@ class SimRunner(object):
             )
             plt.colorbar()
 
-            cell_edges_flat = cells.um*cells.mem_edges_flat
+            cell_edges_flat = p.um*cells.mem_edges_flat
             coll = LineCollection(cell_edges_flat,colors='k')
             coll.set_alpha(1.0)
             ax99.add_collection(coll)
