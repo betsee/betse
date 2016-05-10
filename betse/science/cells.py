@@ -430,6 +430,9 @@ class Cells(object):
 
 
         """
+
+        self.gj_len = p.cell_space + 2*p.tm      # distance between gap junction (as "pipe length")
+
         self.cell_verts = []
 
         logs.log_info('Defining cell-specific geometric properties... ')
@@ -1505,7 +1508,7 @@ class Cells(object):
         self.nn_tx = []  # tangent vector to gap junction (through neighboring cell centres)
         self.nn_ty = []
 
-        self.gj_len = p.cell_space + 2*p.tm      # distance between gap junction (as "pipe length")
+
         self.nn_len = []  # distance between neighbouring cell centres
 
         self.nn_edges = [[] for x in self.mem_i]  # line segment between neighbouring cell centres

@@ -78,7 +78,7 @@ class SimRunner(object):
 
             # define the tissue and boundary profiles for plotting:
             logs.log_info('Defining tissue and boundary profiles...')
-            sim.baseInit(cells,p)
+            sim.baseInit_all(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
@@ -107,7 +107,7 @@ class SimRunner(object):
 
             # define the tissue and boundary profiles for plotting:
             logs.log_info('Defining tissue and boundary profiles...')
-            sim.baseInit_ECM(cells,p)
+            sim.baseInit_all(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
@@ -120,7 +120,6 @@ class SimRunner(object):
 
             cells.save_cluster(p)
 
-            logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
             logs.log_info('Cell cluster creation complete!')
 
             if p.turn_all_plots_off is False:
@@ -128,6 +127,8 @@ class SimRunner(object):
                 self.plotWorld()
 
                 plt.show()
+
+        sim.sim_info_report(cells,p)
 
     def initialize(self):
         '''
@@ -138,6 +139,8 @@ class SimRunner(object):
         logs.log_info(
             'Initializing simulation with configuration file "{}".'.format(
                 self._config_basename))
+
+
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -174,13 +177,16 @@ class SimRunner(object):
         sim = Simulator(p)   # create an instance of Simulator
         sim.run_sim = False
 
+
         # Initialize simulation data structures, run, and save the
         # initialization.
         if p.sim_ECM is False:
-            sim.baseInit(cells, p)
+            sim.baseInit_all(cells, p)
+            sim.sim_info_report(cells, p)
             sim.run_loop_no_ecm(cells, p)
         else:
-            sim.baseInit_ECM(cells, p)
+            sim.baseInit_all(cells, p)
+            sim.sim_info_report(cells, p)
             sim.run_loop_with_ecm(cells, p)
 
         logs.log_info('Initialization run complete!')
@@ -239,6 +245,8 @@ class SimRunner(object):
         sim.fileInit(p)
 
         # Run and save the simulation to the cache.
+        sim.sim_info_report(cells, p)
+
         if p.sim_ECM is False:
             sim.run_loop_no_ecm(cells, p)
         else:
@@ -326,11 +334,11 @@ class SimRunner(object):
             raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
 
         if p.sim_ECM is False:
-            sim.baseInit(cells,p)
+            sim.baseInit_all(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
         else:
-            sim.baseInit_ECM(cells,p)
+            sim.baseInit_all(cells,p)
             dyna = TissueHandler(sim,cells,p)
             dyna.tissueProfiles(sim,cells,p)
 
