@@ -663,6 +663,62 @@ class Simulator(object):
                 self.Dye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
                 self.Dye_env[:] = p.cDye_to
 
+        #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
+
+        if p.run_sim is True:   # if we're running a simulation:
+
+            if p.fluid_flow is True or p.deformation is True:  # if user desires fluid flow:
+
+                # initialize data structures:
+                self.u_cells_x = np.zeros(len(cells.cell_i))
+                self.u_cells_y = np.zeros(len(cells.cell_i))
+
+                if cells.lapGJinv is None:
+
+                    # make a laplacian and solver for discrete transfers on closed, irregular cell network
+                    logs.log_info('Creating cell network Poisson solver...')
+                    cells.graphLaplacian(p)
+
+                    if p.td_deform is False: # if time-dependent deformation is not required
+
+                        cells.lapGJ = None
+                        cells.lapGJ_P = None       # null out the non-inverse matrices -- we don't need them
+
+                    elif p.td_deform is True and cells.lapGJ is None:  # unforunately, we need to create them all again
+
+                        logs.log_info('Creating cell network Poisson solver...')
+                        cells.graphLaplacian(p)
+
+
+                    if p.sim_ECM is True and cells.lapENVinv is None:
+
+                        logs.log_info('Creating environmental Poisson solver for voltage...')
+                        cells.lapENV, cells.lapENVinv = cells.grid_obj.makeLaplacian()
+                        cells.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+                        logs.log_info('Creating environmental Poisson solver for pressure...')
+                        bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+                        cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
+
+                        cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+                        self.u_env_x = np.zeros(cells.X.shape)
+                        self.u_env_y = np.zeros(cells.X.shape)
+
+
+            elif p.fluid_flow is False and p.deformation is False:  # if there's no physics calcs required
+                # get rid of all matrices rather than carry them around as large dead-weights
+
+                if cells.lapGJinv is not None:
+                    cells.lapGJinv = None
+                    cells.lapGJ_P_inv = None
+                    cells.lapGJ = None
+                    cells.lapGJ_P = None
+
+                if p.sim_ECM is True and cells.lapENVinv is not None:
+                    cells.lapENVinv = None
+                    cells.lapENV_P_inv = None
+
 
         # Initialize all user-specified interventions and dynamic channels.
         self.dyna.runAllInit(self,cells,p)
@@ -1111,7 +1167,12 @@ class Simulator(object):
             self.rho_channel_time.append(self.rho_channel[:])
             self.rho_pump_time.append(self.rho_pump[:])
 
-        self.gjopen_time.append(self.gjopen[:])
+        if p.v_sensitive_gj is True:
+            self.gjopen_time.append(self.gjopen[:])
+
+        else:
+            self.gjopen_time.append(self.gjopen)
+
         self.time.append(t)
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:

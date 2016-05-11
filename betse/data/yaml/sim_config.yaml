@@ -189,15 +189,6 @@ world options:
                               # square grid. If equal to 0 a perfect
                               # square grid is created.
 
-  fluid flow:  # FIXME move these to variable settings and adapt code to follow
-      include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
-
-  channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
-      turn on: False        # turn on electroosmosis of pumps and channels
-
-  deformation:
-      turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
-
 #-----------------------------------------------------------------------------------------------------------------------
 # TISSUE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
@@ -576,6 +567,7 @@ variable settings:
   temperature: 310            # system temperature [K]
 
   morphogen properties:  # specify the properties of an auxillary chemical
+
       include morphogen: False     # include electrodiffusion of an auxillary chemical substance?
       Dm: 1.0e-15        # morphogen membrane diffusion coefficient [m2/s]
       Do: 1.0e-10         # morphogen free diffusion constant [m2/s]
@@ -603,32 +595,34 @@ variable settings:
                               # only works for an ion profile with H+ ions (animal or invertebrate)
                               # options True or False (case sensitive)
 
-  flow and deformation:
-      water viscocity: 0.5      # viscocity of water [Pa s] (applies to ease of flow)
+  channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
-      include osmotic pressure: False    # include osmotic pressure in flow & deformation?
+    turn on: False        # turn on electroosmosis of pumps and channels
+    channel charge: -1         # charge of membrane channels
+    pump charge: 1          # charge of pumps (controls direction they move in)
+    membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
-      include electrostatic pressure: False   # include electrostatic pressure in flow and deformation?
+  fluid flow:
 
-      membrane water conductivity: 1e-10   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
+    include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
+    water viscocity: 0.5      # viscocity of water [Pa s] (applies to ease of flow)
 
-      viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
 
-      fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
+  deformation:
 
-      young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
-
-      time dependent deformation: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
+    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+    viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
+    fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
+    young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
+    time dependent deformation: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
                               # upon simulation, will check for appropriate world size and time set for your parameters.
 
+  pressures:  # Note: flow and deformation won't work without a source of pressure/force!
 
-  channel electroosmosis:
+    include electrostatic pressure: True   # include electrostatic pressure in flow and deformation?
+    include osmotic pressure: False    # include osmotic pressure in flow & deformation?
+    membrane water conductivity: 1e-10   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
 
-    channel charge: -1         # charge of membrane channels
-
-    pump charge: 1          # charge of pumps (controls direction they move in)
-
-    membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
 
   noise:
 
@@ -1071,7 +1065,7 @@ internal parameters:
 
   alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  alpha_HK:  1.0e-10    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 
   alpha_V:  1.0e-5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
 

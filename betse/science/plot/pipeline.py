@@ -991,8 +991,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if (p.plot_Vel is True and p.fluid_flow is True and
-        p.deform_electro is True and sim.run_sim is True):
+    if (p.plot_Vel is True and p.fluid_flow is True and sim.run_sim is True):
         viz.plotStreamField(
             (1e9)*sim.u_cells_x,
             (1e9)*sim.u_cells_y,

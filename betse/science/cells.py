@@ -118,6 +118,8 @@ class Cells(object):
         self.lapGJ_P_inv = None
         self.lapGJ = None
         self.lapGJ_P = None
+        self.lapENVinv = None
+        self.lapENV_P_inv = None
 
     def deformWorld(self,p):
         """
@@ -1185,17 +1187,8 @@ class Cells(object):
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-            if p.fluid_flow is True:
 
-                logs.log_info('Creating environmental Poisson solver for voltage...')
-                self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
-                self.lapENV = None   # get rid of the non-inverse matrix as it only hogs memory...
 
-                logs.log_info('Creating environmental Poisson solver for pressure...')
-                bdic = {'N':'flux','S':'flux','E':'flux','W':'flux'}
-                self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
-
-                self.lapENV_P = None # get rid of the non-inverse matrix as it only hogs memory...
 
     def short_environment(self,p):
 

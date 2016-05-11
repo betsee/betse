@@ -123,9 +123,6 @@ class Parameters(object):
         # WORLD OPTIONS
         #---------------------------------------------------------------------------------------------------------------
 
-        self.fluid_flow = self.config['world options']['fluid flow']['include fluid flow']
-        self.sim_eosmosis = self.config['world options']['channel electroosmosis']['turn on']
-        self.deformation = self.config['world options']['deformation']['turn on']
 
         # Geometric constants and factors
         self.wsx = float(self.config['world options']['world size'])  # the x-dimension of the world space
@@ -515,59 +512,52 @@ class Parameters(object):
 
         self.T = float(self.config['variable settings']['temperature'])  # system temperature
 
-        self.td_deform = self.config['variable settings']['flow and deformation']['time dependent deformation']
-        self.deform_osmo = self.config['variable settings']['flow and deformation']['include osmotic pressure']
-        self.deform_electro = self.config['variable settings']['flow and deformation']['include electrostatic pressure']
-        self.fixed_cluster_bound = self.config['variable settings']['flow and deformation']['fixed cluster boundary']
-        self.youngMod = float(self.config['variable settings']['flow and deformation']['young modulus'])
+        # electroosmotic fluid flow-----------------------------------------------------
+        self.fluid_flow = self.config['variable settings']['fluid flow']['include fluid flow']
+        self.mu_water = float(self.config['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
+
+        # electrodiffusive movement pumps and channels -----------------------------------
+        self.sim_eosmosis = self.config['variable settings']['channel electroosmosis']['turn on']
+        self.D_membrane = float(self.config['variable settings']['channel electroosmosis']['membrane mobility'])
+        self.z_channel = float(self.config['variable settings']['channel electroosmosis']['channel charge'])
+        self.z_pump = float(self.config['variable settings']['channel electroosmosis']['pump charge'])
+
+        # mechanical deformation ----------------------------------------------------------
+        self.deformation = self.config['variable settings']['deformation']['turn on']
+        self.td_deform = self.config['variable settings']['deformation']['time dependent deformation']
+        self.fixed_cluster_bound = self.config['variable settings']['deformation']['fixed cluster boundary']
+        self.youngMod = float(self.config['variable settings']['deformation']['young modulus'])
+        self.mu_tissue = float(self.config['variable settings']['deformation']['viscous damping'])
+
+        # osmotic and electrostatic pressures --------------------------------
+        self.deform_osmo = self.config['variable settings']['pressures']['include osmotic pressure']
+        self.deform_electro = self.config['variable settings']['pressures']['include electrostatic pressure']
+        self.aquaporins = float(self.config['variable settings']['pressures']['membrane water conductivity'])
 
         # calculate lame's parameters from young mod and the poisson ratio:
         self.poi = 0.49 # Poisson's ratio for the biological medium
-
         self.lame_mu = self.youngMod/(2*(1+self.poi))
         self.lame_lamb = (self.youngMod*self.poi)/((1+self.poi)*(1-2*self.poi))
-
         self.mu_membrane = 1.0 # membrane viscocity
-
-        # in-membrane diffusion coefficient
-        self.D_membrane = float(self.config['variable settings']['channel electroosmosis']['membrane mobility'])
-        # charge of membrane pumps and channels:
-        self.z_channel = float(self.config['variable settings']['channel electroosmosis']['channel charge'])
-
-        self.z_pump = float(self.config['variable settings']['channel electroosmosis']['pump charge'])
-
-        self.mu_water = float(self.config['variable settings']['flow and deformation']['water viscocity'])   # viscocity of water [Pa.s]
-
-        self.mu_tissue = float(self.config['variable settings']['flow and deformation']['viscous damping']) # viscocity of tissue medium [Pa s}
-
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
+
+        # Gap junction parameters ------------------
+
         self.gj_surface = float(self.config['variable settings']['gap junctions']['gap junction surface area'])
-
         self.gj_flux_sensitive = False
-
-        self.cavity_state = bool(self.config['variable settings']['cavity open'])
-        self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
-
-        self.backward_pumps = False   # can pumps run backwards? (feature currently unsupported)
-
-        self.aquaporins = float(self.config['variable settings']['flow and deformation']['membrane water conductivity'])
-
         self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
         self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
-
         self.gj_min = float(self.config['variable settings']['gap junctions'].get('gj minimum',0.04))
-
         self.gj_respond_flow = False # (feature currently unsupported)
-
         self.v_sensitive_gj = self.config['variable settings']['gap junctions']['voltage sensitive gj']
 
+        # Environmental features and tight junctions ---------------------------------------------------
         self.env_type = True # for now, can't handle air boundaries
-
+        self.cavity_state = bool(self.config['variable settings']['cavity open'])
+        self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
         self.D_tj = float(self.config['variable settings']['tight junction scaling'])
-
         self.D_adh = float(self.config['variable settings']['adherens junction scaling'])
-
         # tight junction relative ion movement properties:
         self.Dtj_rel = {}  # use a dictionary to hold the tj values:
 

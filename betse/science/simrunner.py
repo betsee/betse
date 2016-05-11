@@ -83,12 +83,6 @@ class SimRunner(object):
 
             cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
 
-            if p.fluid_flow is True or p.deformation is True: # if user desires fluid flow:
-
-                # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                logs.log_info('Creating cell network Poisson solver...')
-                cells.graphLaplacian(p)
-
             cells.save_cluster(p)
 
             logs.log_info('Cell cluster creation complete!')
