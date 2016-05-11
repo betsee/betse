@@ -485,7 +485,7 @@ def vertData(data, cells, p):
                                fill_value=0)
 
     # # smooth out the data a bit:
-    dat_grid = gaussian_filter(dat_grid,p.smooth_level)
+    # dat_grid = gaussian_filter(dat_grid,p.smooth_level)
 
     # get rid of values that bleed into the environment:
     # dat_grid = np.multiply(dat_grid,cells.maskM)
@@ -759,8 +759,9 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, z=0, pump_into_cell =False
     cX_env_1 = no_negs(cX_env_1)
 
     if p.sim_ECM is True:
-        cX_env_1_temp = gaussian_filter(cX_env_1.reshape(cells.X.shape), p.smooth_level)
-        cX_env_1 = cX_env_1_temp.ravel()
+        # cX_env_1_temp = gaussian_filter(cX_env_1.reshape(cells.X.shape), p.smooth_level)
+        # cX_env_1 = cX_env_1_temp.ravel()
+        pass
 
     else:
         cX_env_1_temp = cX_env_1.mean()
