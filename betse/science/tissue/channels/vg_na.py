@@ -88,7 +88,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 # ....................{ SUBCLASS                           }....................
 class vgNa_Default(VgNaABC):
     '''
-    NaV model from Hammil et al 1991, rat neocortical neurons.
+    NaV model from Hammil et al 1991, derived from rat neocortical neurons.
 
     This channel produces well behaved action-potentials with a variety of vgK channels. Good general-purpose
     vgNa channel.
@@ -296,7 +296,7 @@ class vgNa_1p3(VgNaABC):
     Nav1.3 sodium channel TTX sensitive expressed in embryonic and neonatal tissue, rare in
     adults.
 
-    reference: Cummins et al. Nav1.3 sodium channel: Rapid repriming and slow closed-state
+    Cummins et al. Nav1.3 sodium channel: Rapid repriming and slow closed-state
     inactivation display quantitative differences after expression in a mammalian
     cell line and in spinal sensory neurons. J. Neurosci., 2001, 21, 5952-61
     """

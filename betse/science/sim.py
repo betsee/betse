@@ -1233,7 +1233,7 @@ class Simulator(object):
         logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))
 
 
-    # ................{  DOERS & GETTERS }...............................................
+    # ................{ CORE DOERS & GETTERS }...............................................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Calculates transmembrane voltage (Vmem) and voltages inside the cell
@@ -2906,12 +2906,6 @@ class Simulator(object):
                                  self.dx_time[-1]
                 self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
                                  self.dy_time[-1]
-
-                # self.d_cells_x[cells.bflags_cells] = 0
-                # self.d_cells_y[cells.bflags_cells] = 0
-                #
-                # self.d_cells_x[cells.nn_bound] = 0
-                # self.d_cells_y[cells.nn_bound] = 0
 
             else:
 

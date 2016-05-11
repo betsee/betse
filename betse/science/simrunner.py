@@ -10,7 +10,6 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
-
 from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
 from betse.science import filehandling as fh
 from betse.science.cells import Cells

@@ -98,7 +98,6 @@ class Cells(object):
 
             self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-            self.lapGJinv = None
 
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
@@ -110,11 +109,15 @@ class Cells(object):
             self.makeECM(p)       # create the ecm grid
             self.environment(p)   # features of the environment, without Poisson solvers...
 
-            self.lapGJinv = None
-
         # factors for heterostructure averaging
         self.ave2cellV = (self.mem_sa*p.cell_space)/self.cell_vol[self.mem_to_cells]
         self.ave2ecmV =  (self.ecm_vol/(p.cell_height*self.delta**2))
+
+        # set all Laplacian matrices to None fields to allow for flexible creation
+        self.lapGJinv = None
+        self.lapGJ_P_inv = None
+        self.lapGJ = None
+        self.lapGJ_P = None
 
     def deformWorld(self,p):
         """
