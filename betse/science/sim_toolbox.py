@@ -2,7 +2,6 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# FIXME the NaKATPase has been changed, but all other pumps need updating
 # FIXME all pumps should now take and return cATP, cADP and cP as parameters (or a "metabo" object)
 
 import numpy as np
@@ -190,7 +189,7 @@ def pumpCaER(cCai,cCao,Vm,T,p):  # FIXME this should be replaced and use only pu
     delG_CaATP = deltaGATP - (delG_Ca)
     delG_pump = (delG_CaATP/1000)
 
-    alpha = p.alpha_CaER*(delG_pump - p.halfmax_Ca)
+    alpha = p.alpha_Ca*(delG_pump - p.halfmax_Ca)
 
     f_Ca  = alpha*(cCao)      #flux as [mol/s]
 

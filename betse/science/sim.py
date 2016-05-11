@@ -229,16 +229,12 @@ class Simulator(object):
                 self.u_env_x = np.zeros(cells.X.shape)
                 self.u_env_y = np.zeros(cells.X.shape)
 
-                # FIXME: place a check here for cells.matrices involved in fluid handling and
-                # create it if it doesn't exist
 
         if p.deformation is True:
             # initialize vectors for potential deformation:
             self.d_cells_x = np.zeros(len(cells.cell_i))
             self.d_cells_y = np.zeros(len(cells.cell_i))
 
-            # FIXME: place a check here for cells.matrices involved in fluid handling and
-            # create it if it doesn't exist
 
         if p.gj_flux_sensitive is True:
 
@@ -1472,7 +1468,7 @@ class Simulator(object):
 
         return cX_cell, cX_env
 
-    def acid_handler(self,cells,p): # FIXME update for sim_ECM = True *&* False
+    def acid_handler(self,cells,p):
 
         # electrofuse the H+ ion between the cytoplasm and the environment
         if p.sim_ECM is True:
