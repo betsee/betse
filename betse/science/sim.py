@@ -14,6 +14,8 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 
 from betse.exceptions import BetseExceptionSimulation
+from betse.util.io.log import logs
+
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
@@ -21,7 +23,11 @@ from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science import sim_toolbox as stb
 from betse.science.tissue.channels_o import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
-from betse.util.io.log import logs
+
+from betse.science.physics.flow import getFlow
+from betse.science.physics.deform import getDeformation, timeDeform, implement_deform_timestep
+from betse.science.physics.move_channels import eosmosis
+from betse.science.physics.pressures import electro_P, getHydroF, osmotic_P
 
 class Simulator(object):
     '''
@@ -913,28 +919,30 @@ class Simulator(object):
             #-----forces, fields, and flow-----------------------------------------------------------------------------
 
             self.get_Efield(cells, p)
-            # get forces from any hydrostatic (self.P_Cells) pressure:
-            self.getHydroF(cells, p)
 
-            # calculate pressures:
+
+            # get forces from any hydrostatic (self.P_Cells) pressure:
+            getHydroF(self,cells, p)
+
+            # calculate specific pressures:
 
             if p.deform_osmo is True:
-                self.osmotic_P(cells, p)
+                osmotic_P(self,cells, p)
 
             if p.deform_electro is True:
-                self.electro_P(cells, p)
+                electro_P(self,cells, p)
 
-            if p.fluid_flow is True and p.run_sim is True:  # FIXME fluid flow isn't plotting!
+            if p.fluid_flow is True and p.run_sim is True:
 
                 self.run_sim = True
 
-                self.getFlow(cells, p)
+                getFlow(self,cells, p)
 
             # if desired, electroosmosis of membrane channels
             if p.sim_eosmosis is True and p.run_sim is True:
                 self.run_sim = True
 
-                self.eosmosis(cells, p)  # modify membrane pump and channel density according to Nernst-Planck
+                eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
 
             if p.deformation is True and p.run_sim is True:
 
@@ -942,11 +950,11 @@ class Simulator(object):
 
                 if p.td_deform is False:
 
-                    self.getDeformation(cells, t, p)
+                    getDeformation(self,cells, t, p)
 
                 elif p.td_deform is True:
 
-                    self.timeDeform(cells, t, p)
+                    timeDeform(self,cells, t, p)
 
             stb.check_v(self.vm)
 
@@ -1147,17 +1155,8 @@ class Simulator(object):
             self.P_electro_time.append(self.P_electro[:])
 
         if p.deformation is True and p.run_sim is True:
-            self.implement_deform_timestep(cells, t, p)
+            implement_deform_timestep(self,cells, t, p)
 
-            #FIXME: Shift into implement_deform_timestep(). Magical OK!
-            self.cell_centres_time.append(cells.cell_centres[:])
-            self.mem_mids_time.append(cells.mem_mids_flat[:])
-            self.maskM_time.append(cells.maskM[:])
-            self.mem_edges_time.append(cells.mem_edges_flat[:])
-            self.cell_verts_time.append(cells.cell_verts[:])
-
-            self.dx_cell_time.append(self.d_cells_x[:])
-            self.dy_cell_time.append(self.d_cells_y[:])
 
         if p.fluid_flow is True and p.run_sim is True:
             self.u_cells_x_time.append(self.u_cells_x[:])
@@ -2096,447 +2095,6 @@ class Simulator(object):
             self.I_tot_x = self.I_tot_x + I_env_x
             self.I_tot_y = self.I_tot_y + I_env_y
 
-    def getFlow_o(self,cells,p):
-
-        """
-        Calculate the electroosmotic fluid flow in the cell and extracellular
-        networks.
-
-        """
-
-        if p.sim_ECM is True:
-
-            # force of gravity:
-            if p.closed_bound is True:
-
-                btag = 'closed'
-
-            else:
-
-                btag = 'open'
-
-            # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
-            # for the world:
-            alpha = (1/p.mu_water)*self.D_env_weight*1.0e-6
-
-            E_ave_x = self.E_env_x
-            E_ave_y = self.E_env_y
-
-            if p.deform_electro is True:
-
-                # determine the geometric factor to map charge density from volume to surface:
-                # Qfactor = p.cell_space
-                #
-                # Fe_x = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_x
-                # Fe_y = Qfactor*self.rho_env.reshape(cells.X.shape)*E_ave_y
-
-                # map charge density to rectangular grid volume:
-                Qenv = self.rho_env*cells.ave2ecmV
-
-                # Qenv = Qenv.reshape(cells.X.shape)
-
-                Qenv = gaussian_filter(Qenv.reshape(cells.X.shape),p.smooth_level)
-
-                Fe_x = Qenv*E_ave_x
-                Fe_y = Qenv*E_ave_y
-
-
-            else:
-
-                Fe_x = np.zeros(cells.X.shape)
-                Fe_y = np.zeros(cells.Y.shape)
-
-            # sum the forces:
-            Fx = Fe_x
-            Fy = Fe_y
-
-            source_x = -Fx*alpha
-            # source_x = cells.grid_obj.grid_int(source_x,bounds=btag) # perform finite volume integration of source
-
-            source_y = -Fy*alpha
-            # source_y = cells.grid_obj.grid_int(source_y,bounds=btag) # perform finite volume integration of source
-
-            # # calculated the fluid flow using the time-independent Stokes Flow equation:
-            ux_ecm_o = np.dot(cells.lapENVinv,source_x.ravel())
-            uy_ecm_o = np.dot(cells.lapENVinv,source_y.ravel())
-
-            # calculate the divergence of the flow field as the sum of the two spatial derivatives:
-            div_uo = fd.divergence(ux_ecm_o.reshape(cells.X.shape),uy_ecm_o.reshape(cells.X.shape),
-                cells.delta,cells.delta)
-
-            # perform finite volume integration on the divergence:
-            # div_uo = fd.integrator(div_uo)
-            # div_uo = cells.grid_obj.grid_int(div_uo,bounds=btag)
-
-            # calculate the alpha-scaled internal pressure from the divergence of the force:
-            P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-            P = P.reshape(cells.X.shape)
-
-            # enforce zero normal gradient boundary conditions on P:
-            P[:,0] = P[:,1]
-            P[:,-1] = P[:,-2]
-            P[0,:] = P[1,:]
-            P[-1,:] = P[-2,:]
-
-            # Take the grid gradient of the scaled internal pressure:
-            gPx, gPy = fd.gradient(P,cells.delta)
-
-             # subtract the pressure term from the solution to yield a divergence-free flow field
-            u_env_x = ux_ecm_o.reshape(cells.X.shape) - gPx
-            u_env_y = uy_ecm_o.reshape(cells.X.shape) - gPy
-
-            # velocities at cell centres:
-            self.u_env_x = u_env_x[:]
-            self.u_env_y = u_env_y[:]
-
-            self.u_env_x[:,0] = 0
-            # right
-            self.u_env_x[:,-1] = 0
-            # top
-            self.u_env_x[-1,:] = 0
-            # bottom
-            self.u_env_x[0,:] = 0
-
-            # left
-            self.u_env_y[:,0] = 0
-            # right
-            self.u_env_y[:,-1] = 0
-            # top
-            self.u_env_y[-1,:] = 0
-            # bottom
-            self.u_env_y[0,:] = 0
-
-
-        #---------------Flow through gap junction connected cells-------------------------------------------------------
-
-        # calculate the inverse viscocity for the cell collection, which is scaled by gj conductivity:
-        alpha_gj_o = p.gj_surface*self.gjopen*(1/p.mu_water)
-        # average to individual cells:
-        alpha_gj = np.dot(cells.M_sum_mems,alpha_gj_o)/cells.num_mems
-
-        if p.deform_electro is True:
-
-            Fe_cell_x = self.F_electro_x
-            Fe_cell_y = self.F_electro_y
-
-        else:
-            Fe_cell_x = np.zeros(len(cells.cell_i))
-            Fe_cell_y = np.zeros(len(cells.cell_i))
-
-        if p.deform_osmo is True:
-
-            F_osmo_x = self.F_hydro_x
-            F_osmo_y = self.F_hydro_y
-
-        else:
-
-            F_osmo_x = np.zeros(len(cells.cell_i))
-            F_osmo_y = np.zeros(len(cells.cell_i))
-
-        # net force is the sum of electrostatic and hydrostatic pressure induced body forces:
-        F_net_x = Fe_cell_x + F_osmo_x
-        F_net_y = Fe_cell_y + F_osmo_y
-
-        # integrate body forces:
-        # F_net_x = cells.integrator(F_net_x)
-        # F_net_y = cells.integrator(F_net_y)
-
-        # Calculate flow under body forces:
-        u_gj_xo = np.dot(cells.lapGJinv,-alpha_gj*F_net_x)
-        u_gj_yo = np.dot(cells.lapGJinv,-alpha_gj*F_net_y)
-
-        # calculate divergence of the flow field using general definition:
-        # first interpolate flow field at membrane midpoints:
-        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_gj_xo,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_gj_yo,
-                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-
-        # get the component of the velocity field normal to the membranes:
-        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
-
-        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
-
-        # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv,2*div_u)
-
-        # calculate its gradient:
-        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
-
-        gP_x = gradP_react*cells.cell_nn_tx
-        gP_y = gradP_react*cells.cell_nn_ty
-
-        # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
-        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
-
-        self.u_cells_x = u_gj_xo - gPx_cell
-        self.u_cells_y = u_gj_yo - gPy_cell
-
-        # enforce the boundary conditions:
-        self.u_cells_x[cells.bflags_cells] = 0
-        self.u_cells_y[cells.bflags_cells] = 0
-
-    def getFlow(self, cells, p):
-
-        """
-        Calculate the electroosmotic fluid flow in the cell and extracellular
-        networks using Hagen–Poiseuille "pipe flow" equation.
-
-        """
-
-        # First do extracellular space electroosmotic flow--------------------------------------------------------------
-
-        if p.sim_ECM is True:
-
-            # force of gravity:
-            if p.closed_bound is True:
-
-                btag = 'closed'
-
-            else:
-
-                btag = 'open'
-
-            # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
-            # for the world:
-            alpha = ((p.cell_space**2)/(p.mu_water*32))*self.D_env_weight
-
-            if p.deform_electro is True:
-
-                # map charge density to rectangular grid volume:
-                Qenv = self.rho_env*cells.ave2ecmV
-
-                Qenv = gaussian_filter(Qenv.reshape(cells.X.shape), p.smooth_level)
-
-                Fe_x = Qenv*self.E_env_x
-                Fe_y = Qenv*self.E_env_y
-
-
-            else:
-
-                Fe_x = np.zeros(cells.X.shape)
-                Fe_y = np.zeros(cells.Y.shape)
-
-            # sum the forces:
-            Fx = Fe_x
-            Fy = Fe_y
-
-            # calculated the base fluid flow using the Hagen-Poiseuille equation:
-            ux_ecm_o = gaussian_filter(Fx*alpha,p.smooth_level)
-            uy_ecm_o = gaussian_filter(Fy*alpha,p.smooth_level)
-
-            # calculate the divergence of the flow field as the sum of the two spatial derivatives:
-            div_uo = fd.divergence(ux_ecm_o, uy_ecm_o,cells.delta, cells.delta)
-
-            # calculate the alpha-scaled internal pressure from the divergence of the force:
-            P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
-            P = P.reshape(cells.X.shape)
-
-            # enforce zero normal gradient boundary conditions on P:
-            P[:, 0] = P[:, 1]
-            P[:, -1] = P[:, -2]
-            P[0, :] = P[1, :]
-            P[-1, :] = P[-2, :]
-
-            # Take the grid gradient of the scaled internal pressure:
-            gPx, gPy = fd.gradient(P, cells.delta)
-
-            # subtract the pressure term from the solution to yield a divergence-free flow field
-            u_env_x = ux_ecm_o.reshape(cells.X.shape) - gPx
-            u_env_y = uy_ecm_o.reshape(cells.X.shape) - gPy
-
-            # velocities at grid-cell centres:
-            self.u_env_x = u_env_x[:]
-            self.u_env_y = u_env_y[:]
-
-            # boundary conditions reinforced:
-            self.u_env_x[:, 0] = 0
-            # right
-            self.u_env_x[:, -1] = 0
-            # top
-            self.u_env_x[-1, :] = 0
-            # bottom
-            self.u_env_x[0, :] = 0
-
-            # left
-            self.u_env_y[:, 0] = 0
-            # right
-            self.u_env_y[:, -1] = 0
-            # top
-            self.u_env_y[-1, :] = 0
-            # bottom
-            self.u_env_y[0, :] = 0
-
-        #-------Next do flow through gap junction connected cells-------------------------------------------------------
-
-        # calculate the inverse viscosity for the cell collection, which is scaled by gj state:
-        alpha_gj = (1/(32*p.mu_water))*((self.gjopen*5e-10)**2)
-        # alpha_gj = (1/(128*p.mu_water))*((self.gjopen*10e-9)**2)*(1/(cells.mem_sa*p.gj_surface))
-
-        if p.deform_electro is True:
-
-            Fe_cell_x = self.F_gj_x
-            Fe_cell_y = self.F_gj_y
-
-        else:
-            Fe_cell_x = np.zeros(len(cells.mem_i))
-            Fe_cell_y = np.zeros(len(cells.mem_i))
-
-        if p.deform_osmo is True:
-
-            F_osmo_x = self.F_hydro_x_gj
-            F_osmo_y = self.F_hydro_y_gj
-
-        else:
-
-            F_osmo_x = np.zeros(len(cells.mem_i))
-            F_osmo_y = np.zeros(len(cells.mem_i))
-
-        # net force is the sum of electrostatic and hydrostatic pressure induced body forces:
-        F_net_x = Fe_cell_x + F_osmo_x
-        F_net_y = Fe_cell_y + F_osmo_y
-
-        # Calculate flow under body forces:
-        u_gj_xo = F_net_x*alpha_gj
-        u_gj_yo = F_net_y*alpha_gj
-
-        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        u_gj = np.sqrt(u_gj_xo**2 + u_gj_yo**2)
-
-        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_gj*cells.mem_sa*p.gj_surface*self.gjopen)/cells.cell_vol)
-
-        # calculate the reaction pressure required to counter-balance the flow field:
-        P_react = np.dot(cells.lapGJ_P_inv, div_u)
-
-        # calculate its gradient:
-        gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-
-        gP_x = gradP_react * cells.cell_nn_tx
-        gP_y = gradP_react * cells.cell_nn_ty
-
-        u_gj_x = u_gj_xo - gP_x
-        u_gj_y = u_gj_yo - gP_y
-
-        # average the components at cell centres:
-        self.u_cells_x = np.dot(cells.M_sum_mems, u_gj_x)/cells.num_mems
-        self.u_cells_y = np.dot(cells.M_sum_mems, u_gj_y)/cells.num_mems
-
-        # enforce the boundary conditions:
-        self.u_cells_x[cells.bflags_cells] = 0
-        self.u_cells_y[cells.bflags_cells] = 0
-
-    def eosmosis(self,cells,p):
-
-        """
-        Electroosmosis of ion pumps and channels to potentially create directional fluxes in individual cells.
-
-        This is presently simulated by calculating the Nernst-Planck concentration flux of a weighting
-        agent, rho, which moves under its own concentration gradient and
-        through the influence of the extracellular voltage gradient and fluid flows tangential to the membrane.
-
-        """
-
-        # components of fluid flow velocity at the membrane:
-        if p.fluid_flow is True and p.sim_ECM is True:
-            ux_mem = self.u_env_x.ravel()[cells.map_mem2ecm]
-            uy_mem = self.u_env_y.ravel()[cells.map_mem2ecm]
-
-        else:
-            ux_mem = 0
-            uy_mem = 0
-
-        # get the gradient of rho concentration around each membrane:
-
-        rho_pump = np.dot(cells.M_sum_mems, self.rho_pump)/cells.num_mems
-        rho_channel = np.dot(cells.M_sum_mems, self.rho_channel)/cells.num_mems
-
-        grad_c = (rho_pump[cells.cell_nn_i[:,0]] - rho_pump[cells.cell_nn_i[:,1]])/cells.nn_len
-        grad_c_ch = (rho_channel[cells.cell_nn_i[:,0]] - rho_channel[cells.cell_nn_i[:,1]])/cells.nn_len
-
-        # get the gradient components:
-        gcx = grad_c*cells.cell_nn_tx
-        gcy = grad_c*cells.cell_nn_ty
-
-        gcx_ch = grad_c_ch*cells.cell_nn_tx
-        gcy_ch = grad_c_ch*cells.cell_nn_ty
-
-        # total average electric field at each membrane
-        if p.sim_ECM is True:
-
-            Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
-            Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
-
-            # Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
-            # Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
-
-        else:
-            Ex = self.E_gj_x
-            Ey = self.E_gj_y
-
-        # calculate the total Nernst-Planck flux at each membrane for rho_pump factor:
-
-        fx_pump, fy_pump = stb.nernst_planck_flux(self.rho_pump, gcx, gcy, Ex, Ey,ux_mem,uy_mem,p.D_membrane,p.z_pump,
-            self.T,p)
-
-        # component of total flux in direction of membrane
-        # ftot = fx*cells.mem_vects_flat[:,4] + fy*cells.mem_vects_flat[:,5]
-
-        # map the flux to cell centres:
-        fx_pump_o = np.dot(cells.M_sum_mems,fx_pump)/cells.num_mems
-        fy_pump_o = np.dot(cells.M_sum_mems,fy_pump)/cells.num_mems
-
-        # divergence of the total flux:
-        gfx_o = (fx_pump_o[cells.cell_nn_i[:,1]] - fx_pump_o[cells.cell_nn_i[:,0]])/cells.nn_len
-
-        fxx = gfx_o*cells.cell_nn_tx
-
-        gfy_o = (fy_pump_o[cells.cell_nn_i[:,1]] - fy_pump_o[cells.cell_nn_i[:,0]])/cells.nn_len
-        fyy = gfy_o*cells.cell_nn_ty
-
-        divF_pump = fxx + fyy
-
-        self.rho_pump = self.rho_pump + divF_pump*p.dt
-
-        #------------------------------------------------
-        # calculate the total Nernst-Planck flux at each membrane for rho_channel factor:
-
-        fx_chan, fy_chan = stb.nernst_planck_flux(self.rho_channel, gcx_ch, gcy_ch, Ex, Ey,ux_mem,uy_mem,p.D_membrane,
-            p.z_channel,self.T,p)
-
-        # map the flux to cell centres:
-        fx_chan_o = np.dot(cells.M_sum_mems,fx_chan)/cells.num_mems
-        fy_chan_o = np.dot(cells.M_sum_mems,fy_chan)/cells.num_mems
-
-        # divergence of the total flux:
-        gfx_o = (fx_chan_o[cells.cell_nn_i[:,1]] - fx_chan_o[cells.cell_nn_i[:,0]])/cells.nn_len
-
-        fxx = gfx_o*cells.cell_nn_tx
-
-        gfy_o = (fy_chan_o[cells.cell_nn_i[:,1]] - fy_chan_o[cells.cell_nn_i[:,0]])/cells.nn_len
-        fyy = gfy_o*cells.cell_nn_ty
-
-        divF_chan = fxx + fyy
-
-        self.rho_channel = self.rho_channel + divF_chan*p.dt
-
-        if p.sim_ECM is False:
-
-            # average to the cell centre:
-            self.rho_pump_o = np.dot(cells.M_sum_mems, self.rho_pump)/cells.num_mems
-            self.rho_channel_o = np.dot(cells.M_sum_mems, self.rho_channel)/cells.num_mems
-
-        #------------------------------------------------
-        # make sure nothing is non-zero:
-        fix_inds = (self.rho_pump < 0).nonzero()
-        self.rho_pump[fix_inds] = 0
-
-        fix_inds2 = (self.rho_channel < 0).nonzero()
-        self.rho_channel[fix_inds2] = 0
-
     def get_ion(self,label):
         """
         Given a string input, returns the simulation index of the appropriate ion.
@@ -2643,477 +2201,6 @@ class Simulator(object):
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
 
-    def osmotic_P(self,cells,p):
-
-        # initialize osmotic pressures in cells and env
-
-        self.osmo_P_cell = np.zeros(len(self.cc_cells[0]))
-        self.osmo_P_env = np.zeros(len(self.cc_env[0]))
-
-        # calculate osmotic pressure in cells based on total molarity:
-        for c_ion in self.cc_cells:
-
-            self.osmo_P_cell = c_ion*p.R*self.T + self.osmo_P_cell
-
-        # calculate osmotic pressure in environment based on total molarity:
-
-        for c_ion_env in self.cc_env:
-
-            self.osmo_P_env = c_ion_env*p.R*self.T + self.osmo_P_env
-
-
-        if p.sim_ECM is False:
-
-            self.osmo_P_delta = self.osmo_P_cell - self.osmo_P_env
-
-        else:
-            # smooth out the environmental osmotic pressure:
-            self.osmo_P_env = self.osmo_P_env.reshape(cells.X.shape)
-            self.osmo_P_env = fd.integrator(self.osmo_P_env)
-            self.osmo_P_env = self.osmo_P_env.ravel()
-
-            self.osmo_P_delta = self.osmo_P_cell[cells.mem_to_cells] - self.osmo_P_env[cells.map_mem2ecm]
-
-            # average the pressure to individual cells
-            self.osmo_P_delta = np.dot(cells.M_sum_mems,self.osmo_P_delta)/cells.num_mems
-
-        # Calculate the transmembrane flow of water due to osmotic pressure.
-        # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
-        # resists the degree of osmotic influx. The effect also depends on aquaporin fraction in membrane:
-        u_osmo_o = (self.osmo_P_delta - self.P_cells)*(p.aquaporins/p.mu_water)
-
-        # map osmotic influx to membranes:
-        u_osmo = u_osmo_o[cells.mem_to_cells]
-
-        # calculate the flow due to net mass flux into the cell due to selective active/passive ion transport:
-        u_mass_flux = (1/p.rho)*self.get_mass_flux(cells,p)
-
-        u_net = u_osmo + u_mass_flux
-
-        # obtain the divergence of the flow in a timestep, which yields the fractional volume change:
-        div_u_osmo = p.dt*np.dot(cells.M_sum_mems,u_net*cells.mem_sa)/cells.cell_vol
-
-        # pressure developing in the cell depends on how much the volume can change:
-        P_react = (1 - (1/p.youngMod))*div_u_osmo
-
-        # the inflow of mass adds to base pressure in cells
-        # (this format is used to avoid conflict with pressure channels):
-        if p.run_sim is True:
-            self.P_base = self.P_base + P_react[:]
-
-        else:
-            self.P_cells = self.P_cells + P_react[:]
-
-        #------------------------------------------------------------------------------------------------------------
-        # actual volume change depends on the mechanical properties (young's modulus) of the
-        # tissue:
-
-        self.delta_vol = (1/p.youngMod)*div_u_osmo
-
-        # update concentrations and volume in the cell:
-        vo = cells.cell_vol[:]
-
-        v1 = (1 + self.delta_vol)*vo
-
-        self.cc_cells =self.cc_cells*(vo/v1)
-
-        # reassign cell volume:
-        cells.cell_vol = v1[:]
-
-        if p.sim_ECM is True:
-            vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
-            v1_ecm = (1 - self.delta_vol)*vo_ecm
-
-            for i, cc_array in enumerate(self.cc_env):
-                self.cc_env[i][cells.map_cell2ecm] = cc_array[cells.map_cell2ecm]*(vo_ecm/v1_ecm)
-
-            cells.ecm_vol[cells.map_cell2ecm] = v1_ecm
-
-        if p.voltage_dye is True:
-
-            self.cDye_cell= self.cDye_cell*(vo/v1)
-
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
-            self.cIP3 = self.cIP3*(vo/v1)
-
-    def getHydroF(self,cells,p):
-        #----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
-
-        # determine body force due to hydrostatic pressure gradient between cells:
-
-        gPcells = -(self.P_cells[cells.cell_nn_i[:,1]] - self.P_cells[cells.cell_nn_i[:,0]])/cells.nn_len
-
-        self.F_hydro_x_gj = gPcells*cells.cell_nn_tx
-        self.F_hydro_y_gj = gPcells*cells.cell_nn_ty
-
-        # calculate a shear electrostatic body force at the cell centre:
-        self.F_hydro_x = np.dot(cells.M_sum_mems, self.F_hydro_x_gj)/cells.num_mems
-        self.F_hydro_y = np.dot(cells.M_sum_mems, self.F_hydro_y_gj)/cells.num_mems
-
-        self.F_hydro = np.sqrt(self.F_hydro_x ** 2 + self.F_hydro_y ** 2)
-
-    def electro_P(self,cells,p):
-        """
-        Calculates electrostatic pressure in collection of cells and
-        an electrostatic body force.
-
-        """
-
-        # map charge in cell to the membrane, averaging between two cells:
-        Q_mem = (self.rho_cells[cells.cell_nn_i[:,1]] + self.rho_cells[cells.cell_nn_i[:,0]])/2
-
-        # calculate force at each membrane:
-        self.F_gj_x = Q_mem*self.Egj*cells.cell_nn_tx
-        self.F_gj_y = Q_mem*self.Egj*cells.cell_nn_ty
-
-        # calculate a shear electrostatic body force at the cell centre:
-        self.F_electro_x = np.dot(cells.M_sum_mems, self.F_gj_x)/cells.num_mems
-        self.F_electro_y = np.dot(cells.M_sum_mems, self.F_gj_y)/cells.num_mems
-
-        self.F_electro = np.sqrt(self.F_electro_x**2 + self.F_electro_y**2)
-
-        P_x = (self.F_electro_x*cells.cell_vol)/cells.cell_sa
-        P_y = (self.F_electro_y*cells.cell_vol)/cells.cell_sa
-
-        self.P_electro = np.sqrt(P_x**2 + P_y**2)
-
-    def getDeformation(self,cells,t,p):
-        """
-        Calculates the deformation of the cell cluster under the action
-        of intracellular forces and pressures, assuming steady-state
-        (slow) changes.
-
-        The method assumes that material is entirely incompressible.
-        First, the equation of linear elastic motion is used to calculate
-        deformation assuming full compressibility. Then, the divergence
-        is calculated, an internal reaction pressure is calculated from
-        the divergence, and the gradient of the reaction pressure is subtracted
-        from the initial solution to create a divergence-free deformation field.
-
-        """
-
-        # Determine action forces ------------------------------------------------
-
-        # body forces from hydrostatic pressure
-        F_hydro_x = self.F_hydro_x
-        F_hydro_y = self.F_hydro_y
-
-
-        # first determine body force components due to electrostatics, if desired:
-        if p.deform_electro is True:
-            F_electro_x = self.F_electro_x
-            F_electro_y = self.F_electro_y
-
-        else:
-
-            F_electro_x = np.zeros(len(cells.cell_i))
-            F_electro_y = np.zeros(len(cells.cell_i))
-
-        # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_hydro_x
-        F_cell_y = F_electro_y + F_hydro_y
-
-        # integrate the forces, as is mandated by finite volume methods:
-        F_cell_x = cells.integrator(F_cell_x)
-        F_cell_y = cells.integrator(F_cell_y)
-
-        #--calculate displacement field for incompressible medium------------------------------------------------
-
-        # calculate the initial displacement field (not divergence free!) for the forces using the linear elasticity
-        # equation:
-
-        if p.fixed_cluster_bound is True:
-
-            u_x_o = np.dot(cells.lapGJinv,-(1/p.lame_mu)*(F_cell_x))
-            u_y_o = np.dot(cells.lapGJinv,-(1/p.lame_mu)*(F_cell_y))
-
-            # enforce boundary conditions on u:
-            if p.fixed_cluster_bound is True:
-                u_x_o[cells.bflags_cells] = 0
-                u_y_o[cells.bflags_cells] = 0
-                u_x_o[cells.nn_bound] = 0
-                u_y_o[cells.nn_bound] = 0
-
-        else:
-
-            u_x_o = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*(F_cell_x))
-            u_y_o = np.dot(cells.lapGJ_P_inv,-(1/p.lame_mu)*(F_cell_y))
-
-         # first interpolate displacement field at membrane midpoints:
-        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_x_o,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),u_y_o,
-                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-
-        # get the component of the displacement field normal to the membranes:
-        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
-
-        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
-
-        # calculate the reaction pressure required to counter-balance the flow field:
-
-        # if p.fixed_cluster_bound is True:
-
-        P_react = np.dot(cells.lapGJ_P_inv,2*div_u)  # trial and error suggest this needs to be 2x the divergence?
-
-        # calculate its gradient:
-        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
-
-        gP_x = gradP_react*cells.cell_nn_tx
-        gP_y = gradP_react*cells.cell_nn_ty
-
-        # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
-        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
-
-        # calculate the displacement of cell centres under the applied force under incompressible conditions:
-        self.d_cells_x = u_x_o - gPx_cell
-        self.d_cells_y = u_y_o - gPy_cell
-
-        # # enforce boundary conditions:
-        if p.fixed_cluster_bound is True:
-            self.d_cells_x[cells.bflags_cells] = 0
-            self.d_cells_y[cells.bflags_cells] = 0
-            # self.d_cells_x[cells.nn_bound] = 0
-            # self.d_cells_y[cells.nn_bound] = 0
-
-    def timeDeform(self,cells,t,p):
-        """
-        Calculates the deformation of the cell cluster under the action
-        of intracellular pressure, considering the full time-dependent
-        linear elasticity equation for an incompressible medium.
-
-        The solution method for this equation is similar to the
-        steady-state method of deformation(). First the displacement
-        field is calculated assuming compressibility,
-        a reaction pressure is calculated from the divergence of the
-        initial field, and the gradient of the internal pressure is
-        subtracted from the initial field to produce a divergence
-        free solution.
-
-        This method is working much better than the timeDeform_o()
-        so is presently in active use.
-
-        """
-
-        # Check for the adequacy of the time step:
-        step_check = (p.dt/(2*p.rc))*np.sqrt(p.lame_mu/1000)
-
-        if step_check > 1.0:
-
-            new_ts = (0.9*2*p.rc)/(np.sqrt(p.lame_mu/1000))
-
-            raise BetseExceptionSimulation(
-                    'Time dependent deformation is tricky business, requiring a small time step! '
-                    'The time step you are using is too large to bother going further with. '
-                    'Please set your time step to ' + str(new_ts) + ' and try again.')
-
-        k_const = (p.dt**2)*(p.lame_mu/1000)
-
-
-        # # Determine action forces ------------------------------------------------
-
-        # body force from hydrostatic pressure:
-        F_hydro_x = self.F_hydro_x
-        F_hydro_y = self.F_hydro_y
-
-        # first determine body force components due to electrostatics, if desired:
-        if p.deform_electro is True:
-            F_electro_x = self.F_electro_x
-            F_electro_y = self.F_electro_y
-
-        else:
-
-            F_electro_x = np.zeros(len(cells.cell_i))
-            F_electro_y = np.zeros(len(cells.cell_i))
-
-
-        # Take the total component of pressure from all contributions:
-        F_cell_x = F_electro_x + F_hydro_x
-        F_cell_y = F_electro_y + F_hydro_y
-
-        # integrate the forces:
-        F_cell_x = cells.integrator(F_cell_x)
-        F_cell_y = cells.integrator(F_cell_y)
-
-
-        #-------------------------------------------------------------------------------------------------
-
-        self.dx_time.append(self.d_cells_x[:]) # append the solution to the time-save vector
-        self.dy_time.append(self.d_cells_y[:])
-
-
-        # Initial value solution--------------------------------------------------------------------------------
-        if t == 0.0:
-
-            wave_speed = np.sqrt(p.lame_mu/1000)
-            wave_speed = np.float(wave_speed)
-            wave_speed = np.round(wave_speed,2)
-
-            logs.log_info(
-                'Your wave speed is approximately: ' +
-                 str(wave_speed) + ' m/s '
-            )
-
-            logs.log_info('Try a world size of at least: ' + str(round((5 / 3) * (wave_speed / 500) * 1e6))
-                          + ' um for resonance.')
-
-            if p.fixed_cluster_bound is True:
-
-                self.d_cells_x = k_const*np.dot(cells.lapGJ,self.dx_time[-1]) + (k_const/p.lame_mu)*F_cell_x + \
-                                 self.dx_time[-1]
-                self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
-                                 self.dy_time[-1]
-
-            else:
-
-                self.d_cells_x = k_const*np.dot(cells.lapGJ_P,self.dx_time[-1]) + (k_const/p.lame_mu)*F_cell_x + \
-                                 self.dx_time[-1]
-                self.d_cells_y = k_const*np.dot(cells.lapGJ_P,self.dy_time[-1]) + (k_const/p.lame_mu)*F_cell_y + \
-                                 self.dy_time[-1]
-
-
-
-        elif t > 0.0:
-
-            # do the non-initial value, standard solution iteration:
-
-            # calculate the velocity for viscous damping:
-            d_ux_dt = (self.dx_time[-1] - self.dx_time[-2])/(p.dt)
-            d_uy_dt = (self.dy_time[-1] - self.dy_time[-2])/(p.dt)
-
-            gamma = ((p.dt**2)*(p.mu_tissue*p.lame_mu))/(1000*(2*p.rc))
-
-            if p.fixed_cluster_bound is True:
-
-                self.d_cells_x = k_const*np.dot(cells.lapGJ,self.dx_time[-1]) - gamma*d_ux_dt + \
-                           (k_const/p.lame_mu)*F_cell_x + 2*self.dx_time[-1] -self.dx_time[-2]
-
-                self.d_cells_y = k_const*np.dot(cells.lapGJ,self.dy_time[-1]) - gamma*d_uy_dt + \
-                           (k_const/p.lame_mu)*F_cell_y + 2*self.dy_time[-1] -self.dy_time[-2]
-
-            else:
-
-                self.d_cells_x = k_const*np.dot(cells.lapGJ_P,self.dx_time[-1]) - gamma*d_ux_dt + \
-                           (k_const/p.lame_mu)*F_cell_x + 2*self.dx_time[-1] -self.dx_time[-2]
-
-                self.d_cells_y = k_const*np.dot(cells.lapGJ_P,self.dy_time[-1]) - gamma*d_uy_dt + \
-                           (k_const/p.lame_mu)*F_cell_y + 2*self.dy_time[-1] -self.dy_time[-2]
-
-
-        # calculate divergence of u  -----------------------------------------------------------------------
-
-         # first interpolate displacement field at membrane midpoints:
-        ux_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_x,
-                         (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),fill_value = 0)
-
-        uy_mem = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),self.d_cells_y,
-                                 (cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]), fill_value = 0)
-
-        # get the component of the displacement field normal to the membranes:
-        u_n = ux_mem*cells.mem_vects_flat[:,2] + uy_mem*cells.mem_vects_flat[:,3]
-
-        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-        div_u = (np.dot(cells.M_sum_mems, u_n*cells.mem_sa)/cells.cell_vol)
-
-        # calculate the reaction pressure required to counter-balance the flow field:
-
-        P_react = np.dot(cells.lapGJ_P_inv,2*div_u)
-
-        # self.P_cells = (p.lame_mu/k_const)*P_react[:]
-
-        # calculate its gradient:
-        gradP_react = (P_react[cells.cell_nn_i[:,1]] - P_react[cells.cell_nn_i[:,0]])/(cells.nn_len)
-
-        gP_x = gradP_react*cells.cell_nn_tx
-        gP_y = gradP_react*cells.cell_nn_ty
-
-        # average the components of the reaction force field at cell centres and get boundary values:
-        gPx_cell = np.dot(cells.M_sum_mems,gP_x)/cells.num_mems
-        gPy_cell = np.dot(cells.M_sum_mems,gP_y)/cells.num_mems
-
-        # calculate the displacement of cell centres under the applied force under incompressible conditions:
-        self.d_cells_x = self.d_cells_x - gPx_cell
-        self.d_cells_y = self.d_cells_y - gPy_cell
-
-        if p.fixed_cluster_bound is True: # enforce zero displacement boundary condition:
-
-            self.d_cells_x[cells.bflags_cells] = 0
-            self.d_cells_y[cells.bflags_cells] = 0
-
-            self.d_cells_x[cells.nn_bound] = 0
-            self.d_cells_y[cells.nn_bound] = 0
-
-        # check the displacement for NANs:
-        stb.check_v(self.d_cells_x)
-
-    def get_mass_flux(self,cells,p):
-        """
-        Sum up individual trans-membrane and
-        trans-gap junction ion fluxes to obtain the
-        net flow of mass into a cell.
-
-        Assumes that each ion travels with a hydration
-        shell of 6 water molecules.
-
-        """
-
-         # calculate mass flux across cell membranes:
-        mass_flux = np.zeros(len(cells.mem_i))
-
-        for flux_array, mm in zip(self.fluxes_mem,self.molar_mass):
-
-            m_flx = flux_array*(mm + 6*18.01e-3)  # flux x molar mass of ion x 6 water molecules at 18e-3 kg/mol
-
-            mass_flux = mass_flux + m_flx
-
-        return mass_flux
-
-        # # total mass change in cell
-        # mass_change = self.mass_flux*p.dt*cells.mem_sa
-        # # sum the change over the membranes to get the total mass change of salts:
-        # self.delta_m_salts = np.dot(cells.M_sum_mems,mass_change)
-
-    def implement_deform_timestep(self,cells,t,p):
-        # Map individual cell deformations to their membranes. In this case,
-        # this is better than interpolation.
-        ux_at_mem = self.d_cells_x[cells.mem_to_cells]
-        uy_at_mem = self.d_cells_y[cells.mem_to_cells]
-
-        ux_at_ecm = np.dot(cells.M_sum_mem_to_ecm, ux_at_mem)
-        uy_at_ecm = np.dot(cells.M_sum_mem_to_ecm, uy_at_mem)
-
-        # get new ecm verts:
-        new_ecm_verts_x = self.ecm_verts_unique_to[:,0] + np.dot(cells.deforM,ux_at_ecm)
-        new_ecm_verts_y = self.ecm_verts_unique_to[:,1] + np.dot(cells.deforM,uy_at_ecm)
-
-        ecm_new = np.column_stack((new_ecm_verts_x,new_ecm_verts_y))
-
-        # set the voronoi points originally tagged to the ecm to the value of these new points
-        cells.voronoi_grid[cells.map_voronoi2ecm] = ecm_new[:]
-
-        # recreate ecm_verts_unique:
-        cells.ecm_verts_unique = ecm_new[:]
-
-        # Repackage ecm verts so that the World module can do its magic:
-        ecm_new_flat = ecm_new[cells.ecmInds]  # first expand it to a flattened form (include duplictes)
-
-        # Repackage the structure to include individual cell data.
-        cells.ecm_verts = [] # null the original ecm verts data structure...
-
-        # Convert region to a numpy array so it can be sorted.
-        for i in range(0, len(cells.cell_to_mems)):
-            ecm_nest = ecm_new_flat[cells.cell_to_mems[i]]
-            ecm_nest = np.asarray(ecm_nest)
-            cells.ecm_verts.append(ecm_nest)
-
-        # Voila! Deformed ecm_verts!
-        cells.ecm_verts = np.asarray(cells.ecm_verts)
-        cells.deformWorld(p)
-
 
     # ..................{ PLOTTERS                           }..................
 
@@ -3133,11 +2220,6 @@ class Simulator(object):
             plotted animations, for example.
         '''
 
-        # Human-readable state of extracellular spaces simulation.
-        if p.sim_ECM is False:
-            ecm_state_label = ''
-        else:
-            ecm_state_label = '(with extracellular spaces) '
 
         # Human-readable type and maximum number of steps of the current run.
         if p.run_sim is False:
@@ -3163,12 +2245,11 @@ class Simulator(object):
             i += p.t_resample
             tsamples.add(tt[i])
 
-        # Log this run. # FIXME can we please say "with x total time steps (y sampled)" for brevity? XOXOXXX!
+        # Log this run.
         logs.log_info(
-            'Your {} {}is running from 0 to {:.1f} seconds of in-world time '
-            'with {} unsampled and {} sampled time steps.'.format(
+            'Your {} is running from 0 to {:.1f} seconds of in-world time '
+            'in {} time-steps ({} sampled).'.format(
             loop_type_label,
-            ecm_state_label,
             loop_seconds_max,
             len(tt),
             len(tsamples),
