@@ -31,25 +31,18 @@ class Simulator(object):
 
     Methods
     -------
-    baseInit(cells,p)           Prepares data structures for a cell-only simulation
+    baseInit_all(cells,p)           Prepares core data structures necessary for initialization and sim runs
 
-    baseInit_ECM(cells,p)      Prepares data structures for a simulation with extracellular spaces
+    update_V(cells,p,t)             Gets charge densities in cells and environment
+                                      and calculates respective voltages.
 
-    update_V_ecm(cells,p,t)    For sims with environmental spaces, gets charge densities in cells and environment
-                                and calculates respective voltages.
-
-    update_C_ecm(ion_i,flux, cells, p)     For sims with full environment, updates concentration of ion with index
+    update_C(ion_i,flux, cells, p)     Updates concentration of ion with index
                                             ion_i in cell and environment for a flux leaving the cell.
 
-    Hplus_electrofuse_ecm(cells,p,t)        For sims with full environment, updates H+ concentrations in cell and
+    acid_handler(cells,p,t)        Updates H+ concentrations in cell and
                                             environment, which are further influenced by the bicarbonate buffer action.
-
-    Hplus_HKATP_ecm(cells,p,t)              For sims with full environment, runs the HKATPase pump and updates H+ and K+
-                                            concentrations under the action of the bicarbonate buffer system.
-
-    Hplus_VATP_ecm(cells,p,t)               For sims with full environment, runs the VATPase pump and updates H+
-                                            concentrations in cell and environment, which are further influenced by the
-                                            bicarbonate buffer action.
+                                            Also, if included, runs the HKATPase pump and if included, runs the
+                                            VATPase pump.
 
     update_gj(cells,p,t,i)                  Calculates the voltage gradient between two cells, the gating character of
                                             gap junctions, and updates concentration for ion 'i' and voltage of each
@@ -58,15 +51,6 @@ class Simulator(object):
     update_ecm(cells,p,t,i)                 Updates the environmental spaces by calculating electrodiffusive transport
                                             of ion 'i'.
 
-    update_er(cells,p,t)                    Updates concentrations in the endoplasmic reticulum.
-
-    update_dye(cells,p,t)                   Updates concentration of morphogen in cells and environment by calculating
-                                            electrodiffusive transport across membranes, between gj connected cells, and
-                                            through environmental spaces.
-
-    update_IP3(cells,p,t)                   Updates concentration of IP3 in cells and environment by calculating
-                                            electrodiffusive transport across membranes, between gj connected cells, and
-                                            through environmental spaces.
 
     get_Efield(cells,p)                     Calculates electric fields in cells and environment.
 
@@ -618,7 +602,7 @@ class Simulator(object):
         else:
             self.VATP_block = 1
 
-        # -----auxillary molecules initialization -------------------------
+        # -----auxiliary molecules initialization -------------------------
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
@@ -651,6 +635,9 @@ class Simulator(object):
             self.Dye_flux_mem = np.zeros(len(cells.mem_i))
 
             self.c_dye_bound = p.cDye_to    # concentration of dye at the global boundaries
+
+            self.cDye_env = np.zeros(len(cells.cell_i))
+            self.cDye_env[:] = p.cDye_to
 
             if p.Dye_target_channel != 'None':
 
@@ -780,17 +767,6 @@ class Simulator(object):
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells, p)
 
-            # -------------------------------------- FIXME shift these to after main comps
-
-            if p.ions_dict['Ca'] == 1:  # FIXME do in Ca handler!
-
-                self.ca_handler(cells,p)
-
-
-
-            if p.ions_dict['H'] == 1:
-
-                self.acid_handler(cells,p)
 
             # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
 
@@ -838,6 +814,48 @@ class Simulator(object):
                 # # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V(cells, p)
 
+            # ----transport and handling of special ions---------------------------------------------------------------
+
+            if p.ions_dict['Ca'] == 1:
+
+                self.ca_handler(cells, p)
+
+            if p.ions_dict['H'] == 1:
+                self.acid_handler(cells, p)
+
+            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+
+                self.cIP3, self.cIP3_env, _, _, _, _, _ = stb.molecule_mover(self, self.cIP3,
+                    self.cIP3_env, cells, p, p.z_IP3, p.Dm_IP3,
+                    p.Do_IP3, 0)
+
+            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
+            if p.voltage_dye == 1:
+
+                if p.pump_Dye is True:
+
+                    self.cDye_cell, self.cDye_env, fx = stb.molecule_pump(self, self.cDye_cell, self.cDye_env,
+                                                                    cells, p, z=p.z_Dye, pump_into_cell=p.pump_Dye_in,
+                                                                    alpha_max=p.pump_Dye_alpha, Km_X=1.0e-3,
+                                                                    Km_ATP=1.0)
+
+
+                self.cDye_cell, self.cDye_env, _, _, _, _, _ = stb.molecule_mover(self,self.cDye_cell,
+                                                                    self.cDye_env,cells, p,p.z_Dye,p.Dm_Dye,
+                                                                    p.Do_Dye,self.c_dye_bound)
+
+            # dynamic noise handling-----------------------------------------------------------------------------------
+
+            if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
+                # add a random walk on protein concentration to generate dynamic noise:
+                self.protein_noise_factor = p.dynamic_noise_level * (np.random.random(len(cells.cell_i)) - 0.5)
+                self.cc_cells[self.iP] = self.cc_cells[self.iP] * (1 + self.protein_noise_factor)
+
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                self.update_V(cells, p)
+
+            #-----forces, fields, and flow-----------------------------------------------------------------------------
+
             self.get_Efield(cells, p)
             # get forces from any hydrostatic (self.P_Cells) pressure:
             self.getHydroF(cells, p)
@@ -874,29 +892,12 @@ class Simulator(object):
 
                     self.timeDeform(cells, t, p)
 
-            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-                self.update_IP3(cells, p, t)
-
-            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-                self.update_er(cells, p, t)
-
-            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
-            if p.voltage_dye == 1:
-                self.update_dye(cells, p, t)
-
-            if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
-                # add a random walk on protein concentration to generate dynamic noise:
-                self.protein_noise_factor = p.dynamic_noise_level * (np.random.random(len(cells.cell_i)) - 0.5)
-                self.cc_cells[self.iP] = self.cc_cells[self.iP] * (1 + self.protein_noise_factor)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V(cells, p)
-
             stb.check_v(self.vm)
 
             # ---------time sampling and data storage---------------------------------------------------
 
             if t in tsamples:
+
                 self.get_current(cells, p)  # get the current in the gj network connection of cells
 
                 self.write2storage(t, cells, p)  # write data to time storage vectors
@@ -1357,13 +1358,59 @@ class Simulator(object):
 
             c_env = c_env + delta_env * p.dt
             # assume auto-mixing of environmental concentrations:
-            self.cc_env[ion_i] = c_env.mean()
+            self.cc_env[ion_i][:] = c_env.mean()
 
         # ensure that there are no negative values in the cells or the extracellular spaces:
         for i, arr in enumerate(self.cc_cells):
             self.cc_cells[i] = stb.no_negs(arr)
         for i, arr in enumerate(self.cc_env):
             self.cc_env[i] = stb.no_negs(arr)
+
+    def update_Co(self,cX_cell,cX_env,flux,cells,p):
+        """
+
+        General updater for a concentration defined on
+        cells and in environment.
+
+        Parameters
+        --------------
+        cX_cell     Concentration inside cell  [mol/m3]
+        cX_env      Concentration in extracellular spaces [mol/m3]
+        flux        Flux of X, where into cell is +   [mol/m2 s]
+        cells       Instance of Cells
+        p           Instance of Parameters
+
+        Returns
+        --------------
+        cX_cell     Updated concentration in cell [mol/m3]
+        cX_env      Updated concentration in environment [mol/m3]
+
+        """
+
+        if p.sim_ECM is True:
+
+            d_c_cells = flux * (cells.mem_sa / cells.cell_vol[cells.mem_to_cells])
+            d_c_env = -flux * (cells.mem_sa / cells.ecm_vol[cells.map_mem2ecm])
+
+            delta_cells = np.dot(d_c_cells, cells.cell_UpdateMatrix)
+            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+
+            cX_cell = cX_cell + delta_cells * p.dt
+            cX_env = cX_env + delta_env * p.dt
+
+        else:
+
+            delta_cells = flux * (cells.cell_sa / cells.cell_vol)
+            delta_env = -flux * (cells.cell_sa / p.vol_env)
+
+            cX_cell = cX_cell + delta_cells * p.dt
+
+            cX_env_o = cX_env + delta_env * p.dt
+
+            # assume auto-mixing of environmental concentrations:
+            cX_env[:] = cX_env_o.mean()
+
+        return cX_cell, cX_env
 
     def acid_handler(self,cells,p): # FIXME update for sim_ECM = True *&* False
 
@@ -1545,7 +1592,10 @@ class Simulator(object):
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling  # FIXME not right!
 
-            f_Ca_ER = stb.pumpCaER(
+
+            # run Ca-ATPase pump to the endoplasmic reticulum:
+
+            f_Ca_ER_pump = stb.pumpCaER(
                 self.cc_er[0],
                 self.cc_cells[self.iCa],
                 self.v_er,
@@ -1553,353 +1603,37 @@ class Simulator(object):
                 p,
             )
 
+
+            # electrodiffusion of ions between cell and endoplasmic reticulum
+            f_Ca_ER = \
+                stb.electroflux(self.cc_cells[self.iCa], self.cc_er[0], self.Dm_er[0], self.tm, self.z_er[0],
+                    self.v_er, self.T, p)
+
+            # Electrodiffusion of charge compensation anion
+            f_M_ER = \
+                stb.electroflux(self.cc_cells[self.iM], self.cc_er[1], self.Dm_er[1], self.tm, self.z_er[1],
+                    self.v_er, self.T, p)
+
+            f_calcium = f_Ca_ER + f_Ca_ER_pump
+
             # update calcium concentrations in the ER and cell:
-            self.cc_er[0] = self.cc_er[0] + f_Ca_ER * ((cells.cell_sa) / (p.ER_vol * cells.cell_vol)) * p.dt
-            self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_Ca_ER * (
+            self.cc_er[0] = self.cc_er[0] + f_calcium * ((cells.cell_sa) / (p.ER_vol * cells.cell_vol)) * p.dt
+
+            self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_calcium * (
                 cells.cell_sa / cells.cell_vol) * p.dt
+
+            # update anion concentration in the ER and cell:
+            self.cc_er[1] = self.cc_er[1] + f_M_ER * ((cells.cell_sa) / (p.ER_vol * cells.cell_vol)) * p.dt
+            self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_M_ER * (cells.cell_sa / cells.cell_vol) * p.dt
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells, p)
 
-            # calculate the net, unbalanced charge and voltage in the endoplasmic reticulum:
+            # get the charge in the endoplasmic reticulum
             q_er = stb.get_charge(self.cc_er, self.z_array_er, p.ER_vol * cells.cell_vol, p)
-            v_er_o = stb.get_volt(q_er, p.ER_sa * cells.cell_sa, p)
 
-            self.v_er = v_er_o - self.v_cell
-
-    def molecule_mover(self,cX_cell,cX_env,cells,p):
-
-        # ------------------------------------------------------------
-        # pump dye and update result
-
-        if p.sim_ECM is True:
-
-            if p.pump_Dye is True:
-
-                if p.pump_Dye_out is True:
-
-                    # active pumping of dye from environment and into cell
-                    deltaGATP = 20 * p.R * self.T
-
-                    delG_dye = p.R * p.T * np.log(self.cDye_cell[cells.mem_to_cells] / self.cDye_env[cells.map_mem2ecm]) \
-                               + p.z_Dye * p.F * self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP / 1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha * delG_pump
-
-                    f_Dye_pump = self.rho_pump * alpha * (self.cDye_env[cells.map_mem2ecm])
-
-                    d_dye_cells = self.rho_pump * f_Dye_pump * (cells.mem_sa / cells.cell_vol[cells.mem_to_cells])
-                    d_dye_env = -self.rho_pump * f_Dye_pump * (cells.mem_sa / cells.ecm_vol[cells.map_mem2ecm])
-
-                    delta_cells = np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-                    delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
-
-                else:
-
-                    # active pumping of dye from environment and into cell
-                    deltaGATP = 20 * p.R * self.T
-
-                    delG_dye = p.R * p.T * np.log(self.cDye_env[cells.map_mem2ecm] / self.cDye_cell[cells.mem_to_cells]) \
-                               - p.z_Dye * p.F * self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP / 1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha * delG_pump
-
-                    f_Dye_pump = self.rho_pump * alpha * (self.cDye_cell[cells.mem_to_cells])
-
-                    d_dye_cells = -self.rho_pump * f_Dye_pump * (cells.mem_sa / cells.cell_vol[cells.mem_to_cells])
-                    d_dye_env = self.rho_pump * f_Dye_pump * (cells.mem_sa / cells.ecm_vol[cells.map_mem2ecm])
-
-                    delta_cells = np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-                    delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
-
-                self.cDye_cell = self.cDye_cell + delta_cells * p.dt
-
-                self.cDye_env = self.cDye_env + delta_env * p.dt
-
-                # ensure that there are no negative values
-                self.cDye_cell = stb.no_negs(self.cDye_cell)
-                self.cDye_env = stb.no_negs(self.cDye_env)
-
-        elif p.sim_ECM is False:
-
-            if p.pump_Dye is True:
-
-                if p.pump_Dye_out is True:
-
-                    # active pumping of dye from environment and into cell
-                    deltaGATP = 20 * p.R * self.T
-
-                    delG_dye = p.R * p.T * np.log(self.cDye_cell / self.cDye_env) \
-                               + p.z_Dye * p.F * self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP / 1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha * delG_pump
-
-                    f_Dye_pump = self.rho_pump * alpha * (self.cDye_env)
-
-                    d_dye_cells = f_Dye_pump * (cells.cell_sa / cells.cell_vol)
-
-                    # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-
-
-                else:
-
-                    # active pumping of dye from cell and into environment
-                    deltaGATP = 20 * p.R * self.T
-
-                    delG_dye = p.R * p.T * np.log(self.cDye_env / self.cDye_cell) \
-                               - p.z_Dye * p.F * self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP / 1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha * delG_pump
-
-                    f_Dye_pump = self.rho_pump * alpha * (self.cDye_cell)
-
-                    d_dye_cells = -f_Dye_pump * (cells.cell_sa / cells.cell_vol)
-
-                    # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-
-                self.cDye_cell = self.cDye_cell + d_dye_cells * p.dt
-
-        # electrodiffuse dye between cell and extracellular space--------------------------------------------------
-        if p.sim_ECM is False:
-
-            fdye_ED = stb.electroflux(self.cDye_env, self.cDye_cell, self.id_cells * p.Dm_Dye, self.tm, p.z_Dye,
-                self.vm,
-                self.T, p, rho=self.rho_channel_o)
-
-            # update dye concentration
-            self.cDye_cell = self.cDye_cell + fdye_ED * (cells.cell_sa / cells.cell_vol) * p.dt
-
-        elif p.sim_ECM is True:
-
-            flux_dye = stb.electroflux(self.cDye_env[cells.map_mem2ecm], self.cDye_cell[cells.mem_to_cells],
-                np.ones(len(cells.mem_i)) * p.Dm_Dye, self.tm, p.z_Dye, self.vm, self.T, p)
-
-            # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-            d_c_cells = self.rho_channel * flux_dye * (cells.mem_sa / cells.cell_vol[cells.mem_to_cells])
-            d_c_env = self.rho_channel * flux_dye * (cells.mem_sa / cells.ecm_vol[cells.map_mem2ecm])
-
-            delta_cells = np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
-
-            self.cDye_cell = self.cDye_cell + delta_cells * p.dt
-
-            self.cDye_env = self.cDye_env - delta_env * p.dt
-
-            # ensure that there are no negative values
-            self.cDye_cell = stb.no_negs(self.cDye_cell)
-            self.cDye_env = stb.no_negs(self.cDye_env)
-
-        # ------------------------------------------------------------
-
-        # Update dye concentration in the gj connected cell network:
-
-        # voltage gradient:
-        grad_vgj = self.vgj / cells.gj_len
-
-        grad_vgj_x = grad_vgj * cells.cell_nn_tx
-        grad_vgj_y = grad_vgj * cells.cell_nn_ty
-
-        # concentration gradient for Dye:
-        Dye_mems = self.cDye_cell[cells.mem_to_cells]
-
-        grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i]) / cells.gj_len
-
-        grad_cgj_x = grad_cgj * cells.cell_nn_tx
-        grad_cgj_y = grad_cgj * cells.cell_nn_ty
-
-        # midpoint concentration:
-        cdye = (Dye_mems[cells.nn_i] + Dye_mems[cells.mem_i]) / 2
-
-        # electroosmotic fluid velocity:
-        if p.fluid_flow is True:
-
-            ux = (self.u_cells_x[cells.cell_nn_i[:, 0]] + self.u_cells_x[cells.cell_nn_i[:, 1]]) / 2
-            uy = (self.u_cells_y[cells.cell_nn_i[:, 0]] + self.u_cells_y[cells.cell_nn_i[:, 1]]) / 2
-
-        else:
-            ux = 0
-            uy = 0
-
-        fgj_x_dye, fgj_y_dye = stb.nernst_planck_flux(cdye, grad_cgj_x, grad_cgj_y, grad_vgj_x, grad_vgj_y, ux, uy,
-            p.Do_Dye * self.gjopen, p.z_Dye, self.T, p)
-
-        fgj_dye = fgj_x_dye * cells.cell_nn_tx + fgj_y_dye * cells.cell_nn_ty
-
-        # divergence calculation for individual cells (finite volume expression)
-        delta_cc = np.dot(cells.gjMatrix * p.gj_surface * self.gjopen, -fgj_dye * cells.mem_sa) / cells.cell_vol
-
-        self.cDye_cell = self.cDye_cell + p.dt * delta_cc
-
-        self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
-        self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
-
-        # transport dye through environment: _________________________________________________________
-        if p.sim_ECM is True:
-
-            if p.closed_bound is True:
-                btag = 'closed'
-
-            else:
-                btag = 'open'
-                # make v_env and cc_env into 2d matrices
-            cenv = self.cDye_env[:]
-            denv = p.Do_Dye * np.ones(len(cells.xypts))
-
-            v_env = self.v_env.reshape(cells.X.shape)
-
-            v_env[:, 0] = self.bound_V['L']
-            v_env[:, -1] = self.bound_V['R']
-            v_env[0, :] = self.bound_V['B']
-            v_env[-1, :] = self.bound_V['T']
-
-            cenv = cenv.reshape(cells.X.shape)
-
-            # prepare concentrations and diffusion constants for MACs grid format
-            # by resampling the values at the u v coordinates of the flux:
-            cenv_x = np.zeros(cells.grid_obj.u_shape)
-            cenv_y = np.zeros(cells.grid_obj.v_shape)
-
-            # create the proper shape for the concentrations and state appropriate boundary conditions::
-            cenv_x[:, 1:] = cenv[:]
-            cenv_x[:, 0] = cenv_x[:, 1]
-            cenv_y[1:, :] = cenv[:]
-            cenv_y[0, :] = cenv_y[1, :]
-
-            if p.closed_bound is True:  # insulation boundary conditions
-                cenv_x[:, 0] = cenv_x[:, 1]
-                cenv_x[:, -1] = cenv_x[:, -2]
-                cenv_x[0, :] = cenv_x[1, :]
-                cenv_x[-1, :] = cenv_x[-2, :]
-
-                cenv_y[0, :] = cenv_y[1, :]
-                cenv_y[-1, :] = cenv_y[-2, :]
-                cenv_y[:, 0] = cenv_y[:, 1]
-                cenv_y[:, -1] = cenv_y[:, -2]
-
-            else:  # open and electrically grounded boundary conditions
-                cenv_x[:, 0] = self.c_dye_bound
-                cenv_x[:, -1] = self.c_dye_bound
-                cenv_x[0, :] = self.c_dye_bound
-                cenv_x[-1, :] = self.c_dye_bound
-
-                cenv_y[0, :] = self.c_dye_bound
-                cenv_y[-1, :] = self.c_dye_bound
-                cenv_y[:, 0] = self.c_dye_bound
-                cenv_y[:, -1] = self.c_dye_bound
-
-            denv = denv.reshape(cells.X.shape)
-
-            denv_x = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]), denv.ravel(),
-                (cells.grid_obj.u_X, cells.grid_obj.u_Y), method='nearest', fill_value=p.Do_Dye)
-
-            denv_y = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]), denv.ravel(),
-                (cells.grid_obj.v_X, cells.grid_obj.v_Y), method='nearest', fill_value=p.Do_Dye)
-
-            # denv_x = denv_x*self.D_env_weight_u
-            # denv_y = denv_y*self.D_env_weight_v
-
-            # calculate gradients in the environment
-            grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env, bounds='closed')
-
-            grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv, bounds=btag)
-
-            # calculate fluxes for electrodiffusive transport:
-
-            if p.fluid_flow is True:
-
-                uenvx = np.zeros(cells.grid_obj.u_shape)
-                uenvy = np.zeros(cells.grid_obj.v_shape)
-
-                uenvx[:, 1:] = self.u_env_x
-                uenvy[1:, :] = self.u_env_y
-
-                if p.closed_bound is False:
-
-                    uenvx[:, 0] = uenvx[:, 1]
-                    uenvx[:, -1] = uenvx[:, -2]
-                    uenvx[0, :] = uenvx[1, :]
-                    uenvx[-1, :] = uenvx[-2, :]
-
-                    uenvy[:, 0] = uenvy[:, 1]
-                    uenvy[:, -1] = uenvy[:, -2]
-                    uenvy[0, :] = uenvy[1, :]
-                    uenvy[-1, :] = uenvy[-2, :]
-
-                else:
-
-                    uenvx[:, 0] = 0
-                    uenvx[:, -1] = 0
-                    uenvx[0, :] = 0
-                    uenvx[-1, :] = 0
-
-                    uenvy[:, 0] = 0
-                    uenvy[:, -1] = 0
-                    uenvy[0, :] = 0
-                    uenvy[-1, :] = 0
-
-            else:
-                uenvx = 0
-                uenvy = 0
-
-            f_env_x_dye, f_env_y_dye = stb.np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
-                grad_V_env_x, grad_V_env_y, uenvx, uenvy, denv_x, denv_y, p.z_Dye, self.T, p)
-
-            # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
-            d_fenvx = -(f_env_x_dye[:, 1:] - f_env_x_dye[:, 0:-1]) / cells.delta
-            d_fenvy = -(f_env_y_dye[1:, :] - f_env_y_dye[0:-1, :]) / cells.delta
-
-            delta_c = d_fenvx + d_fenvy
-
-            cenv = cenv + delta_c * p.dt
-
-            cenv = fd.integrator(cenv)
-
-            if p.closed_bound is True:
-                # Neumann boundary condition (flux at boundary)
-                # zero flux boundaries for concentration:
-                cenv[:, -1] = cenv[:, -2]
-                cenv[:, 0] = cenv[:, 1]
-                cenv[0, :] = cenv[1, :]
-                cenv[-1, :] = cenv[-2, :]
-
-            elif p.closed_bound is False:
-                # if the boundary is open, set the concentration at the boundary
-                # open boundary
-                cenv[:, -1] = self.c_dye_bound
-                cenv[:, 0] = self.c_dye_bound
-                cenv[0, :] = self.c_dye_bound
-                cenv[-1, :] = self.c_dye_bound
-
-            # reshape the matrices into vectors:
-            # self.v_env = self.v_env.ravel()
-            self.cDye_env = cenv.ravel()
-
-            # average flux at the midpoint of the MACs grid:
-            fenvx = (f_env_x_dye[:, 1:] + f_env_x_dye[:, 0:-1]) / 2
-            fenvy = (f_env_y_dye[1:, :] + f_env_y_dye[0:-1, :]) / 2
-
-            self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
-            self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
-
-            # ensure that there are no negative values
-            self.cDye_cell = stb.no_negs(self.cDye_cell)
-            self.cDye_env = stb.no_negs(self.cDye_env)
+            # get the voltage across the endoplasmic reticulum
+            self.v_er = stb.get_volt(q_er, p.ER_sa * cells.cell_sa, p)
 
     def update_gj(self,cells,p,t,i):
 
@@ -1944,10 +1678,6 @@ class Simulator(object):
             self.gjopen[inds_gj_under] = 0.0
 
             self.gjopen = self.gj_block*self.gjopen
-
-            # print(self.gjopen.min(),self.gjopen.max())
-            # print('---------------------------')
-
 
 
         else:
@@ -2180,553 +1910,6 @@ class Simulator(object):
 
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
-
-    # FIXME get the following in to Ca handler
-
-    def update_er(self,cells,p,t):
-
-         # electrodiffusion of ions between cell and endoplasmic reticulum
-        f_Ca_ER = \
-        stb.electroflux(self.cc_cells[self.iCa],self.cc_er[0],self.Dm_er[0],self.tm,self.z_er[0],self.v_er,self.T,p)
-
-        # Electrodiffusion of charge compensation anion
-        f_M_ER = \
-        stb.electroflux(self.cc_cells[self.iM],self.cc_er[1],self.Dm_er[1],self.tm,self.z_er[1],self.v_er,self.T,p)
-
-        # update calcium concentrations in the ER and cell:
-        self.cc_er[0] = self.cc_er[0] + f_Ca_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
-        self.cc_cells[self.iCa] = self.cc_cells[self.iCa] - f_Ca_ER*(cells.cell_sa/cells.cell_vol)*p.dt
-
-        # update anion concentration in the ER and cell:
-        self.cc_er[1] = self.cc_er[1] + f_M_ER*((cells.cell_sa)/(p.ER_vol*cells.cell_vol))*p.dt
-        self.cc_cells[self.iM] = self.cc_cells[self.iM] - f_M_ER*(cells.cell_sa/cells.cell_vol)*p.dt
-
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V(cells,p,t)
-
-        q_er = stb.get_charge(self.cc_er,self.z_array_er,p.ER_vol*cells.cell_vol,p)
-        self.v_er = stb.get_volt(q_er,p.ER_sa*cells.cell_sa,p) - self.v_cell
-
-    # FIXME the following 2 are to be done with the new molecule mover, streamlined for +/- ecm
-
-    def update_dye(self,cells,p,t):
-
-        #------------------------------------------------------------
-        # pump dye and update result
-
-        if p.sim_ECM is True:
-
-
-            if p.pump_Dye is True:
-
-                if p.pump_Dye_out is True:
-
-                    # active pumping of dye from environment and into cell
-                    deltaGATP = 20*p.R*self.T
-
-                    delG_dye = p.R*p.T*np.log(self.cDye_cell[cells.mem_to_cells]/self.cDye_env[cells.map_mem2ecm]) \
-                               + p.z_Dye*p.F*self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP/1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha*delG_pump
-
-                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
-
-                    d_dye_cells = self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-                    d_dye_env = -self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
-
-                    delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-                    delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
-
-                else:
-
-                     # active pumping of dye from environment and into cell
-                    deltaGATP = 20*p.R*self.T
-
-                    delG_dye = p.R*p.T*np.log(self.cDye_env[cells.map_mem2ecm]/self.cDye_cell[cells.mem_to_cells]) \
-                               - p.z_Dye*p.F*self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP/1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha*delG_pump
-
-                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell[cells.mem_to_cells])
-
-                    d_dye_cells = -self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-                    d_dye_env = self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
-
-                    delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-                    delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
-
-                self.cDye_cell = self.cDye_cell + delta_cells*p.dt
-
-                self.cDye_env = self.cDye_env + delta_env*p.dt
-
-                # ensure that there are no negative values
-                self.cDye_cell = stb.no_negs(self.cDye_cell)
-                self.cDye_env = stb.no_negs(self.cDye_env)
-
-        elif p.sim_ECM is False:
-
-            if p.pump_Dye is True:
-
-                if p.pump_Dye_out is True:
-
-                    # active pumping of dye from environment and into cell
-                    deltaGATP = 20*p.R*self.T
-
-                    delG_dye = p.R*p.T*np.log(self.cDye_cell/self.cDye_env) \
-                               + p.z_Dye*p.F*self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP/1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha*delG_pump
-
-                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env)
-
-                    d_dye_cells = f_Dye_pump*(cells.cell_sa/cells.cell_vol)
-
-                    # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-
-
-                else:
-
-                     # active pumping of dye from cell and into environment
-                    deltaGATP = 20*p.R*self.T
-
-                    delG_dye = p.R*p.T*np.log(self.cDye_env/self.cDye_cell) \
-                               - p.z_Dye*p.F*self.vm
-
-                    delG_dyeATP = deltaGATP - delG_dye
-                    delG_pump = (delG_dyeATP/1000)
-
-                    # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
-                    alpha = p.pump_Dye_alpha*delG_pump
-
-                    f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell)
-
-                    d_dye_cells = -f_Dye_pump*(cells.cell_sa/cells.cell_vol)
-
-                    # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
-
-                self.cDye_cell = self.cDye_cell + d_dye_cells*p.dt
-
-        # electrodiffuse dye between cell and extracellular space--------------------------------------------------
-        if p.sim_ECM is False:
-
-            fdye_ED = stb.electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
-                self.T,p,rho=self.rho_channel_o)
-
-            # update dye concentration
-            self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
-
-        elif p.sim_ECM is True:
-
-            flux_dye = stb.electroflux(self.cDye_env[cells.map_mem2ecm],self.cDye_cell[cells.mem_to_cells],
-                            np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
-
-            # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-            d_c_cells = self.rho_channel*flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_c_env = self.rho_channel*flux_dye*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
-
-            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
-
-            self.cDye_cell = self.cDye_cell + delta_cells*p.dt
-
-            self.cDye_env = self.cDye_env - delta_env*p.dt
-
-            # ensure that there are no negative values
-            self.cDye_cell = stb.no_negs(self.cDye_cell)
-            self.cDye_env = stb.no_negs(self.cDye_env)
-
-        #------------------------------------------------------------
-
-        # Update dye concentration in the gj connected cell network:
-
-        # voltage gradient:
-        grad_vgj = self.vgj/cells.gj_len
-
-        grad_vgj_x = grad_vgj*cells.cell_nn_tx
-        grad_vgj_y = grad_vgj*cells.cell_nn_ty
-
-        # concentration gradient for Dye:
-        Dye_mems = self.cDye_cell[cells.mem_to_cells]
-
-        grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i])/cells.gj_len
-
-        grad_cgj_x = grad_cgj*cells.cell_nn_tx
-        grad_cgj_y = grad_cgj*cells.cell_nn_ty
-
-        # midpoint concentration:
-        cdye = (Dye_mems[cells.nn_i] + Dye_mems[cells.mem_i])/2
-
-        # electroosmotic fluid velocity:
-        if p.fluid_flow is True:
-
-            ux = (self.u_cells_x[cells.cell_nn_i[:,0]] + self.u_cells_x[cells.cell_nn_i[:,1]])/2
-            uy = (self.u_cells_y[cells.cell_nn_i[:,0]] + self.u_cells_y[cells.cell_nn_i[:,1]])/2
-
-        else:
-            ux = 0
-            uy = 0
-
-        fgj_x_dye,fgj_y_dye = stb.nernst_planck_flux(cdye,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
-            p.Do_Dye*self.gjopen,p.z_Dye,self.T,p)
-
-        fgj_dye = fgj_x_dye*cells.cell_nn_tx + fgj_y_dye*cells.cell_nn_ty
-
-        # divergence calculation for individual cells (finite volume expression)
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_dye*cells.mem_sa)/cells.cell_vol
-
-        self.cDye_cell = self.cDye_cell + p.dt*delta_cc
-
-        self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
-        self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
-
-        # transport dye through environment: _________________________________________________________
-        if p.sim_ECM is True:
-
-            if p.closed_bound is True:
-                btag = 'closed'
-
-            else:
-                btag = 'open'
-             # make v_env and cc_env into 2d matrices
-            cenv = self.cDye_env[:]
-            denv = p.Do_Dye*np.ones(len(cells.xypts))
-
-            v_env = self.v_env.reshape(cells.X.shape)
-
-            v_env[:,0] = self.bound_V['L']
-            v_env[:,-1] = self.bound_V['R']
-            v_env[0,:] = self.bound_V['B']
-            v_env[-1,:] = self.bound_V['T']
-
-            cenv = cenv.reshape(cells.X.shape)
-
-            # prepare concentrations and diffusion constants for MACs grid format
-            # by resampling the values at the u v coordinates of the flux:
-            cenv_x = np.zeros(cells.grid_obj.u_shape)
-            cenv_y = np.zeros(cells.grid_obj.v_shape)
-
-            # create the proper shape for the concentrations and state appropriate boundary conditions::
-            cenv_x[:,1:] = cenv[:]
-            cenv_x[:,0] = cenv_x[:,1]
-            cenv_y[1:,:] = cenv[:]
-            cenv_y[0,:] = cenv_y[1,:]
-
-            if p.closed_bound is True: # insulation boundary conditions
-                cenv_x[:,0] = cenv_x[:,1]
-                cenv_x[:,-1] = cenv_x[:,-2]
-                cenv_x[0,:] = cenv_x[1,:]
-                cenv_x[-1,:] = cenv_x[-2,:]
-
-                cenv_y[0,:] = cenv_y[1,:]
-                cenv_y[-1,:] = cenv_y[-2,:]
-                cenv_y[:,0] = cenv_y[:,1]
-                cenv_y[:,-1] = cenv_y[:,-2]
-
-            else:   # open and electrically grounded boundary conditions
-                cenv_x[:,0] =  self.c_dye_bound
-                cenv_x[:,-1] =   self.c_dye_bound
-                cenv_x[0,:] =   self.c_dye_bound
-                cenv_x[-1,:] =   self.c_dye_bound
-
-                cenv_y[0,:] =   self.c_dye_bound
-                cenv_y[-1,:] =   self.c_dye_bound
-                cenv_y[:,0] =   self.c_dye_bound
-                cenv_y[:,-1] =   self.c_dye_bound
-
-            denv = denv.reshape(cells.X.shape)
-
-            denv_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = p.Do_Dye)
-
-            denv_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=p.Do_Dye)
-
-            # denv_x = denv_x*self.D_env_weight_u
-            # denv_y = denv_y*self.D_env_weight_v
-
-            # calculate gradients in the environment
-            grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
-
-            grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
-
-            # calculate fluxes for electrodiffusive transport:
-
-            if p.fluid_flow is True:
-
-                uenvx = np.zeros(cells.grid_obj.u_shape)
-                uenvy = np.zeros(cells.grid_obj.v_shape)
-
-                uenvx[:,1:] = self.u_env_x
-                uenvy[1:,:] = self.u_env_y
-
-                if p.closed_bound is False:
-
-                    uenvx[:,0] = uenvx[:,1]
-                    uenvx[:,-1]= uenvx[:,-2]
-                    uenvx[0,:] = uenvx[1,:]
-                    uenvx[-1,:] = uenvx[-2,:]
-
-                    uenvy[:,0] = uenvy[:,1]
-                    uenvy[:,-1]= uenvy[:,-2]
-                    uenvy[0,:] = uenvy[1,:]
-                    uenvy[-1,:] = uenvy[-2,:]
-
-                else:
-
-                    uenvx[:,0] = 0
-                    uenvx[:,-1]= 0
-                    uenvx[0,:] = 0
-                    uenvx[-1,:] = 0
-
-                    uenvy[:,0] = 0
-                    uenvy[:,-1]= 0
-                    uenvy[0,:] = 0
-                    uenvy[-1,:] = 0
-
-            else:
-                uenvx = 0
-                uenvy = 0
-
-            f_env_x_dye, f_env_y_dye = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-                grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_Dye,self.T,p)
-
-            # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
-            d_fenvx = -(f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
-            d_fenvy = -(f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
-
-            delta_c = d_fenvx + d_fenvy
-
-            cenv = cenv + delta_c*p.dt
-
-            cenv = fd.integrator(cenv)
-
-            if p.closed_bound is True:
-                # Neumann boundary condition (flux at boundary)
-                # zero flux boundaries for concentration:
-                cenv[:,-1] = cenv[:,-2]
-                cenv[:,0] = cenv[:,1]
-                cenv[0,:] = cenv[1,:]
-                cenv[-1,:] = cenv[-2,:]
-
-            elif p.closed_bound is False:
-                # if the boundary is open, set the concentration at the boundary
-                # open boundary
-                cenv[:,-1] =  self.c_dye_bound
-                cenv[:,0] =  self.c_dye_bound
-                cenv[0,:] =  self.c_dye_bound
-                cenv[-1,:] =  self.c_dye_bound
-
-
-            # reshape the matrices into vectors:
-            # self.v_env = self.v_env.ravel()
-            self.cDye_env = cenv.ravel()
-
-            # average flux at the midpoint of the MACs grid:
-            fenvx = (f_env_x_dye[:,1:] + f_env_x_dye[:,0:-1])/2
-            fenvy = (f_env_y_dye[1:,:] + f_env_y_dye[0:-1,:])/2
-
-            self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
-            self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
-
-            # ensure that there are no negative values
-            self.cDye_cell = stb.no_negs(self.cDye_cell)
-            self.cDye_env = stb.no_negs(self.cDye_env)
-
-    def update_IP3(self,cells,p,t):
-
-        # Update dye concentration in the gj connected cell network:
-        # voltage gradient:
-        grad_vgj = self.vgj/cells.gj_len
-
-        grad_vgj_x = grad_vgj*cells.cell_nn_tx
-        grad_vgj_y = grad_vgj*cells.cell_nn_ty
-
-        # concentration gradient for Dye:
-
-        IP3mem = self.cIP3[cells.mem_to_cells]
-
-        grad_cgj = (IP3mem[cells.nn_i] - IP3mem[cells.mem_i])/cells.gj_len
-
-        grad_cgj_x = grad_cgj*cells.cell_nn_tx
-        grad_cgj_y = grad_cgj*cells.cell_nn_ty
-
-        # midpoint concentration:
-        cip3 = (IP3mem[cells.nn_i] + IP3mem[cells.mem_i])/2
-
-        # electroosmotic fluid velocity:
-        if p.fluid_flow is True:
-            ux = (self.u_cells_x[cells.cell_nn_i[:,0]] + self.u_cells_x[cells.cell_nn_i[:,1]])/2
-            uy = (self.u_cells_y[cells.cell_nn_i[:,0]] + self.u_cells_y[cells.cell_nn_i[:,1]])/2
-
-        else:
-            ux = 0
-            uy = 0
-
-        fgj_x_ip3,fgj_y_ip3 = stb.nernst_planck_flux(cip3,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
-            p.Do_IP3*self.gjopen,p.z_IP3,self.T,p)
-
-        fgj_ip3 = fgj_x_ip3*cells.cell_nn_tx + fgj_y_ip3*cells.cell_nn_ty
-
-        delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_ip3*cells.mem_sa)/cells.cell_vol
-
-        self.cIP3 = self.cIP3 + p.dt*delta_cc
-
-        self.IP3_flux_x_gj = fgj_x_ip3[:]  # store gap junction flux for this ion
-        self.IP3_flux_y_gj = fgj_y_ip3[:]  # store gap junction flux for this ion
-
-        if p.sim_ECM is False:
-
-            fip3_ED = stb.electroflux(self.cIP3_env,self.cIP3,self.id_cells*p.Dm_IP3,self.tm,p.z_IP3,self.vm,self.T,p)
-
-            # update dye concentration
-            self.cIP3 = self.cIP3 + fip3_ED*(cells.cell_sa/cells.cell_vol)*p.dt
-
-        elif p.sim_ECM is True:
-
-            flux_ip3 = stb.electroflux(self.cIP3_env[cells.map_mem2ecm],self.cIP3[cells.mem_to_cells],
-                            np.ones(len(cells.mem_i))*p.Dm_IP3,self.tm,p.z_IP3,self.vm,self.T,p)
-
-            # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
-            d_c_cells = flux_ip3*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_c_env = flux_ip3*(cells.mem_sa/cells.ecm_vol)
-
-            delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
-
-            self.cIP3 = self.cIP3 + delta_cells*p.dt
-
-            self.cIP3_env = self.cIP3_env - delta_env*p.dt
-
-            # transport dye through environment: _________________________________________________________
-            if p.closed_bound is True:
-                btag = 'closed'
-
-            else:
-                btag = 'open'
-             # make v_env and cc_env into 2d matrices
-            cenv = self.cIP3_env[:]
-            denv = p.Do_IP3*np.ones(len(cells.xypts))
-
-            v_env = self.v_env.reshape(cells.X.shape)
-
-            v_env[:,0] = self.bound_V['L']
-            v_env[:,-1] = self.bound_V['R']
-            v_env[0,:] = self.bound_V['B']
-            v_env[-1,:] = self.bound_V['T']
-
-            cenv = cenv.reshape(cells.X.shape)
-
-            # prepare concentrations and diffusion constants for MACs grid format
-            # by resampling the values at the u v coordinates of the flux:
-            cenv_x = np.zeros(cells.grid_obj.u_shape)
-            cenv_y = np.zeros(cells.grid_obj.v_shape)
-
-            # create the proper shape for the concentrations and state appropriate boundary conditions::
-            cenv_x[:,1:] = cenv[:]
-            cenv_x[:,0] = cenv_x[:,1]
-            cenv_y[1:,:] = cenv[:]
-            cenv_y[0,:] = cenv_y[1,:]
-
-            if p.closed_bound is True: # insulation boundary conditions
-                cenv_x[:,0] = cenv_x[:,1]
-                cenv_x[:,-1] = cenv_x[:,-2]
-                cenv_x[0,:] = cenv_x[1,:]
-                cenv_x[-1,:] = cenv_x[-2,:]
-
-                cenv_y[0,:] = cenv_y[1,:]
-                cenv_y[-1,:] = cenv_y[-2,:]
-                cenv_y[:,0] = cenv_y[:,1]
-                cenv_y[:,-1] = cenv_y[:,-2]
-
-            else:   # open and electrically grounded boundary conditions
-                cenv_x[:,0] =  p.cIP3_to_env
-                cenv_x[:,-1] =  p.cIP3_to_env
-                cenv_x[0,:] =  p.cIP3_to_env
-                cenv_x[-1,:] =  p.cIP3_to_env
-
-                cenv_y[0,:] =  p.cIP3_to_env
-                cenv_y[-1,:] =  p.cIP3_to_env
-                cenv_y[:,0] =  p.cIP3_to_env
-                cenv_y[:,-1] =  p.cIP3_to_env
-
-            denv = denv.reshape(cells.X.shape)
-
-            denv_x = np.zeros(cells.grid_obj.u_shape)
-            denv_y = np.zeros(cells.grid_obj.v_shape)
-
-            # create the proper shape for the diffusion constants and state continuous boundaries:
-            denv_x[:,1:] = denv
-            denv_x[:,0] = denv_x[:,1]
-
-            denv_y[1:,:] = denv
-            denv_y[0,:] = denv_y[1,:]
-
-            # calculate gradients in the environment
-            grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
-
-            grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
-
-            # calculate fluxes for electrodiffusive transport:
-
-            if p.fluid_flow is True:
-                uenvx = self.u_env_x
-                uenvy = self.u_env_y
-
-            else:
-                uenvx = 0
-                uenvy = 0
-
-            f_env_x_ip3, f_env_y_ip3 = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-                grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_IP3,self.T,p)
-
-            # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
-            d_fenvx = -(f_env_x_ip3[:,1:] - f_env_x_ip3[:,0:-1])/cells.delta
-            d_fenvy = -(f_env_y_ip3[1:,:] - f_env_y_ip3[0:-1,:])/cells.delta
-
-            delta_c = d_fenvx + d_fenvy
-
-            cenv = cenv + delta_c*p.dt
-
-            cenv = fd.integrator(cenv)
-
-            if p.closed_bound is True:
-                # Neumann boundary condition (flux at boundary)
-                # zero flux boundaries for concentration:
-                cenv[:,-1] = cenv[:,-2]
-                cenv[:,0] = cenv[:,1]
-                cenv[0,:] = cenv[1,:]
-                cenv[-1,:] = cenv[-2,:]
-
-            elif p.closed_bound is False:
-                # if the boundary is open, set the concentration at the boundary
-                # open boundary
-                cenv[:,-1] = p.cIP3_to_env
-                cenv[:,0] = p.cIP3_to_env
-                cenv[0,:] = p.cIP3_to_env
-                cenv[-1,:] = p.cIP3_to_env
-
-            # reshape the matrices into vectors:
-            # self.v_env = self.v_env.ravel()
-            self.cIP3_env = cenv.ravel()
-
-            fenvx = (f_env_x_ip3[:,1:] + f_env_x_ip3[:,0:-1])/2
-            fenvy = (f_env_y_ip3[1:,:] + f_env_y_ip3[0:-1,:])/2
-
-            # true flux is indeed negative
-            self.IP3_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
-            self.IP3_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
 
     def get_Efield(self,cells,p):
 
@@ -3539,7 +2722,6 @@ class Simulator(object):
         self.P_electro = np.sqrt(P_x**2 + P_y**2)
 
 
-
     # FIXME consider moving to a deformation module
 
     def getDeformation(self,cells,t,p):
@@ -4019,4 +3201,523 @@ class Simulator(object):
 #receive similar treatment. Wonder temptress at the speed of light and the
 #sound of love!
 
+
+    # def update_dye(self,cells,p,t):
+    #
+    #     #------------------------------------------------------------
+    #     # pump dye and update result
+    #
+    #     if p.sim_ECM is True:
+    #
+    #
+    #         if p.pump_Dye is True:
+    #
+    #             if p.pump_Dye_out is True:
+    #
+    #                 # active pumping of dye from environment and into cell
+    #                 deltaGATP = 20*p.R*self.T
+    #
+    #                 delG_dye = p.R*p.T*np.log(self.cDye_cell[cells.mem_to_cells]/self.cDye_env[cells.map_mem2ecm]) \
+    #                            + p.z_Dye*p.F*self.vm
+    #
+    #                 delG_dyeATP = deltaGATP - delG_dye
+    #                 delG_pump = (delG_dyeATP/1000)
+    #
+    #                 # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+    #                 alpha = p.pump_Dye_alpha*delG_pump
+    #
+    #                 f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env[cells.map_mem2ecm])
+    #
+    #                 d_dye_cells = self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+    #                 d_dye_env = -self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+    #
+    #                 delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+    #                 delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
+    #
+    #             else:
+    #
+    #                  # active pumping of dye from environment and into cell
+    #                 deltaGATP = 20*p.R*self.T
+    #
+    #                 delG_dye = p.R*p.T*np.log(self.cDye_env[cells.map_mem2ecm]/self.cDye_cell[cells.mem_to_cells]) \
+    #                            - p.z_Dye*p.F*self.vm
+    #
+    #                 delG_dyeATP = deltaGATP - delG_dye
+    #                 delG_pump = (delG_dyeATP/1000)
+    #
+    #                 # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+    #                 alpha = p.pump_Dye_alpha*delG_pump
+    #
+    #                 f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell[cells.mem_to_cells])
+    #
+    #                 d_dye_cells = -self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+    #                 d_dye_env = self.rho_pump*f_Dye_pump*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+    #
+    #                 delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+    #                 delta_env = np.dot(d_dye_env, cells.ecm_UpdateMatrix)
+    #
+    #             self.cDye_cell = self.cDye_cell + delta_cells*p.dt
+    #
+    #             self.cDye_env = self.cDye_env + delta_env*p.dt
+    #
+    #             # ensure that there are no negative values
+    #             self.cDye_cell = stb.no_negs(self.cDye_cell)
+    #             self.cDye_env = stb.no_negs(self.cDye_env)
+    #
+    #     elif p.sim_ECM is False:
+    #
+    #         if p.pump_Dye is True:
+    #
+    #             if p.pump_Dye_out is True:
+    #
+    #                 # active pumping of dye from environment and into cell
+    #                 deltaGATP = 20*p.R*self.T
+    #
+    #                 delG_dye = p.R*p.T*np.log(self.cDye_cell/self.cDye_env) \
+    #                            + p.z_Dye*p.F*self.vm
+    #
+    #                 delG_dyeATP = deltaGATP - delG_dye
+    #                 delG_pump = (delG_dyeATP/1000)
+    #
+    #                 # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+    #                 alpha = p.pump_Dye_alpha*delG_pump
+    #
+    #                 f_Dye_pump  = self.rho_pump*alpha*(self.cDye_env)
+    #
+    #                 d_dye_cells = f_Dye_pump*(cells.cell_sa/cells.cell_vol)
+    #
+    #                 # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+    #
+    #
+    #             else:
+    #
+    #                  # active pumping of dye from cell and into environment
+    #                 deltaGATP = 20*p.R*self.T
+    #
+    #                 delG_dye = p.R*p.T*np.log(self.cDye_env/self.cDye_cell) \
+    #                            - p.z_Dye*p.F*self.vm
+    #
+    #                 delG_dyeATP = deltaGATP - delG_dye
+    #                 delG_pump = (delG_dyeATP/1000)
+    #
+    #                 # alpha = p.pump_Dye_alpha*tb.step(delG_pump,6,3)
+    #                 alpha = p.pump_Dye_alpha*delG_pump
+    #
+    #                 f_Dye_pump  = self.rho_pump*alpha*(self.cDye_cell)
+    #
+    #                 d_dye_cells = -f_Dye_pump*(cells.cell_sa/cells.cell_vol)
+    #
+    #                 # delta_cells =  np.dot(d_dye_cells, cells.cell_UpdateMatrix)
+    #
+    #             self.cDye_cell = self.cDye_cell + d_dye_cells*p.dt
+    #
+    #     # electrodiffuse dye between cell and extracellular space--------------------------------------------------
+    #     if p.sim_ECM is False:
+    #
+    #         fdye_ED = stb.electroflux(self.cDye_env,self.cDye_cell,self.id_cells*p.Dm_Dye,self.tm,p.z_Dye,self.vm,
+    #             self.T,p,rho=self.rho_channel_o)
+    #
+    #         # update dye concentration
+    #         self.cDye_cell = self.cDye_cell + fdye_ED*(cells.cell_sa/cells.cell_vol)*p.dt
+    #
+    #     elif p.sim_ECM is True:
+    #
+    #         flux_dye = stb.electroflux(self.cDye_env[cells.map_mem2ecm],self.cDye_cell[cells.mem_to_cells],
+    #                         np.ones(len(cells.mem_i))*p.Dm_Dye,self.tm,p.z_Dye,self.vm,self.T,p)
+    #
+    #         # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
+    #         d_c_cells = self.rho_channel*flux_dye*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+    #         d_c_env = self.rho_channel*flux_dye*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+    #
+    #         delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+    #         delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+    #
+    #         self.cDye_cell = self.cDye_cell + delta_cells*p.dt
+    #
+    #         self.cDye_env = self.cDye_env - delta_env*p.dt
+    #
+    #         # ensure that there are no negative values
+    #         self.cDye_cell = stb.no_negs(self.cDye_cell)
+    #         self.cDye_env = stb.no_negs(self.cDye_env)
+    #
+    #     #------------------------------------------------------------
+    #
+    #     # Update dye concentration in the gj connected cell network:
+    #
+    #     # voltage gradient:
+    #     grad_vgj = self.vgj/cells.gj_len
+    #
+    #     grad_vgj_x = grad_vgj*cells.cell_nn_tx
+    #     grad_vgj_y = grad_vgj*cells.cell_nn_ty
+    #
+    #     # concentration gradient for Dye:
+    #     Dye_mems = self.cDye_cell[cells.mem_to_cells]
+    #
+    #     grad_cgj = (Dye_mems[cells.nn_i] - Dye_mems[cells.mem_i])/cells.gj_len
+    #
+    #     grad_cgj_x = grad_cgj*cells.cell_nn_tx
+    #     grad_cgj_y = grad_cgj*cells.cell_nn_ty
+    #
+    #     # midpoint concentration:
+    #     cdye = (Dye_mems[cells.nn_i] + Dye_mems[cells.mem_i])/2
+    #
+    #     # electroosmotic fluid velocity:
+    #     if p.fluid_flow is True:
+    #
+    #         ux = (self.u_cells_x[cells.cell_nn_i[:,0]] + self.u_cells_x[cells.cell_nn_i[:,1]])/2
+    #         uy = (self.u_cells_y[cells.cell_nn_i[:,0]] + self.u_cells_y[cells.cell_nn_i[:,1]])/2
+    #
+    #     else:
+    #         ux = 0
+    #         uy = 0
+    #
+    #     fgj_x_dye,fgj_y_dye = stb.nernst_planck_flux(cdye,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
+    #         p.Do_Dye*self.gjopen,p.z_Dye,self.T,p)
+    #
+    #     fgj_dye = fgj_x_dye*cells.cell_nn_tx + fgj_y_dye*cells.cell_nn_ty
+    #
+    #     # divergence calculation for individual cells (finite volume expression)
+    #     delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_dye*cells.mem_sa)/cells.cell_vol
+    #
+    #     self.cDye_cell = self.cDye_cell + p.dt*delta_cc
+    #
+    #     self.Dye_flux_x_gj = fgj_x_dye[:]  # store gap junction flux for this ion
+    #     self.Dye_flux_y_gj = fgj_y_dye[:]  # store gap junction flux for this ion
+    #
+    #     # transport dye through environment: _________________________________________________________
+    #     if p.sim_ECM is True:
+    #
+    #         if p.closed_bound is True:
+    #             btag = 'closed'
+    #
+    #         else:
+    #             btag = 'open'
+    #          # make v_env and cc_env into 2d matrices
+    #         cenv = self.cDye_env[:]
+    #         denv = p.Do_Dye*np.ones(len(cells.xypts))
+    #
+    #         v_env = self.v_env.reshape(cells.X.shape)
+    #
+    #         v_env[:,0] = self.bound_V['L']
+    #         v_env[:,-1] = self.bound_V['R']
+    #         v_env[0,:] = self.bound_V['B']
+    #         v_env[-1,:] = self.bound_V['T']
+    #
+    #         cenv = cenv.reshape(cells.X.shape)
+    #
+    #         # prepare concentrations and diffusion constants for MACs grid format
+    #         # by resampling the values at the u v coordinates of the flux:
+    #         cenv_x = np.zeros(cells.grid_obj.u_shape)
+    #         cenv_y = np.zeros(cells.grid_obj.v_shape)
+    #
+    #         # create the proper shape for the concentrations and state appropriate boundary conditions::
+    #         cenv_x[:,1:] = cenv[:]
+    #         cenv_x[:,0] = cenv_x[:,1]
+    #         cenv_y[1:,:] = cenv[:]
+    #         cenv_y[0,:] = cenv_y[1,:]
+    #
+    #         if p.closed_bound is True: # insulation boundary conditions
+    #             cenv_x[:,0] = cenv_x[:,1]
+    #             cenv_x[:,-1] = cenv_x[:,-2]
+    #             cenv_x[0,:] = cenv_x[1,:]
+    #             cenv_x[-1,:] = cenv_x[-2,:]
+    #
+    #             cenv_y[0,:] = cenv_y[1,:]
+    #             cenv_y[-1,:] = cenv_y[-2,:]
+    #             cenv_y[:,0] = cenv_y[:,1]
+    #             cenv_y[:,-1] = cenv_y[:,-2]
+    #
+    #         else:   # open and electrically grounded boundary conditions
+    #             cenv_x[:,0] =  self.c_dye_bound
+    #             cenv_x[:,-1] =   self.c_dye_bound
+    #             cenv_x[0,:] =   self.c_dye_bound
+    #             cenv_x[-1,:] =   self.c_dye_bound
+    #
+    #             cenv_y[0,:] =   self.c_dye_bound
+    #             cenv_y[-1,:] =   self.c_dye_bound
+    #             cenv_y[:,0] =   self.c_dye_bound
+    #             cenv_y[:,-1] =   self.c_dye_bound
+    #
+    #         denv = denv.reshape(cells.X.shape)
+    #
+    #         denv_x = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
+    #                 (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = p.Do_Dye)
+    #
+    #         denv_y = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),denv.ravel(),
+    #                 (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=p.Do_Dye)
+    #
+    #         # denv_x = denv_x*self.D_env_weight_u
+    #         # denv_y = denv_y*self.D_env_weight_v
+    #
+    #         # calculate gradients in the environment
+    #         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
+    #
+    #         grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
+    #
+    #         # calculate fluxes for electrodiffusive transport:
+    #
+    #         if p.fluid_flow is True:
+    #
+    #             uenvx = np.zeros(cells.grid_obj.u_shape)
+    #             uenvy = np.zeros(cells.grid_obj.v_shape)
+    #
+    #             uenvx[:,1:] = self.u_env_x
+    #             uenvy[1:,:] = self.u_env_y
+    #
+    #             if p.closed_bound is False:
+    #
+    #                 uenvx[:,0] = uenvx[:,1]
+    #                 uenvx[:,-1]= uenvx[:,-2]
+    #                 uenvx[0,:] = uenvx[1,:]
+    #                 uenvx[-1,:] = uenvx[-2,:]
+    #
+    #                 uenvy[:,0] = uenvy[:,1]
+    #                 uenvy[:,-1]= uenvy[:,-2]
+    #                 uenvy[0,:] = uenvy[1,:]
+    #                 uenvy[-1,:] = uenvy[-2,:]
+    #
+    #             else:
+    #
+    #                 uenvx[:,0] = 0
+    #                 uenvx[:,-1]= 0
+    #                 uenvx[0,:] = 0
+    #                 uenvx[-1,:] = 0
+    #
+    #                 uenvy[:,0] = 0
+    #                 uenvy[:,-1]= 0
+    #                 uenvy[0,:] = 0
+    #                 uenvy[-1,:] = 0
+    #
+    #         else:
+    #             uenvx = 0
+    #             uenvy = 0
+    #
+    #         f_env_x_dye, f_env_y_dye = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
+    #             grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_Dye,self.T,p)
+    #
+    #         # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
+    #         d_fenvx = -(f_env_x_dye[:,1:] - f_env_x_dye[:,0:-1])/cells.delta
+    #         d_fenvy = -(f_env_y_dye[1:,:] - f_env_y_dye[0:-1,:])/cells.delta
+    #
+    #         delta_c = d_fenvx + d_fenvy
+    #
+    #         cenv = cenv + delta_c*p.dt
+    #
+    #         cenv = fd.integrator(cenv)
+    #
+    #         if p.closed_bound is True:
+    #             # Neumann boundary condition (flux at boundary)
+    #             # zero flux boundaries for concentration:
+    #             cenv[:,-1] = cenv[:,-2]
+    #             cenv[:,0] = cenv[:,1]
+    #             cenv[0,:] = cenv[1,:]
+    #             cenv[-1,:] = cenv[-2,:]
+    #
+    #         elif p.closed_bound is False:
+    #             # if the boundary is open, set the concentration at the boundary
+    #             # open boundary
+    #             cenv[:,-1] =  self.c_dye_bound
+    #             cenv[:,0] =  self.c_dye_bound
+    #             cenv[0,:] =  self.c_dye_bound
+    #             cenv[-1,:] =  self.c_dye_bound
+    #
+    #
+    #         # reshape the matrices into vectors:
+    #         # self.v_env = self.v_env.ravel()
+    #         self.cDye_env = cenv.ravel()
+    #
+    #         # average flux at the midpoint of the MACs grid:
+    #         fenvx = (f_env_x_dye[:,1:] + f_env_x_dye[:,0:-1])/2
+    #         fenvy = (f_env_y_dye[1:,:] + f_env_y_dye[0:-1,:])/2
+    #
+    #         self.Dye_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
+    #         self.Dye_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
+    #
+    #         # ensure that there are no negative values
+    #         self.cDye_cell = stb.no_negs(self.cDye_cell)
+    #         self.cDye_env = stb.no_negs(self.cDye_env)
+    #
+    # def update_IP3(self,cells,p,t):
+    #
+    #     # Update dye concentration in the gj connected cell network:
+    #     # voltage gradient:
+    #     grad_vgj = self.vgj/cells.gj_len
+    #
+    #     grad_vgj_x = grad_vgj*cells.cell_nn_tx
+    #     grad_vgj_y = grad_vgj*cells.cell_nn_ty
+    #
+    #     # concentration gradient for Dye:
+    #
+    #     IP3mem = self.cIP3[cells.mem_to_cells]
+    #
+    #     grad_cgj = (IP3mem[cells.nn_i] - IP3mem[cells.mem_i])/cells.gj_len
+    #
+    #     grad_cgj_x = grad_cgj*cells.cell_nn_tx
+    #     grad_cgj_y = grad_cgj*cells.cell_nn_ty
+    #
+    #     # midpoint concentration:
+    #     cip3 = (IP3mem[cells.nn_i] + IP3mem[cells.mem_i])/2
+    #
+    #     # electroosmotic fluid velocity:
+    #     if p.fluid_flow is True:
+    #         ux = (self.u_cells_x[cells.cell_nn_i[:,0]] + self.u_cells_x[cells.cell_nn_i[:,1]])/2
+    #         uy = (self.u_cells_y[cells.cell_nn_i[:,0]] + self.u_cells_y[cells.cell_nn_i[:,1]])/2
+    #
+    #     else:
+    #         ux = 0
+    #         uy = 0
+    #
+    #     fgj_x_ip3,fgj_y_ip3 = stb.nernst_planck_flux(cip3,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
+    #         p.Do_IP3*self.gjopen,p.z_IP3,self.T,p)
+    #
+    #     fgj_ip3 = fgj_x_ip3*cells.cell_nn_tx + fgj_y_ip3*cells.cell_nn_ty
+    #
+    #     delta_cc = np.dot(cells.gjMatrix*p.gj_surface*self.gjopen,-fgj_ip3*cells.mem_sa)/cells.cell_vol
+    #
+    #     self.cIP3 = self.cIP3 + p.dt*delta_cc
+    #
+    #     self.IP3_flux_x_gj = fgj_x_ip3[:]  # store gap junction flux for this ion
+    #     self.IP3_flux_y_gj = fgj_y_ip3[:]  # store gap junction flux for this ion
+    #
+    #     if p.sim_ECM is False:
+    #
+    #         fip3_ED = stb.electroflux(self.cIP3_env,self.cIP3,self.id_cells*p.Dm_IP3,self.tm,p.z_IP3,self.vm,self.T,p)
+    #
+    #         # update dye concentration
+    #         self.cIP3 = self.cIP3 + fip3_ED*(cells.cell_sa/cells.cell_vol)*p.dt
+    #
+    #     elif p.sim_ECM is True:
+    #
+    #         flux_ip3 = stb.electroflux(self.cIP3_env[cells.map_mem2ecm],self.cIP3[cells.mem_to_cells],
+    #                         np.ones(len(cells.mem_i))*p.Dm_IP3,self.tm,p.z_IP3,self.vm,self.T,p)
+    #
+    #         # update the dye concentrations in the cell and ecm due to ED fluxes at membrane
+    #         d_c_cells = flux_ip3*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
+    #         d_c_env = flux_ip3*(cells.mem_sa/cells.ecm_vol)
+    #
+    #         delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+    #         delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+    #
+    #         self.cIP3 = self.cIP3 + delta_cells*p.dt
+    #
+    #         self.cIP3_env = self.cIP3_env - delta_env*p.dt
+    #
+    #         # transport dye through environment: _________________________________________________________
+    #         if p.closed_bound is True:
+    #             btag = 'closed'
+    #
+    #         else:
+    #             btag = 'open'
+    #          # make v_env and cc_env into 2d matrices
+    #         cenv = self.cIP3_env[:]
+    #         denv = p.Do_IP3*np.ones(len(cells.xypts))
+    #
+    #         v_env = self.v_env.reshape(cells.X.shape)
+    #
+    #         v_env[:,0] = self.bound_V['L']
+    #         v_env[:,-1] = self.bound_V['R']
+    #         v_env[0,:] = self.bound_V['B']
+    #         v_env[-1,:] = self.bound_V['T']
+    #
+    #         cenv = cenv.reshape(cells.X.shape)
+    #
+    #         # prepare concentrations and diffusion constants for MACs grid format
+    #         # by resampling the values at the u v coordinates of the flux:
+    #         cenv_x = np.zeros(cells.grid_obj.u_shape)
+    #         cenv_y = np.zeros(cells.grid_obj.v_shape)
+    #
+    #         # create the proper shape for the concentrations and state appropriate boundary conditions::
+    #         cenv_x[:,1:] = cenv[:]
+    #         cenv_x[:,0] = cenv_x[:,1]
+    #         cenv_y[1:,:] = cenv[:]
+    #         cenv_y[0,:] = cenv_y[1,:]
+    #
+    #         if p.closed_bound is True: # insulation boundary conditions
+    #             cenv_x[:,0] = cenv_x[:,1]
+    #             cenv_x[:,-1] = cenv_x[:,-2]
+    #             cenv_x[0,:] = cenv_x[1,:]
+    #             cenv_x[-1,:] = cenv_x[-2,:]
+    #
+    #             cenv_y[0,:] = cenv_y[1,:]
+    #             cenv_y[-1,:] = cenv_y[-2,:]
+    #             cenv_y[:,0] = cenv_y[:,1]
+    #             cenv_y[:,-1] = cenv_y[:,-2]
+    #
+    #         else:   # open and electrically grounded boundary conditions
+    #             cenv_x[:,0] =  p.cIP3_to_env
+    #             cenv_x[:,-1] =  p.cIP3_to_env
+    #             cenv_x[0,:] =  p.cIP3_to_env
+    #             cenv_x[-1,:] =  p.cIP3_to_env
+    #
+    #             cenv_y[0,:] =  p.cIP3_to_env
+    #             cenv_y[-1,:] =  p.cIP3_to_env
+    #             cenv_y[:,0] =  p.cIP3_to_env
+    #             cenv_y[:,-1] =  p.cIP3_to_env
+    #
+    #         denv = denv.reshape(cells.X.shape)
+    #
+    #         denv_x = np.zeros(cells.grid_obj.u_shape)
+    #         denv_y = np.zeros(cells.grid_obj.v_shape)
+    #
+    #         # create the proper shape for the diffusion constants and state continuous boundaries:
+    #         denv_x[:,1:] = denv
+    #         denv_x[:,0] = denv_x[:,1]
+    #
+    #         denv_y[1:,:] = denv
+    #         denv_y[0,:] = denv_y[1,:]
+    #
+    #         # calculate gradients in the environment
+    #         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
+    #
+    #         grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
+    #
+    #         # calculate fluxes for electrodiffusive transport:
+    #
+    #         if p.fluid_flow is True:
+    #             uenvx = self.u_env_x
+    #             uenvy = self.u_env_y
+    #
+    #         else:
+    #             uenvx = 0
+    #             uenvy = 0
+    #
+    #         f_env_x_ip3, f_env_y_ip3 = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
+    #             grad_V_env_x, grad_V_env_y, uenvx,uenvy,denv_x,denv_y,p.z_IP3,self.T,p)
+    #
+    #         # calculate the divergence of the total flux, which is equivalent to the total change per unit time:
+    #         d_fenvx = -(f_env_x_ip3[:,1:] - f_env_x_ip3[:,0:-1])/cells.delta
+    #         d_fenvy = -(f_env_y_ip3[1:,:] - f_env_y_ip3[0:-1,:])/cells.delta
+    #
+    #         delta_c = d_fenvx + d_fenvy
+    #
+    #         cenv = cenv + delta_c*p.dt
+    #
+    #         cenv = fd.integrator(cenv)
+    #
+    #         if p.closed_bound is True:
+    #             # Neumann boundary condition (flux at boundary)
+    #             # zero flux boundaries for concentration:
+    #             cenv[:,-1] = cenv[:,-2]
+    #             cenv[:,0] = cenv[:,1]
+    #             cenv[0,:] = cenv[1,:]
+    #             cenv[-1,:] = cenv[-2,:]
+    #
+    #         elif p.closed_bound is False:
+    #             # if the boundary is open, set the concentration at the boundary
+    #             # open boundary
+    #             cenv[:,-1] = p.cIP3_to_env
+    #             cenv[:,0] = p.cIP3_to_env
+    #             cenv[0,:] = p.cIP3_to_env
+    #             cenv[-1,:] = p.cIP3_to_env
+    #
+    #         # reshape the matrices into vectors:
+    #         # self.v_env = self.v_env.ravel()
+    #         self.cIP3_env = cenv.ravel()
+    #
+    #         fenvx = (f_env_x_ip3[:,1:] + f_env_x_ip3[:,0:-1])/2
+    #         fenvy = (f_env_y_ip3[1:,:] + f_env_y_ip3[0:-1,:])/2
+    #
+    #         # true flux is indeed negative
+    #         self.IP3_flux_env_x = fenvx.ravel()  # store ecm junction flux for this ion
+    #         self.IP3_flux_env_y = fenvy.ravel()  # store ecm junction flux for this ion
 

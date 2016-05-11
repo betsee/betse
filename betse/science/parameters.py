@@ -609,7 +609,7 @@ class Parameters(object):
         self.Dye_acts_extracell = bool(self.config['variable settings']['morphogen properties']['acts extracellularly'])
 
         self.pump_Dye = bool(self.config['variable settings']['morphogen properties']['active pumping']['turn on'])
-        self.pump_Dye_out = bool(self.config['variable settings']['morphogen properties']
+        self.pump_Dye_in = bool(self.config['variable settings']['morphogen properties']
                                 ['active pumping']['pump to cell'])
         self.pump_Dye_alpha = float(self.config['variable settings']['morphogen properties']
                                 ['active pumping']['maximum rate'])
@@ -932,7 +932,7 @@ class Parameters(object):
         self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
         self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
 
-        self.simulate_TEP = iu['simulate TEP']
+        # self.simulate_TEP = iu['simulate TEP']
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]
