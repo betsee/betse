@@ -692,11 +692,15 @@ class Simulator(object):
                         cells.graphLaplacian(p)
 
 
-                    if p.sim_ECM is True and cells.lapENVinv is None:
+                if p.sim_ECM is True:
+
+                    if cells.lapENVinv is None:
 
                         logs.log_info('Creating environmental Poisson solver for voltage...')
                         cells.lapENV, cells.lapENVinv = cells.grid_obj.makeLaplacian()
                         cells.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+                    if cells.lapENV_P_inv is None:
 
                         logs.log_info('Creating environmental Poisson solver for pressure...')
                         bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
@@ -704,8 +708,8 @@ class Simulator(object):
 
                         cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-                        self.u_env_x = np.zeros(cells.X.shape)
-                        self.u_env_y = np.zeros(cells.X.shape)
+                    self.u_env_x = np.zeros(cells.X.shape)
+                    self.u_env_y = np.zeros(cells.X.shape)
 
 
             elif p.fluid_flow is False and p.deformation is False:  # if there's no physics calcs required
