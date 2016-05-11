@@ -873,6 +873,8 @@ class Parameters(object):
 
         self.interp_type = iu['interpolation method']
 
+        self.smooth_level = float(iu.get('gaussian smoothing',2))
+
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
         self.Do_K = float(iu['Do_K'])      # free diffusion constant potassium [m2/s]

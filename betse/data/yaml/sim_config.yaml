@@ -1077,8 +1077,8 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
-  # FIXME get rid of this:
-  simulate TEP: False     # favour low volume ecm spaces for true transepithelial potential modelling
+  gaussian smoothing: 2    # level for smoothing, higher is stronger. Recommend 1 to 3.
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

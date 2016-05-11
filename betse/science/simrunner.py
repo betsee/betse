@@ -177,17 +177,10 @@ class SimRunner(object):
         sim = Simulator(p)   # create an instance of Simulator
         sim.run_sim = False
 
-
-        # Initialize simulation data structures, run, and save the
-        # initialization.
-        if p.sim_ECM is False:
-            sim.baseInit_all(cells, p)
-            sim.sim_info_report(cells, p)
-            sim.run_sim_core(cells, p)
-        else:
-            sim.baseInit_all(cells, p)
-            sim.sim_info_report(cells, p)
-            sim.run_sim_core(cells, p)
+        # Initialize simulation data structures, run, and save simulation phase
+        sim.baseInit_all(cells, p)
+        sim.sim_info_report(cells, p)
+        sim.run_sim_core(cells, p)
 
         logs.log_info('Initialization run complete!')
         logs.log_info(
@@ -247,10 +240,7 @@ class SimRunner(object):
         # Run and save the simulation to the cache.
         sim.sim_info_report(cells, p)
 
-        if p.sim_ECM is False:
-            sim.run_sim_core(cells, p)
-        else:
-            sim.run_sim_core(cells, p)
+        sim.run_sim_core(cells, p)
 
         logs.log_info(
             'The simulation took {} seconds to complete.'.format(
