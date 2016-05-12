@@ -675,6 +675,9 @@ class Simulator(object):
                 self.u_cells_x = np.zeros(len(cells.cell_i))
                 self.u_cells_y = np.zeros(len(cells.cell_i))
 
+                self.u_gj_x = np.zeros(len(cells.mem_i))
+                self.u_gj_y = np.zeros(len(cells.mem_i))
+
                 if cells.lapGJinv is None:
 
                     # make a laplacian and solver for discrete transfers on closed, irregular cell network
@@ -1763,8 +1766,10 @@ class Simulator(object):
 
         # electroosmotic fluid velocity -- averaged at gap junctions:
         if p.fluid_flow is True:
-            ux = (self.u_cells_x[cells.cell_nn_i[:,0]] + self.u_cells_x[cells.cell_nn_i[:,1]])/2
-            uy = (self.u_cells_y[cells.cell_nn_i[:,0]] + self.u_cells_y[cells.cell_nn_i[:,1]])/2
+            # ux = (self.u_cells_x[cells.cell_nn_i[:,0]] + self.u_cells_x[cells.cell_nn_i[:,1]])/2
+            # uy = (self.u_cells_y[cells.cell_nn_i[:,0]] + self.u_cells_y[cells.cell_nn_i[:,1]])/2
+            ux = self.u_gj_x
+            uy = self.u_gj_y
 
         else:
             ux = 0

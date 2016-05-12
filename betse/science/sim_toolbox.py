@@ -838,8 +838,10 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     # electroosmotic fluid velocity:
     if p.fluid_flow is True:
 
-        ux = (sim.u_cells_x[cells.cell_nn_i[:, 0]] + sim.u_cells_x[cells.cell_nn_i[:, 1]]) / 2
-        uy = (sim.u_cells_y[cells.cell_nn_i[:, 0]] + sim.u_cells_y[cells.cell_nn_i[:, 1]]) / 2
+        # ux = (sim.u_cells_x[cells.cell_nn_i[:, 0]] + sim.u_cells_x[cells.cell_nn_i[:, 1]]) / 2
+        # uy = (sim.u_cells_y[cells.cell_nn_i[:, 0]] + sim.u_cells_y[cells.cell_nn_i[:, 1]]) / 2
+        ux = sim.u_gj_x
+        uy = sim.u_gj_y
 
     else:
         ux = 0

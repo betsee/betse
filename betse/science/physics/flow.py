@@ -100,12 +100,12 @@ def getFlow(sim, cells, p):
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 
     # calculate the inverse viscosity for the cell collection, which is scaled by gj state:
-    # alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * 5e-10) ** 2)
+    alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * 8e-10) ** 2)
 
     # approximate radius of gap junctions:
-    gj_area = np.sqrt((cells.mem_sa*p.gj_surface)/3.14)
-
-    alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * gj_area.mean()) ** 2)
+    # gj_rad = np.sqrt((cells.mem_sa*p.gj_surface)/3.14)/5
+    #
+    # alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * gj_rad.mean()) ** 2)
 
 
     if p.deform_electro is True:
@@ -151,13 +151,12 @@ def getFlow(sim, cells, p):
     gP_x = gradP_react * cells.cell_nn_tx
     gP_y = gradP_react * cells.cell_nn_ty
 
-    u_gj_x = u_gj_xo - gP_x
-    u_gj_y = u_gj_yo - gP_y
+    sim.u_gj_x = u_gj_xo - gP_x
+    sim.u_gj_y = u_gj_yo - gP_y
 
     # average the components at cell centres:
-    # FIXME I no longer think we want to average this to the centres -- rather -- want to keep at mems!
-    sim.u_cells_x = np.dot(cells.M_sum_mems, u_gj_x) / cells.num_mems
-    sim.u_cells_y = np.dot(cells.M_sum_mems, u_gj_y) / cells.num_mems
+    sim.u_cells_x = np.dot(cells.M_sum_mems, sim.u_gj_x) / cells.num_mems
+    sim.u_cells_y = np.dot(cells.M_sum_mems, sim.u_gj_y) / cells.num_mems
 
     # enforce the boundary conditions:
     sim.u_cells_x[cells.bflags_cells] = 0
