@@ -1061,7 +1061,7 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  1.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
+  alpha_NaK:  5.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
   alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
@@ -1072,6 +1072,8 @@ internal parameters:
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
   gaussian smoothing: 2    # level for smoothing, higher is stronger. Recommend 1 to 3.
+
+  environment volume multiplier: 100    # level to multiply size of box-environment
 
 
 # Configuration file version that this file conforms to. For reliable

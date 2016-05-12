@@ -132,9 +132,9 @@ class Parameters(object):
         self.cell_space = float(self.config['world options']['cell spacing'])  # the true cell-cell spacing
         self.nl = float(self.config['world options']['lattice disorder'])  # noise level for the lattice
 
-        volmult = 1
+        volmult = self.config['internal parameters'].get('environment volume multiplier',1)
 
-        self.vol_env = volmult*self.wsx*self.wsy*self.cell_height
+        self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
 
         #---------------------------------------------------------------------------------------------------------------
         # TISSUE PROFILES
@@ -1005,9 +1005,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 11.0
+            self.cNa_cell = 12.0
             self.cK_cell = 135.0
-            self.cP_cell = 80.0
+            self.cP_cell = 120.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
@@ -1040,10 +1040,10 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 11.0
+            self.cNa_cell = 12.0
             self.cK_cell = 135.0
             self.cCa_cell = 1.0e-3
-            self.cP_cell = 80.0
+            self.cP_cell = 120.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
 
@@ -1081,12 +1081,12 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 11.0
-            self.cK_cell = 140.0
-            self.cCl_cell = 52.0
+            self.cNa_cell = 12.0
+            self.cK_cell = 135.0
+            self.cCl_cell = 5.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 3.98e-5
-            self.cP_cell = 80.0
+            self.cP_cell = 120.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)

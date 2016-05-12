@@ -1964,6 +1964,8 @@ class Simulator(object):
             cenv[1,:] = self.c_env_bound[i]
             cenv[-2,:] = self.c_env_bound[i]
 
+        # smooth the concentration
+        # self.cc_env[i] = gaussian_filter(self.cc_env[i], p.smooth_level)
         # reshape the matrices back into vectors:
         self.cc_env[i] = cenv.ravel()
 
