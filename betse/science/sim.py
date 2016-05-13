@@ -143,7 +143,7 @@ class Simulator(object):
         # define sim_ECM and non_sim_ECM data length:
         if p.sim_ECM is True:
             self.mems_data_length = len(cells.mem_i)
-            self.env_data_length = len(cells.xypts)
+            self.env_data_length = len(cells.xypts)     # FIXME update this to cells.mem_i to change ecm handling!
         else:
             self.mems_data_length = len(cells.cell_i)
             self.env_data_length = len(cells.cell_i)
@@ -203,7 +203,7 @@ class Simulator(object):
             self.tm[:] = p.tm
 
             # initialize environmental fluxes and current data stuctures:
-            self.flx_env_i = np.zeros(len(cells.xypts))
+            self.flx_env_i = np.zeros(self.env_data_length)
             self.fluxes_env_x = []
             self.fluxes_env_y = []
             self.I_env = np.zeros(len(cells.xypts))  # total current in environment
@@ -617,11 +617,11 @@ class Simulator(object):
 
             if p.sim_ECM is True:
 
-                self.cIP3_env = np.zeros(len(cells.xypts))
+                self.cIP3_env = np.zeros(self.env_data_length)
                 self.cIP3_env[:] = p.cIP3_to_env
 
-                self.cIP3_flux_env_x = np.zeros(len(cells.xypts))
-                self.cIP3_flux_env_y = np.zeros(len(cells.xypts))
+                self.cIP3_flux_env_x = np.zeros(self.env_data_length)
+                self.cIP3_flux_env_y = np.zeros(self.env_data_length)
 
             elif p.sim_ECM is False:
                 self.cIP3_env = np.zeros(len(cells.cell_i))     # initialize IP3 concentration of the environment
@@ -655,11 +655,11 @@ class Simulator(object):
 
             if p.sim_ECM is True:
 
-                self.cDye_env = np.zeros(len(cells.xypts))
+                self.cDye_env = np.zeros(self.env_data_length)
                 self.cDye_env[:] = p.cDye_to
 
-                self.Dye_flux_env_x = np.zeros(len(cells.xypts))
-                self.Dye_flux_env_y = np.zeros(len(cells.xypts))
+                self.Dye_flux_env_x = np.zeros(self.env_data_length)
+                self.Dye_flux_env_y = np.zeros(self.env_data_length)
 
             else:
                 self.Dye_env = np.zeros(len(cells.cell_i))     # initialize Dye concentration in the environment
