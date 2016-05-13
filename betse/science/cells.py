@@ -1187,9 +1187,6 @@ class Cells(object):
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-
-
-
     def short_environment(self,p):
 
         if self.points_tree is None:

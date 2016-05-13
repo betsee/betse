@@ -1005,8 +1005,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 12.0
-            self.cK_cell = 135.0
+            self.cNa_cell = 10.0
+            self.cK_cell = 145.0
             self.cP_cell = 120.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
@@ -1040,8 +1040,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 12.0
-            self.cK_cell = 135.0
+            self.cNa_cell = 10.0
+            self.cK_cell = 145.0
             self.cCa_cell = 1.0e-3
             self.cP_cell = 120.0
 
@@ -1081,9 +1081,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 12.0
-            self.cK_cell = 135.0
-            self.cCl_cell = 5.0
+            self.cNa_cell = 10.0
+            self.cK_cell = 145.0
+            self.cCl_cell = 25.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 3.98e-5
             self.cP_cell = 120.0
