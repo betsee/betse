@@ -1102,12 +1102,12 @@ class Cells(object):
         self.index_k = [x for x in range(0,len(self.xypts))]
 
         # properties of ecm spaces:
-        self.ecm_sa = self.delta*p.cell_height*np.ones(len(self.xypts)) # surface area of ecm space in direction of cell flux
+        self.ecm_sa = 4*self.delta*p.cell_height # surface area of ecm space in direction of cell flux
         # self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
-        self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
+        self.ecm_vol = (p.cell_height*self.delta**2)  # volume of ecm space
 
         # ratio of mean cell volume to ecm square volume (gives approx num cells per ecm square)
-        self.ratio_cell2ecm = self.cell_vol.mean()/(p.cell_height*self.delta**2)
+        self.ratio_cell2ecm = self.ecm_vol/self.cell_vol.mean()
 
     def environment(self,p):
 
@@ -1145,13 +1145,6 @@ class Cells(object):
         all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
-
-        # update ecm volumes and surface areas within the cell region: FIXME we have new method and can delete this
-        # self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:] # volume of ecm spaces between cells of cluster
-        # self.ecm_sa[self.map_mem2ecm] = 2*self.mem_sa[:]  # surface area of ecm spaces between cells of the cluster
-        #
-        # self.ecm_vol[self.ecm_bound_k] = (p.cell_height*self.delta**2) # set spaces on cluster boundary to be full-vol
-        # self.ecm_sa[self.ecm_bound_k] = p.cell_height*self.delta  # set spaces on cluster boundary to have grid-SA
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 
@@ -1715,6 +1708,34 @@ class Cells(object):
         maskECM = np.round(maskECM,0)
 
         self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
+        self.inds_clust = list(*(maskECM.ravel() == 1).nonzero())
+
+        #----------------------------------------------------------------
+        # Method to create a source function to accurately map number of cell mem fluxes to env grid
+
+        # get the subset of points corresponding to the cluster:
+        ecm_clust_xy = self.xypts[self.inds_clust]
+
+        # get a search tree for the membrane mids:
+        memTree = sps.KDTree(self.mem_mids_flat)
+
+        # search within a slightly larger (i.e. 1.74 instead of 2.0 divisor) area than half grid space:
+        search_results = memTree.query_ball_point(ecm_clust_xy, self.delta / 1.74)
+
+        # find out how many membrane mids are located per unit of ecm square:
+        mems_per_square = []
+
+        for lst in search_results:
+            num_mems = len(lst)
+            mems_per_square.append(num_mems)
+
+        # create a new data structure that contains the spatially-preserved info:
+        self.mems_per_envSquare = np.zeros(len(self.xypts))
+        self.mems_per_envSquare[self.inds_clust] = mems_per_square
+
+        # as well as an average value
+        mems_per_square = np.asarray(mems_per_square)
+        self.mean_mems_per_envSquare = mems_per_square.mean()
 
     def quick_maskM(self,p):
 

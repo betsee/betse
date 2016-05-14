@@ -1281,6 +1281,7 @@ class Simulator(object):
 
         logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
         logs.log_info('Each cell has an average of ' + str(round(cells.average_nn, 2)) + ' nearest-neighbours.')
+
         logs.log_info('You are running the ion profile: ' + p.ion_profile)
 
         logs.log_info('Ions in this simulation: ' + str(self.ionlabel))
@@ -1289,6 +1290,10 @@ class Simulator(object):
             'they will be ignored.')
 
         logs.log_info('Considering extracellular spaces: ' + str(p.sim_ECM))
+
+        if p.sim_ECM:
+            logs.log_info('Cells per env grid square ' + str(round(cells.ratio_cell2ecm, 2)))
+
         logs.log_info('Electroosmotic fluid flow: ' + str(p.fluid_flow))
         logs.log_info('Ion pump and channel electodiffusion in membrane: ' + str(p.sim_eosmosis))
         logs.log_info('Force-induced cell deformation: ' + str(p.deformation))
@@ -1334,16 +1339,24 @@ class Simulator(object):
             # total charge in cells per unit surface area:
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
+
+            # get the environmental surface charge:
+
+            # inds_zero = (cells.mean_mems_per_envSquare == 0.0).nonzero()
+            #
+            # mems_per_square = np.copy(cells.mems_per_envSquare)
+            #
+            # mems_per_square[inds_zero] = 1
+
+            # sig_env = (self.rho_env * cells.ecm_vol) / (mems_per_square * cells.mem_sa.mean())
+            sig_env = (self.rho_env * cells.ecm_vol) / (cells.mean_mems_per_envSquare * cells.mem_sa.mean())
+
+
             # interpolate charge from environmental grid to the ecm_mids:
-            rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
-                                      self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
+            Qecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
+                                      sig_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
 
-                # total charge per unit surface area in the extracellular spaces:
-            # Qecm = rho_ecm*(p.cell_space/2)
-
-            # total charge per unit surface area in the extracellular spaces:
-            Qecm = (rho_ecm * p.cell_height * cells.delta ** 2) / (cells.ratio_cell2ecm * cells.mem_sa.mean())
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
@@ -1403,10 +1416,10 @@ class Simulator(object):
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
-            # self.rho_env[cells.inds_env] = 0
-            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
-            # self.rho_env = self.rho_env.ravel()
+            self.rho_env[cells.inds_env] = 0 # assumes charge screening in the env
+            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape)).ravel()
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
+            self.v_env[cells.inds_env] = 0 # assumes charge screening in the env
         else:
              self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
              self.vm, _, _ = self.get_Vall(cells,p)
@@ -1443,12 +1456,13 @@ class Simulator(object):
             flux_env[cells.ecm_bound_k] = bound_vals
 
             # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
-            # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
+            # which yields number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta**2) * p.cell_height)
+            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
 
-            delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
+            # delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
+            delta_env = gaussian_filter(delta_env.reshape(cells.X.shape),p.smooth_level).ravel()
 
             # update the concentrations
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
@@ -1517,9 +1531,11 @@ class Simulator(object):
             # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta ** 2) * p.cell_height)
+            # delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta ** 2) * p.cell_height)
 
-            delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
+            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
+
+            delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
 
             # update the concentrations:
             cX_cell = cX_cell + delta_cells * p.dt
@@ -1995,10 +2011,11 @@ class Simulator(object):
 
         delta_c = d_fenvx + d_fenvy
 
-        delta_c = fd.integrator(delta_c)
+        delta_c = gaussian_filter(delta_c,p.smooth_level)  # smooth out the concentration
+        # delta_c = fd.integrator(delta_c)
 
         #-----------------------
-        cenv = cenv - 1e-3*delta_c*p.dt
+        cenv = cenv - p.env_delay_const*delta_c*p.dt
 
         # cenv = fd.integrator(cenv)  # smooth out the concentration
 

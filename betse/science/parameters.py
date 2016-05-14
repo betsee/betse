@@ -865,6 +865,8 @@ class Parameters(object):
 
         self.smooth_level = float(iu.get('gaussian smoothing',2))
 
+        self.env_delay_const = float(iu.get('environmental delay factor',1.0e-3))
+
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
         self.Do_K = float(iu['Do_K'])      # free diffusion constant potassium [m2/s]

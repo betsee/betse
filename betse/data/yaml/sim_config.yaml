@@ -1075,6 +1075,8 @@ internal parameters:
 
   environment volume multiplier: 100    # level to multiply size of box-environment
 
+  environmental delay factor: 1.0e-3    # level to smooth environmental transport (needed for larger time-steps)
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
