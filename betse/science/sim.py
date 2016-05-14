@@ -2027,6 +2027,10 @@ class Simulator(object):
             grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
+        # minimize (slow) fluxes in the environment, if necessary:
+        f_env_x = p.env_delay_const * f_env_x
+        f_env_y = p.env_delay_const * f_env_y
+
         if p.closed_bound is False:
 
             f_env_x[:,0] = f_env_x[:,1]
@@ -2062,7 +2066,7 @@ class Simulator(object):
         # delta_c = fd.integrator(delta_c)
 
         #-----------------------
-        cenv = cenv - p.env_delay_const*delta_c*p.dt
+        cenv = cenv - delta_c*p.dt
 
         # cenv = fd.integrator(cenv)  # smooth out the concentration
 
