@@ -1017,13 +1017,13 @@ def exportData(cells,sim,p):
 
     dd_cell = np.asarray(dd_cell)
 
-    #----Transmembrane currents--------------------------
-    if p.sim_ECM is False:
-        Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
-    else:
-        Imem = [memArray[cells.cell_to_mems[p.plot_cell][0]] for memArray in sim.I_mem_time]
-
-    headr = headr + ',' + 'I_A/m2'
+    # #----Transmembrane currents--------------------------
+    # if p.sim_ECM is False:
+    #     Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
+    # else:
+    #     Imem = [memArray[cells.cell_to_mems[p.plot_cell][0]] for memArray in sim.I_mem_time]
+    #
+    # headr = headr + ',' + 'I_A/m2'
 
     #----Hydrostatic pressure--------
     p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
@@ -1075,7 +1075,7 @@ def exportData(cells,sim,p):
     fft_data_o = np.fft.rfft(cell_data)
     fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
-    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,dye_time,Ca_er,dd_cell.T,Imem,
+    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,dye_time,Ca_er,dd_cell.T,
                              p_hydro,p_osmo,p_electro,disp))
 
     headr2 = 'frequency_Hz'

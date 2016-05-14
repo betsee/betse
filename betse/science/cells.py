@@ -1703,12 +1703,12 @@ class Cells(object):
         self.maskM = ndimage.filters.gaussian_filter(self.maskM, 2, mode='nearest')
         self.maskM = np.round(self.maskM,0)
 
-        maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
-        maskECM = ndimage.filters.gaussian_filter(maskECM, 2, mode='nearest')
-        maskECM = np.round(maskECM,0)
+        self.maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
+        self.maskECM = ndimage.filters.gaussian_filter(self.maskECM, 2, mode='nearest')
+        self.maskECM = np.round(self.maskECM,0)
 
-        self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
-        self.inds_clust = list(*(maskECM.ravel() == 1).nonzero())
+        self.inds_env = list(*(self.maskECM.ravel() == 0).nonzero())
+        self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
 
         #----------------------------------------------------------------
         # Method to create a source function to accurately map number of cell mem fluxes to env grid

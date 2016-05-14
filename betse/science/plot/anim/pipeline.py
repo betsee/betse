@@ -209,6 +209,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     if p.ani_I is True:
         # Always animate the gap junction current.
+
         AnimCurrent(
             sim=sim, cells=cells, p=p,
             is_overlaying_current_gj_only=True,

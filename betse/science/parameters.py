@@ -512,6 +512,9 @@ class Parameters(object):
 
         self.T = float(self.config['variable settings']['temperature'])  # system temperature
 
+        # current calculation---------------------------
+        self.calc_J = self.config['variable settings'].get('calculate ion currents',True)
+
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self.config['variable settings']['fluid flow']['include fluid flow']
         self.mu_water = float(self.config['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]

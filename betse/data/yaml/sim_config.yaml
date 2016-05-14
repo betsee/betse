@@ -595,12 +595,16 @@ variable settings:
                               # only works for an ion profile with H+ ions (animal or invertebrate)
                               # options True or False (case sensitive)
 
+  calculate ion currents: True   # calculate ion currents?
+
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
     turn on: False        # turn on electroosmosis of pumps and channels
     channel charge: -1         # charge of membrane channels
     pump charge: 1          # charge of pumps (controls direction they move in)
     membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+
+
 
   fluid flow:
 

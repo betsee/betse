@@ -24,6 +24,7 @@ from betse.science import sim_toolbox as stb
 from betse.science.tissue.channels_o import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 
+from betse.science.physics.ion_current import get_current
 from betse.science.physics.flow import getFlow
 from betse.science.physics.deform import getDeformation, timeDeform, implement_deform_timestep
 from betse.science.physics.move_channels import eosmosis
@@ -177,8 +178,8 @@ class Simulator(object):
         self.fluxes_gj_x = []
         self.fluxes_gj_y = []
 
-        self.I_gj_x = np.zeros(len(cells.nn_i))  # total current in the gj network
-        self.I_gj_y = np.zeros(len(cells.nn_i))  # total current in the gj network
+        self.J_gj_x = np.zeros(len(cells.nn_i))  # total current in the gj network
+        self.J_gj_y = np.zeros(len(cells.nn_i))  # total current in the gj network
 
         # Membrane current data structure initialization
         self.flx_mem_i = np.zeros(len(cells.mem_i))
@@ -667,6 +668,40 @@ class Simulator(object):
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
 
+        if p.calc_J is True:
+
+            if cells.lapGJ_P_inv is None:
+
+                # make a laplacian and solver for discrete transfers on closed, irregular cell network
+                logs.log_info('Creating cell network Poisson solver...')
+                cells.graphLaplacian(p)
+
+            if cells.lapENV_P_inv is None:
+
+                logs.log_info('Creating environmental Poisson solver for pressure...')
+                bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+                cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
+
+                cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+        elif p.fluid_flow is False and p.deformation is False and p.calc_J is False:
+            # if there's no physics calcs required
+            # get rid of all matrices rather than carry them around as large dead-weights
+
+            if cells.lapGJinv is not None:
+                cells.lapGJinv = None
+                cells.lapGJ_P_inv = None
+                cells.lapGJ = None
+                cells.lapGJ_P = None
+
+            if p.sim_ECM is True and cells.lapENVinv is not None:
+                cells.lapENVinv = None
+                cells.lapENV_P_inv = None
+
+
+
+
+
         if p.run_sim is True:   # if we're running a simulation:
 
             if p.fluid_flow is True or p.deformation is True:  # if user desires fluid flow:
@@ -715,7 +750,8 @@ class Simulator(object):
                     self.u_env_y = np.zeros(cells.X.shape)
 
 
-            elif p.fluid_flow is False and p.deformation is False:  # if there's no physics calcs required
+            elif p.fluid_flow is False and p.deformation is False and p.calc_J is False:
+                # if there's no physics calcs required
                 # get rid of all matrices rather than carry them around as large dead-weights
 
                 if cells.lapGJinv is not None:
@@ -923,6 +959,13 @@ class Simulator(object):
 
             self.get_Efield(cells, p)
 
+            # store charge in time vector:
+            self.charge_cells_time.append(self.rho_cells)
+
+            if p.sim_ECM:
+
+                self.charge_env_time.append(self.rho_env)
+
 
             # get forces from any hydrostatic (self.P_Cells) pressure:
             getHydroF(self,cells, p)
@@ -965,7 +1008,7 @@ class Simulator(object):
 
             if t in tsamples:
 
-                self.get_current(cells, p)  # get the current in the gj network connection of cells
+                get_current(self,cells, p)  # get the current in the gj network connection of cells
 
                 self.write2storage(t, cells, p)  # write data to time storage vectors
 
@@ -1005,6 +1048,7 @@ class Simulator(object):
 
         """
 
+
         # clear mass flux storage vectors:
         self.fluxes_gj_x  = np.zeros(self.fluxes_gj_x.shape)
         self.fluxes_gj_y = np.zeros(self.fluxes_gj_y.shape)
@@ -1037,6 +1081,7 @@ class Simulator(object):
         self.u_cells_y_time = []
 
         self.rho_cells_time = []
+        self.charge_cells_time =[]
 
         self.F_electro_time = []
         self.F_electro_x_time = []
@@ -1086,9 +1131,10 @@ class Simulator(object):
             self.fluxes_env_x = np.zeros(self.fluxes_env_x.shape)
             self.fluxes_env_y = np.zeros(self.fluxes_env_y.shape)
 
-
             self.vcell_time = []
             self.venv_time = []
+
+            self.charge_env_time = []
 
             self.cc_er_time = []   # retains er concentrations as a function of time
             self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
@@ -1134,11 +1180,9 @@ class Simulator(object):
         self.dd_time.append(ddc)
         ddc = None
 
-        self.I_gj_x_time.append(self.I_gj_x[:])
-        self.I_gj_y_time.append(self.I_gj_y[:])
-        self.I_tot_x_time.append(self.I_tot_x[:])
-        self.I_tot_y_time.append(self.I_tot_y[:])
-        self.I_mem_time.append(self.I_mem[:])
+        self.I_gj_x_time.append(self.J_gj_x[:])
+        self.I_gj_y_time.append(self.J_gj_y[:])
+
         self.vm_time.append(self.vm[:])
         self.dvm_time.append(self.dvm[:])
         self.rho_cells_time.append(self.rho_cells[:])
@@ -1191,6 +1235,9 @@ class Simulator(object):
             self.efield_ecm_x_time.append(self.E_env_x[:])
 
             self.efield_ecm_y_time.append(self.E_env_y[:])
+
+            self.I_tot_x_time.append(self.J_env_x[:])
+            self.I_tot_y_time.append(self.J_env_y[:])
 
             # ecmsc = np.copy(self.cc_env[:])
             # ecmsc.tolist()
@@ -1821,7 +1868,7 @@ class Simulator(object):
 
 
         else:
-            self.gjopen = self.gj_block
+            self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
 
 
         # voltage gradient:
@@ -2219,101 +2266,6 @@ class Simulator(object):
         self.E_gj_x = cells.cell_nn_tx*self.Egj
         self.E_gj_y = cells.cell_nn_ty*self.Egj
 
-    def get_current(self,cells,p):
-
-        # zero components of total current vector:
-
-        self.I_tot_x = np.zeros(cells.X.shape)
-        self.I_tot_y = np.zeros(cells.X.shape)
-
-        # calculate current across gap junctions in x direction:
-        I_gj_x = np.zeros(len(cells.mem_i))
-
-        for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
-
-            I_i_x = flux_array*zi*p.F*cells.mem_sa
-
-            I_gj_x = I_gj_x + I_i_x
-
-        # calculate current across gap junctions in x direction:
-        I_gj_y = np.zeros(len(cells.mem_i))
-
-        for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
-
-            I_i_y = flux_array*zi*p.F*cells.mem_sa
-
-            I_gj_y = I_gj_y + I_i_y
-
-        # interpolate the gj current components to the grid:
-        self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.X,cells.Y),
-                                      method=p.interp_type,fill_value=0)
-
-        # self.I_gj_x = np.multiply(self.I_gj_x,cells.maskECM)
-
-        self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.X,cells.Y),
-                                      method=p.interp_type,fill_value=0)
-
-        self.I_gj_x = self.I_gj_x/(cells.delta*p.cell_height)
-        self.I_gj_y = self.I_gj_y/(cells.delta*p.cell_height)
-
-        # self.I_gj_y = np.multiply(self.I_gj_y,cells.maskECM)
-
-        self.I_tot_x = self.I_tot_x + self.I_gj_x
-        self.I_tot_y = self.I_tot_y + self.I_gj_y
-
-        # calculate current across cell membranes:
-
-        self.I_mem = np.zeros(len(cells.mem_i))
-        for flux_array, zi in zip(self.fluxes_mem,self.zs):
-
-            I_i = flux_array*zi*p.F*cells.mem_sa
-
-            self.I_mem = self.I_mem + I_i
-
-            # components are negative as transmembrane fluxes point into the cell, but mem normals point out:
-            I_mem_x = -self.I_mem*cells.mem_vects_flat[:,2]
-            I_mem_y = -self.I_mem*cells.mem_vects_flat[:,3]
-
-         # interpolate the trans-membrane current components to the grid:
-        self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.X,cells.Y),
-                                      method=p.interp_type,fill_value=0)
-        # self.I_mem_x = np.multiply(self.I_mem_x,cells.maskM)
-
-        self.I_mem_y = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_y,(cells.X,cells.Y),
-                                      method=p.interp_type,fill_value=0)
-        # self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
-
-        self.I_mem_x = self.I_mem_x/(cells.delta*p.cell_height)
-        self.I_mem_y = self.I_mem_y/(cells.delta*p.cell_height)
-
-        # add membrane current to total current:
-
-        self.I_tot_x = self.I_tot_x + self.I_mem_x
-        self.I_tot_y = self.I_tot_y + self.I_mem_y
-
-        if p.sim_ECM is True:
-
-            self.I_env_x = np.zeros(len(cells.xypts))
-            self.I_env_y = np.zeros(len(cells.xypts))
-
-            for flux_array, zi in zip(self.fluxes_env_x,self.zs):
-
-                I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
-
-                self.I_env_x = self.I_env_x + I_i
-
-            for flux_array, zi in zip(self.fluxes_env_y,self.zs):
-
-                I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
-
-                self.I_env_y = self.I_env_y + I_i
-
-            I_env_x = self.I_env_x.reshape(cells.X.shape)/(cells.delta*p.cell_height)
-            I_env_y = self.I_env_y.reshape(cells.X.shape)/(cells.delta*p.cell_height)
-
-            self.I_tot_x = self.I_tot_x + I_env_x
-            self.I_tot_y = self.I_tot_y + I_env_y
-
     def get_ion(self,label):
         """
         Given a string input, returns the simulation index of the appropriate ion.
@@ -2548,5 +2500,101 @@ class Simulator(object):
 #*AND* seemingly duplicate "p.plot_type" attribute, which should probably
 #receive similar treatment. Wonder temptress at the speed of light and the
 #sound of love!
+
+
+# def get_current(self,cells,p):
+#
+#     # zero components of total current vector:
+#
+#     self.I_tot_x = np.zeros(cells.X.shape)
+#     self.I_tot_y = np.zeros(cells.X.shape)
+#
+#     # calculate current across gap junctions in x direction:
+#     I_gj_x = np.zeros(len(cells.mem_i))
+#
+#     for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
+#
+#         I_i_x = flux_array*zi*p.F*cells.mem_sa
+#
+#         I_gj_x = I_gj_x + I_i_x
+#
+#     # calculate current across gap junctions in x direction:
+#     I_gj_y = np.zeros(len(cells.mem_i))
+#
+#     for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
+#
+#         I_i_y = flux_array*zi*p.F*cells.mem_sa
+#
+#         I_gj_y = I_gj_y + I_i_y
+#
+#     # interpolate the gj current components to the grid:
+#     self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.X,cells.Y),
+#                                   method=p.interp_type,fill_value=0)
+#
+#     # self.I_gj_x = np.multiply(self.I_gj_x,cells.maskECM)
+#
+#     self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.X,cells.Y),
+#                                   method=p.interp_type,fill_value=0)
+#
+#     self.I_gj_x = self.I_gj_x/(cells.delta*p.cell_height)
+#     self.I_gj_y = self.I_gj_y/(cells.delta*p.cell_height)
+#
+#     # self.I_gj_y = np.multiply(self.I_gj_y,cells.maskECM)
+#
+#     self.I_tot_x = self.I_tot_x + self.I_gj_x
+#     self.I_tot_y = self.I_tot_y + self.I_gj_y
+#
+#     # calculate current across cell membranes:
+#
+#     self.I_mem = np.zeros(len(cells.mem_i))
+#     for flux_array, zi in zip(self.fluxes_mem,self.zs):
+#
+#         I_i = flux_array*zi*p.F*cells.mem_sa
+#
+#         self.I_mem = self.I_mem + I_i
+#
+#         # components are negative as transmembrane fluxes point into the cell, but mem normals point out:
+#         I_mem_x = -self.I_mem*cells.mem_vects_flat[:,2]
+#         I_mem_y = -self.I_mem*cells.mem_vects_flat[:,3]
+#
+#      # interpolate the trans-membrane current components to the grid:
+#     self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.X,cells.Y),
+#                                   method=p.interp_type,fill_value=0)
+#     # self.I_mem_x = np.multiply(self.I_mem_x,cells.maskM)
+#
+#     self.I_mem_y = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_y,(cells.X,cells.Y),
+#                                   method=p.interp_type,fill_value=0)
+#     # self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
+#
+#     self.I_mem_x = self.I_mem_x/(cells.delta*p.cell_height)
+#     self.I_mem_y = self.I_mem_y/(cells.delta*p.cell_height)
+#
+#     # add membrane current to total current:
+#
+#     self.I_tot_x = self.I_tot_x + self.I_mem_x
+#     self.I_tot_y = self.I_tot_y + self.I_mem_y
+#
+#     if p.sim_ECM is True:
+#
+#         self.I_env_x = np.zeros(len(cells.xypts))
+#         self.I_env_y = np.zeros(len(cells.xypts))
+#
+#         for flux_array, zi in zip(self.fluxes_env_x,self.zs):
+#
+#             I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
+#
+#             self.I_env_x = self.I_env_x + I_i
+#
+#         for flux_array, zi in zip(self.fluxes_env_y,self.zs):
+#
+#             I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
+#
+#             self.I_env_y = self.I_env_y + I_i
+#
+#         I_env_x = self.I_env_x.reshape(cells.X.shape)/(cells.delta*p.cell_height)
+#         I_env_y = self.I_env_y.reshape(cells.X.shape)/(cells.delta*p.cell_height)
+#
+#         self.I_tot_x = self.I_tot_x + I_env_x
+#         self.I_tot_y = self.I_tot_y + I_env_y
 
 
