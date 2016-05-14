@@ -1106,6 +1106,9 @@ class Cells(object):
         # self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
         self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
 
+        # ratio of mean cell volume to ecm square volume (gives approx num cells per ecm square)
+        self.ratio_cell2ecm = self.cell_vol.mean()/(p.cell_height*self.delta**2)
+
     def environment(self,p):
 
         """
@@ -1143,12 +1146,12 @@ class Cells(object):
 
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
-        # update ecm volumes and surface areas within the cell region:
-        self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:] # volume of ecm spaces between cells of cluster
-        self.ecm_sa[self.map_mem2ecm] = 2*self.mem_sa[:]  # surface area of ecm spaces between cells of the cluster
-
-        self.ecm_vol[self.ecm_bound_k] = (p.cell_height*self.delta**2) # set spaces on cluster boundary to be full-vol
-        self.ecm_sa[self.ecm_bound_k] = p.cell_height*self.delta  # set spaces on cluster boundary to have grid-SA
+        # update ecm volumes and surface areas within the cell region: FIXME we have new method and can delete this
+        # self.ecm_vol[self.map_mem2ecm] = p.cell_space*self.mem_sa[:] # volume of ecm spaces between cells of cluster
+        # self.ecm_sa[self.map_mem2ecm] = 2*self.mem_sa[:]  # surface area of ecm spaces between cells of the cluster
+        #
+        # self.ecm_vol[self.ecm_bound_k] = (p.cell_height*self.delta**2) # set spaces on cluster boundary to be full-vol
+        # self.ecm_sa[self.ecm_bound_k] = p.cell_height*self.delta  # set spaces on cluster boundary to have grid-SA
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]
 
@@ -1179,13 +1182,13 @@ class Cells(object):
         # calculate the cluster masking matrix
         self.make_maskM(p)
         #-------------------------------------------------------------------------
-        if p.sim_ECM is True:
-
-            # Create a matrix to update ecm from mem fluxes
-            self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
-
-            for i, ecm_index in enumerate(self.map_mem2ecm):
-                self.ecm_UpdateMatrix[i,ecm_index] = 1
+        # if p.sim_ECM is True: FIXME we have new method and can hopefully delete this
+        #
+        #     # Create a matrix to update ecm from mem fluxes
+        #     self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
+        #
+        #     for i, ecm_index in enumerate(self.map_mem2ecm):
+        #         self.ecm_UpdateMatrix[i,ecm_index] = 1
 
     def short_environment(self,p):
 

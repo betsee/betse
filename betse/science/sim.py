@@ -143,7 +143,7 @@ class Simulator(object):
         # define sim_ECM and non_sim_ECM data length:
         if p.sim_ECM is True:
             self.mems_data_length = len(cells.mem_i)
-            self.env_data_length = len(cells.xypts)     # FIXME update this to cells.mem_i to change ecm handling!
+            self.env_data_length = len(cells.xypts)
         else:
             self.mems_data_length = len(cells.cell_i)
             self.env_data_length = len(cells.cell_i)
@@ -873,7 +873,7 @@ class Simulator(object):
                 self.update_gj(cells, p, t, i)
 
                 if p.sim_ECM:
-                    # update concentrations in the extracellular spaces:
+                    #update concentrations in the extracellular spaces:
                     self.update_ecm(cells, p, t, i)
 
                 # # recalculate the net, unbalanced charge and voltage in each cell:
@@ -1334,18 +1334,16 @@ class Simulator(object):
             # total charge in cells per unit surface area:
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
-            # smooth out the environmental charge:
-            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level)
-            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
-            # self.rho_env = self.rho_env.ravel()
-
             # interpolate charge from environmental grid to the ecm_mids:
             rho_ecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
                                       self.rho_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
 
                 # total charge per unit surface area in the extracellular spaces:
-            Qecm = rho_ecm*(p.cell_space/2)
+            # Qecm = rho_ecm*(p.cell_space/2)
+
+            # total charge per unit surface area in the extracellular spaces:
+            Qecm = (rho_ecm * p.cell_height * cells.delta ** 2) / (cells.ratio_cell2ecm * cells.mem_sa.mean())
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
@@ -1357,15 +1355,29 @@ class Simulator(object):
             v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
             v_ecm = v_max_vect[cells.ecm_range_a:cells.ecm_range_b]
 
+            # interpolate the v_env from ECM spaces to the ENV GRID:
+            v_env = interp.griddata((cells.ecm_mids[:, 0], cells.ecm_mids[:, 1]),
+                v_ecm, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+                fill_value=0)
+
+            # save values at the cluster boundary:
+            bound_vals = v_env[cells.ecm_bound_k]
+
+            # set the values of the global environment to zero:
+            v_env[cells.inds_env] = 0
+
+            # finally, ensure that the boundary values are restored:
+            v_env[cells.ecm_bound_k] = bound_vals
+
             #Map the environmental voltage to the regular grid:
-            v_env = np.zeros(len(cells.xypts))
-
-            # map the ecm voltage to membrane midpoints:
-            v_ecm_at_mem = v_ecm[cells.mem_to_ecm_mids]
-            # map it again to the environmental grid
-            v_env[cells.map_mem2ecm] = v_ecm_at_mem
-
-            # smooth out the environmental voltage:
+            # v_env = np.zeros(len(cells.xypts))
+            #
+            # # map the ecm voltage to membrane midpoints:
+            # v_ecm_at_mem = v_ecm[cells.mem_to_ecm_mids]
+            # # map it again to the environmental grid
+            # v_env[cells.map_mem2ecm] = v_ecm_at_mem
+            #
+            # # smooth out the environmental voltage:
             v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level)
             # v_env = fd.integrator(v_env.reshape(cells.X.shape))
             v_env = v_env.ravel()
@@ -1380,8 +1392,8 @@ class Simulator(object):
             vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
 
             # null out charge and voltage in the environmental space:
-            self.rho_env[cells.inds_env] = 0
-            v_env[cells.inds_env] = 0
+            # self.rho_env[cells.inds_env] = 0
+            # v_env[cells.inds_env] = 0
 
         return vm, v_cell, v_env
 
@@ -1391,6 +1403,9 @@ class Simulator(object):
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
+            # self.rho_env[cells.inds_env] = 0
+            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape))
+            # self.rho_env = self.rho_env.ravel()
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
         else:
              self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
@@ -1404,13 +1419,41 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             d_c_cells = flux*(cells.mem_sa/cells.cell_vol[cells.mem_to_cells])
-            d_c_env = -flux*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
 
+            # divergence of cells:
             delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
 
+
+            # d_c_env = -flux*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
+
+            # delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
+
+            # interpolate the flux from mem points to the ENV GRID:
+            flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
+                -flux, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+                fill_value=0)
+
+            # save values at the cluster boundary:
+            bound_vals = flux_env[cells.ecm_bound_k]
+
+            # set the values of the global environment to zero:
+            flux_env[cells.inds_env] = 0
+
+            # finally, ensure that the boundary values are restored:
+            flux_env[cells.ecm_bound_k] = bound_vals
+
+            # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
+            # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
+            # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
+
+            delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta**2) * p.cell_height)
+
+            delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
+
+            # update the concentrations
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
             self.cc_env[ion_i] = c_env + delta_env*p.dt
+
 
         else:
 
@@ -1424,10 +1467,10 @@ class Simulator(object):
             self.cc_env[ion_i][:] = c_env.mean()
 
         # ensure that there are no negative values in the cells or the extracellular spaces:
-        for i, arr in enumerate(self.cc_cells):
-            self.cc_cells[i] = stb.no_negs(arr)
-        for i, arr in enumerate(self.cc_env):
-            self.cc_env[i] = stb.no_negs(arr)
+        # for i, arr in enumerate(self.cc_cells):
+        #     self.cc_cells[i] = stb.no_negs(arr)
+        # for i, arr in enumerate(self.cc_env):
+        #     self.cc_env[i] = stb.no_negs(arr)
 
     def update_Co(self,cX_cell,cX_env,flux,cells,p):
         """
@@ -1453,11 +1496,32 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             d_c_cells = flux * (cells.mem_sa / cells.cell_vol[cells.mem_to_cells])
-            d_c_env = -flux * (cells.mem_sa / cells.ecm_vol[cells.map_mem2ecm])
 
             delta_cells = np.dot(d_c_cells, cells.cell_UpdateMatrix)
-            delta_env = np.dot(d_c_env, cells.ecm_UpdateMatrix)
 
+            # interpolate the flux from mem points to the ENV GRID:
+            flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
+                -flux, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+                fill_value=0)
+
+            # save values at the cluster boundary:
+            bound_vals = flux_env[cells.ecm_bound_k]
+
+            # set the values of the global environment to zero:
+            flux_env[cells.inds_env] = 0
+
+            # finally, ensure that the boundary values are restored:
+            flux_env[cells.ecm_bound_k] = bound_vals
+
+            # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
+            # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
+            # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
+
+            delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta ** 2) * p.cell_height)
+
+            delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
+
+            # update the concentrations:
             cX_cell = cX_cell + delta_cells * p.dt
             cX_env = cX_env + delta_env * p.dt
 
@@ -1703,9 +1767,6 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
         if p.sim_ECM is True:
 
-            vmems = self.v_cell
-            # vmems = self.vm
-
             self.vgj = self.v_cell[cells.cell_nn_i[:,1]]- self.v_cell[cells.cell_nn_i[:,0]]
 
         else:
@@ -1927,20 +1988,19 @@ class Simulator(object):
             f_env_y[0,:] = 0
             f_env_y[-1,:] = 0
 
-        # # # calculate the divergence of the total flux, which is equivalent to the total change per unit time
-        # delta_c = fd.flux_summer(f_env_x,f_env_y,cells.X)*(1/cells.delta)
+        # calculate the divergence of the total flux, which is equivalent to the total change per unit time
 
-        d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
-        d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
+        d_fenvx = (f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
+        d_fenvy = (f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
 
         delta_c = d_fenvx + d_fenvy
 
-        # delta_c = fd.integrator(delta_c)
+        delta_c = fd.integrator(delta_c)
 
         #-----------------------
-        cenv = cenv + delta_c*p.dt
+        cenv = cenv - 1e-3*delta_c*p.dt
 
-        cenv = fd.integrator(cenv)  # smooth out the concentration
+        # cenv = fd.integrator(cenv)  # smooth out the concentration
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
@@ -1977,6 +2037,141 @@ class Simulator(object):
 
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
+
+    def update_ecm_n(self, cells, p, t, i):
+
+        if p.closed_bound is True:
+            btag = 'closed'
+
+        else:
+            btag = 'open'
+
+        # make v_env and cc_env into 2d matrices
+        cenv = self.cc_env[i][:].reshape(cells.X.shape)
+        denv = self.D_env[i][:].reshape(cells.X.shape)
+        v_env = self.v_env[:].reshape(cells.X.shape)
+        z_env = self.z_array_env[i].reshape(cells.X.shape)
+
+        # enforce voltage at boundary:
+        v_env[:, 0] = self.bound_V['L']
+        v_env[:, -1] = self.bound_V['R']
+        v_env[0, :] = self.bound_V['B']
+        v_env[-1, :] = self.bound_V['T']
+
+
+        if p.closed_bound is True:  # insulation boundary conditions
+
+            cenv[:, 0] = cenv[:, 1]
+            cenv[:, -1] = cenv[:, -2]
+            cenv[0, :] = cenv[1, :]
+            cenv[-1, :] = cenv[-2, :]
+
+
+        else:  # open and electrically grounded boundary conditions
+            cenv[:, 0] = self.c_env_bound[i]
+            cenv[:, -1] = self.c_env_bound[i]
+            cenv[0, :] = self.c_env_bound[i]
+            cenv[-1, :] = self.c_env_bound[i]
+
+            # try adding it to the second layer to get proper diffusion in...
+            # cenv_x[:, 1] = self.c_env_bound[i]
+            # cenv_x[:, -2] = self.c_env_bound[i]
+            # cenv_x[1, :] = self.c_env_bound[i]
+            # cenv_x[-2, :] = self.c_env_bound[i]
+
+
+        # calculate gradients in the environment
+        grad_V_env_x, grad_V_env_y = fd.gradient(v_env, cells.delta)
+
+        grad_cc_env_x, grad_cc_env_y = fd.gradient(cenv, cells.delta)
+
+        # calculate fluxes for electrodiffusive transport:
+        if p.fluid_flow is True:
+
+            uenvx = self.u_env_x
+            uenvy = self.u_env_y
+
+        else:
+            uenvx = 0
+            uenvy = 0
+
+        f_env_x, f_env_y = stb.nernst_planck_flux(cenv, grad_cc_env_x, grad_cc_env_y,grad_V_env_x, grad_V_env_y,
+            uenvx, uenvy, denv,z_env, self.T, p)
+
+        if p.closed_bound is False:
+
+            f_env_x[:, 0] = f_env_x[:, 1]
+            f_env_x[:, -1] = f_env_x[:, -2]
+            f_env_x[0, :] = f_env_x[1, :]
+            f_env_x[-1, :] = f_env_x[-2, :]
+
+            f_env_y[:, 0] = f_env_y[:, 1]
+            f_env_y[:, -1] = f_env_y[:, -2]
+            f_env_y[0, :] = f_env_y[1, :]
+            f_env_y[-1, :] = f_env_y[-2, :]
+
+        else:
+
+            f_env_x[:, 0] = 0
+            f_env_x[:, -1] = 0
+            f_env_x[0, :] = 0
+            f_env_x[-1, :] = 0
+
+            f_env_y[:, 0] = 0
+            f_env_y[:, -1] = 0
+            f_env_y[0, :] = 0
+            f_env_y[-1, :] = 0
+
+        # calculate the divergence of the total flux, which is equivalent to the total change per unit time
+
+        # d_fenvx = (f_env_x[:, 1:] - f_env_x[:, 0:-1]) / cells.delta
+        # d_fenvy = (f_env_y[1:, :] - f_env_y[0:-1, :]) / cells.delta
+        #
+        # delta_c = d_fenvx + d_fenvy
+        delta_c = fd.divergence(f_env_x,f_env_y,cells.delta,cells.delta)
+
+        # delta_c = fd.integrator(delta_c)
+
+        # -----------------------
+        cenv = cenv - delta_c * p.dt
+
+        # cenv = fd.integrator(cenv)  # smooth out the concentration
+
+        if p.closed_bound is True:
+            # Neumann boundary condition (flux at boundary)
+            # zero flux boundaries for concentration:
+
+            cenv[:, -1] = cenv[:, -2]
+            cenv[:, 0] = cenv[:, 1]
+            cenv[0, :] = cenv[1, :]
+            cenv[-1, :] = cenv[-2, :]
+
+        elif p.closed_bound is False:
+            # if the boundary is open, set the concentration at the boundary
+            # open boundary
+            cenv[:, -1] = self.c_env_bound[i]
+            cenv[:, 0] = self.c_env_bound[i]
+            cenv[0, :] = self.c_env_bound[i]
+            cenv[-1, :] = self.c_env_bound[i]
+
+            # cenv[:, -2] = self.c_env_bound[i]
+            # cenv[:, 1] = self.c_env_bound[i]
+            # cenv[1, :] = self.c_env_bound[i]
+            # cenv[-2, :] = self.c_env_bound[i]
+
+        # smooth the concentration
+        # self.cc_env[i] = gaussian_filter(self.cc_env[i], p.smooth_level)
+        # reshape the matrices back into vectors:
+        self.cc_env[i] = cenv.ravel()
+
+        # fenvx = (f_env_x[:, 1:] + f_env_x[:, 0:-1]) / 2
+        # fenvy = (f_env_y[1:, :] + f_env_y[0:-1, :]) / 2
+
+        # fenvx = fd.integrator(fenvx)
+        # fenvy = fd.integrator(fenvy)
+
+        self.fluxes_env_x[i] = f_env_x.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = f_env_y.ravel()  # store ecm junction flux for this ion
 
     def get_Efield(self,cells,p):
 
