@@ -676,16 +676,16 @@ class Simulator(object):
                 logs.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
 
-            if cells.lapENV_P_inv is None:
+            if p.sim_ECM is True and cells.lapENV_P_inv is None:
 
-                logs.log_info('Creating environmental Poisson solver for pressure...')
+                logs.log_info('Creating environmental Poisson solver...')
                 bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
                 cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
 
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
         elif p.fluid_flow is False and p.deformation is False and p.calc_J is False:
-            # if there's no physics calcs required
+            # if there's no physics calcs required, we're running an init
             # get rid of all matrices rather than carry them around as large dead-weights
 
             if cells.lapGJinv is not None:
@@ -694,24 +694,29 @@ class Simulator(object):
                 cells.lapGJ = None
                 cells.lapGJ_P = None
 
-            if p.sim_ECM is True and cells.lapENVinv is not None:
+            if p.sim_ECM is True and cells.lapENV_P_inv is not None:
                 cells.lapENVinv = None
                 cells.lapENV_P_inv = None
 
 
-
-
-
         if p.run_sim is True:   # if we're running a simulation:
 
-            if p.fluid_flow is True or p.deformation is True:  # if user desires fluid flow:
+            if p.fluid_flow is True or p.deformation is True or p.calc_J is True:  # if user desires fluid flow:
 
-                # initialize data structures:
-                self.u_cells_x = np.zeros(len(cells.cell_i))
-                self.u_cells_y = np.zeros(len(cells.cell_i))
+                if p.fluid_flow is True or p.deformation is True:
 
-                self.u_gj_x = np.zeros(len(cells.mem_i))
-                self.u_gj_y = np.zeros(len(cells.mem_i))
+                    if p.deformation is True:
+                        cells.deform_tools(p)
+
+                    # initialize data structures for flow:
+                    self.u_cells_x = np.zeros(len(cells.cell_i))
+                    self.u_cells_y = np.zeros(len(cells.cell_i))
+
+                    self.u_gj_x = np.zeros(len(cells.mem_i))
+                    self.u_gj_y = np.zeros(len(cells.mem_i))
+
+                    # force electrostatic pressure:
+                    p.deform_electro = True
 
                 if cells.lapGJinv is None:
 
@@ -732,15 +737,9 @@ class Simulator(object):
 
                 if p.sim_ECM is True:
 
-                    if cells.lapENVinv is None:
-
-                        logs.log_info('Creating environmental Poisson solver for voltage...')
-                        cells.lapENV, cells.lapENVinv = cells.grid_obj.makeLaplacian()
-                        cells.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
-
                     if cells.lapENV_P_inv is None:
 
-                        logs.log_info('Creating environmental Poisson solver for pressure...')
+                        logs.log_info('Creating environmental Poisson solver...')
                         bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
                         cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
 
@@ -754,16 +753,15 @@ class Simulator(object):
                 # if there's no physics calcs required
                 # get rid of all matrices rather than carry them around as large dead-weights
 
-                if cells.lapGJinv is not None:
+                if cells.lapGJ_P_inv is not None:
                     cells.lapGJinv = None
                     cells.lapGJ_P_inv = None
                     cells.lapGJ = None
                     cells.lapGJ_P = None
 
-                if p.sim_ECM is True and cells.lapENVinv is not None:
+                if p.sim_ECM is True and cells.lapENV_P_inv is not None:
                     cells.lapENVinv = None
                     cells.lapENV_P_inv = None
-
 
         # Initialize all user-specified interventions and dynamic channels.
         self.dyna.runAllInit(self,cells,p)
@@ -966,6 +964,10 @@ class Simulator(object):
 
                 self.charge_env_time.append(self.rho_env)
 
+            # get the current
+            if p.calc_J:
+                get_current(self, cells, p)
+
 
             # get forces from any hydrostatic (self.P_Cells) pressure:
             getHydroF(self,cells, p)
@@ -1007,8 +1009,6 @@ class Simulator(object):
             # ---------time sampling and data storage---------------------------------------------------
 
             if t in tsamples:
-
-                get_current(self,cells, p)  # get the current in the gj network connection of cells
 
                 self.write2storage(t, cells, p)  # write data to time storage vectors
 
@@ -1463,15 +1463,17 @@ class Simulator(object):
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
-            self.rho_env[cells.inds_env] = 0 # assumes charge screening in the env
-            # self.rho_env = fd.integrator(self.rho_env.reshape(cells.X.shape)).ravel()
+
+            self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
+
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
-            self.v_env[cells.inds_env] = 0 # assumes charge screening in the env
+            self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
+
         else:
              self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
              self.vm, _, _ = self.get_Vall(cells,p)
 
-    def update_C(self,ion_i,flux,cells,p):  # FIXME this is a perfect place to implement RK4
+    def update_C(self,ion_i,flux,cells,p):  # FIXME change this to update_Co
 
         c_cells = self.cc_cells[ion_i][:]
         c_env = self.cc_env[ion_i][:]
@@ -1509,7 +1511,7 @@ class Simulator(object):
             delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
 
             # delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
-            delta_env = gaussian_filter(delta_env.reshape(cells.X.shape),p.smooth_level).ravel()
+            # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape),p.smooth_level).ravel()
 
             # update the concentrations
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt

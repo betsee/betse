@@ -91,6 +91,9 @@ class SimRunner(object):
                     logs.log_info('Creating cell network Poisson solver...')
                     cells.graphLaplacian(p)
 
+                    if p.deformation is True:
+                        cells.deform_tools(p)
+
                     if p.td_deform is False:  # if time-dependent deformation is not required
 
                         cells.lapGJ = None
@@ -126,32 +129,22 @@ class SimRunner(object):
                 logs.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
 
+                if p.deformation is True:
+                    cells.deform_tools(p)
+
                 if p.td_deform is False:  # if time-dependent deformation is not required
 
                     cells.lapGJ = None
                     cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
-            if p.calc_J is True:
+            if p.calc_J is True or p.fluid_flow is True:
 
-                logs.log_info('Creating environmental Poisson solver for env current...')
+                logs.log_info('Creating environmental Poisson solver for environment...')
                 bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
                 cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
 
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-            if p.fluid_flow is True:
-
-                logs.log_info('Creating environmental Poisson solver for voltage...')
-                cells.lapENV, cells.lapENVinv = cells.grid_obj.makeLaplacian()
-                cells.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
-
-                if p.calc_J is False:
-
-                    logs.log_info('Creating environmental Poisson solver for pressure...')
-                    bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-                    cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
-
-                    cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
             cells.save_cluster(p)
 

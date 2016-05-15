@@ -1192,7 +1192,7 @@ def removeCells(
 
         cells.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-        if p.fluid_flow is True or p.deformation is True:
+        if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
             logs.log_info('Creating cell network Poisson solver...')
             cells.graphLaplacian(p)

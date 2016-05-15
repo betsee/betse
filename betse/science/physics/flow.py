@@ -19,14 +19,7 @@ def getFlow(sim, cells, p):
 
     if p.sim_ECM is True:
 
-        # force of gravity:
-        if p.closed_bound is True:
-
-            btag = 'closed'
-
-        else:
-
-            btag = 'open'
+        btag = 'closed'
 
         # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
         # for the world:
@@ -34,13 +27,10 @@ def getFlow(sim, cells, p):
 
         if p.deform_electro is True:
 
-            # map charge density to rectangular grid volume:
-            # Qenv = sim.rho_env * cells.ave2ecmV
             Qenv = sim.rho_env.reshape(cells.X.shape)
 
             Fe_x = Qenv * sim.E_env_x
             Fe_y = Qenv * sim.E_env_y
-
 
         else:
 
@@ -51,7 +41,7 @@ def getFlow(sim, cells, p):
         Fx = Fe_x
         Fy = Fe_y
 
-        # calculated the base fluid flow using the Hagen-Poiseuille equation:
+        # calculate the base fluid flow using the Hagen-Poiseuille equation:
         ux_ecm_o = gaussian_filter(Fx * alpha, 1)
         uy_ecm_o = gaussian_filter(Fy * alpha, 1)
 

@@ -36,7 +36,7 @@ def get_current(sim, cells, p):
     # bulk electroneutrality of the electrolyte:
 
     # First calculate rate of change of charge in environment:
-    if len(sim.charge_cells_time) > 0:
+    if len(sim.charge_cells_time) > 1:
 
         d_rho_cells = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
 
@@ -106,12 +106,12 @@ def get_current(sim, cells, p):
         # bulk electrolyte neutrality
 
         # First calculate rate of change of charge in environment:
-        if len(sim.charge_env_time) > 0:
+        if len(sim.charge_env_time) > 1:
 
             d_rho_env = (sim.charge_env_time[-1] - sim.charge_env_time[-2])/p.dt
 
         else:
-            d_rho_env = 0
+            d_rho_env = np.zeros(len(cells.xypts))
 
         # Next, calculate the divergence of the environmental current density:
         div_J_env_o = fd.divergence(J_env_x_o.reshape(cells.X.shape), J_env_y_o.reshape(cells.X.shape),

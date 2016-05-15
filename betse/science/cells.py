@@ -121,6 +121,8 @@ class Cells(object):
         self.lapENVinv = None
         self.lapENV_P_inv = None
 
+        self.M_sum_mem_to_ecm = None
+
     def deformWorld(self,p):
         """
         Runs necessary methods to recalculate essential world
@@ -739,74 +741,7 @@ class Cells(object):
 
         self.ecm_to_mem_mids = np.column_stack((ex,ey))
 
-        # Data structures specific for deformation option------------------------------
 
-        if p.deformation is True:
-
-            logs.log_info('Creating computational tools for mechanical deformation... ')
-
-            #---------Deformation matrices-----------------------------------------------------------------------------
-
-            # Create a matrix that will sum value from the membranes to the ecm midpoint:
-
-            self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids),len(self.mem_i)))
-
-            for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
-
-                if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
-
-                    ind = ind_pair[0]
-                    self.M_sum_mem_to_ecm[i_ecm,ind] = 1
-
-                else:
-                    ind1 = ind_pair[0]
-                    ind2 = ind_pair[1]
-                    self.M_sum_mem_to_ecm[i_ecm,ind1] = 1/2
-                    self.M_sum_mem_to_ecm[i_ecm,ind2] = 1/2
-
-            # create the deformation matrix, which will apply strain at mem mids to the vertices
-            # (np.dot(mem_verts,strain)):
-            # Calculate the deforM matrix to work with ecm rather than cell vertices:
-            midsTree = sps.KDTree(self.ecm_mids)
-            vertTree = sps.KDTree(self.ecm_verts_unique)
-
-            self.deforM = np.zeros((len(self.ecm_verts_unique),len(self.ecm_mids)))
-
-            for i_cell, ecm_verts in enumerate(self.ecm_verts):
-
-                mem_i_set = self.cell_to_mems[i_cell]
-
-                ecm_mids = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
-
-                if len(ecm_mids) == len(ecm_verts):
-
-                    seq_i_verts = np.arange(0,len(ecm_mids))
-                    seq_ip_mids = np.roll(seq_i_verts,0)
-                    seq_im_mids = np.roll(seq_i_verts,-1)
-
-                    ecm_mids = np.asarray(ecm_mids)
-
-                    vert_points = ecm_verts[seq_i_verts]
-                    ecm_points_p = ecm_mids[seq_ip_mids]
-                    ecm_points_m = ecm_mids[seq_im_mids]
-
-                    # find these points in the flattened vectors:
-                    vert_inds = list(vertTree.query(vert_points))[1]
-                    ecm_inds_p = list(midsTree.query(ecm_points_p))[1]
-                    ecm_inds_m = list(midsTree.query(ecm_points_m))[1]
-
-                    self.deforM[vert_inds,ecm_inds_p] = 1
-                    self.deforM[vert_inds,ecm_inds_m] = 1
-
-            #---------------------------------------------------------------------
-
-            # Finally, build a list of inds (self.ecmInds) to map between unique and flattened ecm_verts vectors:
-            ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
-            ecm_verts_flat = np.asarray(ecm_verts_flat)
-
-            ecmTree = sps.KDTree(self.ecm_verts_unique)
-
-            self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
         #-----------------------------------------------------------------------------------------------------------
 
@@ -1863,5 +1798,73 @@ class Cells(object):
                              (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),fill_value = 0, method=interp_method)
 
         return f_mem
+
+    def deform_tools(self,p):
+
+        # Data structures specific for deformation option------------------------------
+
+        logs.log_info('Creating computational tools for mechanical deformation... ')
+
+        # ---------Deformation matrices-----------------------------------------------------------------------------
+
+        # Create a matrix that will sum value from the membranes to the ecm midpoint:
+
+        self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids), len(self.mem_i)))
+
+        for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
+
+            if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
+
+                ind = ind_pair[0]
+                self.M_sum_mem_to_ecm[i_ecm, ind] = 1
+
+            else:
+                ind1 = ind_pair[0]
+                ind2 = ind_pair[1]
+                self.M_sum_mem_to_ecm[i_ecm, ind1] = 1 / 2
+                self.M_sum_mem_to_ecm[i_ecm, ind2] = 1 / 2
+
+        # create the deformation matrix, which will apply strain at mem mids to the vertices
+        # (np.dot(mem_verts,strain)):
+        # Calculate the deforM matrix to work with ecm rather than cell vertices:
+        midsTree = sps.KDTree(self.ecm_mids)
+        vertTree = sps.KDTree(self.ecm_verts_unique)
+
+        self.deforM = np.zeros((len(self.ecm_verts_unique), len(self.ecm_mids)))
+
+        for i_cell, ecm_verts in enumerate(self.ecm_verts):
+
+            mem_i_set = self.cell_to_mems[i_cell]
+
+            ecm_mids = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
+
+            if len(ecm_mids) == len(ecm_verts):
+                seq_i_verts = np.arange(0, len(ecm_mids))
+                seq_ip_mids = np.roll(seq_i_verts, 0)
+                seq_im_mids = np.roll(seq_i_verts, -1)
+
+                ecm_mids = np.asarray(ecm_mids)
+
+                vert_points = ecm_verts[seq_i_verts]
+                ecm_points_p = ecm_mids[seq_ip_mids]
+                ecm_points_m = ecm_mids[seq_im_mids]
+
+                # find these points in the flattened vectors:
+                vert_inds = list(vertTree.query(vert_points))[1]
+                ecm_inds_p = list(midsTree.query(ecm_points_p))[1]
+                ecm_inds_m = list(midsTree.query(ecm_points_m))[1]
+
+                self.deforM[vert_inds, ecm_inds_p] = 1
+                self.deforM[vert_inds, ecm_inds_m] = 1
+
+        # ---------------------------------------------------------------------
+
+        # Finally, build a list of inds (self.ecmInds) to map between unique and flattened ecm_verts vectors:
+        ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
+        ecm_verts_flat = np.asarray(ecm_verts_flat)
+
+        ecmTree = sps.KDTree(self.ecm_verts_unique)
+
+        self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------
