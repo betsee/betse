@@ -66,14 +66,6 @@ def get_current(sim, cells, p):
     J_gj_x = J_gj_x_o - gPhi_x
     J_gj_y = J_gj_y_o - gPhi_y
 
-    # average the components at cell centres:
-    # sim.J_gj_x = np.dot(cells.M_sum_mems, J_gj_x) / cells.num_mems
-    # sim.J_gj_y = np.dot(cells.M_sum_mems, J_gj_y) / cells.num_mems
-    #
-    # # enforce the boundary conditions:
-    # sim.J_gj_x[cells.bflags_cells] = 0
-    # sim.J_gj_y[cells.bflags_cells] = 0
-
     sim.J_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_gj_x,(cells.X,cells.Y),
                                   method=p.interp_type,fill_value=0)
 

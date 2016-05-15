@@ -123,7 +123,9 @@ class Cells(object):
 
         self.M_sum_mem_to_ecm = None
 
-    def deformWorld(self,p):
+        self.gradMem = None
+
+    def deformWorld(self,p):  # FIXME needs updating for sim_ecm case where boundary moves...
         """
         Runs necessary methods to recalculate essential world
         data structures after a mechanical deformation.
@@ -740,37 +742,6 @@ class Cells(object):
             ey.append(ind_pair[1])
 
         self.ecm_to_mem_mids = np.column_stack((ex,ey))
-
-
-
-        #-----------------------------------------------------------------------------------------------------------
-
-        # # if studying lateral movement of pumps and channels in membrane,
-        # # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        # if p.sim_eosmosis is True:
-        #     self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
-        #
-        #     for i, inds in enumerate(self.cell_to_mems):
-        #
-        #         inds = np.asarray(inds)
-        #
-        #         inds_p1 = np.roll(inds,1)
-        #         inds_n1 = np.roll(inds,-1)
-        #         inds_o = np.roll(inds,0)
-        #
-        #         dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
-        #         len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-        #         dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
-        #
-        #         tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
-        #         tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
-        #
-        #         if len_mem.all() != 0 and dist_sign.all() != 0:
-        #
-        #             self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
-        #             self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
-
-        #---------------------------------------------------------------------------
 
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
@@ -1688,6 +1659,8 @@ class Cells(object):
 
         self.inds_env = list(*(maskECM.ravel() == 0).nonzero())
 
+        self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
+
     def curl(self,Fx,Fy,phi_z):
         """
         Calculates the curl of a vector field
@@ -1866,5 +1839,31 @@ class Cells(object):
         ecmTree = sps.KDTree(self.ecm_verts_unique)
 
         self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
+
+    def eosmo_tools(self,p):
+
+        # if studying lateral movement of pumps and channels in membrane,
+        # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+
+        for i, inds in enumerate(self.cell_to_mems):
+
+            inds = np.asarray(inds)
+
+            inds_p1 = np.roll(inds,1)
+            inds_n1 = np.roll(inds,-1)
+            inds_o = np.roll(inds,0)
+
+            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
+            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+            dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
+
+            tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
+            tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
+
+            if len_mem.all() != 0 and dist_sign.all() != 0:
+
+                self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
+                self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------

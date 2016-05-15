@@ -27,6 +27,21 @@ def getDeformation(sim, cells, t, p):
     """
 
     # Determine action forces ------------------------------------------------
+    # # FIXME: Update this when focusing on forces at a later time
+    # # assume action forces for deformation are pseudo forces, resulting from cell galvanotropism,
+    # # but are in relation to the global electric field (proportional to environmental current)
+    # F_x = p.galvanotropism * sim.J_env_x.ravel()
+    # F_y = p.galvanotropism * sim.J_env_y.ravel()
+    #
+    # # now interpolate these forces at the cell centres:
+    # # interpolate charge from environmental grid to the ecm_mids:
+    # F_cell_x = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]),
+    #     F_x, (cells.cell_centres[:, 0], cells.cell_centres[:, 1]), method='nearest', fill_value=0)
+    #
+    # F_cell_y = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]),
+    #     F_y, (cells.cell_centres[:, 0], cells.cell_centres[:, 1]), method='nearest', fill_value=0)
+
+    #---------------------------------------------------------------------------------
 
     # body forces from hydrostatic pressure
     F_hydro_x = sim.F_hydro_x
@@ -45,6 +60,7 @@ def getDeformation(sim, cells, t, p):
     # Take the total component of pressure from all contributions:
     F_cell_x = F_electro_x + F_hydro_x
     F_cell_y = F_electro_y + F_hydro_y
+
 
     # integrate the forces, as is mandated by finite volume methods:
     F_cell_x = cells.integrator(F_cell_x)
@@ -248,7 +264,7 @@ def timeDeform(sim, cells, t, p):
 
     # calculate the reaction pressure required to counter-balance the flow field:
 
-    P_react = np.dot(cells.lapGJ_P_inv, 2 * div_u)
+    P_react = np.dot(cells.lapGJ_P_inv, 2 * div_u)  # FIXME why a two?
 
     # self.P_cells = (p.lame_mu/k_const)*P_react[:]
 

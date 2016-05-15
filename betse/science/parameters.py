@@ -527,6 +527,7 @@ class Parameters(object):
 
         # mechanical deformation ----------------------------------------------------------
         self.deformation = self.config['variable settings']['deformation']['turn on']
+        self.galvanotropism = float(self.config['variable settings']['deformation'].get('galvanotropism',1.0))
         self.td_deform = self.config['variable settings']['deformation']['time dependent deformation']
         self.fixed_cluster_bound = self.config['variable settings']['deformation']['fixed cluster boundary']
         self.youngMod = float(self.config['variable settings']['deformation']['young modulus'])

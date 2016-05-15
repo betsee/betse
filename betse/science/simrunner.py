@@ -99,6 +99,10 @@ class SimRunner(object):
                         cells.lapGJ = None
                         cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
+            if p.sim_eosmosis is True:
+
+                cells.eosmo_tools(p)
+
 
             cells.save_cluster(p)
 
@@ -145,6 +149,8 @@ class SimRunner(object):
 
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
+            if p.sim_eosmosis is True:
+                cells.eosmo_tools(p)
 
             cells.save_cluster(p)
 

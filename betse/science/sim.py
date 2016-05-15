@@ -246,15 +246,17 @@ class Simulator(object):
             self.gj_rho = 0
 
         if p.sim_eosmosis is True:  # if simulating electrodiffusive movement of membrane pumps and channels:
+
+            if cells.gradMem is None:
+                cells.eosmo_tools(p)
+
             self.rho_pump = np.ones(len(cells.mem_i))
             self.rho_channel = np.ones(len(cells.mem_i))
-            self.rho_pump_o = np.ones(len(cells.cell_i))
-            self.rho_channel_o = np.ones(len(cells.cell_i))
+
         else:
             self.rho_pump = 1  # else just define it as identity.
             self.rho_channel = 1
-            self.rho_pump_o = 1
-            self.rho_channel_o = 1
+
 
         ion_names = list(p.ions_dict.keys())
 
@@ -1508,7 +1510,7 @@ class Simulator(object):
             # which yields number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
+            delta_env = flux_env * cells.mean_mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
 
             # delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
             # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape),p.smooth_level).ravel()
@@ -1582,7 +1584,7 @@ class Simulator(object):
 
             # delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta ** 2) * p.cell_height)
 
-            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
+            delta_env = flux_env * cells.mean_mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
 
             delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
 

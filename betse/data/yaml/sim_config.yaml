@@ -612,9 +612,10 @@ variable settings:
     water viscocity: 0.5      # viscocity of water [Pa s] (applies to ease of flow)
 
 
-  deformation:
+  deformation:  # FIXME deformation is presently a work in-progress and not considered a functional feature
 
     turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
+    galvanotropism: 1.0e8      # factor by which cells respond by shape changes to global electric field
     viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
     fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
     young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
