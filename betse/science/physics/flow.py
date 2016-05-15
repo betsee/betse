@@ -42,8 +42,8 @@ def getFlow(sim, cells, p):
         Fy = Fe_y
 
         # calculate the base fluid flow using the Hagen-Poiseuille equation:
-        ux_ecm_o = gaussian_filter(Fx * alpha, 1)
-        uy_ecm_o = gaussian_filter(Fy * alpha, 1)
+        ux_ecm_o = gaussian_filter(Fx * alpha, p.smooth_level)
+        uy_ecm_o = gaussian_filter(Fy * alpha, p.smooth_level)
 
         # calculate the divergence of the flow field as the sum of the two spatial derivatives:
         div_uo = fd.divergence(ux_ecm_o, uy_ecm_o, cells.delta, cells.delta)

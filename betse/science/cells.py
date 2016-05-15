@@ -1134,7 +1134,6 @@ class Cells(object):
 
         '''
 
-        logs.log_info("Creating Poisson solvers for cell cluster...")
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
         # zero-gradient, free boundary version (Neumann condition)

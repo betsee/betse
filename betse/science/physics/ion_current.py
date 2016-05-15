@@ -66,6 +66,9 @@ def get_current(sim, cells, p):
     J_gj_x = J_gj_x_o - gPhi_x
     J_gj_y = J_gj_y_o - gPhi_y
 
+    # J_gj_x = J_gj_x_o
+    # J_gj_y = J_gj_y_o
+
     sim.J_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_gj_x,(cells.X,cells.Y),
                                   method=p.interp_type,fill_value=0)
 

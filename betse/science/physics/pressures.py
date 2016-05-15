@@ -7,19 +7,19 @@ import numpy as np
 from betse.science import finitediff as fd
 
 
-def electro_P(sim, cells, p):
+def electro_F(sim, cells, p):
     """
-    Calculates electrostatic pressure in collection of cells and
-    an electrostatic body force.
+    Calculates electrostatic body force between gap junctions
+     of a networked cell collective.
 
     """
 
-    # map charge in cell to the membrane, averaging between two cells:
-    Q_mem = (sim.rho_cells[cells.cell_nn_i[:, 1]] + sim.rho_cells[cells.cell_nn_i[:, 0]]) / 2
+    # # map charge in cell to the membrane, averaging between two cells:
+    # Q_mem = (sim.rho_cells[cells.cell_nn_i[:, 1]] + sim.rho_cells[cells.cell_nn_i[:, 0]]) / 2
 
     # calculate force at each membrane:
-    sim.F_gj_x = Q_mem * sim.E_gj_x
-    sim.F_gj_y = Q_mem * sim.E_gj_y
+    sim.F_gj_x = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_x
+    sim.F_gj_y = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_y
 
     # calculate a shear electrostatic body force at the cell centre:
     sim.F_electro_x = np.dot(cells.M_sum_mems, sim.F_gj_x) / cells.num_mems
@@ -27,6 +27,7 @@ def electro_P(sim, cells, p):
 
     sim.F_electro = np.sqrt(sim.F_electro_x ** 2 + sim.F_electro_y ** 2)
 
+    # define this in terms of pressure (force per unit area)
     P_x = (sim.F_electro_x * cells.cell_vol) / cells.cell_sa
     P_y = (sim.F_electro_y * cells.cell_vol) / cells.cell_sa
 
@@ -105,14 +106,14 @@ def osmotic_P(sim, cells, p):
     # reassign cell volume:
     cells.cell_vol = v1[:]
 
-    if p.sim_ECM is True:
-        vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
-        v1_ecm = (1 - sim.delta_vol) * vo_ecm
-
-        for i, cc_array in enumerate(sim.cc_env):
-            sim.cc_env[i][cells.map_cell2ecm] = cc_array[cells.map_cell2ecm] * (vo_ecm / v1_ecm)
-
-        cells.ecm_vol[cells.map_cell2ecm] = v1_ecm
+    # if p.sim_ECM is True:   FIXME environmental changes need to be updated as well....
+    #     vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
+    #     v1_ecm = (1 - sim.delta_vol) * vo_ecm
+    #
+    #     for i, cc_array in enumerate(sim.cc_env):
+    #         sim.cc_env[i][cells.map_cell2ecm] = cc_array[cells.map_cell2ecm] * (vo_ecm / v1_ecm)
+    #
+    #     cells.ecm_vol[cells.map_cell2ecm] = v1_ecm
 
     if p.voltage_dye is True:
         sim.cDye_cell = sim.cDye_cell * (vo / v1)

@@ -62,7 +62,7 @@ def getDeformation(sim, cells, t, p):
     F_cell_y = F_electro_y + F_hydro_y
 
 
-    # integrate the forces, as is mandated by finite volume methods:
+    # integrate the forces:
     F_cell_x = cells.integrator(F_cell_x)
     F_cell_y = cells.integrator(F_cell_y)
 

@@ -28,7 +28,7 @@ from betse.science.physics.ion_current import get_current
 from betse.science.physics.flow import getFlow
 from betse.science.physics.deform import getDeformation, timeDeform, implement_deform_timestep
 from betse.science.physics.move_channels import eosmosis
-from betse.science.physics.pressures import electro_P, getHydroF, osmotic_P
+from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 
 class Simulator(object):
     '''
@@ -516,7 +516,12 @@ class Simulator(object):
         This method is called at the start of all simulations.
         '''
 
+        # load in the gap junction dynamics object:
         self.gj_funk = Gap_Junction(p)
+
+        # smooth the Voronoi --> Env grid weighting function to the same level used in sim:
+        cells.mems_per_envSquare = gaussian_filter(cells.mems_per_envSquare.reshape(cells.X.shape),
+                                                    p.smooth_level).ravel()
 
         if p.sim_ECM is True:
             #  Initialize diffusion constants for the extracellular transport:
@@ -670,6 +675,14 @@ class Simulator(object):
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
 
+        if p.fluid_flow is True: # If at any time fluid flow is true, initialize the flow vectors to zeros
+            # initialize data structures for flow:
+            self.u_cells_x = np.zeros(len(cells.cell_i))
+            self.u_cells_y = np.zeros(len(cells.cell_i))
+
+            self.u_gj_x = np.zeros(len(cells.mem_i))
+            self.u_gj_y = np.zeros(len(cells.mem_i))
+
         if p.calc_J is True:
 
             if cells.lapGJ_P_inv is None:
@@ -699,6 +712,8 @@ class Simulator(object):
             if p.sim_ECM is True and cells.lapENV_P_inv is not None:
                 cells.lapENVinv = None
                 cells.lapENV_P_inv = None
+
+
 
 
         if p.run_sim is True:   # if we're running a simulation:
@@ -974,13 +989,13 @@ class Simulator(object):
             # get forces from any hydrostatic (self.P_Cells) pressure:
             getHydroF(self,cells, p)
 
-            # calculate specific pressures:
+            # calculate specific forces and pressures:
 
             if p.deform_osmo is True:
                 osmotic_P(self,cells, p)
 
             if p.deform_electro is True:
-                electro_P(self,cells, p)
+                electro_F(self,cells, p)
 
             if p.fluid_flow is True and p.run_sim is True:
 
@@ -1388,16 +1403,7 @@ class Simulator(object):
             # total charge in cells per unit surface area:
             Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
 
-
-            # get the environmental surface charge:
-
-            # inds_zero = (cells.mean_mems_per_envSquare == 0.0).nonzero()
-            #
-            # mems_per_square = np.copy(cells.mems_per_envSquare)
-            #
-            # mems_per_square[inds_zero] = 1
-
-            # sig_env = (self.rho_env * cells.ecm_vol) / (mems_per_square * cells.mem_sa.mean())
+            # get the environmental surface charge
             sig_env = (self.rho_env * cells.ecm_vol) / (cells.mean_mems_per_envSquare * cells.mem_sa.mean())
 
 
@@ -1450,6 +1456,8 @@ class Simulator(object):
             v_env[cells.bL_k] = self.bound_V['L']
             v_env[cells.bR_k] = self.bound_V['R']
 
+            # v_cell = cells.integrator(v_cell)
+
             # calculate the vm
             vm = v_cell[cells.mem_to_cells] - v_env[cells.map_mem2ecm]
 
@@ -1464,6 +1472,7 @@ class Simulator(object):
         if p.sim_ECM is True:
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
+            # self.rho_cells = cells.integrator(self.rho_cells)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
 
             self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
@@ -1486,6 +1495,8 @@ class Simulator(object):
 
             # divergence of cells:
             delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
+
+            # delta_cells = cells.integrator(delta_cells)
 
 
             # d_c_env = -flux*(cells.mem_sa/cells.ecm_vol[cells.map_mem2ecm])
@@ -1510,12 +1521,13 @@ class Simulator(object):
             # which yields number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = flux_env * cells.mean_mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
+            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
 
             # delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
             # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape),p.smooth_level).ravel()
 
             # update the concentrations
+
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
             self.cc_env[ion_i] = c_env + delta_env*p.dt
 
@@ -1584,9 +1596,9 @@ class Simulator(object):
 
             # delta_env = (flux_env * cells.ratio_cell2ecm * cells.mem_sa.mean()) / ((cells.delta ** 2) * p.cell_height)
 
-            delta_env = flux_env * cells.mean_mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
+            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
 
-            delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
+            # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
 
             # update the concentrations:
             cX_cell = cX_cell + delta_cells * p.dt
@@ -1912,6 +1924,8 @@ class Simulator(object):
         # divergence calculation (finite volume expression)
         delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
 
+        # delta_cc = cells.integrator(delta_cc)
+
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
@@ -2035,6 +2049,9 @@ class Simulator(object):
         f_env_x = p.env_delay_const * f_env_x
         f_env_y = p.env_delay_const * f_env_y
 
+        f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms
+        f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
+
         if p.closed_bound is False:
 
             f_env_x[:,0] = f_env_x[:,1]
@@ -2066,13 +2083,11 @@ class Simulator(object):
 
         delta_c = d_fenvx + d_fenvy
 
-        delta_c = gaussian_filter(delta_c,p.smooth_level)  # smooth out the concentration
+        # delta_c = gaussian_filter(delta_c,p.smooth_level)  # smooth out the flux terms
         # delta_c = fd.integrator(delta_c)
 
         #-----------------------
         cenv = cenv - delta_c*p.dt
-
-        # cenv = fd.integrator(cenv)  # smooth out the concentration
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
@@ -2096,16 +2111,10 @@ class Simulator(object):
             cenv[1,:] = self.c_env_bound[i]
             cenv[-2,:] = self.c_env_bound[i]
 
-        # smooth the concentration
-        # self.cc_env[i] = gaussian_filter(self.cc_env[i], p.smooth_level)
-        # reshape the matrices back into vectors:
         self.cc_env[i] = cenv.ravel()
 
         fenvx = (f_env_x[:,1:] + f_env_x[:,0:-1])/2
         fenvy = (f_env_y[1:,:] + f_env_y[0:-1,:])/2
-
-        # fenvx = fd.integrator(fenvx)
-        # fenvy = fd.integrator(fenvy)
 
         self.fluxes_env_x[i] = fenvx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fenvy.ravel()  # store ecm junction flux for this ion
