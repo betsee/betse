@@ -72,7 +72,7 @@ def osmotic_P(sim, cells, p):
     u_osmo = u_osmo_o[cells.mem_to_cells]
 
     # calculate the flow due to net mass flux into the cell due to selective active/passive ion transport:
-    u_mass_flux = (1 / p.rho) * sim.get_mass_flux(cells, p)
+    u_mass_flux = (1 / p.rho) * get_mass_flux(sim, cells, p)
 
     u_net = u_osmo + u_mass_flux
 
@@ -106,7 +106,7 @@ def osmotic_P(sim, cells, p):
     # reassign cell volume:
     cells.cell_vol = v1[:]
 
-    # if p.sim_ECM is True:   FIXME environmental changes need to be updated as well....
+    # if p.sim_ECM is True:
     #     vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
     #     v1_ecm = (1 - sim.delta_vol) * vo_ecm
     #
