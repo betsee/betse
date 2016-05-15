@@ -462,12 +462,22 @@ class SimRunner(object):
 
     def check_congruency(self, p_old, p):
 
-            if p_old.config['general options'] != p.config['general options'] or \
-               p_old.config['world options'] != p.config['world options']:
-               # p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
-                raise BetseExceptionParameters(
-                    'Important config file options are out of sync between '
-                    'seed and this init/sim attempt! '
-                    'Run "betse seed" again to match the current settings of '
-                    'this config file.')
+        if p_old.config['general options'] != p.config['general options'] or \
+           p_old.config['world options'] != p.config['world options']:
+
+            logs.log_warning('---------------------------------------------------')
+            logs.log_warning('**WARNING!**')
+            logs.log_warning('Important config file options are out of sync ')
+            logs.log_warning('between the seed and this init/sim attempt! ')
+            logs.log_warning('Run "betse seed" again to match the current settings')
+            logs.log_warning(' of this config file.')
+            logs.log_warning('---------------------------------------------------')
+
+
+           # p_old.config['tissue profile definition'] != p.config['tissue profile definition']:
+           #  raise BetseExceptionParameters(
+           #      'Important config file options are out of sync between '
+           #      'seed and this init/sim attempt! '
+           #      'Run "betse seed" again to match the current settings of '
+           #      'this config file.')
 
