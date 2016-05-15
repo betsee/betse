@@ -1,7 +1,7 @@
 BETSE
 ===========
 
-**BETSE** (**B**io**E**lectric **T**issue **S**imulation **E**ngine) is an open-
+**BETSE** (**B**io **E**lectric **T**issue **S**imulation **E**ngine) is an open-
 source cross-platform suite of scientific software for the life sciences –
 emphasizing bio-realistic modelling of dynamic electrochemical phenomena in gap
 junction-networked cell collectives and spatio-temporal pattern formation. For
