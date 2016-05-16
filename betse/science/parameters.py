@@ -513,7 +513,7 @@ class Parameters(object):
         self.T = float(self.config['variable settings']['temperature'])  # system temperature
 
         # current calculation---------------------------
-        self.calc_J = self.config['variable settings'].get('calculate ion currents',True)
+        self.calc_J = self.config['variable settings'].get('calculate ion currents',False)
 
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self.config['variable settings']['fluid flow']['include fluid flow']
@@ -871,6 +871,8 @@ class Parameters(object):
 
         self.env_delay_const = float(iu.get('environmental delay factor',1.0e-3))
 
+        self.self_cap_cell = float(iu.get('cell self capacitance',1.0))
+
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
         self.Do_K = float(iu['Do_K'])      # free diffusion constant potassium [m2/s]
@@ -965,7 +967,8 @@ class Parameters(object):
 
         self.ac = 1.0e-6  # cell-cell separation for drawing
         self.scale_cell = 0.90          # the amount to scale cell membranes in from ecm edges (only affects drawing)
-        self.cm = 0.022            # patch capacitance of cell membrane up to 0.022 [F/m2]
+        self.cm = 0.022            # patch capacitance of cell membrane 0.022 [F/m2]
+
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)
         self.scale_alpha = 1.4   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
@@ -982,7 +985,7 @@ class Parameters(object):
 
         self.um = 1e6    # multiplication factor to convert m to um
 
-        self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
+        # self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
 
         self.isamples = 40.0  # sampling of vector data for currents
 
@@ -1011,8 +1014,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 10.0
-            self.cK_cell = 145.0
+            self.cNa_cell = 8.5
+            self.cK_cell = 135.0
             self.cP_cell = 120.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
@@ -1046,8 +1049,8 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 10.0
-            self.cK_cell = 145.0
+            self.cNa_cell = 8.5
+            self.cK_cell = 135.0
             self.cCa_cell = 1.0e-3
             self.cP_cell = 120.0
 
@@ -1087,9 +1090,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 10.0
-            self.cK_cell = 145.0
-            self.cCl_cell = 25.0
+            self.cNa_cell = 8.5
+            self.cK_cell = 135.0
+            self.cCl_cell = 20.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 3.98e-5
             self.cP_cell = 120.0

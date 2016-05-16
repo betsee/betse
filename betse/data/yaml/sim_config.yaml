@@ -1082,6 +1082,8 @@ internal parameters:
 
   environmental delay factor: 1.0e-3    # level to smooth environmental transport (needed for larger time-steps)
 
+  cell self capacitance: 1.0 # self capacitance of cell structure 1.0 [F/m2]
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

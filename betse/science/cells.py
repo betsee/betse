@@ -1230,16 +1230,14 @@ class Cells(object):
 
             mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
 
-            # cm = p.cm*self.mem_sa[mem_i_set]  # get the capacitance of each membrane
-
-            cm_sum = p.cm + self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
+            cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
 
             # get the ecm spaces for each membrane
             # we must add on the cells data length to make these indices of the max cap vector and matrix:
             ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
 
             # set the diagonal element for cells:
-            M_max_cap[cell_i,cell_i] = cm_sum + 1.0e-6 # plus small self-capacitance
+            M_max_cap[cell_i,cell_i] = cm_sum + p.self_cap_cell # plus self-capacitance
             # set the off-diagonal elements for cells:
             M_max_cap[cell_i,ecm_i_set] = -p.cm
 
@@ -1257,11 +1255,11 @@ class Cells(object):
 
             if cell_j == cell_k:  # then we're on a boundary
 
-                M_max_cap[ecm_i,ecm_i] = cm + 1.0e-6 # plus small self capacitance
+                M_max_cap[ecm_i,ecm_i] = cm  # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm + 1.0e-6 # plus small self capacitance
+                M_max_cap[ecm_i,ecm_i] = 2*cm  # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
 
@@ -1273,7 +1271,7 @@ class Cells(object):
         self.init_Q = np.dot(M_max_cap,v_vect)
 
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
-        # self.M_max_cap = M_max_cap
+        self.M_max_cap = M_max_cap
 
     def redo_gj(self,dyna,p,savecells =True):
 

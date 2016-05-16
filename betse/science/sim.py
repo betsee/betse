@@ -500,6 +500,18 @@ class Simulator(object):
             # initialize the environmental diffusion matrix:
             self.initDenv(cells, p)
 
+            # initialize the charge and voltage:
+            # self.rho_cells = cells.init_Q[cells.cell_range_a:cells.cell_range_b]
+            # self.rho_env = cells.init_Q[cells.ecm_range_a:cells.ecm_range_b]
+            # self.v_cell = (-25e-3) * np.ones(len(cells.cell_i))
+            # vecm = (25e-3) * np.ones(len(cells.ecm_mids))
+            #
+            # # interpolate the v_env from ECM spaces to the ENV GRID:
+            # self.v_env = interp.griddata((cells.ecm_mids[:, 0], cells.ecm_mids[:, 1]),
+            #                         vecm, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+            #                         fill_value=0)
+            # self.vm = self.v_cell[cells.mem_to_cells] - self.v_env[cells.map_mem2ecm]
+
         # gap junction specific arrays:
         self.id_gj = np.ones(len(cells.mem_i))  # identity array for gap junction indices...
         self.gjopen = np.ones(len(cells.mem_i))  # holds gap junction open fraction for each gj
@@ -523,6 +535,9 @@ class Simulator(object):
         cells.mems_per_envSquare = gaussian_filter(cells.mems_per_envSquare.reshape(cells.X.shape),
                                                     p.smooth_level).ravel()
 
+        self.J_gj_x = np.zeros(len(cells.mem_i))
+        self.J_gj_y = np.zeros(len(cells.mem_i))
+
         if p.sim_ECM is True:
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
@@ -533,6 +548,10 @@ class Simulator(object):
         if p.sim_ECM is True:
             # create a copy-base of the environmental junctions diffusion constants:
             self.D_env_base = copy.copy(self.D_env)
+
+            # initialize current vectors
+            self.J_env_x = np.zeros(len(cells.xypts))
+            self.J_env_y = np.zeros(len(cells.xypts))
 
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
@@ -1478,6 +1497,7 @@ class Simulator(object):
             self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
 
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
+
             self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
 
         else:
