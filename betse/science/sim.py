@@ -1443,14 +1443,14 @@ class Simulator(object):
                 v_ecm, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
                 fill_value=0)
 
-            # save values at the cluster boundary:
-            bound_vals = v_env[cells.ecm_bound_k]
-
-            # set the values of the global environment to zero:
-            v_env[cells.inds_env] = 0
-
-            # finally, ensure that the boundary values are restored:
-            v_env[cells.ecm_bound_k] = bound_vals
+            # # save values at the cluster boundary:
+            # bound_vals = v_env[cells.ecm_bound_k]
+            #
+            # # set the values of the global environment to zero:
+            # v_env[cells.inds_env] = 0
+            #
+            # # finally, ensure that the boundary values are restored:
+            # v_env[cells.ecm_bound_k] = bound_vals
 
             #Map the environmental voltage to the regular grid:
             # v_env = np.zeros(len(cells.xypts))
