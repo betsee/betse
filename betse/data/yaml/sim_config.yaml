@@ -1084,7 +1084,7 @@ internal parameters:
 
   electrolyte screening factor: 7.5e14 # 2e14 to 20e14 electrolyte screening contributes to self-capacitances [F/m5]
 
-  environmental screening factor: 10.0 # amount by which global electrolyte screens cluster boundary (ratio to cell vol)
+  environmental screening factor: 100.0 # amount by which electrolyte screens cluster boundary (ratio to cell vol)
 
 
 # Configuration file version that this file conforms to. For reliable

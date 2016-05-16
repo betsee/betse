@@ -1217,9 +1217,9 @@ class Cells(object):
 
         data_length = len(self.cell_i) + len(self.ecm_mids)
 
-        true_ecm_vol = p.cell_space*self.mem_sa
+        true_ecm_vol = p.cell_space*self.mem_sa.mean()
 
-        clust_bound_screen_factor = p.env_screening*(self.cell_vol.mean()/true_ecm_vol.mean())
+        clust_bound_screen_factor = p.env_screening*(self.cell_vol.mean()/true_ecm_vol)
 
         # define ranges within the total data length where we can
         # work with cell centres or ecm mids specifically:
@@ -1242,7 +1242,7 @@ class Cells(object):
             ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
 
             # set the diagonal element for cells:
-            M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening*self.cell_vol[cell_i] # plus self-capacitance
+            M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening*self.cell_vol.mean() # plus self-capacitance
             # set the off-diagonal elements for cells:
             M_max_cap[cell_i,ecm_i_set] = -p.cm
 
@@ -1259,16 +1259,16 @@ class Cells(object):
             cell_k = self.mem_to_cells[mem_pair[1]]
 
             # get the true volume of the ecm space corresponding with membrane interspace:
-            vol_ecm_i = true_ecm_vol[mem_pair[0]]
+            # vol_ecm_i = true_ecm_vol[mem_pair[0]]
 
             if cell_j == cell_k:  # then we're on a boundary
 
-                M_max_cap[ecm_i,ecm_i] = cm + clust_bound_screen_factor*p.electrolyte_screening*vol_ecm_i # plus small self capacitance
+                M_max_cap[ecm_i,ecm_i] = cm + clust_bound_screen_factor*p.electrolyte_screening*true_ecm_vol # plus small self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm  + p.electrolyte_screening*vol_ecm_i # plus small self capacitance
+                M_max_cap[ecm_i,ecm_i] = 2*cm  + p.electrolyte_screening*true_ecm_vol # plus small self capacitance
                 # M_max_cap[ecm_i, ecm_i] = 2 * cm
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
