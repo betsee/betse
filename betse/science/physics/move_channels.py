@@ -3,106 +3,68 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-from betse.science import sim_toolbox as stb
 
 
 def eosmosis(sim, cells, p):
     """
-    Electroosmosis of ion pumps and channels to potentially create directional fluxes in individual cells.
+    Movement of ion pumps and channels to potentially create directional fluxes in individual cells.
 
     This is presently simulated by calculating the Nernst-Planck concentration flux of a weighting
-    agent, rho, which moves under its own concentration gradient and
-    through the influence of the extracellular voltage gradient and fluid flows tangential to the membrane.
+    agent, rho, which moves under its own concentration gradient (a homogeneity restoring influence)
+    as well as under the influence of the extracellular voltage gradient and fluid flows tangential
+    to the membrane.
 
     """
 
-    # components of fluid flow velocity at the membrane:
+    # x and y components of membrane tangent unit vectors
+    tx = cells.mem_vects_flat[:, 4]
+    ty = cells.mem_vects_flat[:, 5]
+
+    # tangential components of fluid flow velocity at the membrane, if applicable:
     if p.fluid_flow is True and p.sim_ECM is True:
+        # map the flow vectors to membrane midpoints
         ux_mem = sim.u_env_x.ravel()[cells.map_mem2ecm]
         uy_mem = sim.u_env_y.ravel()[cells.map_mem2ecm]
 
+        # tangential component of fluid velocity at membrane:
+        u_tang = ux_mem*tx + uy_mem*ty
+
     else:
-        ux_mem = 0
-        uy_mem = 0
+        u_tang = 0
 
     # get the gradient of rho concentration around each membrane:
+    grad_c_p =  np.dot(cells.gradMem, sim.rho_pump)
+    grad_c_ch = np.dot(cells.gradMem, sim.rho_channel)
 
-    rho_pump = np.dot(cells.M_sum_mems, sim.rho_pump) / cells.num_mems
-    rho_channel = np.dot(cells.M_sum_mems, sim.rho_channel) / cells.num_mems
-
-    grad_c = (rho_pump[cells.cell_nn_i[:, 0]] - rho_pump[cells.cell_nn_i[:, 1]]) / cells.nn_len
-    grad_c_ch = (rho_channel[cells.cell_nn_i[:, 0]] - rho_channel[cells.cell_nn_i[:, 1]]) / cells.nn_len
-
-    # get the gradient components:
-    gcx = grad_c * cells.cell_nn_tx
-    gcy = grad_c * cells.cell_nn_ty
-
-    gcx_ch = grad_c_ch * cells.cell_nn_tx
-    gcy_ch = grad_c_ch * cells.cell_nn_ty
-
-    # total average electric field at each membrane
+    # get the tangential electric field at each membrane
     if p.sim_ECM is True:
 
         Ex = sim.E_env_x.ravel()[cells.map_mem2ecm]
         Ey = sim.E_env_y.ravel()[cells.map_mem2ecm]
 
-        # Ex = self.E_env_x.ravel()[cells.map_mem2ecm]
-        # Ey = self.E_env_y.ravel()[cells.map_mem2ecm]
-
-    else:
+    else:  # if not simulating extracellular spaces, then use the intracellular field instead:
         Ex = sim.E_gj_x
         Ey = sim.E_gj_y
 
+    # get the tangential component to the membrane:
+    E_tang = Ex * tx + Ey * ty
+
     # calculate the total Nernst-Planck flux at each membrane for rho_pump factor:
 
-    fx_pump, fy_pump = stb.nernst_planck_flux(sim.rho_pump, gcx, gcy, Ex, Ey, ux_mem, uy_mem, p.D_membrane, p.z_pump,
-        sim.T, p)
+    flux_pump = -p.D_membrane*grad_c_p + u_tang*sim.rho_pump + \
+                ((p.z_pump*p.D_membrane*p.F)/(p.R*p.T))*sim.rho_pump*E_tang
 
-    # component of total flux in direction of membrane
-    # ftot = fx*cells.mem_vects_flat[:,4] + fy*cells.mem_vects_flat[:,5]
+    flux_chan = -p.D_membrane * grad_c_ch + u_tang * sim.rho_channel + \
+                ((p.z_channel * p.D_membrane * p.F) / (p.R * p.T)) * sim.rho_channel * E_tang
 
-    # map the flux to cell centres:
-    fx_pump_o = np.dot(cells.M_sum_mems, fx_pump) / cells.num_mems
-    fy_pump_o = np.dot(cells.M_sum_mems, fy_pump) / cells.num_mems
 
     # divergence of the total flux:
-    gfx_o = (fx_pump_o[cells.cell_nn_i[:, 1]] - fx_pump_o[cells.cell_nn_i[:, 0]]) / cells.nn_len
 
-    fxx = gfx_o * cells.cell_nn_tx
+    divF_pump = np.dot(cells.gradMem,flux_pump)
+    divF_chan = np.dot(cells.gradMem, flux_chan)
 
-    gfy_o = (fy_pump_o[cells.cell_nn_i[:, 1]] - fy_pump_o[cells.cell_nn_i[:, 0]]) / cells.nn_len
-    fyy = gfy_o * cells.cell_nn_ty
-
-    divF_pump = fxx + fyy
-
-    sim.rho_pump = sim.rho_pump + divF_pump * p.dt
-
-    # ------------------------------------------------
-    # calculate the total Nernst-Planck flux at each membrane for rho_channel factor:
-
-    fx_chan, fy_chan = stb.nernst_planck_flux(sim.rho_channel, gcx_ch, gcy_ch, Ex, Ey, ux_mem, uy_mem, p.D_membrane,
-        p.z_channel, sim.T, p)
-
-    # map the flux to cell centres:
-    fx_chan_o = np.dot(cells.M_sum_mems, fx_chan) / cells.num_mems
-    fy_chan_o = np.dot(cells.M_sum_mems, fy_chan) / cells.num_mems
-
-    # divergence of the total flux:
-    gfx_o = (fx_chan_o[cells.cell_nn_i[:, 1]] - fx_chan_o[cells.cell_nn_i[:, 0]]) / cells.nn_len
-
-    fxx = gfx_o * cells.cell_nn_tx
-
-    gfy_o = (fy_chan_o[cells.cell_nn_i[:, 1]] - fy_chan_o[cells.cell_nn_i[:, 0]]) / cells.nn_len
-    fyy = gfy_o * cells.cell_nn_ty
-
-    divF_chan = fxx + fyy
-
-    sim.rho_channel = sim.rho_channel + divF_chan * p.dt
-
-    if p.sim_ECM is False:
-        # average to the cell centre:
-        sim.rho_pump_o = np.dot(cells.M_sum_mems, sim.rho_pump) / cells.num_mems
-        sim.rho_channel_o = np.dot(cells.M_sum_mems, sim.rho_channel) / cells.num_mems
+    sim.rho_pump = sim.rho_pump - divF_pump * p.dt
+    sim.rho_channel = sim.rho_channel - divF_chan * p.dt
 
     # ------------------------------------------------
     # make sure nothing is non-zero:

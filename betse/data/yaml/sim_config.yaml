@@ -602,7 +602,7 @@ variable settings:
     turn on: False        # turn on electroosmosis of pumps and channels
     channel charge: -1         # charge of membrane channels
     pump charge: 1          # charge of pumps (controls direction they move in)
-    membrane mobility: 1e-12    # mobility factor (diffusion constant) for pumps and channels [m2/s]
+    membrane mobility: 1e-11  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
 
 
 

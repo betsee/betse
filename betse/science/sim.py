@@ -245,18 +245,6 @@ class Simulator(object):
 
             self.gj_rho = 0
 
-        if p.sim_eosmosis is True:  # if simulating electrodiffusive movement of membrane pumps and channels:
-
-            if cells.gradMem is None:
-                cells.eosmo_tools(p)
-
-            self.rho_pump = np.ones(len(cells.mem_i))
-            self.rho_channel = np.ones(len(cells.mem_i))
-
-        else:
-            self.rho_pump = 1  # else just define it as identity.
-            self.rho_channel = 1
-
 
         ion_names = list(p.ions_dict.keys())
 
@@ -799,6 +787,20 @@ class Simulator(object):
                     cells.lapENVinv = None
                     cells.lapENV_P_inv = None
 
+        # if simulating electrodiffusive movement of membrane pumps and channels:-------------
+
+        if p.sim_eosmosis is True:
+
+            if cells.gradMem is None:
+                cells.eosmo_tools(p)
+
+            self.rho_pump = np.ones(len(cells.mem_i))
+            self.rho_channel = np.ones(len(cells.mem_i))
+
+        else:
+            self.rho_pump = 1  # else just define it as identity.
+            self.rho_channel = 1
+
         # Initialize all user-specified interventions and dynamic channels.
         self.dyna.runAllInit(self,cells,p)
 
@@ -911,23 +913,16 @@ class Simulator(object):
 
             for i in self.movingIons:
 
-                if p.sim_eosmosis is True and i == self.iK:  # confine electroosmotic movement to K+ channels:
-
-                    rho_i = self.rho_channel
-
-                else:
-                    rho_i = 1
-
                 if p.sim_ECM is True:
 
                     f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_cells[i][cells.mem_to_cells],
                         self.Dm_cells[i], self.tm, self.zs[i], self.vm, self.T, p,
-                        rho=rho_i)
+                        rho=self.rho_channel)
 
                 else:
 
                     f_ED = stb.electroflux(self.cc_env[i],self.cc_cells[i],self.Dm_cells[i],self.tm,self.zs[i],
-                                    self.vm,self.T,p,rho=rho_i)
+                                    self.vm,self.T,p,rho=self.rho_channel)
 
 
                 if p.sim_ECM is True:
@@ -1024,6 +1019,7 @@ class Simulator(object):
 
             # if desired, electroosmosis of membrane channels
             if p.sim_eosmosis is True and p.run_sim is True:
+
                 self.run_sim = True
 
                 eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
