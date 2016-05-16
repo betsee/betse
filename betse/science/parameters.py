@@ -867,11 +867,12 @@ class Parameters(object):
 
         self.interp_type = iu['interpolation method']
 
-        self.smooth_level = float(iu.get('gaussian smoothing',2))
+        self.smooth_level = float(iu.get('gaussian smoothing',1))
 
-        self.env_delay_const = float(iu.get('environmental delay factor',1.0e-3))
+        self.env_delay_const = float(iu.get('environmental delay factor',1.0e-2))
 
         self.self_cap_cell = float(iu.get('cell self capacitance',1.0))
+        self.self_cap_ecm = float(iu.get('ecm self capacitance',0.0))
 
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]

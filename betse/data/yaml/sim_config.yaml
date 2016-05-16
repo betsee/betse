@@ -1084,6 +1084,8 @@ internal parameters:
 
   cell self capacitance: 1.0 # self capacitance of cell structure 1.0 [F/m2]
 
+  ecm self capacitance: 0.1 # self capacitance of cell structure 0.1 [F/m2]
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
