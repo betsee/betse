@@ -1192,11 +1192,11 @@ def removeCells(
 
         cells.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-        if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
-            # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-            logs.log_info('Creating cell network Poisson solver...')
-            cells.graphLaplacian(p)
-            logs.log_info('Completed major world-building computations.')
+        # if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
+        #     # make a laplacian and solver for discrete transfers on closed, irregular cell network:
+        #     logs.log_info('Creating cell network Poisson solver...')
+        #     cells.graphLaplacian(p)
+        #     logs.log_info('Completed major world-building computations.')
 
         sim.initDenv(cells,p)
 
@@ -1206,8 +1206,12 @@ def removeCells(
         cells.calc_gj_vects(p)
         cells.gj_matrix(p)      # Calculate extra stuff for gap junction work
 
-        if p.fluid_flow is True or p.deformation is True:
-            # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-            logs.log_info('Creating cell network Poisson solver...')
-            cells.graphLaplacian(p)
-            logs.log_info('Completed major world-building computations.')
+    if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
+        # make a laplacian and solver for discrete transfers on closed, irregular cell network:
+        logs.log_info('Creating cell network Poisson solver...')
+        cells.graphLaplacian(p)
+        logs.log_info('Completed major world-building computations.')
+
+    if p.sim_eosmosis is True:
+
+        cells.eosmo_tools(p)

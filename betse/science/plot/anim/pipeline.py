@@ -103,37 +103,6 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 color_max=p.Dye_ani_max_clr,
             )
 
-            # # Averaged dye animation, produced by sampling the environmental dye
-            # # at the membranes scaled to umol/L concentration.
-            # dyeEnv_at_mem = [
-            #     arr[cells.map_mem2ecm]*1000 for arr in sim.cDye_env_time]
-            #
-            # # Average the result to cell centres for each timestep.
-            # dyeEnv_at_cell = [
-            #     np.dot(cells.M_sum_mems, arr) / cells.num_mems
-            #     for arr in dyeEnv_at_mem
-            # ]
-            #
-            # # Values for all cells at each timestep scaled to umol/L
-            # # concentration.
-            # dyeCell = [arr*1000 for arr in sim.cDye_time]
-            #
-            # # Average the dye at all locations for each timestep.
-            # dye_ave_t = [
-            #     (arr_env + arr_cell)/2
-            #     for (arr_env, arr_cell) in zip(dyeEnv_at_cell, dyeCell)
-            # ]
-            #
-            # AnimCellsTimeSeries(
-            #     sim=sim, cells=cells, p=p,
-            #     time_series=dye_ave_t,
-            #     type='Morph_ave',
-            #     figure_title='Average Morphogen Concentration',
-            #     colorbar_title='Concentration [umol/L]',
-            #     is_color_autoscaled=p.autoscale_Dye_ani,
-            #     color_min=p.Dye_ani_min_clr,
-            #     color_max=p.Dye_ani_max_clr,
-            # )
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
         AnimCellsTimeSeries(

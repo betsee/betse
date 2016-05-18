@@ -2094,8 +2094,8 @@ class Simulator(object):
 
         # calculate the divergence of the total flux, which is equivalent to the total change per unit time
 
-        d_fenvx = (f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
-        d_fenvy = (f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
+        d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
+        d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
 
         delta_c = d_fenvx + d_fenvy
 
@@ -2103,7 +2103,7 @@ class Simulator(object):
         # delta_c = fd.integrator(delta_c)
 
         #-----------------------
-        cenv = cenv - delta_c*p.dt
+        cenv = cenv + delta_c*p.dt
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)

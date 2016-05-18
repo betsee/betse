@@ -1066,7 +1066,7 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  5.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
+  alpha_NaK:  2.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
   alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
@@ -1076,15 +1076,15 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
-  gaussian smoothing: 1.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.8 to 2.
+  gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.8 to 2.
 
   environment volume multiplier: 1.0    # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  environmental delay factor: 1.0e-1    # level to smooth environmental transport (needed to use larger time-steps) 0.1
+  environmental delay factor: 1.0e-2    # level to smooth environmental transport (needed to use larger time-steps) 0.1
 
-  electrolyte screening factor: 1.0e15 # 2e14 to 2e15 electrolyte screening contributes to self-capacitances [F/m5]
+  electrolyte screening factor: 1.5e15 # 2e14 to 2e15 electrolyte screening contributes to self-capacitances [F/m5]
 
-  environmental screening factor: 10.0 # amount by which electrolyte screens cluster boundary (ratio to cell vol)
+  environmental screening factor: 1.0 # amount by which electrolyte screens cluster boundary (ratio to cell vol)
 
 
 # Configuration file version that this file conforms to. For reliable

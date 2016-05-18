@@ -513,7 +513,7 @@ class Parameters(object):
         self.T = float(self.config['variable settings']['temperature'])  # system temperature
 
         # current calculation---------------------------
-        self.calc_J = self.config['variable settings'].get('calculate ion currents',False)
+        self.calc_J = self.config['variable settings']['calculate ion currents']
 
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self.config['variable settings']['fluid flow']['include fluid flow']
@@ -908,7 +908,7 @@ class Parameters(object):
         # FIXME add this to config:
         self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
         self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
-        self.KmHK_H = 1.0e-5   # HKATPase enzyme H half-max sat value
+        self.KmHK_H = 0.5e-6   # HKATPase enzyme H half-max sat value
 
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
 

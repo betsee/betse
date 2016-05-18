@@ -222,6 +222,8 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     deltaGATP_o = p.deltaGATP
 
+
+
     # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
     cATP = p.cATP  # concentration of ATP in mmol/L
     cADP = p.cADP  # concentration of ADP in mmol/L
@@ -251,6 +253,8 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     f_H  = -alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
+
+    # print(block, f_H.mean())
 
     return f_H, f_K
 

@@ -702,35 +702,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-        # # averaged dye plot:
-        # if p.sim_ECM is True:
-        #     dyeEnv_at_mem = sim.cDye_env[cells.map_mem2ecm]*1e3  # sample the environmental dye at the membranes
-        #     dyeEnv_at_cell = np.dot(cells.M_sum_mems,dyeEnv_at_mem)/cells.num_mems  # average the result to cell centres
-        #     dyeCell = sim.cDye_cell*1e3
-        #     dye_ave = (dyeEnv_at_cell + dyeCell)/2   # average the dye at location
-        #
-        #     figVdye_ave, axVdye_ave, cbVdye_ave = viz.plotPolyData(
-        #         sim, cells, p,
-        #         zdata=dye_ave,
-        #         number_cells=p.enumerate_cells,
-        #         clrAutoscale=p.autoscale_Dye,
-        #         clrMin=p.Dye_min_clr,
-        #         clrMax=p.Dye_max_clr,
-        #         clrmap=p.default_cm,
-        #     )
-        #
-        #     axVdye_ave.set_title('Final Average Morphogen Concentration')
-        #     axVdye_ave.set_xlabel('Spatial distance [um]')
-        #     axVdye_ave.set_ylabel('Spatial distance [um]')
-        #     cbVdye_ave.set_label('Concentration umol/L')
-        #
-        #     if p.autosave is True:
-        #         savename7 = savedImg + 'final_morphogen_ave_2D' + '.png'
-        #         plt.savefig(savename7,format='png',transparent=True)
-        #
-        #     if p.turn_all_plots_off is False:
-        #         plt.show(block=False)
-
 
     #-------------------------------------------------------------------------------------------------------------------
 

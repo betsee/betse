@@ -329,6 +329,10 @@ class PlotCells(object, metaclass=ABCMeta):
             assert types.is_sequence_nonstr(color_series), (
                 types.assert_not_sequence_nonstr(color_series))
 
+            #FIXME: This appears to be failing when "color_series" is
+            #"self._current_density_magnitude_time_series" (e.g.,
+            #"self._sim.I_gj_x_time").
+
             # Flatten this two-dimensional matrix to a one-dimensional array,
             # providing efficient retrieval of minimum and maximum values.
             time_series_flat = np.ravel(color_series)
@@ -440,9 +444,9 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # If these values are identical, coerce them to differ. Failing to do so
         # produces spurious visual artifacts in both the axes and colorbar.
-        if self._color_min == self._color_max:
-            self._color_min = self._color_min - 1
-            self._color_max = self._color_max + 1
+        # if self._color_min == self._color_max:
+        #     self._color_min = self._color_min - 1
+        #     self._color_max = self._color_max + 1
 
         # For each color mappable, clip that mappable to the minimum and maximum
         # values discovered above. Note this also has the beneficial side-effect

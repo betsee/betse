@@ -653,7 +653,7 @@ class AnimGapJuncTimeSeries(AnimCells):
             #"(ZORDER_LINE + ZORDER_STREAM) / 2" instead.
             zorder=10,
         )
-        self._gapjunc_plot.set_clim(0.0, 1.0)
+        self._gapjunc_plot.set_clim(0.0, 0.5)
         self._axes.add_collection(self._gapjunc_plot)
 
         # Cell data series for the first frame.

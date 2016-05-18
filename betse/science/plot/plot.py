@@ -392,7 +392,7 @@ def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title
 
     cb = fig.colorbar(msh)
 
-    tit = title + ' ' + tit_extra + ' Spaces'
+    tit = title
     ax.set_title(tit)
     ax.set_xlabel('Spatial distance [um]')
     ax.set_ylabel('Spatial distance [um]')
@@ -446,7 +446,7 @@ def plotStreamField(
 
     cb = fig.colorbar(msh)
 
-    tit = title + ' ' + tit_extra + ' Spaces'
+    tit = title
     ax.set_title(tit)
     ax.set_xlabel('Spatial distance [um]')
     ax.set_ylabel('Spatial distance [um]')
