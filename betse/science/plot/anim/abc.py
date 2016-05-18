@@ -586,7 +586,8 @@ class AnimCells(PlotCells):
             self._current_density_y_time_series = self._sim.I_tot_y_time
 
         # Time series of all current density magnitudes (i.e., `Jmag_M`).
-        self._current_density_magnitude_time_series = np.sqrt(
+        # here is where we multiply by 100 to obtain current density in units of uA/cm2
+        self._current_density_magnitude_time_series = 100*np.sqrt(
             np.asarray(self._current_density_x_time_series) ** 2 +
             np.asarray(self._current_density_y_time_series) ** 2) + 1e-30
 

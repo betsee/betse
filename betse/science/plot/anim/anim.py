@@ -1219,7 +1219,7 @@ class AnimCurrent(AnimCells):
         self._init_current_density()
 
         # Current density magnitudes for the first frame in uA/cm2.
-        Jmag_M = 100*self._current_density_magnitude_time_series[0]
+        Jmag_M = self._current_density_magnitude_time_series[0]
 
         # Streamplot the first frame's current density, classified to permit
         # erasure of this streamplot by the _replot_current_density() method.
@@ -1247,7 +1247,7 @@ class AnimCurrent(AnimCells):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         # Current density magnitudes for this frame in uA/cm2.
-        Jmag_M = 100*self._current_density_magnitude_time_series[frame_number]
+        Jmag_M = self._current_density_magnitude_time_series[frame_number]
 
         # Streamplot this frame's current density.
         self._replot_current_density(frame_number)

@@ -373,7 +373,7 @@ def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    if p.sim_ECM is True and plot_ecm is True:
+    if plot_ecm is True:
 
         efield = np.sqrt(Fx**2 + Fy**2)
 
@@ -432,7 +432,7 @@ def plotStreamField(
     fig = plt.figure()
     ax = plt.subplot(111)
 
-    if p.sim_ECM is True and plot_ecm is True:
+    if plot_ecm is True:
         efield = np.sqrt(Fx**2 + Fy**2)
         msh = ax.imshow(
             efield,
@@ -442,6 +442,7 @@ def plotStreamField(
         )
         splot, ax = env_stream(Fx,Fy,ax,cells,p)
         tit_extra = 'Extracellular'
+
     elif plot_ecm is False:
         efield = np.sqrt(Fx**2 + Fy**2)
         msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
@@ -460,26 +461,6 @@ def plotStreamField(
     if colorAutoscale is False:
         msh.set_clim(minColor,maxColor)
 
-    #FIXME: There appears to be a severe bug here. The above logic does *NOT*
-    #always define the "msh" local variable, resulting in this exception:
-    #
-    # UnboundLocalError: local variable 'msh' referenced before assignment
-    #
-    # Traceback (most recent call last):
-    #   File "/usr/lib64/python3.4/site-packages/betse/cli/cliabc.py", line 120, in run
-    #     self._do()
-    #   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 133, in _do
-    #     subcommand_method()
-    #   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 337, in _do_plot
-    #     subcommand_method()
-    #   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 358, in _do_plot_sim
-    #     self._get_sim_runner().plotSim()
-    #   File "/usr/lib64/python3.4/site-packages/betse/science/simrunner.py", line 340, in plotSim
-    #     plot_all(cells, sim, p, plot_type='sim')
-    #   File "/usr/lib64/python3.4/site-packages/betse/science/plot/pipeline.py", line 775, in plot_all
-    #     maxColor=p.I_max_clr,
-    #   File "/usr/lib64/python3.4/site-packages/betse/science/plot/plot.py", line 463, in plotStreamField
-    #     cb = fig.colorbar(msh)
     cb = fig.colorbar(msh)
 
     tit = title
@@ -756,14 +737,16 @@ def streamingCurrent(
     #FIXME: There's a fair amount of overlap between the following branches.
     #Treetops swaying in the contumely breeze!
     if p.sim_ECM is False or plot_Iecm is False:
-        Jmag_M = np.sqrt(
+
+        # multiply by 100 to get units of uA/m2
+        Jmag_M = 100*np.sqrt(
             sim.I_gj_x_time[-1]**2 + sim.I_gj_y_time[-1]**2) + 1e-30
 
         J_x = sim.I_gj_x_time[-1]/Jmag_M
         J_y = sim.I_gj_y_time[-1]/Jmag_M
 
         meshplot = plt.imshow(
-            100*Jmag_M,
+            Jmag_M,
             origin='lower',
             extent=[xmin,xmax,ymin,ymax],
             cmap=clrmap,
@@ -781,14 +764,15 @@ def streamingCurrent(
         ax.set_title('Final gap junction current density')
 
     elif plot_Iecm is True:
-        Jmag_M = np.sqrt(
+        # multiply by 100 to get units of uA/m2
+        Jmag_M = 100*np.sqrt(
             sim.I_tot_x_time[-1]**2 + sim.I_tot_y_time[-1]**2) + 1e-30
 
         J_x = sim.I_tot_x_time[-1]/Jmag_M
         J_y = sim.I_tot_y_time[-1]/Jmag_M
 
         meshplot = plt.imshow(
-            100*Jmag_M,
+            Jmag_M,
             origin='lower',
             extent=[xmin,xmax,ymin,ymax],
             cmap=clrmap,
