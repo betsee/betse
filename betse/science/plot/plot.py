@@ -257,37 +257,43 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
 def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = True, clrMin = None, clrMax = None,
     clrmap = None, number_cells=False, current_overlay = False,plotIecm=False):
         """
-        Assigns color-data to each polygon in a cell cluster diagram and returns a plot instance (fig, axes)
+        Assigns color-data to each polygon in a cell cluster diagram and
+        returns a plot instance (fig, axes).
 
         Parameters
         ----------
-        cells                  Data structure holding all world information about cell geometry
-
-        zdata                  A data array with each scalar entry corresponding to a cell's data value
-                               (for instance, concentration or voltage). If zdata is not supplied, the
-                               cells will be plotted with a uniform color; if zdata = random a random
-                               data set will be created and plotted.
-
-        clrAutoscale           If True, the colorbar is autoscaled to the max and min of zdata.
-
-        clrMin                 Sets the colorbar to a user-specified minimum value.
-
-        clrMax                 Set the colorbar to a user-specified maximum value
-
-        clrmap                 The colormap to use for plotting. Must be specified as cm.mapname. A list of
-                               available mapnames is supplied at
-                               http://matplotlib.org/examples/color/colormaps_reference.html
-
+        cells : Cells
+            Data structure holding all world information about cell geometry.
+        zdata : optional[numpy.ndarray]
+            A data array with each scalar entry corresponding to a cell's data
+            value (for instance, concentration or voltage). If zdata is not
+            supplied, the cells will be plotted with a uniform color; if zdata
+            is the string `random`, a random data set will be created and
+            plotted.
+        clrAutoscale : optional[bool]
+            If `True`, the colorbar is autoscaled to the max and min of zdata.
+        clrMin : optional[float]
+            Set the colorbar to a user-specified minimum value.
+        clrMax : optional[float]
+            Set the colorbar to a user-specified maximum value.
+        clrmap : optional[matplotlib.cm]
+            The colormap to use for plotting. Must be specified as cm.mapname.
+            A list of available mapnames is supplied at:
+            http://matplotlib.org/examples/color/colormaps_reference.html
 
         Returns
         -------
-        fig, ax                Matplotlib figure and axes instances for the plot.
+        fig, ax
+            Matplotlib figure and axes instances for the plot.
 
         Notes
         -------
-        Uses matplotlib.collections PolyCollection, matplotlib.cm, matplotlib.pyplot and numpy arrays
-        Computationally slow -- not recommended for large collectives (500 x 500 um max)
+        This method Uses `matplotlib.collections.PolyCollection`,
+        `matplotlib.cm`, `matplotlib.pyplot`, and numpy arrays and hence is
+        computationally slow. Avoid calling this method for large collectives
+        (e.g., larger than 500 x 500 um).
         """
+
         if fig is None:
             fig = plt.figure()# define the figure and axes instances
         if ax is None:
@@ -297,9 +303,19 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
         if zdata is None:  # if user doesn't supply data
             z = np.ones(len(cells.cell_verts)) # create flat data for plotting
 
-        elif zdata == 'random':  # if user doesn't supply data
-            z = np.random.random(len(cells.cell_verts)) # create some random data for plotting
+        #FIXME: This is a bit cumbersome. Ideally, a new "is_zdata_random"
+        #boolean parameter defaulting to "False" should be tested, instead.
+        #Whack-a-mole with a big-fat-pole!
 
+        # If random data is requested, do so. To avoid erroneous and expensive
+        # elementwise comparisons when "zdata" is neither None nor a string,
+        # "zdata" must be guaranteed to be a string *BEFORE* testing this
+        # parameter as a string. Numpy prints scary warnings otherwise: e.g.,
+        #
+        #     FutureWarning: elementwise comparison failed; returning scalar
+        #     instead, but in the future will perform elementwise comparison
+        elif isinstance(zdata, str) and zdata == 'random':
+            z = np.random.random(len(cells.cell_verts)) # create some random data for plotting
         else:
             z = zdata
 
@@ -444,6 +460,26 @@ def plotStreamField(
     if colorAutoscale is False:
         msh.set_clim(minColor,maxColor)
 
+    #FIXME: There appears to be a severe bug here. The above logic does *NOT*
+    #always define the "msh" local variable, resulting in this exception:
+    #
+    # UnboundLocalError: local variable 'msh' referenced before assignment
+    #
+    # Traceback (most recent call last):
+    #   File "/usr/lib64/python3.4/site-packages/betse/cli/cliabc.py", line 120, in run
+    #     self._do()
+    #   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 133, in _do
+    #     subcommand_method()
+    #   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 337, in _do_plot
+    #     subcommand_method()
+    #   File "/usr/lib64/python3.4/site-packages/betse/cli/clicli.py", line 358, in _do_plot_sim
+    #     self._get_sim_runner().plotSim()
+    #   File "/usr/lib64/python3.4/site-packages/betse/science/simrunner.py", line 340, in plotSim
+    #     plot_all(cells, sim, p, plot_type='sim')
+    #   File "/usr/lib64/python3.4/site-packages/betse/science/plot/pipeline.py", line 775, in plot_all
+    #     maxColor=p.I_max_clr,
+    #   File "/usr/lib64/python3.4/site-packages/betse/science/plot/plot.py", line 463, in plotStreamField
+    #     cb = fig.colorbar(msh)
     cb = fig.colorbar(msh)
 
     tit = title

@@ -93,14 +93,19 @@ class AnimCells(PlotCells):
         0-based sampled time step currently being simulated.
     _is_overlaying_current : bool
         `True` if overlaying either electric current or concentration flux
-        streamlines on this animation when requested by the current simulation
-        configuration (as governed by the `p.I_overlay` parameter)_or_ `False`
-        otherwise.
+        streamlines on this animation _or_ `False` otherwise. By design, this
+        boolean is `True` if and only if the following are all also `True`:
+        * The `p.I_overlay` boolean, implying the current simulation
+          configuration to request current overlays.
+        * The `p.calc_J` boolean, implying the current simulation
+          configuration to model such currents.
+        * The `is_current_overlayable` boolean parameter passed to the
+          `__init__()` method of this class, implying the current animation to
+          support current overlays.
     _is_overlaying_current_gj_only : bool
-        `True` if only overlaying intracellular current _or_ `False` if
-        overlaying both intra- and extracellular current. Ignored if current is
-        _not_ being overlayed at all (i.e., if `_is_overlaying_current` is
-        `False`).
+        `True` if only overlaying intracellular current _or_ `False` otherwise
+        (i.e., if overlaying both intra- and extracellular current). Ignored
+        unless overlaying current (i.e., if `_is_overlaying_current` is `True`).
     _is_saving_shown_frames : bool
         `True` if both saving and displaying animation frames _or_ `False`
         otherwise.
@@ -126,11 +131,13 @@ class AnimCells(PlotCells):
         #FIXME: I'm not terribly happy with defaulting these parameters here.
         #Ideally, we should define a new "AnimCellsAfterSolving" subclass simply
         #passing these defaults to this method as normal parameters. After doing
-        #so, eliminate these defaults, thus forcing these parameters to
-        #*ALWAYS* be passed.
+        #so, eliminate these defaults, forcing these parameters to be passed.
         save_dir_parent_basename: str = 'anim',
 
         is_current_overlayable: bool = False,
+
+        #FIXME: For orthogonality, rename to "is_current_overlay_gj_only" and
+        #the corresponding instance attributes similarly.
         is_overlaying_current_gj_only: bool = None,
         is_ecm_required: bool = False,
         *args, **kwargs
@@ -147,9 +154,9 @@ class AnimCells(PlotCells):
         is_current_overlayable : bool
             `True` if overlaying either electric current or concentration flux
             streamlines on this animation when requested by the current
-            simulation configuration (as governed by the `p.I_overlay`
-            parameter) _or_ `False` otherwise. All subclasses except those
-            already plotting streamlines (e.g., by calling the superclass
+            simulation configuration (as governed by the `p.I_overlay` and
+            `p.calc_J` parameters) _or_ `False` otherwise. All subclasses except
+            those already plotting streamlines (e.g., by calling the superclass
             `_plot_stream()` method) should unconditionally enable this boolean.
             Defaults to `False`.
         is_overlaying_current_gj_only : bool
@@ -196,14 +203,15 @@ class AnimCells(PlotCells):
         assert types.is_bool(self._is_overlaying_current_gj_only), (
             types.assert_not_bool(self._is_overlaying_current_gj_only))
 
-        # If this subclass requests a current overlay, do so only if also
-        # requested by the current simulation configuration.
+        # If this subclass requests a current overlay, do so only if:
+        #
+        # * Requested by the current simulation configuration via "p.I_overlay".
+        # * This configuration is modelling currents via "p.calc_J".
         self._is_overlaying_current = (
-            is_current_overlayable and self._p.I_overlay)
+            is_current_overlayable and self._p.I_overlay and self._p.calc_J)
 
         # True if both saving and displaying animation frames.
-        self._is_saving_shown_frames = (
-            self._is_showing and self._is_saving)
+        self._is_saving_shown_frames = self._is_showing and self._is_saving
 
         # Type of animation attempt to be logged below.
         animation_verb = None

@@ -10,7 +10,8 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
-from betse.exceptions import BetseExceptionSimulation, BetseExceptionParameters
+from betse.exceptions import (
+    BetseExceptionFile, BetseExceptionSimulation, BetseExceptionParameters)
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.parameters import Parameters
@@ -323,12 +324,19 @@ class SimRunner(object):
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
 
-        if files.is_file(sim.savedSim):
-            sim,cells,_ = fh.loadSim(sim.savedSim)  # load the simulation from cache
-        else:
-            raise BetseExceptionSimulation(
-                "Ooops! No such simulation file found to plot!")
+        #FIXME: Didn't this used to work? It'd be sweet if we could just
+        #automatically run this simulation as needed beforehand rather than
+        #hard-failing. No biggie. Unicorns cavorting madly in the dawn forest!
 
+        # If this simulation has yet to be run, fail.
+        if not files.is_file(sim.savedSim):
+            raise BetseExceptionFile(
+                'Simulation cache file "{}" not found to plot '
+                '(e.g., due to no simulation having been run).'.format(
+                    sim.savedSim))
+
+        # Load the simulation from the cache.
+        sim, cells, _ = fh.loadSim(sim.savedSim)
         plot_all(cells, sim, p, plot_type='sim')
 
         if p.turn_all_plots_off is False:
