@@ -1279,12 +1279,11 @@ class Cells(object):
 
         # initial charge density
         self.init_Q = np.dot(M_max_cap,v_vect)
-
         # gaussian filter at the same level used in sim:
         # M_max_cap = gaussian_filter(M_max_cap, p.smooth_level)
 
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
-        # self.M_max_cap = M_max_cap
+        self.M_max_cap = M_max_cap  # FIXME we can comment this out after paper resubmission (DPO)
 
     def redo_gj(self,dyna,p,savecells =True):
 

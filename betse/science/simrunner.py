@@ -144,7 +144,7 @@ class SimRunner(object):
 
             if p.calc_J is True or p.fluid_flow is True:
 
-                logs.log_info('Creating environmental Poisson solver for environment...')
+                logs.log_info('Creating environmental Poisson solver...')
                 bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
                 cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
 

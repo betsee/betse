@@ -135,7 +135,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             scale_v = [1000*arr for arr in sim.vm_time]
         else:
             vmplt = [1000*arr for arr in sim.vm_Matrix]
-            scale_v = [1000*arr for arr in sim.vm_time]
+            scale_v = [1000*arr.ravel() for arr in sim.vm_Matrix]
 
 
         AnimCellsTimeSeries(

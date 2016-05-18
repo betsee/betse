@@ -11,6 +11,7 @@ from random import shuffle
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate as interp
+from scipy.interpolate import SmoothBivariateSpline as vor_interp
 from scipy.ndimage.filters import gaussian_filter
 
 from betse.exceptions import BetseExceptionSimulation
@@ -1437,6 +1438,9 @@ class Simulator(object):
             # separate voltages for cells and ecm spaces
             v_cell = v_max_vect[cells.cell_range_a:cells.cell_range_b]
             v_ecm = v_max_vect[cells.ecm_range_a:cells.ecm_range_b]
+
+            # # calculate vm directly between membrane and adjacent ecm space:
+            # vm = v_cell[cells.mem_to_cells] - v_ecm[cells.mem_to_ecm_mids]
 
             # interpolate the v_env from ECM spaces to the ENV GRID:
             v_env = interp.griddata((cells.ecm_mids[:, 0], cells.ecm_mids[:, 1]),
