@@ -14,8 +14,19 @@
 # of this script and hence this script's directory.
 
 # ....................{ PATHS                              }....................
+# string canonicalize_path(string pathname)
+#
+# Canonicalize the passed pathname. The "readlink" command's GNU-specific "-f"
+# option would be preferable but is unsupported by OS X's NetBSD-specific
+# version of "readlink". Instead, just defer to Python.
+function canonicalize_path() {
+    python -c "
+import os, sys
+print(os.path.realpath(os.path.expanduser(sys.argv[1])))" "${1}"
+}
+
 # Absolute or relative path of this script.
-script_filename="${BASH_SOURCE}"
+script_filename="$(canonicalize_path "${BASH_SOURCE}")"
 
 # Absolute or relative path of this script's directory and hence BETSE's home.
 betse_dirname="$(dirname "${script_filename}")"
