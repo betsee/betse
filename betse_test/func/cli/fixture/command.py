@@ -77,10 +77,11 @@ class CLITestRunner(object):
 
     def __call__(self, *args) -> None:
         '''
-        Call the entry point for BETSE's CLI with the passed arguments.
+        Call the entry point for BETSE's CLI with the passed positional
+        arguments.
 
-        This special method is a negligible convenience permitting this fixture
-        to be called as is rather than via thie `run()` method.
+        This special method is a convenience permitting this fixture to be
+        called as is rather than via the `run()` method.
 
         See Also
         ----------

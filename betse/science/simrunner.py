@@ -343,7 +343,9 @@ class SimRunner(object):
             plt.show()
 
     def plotWorld(self):
-
+        '''
+        Load and visualize a previously seeded cell cluster.
+        '''
         logs.log_info(
             'Plotting cell cluster with configuration file "{}".'.format(
                 self._config_basename))

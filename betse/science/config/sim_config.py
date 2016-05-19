@@ -7,6 +7,8 @@
 Simulation configuration in YAML format.
 '''
 
+#FIXME: Refactor all functions defined below into methods of the
+#"betse.science.config.wrapper.SimConfigWrapper" class.
 #FIXME: Validate the versions of loaded configuration files.
 
 # ....................{ IMPORTS                            }....................
@@ -23,12 +25,12 @@ def read(config_filename: str) -> dict:
     dictionary; then, validate and return this dictionary.
 
     Parameters
-    ----------------------------
+    ----------
     config_filename : str
         Absolute or relative path of the source YAML file to be deserialized.
 
     Returns
-    ----------------------------
+    ----------
     dict
         Dictionary deserialized from this file.
     '''
@@ -55,14 +57,14 @@ def write(config_filename: str, config: dict) -> None:
     configuration file.
 
     Parameters
-    ----------------------------
+    ----------
     config_filename : str
         Absolute or relative path of the target YAML file to be written.
     config : dict
         Dictionary to serialize to this file.
 
     Raises
-    ----------------------------
+    ----------
     BetseExceptionFile
         If this file already exists.
     '''
@@ -94,7 +96,7 @@ def write_default(config_filename: str) -> None:
     functionality requiring a valid configuration file (e.g., `betse world`).
 
     Modifications
-    ----------------------------
+    ----------
     For usability, this method modifies the contents of the written (but _not_
     original) file as follows:
 
@@ -103,12 +105,12 @@ def write_default(config_filename: str) -> None:
       intimidating deluge of plot windows irrelevant to general usage.
 
     Parameters
-    ----------------------------
+    ----------
     config_filename : str
         Absolute or relative path of the target YAML file to be written.
 
     Raises
-    ----------------------------
+    ----------
     BetseExceptionFile
         If this file already exists.
     '''
@@ -132,7 +134,7 @@ def _write_default_dir(config_filename: str) -> None:
     If not currently found, this directory will also be created.
 
     Parameters
-    ----------------------------
+    ----------
     config_filename : str
         Absolute or relative path of the target YAML file to be written. If this
         file has no dirname and hence is a pure basename (e.g.,
@@ -172,7 +174,7 @@ def _write_default_file(config_filename: str) -> None:
     assumed to _not_ already exist.
 
     Parameters
-    ----------------------------
+    ----------
     config_filename : str
         Absolute or relative path of the YAML file to be written.
     '''
@@ -214,7 +216,7 @@ def _write_check(config_filename: str) -> None:
         Absolute or relative path of the target YAML file to be validated.
 
     Raises
-    ----------------------------
+    ----------
     BetseExceptionFile
         If this file already exists.
     '''
@@ -228,8 +230,9 @@ def _write_check(config_filename: str) -> None:
     # If this file already exists, fail.
     files.die_if_file(config_filename)
 
-    # If this filename is *NOT* suffixed by ".yaml", log a warning.
-    if config_filetype != 'yaml':
+    # If this filename is *NOT* suffixed by either ".yml" or ".yaml", log a
+    # warning.
+    if not (config_filetype == 'yaml' or config_filetype == 'yml'):
         logs.log_warning(
-            'File "{}" filetype "{}" not "yaml".'.format(
+            'File "{}" filetype "{}" not "yaml" or "yml".'.format(
                 config_basename, config_filetype))

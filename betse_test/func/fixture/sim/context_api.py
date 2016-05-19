@@ -11,7 +11,7 @@ caller fixtures and tests, formalizing communication between functional tests.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config import sim_config
+from betse.science.config.wrapper import SimConfigWrapper
 
 # ....................{ CLASSES                            }....................
 class SimTestContext(object):
@@ -24,13 +24,13 @@ class SimTestContext(object):
 
     Attributes
     ----------
-    config : dict
-        Dictionary of all configuration data deserialized from the YAML-
-        formatted file with path `config_filename`. Note that the contents of
-        this in-memory dictionary differ from that of this on-disk file. For
-        efficiency, callers are expected to additionally modify this dictionary
-        to suite test requirements before finally reserializing this dictionary
-        to this file.
+    config : SimConfigWrapper
+        Simulation configuration wrapper wrapping the low-level dictionary
+        deserialized from the YAML-formatted simulation configuration file with
+        path `config_filename`. Note that the contents of this in-memory
+        dictionary be desynchronized from those of this file. For efficiency,
+        callers may modify this dictionary to suite test requirements _before_
+        reserializing this dictionary back to this file.
     config_filename : py.path.local
         Absolute path of a temporary simulation configuration file specific to
         the parent fixture as a `py.path.local` instance, defining an
@@ -44,7 +44,7 @@ class SimTestContext(object):
 
     def __init__(self, config_filename : 'py.path.local') -> None:
         '''
-        Initialize this test configuration.
+        Initialize this test context.
 
         Parameters
         ----------
@@ -54,20 +54,15 @@ class SimTestContext(object):
             raised.
         '''
 
-        # Configuration filename.
-        self.config_filename = config_filename
+        # Configuration filename. While the "self.config" object classified
+        # below also provides this filename as a low-level string, classify this
+        # higher-level "py.path.local" instance for use in fixtures and tests.
+        self._config_filename = config_filename
 
         # Configuration deserialized from this file, reducing this filename from
         # a high-level "py.path.local" instance to a low-level string.
-        self.config = sim_config.read(str(self.config_filename))
+        self.config = SimConfigWrapper(filename=str(self.config_filename))
 
-
-    #FIXME: Implement me as a convenience for fixtures!
-    def write(self) -> None:
-        '''
-        Write the current configuration to the current configuration file.
-
-        If this file already exists, this file will be silently overwritten.
-        '''
-
-        pass
+        # Disable configuration options either requiring interactive input *OR*
+        # displaying interactive output.
+        self.config.disable_interaction()

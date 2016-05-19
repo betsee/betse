@@ -58,11 +58,13 @@ from betse.science.plot.plot import (
 )
 
 # ....................{ CLASSES ~ while                    }....................
+#FIXME: Shift this subclass into a new "while.py" submodule of this package.
 #FIXME: There appears to be a largely ignorable aesthetic issue with
 #deformations. The first time step centers the cell cluster; all subsequent
 #time steps shift the cell cluster towards the top of the figure window. While
-#nothing clips across edges, the movement is noticeably... awkward Since this
-#occurs in the older "PlotWhileSolving" implementation as well, we ignore this.
+#nothing clips across edges, the movement is noticeably... awkward. Since this
+#occurs in the older "PlotWhileSolving" implementation as well, we ignore this
+#for the moment.
 
 #FIXME: Rename "_cell_data_plot" to "_cell_body_plot".
 #FIXME: Rename "_cell_edges_plot" to "_cell_edge_plot".
@@ -249,7 +251,9 @@ class AnimCellsWhileSolving(AnimCells):
         # Plot this animation's first frame in a non-blocking manner.
         plt.show(block=False)
 
-
+    # ..................{ PROPERTIES                         }..................
+    # In-place animation is governed by different configuration file booleans
+    # than are post-simulation animations.
     @property
     def _is_showing(self) -> bool:
         return self._p.plot_while_solving
@@ -259,7 +263,7 @@ class AnimCellsWhileSolving(AnimCells):
     def _is_saving(self) -> bool:
         return self._p.save_solving_plot
 
-
+    # ..................{ PLOTTERS                           }..................
     def _plot_frame_figure(self, frame_number: int) -> None:
 
         # Upscaled cell data for the current time step.
@@ -367,7 +371,8 @@ class AnimCellsWhileSolving(AnimCells):
 
         This method is intended to be called in response to physical changes
         (e.g., deformation forces, cutting events) in the underlying structure
-        of the cell cluster for this simulation time step.
+        of the cell cluster for this simulation time step. This method is both
+        inefficient and destructive, and should be called only when needed.
 
         Parameters
         -----------
@@ -413,8 +418,8 @@ class AnimCellsWhileSolving(AnimCells):
 # ....................{ CLASSES ~ after                    }....................
 class AnimCellsTimeSeries(AnimCells):
     '''
-    Animation of an arbitrary cell-centric time series (e.g., cell voltage as a
-    function of time), plotted over the cell cluster.
+    Post-simulation animation of an arbitrary cell-centric time series (e.g.,
+    cell voltage as a function of time), plotted over the cell cluster.
 
     Attributes
     ----------

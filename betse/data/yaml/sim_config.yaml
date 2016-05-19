@@ -693,62 +693,67 @@ variable settings:
 
 results options:
 
-    plot after solving: True     # This option allows you to turn all plots
-                                 # on/off. Note this doesn't turn plot while
-                                 # solving off. If 'automatically save plots"
-                                 # is also "True", plots will be exported to
-                                 # results without displaying.
-                                 # options True or False (case sensitive)
-  
     plot while solving: True     # shows a continuously updating 2d plot of
                                  # cell Vmems while the sim run is computing
                                  # options True or False (case sensitive)
-  
+
     save solving plot: True      # save the plot while solving figure
                                  # as the sim progresses (as 300 dpi png
                                  # in folder in the results directory)
                                  # warning this can slow down simulations
                                  # options True or False (case sensitive)
-  
+
+    plot after solving: True     # Display post-simulation plots and/or
+                                 # animations (True) or not (False)? This
+                                 # option does *NOT* govern saving of either
+                                 # post-simulation plots (see "automatically
+                                 # save plots") or animations (see "save
+                                 # animations"). If "automatically save plots"
+                                 # is also "True", plots will be exported to
+                                 # results without displaying.
+                                 # options True or False (case sensitive)
+
     automatically save plots: True     # autosave all still images (as 300 dpi
                                        # pngs) to the results directory
                                        # options True or False (case sensitive)
-  
-    create all animations: True     # Display and save animations (True) or not
-                                    # (False)? Even if "True", only animations
-                                    # enabled below are displayed and saved.
-  
-    save animations:            # save animations in animation-specific folders
-        frames:
-            enabled: True       # save each animation a sequence of frame images?
-            filetype: png       # image filetype
-            dpi: 300            # image dots per inch (DPI)
-  
-        movie:
-            enabled: False      # save each animation as an encoded movie file?
-            filetype: mp4       # movie filetype
-  
-            # List of the names of all external video encoder libraries to attempt
-            # to use (in order of descending preference).
-            encoders: ['ffmpeg', 'avconv', 'mencoder']
-  
-  
+
+    create all animations: True     # Display and/or save post-simulation
+                                    # animations (True) or not (False)? If
+                                    # "True", only animations explicitly
+                                    # enabled below are displayed and/or saved.
+                                    # options True or False (case sensitive)
+
+    save animations:        # Post-simulation animation saving options.
+      frames:
+        enabled: True       # Save each animation as a series of frame images?
+        filetype: png       # image filetype
+        dpi: 300            # image dots per inch (DPI)
+
+      movie:
+        enabled: False      # save each animation as an encoded movie file?
+        filetype: mp4       # movie filetype
+
+        # List of the names of all external video encoder libraries to attempt
+        # to use (in order of descending preference).
+        encoders: ['ffmpeg', 'avconv', 'mencoder']
+
+
     export data to file: True      # export all stored data for the plot cell
                                    # to a comma-delimited (csv) text file
                                    # options True or False (case sensitive)
-  
+
     enumerate cells: False         # number the cells on 2D plots with their simulation index?
                                    # this can help to decide which cell you are interested in getting
                                    # specific data on (for single cell graphs plotted over time).
                                    # options True or False (case sensitive)
                                    # warning should not be used for world sizes over 200 um.
-  
+
     plot cell index: 0              # State the cell index to use for single-cell time plots
                                     # the index of cells can be seen using enumerate cells feature.
-  
+
     plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
                                     # (the plot cell) as a function of simulation time
-  
+
     show cells: True                # if True, plots and animations show individual cells,
                                     # each displayed with color-coded data. If False,
                                     # plots and animations show data as interpolated over a 2D

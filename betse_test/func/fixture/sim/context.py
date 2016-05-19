@@ -14,7 +14,6 @@ testing, including:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.func.fixture.sim.context_api import SimTestContext
 from pytest import fixture
 
 # ....................{ FIXTURES ~ public                  }....................
@@ -94,7 +93,7 @@ def _betse_sim_config(tmpdir_factory, request) -> 'py.path.local':
     '''
 
     # This module's importation imports dependencies and is hence delayed.
-    from betse_test_func.context.context import SimTestContext
+    from betse_test.func.context.context_api import SimTestContext
 
     #FIXME: Ah ha! While there's no direct means of finding this name, there is
     #a sneaky alternative: search the "request.fixturenames" list for the set of

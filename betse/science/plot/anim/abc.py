@@ -365,25 +365,33 @@ class AnimCells(PlotCells):
     # The corresponding attributes (e.g., "_is_showing" for _is_showing())
     # *MUST* be defined via dynamic methods rather than static attributes passed
     # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
-    # Because chicken-and-the-egg constraints.  Specifically, the latter
-    # approach prevents subclasses from passing a value dependent on the current
+    # Because chicken-and-the-egg constraints. Specifically, the latter approach
+    # prevents subclasses from passing a value dependent on the current
     # "Parameters" object to __init__(), as that object has yet to be classified
     # as the "_p" attribute yet. (Ugh.)
 
+    #FIXME: Shift this property into the base class unmodified.
     @property
     def _is_showing(self) -> bool:
         '''
-        `True` if interactively displaying this animation _or_ `False`
-        otherwise.
+        `True` only if interactively displaying this animation.
+
+        This boolean is orthogonal to `_is_saving`, which may also be `True`.
         '''
         return not self._p.turn_all_plots_off
 
 
+    #FIXME: Copy rather than shift this property into the base class. The base
+    #class version of this property should be modified to:
+    #    return self._p.autosave
+    #
+    #The version of this property below should remain unmodified.
     @property
     def _is_saving(self) -> bool:
         '''
-        `True` if non-interactively saving this animation as discrete frames
-        and/or an encoded video _or_ `False` otherwise.
+        `True` only if non-interactively saving this animation.
+
+        This boolean is orthogonal to `_is_showing`, which may also be `True`.
         '''
         return self._p.saveAnimations
 

@@ -19,7 +19,7 @@ from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.py import objects
 from betse.util.type import types
 from matplotlib import pyplot
-from matplotlib.collections import LineCollection, PolyCollection
+from matplotlib.collections import PolyCollection
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
@@ -64,11 +64,6 @@ class PlotCells(object, metaclass=ABCMeta):
         with this plot's colorbar.
     _colorbar_title: str
         Text displayed above the figure colorbar.
-    _is_color_autoscaled : bool
-        `True` if dynamically resetting the minimum and maximum colorbar values
-        to be the corresponding minimum and maximum values for the current
-        frame _or_ `False` if statically setting the minimum and maximum
-        colorbar values to predetermined constants.
     _color_min : float
         Minimum color value to be displayed by the colorbar. If colorbar
         autoscaling is enabled (i.e., `_is_color_autoscaled` is `True`), the
@@ -83,6 +78,11 @@ class PlotCells(object, metaclass=ABCMeta):
         Matplotlib figure providing the current animation frame.
     _figure_title : str
         Text displayed above the figure itself.
+    _is_color_autoscaled : bool
+        `True` if dynamically resetting the minimum and maximum colorbar values
+        to be the corresponding minimum and maximum values for the current
+        frame _or_ `False` if statically setting the minimum and maximum
+        colorbar values to predetermined constants.
     _type : str
         Basename of the subdirectory in the phase-specific results directory
         to which all animation files will be saved _and_ the basename prefix of
@@ -210,12 +210,12 @@ class PlotCells(object, metaclass=ABCMeta):
         self._writer_video = None
 
         # Figure encapsulating this animation as a weak rather than strong (the
-        # default) references, thus avoiding circular references and
-        # complications thereof (e.g., memory overhead). Figures created by the
-        # "pyplot" API are internally retained in Matplotlib's "Gcf" figure
-        # cache until explicitly closed -- either non-interactively by a close()
-        # call or interactively by the corresponding GUI window being closed.
-        # Hence, strong figure references should typically *NOT* be retained.
+        # default) reference, avoiding circular references and complications
+        # thereof (e.g., memory overhead). Figures created by the "pyplot" API
+        # are internally retained in Matplotlib's "Gcf" figure cache until
+        # explicitly closed -- either non-interactively by a close() call or
+        # interactively by the corresponding GUI window being closed. Hence,
+        # strong figure references should typically *NOT* be retained.
         self._figure = weakref.proxy(pyplot.figure())
 
         # Extent of the current 2D environment.
@@ -266,9 +266,9 @@ class PlotCells(object, metaclass=ABCMeta):
           * Adds the current `_figure_title` to this figure as a "super title."
           * Adds the passed `axes_title` to this figure's axes as a "subtitle."
         * Else, add the current `_figure_title` to this figure's axes.
-        * If the optional `colorbar_values` parameter is passed _and_ the
-          current `clrAutoscale` boolean is `True`, clip the colorbar to the
-          minimum and maximum values in the `colorbar_values` array.
+        * If the optional `colorbar_values` parameter is passed _and_
+          `_is_color_autoscaled` is `True`, clip the colorbar to the minimum and
+          maximum values in the `color_series` array.
         * Else, clip the colorbar to the current `clrMin` and `clrMax` values.
         * Add a colorbar whose:
           * Title is the current `_colorbar_title` string.
@@ -284,13 +284,12 @@ class PlotCells(object, metaclass=ABCMeta):
             * A non-string sequence (e.g., `list`) of one or more mappables, in
               which case this colorbar will be associated with the **first**
               mappable in this sequence.
-        color_series : np.ndarray
+        color_series : optional[np.ndarray]
             Optional multi-dimensional Numpy array containing all data values
             to be animated _or_ `None` if calculating this data during the
             animation initialization is infeasible or impractical (e.g., due to
-            space and time constraints). If colorbar autoscaling is requested
-            (i.e., the initialization-time `is_color_autoscaled` parameter was
-            `True`) _and_ this parameter is:
+            space and time constraints). If the colorbar is being autoscaled
+            _and_ this parameter is:
             * Non-`None`, the colorbar will be clipped to the minimum and
               maximum scalar values unravelled from this array.
             * `None`, the subclass will be responsible for colorbar autoscaling.
