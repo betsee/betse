@@ -13,6 +13,7 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 from betse.science import finitediff as fd
 
+# FIXME: we can get rid of the calculation for gj current -- don't need it -- current is continuous in the whole system!
 
 def get_current(sim, cells, p):
 
@@ -35,13 +36,21 @@ def get_current(sim, cells, p):
     # need to calculate a divergence-free flow field through gap junctions, assuming
     # bulk electroneutrality of the electrolyte:
 
-    # First calculate rate of change of charge in environment:
+    # First calculate rate of change of charge in cells:
     if len(sim.charge_cells_time) > 1:
 
         d_rho_cells = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
 
+        # map the drho/dt to the environmental grid for adding to env values:
+        d_rho_cells_grid = interp.griddata((cells.cell_centres[:, 0], cells.cell_centres[:, 1]),
+                                           d_rho_cells, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+                                           fill_value=0)
+
     else:
         d_rho_cells = 0
+        d_rho_cells_grid = np.zeros(len(cells.xypts))
+
+
 
 
     # get the normal component to each cell membrane:
@@ -113,7 +122,7 @@ def get_current(sim, cells, p):
             cells.delta, cells.delta)
 
         # add the rate of charge change to the divergence:
-        div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)
+        div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)  + d_rho_cells_grid.reshape(cells.X.shape)
 
         # Find the value of the correcting potential field Phi:
         Phi = np.dot(cells.lapENV_P_inv, div_J_env_o.ravel())
