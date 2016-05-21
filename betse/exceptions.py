@@ -3,19 +3,17 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-#FIXME: Shift this module to the top-level "betse" package.
-
 '''
-`betse`-specific exception hierarchy.
+BETSE-specific exception hierarchy.
 '''
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 
 # ....................{ EXCEPTIONS                         }....................
-class BetseException(Exception, metaclass = ABCMeta):
+class BetseException(Exception, metaclass=ABCMeta):
     '''
-    Abstract base class of all `betse`-specific exceptions.
+    Abstract base class of all BETSE-specific exceptions.
     '''
     pass
 

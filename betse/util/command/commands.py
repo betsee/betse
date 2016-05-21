@@ -70,11 +70,17 @@ def is_pathable(command_basename: str) -> bool:
 # ....................{ GETTERS ~ path                     }....................
 def get_current_basename() -> str:
     '''
-    Get the basename of the command originating the current Python process.
+    Get the basename of the command originating the active Python interpreter.
+
+    If this interpreter is interpreting a block of arbitrary runtime code passed
+    to this interpreter on the command line via Python's `-c` option, this
+    function returns `-c`. Callers intending to use this return value as a
+    human-readable string should consider testing for and converting the non-
+    human-readable value of `-c` into a more readable string.
     '''
 
-    # Since "sys.argv[0]" is either an absolute or relative path, get only such
-    # path's basename.
+    # Since "sys.argv[0]" is either an absolute or relative path, return only
+    # this path's basename.
     return paths.get_basename(sys.argv[0])
 
 # ....................{ RUNNERS                            }....................

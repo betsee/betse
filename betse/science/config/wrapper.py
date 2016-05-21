@@ -15,9 +15,9 @@ dictionaries deserialized from disk.
 # import yaml
 # from betse import pathtree
 from betse.science.config import sim_config
+from betse.util.path import files
 # from betse.util.type import types
 # from betse.util.io.log import logs
-# from betse.util.path import dirs, files, paths
 
 # ....................{ CLASSES                            }....................
 class SimConfigWrapper(object):
@@ -43,7 +43,7 @@ class SimConfigWrapper(object):
         file deserialized into `_config`.
     '''
 
-    # ..................{ INITIALIZE                         }..................
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self, filename: str) -> None:
         '''
         Wrap the low-level dictionary deserialized from the passed
@@ -62,6 +62,55 @@ class SimConfigWrapper(object):
         self._config = sim_config.read(filename)
 
 
+    @classmethod
+    def wrap_new_default(cls, filename: str) -> None:
+        '''
+        Write the default YAML-formatted simulation configuration to the passed
+        path, recursively copy all external resources (e.g., geometry masks)
+        referenced and hence required by this configuration into this path's
+        directory, and return an instance of this class encapsulating this
+        configuration.
+
+        This factory method creates a valid simulation configuration consumable
+        by all BETSE CLI commands (e.g., `betse sim`), modified from the default
+        simulation configuration shipped with BETSE as follows:
+
+        * The `plot after solving` option in the `results options` section is
+          coerced to `False`, preventing hapless end-users from drowning under
+          an intimidating deluge of plot windows irrelevant to "beginner" usage.
+
+        Parameters
+        ----------
+        filename : str
+            Absolute or relative path of the simulation configuration file to be
+            written. Since this file will be YAML-formatted, this filename
+            should ideally be suffixed by a valid YAML filetype: namely, either
+            `.yml` or `.yaml`. This is _not_ strictly necessary, but is strongly
+            recommended.
+
+        Raises
+        ----------
+        BetseExceptionFile
+            If this file already exists.
+        '''
+
+        # Create this YAML file.
+        sim_config.write_default(filename)
+
+        # Create and return an instance of this class wrapping this file.
+        return cls(filename)
+
+    # ..................{ PROPERTIES                         }..................
+    # For safety, these properties lack setters and hence are read-only.
+    @property
+    def filename(self) -> str:
+        '''
+        Absolute or relative path of the YAML-formatted simulation configuration
+        file wrapped by this encapsulation object.
+        '''
+
+        return self._filename
+
     # ..................{ GETTERS                            }..................
 
     # ..................{ SETTERS                            }..................
@@ -76,22 +125,38 @@ class SimConfigWrapper(object):
         (possibly modified) contents of this dictionary.
         '''
 
-        #FIXME: We'll probably need to explicitly delete this file if it
-        #currently exists first (in a safe manner hopefully avoiding race
-        #conditions).
+        # Delete this configuration file, preventing the subsequent write from
+        # raising an ignorable exception.
+        files.remove_if_found(self._filename)
+
+        # Recreate this configuration file.
         self.write(self._filename)
 
 
-    #FIXME: Implement us up.
     def write(self, filename: str) -> None:
         '''
         Serialize the current low-level configuration dictionary to the passed
         simulation configuration file in YAML format.
 
         If this file already exists, an exception is raised.
+
+        Parameters
+        ----------
+        filename : str
+            Absolute or relative path of the simulation configuration file to be
+            written. Since this file will be YAML-formatted, this filename
+            should ideally be suffixed by a valid YAML filetype: namely, either
+            `.yml` or `.yaml`. This is _not_ strictly necessary, but is strongly
+            recommended.
+
+        Raises
+        ----------
+        BetseExceptionFile
+            If this file already exists.
         '''
 
-        pass
+        sim_config.write(filename, self._config)
+
 
     # ..................{ DISABLERS                          }..................
     def disable_interaction(self) -> None:

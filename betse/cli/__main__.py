@@ -39,6 +39,7 @@ def main(arg_list: list = None) -> int:
         Exit status of this interface, in the range `[0, 255]`.
     '''
 
+    # print('BETSE arg list (in main): {}'.format(arg_list))
     return CLICLI().run(arg_list)
 
 # ....................{ MAIN                               }....................

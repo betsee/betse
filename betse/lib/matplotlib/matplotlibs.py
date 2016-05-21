@@ -111,8 +111,8 @@ from matplotlib.figure import Figure
 #
 # This is utterly horrible. Since enabling arbitrary backends can have non-
 # negligible side effects, "matplotlib.__init__" *MUST* be prevented from
-# performing such logic. Since such module is imported *ONLY* on the first
-# importation of a matplotlib module, it suffices to perform such preventation
+# performing such logic. Since this module is imported *ONLY* on the first
+# importation of a matplotlib module, it suffices to perform this preventation
 # *ONLY* for the following importation of the top-level matplotlib package.
 
 # Copy the current argument list into a temporary list.

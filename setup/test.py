@@ -50,7 +50,7 @@ class test(Command):
     '''
 
     user_options = [
-        ('match-name', 'k',
+        ('match-name=', 'k',
          'Only run tests which match the given substring expression. '
          'An expression is a python evaluatable expression '
          'where all names are substring-matched against '

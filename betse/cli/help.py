@@ -62,12 +62,11 @@ operations will be preserved (rather than deleted on subcommand completion).
 
 Equivalently, this subcommand is shorthand for the following:
 
-;    mkdir          sample_sim
 ;    betse config   sample_sim/sample_sim.yaml
 ;    betse seed     sample_sim/sample_sim.yaml
 ;    betse init     sample_sim/sample_sim.yaml
-;    betse run      sample_sim/sample_sim.yaml
-;    betse plot run sample_sim/sample_sim.yaml
+;    betse sim      sample_sim/sample_sim.yaml
+;    betse plot sim sample_sim/sample_sim.yaml
 '''
 '''
 Help string template for the `try` subcommand.

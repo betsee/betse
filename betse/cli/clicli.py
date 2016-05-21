@@ -13,18 +13,16 @@
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
-
 from betse import metadata
 from betse.cli import help, info
 from betse.cli.cliabc import CLIABC
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 
-
 # ....................{ CLASS                              }....................
 class CLICLI(CLIABC):
     '''
-    `betse`'s command line interface (CLI).
+    BETSE's command line interface (CLI).
 
     Attributes
     ----------
@@ -35,6 +33,8 @@ class CLICLI(CLIABC):
     _arg_parser_plot : ArgumentParser
         Subparser parsing arguments passed to the `plot` subcommand.
     '''
+
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self):
         super().__init__()
 

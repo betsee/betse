@@ -131,6 +131,7 @@ class CLITestRunner(object):
         # * Converted from this tuple of arguments.
         # * Prefixed by failure-friendly options.
         arg_list = ['--verbose', '--log-type=none'] + list(args)
+        # print('BETSE arg list: {}'.format(arg_list))
 
         # Exit status of the entry point for BETSE's CLI passed these arguments.
         exit_status = main(arg_list)
@@ -140,14 +141,19 @@ class CLITestRunner(object):
             'BETSE CLI failed with exit status {} '
             'given argument list {}.'.format(exit_status, arg_list))
 
-# ....................{ FIXTURES ~ low-level               }....................
+# ....................{ FIXTURES                           }....................
 @fixture(scope='session')
-def betse_cli() -> CLITestRunner:
+def betse_cli(betse_init) -> CLITestRunner:
     '''
     Fixture returning a singleton instance of the `CLITestRunner` class.
 
     For efficiency, this instance is shared by all invocations of this fixture
     for the current test session.
+
+    Parameters
+    ----------
+    betse_init : None
+        BETSE-specific fixture initializing BETSE.
     '''
 
     return CLITestRunner()

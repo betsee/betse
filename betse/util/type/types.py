@@ -228,6 +228,15 @@ def is_matplotlib_trimesh(obj: object) -> bool:
     from matplotlib.collections import TriMesh
     return isinstance(obj, TriMesh)
 
+# ....................{ TESTERS ~ lib : py                 }....................
+def is_py_path_local(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a `py.path.local` instance.
+    '''
+    # Avoid importing third-party packages at the top level.
+    from py._path.local import LocalPath
+    return isinstance(obj, LocalPath)
+
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
     '''
@@ -491,6 +500,13 @@ def assert_not_matplotlib_trimesh(obj: object) -> bool:
     String asserting the passed object to _not_ be a Matplotlib triangle mesh.
     '''
     return '"{}" not a Matplotlib triangle mesh.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ lib : py               }....................
+def assert_not_py_path_local(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a `py.path.local` instance.
+    '''
+    return '"{}" not a "py.path.local" instance.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ numeric                }....................
 def assert_not_int(obj: object) -> str:

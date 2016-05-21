@@ -15,8 +15,7 @@ from betse import ignition, metadata, pathtree
 from betse.cli import info
 from betse.util.command import commands
 from betse.util.command.args import HelpFormatterParagraph
-from betse.util.command.exits import (
-    SUCCESS, FAILURE_DEFAULT)
+from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.io.log import logs
 from betse.util.io.log.log_config import LogType, log_config
 from betse.util.type import types
@@ -25,7 +24,7 @@ from betse.util.type import types
 class CLIABC(metaclass=ABCMeta):
     '''
     Abstract command line interface (CLI) suitable for use by both CLI and GUI
-    front-ends for `betse`.
+    front-ends for BETSE.
 
     Attributes
     ----------
@@ -57,12 +56,21 @@ class CLIABC(metaclass=ABCMeta):
         `LogType` enumeration member as a lowercase string. Defaults to `file`.
     '''
 
+    # ..................{ INITIALIZERS                       }..................
     def __init__(self):
         super().__init__()
 
         # Since the basename of the current process is *ALWAYS* available,
         # initialize this basename here for simplicity.
         self._script_basename = commands.get_current_basename()
+
+        # If the active Python interpreter is interpreting a block of arbitrary
+        # runtime code passed to this interpreter on the command line via
+        # Python's "-c" option (e.g., due to being imported and called as a
+        # py.test-based test), this basename is "-c". Convert this non-human-
+        # readable string into a human-readable string.
+        if self._script_basename == '-c':
+            self._script_basename = metadata.SCRIPT_NAME_CLI
 
         # Initialize these keyword arguments.
         self._arg_parser_kwargs = {
@@ -85,7 +93,7 @@ class CLIABC(metaclass=ABCMeta):
 
         Parameters
         ----------
-        args : list
+        arg_list : list
             List of zero or more arguments to pass to this interface. Defaults
             to `None`, in which case arguments passed on the command line (i.e.,
             `sys.argv`) will be used instead.
@@ -103,6 +111,7 @@ class CLIABC(metaclass=ABCMeta):
             arg_list = sys.argv[1:]
         assert types.is_sequence_nonstr(arg_list), (
             types.assert_not_sequence_nonstr(arg_list))
+        # print('BETSE arg list (in run): {}'.format(arg_list))
 
         # Classify arguments for subsequent use.
         self._arg_list = arg_list

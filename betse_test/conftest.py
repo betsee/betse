@@ -11,3 +11,4 @@ _all_ test modules.
 '''
 
 # ....................{ IMPORTS ~ fixture                  }....................
+from betse_test.fixture.ignition import betse_init

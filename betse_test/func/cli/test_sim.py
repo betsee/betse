@@ -9,20 +9,15 @@ Functional tests for BETSE's CLI testing all simulation-specific subcommands
 '''
 
 # ....................{ TESTS                              }....................
-#FIXME: As the first order of business, refactor:
-#
-#* This to accept *ONLY* a "betse_sim_*"-style fixture.
-#* The "_betse_sim" fixture to:
-#  * Accept a "betse_cli" fixture.
-#  * Classify the "CLITestRunner" instance returned by the "betse_cli" fixture
-#    to the "SimTestContext" instance returned by the "_betse_sim" fixture.
-#  * Disable all interactive plotting configuration options.
 #FIXME: While useful, this should be split apart into its constituent steps,
-#most of which should probably become fixtures for efficient reuse.
+#most of which should probably become fixtures for efficient reuse. Wait, no.
+#Ideally, we should construct a linear chain of tests, each exercising a
+#simulation phase (e.g., "seed", "init", "sim") depending on the success of the
+#prior test in this chain.
 
-# def test_cli_try(betse_cli) -> None:
-#     '''
-#     Test the `betse try` subcommand.
-#     '''
-#
-#     betse_cli('try')
+def test_cli_sim_default(betse_cli, betse_sim_config_default) -> None:
+    '''
+    Test the simulation of the default simulation configuration.
+    '''
+
+    betse_cli('sim', betse_sim_config_default.config.filename)

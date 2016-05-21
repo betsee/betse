@@ -164,18 +164,47 @@ def remove(filename: str) -> None:
     '''
     Remove the passed non-directory file.
     '''
-    assert types.is_str_nonempty(filename),\
-        types.assert_not_str_nonempty(filename, 'filename')
+    assert types.is_str_nonempty(filename), (
+        types.assert_not_str_nonempty(filename, 'filename'))
 
-    # Log such removal.
+    # Log this removal.
     logs.log_info('Removing file "%s".', filename)
 
-    # Raise an exception unless such file exists.
+    # Raise an exception unless such this exists.
     die_unless_file(filename)
 
-    # Remove such file. Note that the os.remove() and os.unlink() functions are
+    # Remove this file. Note that the os.remove() and os.unlink() functions are
     # identical. (That was silly, Guido.)
     os.remove(filename)
+
+
+def remove_if_found(filename: str) -> None:
+    '''
+    Remove the passed non-directory file if this file currently exists.
+
+    If this file does _not_ currently exist, this function reduces to a noop.
+    For safety, this function removes this file atomically; in particular, this
+    file's existence is _not_ explicitly tested for.
+    '''
+    assert types.is_str_nonempty(filename), (
+        types.assert_not_str_nonempty(filename, 'filename'))
+
+    # Log this removal if the subsequent removal attempt is likely to actually
+    # remove a file. Due to race conditions with other processes, this file
+    # could be removed after this test succeeds but before the removal is
+    # performed. Since this is largely ignorable, the worst case is an
+    # extraneous log message.
+    if is_file(filename):
+        logs.log_info('Removing file "%s".', filename)
+
+    # Remove this file atomically. To avoid race conditions with other
+    # processes, do *NOT* embed this operation in an explicit test for file
+    # existence. Instead, adopt the Pythonic Way.
+    try:
+        os.remove(filename)
+    # If this file does *NOT* exist, ignore this exception.
+    except FileNotFoundError:
+        pass
 
 # ....................{ OPENERS                            }....................
 def open_for_text_reading(filename: str) -> 'file':

@@ -37,20 +37,20 @@ from betse.lib import libs
 from betse.util.py import pys
 
 # ....................{ INITIALIZERS                       }....................
-#FIXME: Update docstring whet time and kindness affords.
+#FIXME: Update docstring when time and kindness affords.
 def init() -> None:
     '''
     Initialize the current application.
 
-    Specifically:
+    Specifically, this method:
 
-    * Validate core directories and files required at program startup, creating
-      all such directories and files that do *not* already exist and are
-      feasible to be created.
+    * Validates core directories and files required at program startup, creating
+      all such directories and files that do _not_ already exist and are
+      reasonably creatable.
 
     To support caller-specific error handling, this function is intended to be
-    called immediately *after* such application begins catching otherwise
-    uncaught exceptions.
+    called immediately _after_ this program begins catching otherwise uncaught
+    exceptions.
     '''
 
     # Validate core directories and files required at program startup.
