@@ -133,6 +133,60 @@ class CLITestRunner(object):
         arg_list = ['--verbose', '--log-type=none'] + list(args)
         # print('BETSE arg list: {}'.format(arg_list))
 
+        #FIXME: If the current test also requires a fixture whose name is
+        #prefixed by "betse_sim_config_", the following call to main() should be
+        #embedded in a "with"-style block calling paths.change_current():
+        #
+        #1. Refactor the "betse_cli" fixture to do the following *BEFORE*
+        #   instantiating and returning this class:
+        #   1. Accept a "request" fixture.
+        #   2. Search the "request.fixturenames" list for all fixtures whose
+        #      names are prefixed by "betse_sim_config_". There should only be
+        #      exactly one. This logic already resides in the
+        #      configbase._betse_sim_config() fixture, suggesting we generalize
+        #      that logic to a new test utility getter returning the name of
+        #      this single fixture.
+        #   3. Call request.getfuncargvalue(fixture_name) to obtain the
+        #      "SimTestConfig" instance returned by that fixture.
+        #2. Pass this instance to CLITestRunner.__init__().
+        #3. Refactor CLITestRunner.__init__() to classify the passed
+        #   "SimTestConfig" instance if any as a private attribute. While None
+        #   is an acceptable value, this parameter should *NOT* be optional.
+        #4. If that attribute is non-None, embed this call in a "with"
+        #   statement changing to the directory containing this attribute's
+        #   configuration file.
+        #
+        #The alternative, of course, would be to permanently change the CWD for
+        #the entirety of this test session in the _betse_sim_config fixture.
+        #Doing so strikes us as a bad idea.
+        #FIXME: See also the builtin "monkeypatch" fixture, which provides
+        #chdir() and undo() methods -- the latter of which *SHOULD* be
+        #implicitly called on teardown. However, is there any point? Our
+        #context-manager is almost certainly safer and already exists.
+        #FIXME: Ah. Actually, the simplest (and almost certainly most correct)
+        #way comes to mind:
+        #
+        #* Refactor the "betse_cli" fixture into a new "betse_command" fixture
+        #  calling *EITHER* the "betse" CLI or appropriate GUI command
+        #  conditionally based on the name of the calling test. Yup! By far the
+        #  simplest way. If the calling test's name is prefixed by:
+        #  * "test_cli_", then call the CLI.
+        #  * "test_gui_", then call the GUI.
+        #  * Else, raise an exception.
+        #* Refactor this class so support such conditionality.
+        #* Move this module to "betse_test/func/fixture/command.py".
+        #* Refactor the _betse_sim_config fixture to *ALWAYS* require the new
+        #  "betse_command" fixture, ensuring the former has access to the
+        #  current instance of this class.
+        #* Define a new "_current_dirname = None" attribute in this class'
+        #  __init__() method.
+        #* Define a new set_current_dirname() method on this class, setting this
+        #  attribute to the passed non-empty string.
+        #* If that attribute is non-None here, use a "with" statement as
+        #  outlined above.
+        #
+        #Done! Pretty awesome, actually.
+
         # Exit status of the entry point for BETSE's CLI passed these arguments.
         exit_status = main(arg_list)
 

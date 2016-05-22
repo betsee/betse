@@ -16,9 +16,6 @@ configurations, including:
 # ....................{ IMPORTS                            }....................
 from pytest import fixture
 
-# ....................{ IMPORTS ~ fixtures                 }....................
-import betse_test.func.fixture.sim.configbase
-
 # ....................{ FIXTURES                           }....................
 @fixture(scope='session')
 def betse_sim_config_default(_betse_sim_config) -> 'SimTestConfig':

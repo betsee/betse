@@ -38,6 +38,16 @@ def _betse_sim_config(tmpdir_factory, request) -> 'SimTestConfig':
     `/tmp/pytest-0/default/sim_config.yaml`), where `{tmpdir}` is the absolute
     path of this session's root temporary directory (e.g., `/tmp/pytest-0/`).
 
+    This fixture temporarily changes the current directory of the active Python
+    process to this temporary directory. Default simulation configuration paths
+    are relative to the directory containing the simulation configuration file:
+    namely, this temporary directory. Changing directories resolves these paths
+    to this directory. (Failing to do so would incorrectly resolve these paths
+    to the current directory, with predictably disastrous outcomes.) While this
+    fixture could instead globally search-and-replace all relative simulation
+    configuration paths with absolute paths, doing so would be considerably more
+    complex, fragile, and error-prone than simply changing directories.
+
     This temporary directory and hence simulation configuration will be
     accessible for the duration of this test session. Tests and fixtures may
     reuse this configuration, but should do so _only_ in an orderly and

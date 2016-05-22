@@ -78,7 +78,7 @@ def get_metadata() -> OrderedDict:
     # Imports deferred to their point of use, as documented above.
     from betse.lib import setuptool
     from betse.util.py import modules, pys
-    from betse.util.type import containers
+    from betse.util.type import sequences
     import pkg_resources
 
     # Dependency metadata to be collected and returned.
@@ -92,7 +92,7 @@ def get_metadata() -> OrderedDict:
     # if True:
         # List of the setuptools-specific project names of all BETSE
         # dependencies, lexicographically sorted for readability.
-        project_names = containers.sort_as_lexicographic_ascending(
+        project_names = sequences.sort_lexicographic_ascending(
             setuptool.SETUPTOOLS_TO_MODULE_NAME.keys())
 
         # For each such name...
@@ -115,7 +115,7 @@ def get_metadata() -> OrderedDict:
         # List of all BETSE dependencies as setuptools-specific requirements,
         # lexicographically sorted for readability.
         requirements = pkg_resources.parse_requirements(
-            containers.sort_as_lexicographic_ascending(
+            sequences.sort_lexicographic_ascending(
                 metadata.DEPENDENCIES_RUNTIME))
 
         # For each such dependency...
@@ -139,7 +139,7 @@ def get_metadata() -> OrderedDict:
         # List of the fully-qualified names of the top-level modules and
         # packages specific to all BETSE dependencies, lexicographically sorted
         # for readability.
-        # module_names = containers.sort_as_lexicographic_ascending(
+        # module_names = containers.sort_lexicographic_ascending(
         #     metadata.DEPENDENCY_TO_MODULE_NAME.values()
 
         # If the current dependency is setuptools *AND* the active Python

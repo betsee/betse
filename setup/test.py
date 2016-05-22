@@ -8,6 +8,7 @@ BETSE-specific `test` subcommand for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.type import sequences
 from setup import util
 from setuptools import Command
 
@@ -50,17 +51,28 @@ class test(Command):
     '''
 
     user_options = [
-        ('match-name=', 'k',
-         'Only run tests which match the given substring expression. '
-         'An expression is a python evaluatable expression '
-         'where all names are substring-matched against '
-         'test names and their parent classes. '
-         'Example: -k "test_method or test other" matches '
-         'all test functions and classes whose names contain '
-         'either "test_method" or "test_other". '
-         'Keywords are also matched to classes and functions containing '
-         'extra names in their "extra_keyword_matches" set as well as to '
-         'functions which have names assigned directly to them.'),
+        (
+            'no-capture', 's',
+            'Prevent py.test from silently capturing any '
+            'standard error, standard output, or logging messages '
+            'emitted by tests. '
+            '(By default, py.test silently captures all three.) '
+            'All three will be written in real-time "as is" to their '
+            'respective file handles (e.g., current terminal, logfile).'
+        ),
+        (
+            'match-name=', 'k',
+            'Only run tests which match the given substring expression. '
+            'An expression is a python evaluatable expression '
+            'where all names are substring-matched against '
+            'test names and their parent classes. '
+            'Example: -k "test_method or test other" matches '
+            'all test functions and classes whose names contain '
+            'either "test_method" or "test_other". '
+            'Keywords are also matched to classes and functions containing '
+            'extra names in their "extra_keyword_matches" set as well as to '
+            'functions which have names assigned directly to them.'
+        ),
     ]
     '''
     List of 3-tuples specifying command-line options accepted by this command.
@@ -92,6 +104,7 @@ class test(Command):
         # Option-specific public attributes. For each option declared by the
         # "user_options" list above, a public attribute of the same name as this
         # option's long form *MUST* be initialized here to its default value.
+        self.no_capture = None
         self.match_name = None
 
         # setuptools-specific public attributes.
@@ -115,7 +128,12 @@ class test(Command):
         # List of all shell words to be passed as arguments to py.test.
         pytest_args = []
 
-        # Pass options passed to this subcommand to this py.test command.
+        # Pass options passed to this subcommand to this py.test command,
+        # converting long option names specific to this subcommand (e.g.,
+        # "--no-capture") to short option names recognized by py.test (e.g.,
+        # "-s"). Sadly, py.test typically recognizes only the latter.
+        if self.no_capture is not None:
+            pytest_args.append('-s')
         if self.match_name is not None:
             pytest_args.extend(['-k', util.shell_quote(self.match_name)])
 

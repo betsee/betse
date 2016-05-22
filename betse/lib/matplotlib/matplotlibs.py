@@ -90,7 +90,7 @@ from betse.util.io.log import logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.py import modules, pys
-from betse.util.type import containers, strs, types
+from betse.util.type import sequences, strs, types
 from collections import OrderedDict
 from matplotlib import cm as colormaps
 from matplotlib import rcParams
@@ -553,7 +553,7 @@ class MatplotlibConfig(object):
                 # * Sorting such names in ascending lexicographic order. While
                 #   *NOT* strictly necessary, of course, such sorting improves
                 #   output (e.g., from the "info" subcommand).
-                self._backend_names = containers.sort_as_lexicographic_ascending([
+                self._backend_names = sequences.sort_lexicographic_ascending([
                     paths.get_pathname_sans_filetype(
                         strs.remove_prefix_if_found(
                             backend_basename, BACKEND_BASENAME_PREFIX))

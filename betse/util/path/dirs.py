@@ -13,12 +13,11 @@ builtin.
 # ....................{ IMPORTS                            }....................
 import os
 import shutil
-from os import path
-
 from betse.exceptions import BetseExceptionDir
 from betse.util.io.log import logs
 from betse.util.type import types
-
+from contextlib import contextmanager
+from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_dir(*dirnames) -> None:
@@ -44,6 +43,7 @@ def die_if_dir(*dirnames) -> None:
     '''
     Raise an exception if any of the passed directories exist.
     '''
+
     for dirname in dirnames:
         if is_dir(dirname):
             raise BetseExceptionDir(
@@ -52,22 +52,93 @@ def die_if_dir(*dirnames) -> None:
 # ....................{ TESTERS                            }....................
 def is_dir(dirname: str) -> bool:
     '''
-    `True` if the passed directory exists.
+    `True` only if the passed directory exists.
     '''
-    assert types.is_str_nonempty(dirname),\
-        types.assert_not_str_nonempty(dirname, 'Dirname')
+    assert types.is_str_nonempty(dirname), (
+        types.assert_not_str_nonempty(dirname, 'Dirname'))
+
     return path.isdir(dirname)
 
 # ....................{ GETTERS                            }....................
 def get_current_dirname() -> str:
     '''
     Get the **current working dirname** (i.e., absolute path of the current
-    working directory (CWD)).
+    working directory (CWD)) of the active Python process.
 
     Unless subsequently changed, this is the absolute path of the directory from
-    which `betse` was first run.
+    which BETSE was initially run.
     '''
+
     return os.getcwd()
+
+# ....................{ CHANGERS                           }....................
+@contextmanager
+def change_current(dirname: str) -> contextmanager:
+    '''
+    Context manager changing the **current working directory** (CWD) of the
+    active Python process to the passed directory for the duration of this
+    context.
+
+    This context manager guaranteeably reverts the CWD to the prior CWD even
+    when fatal exceptions are raised (e.g., due to this directory not existing).
+
+    Parameters
+    -----------
+    dirname : str
+        Relative or absolute path of the directory to change to. For
+        convenience, this path is canonicalized as needed. See
+        `betse.util.path.paths.canonicalize()`.
+
+    Returns
+    -----------
+    contextmanager
+        Context manager changing the CWD as described above.
+
+    Yields
+    -----------
+    None
+        This context manager yields no value. Hence, the caller's `with`
+        statement should _not_ be suffixed by an `as` clause.
+
+    See Also
+    -----------
+    https://stackoverflow.com/a/24176022/2809027
+        cdunn2001's stackoverflow answer, from which this function's
+        implementation is heavily inspired. Thanks, cdunn2001!
+
+    Examples
+    -----------
+    >>> from betse.util.paths import dirs
+    >>> print('CWD: ' + dirs.get_current_dirname())
+    CWD: /home/azrael
+    >>> with dirs.change_current('/home/uriel/urial/nuriel/uryan/jeremiel')
+    ...     print('CWD: ' + dirs.get_current_dirname())
+    CWD: /home/uriel/urial/nuriel/uryan/jeremiel
+    ...     raise ValueError(
+    ...         'But unknown, abstracted, brooding secret the dark power hid')
+    >>> print('CWD: ' + dirs.get_current_dirname())
+    CWD: /home/azrael
+    '''
+    assert types.is_str_nonempty(dirname), (
+        types.assert_not_str_nonempty(dirname, 'Dirname'))
+
+    # Avoid circular import dependencies.
+    from betse.util.path import paths
+
+    # Absolute path of the current CWD.
+    dirname_prior = os.getcwd()
+
+    # Temporarily change to the passed directory. Since Python performs this
+    # change only if this call raises no exceptions, this call need *NOT* be
+    # embedded in the "try" block below.
+    os.chdir(paths.canonicalize(dirname))
+
+    # Yield control to the body of the caller's "with" block.
+    try:
+        yield
+    # Revert to the prior CWD even if that block raised an exception.
+    finally:
+        os.chdir(dirname_prior)
 
 # ....................{ LISTERS                            }....................
 def list_basenames(dirname: str) -> list:
@@ -75,6 +146,7 @@ def list_basenames(dirname: str) -> list:
     Get a list of the basenames of all files and subdirectories in the passed
     directory.
     '''
+
     die_unless_dir(dirname)
     return os.listdir(dirname)
 

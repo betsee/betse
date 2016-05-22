@@ -6,17 +6,12 @@ import copy
 import os
 import os.path
 import time
-from random import shuffle
-
 import matplotlib.pyplot as plt
 import numpy as np
+from random import shuffle
 from scipy import interpolate as interp
-from scipy.interpolate import SmoothBivariateSpline as vor_interp
 from scipy.ndimage.filters import gaussian_filter
-
-from betse.exceptions import BetseExceptionSimulation
 from betse.util.io.log import logs
-
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
@@ -24,10 +19,10 @@ from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science import sim_toolbox as stb
 from betse.science.tissue.channels_o import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
-
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.flow import getFlow
-from betse.science.physics.deform import getDeformation, timeDeform, implement_deform_timestep
+from betse.science.physics.deform import (
+    getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 
@@ -100,6 +95,10 @@ class Simulator(object):
 
     def __init__(self, p: 'Parameters'):
 
+        #FIXME: Define all other instance attributes as well.
+        # For safety, defined subsequently accessed instance attributes.
+        self._anim_cells_while_solving = None
+
         #FIXME: Defer until later. To quote the "simrunner" module, which
         #explicitly calls this public method:
         #   "Reinitialize save and load directories in case params defines new
@@ -108,7 +107,7 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
-    def fileInit(self,p):
+    def fileInit(self, p):
         '''
         Initializes the pathnames of top-level files and directories comprising
         the BETSE cache for subsequent initialization and simulation runs.
@@ -2464,7 +2463,7 @@ class Simulator(object):
         ))
 
         # If displaying and/or saving an animation during solving, do so.
-        if p.plot_while_solving is True:
+        if p.plot_while_solving:
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 sim=self, cells=cells, p=p,
                 type='Vmem',
@@ -2475,6 +2474,9 @@ class Simulator(object):
                 color_min=p.Vmem_min_clr,
                 color_max=p.Vmem_max_clr,
             )
+        # Else, nullify the object encapsulating this animation for safety.
+        else:
+            self._anim_cells_while_solving = None
 
         return tt, tsamples
 
@@ -2486,7 +2488,7 @@ class Simulator(object):
 
         # Update this animation for the "last frame" if desired, corresponding
         # to the results of the most recently solved time step.
-        if p.plot_while_solving is True:
+        if p.plot_while_solving:
             self._anim_cells_while_solving.plot_frame(frame_number=-1)
 
     def _deplot_loop(self) -> None:
@@ -2494,8 +2496,8 @@ class Simulator(object):
         Explicitly close the previously displayed and/or saved animation if
         any _or_ noop otherwise.
 
-        To conserve memory, this method nullifies and hence garbage
-        collects both this animation and this animation's associate figure.
+        To conserve memory, this method nullifies and hence garbage collects
+        both this animation and this animation's associated figure.
         '''
 
         if self._anim_cells_while_solving is not None:

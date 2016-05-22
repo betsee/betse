@@ -16,11 +16,9 @@ import errno
 import os
 import shutil
 from os import path
-
 from betse.exceptions import BetseExceptionPath
 from betse.util.io.log import logs
 from betse.util.type import types
-
 
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:
@@ -456,11 +454,11 @@ def canonicalize(pathname: str) -> str:
     '''
     Get the **canonical form** (i.e., unique absolute path) of the passed path.
 
-    Specifically (in order):
+    Specifically, this function (in order):
 
-    . Perform **tilde expansion,** replacing a `~` character prefixing such path
-      by the absolute path of the current user's home directory.
-    . Perform **path normalization,** thus (in no particular order):
+    . Performs **tilde expansion,** replacing a `~` character prefixing this
+      path by the absolute path of the current user's home directory.
+    . Performs **path normalization,** thus (in no particular order):
       * Collapsing redundant separators (e.g., converting `//` to `/`).
       * Converting explicit relative to absolute path components (e.g.,
         converting `../` to the name of the parent directory of that component).
@@ -468,8 +466,8 @@ def canonicalize(pathname: str) -> str:
         converting `sim_config.yaml` to `/tmp/sim_config.yaml` when the current
         working directory is `/tmp`).
     '''
-    assert types.is_str_nonempty(pathname),\
-        types.assert_not_str_nonempty(pathname, 'Pathname')
+    assert types.is_str_nonempty(pathname), (
+        types.assert_not_str_nonempty(pathname, 'Pathname'))
     return path.abspath(path.expanduser(pathname))
 
 # ....................{ MOVERS                             }....................
