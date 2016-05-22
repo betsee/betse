@@ -20,7 +20,17 @@ from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
-from scipy.ndimage.filters import gaussian_filter
+
+# FIXME! There are two (somewhat) minor issues with the cell grid. The first, is that sometimes the grid
+# is built with a few neighbouring membranes that are not the same length (I have no idea how this
+# happens for a Voronoi diagram, but anyway...it is most likely that any charge/voltage high spots
+# that are developing (especially in larger grids) are the result of these anomolous grid elements.
+# To fix this, we need to define a hexagonal set of seed points and apply only a very small perturbation
+# to create some irregularity. There also needs to be a check function that compares each opposing membrane
+# set and ensures they are the same length. The second issue is that as the grid is irregular, the connecting
+# points between two cell centres are not necessarily the same as the membrane normal vectors. Therefore, the
+# graph Laplacian (and its inverse) need to have these in place as a correction factor (this is mentioned in the
+# graph Laplacian comment.
 
 
 class Cells(object):
@@ -1134,6 +1144,9 @@ class Cells(object):
         self.lapGJ_P_inv       Solver for Poisson equation with Neumann (zero gradient) boundary
 
         '''
+        # FIXME the connectors between cell centres are not always normal to the membrane segments for
+        # the often highly irregular grid of BETSE. Therefore, need to multiply through by the membrane
+        # normal unit vectors, as defined in the supplement
 
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
