@@ -1229,11 +1229,6 @@ class Cells(object):
         logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
 
         data_length = len(self.cell_i) + len(self.ecm_mids)
-
-        true_ecm_vol = p.cell_space*self.mem_sa.mean()
-
-        clust_bound_screen_factor = p.env_screening*(self.cell_vol.mean()/true_ecm_vol)
-
         # define ranges within the total data length where we can
         # work with cell centres or ecm mids specifically:
         self.cell_range_a = 0
@@ -1255,7 +1250,7 @@ class Cells(object):
             ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
 
             # set the diagonal element for cells:
-            M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening*self.cell_vol.mean() # plus self-capacitance
+            M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
             # set the off-diagonal elements for cells:
             M_max_cap[cell_i,ecm_i_set] = -p.cm
 
@@ -1276,12 +1271,12 @@ class Cells(object):
 
             if cell_j == cell_k:  # then we're on a boundary
 
-                M_max_cap[ecm_i,ecm_i] = cm + clust_bound_screen_factor*p.electrolyte_screening*true_ecm_vol # plus small self capacitance
+                M_max_cap[ecm_i,ecm_i] = cm + p.electrolyte_screening # plus self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm  + p.electrolyte_screening*true_ecm_vol # plus small self capacitance
+                M_max_cap[ecm_i,ecm_i] = 2*cm  + p.electrolyte_screening # plus self capacitance
                 # M_max_cap[ecm_i, ecm_i] = 2 * cm
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
@@ -1296,7 +1291,7 @@ class Cells(object):
         # M_max_cap = gaussian_filter(M_max_cap, p.smooth_level)
 
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
-        self.M_max_cap = M_max_cap  # FIXME we can comment this out after paper resubmission (DPO)
+        # self.M_max_cap = M_max_cap
 
     def redo_gj(self,dyna,p,savecells =True):
 

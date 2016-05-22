@@ -872,7 +872,6 @@ class Parameters(object):
         self.env_delay_const = float(iu['environmental delay factor'])
 
         self.electrolyte_screening = float(iu['electrolyte screening factor'])
-        self.env_screening = float(iu['environmental screening factor'])
 
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]

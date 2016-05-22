@@ -1087,7 +1087,7 @@ internal parameters:
 
   environmental delay factor: 1.0e-2    # level to smooth environmental transport (needed to use larger time-steps) 0.1
 
-  electrolyte screening factor: 1.5e15 # 2e14 to 2e15 electrolyte screening contributes to self-capacitances [F/m5]
+  electrolyte screening factor: 0.86 # ~0.86 to 1.5 electrolyte double layer screening & self-capacitances [F/m5]
 
   environmental screening factor: 1.0 # amount by which electrolyte screens cluster boundary (ratio to cell vol)
 

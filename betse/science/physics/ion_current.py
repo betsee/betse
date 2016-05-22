@@ -122,7 +122,9 @@ def get_current(sim, cells, p):
             cells.delta, cells.delta)
 
         # add the rate of charge change to the divergence:
-        div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)  + d_rho_cells_grid.reshape(cells.X.shape)
+        # FIXME: add on cell charge change or not?
+        # div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)  + d_rho_cells_grid.reshape(cells.X.shape)
+        div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)
 
         # Find the value of the correcting potential field Phi:
         Phi = np.dot(cells.lapENV_P_inv, div_J_env_o.ravel())

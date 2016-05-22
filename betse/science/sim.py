@@ -1422,6 +1422,10 @@ class Simulator(object):
             sig_env = (self.rho_env * cells.ecm_vol) / (cells.mean_mems_per_envSquare * cells.mem_sa.mean())
 
 
+            # FIXME something here isn't right. I think we need to do the capacitance matrix in terms of env grid
+            # points...this will save on the extra interpolation, make the cap matrix smaller, and hopefully get the
+            # value right?
+
             # interpolate charge from environmental grid to the ecm_mids:
             Qecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
                                       sig_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
