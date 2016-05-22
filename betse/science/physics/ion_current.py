@@ -14,6 +14,7 @@ from scipy.ndimage.filters import gaussian_filter
 from betse.science import finitediff as fd
 
 # FIXME: we can get rid of the calculation for gj current -- don't need it -- current is continuous in the whole system!
+# FIXME: use the ion current to apply a polarization field to the cells using the integral of E = (1/sigma)J
 
 def get_current(sim, cells, p):
 

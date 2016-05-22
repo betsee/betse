@@ -866,7 +866,7 @@ class Cells(object):
                 self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
                 self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
 
-    def near_neigh(self,p):
+    def near_neigh(self,p): # FIXME I think a problem with GJ lays here...
 
         """
         Calculate the nearest neighbours for each cell centre in the cluster and return a numpy
