@@ -563,6 +563,7 @@ class Simulator(object):
         self.Dm_cag[:] = 0
 
         self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
+        self.Dm_stretch[:] = 0
 
         self.Dm_er_base = np.copy(Dm_cellsER)
 
