@@ -15,7 +15,7 @@ dictionaries deserialized from disk.
 # import yaml
 # from betse import pathtree
 from betse.science.config import sim_config
-from betse.util.path import files
+from betse.util.path import files, paths
 # from betse.util.type import types
 # from betse.util.io.log import logs
 
@@ -38,6 +38,8 @@ class SimConfigWrapper(object):
     ----------
     _config : dict
         Low-level dictionary deserialized from `_filename`.
+    _dirname : str
+        Absolute or relative path of the directory containing `_filename`.
     _filename : str
         Absolute or relative path of the YAML-formatted simulation configuration
         file deserialized into `_config`.
@@ -57,6 +59,9 @@ class SimConfigWrapper(object):
 
         # Classify the passed parameters.
         self._filename = filename
+
+        # Absolute or relative path of the directory containing this file.
+        self._dirname = paths.get_dirname(filename)
 
         # Deserialize this YAML file into a dictionary.
         self._config = sim_config.read(filename)
@@ -102,11 +107,22 @@ class SimConfigWrapper(object):
 
     # ..................{ PROPERTIES                         }..................
     # For safety, these properties lack setters and hence are read-only.
+
+    @property
+    def dirname(self) -> str:
+        '''
+        Absolute or relative path of the directory containing the configuration
+        file wrapped by this encapsulation object.
+        '''
+
+        return self._dirname
+
+
     @property
     def filename(self) -> str:
         '''
-        Absolute or relative path of the YAML-formatted simulation configuration
-        file wrapped by this encapsulation object.
+        Absolute or relative path of the configuration file wrapped by this
+        encapsulation object.
         '''
 
         return self._filename

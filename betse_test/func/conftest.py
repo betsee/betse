@@ -16,7 +16,7 @@ these fixtures without explicit imports.
 # Register private fixtures *BEFORE* public fixtures requiring these private
 # fixtures. For unknown reasons, py.test requires this import in this "conftest"
 # module rather than in the modules defining these public fixtures.
-from betse_test.func.fixture.sim.configbase import _betse_sim_config
+from betse_test.func.fixture.sim.configbase import _betse_with_sim_config
 
 # ....................{ IMPORTS ~ fixture : public         }....................
 # Register all public fixtures requiring that private fixture. (Order is

@@ -11,6 +11,8 @@ BETSE initialization fixtures.
 from pytest import fixture
 
 # ....................{ FIXTURES ~ low-level               }....................
+#FIXME: This fixture should no longer be required, suggesting that this entire
+#module should be safely excisable. Consider it, please.
 @fixture(scope='session')
 def betse_init() -> None:
     '''

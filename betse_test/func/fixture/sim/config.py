@@ -18,7 +18,8 @@ from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
 @fixture(scope='session')
-def betse_sim_config_default(_betse_sim_config) -> 'SimTestConfig':
+def betse_sim_config_default(
+    _betse_with_sim_config: "SimTestConfig") -> 'SimTestConfig':
     '''
     Context manager-driven fixture creating a temporary default simulation
     configuration _and_ returning a test-specific object encapsulating this
@@ -30,23 +31,23 @@ def betse_sim_config_default(_betse_sim_config) -> 'SimTestConfig':
 
     Parameters
     ----------
-    _betse_sim_config : SimTestConfig
+    _betse_with_sim_config : SimTestConfig
         Test-specific object encapsulating this simulation configuration file.
 
     Returns
     ----------
     SimTestConfig
-        Passed `_betse_sim_config` parameter unmodified.
+        Passed `_betse_with_sim_config` parameter unmodified.
 
     See Also
     ----------
-    _betse_sim_config()
-        Further details on return type and method of construction.
+    _betse_with_sim_config
+        For further details on return type and method of construction.
     '''
 
     # Write the default configuration to disk with only the requisite
     # modifications performed by this fixture (e.g., disabling interactivity).
-    _betse_sim_config.config.overwrite()
+    _betse_with_sim_config.config.overwrite()
 
     # Return the object encapsulating this default configuration.
-    return _betse_sim_config
+    return _betse_with_sim_config

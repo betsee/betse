@@ -71,9 +71,29 @@ def get_current_dirname() -> str:
 
     return os.getcwd()
 
-# ....................{ CHANGERS                           }....................
+# ....................{ SETTERS                            }....................
+def set_current(dirname: str) -> None:
+    '''
+    Change the **current working directory** (CWD) of the active Python process
+    to the passed directory.
+
+    This function permanently changes the CWD for the remainder of this process.
+    For a robust alternative changing the CWD for a single code block, consider
+    using the `current()` context manager instead.
+
+    Parameters
+    -----------
+    dirname : str
+        Relative or absolute path of the directory to change to.
+    '''
+    assert types.is_str_nonempty(dirname), (
+        types.assert_not_str_nonempty(dirname, 'Dirname'))
+
+    os.chdir(dirname)
+
+# ....................{ CONTEXT MANAGERS                   }....................
 @contextmanager
-def change_current(dirname: str) -> contextmanager:
+def current(dirname: str) -> contextmanager:
     '''
     Context manager changing the **current working directory** (CWD) of the
     active Python process to the passed directory for the duration of this
@@ -85,9 +105,7 @@ def change_current(dirname: str) -> contextmanager:
     Parameters
     -----------
     dirname : str
-        Relative or absolute path of the directory to change to. For
-        convenience, this path is canonicalized as needed. See
-        `betse.util.path.paths.canonicalize()`.
+        Relative or absolute path of the directory to change to.
 
     Returns
     -----------
@@ -111,7 +129,7 @@ def change_current(dirname: str) -> contextmanager:
     >>> from betse.util.paths import dirs
     >>> print('CWD: ' + dirs.get_current_dirname())
     CWD: /home/azrael
-    >>> with dirs.change_current('/home/uriel/urial/nuriel/uryan/jeremiel')
+    >>> with dirs.current('/home/uriel/urial/nuriel/uryan/jeremiel')
     ...     print('CWD: ' + dirs.get_current_dirname())
     CWD: /home/uriel/urial/nuriel/uryan/jeremiel
     ...     raise ValueError(
@@ -122,16 +140,13 @@ def change_current(dirname: str) -> contextmanager:
     assert types.is_str_nonempty(dirname), (
         types.assert_not_str_nonempty(dirname, 'Dirname'))
 
-    # Avoid circular import dependencies.
-    from betse.util.path import paths
-
     # Absolute path of the current CWD.
-    dirname_prior = os.getcwd()
+    dirname_prior = get_current_dirname()
 
     # Temporarily change to the passed directory. Since Python performs this
     # change only if this call raises no exceptions, this call need *NOT* be
     # embedded in the "try" block below.
-    os.chdir(paths.canonicalize(dirname))
+    set_current(dirname)
 
     # Yield control to the body of the caller's "with" block.
     try:
@@ -279,24 +294,7 @@ def copy(dirname_source: str, dirname_target: str) -> None:
 
     # Perform such copy.
     shutil.copytree(
-        src = dirname_source,
-        dst = dirname_target,
-        symlinks = True,
+        src=dirname_source,
+        dst=dirname_target,
+        symlinks=True,
     )
-
-# --------------------( WASTELANDS                         )--------------------
-# def copy_unless_dir(dirname_source: str, dirname_target: str) -> None:
-#     '''
-#     Recursively copy the passed source to target directory unless the latter
-#     already exists, in which case this function reduces to a noop.
-#
-#     See Also
-#     ----------
-#     copy()
-#         For further details.
-#     '''
-#     if not is_dir(dirname_target):
-#         copy(dirname_source, dirname_target)
-
-#FUXME: Replace all existing calls to os.makedirs() by calls to such functions.
-# from betse.util.path import paths

@@ -19,7 +19,8 @@ from betse_test.mark.skip import skip
 #prior test in this chain.
 
 @skip(reason='Currently broken.')
-def test_cli_sim_default(betse_cli, betse_sim_config_default) -> None:
+def test_cli_sim_default(
+    betse_cli, betse_sim_config_default) -> None:
     '''
     Test the simulation of the default simulation configuration.
     '''

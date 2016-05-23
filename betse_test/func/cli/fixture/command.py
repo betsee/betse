@@ -55,14 +55,22 @@ copies) into the current Python environment or not.
 #difficult (if not infeasible) to do manually.
 
 # ....................{ IMPORTS                            }....................
+from betse_test.util import requests
+from betse_test.util.exceptions import BetseTestFixtureException
 from pytest import fixture
 
 # ....................{ CLASSES                            }....................
 class CLITestRunner(object):
     '''
-    CLI-specific test runner, efficiently executing the external command for the
-    BETSE CLI (i.e., `betse`) in the active Python interpreter.
+    BETSE interface test runner, efficiently testing the external command for
+    either the official BETSE CLI (e.g., `betse`) in the active Python
+    interpreter.
 
+    Functional test fixtures typically return instances of this class to other
+    functional test fixtures and tests testing BETSE's CLI.
+
+    Command Execution
+    ----------
     For both efficiency and reliably, this runner does _not_ actually execute
     this command. Doing so would introduce installation complications and
     portability concerns (e.g., conflicting versions of the `betse` command in
@@ -71,13 +79,31 @@ class CLITestRunner(object):
     * Imports the `betse.cli.__main__` module implementing the BETSE CLI.
     * Passes this module's `run()` method the passed arguments.
 
-    CLI-specific fixtures typically return instances of this class as a
-    means of communicating this runner to other fixtures and tests.
+    Attributes
+    ----------
+    _request : _pytest.python.FixtureRequest
+        Builtin fixture parameter describing the parent fixture or test of
+        this fixture (and similar contextual metadata).
     '''
+
+
+    def __init__(self, request: '_pytest.python.FixtureRequest') -> None:
+        '''
+        Initialize this test runner with the passed `request` fixture object.
+
+        Parameters
+        ----------
+        request : _pytest.python.FixtureRequest
+            Builtin fixture parameter describing the parent fixture or test of
+            this fixture (and similar contextual metadata).
+        '''
+
+        self._request = request
+
 
     def __call__(self, *args) -> None:
         '''
-        Call the entry point for BETSE's CLI with the passed positional
+        Call the entry point for this BETSE interface with the passed positional
         arguments.
 
         This special method is a convenience permitting this fixture to be
@@ -92,13 +118,13 @@ class CLITestRunner(object):
         return self.run(*args)
 
 
-    @staticmethod
-    def run(*args) -> None:
+    def run(self, *args) -> None:
         '''
-        Call the entry point for BETSE's CLI with the passed arguments.
+        Call the entry point for this BETSE interface with the passed positional
+        arguments.
 
         To improve debuggability for failing tests, this function
-        unconditionally passes these options to this call as well:
+        unconditionally passes these command-line options to this interface:
 
         * `--verbose`, logging low-level debugging messages to stdout, which
           `py.test` captures for all tests and displays for all failing tests.
@@ -119,7 +145,7 @@ class CLITestRunner(object):
         See Also
         ----------
         `betse --help`
-            Further details on these arguments.
+            Further details on such arguments.
         '''
 
         # Defer heavyweight imports to their point of use.
@@ -186,6 +212,35 @@ class CLITestRunner(object):
         #  outlined above.
         #
         #Done! Pretty awesome, actually.
+        #FIXME: O.K.; the above conception would work, but has a few critical
+        #design issues. The most significant is that:
+        #
+        #* It doesn't generalize to multiple transformations. How would we add
+        #  support for additional conditional requirements on behalf of other
+        #  optional fixtures required by tests?
+        #* The "with" statement logic should, logically speaking, reside in the
+        #  class that is actually concerned with that logic: namely,
+        #  "SimTestConfig".
+        #
+        #Happily, we can hit both stones with one bird as follows:
+        #
+        #* Search "request.fixturenames" for all fixtures with names prefixed by
+        #  "betse_". Since this repeats logic in "sim/configbase.py", generalize
+        #  this into a new function in "betse_test.util.requests".
+        #* Within a "contextlib.ExitStack" context manager:
+        #  * For each matched fixture name (ignoring the name of the "betse_cli"
+        #    fixture, obviously):
+        #    * Obtain each such fixture's object by calling
+        #      request.getfuncargvalue() with that fixture's name. Again,
+        #      generalize this logic into a new function.
+        #    * If that fixture object defines a get_command_context() method:
+        #      * Call that method and pass that method's return value to
+        #        exit_stack.enter_context().
+        #  * Call main() as below.
+        #
+        #Surprisingly, this is actually *EASIER* than the approach outlined
+        #above. No new properties are required or coordination between multiple
+        #fixtures. Indeed, the new approach outlined here is far more general.
 
         # Exit status of the entry point for BETSE's CLI passed these arguments.
         exit_status = main(arg_list)
@@ -196,18 +251,24 @@ class CLITestRunner(object):
             'given argument list {}.'.format(exit_status, arg_list))
 
 # ....................{ FIXTURES                           }....................
-@fixture(scope='session')
-def betse_cli(betse_init) -> CLITestRunner:
+# To force this fixture to return a new object for all parent fixtures and
+# tests, this fixture is declared with default scope (i.e., test).
+@fixture
+def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
     '''
-    Fixture returning a singleton instance of the `CLITestRunner` class.
-
-    For efficiency, this instance is shared by all invocations of this fixture
-    for the current test session.
+    Fixture returning an instance of the `CLITestRunner` class, suitable for
+    running the BETSE CLI command required by the current fixture or test.
 
     Parameters
     ----------
-    betse_init : None
-        BETSE-specific fixture initializing BETSE.
+    request : _pytest.python.FixtureRequest
+        Builtin fixture parameter describing the parent fixture or test of this
+        fixture (and similar contextual metadata).
+
+    Returns
+    ----------
+    CLITestRunner
+        Object running the BETSE CLI command.
     '''
 
-    return CLITestRunner()
+    return CLITestRunner(request=request)

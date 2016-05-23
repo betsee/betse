@@ -15,12 +15,35 @@ These fixtures are _not_ intended to be directly required by tests.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse_test.util import requests
+from betse_test.util.exceptions import BetseTestFixtureException
 from pytest import fixture
-from betse_test.exceptions import BetseTestFixtureException
 
 # ....................{ FIXTURES                           }....................
-@fixture(scope='session')
-def _betse_sim_config(tmpdir_factory, request) -> 'SimTestConfig':
+#FIXME: Conditionally delete all temporary directories if and only if all
+#tests requiring those directories succeeded. Since we have idea how to safely
+#implement this, at the moment, temporary directories are *NOT* currently
+#automatically deleted. When the are, add the following documentation to the
+#fixture docstring below:
+#
+#    "This temporary directory will be recursively deleted on completion of this
+#     test session _without_ requiring manual intervention (e.g., via
+#     finalizers) from any other fixtures or tests."
+#
+#The simplest means of implementing this would probably be to redeclare the
+#"_betse_with_sim_config" fixture using the @pytest.yield_fixture decorator,
+#which is bar-none the simplest means of implementing this sort of "teardown"
+#logic safely and efficiently. See:
+#
+#    http://pytest.org/latest/yieldfixture.html
+
+# To force this fixture to return a new object for all parent fixtures, this
+# fixture is declared with default scope (i.e., test).
+@fixture
+def _betse_with_sim_config(
+    request: '_pytest.python.FixtureRequest',
+    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
+) -> 'SimTestConfig':
     '''
     Context manager-driven fixture creating a temporary simulation configuration
     specific to the parent fixture _and_ returning a test-specific object
@@ -53,18 +76,14 @@ def _betse_sim_config(tmpdir_factory, request) -> 'SimTestConfig':
     reuse this configuration, but should do so _only_ in an orderly and
     coordinated manner preserving deterministic testing.
 
-    This temporary directory will be recursively deleted on completion of this
-    test session _without_ requiring manual intervention (e.g., via finalizers)
-    from any other fixtures or tests.
-
     Parameters
     ----------
-    tmpdir_factory : ???
-        Builtin session-scoped fixture whose `mktemp()` method returns a
-        `py.path.local` instance encapsulating a new temporary directory.
-    request : FixtureRequest
+    request : _pytest.python.FixtureRequest
         Builtin fixture parameter describing the parent fixture or test of this
         fixture (and similar contextual metadata).
+    tmpdir_factory : _pytest.tmpdir.tmpdir_factory
+        Builtin session-scoped fixture whose `mktemp()` method returns a
+        `py.path.local` instance encapsulating a new temporary directory.
 
     Returns
     ----------
@@ -84,10 +103,16 @@ def _betse_sim_config(tmpdir_factory, request) -> 'SimTestConfig':
     from betse_test.func.fixture.sim.configapi import SimTestConfig
 
     # Names of all fixtures required by the current test whose names are
-    # prefixed by "betse_sim_config_". (See below for comments.)
+    # prefixed by "betse_sim_config_". Since this is a session-scope fixture
+    # applicable to multiple tests, inspecting the "requests" object specific to
+    # a single test is usually unsafe. In this case, however, the following
+    # logic only finds the parent fixture commonly required by all tests
+    # requiring that fixture including the first such test, and hence is safe.
+    #
+    # See below for additional discussion.
     sim_config_fixture_names = [
         fixture_name
-        for fixture_name in request.fixturenames
+        for fixture_name in requests.get_test_fixture_names(request)
          if fixture_name.startswith('betse_sim_config_')
     ]
 

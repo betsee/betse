@@ -10,6 +10,7 @@ fixtures and tests requiring a simulation configuration.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.config.wrapper import SimConfigWrapper
+from betse.util.path import dirs
 from betse.util.type import types
 
 # ....................{ CLASSES                            }....................
@@ -41,7 +42,8 @@ class SimTestConfig(object):
         Official `py.path` class documentation.
     '''
 
-    def __init__(self, config_filepath : 'py.path.local') -> None:
+
+    def __init__(self, config_filepath: 'py.path.local') -> None:
         '''
         Initialize this simulation configuration context.
 
@@ -73,3 +75,13 @@ class SimTestConfig(object):
         # interactive input *OR* displaying interactive output for all fixtures
         # and tests.
         self.config.disable_interaction()
+
+
+    def get_command_context(self) -> 'contextlib.contextmanager':
+        '''
+        Context manager changing the current working directory (CWD) of the
+        current test to the directory containing this configuration file for the
+        duration of this context.
+        '''
+
+        return dirs.current(self.config.dirname)
