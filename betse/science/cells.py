@@ -156,7 +156,7 @@ class Cells(object):
 
         self.calc_gj_vects(p)
 
-    def makeSeeds(self, p: 'Parameters') -> None:
+    def makeSeeds(self, p: 'Parameters', seed_type = 'hex') -> None:
         '''
         Creates the irregular scatter lattice of seed points defined on a 2D
         world space, with dimensions supplied by `p.wsx` in [m].
@@ -176,25 +176,93 @@ class Cells(object):
         -----------
         p : Parameters
             Current simulation configuration.
+        seed_type     'hex' produces a hexagonal lattice seed, while 'rect' produces a
+                       rectangular grid. Both are perturbed by the lattice noise option p.nl
         '''
 
-        # first begin with linear vectors which are the "ticks" of the x and y dimensions
-        x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
-        y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
+        if seed_type is 'rect': # prepare a standard rectangular grid of points
 
-        # next define a 2d array of lattice points using the x- and y- vectors
-        x_2d, y_2d = np.meshgrid(x_v, y_v)  # create 2D array of lattice points
+            # first begin with linear vectors which are the "ticks" of the x and y dimensions
+            x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
+            y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
 
-        # now create a matrix of points that will add a +/- deviation to each point centre
-        x_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
-        y_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
+            # next define a 2d array of lattice points using the x- and y- vectors
+            x_2d, y_2d = np.meshgrid(x_v, y_v)  # create 2D array of lattice points
 
-        # add the noise effect to the world point matrices and redefine the results
-        x_2d = x_2d + x_rnd
-        y_2d = y_2d + y_rnd
+            # now create a matrix of points that will add a +/- deviation to each point centre
+            x_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
+            y_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
+
+            # add the noise effect to the world point matrices and redefine the results
+            x_2d = x_2d + x_rnd
+            y_2d = y_2d + y_rnd
+
+            xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
+
+        elif seed_type is 'hex': # prepare a hexagonal grid of points
+
+            # recalculate the number of lattice sites * FIXME change this in params!
+
+            r = (p.d_cell/2)*np.sqrt(3)
+
+            # blue and red simply refer to the different seed point arrays used to
+            # create the hexagonal lattice.
+
+            a_hex = np.sqrt(3) * r  # distance flat radius (y-axis hex radius)
+            b_hex = 3 * r  # x-spacing between midpoint of blue and red grids
+
+            p.wsy = p.wsx
+
+            blue_y_start = a_hex / 2
+            blue_y_end = p.wsx - a_hex / 2
+            blue_x_start = 0
+            blue_x_end = p.wsy
+
+            blue_space_y = a_hex
+            blue_space_x = b_hex
+
+            blue_x_num = int((blue_x_end - blue_x_start) / blue_space_x)
+            blue_y_num = int((blue_y_end - blue_y_start) / blue_space_y)
+
+            red_y_start = 0
+            red_y_end = p.wsx
+            red_x_start = b_hex / 2
+            red_x_end = p.wsy - b_hex / 2
+
+            red_space_y = a_hex
+            red_space_x = b_hex
+
+            red_x_num = int((red_x_end - red_x_start) / red_space_x)
+            red_y_num = int((red_y_end - red_y_start) / red_space_y)
+
+            # first begin with linear vectors which are the "ticks" of the x and y dimensions
+            x_blue = np.linspace(blue_x_start, blue_x_end, blue_x_num)  # create lattice vector x
+            y_blue = np.linspace(blue_y_start, blue_y_end, blue_y_num)  # create lattice vector y
+
+            # create the staggered points for alternative hex-cell centres:
+            x_red = np.linspace(red_x_start, red_x_end, red_x_num)  # create lattice vector x
+            y_red = np.linspace(red_y_start, red_y_end, red_y_num)  # create lattice vector y
+
+            # next define a 2d array of lattice points using the x- and y- vectors
+            x_2d_blue, y_2d_blue = np.meshgrid(x_blue, y_blue)  # create 2D array of lattice points
+            x_2d_red, y_2d_red = np.meshgrid(x_red, y_red)  # create 2D array of lattice points
+
+            # interleave the arrays:
+            x_2d = np.hstack((x_2d_blue.ravel(), x_2d_red.ravel()))
+            y_2d = np.hstack((y_2d_blue.ravel(), y_2d_red.ravel()))
+
+            # # now create a matrix of points that will add a +/- deviation to each point centre
+            x_rnd = p.nl * p.d_cell * (np.random.rand(len(x_2d)) - 0.5)  # create a mix of random deltas x dir
+            y_rnd = p.nl * p.d_cell * (np.random.rand(len(y_2d)) - 0.5)  # create a mix of random deltas x dir
+
+            # # add the noise effect to the world point matrices and redefine the results
+            x_2d = x_2d + x_rnd
+            y_2d = y_2d + y_rnd
+
+            xypts = np.vstack((x_2d, y_2d)).T
 
         # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
-        xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
+
 
         # define geometric limits and centre for the cluster of points
         self.xmin = np.min(xypts[:,0])
