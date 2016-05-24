@@ -12,6 +12,11 @@ simulation-specific subcommands (e.g., `betse info`).
 def test_cli_sans_args(betse_cli) -> None:
     '''
     Test the `betse` command given no arguments.
+
+    Parameters
+    ----------
+    betse_cli : CLITestRunner
+        Test-specific object encapsulating the BETSE CLI.
     '''
 
     betse_cli()
@@ -20,6 +25,11 @@ def test_cli_sans_args(betse_cli) -> None:
 def test_cli_info(betse_cli) -> None:
     '''
     Test the `betse info` subcommand.
-    '''
+
+    Parameters
+    ----------
+    betse_cli : CLITestRunner
+        Test-specific object encapsulating the BETSE CLI.
+'''
 
     betse_cli('info')

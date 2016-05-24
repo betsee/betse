@@ -14,9 +14,10 @@ Low-level module facilities.
 # exist at installation time -- which typically means *ONLY* BETSE packages and
 # stock Python packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+import collections, importlib, sys
 from betse.exceptions import BetseExceptionModule
 from betse.util.type import types
-import collections, importlib, sys
 
 # ....................{ GLOBALS ~ dict                     }....................
 SETUPTOOLS_PROJECT_TO_MODULE_NAME = {
@@ -40,6 +41,7 @@ greater than or equal to the size of the `betse.metadata.DEPENDENCIES_RUNTIME`
 list.
 '''
 
+
 MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(
     # Default attribute name to be returned for all unmapped modules.
     lambda: '__version__',
@@ -57,35 +59,34 @@ All modules and packages unmapped by this dictionary default to the canonical
 '''
 
 # ....................{ EXCEPTIONS                         }....................
-#FIXME: Rename to die_unless_module(). The current nomenclature is overly
-#ambiguous, particularly when called from whithin this module.
-def die_unless(
+def die_unless_module(
     module_name: str, exception_message: str = None) -> None:
     '''
     Raise an exception with the passed message (defaulting to a message
     synthesized from the passed module name) if the module with the passed name
-    is *not* importable.
+    is _not_ importable by the active Python interpreter.
 
-    If this module is a **submodule** (i.e., contains a `.` character), all
-    transitive parent packages of this module will be iteratively imported as an
-    unavoidable side effect of this function call.
+    If this module is a **submodule** (i.e., if this module's name contains one
+    or more `.` characters), all transitive parent packages of this module will
+    be iteratively imported as an unavoidable side effect of this function call.
     '''
-    # If such module is missing, raise an exception.
+
+    # If this module is unimportable, raise an exception.
     if not is_module(module_name):
-        # If no exception message was passed, synthesize one from such name.
+        # If no exception message was passed, synthesize one from this name.
         if not exception_message:
             exception_message = 'Module "{}" not found.'.format(module_name)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+        assert types.is_str(exception_message), (
+            types.assert_not_str(exception_message))
 
-        # Raise such exception.
+        # Raise this exception.
         raise BetseExceptionModule(exception_message)
 
 # ....................{ TESTERS                            }....................
 def is_module(module_name: str) -> bool:
     '''
-    `True` if the module with the passed fully-qualified name is importable
-    under the active Python interpreter.
+    `True` only if the module with the passed fully-qualified name is importable
+    by the active Python interpreter.
 
     If this module is a **submodule** (i.e., contains a `.` character), all
     parent modules of this module will be imported as a side effect of this
@@ -221,7 +222,7 @@ def import_module(module_name: str, exception_message: str = None) -> type(sys):
         types.assert_not_str_nonempty(module_name, 'Module name'))
 
     # If this module is unimportable, raise an exception.
-    die_unless(module_name, exception_message)
+    die_unless_module(module_name, exception_message)
 
     # Else, import and return this module.
     return importlib.import_module(module_name)

@@ -25,7 +25,7 @@ package -- which largely has the same effect, albeit less resiliently. While
 '''
 
 # ....................{ IMPORTS                            }....................
-from setup import util
+from betse_setup import util
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
 from setuptools.command.install_scripts import install_scripts
@@ -117,7 +117,7 @@ class symlink(install):
         # does *NOT* support conventional symbolic links. See details above.
         if not util.is_os_posix():
             # Avoid circular import dependencies.
-            from setup import build
+            from betse_setup import build
 
             # Print a non-fatal warning.
             util.output_warning(

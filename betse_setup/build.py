@@ -22,7 +22,7 @@ maintaining backward compatibility with older `setuptools` versions.
 # ....................{ IMPORTS                            }....................
 from distutils.errors import DistutilsClassError
 from pkg_resources import Distribution
-from setup import util
+from betse_setup import util
 from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter, WindowsScriptWriter
 

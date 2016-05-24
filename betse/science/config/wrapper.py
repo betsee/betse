@@ -38,6 +38,8 @@ class SimConfigWrapper(object):
     ----------
     _config : dict
         Low-level dictionary deserialized from `_filename`.
+    _basename : str
+        Basename of `_filename`.
     _dirname : str
         Absolute or relative path of the directory containing `_filename`.
     _filename : str
@@ -62,6 +64,9 @@ class SimConfigWrapper(object):
 
         # Absolute or relative path of the directory containing this file.
         self._dirname = paths.get_dirname(filename)
+
+        # Basename of this file.
+        self._basename = paths.get_basename(filename)
 
         # Deserialize this YAML file into a dictionary.
         self._config = sim_config.read(filename)
@@ -103,10 +108,19 @@ class SimConfigWrapper(object):
         sim_config.write_default(filename)
 
         # Create and return an instance of this class wrapping this file.
-        return cls(filename)
+        return cls(filename=filename)
 
     # ..................{ PROPERTIES                         }..................
     # For safety, these properties lack setters and hence are read-only.
+
+    @property
+    def basename(self) -> str:
+        '''
+        Basename of the configuration file wrapped by this encapsulation object.
+        '''
+
+        return self._basename
+
 
     @property
     def dirname(self) -> str:

@@ -8,8 +8,7 @@ BETSE-specific `test` subcommand for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type import sequences
-from setup import util
+from betse_setup import util
 from setuptools import Command
 
 # ....................{ COMMANDS                           }....................

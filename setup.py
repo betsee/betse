@@ -21,12 +21,33 @@
 #    https://stackoverflow.com/questions/22508491/a-py-file-which-compiled-from-qrc-file-using-pyside-rcc-does-not-work
 
 #FIXME: Specify all setup() metadata keys listed here:
-#https://docs.python.org/2/distutils/setupscript.html#additional-meta-data
+#https://docs.python.org/3/distutils/setupscript.html#additional-meta-data
 
 # ....................{ START                              }....................
+#FIXME: This approach is utter tripe. Mildly clever? Yes. But it's a complete
+#kludge, breaks tooling (e.g., IDE-based error checking), and is quite simply
+#unnecessary. Why? Because the "betse.metadata" submodule:
+#
+#* Only imports "sys", which is guaranteed to always be importable.
+#* Contains a stringent warning against importing anything else.
+#
+#Note that this import is guaranteed to succeed. By Python mandate, "sys.path"
+#is guaranteed to search the directory containing this "setup.py" script for
+#imports *BEFORE* any other directory. To quote:
+#
+#   "As initialized upon program startup, the first item of this list, path[0],
+#    is the directory containing the script that was used to invoke the Python
+#    interpreter."
+#
+#See also: https://stackoverflow.com/a/10097543/2809027
+#FIXME: Relatedly, we *NEED* to stop shoving everything into the
+#"betse_setup.util" submodule and instead simply import from existing
+#"betse.util" subpackages and submodules. This is guaranteed to be safe, as no
+#such subpackage or submodule imports a third-party dependency at the top-level.
+
 # Import all constants defined by "betse.metadata" into the current namespace
 # *BEFORE* subsequent logic possibly depending on the the version of the active
-# Python interpreter, which such importation also validates.
+# Python interpreter, which this importation also validates.
 #
 # This awkward (albeit increasingly commonplace) snippet is required for
 # reliable importation of metadata declared by and hence shared with the main
@@ -35,21 +56,21 @@
 # subtle.
 #
 # Importing packages from the main codebase implicitly imports such codebase's
-# top-level "__init__.py" module. If such module imports from at least one
+# top-level "__init__.py" submodule. If that submodule imports from at least one
 # package *NOT* provided by stock Python installations (e.g., from packages
-# installed as mandatory dependencies by this makefile), such importation will
-# fail for users lacking such packages. While such module currently imports from
-# no such packages, this race condition is sufficiently horrible as to warrant
-# explicit circumvention: namely, by manually reading and evaluating the module
-# defining such constants.
+# installed as mandatory dependencies by this makefile), this importation will
+# fail for users lacking these packages. While that submodule currently imports
+# from no such packages, this race condition is sufficiently horrible as to
+# warrant explicit circumvention: namely, by manually reading and evaluating the
+# module defining these constants.
 #
 # This is horrible, but coding gets like that sometimes. We blame Guido.
 with open('betse/metadata.py') as betse_metadata:
     exec(betse_metadata.read())
 
 # ....................{ IMPORTS                            }....................
-from setup import build, freeze, symlink, test
 import setuptools
+from betse_setup import build, freeze, symlink, test
 
 # ....................{ OPTIONS                            }....................
 # Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,

@@ -109,16 +109,45 @@ file : enum
     Enumeration member redirecting all logging to the current logfile.
 '''
 
+# ....................{ GLOBALS                            }....................
+_config = None
+'''
+Singleton logging configuration for the current Python process.
+
+This configuration provides access to root logger handlers. In particular, this
+simplifies modification of logging levels at runtime (e.g., in response to
+command-line arguments or configuration file settings).
+'''
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Enable the default logging configuration for the current Python process.
+    '''
+
+    # Instantiate this singleton global with the requisite defaults.
+    global _config
+    _config = LogConfig()
+
 # ....................{ GETTERS                            }....................
+def get() -> None:
+    '''
+    Singleton logging configuration for the current Python process.
+    '''
+
+    global _config
+    return _config
+
+
 def get_metadata() -> OrderedDict:
     '''
-    Get an ordered dictionary synopsizing the current logging configuration.
+    Ordered dictionary synopsizing the current logging configuration.
     '''
 
     return OrderedDict((
-        ('type', log_config.log_type.name.lower()),
-        ('file', log_config.filename),
-        ('verbose', str(log_config.is_verbose).lower()),
+        ('type', _config.log_type.name.lower()),
+        ('file', _config.filename),
+        ('verbose', str(_config.is_verbose).lower()),
     ))
 
 # ....................{ CONFIG                             }....................
@@ -557,13 +586,3 @@ class LoggerFormatterStream(Formatter):
     #         text = super().format(log_record),
     #         text_wrapper = self._text_wrapper,
     #     )
-
-# ....................{ SINGLETON                          }....................
-log_config = LogConfig()
-'''
-Singleton logging configuration.
-
-This configuration provides access to root logger handlers. In particular, this
-simplifies modification of logging levels at runtime (e.g., in response to
-command-line arguments or configuration file settings).
-'''

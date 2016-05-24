@@ -11,6 +11,8 @@ BETSE-specific exception hierarchy.
 from abc import ABCMeta
 
 # ....................{ EXCEPTIONS                         }....................
+#FIXME: Define an __init__() method asserting that the passed exception message
+#is non-None, which Python permits by default but which is functionally useless.
 class BetseException(Exception, metaclass=ABCMeta):
     '''
     Abstract base class of all BETSE-specific exceptions.
@@ -105,7 +107,14 @@ class BetseExceptionFile(BetseExceptionPath):
     '''
     pass
 
-# ....................{ EXCEPTIONS ~ type                  }....................
+# ....................{ EXCEPTIONS ~ type : string         }....................
+class BetseExceptionString(BetseException):
+    '''
+    String-specific exception.
+    '''
+    pass
+
+
 class BetseExceptionRegex(BetseException):
     '''
     Regular exception-specific exception.

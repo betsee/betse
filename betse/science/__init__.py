@@ -12,3 +12,10 @@ from betse import ignition
 # if this subpackage has been imported by a non-interactive CLI or GUI process),
 # this call silently reduces to a noop -- which is a good thing.
 ignition.init()
+
+# ....................{ DEIMPORTS                          }....................
+# Manually remove references from this source submodule to all target submodules
+# imported above from different packages, preventing the latter from "shadowing"
+# (i.e., preventing importation of in "from"-style import statements) submodules
+# of the same name from this source subpackage.
+del ignition

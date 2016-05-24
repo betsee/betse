@@ -55,8 +55,10 @@ copies) into the current Python environment or not.
 #difficult (if not infeasible) to do manually.
 
 # ....................{ IMPORTS                            }....................
+from contextlib import ExitStack
+from betse.util.command import exits
+from betse.util.type import types, objects
 from betse_test.util import requests
-from betse_test.util.exceptions import BetseTestFixtureException
 from pytest import fixture
 
 # ....................{ CLASSES                            }....................
@@ -81,24 +83,30 @@ class CLITestRunner(object):
 
     Attributes
     ----------
-    _request : _pytest.python.FixtureRequest
-        Builtin fixture parameter describing the parent fixture or test of
-        this fixture (and similar contextual metadata).
+    contexts : list
+        List of all context managers with which to call the
+        `betse.cli.__main__.run()` method when this object's `run()` method is
+        called.
     '''
 
 
-    def __init__(self, request: '_pytest.python.FixtureRequest') -> None:
+    # corresponding to the context managers returned by the optional
+    # get_command_context() methods defined by the instances of these fixtures.
+    def __init__(self, contexts: list) -> None:
         '''
         Initialize this test runner with the passed `request` fixture object.
 
         Parameters
         ----------
-        request : _pytest.python.FixtureRequest
-            Builtin fixture parameter describing the parent fixture or test of
-            this fixture (and similar contextual metadata).
+        contexts : list
+            List of all context managers under which to subsequently call the
+            `betse.cli.__main__.run()` method when this object's `run()` method
+            is called.
         '''
+        assert types.is_sequence_nonstr(contexts), (
+            types.assert_not_sequence_nonstr(contexts))
 
-        self._request = request
+        self._contexts = contexts
 
 
     def __call__(self, *args) -> None:
@@ -150,7 +158,6 @@ class CLITestRunner(object):
 
         # Defer heavyweight imports to their point of use.
         from betse.cli.__main__ import main
-        from betse.util.command import exits
 
         # List of arguments:
         #
@@ -242,10 +249,20 @@ class CLITestRunner(object):
         #above. No new properties are required or coordination between multiple
         #fixtures. Indeed, the new approach outlined here is far more general.
 
-        # Exit status of the entry point for BETSE's CLI passed these arguments.
-        exit_status = main(arg_list)
+        # Create and enter a context manager of context managers: that is, a
+        # context manager permitting a variable number of other context managers
+        # to be dynamically entered.
+        with ExitStack() as stack:
+            # Enter each context manager passed to this object's __init__()
+            # method, equivalent to specifying each such manager in a "with"
+            # statement in a nested manner.
+            for context in self._contexts:
+                stack.enter_context(context)
 
-        # If this exit status connotes failure, fail the caller test or fixture.
+            # Exit status of BETSE's CLI passed these arguments.
+            exit_status = main(arg_list)
+
+        # If this exit status connotes failure, fail the current test.
         assert exits.is_success(exit_status), (
             'BETSE CLI failed with exit status {} '
             'given argument list {}.'.format(exit_status, arg_list))
@@ -271,4 +288,31 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
         Object running the BETSE CLI command.
     '''
 
-    return CLITestRunner(request=request)
+    # Names of all BETSE-specific fixtures required by the current test,
+    # excluding the current fixture.
+    betse_fixture_names = requests.get_fixture_names_prefixed_by(
+        request=request, fixture_name_prefix='betse_')
+
+    # List of the command-specific context managers provided by these fixtures,
+    # corresponding to the context managers returned by the optional
+    # get_command_context() methods defined by the instances of these fixtures.
+    betse_fixture_command_contexts = []
+
+    # For the name of each such fixture...
+    for betse_fixture_name in betse_fixture_names:
+        # Fixture object returned by this fixture.
+        betse_fixture = requests.get_fixture(
+            request=request, fixture_name=betse_fixture_name)
+
+        # get_command_context() method defined by this fixture object if any.
+        betse_fixture_get_command_context = objects.get_method_or_none(
+            obj=betse_fixture, method_name='get_command_context')
+
+        # If this fixture object defines this method, append the context manager
+        # returned by call this method to this list.
+        if betse_fixture_get_command_context is not None:
+            betse_fixture_command_contexts.append(
+                betse_fixture_get_command_context())
+
+    # Return a new CLI runner specific to the current test.
+    return CLITestRunner(contexts=betse_fixture_command_contexts)

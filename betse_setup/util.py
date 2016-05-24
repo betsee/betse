@@ -7,6 +7,16 @@
 Utility and convenience functions for BETSE-specific `setuptools` subcommands.
 '''
 
+#FIXME: We *NEED* to stop shoving everything into the this submodule and instead
+#simply import from existing "betse.util" subpackages and submodules. This is
+#guaranteed to be safe, as no such subpackage or submodule imports a third-party
+#dependency at the top-level. The only catch, of course, is that we'll need to
+#setup the default logging configuration. Why? Because "betse.util" subpackages
+#and submodules attempt to perform logging. Shouldn't be terribly arduous.
+#
+#The overwhelming majority of this submodule *NOT* specific to setuptools should
+#die as quickly as possible.
+
 # ....................{ IMPORTS                            }....................
 import importlib, os, platform, pkg_resources, shutil, subprocess, sys, time
 from distutils.errors import (
@@ -790,8 +800,8 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
     * `EntryPoint` object, whose attributes specify the module to be imported
       and function to be run by such script.
     '''
-    assert isinstance(distribution, pkg_resources.Distribution),\
-        '"{}" not a setuptools distribution.'.format(distribution)
+    assert isinstance(distribution, pkg_resources.Distribution), (
+        '"{}" not a setuptools distribution.'.format(distribution))
 
     # For each type of script wrapper...
     for script_type in 'console', 'gui':
@@ -803,5 +813,5 @@ def package_distribution_entry_points(distribution: pkg_resources.Distribution):
             # Sanitize this script's basename.
             script_basename = sanitize_command_basename(script_basename)
 
-            # Yield such 3-tuple.
+            # Yield this 3-tuple.
             yield script_basename, script_type, entry_point

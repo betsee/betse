@@ -9,6 +9,7 @@ Low-level string facilities.
 
 # ....................{ IMPORTS                            }....................
 import textwrap
+from betse.exceptions import BetseExceptionString
 from betse.util.type import types
 from textwrap import TextWrapper
 
@@ -22,30 +23,81 @@ functions provided by module `textwrap` implicitly instantiate temporary
 `TextWrapper` instances on each call to such functions.
 '''
 
+# ....................{ EXCEPTIONS                         }....................
+def die_unless_prefix(
+    text: str, prefix: str, exception_message: str = None) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a message
+    synthesized from the passed arguments) if the second passed string does
+    _not_ prefix the first passed string.
+
+    Parameters
+    ----------
+    text : str
+        String to be tested.
+    prefix : str
+        Prefix to test for.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to `None`, in which case an
+        exception message synthesized from the passed arguments is raised.
+    '''
+
+    # If this string is *NOT* prefixed by this prefix, raise an exception.
+    if not is_prefix(text, prefix):
+        # If no exception message was passed, synthesize one from this name.
+        if not exception_message:
+            exception_message = 'Text "{}" not prefixed by "{}".'.format(
+                text, prefix)
+        assert types.is_str(exception_message), (
+            types.assert_not_str(exception_message))
+
+        # Raise this exception.
+        raise BetseExceptionString(exception_message)
+
 # ....................{ TESTERS                            }....................
-def is_str(obj) -> bool:
-    '''
-    True if the passed object is a **string** (i.e., is an instance of the `str`
-    class or a subclass thereof).
-    '''
-    return isinstance(obj, str)
-
-
 def is_prefix(text: str, prefix: str) -> bool:
     '''
-    True if the first passed string is prefixed by the last passed string.
+    `True` only if the second passed string prefixes the first passed string.
+
+    Parameters
+    ----------
+    text : str
+        String to be tested.
+    prefix : str
+        Prefix to test for.
+
+    Returns
+    ----------
+    bool
+        `True` only if `prefix` prefixes `text`.
     '''
-    assert is_str(text), types.assert_not_str(text)
-    assert is_str(prefix), types.assert_not_str(prefix)
+    assert types.is_str(text), types.assert_not_str(text)
+    assert types.is_str_nonempty(prefix), (
+        types.assert_not_str_nonempty(prefix, 'Prefix'))
+
     return text.startswith(prefix)
 
 
 def is_suffix(text: str, suffix: str) -> bool:
     '''
-    True if the first passed string is suffixed by the last passed string.
+    `True` only if the second passed string suffixes the first passed string.
+
+    Parameters
+    ----------
+    text : str
+        String to be tested.
+    suffix : str
+        Prefix to test for.
+
+    Returns
+    ----------
+    bool
+        `True` only if `suffix` suffixes `text`.
     '''
-    assert is_str(text), types.assert_not_str(text)
-    assert is_str(suffix), types.assert_not_str(suffix)
+    assert types.is_str(text), types.assert_not_str(text)
+    assert types.is_str_nonempty(suffix), (
+        types.assert_not_str_nonempty(suffix, 'Suffix'))
+
     return text.endswith(suffix)
 
 # ....................{ JOINERS                            }....................
@@ -76,17 +128,14 @@ def join_on(*texts, delimiter: str) -> str:
     This is a convenience function wrapping the standard
     `"...".join((...))` method, whose syntax is arguably overly obfuscated.
     '''
-    assert is_str(delimiter), types.assert_not_str(delimiter)
+    # To avoid obscure chicken-and-egg exceptions when logging exceptions, this
+    # delimiter must be validated manually rather than calling types.is_str().
+    assert isinstance(delimiter, str), types.assert_not_str(delimiter)
 
-    # If only one object was passed and...
-    if len(texts) == 1:
-        # Avoid circular import dependencies.
-        from betse.util.type import types
-
-        # ...such object is a non-string iterable (e.g, list, tuple), set the
-        # list of passed strings to such object.
-        if types.is_iterable_nonstr(texts[0]):
-            texts = texts[0]
+    # If only one object was passed and such object is a non-string iterable
+    # (e.g, list, tuple), set the list of passed strings to such object.
+    if len(texts) == 1 and types.is_iterable_nonstr(texts[0]):
+        texts = texts[0]
 
     # Join such texts.
     return delimiter.join(texts)
@@ -107,21 +156,82 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
     '''
     return text if is_suffix(text, suffix) else text + suffix
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS ~ prefix                  }....................
+def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
+    '''
+    Get a new string with the passed prefix removed from the passed string if
+    the former prefixes the latter _or_ raise an exception with the passed
+    message (defaulting to a message synthesized from the passed arguments)
+    otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be examined. Since strings are immutable in Python, this
+        string remains unmodified.
+    prefix : str
+        Prefix to remove from this string.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to `None`, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
+    '''
+
+    # If this string is *NOT* prefixed by this prefix, raise this exception.
+    die_unless_prefix(text, prefix, exception_message)
+
+    # Else, return a new string with this prefix removed from this string.
+    return remove_prefix_if_found(text, prefix)
+
+
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
-    Remove the passed prefix from the passed string if found.
+    Get a new string with the passed prefix removed from the passed string if
+    the former prefixes the latter _or_ the passed string as is otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be examined. Since strings are immutable in Python, this
+        string remains unmodified.
+    prefix : str
+        Prefix to remove from this string.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
     '''
+
     return text[len(prefix):] if is_prefix(text, prefix) else text
 
-
+# ....................{ REMOVERS ~ prefix                  }....................
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    Remove the passed suffix from the passed string if found.
+    Get a new string with the passed suffix removed from the passed string if
+    the former suffixes the latter _or_ the passed string as is otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be examined. Since strings are immutable in Python, this
+        string remains unmodified.
+    suffix : str
+        Prefix to remove from this string.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
     '''
-    # There exists a special case *NOT* present in remove_prefix(). If such
+
+    # There exists a special case *NOT* present in remove_prefix(). If this
     # suffix is empty, "string[:-0]" is also incorrectly empty. Avoid returning
-    # the empty string in such case by explicitly testing for emptiness.
+    # the empty string in this case by explicitly testing for emptiness.
     return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
 
 # ....................{ CASERS                             }....................
@@ -134,7 +244,7 @@ def uppercase_first_char(text: str) -> str:
     function _only_ uppercases the first character. All remaining characters
     remain unmodified.
     '''
-    assert is_str(text), types.assert_not_str(text)
+    assert types.is_str(text), types.assert_not_str(text)
     return (
         text[0].upper() + (text[1:] if len(text) > 2 else '')
         if len(text) else '')
@@ -157,7 +267,7 @@ def shell_quote(text: str) -> str:
       under Windows. For this reason, shell quoting is inherently unreliable
       under Windows.
     '''
-    assert is_str(text), types.assert_not_str(text)
+    assert types.is_str(text), types.assert_not_str(text)
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
@@ -211,8 +321,8 @@ def wrap(
     https://docs.python.org/3/library/textwrap.html
         For further details on keyword arguments.
     '''
-    assert is_str(text), types.assert_not_str(text)
-    assert is_str(line_prefix), types.assert_not_str(line_prefix)
+    assert types.is_str(text), types.assert_not_str(text)
+    assert types.is_str(line_prefix), types.assert_not_str(line_prefix)
     assert hasattr(text_wrapper, 'wrap'), (
         'Object "{}" not a text wrapper '
         '(i.e., has no wrap() callable).'.format(text_wrapper))

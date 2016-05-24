@@ -48,7 +48,7 @@ from abc import ABCMeta, abstractmethod
 from distutils.errors import DistutilsExecError
 from os import path
 from pkg_resources import EntryPoint
-from setup import util
+from betse_setup import util
 from setuptools import Command
 import os
 

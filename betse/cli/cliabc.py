@@ -16,8 +16,8 @@ from betse.cli import info
 from betse.util.command import commands
 from betse.util.command.args import HelpFormatterParagraph
 from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
-from betse.util.io.log import logs
-from betse.util.io.log.log_config import LogType, log_config
+from betse.util.io.log import logs, logconfig
+from betse.util.io.log.logconfig import LogType
 from betse.util.type import types
 
 # ....................{ CLASS                              }....................
@@ -255,6 +255,9 @@ class CLIABC(metaclass=ABCMeta):
         '''
         Parse top-level options globally applicable to _all_ subcommands.
         '''
+
+        # Singleton logging configuration for the current Python process.
+        log_config = logconfig.get()
 
         # Configure logging according to the passed options. Note that order of
         # assignment is insignificant here.

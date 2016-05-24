@@ -74,8 +74,8 @@ def get_current_dirname() -> str:
 # ....................{ SETTERS                            }....................
 def set_current(dirname: str) -> None:
     '''
-    Change the **current working directory** (CWD) of the active Python process
-    to the passed directory.
+    Set the **current working directory** (CWD) of the active Python process to
+    the passed directory.
 
     This function permanently changes the CWD for the remainder of this process.
     For a robust alternative changing the CWD for a single code block, consider
@@ -89,13 +89,17 @@ def set_current(dirname: str) -> None:
     assert types.is_str_nonempty(dirname), (
         types.assert_not_str_nonempty(dirname, 'Dirname'))
 
+    # Log this change.
+    logs.log_debug('Changing current working directory to "%s".', dirname)
+
+    # Change to this directory.
     os.chdir(dirname)
 
 # ....................{ CONTEXT MANAGERS                   }....................
 @contextmanager
 def current(dirname: str) -> contextmanager:
     '''
-    Context manager changing the **current working directory** (CWD) of the
+    Context manager setting the **current working directory** (CWD) of the
     active Python process to the passed directory for the duration of this
     context.
 

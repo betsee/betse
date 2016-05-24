@@ -21,13 +21,11 @@
 
 from collections import OrderedDict
 from io import StringIO
-
-import betse.util.command.commands
 from betse import metadata
-from betse.util.io.log import log_config, logs
+from betse.util.command import commands
+from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import pys
-
 
 # ..................{ LOGGERS                                }..................
 def log_header() -> None:
@@ -73,7 +71,7 @@ def output_info() -> None:
     info_type_to_dict = OrderedDict((
         # Application metadata.
         (metadata.NAME.lower(), OrderedDict((
-            ('basename', betse.util.command.commands.get_current_basename()),
+            ('basename', commands.get_current_basename()),
             ('version', metadata.__version__),
             ('authors', metadata.AUTHORS),
             ('home directory', pathtree.HOME_DIRNAME),
@@ -85,7 +83,7 @@ def output_info() -> None:
         ))),
 
         # Logging metadata.
-        ('logging', log_config.get_metadata()),
+        ('logging', logconfig.get_metadata()),
 
         # Dependencies metadata.
         ('dependencies', libs.get_metadata()),

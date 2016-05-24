@@ -155,7 +155,7 @@ def log_exception(exception: Exception) -> None:
 
         # Avoid circular import dependencies.
         from betse.util.io import stderrs
-        from betse.util.io.log.log_config import log_config
+        from betse.util.io.log import logconfig
         from betse.util.py import identifiers
         from betse.util.type import regexes, strs
 
@@ -312,6 +312,9 @@ def log_exception(exception: Exception) -> None:
 
         # String contents of the traceback buffer.
         exc_full = exc_full_buffer.getvalue()
+
+        # Singleton logging configuration for the current Python process.
+        log_config = logconfig.get()
 
         # If logging to a file...
         if log_config.is_logging_file:

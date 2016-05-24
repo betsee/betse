@@ -32,10 +32,6 @@ High-level application initialization common to both the CLI and GUI.
 #    http://deeplearning.net/software/theano/introduction.html
 
 # ....................{ IMPORTS                            }....................
-# Defer heavyweight imports to their point of use.
-from betse import pathtree
-from betse.lib import libs
-from betse.util.py import pys
 
 # ....................{ GLOBALS                            }....................
 _IS_IGNITED = False
@@ -72,11 +68,21 @@ def init() -> None:
     if     _IS_IGNITED:
         return
 
+    # Defer heavyweight imports to their point of use.
+    from betse import pathtree
+    from betse.lib import libs
+    from betse.util.io.log import logconfig
+    from betse.util.py import pys
+
+    # Enable the default logging configuration for the current Python process
+    # *BEFORE* performing any validation, thus logging any exceptions raised by
+    # this validation.
+    logconfig.init()
+
     # Validate core directories and files required at program startup.
     pathtree.init()
 
-    # Validate mandatory dependencies *AFTER* configuring logging, thereby
-    # logging exceptions raised by this validation.
+    # Validate mandatory dependencies.
     libs.init()
 
     # Validate the active Python interpreter *AFTER* validating mandatory
