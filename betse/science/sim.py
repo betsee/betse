@@ -1416,22 +1416,17 @@ class Simulator(object):
             v_env = 0
 
         else:
-            # total charge in cells per unit surface area:
-            Qcells = (self.rho_cells*cells.cell_vol)/cells.cell_sa
+            # total charge in cells:
+            Qcells = (self.rho_cells*cells.cell_vol)
 
-            # get the environmental surface charge
-            sig_env = (self.rho_env * cells.ecm_vol) / (cells.mean_mems_per_envSquare * cells.mem_sa.mean())
-
-
-            # FIXME something here isn't right. I think we need to do the capacitance matrix in terms of env grid
-            # points...this will save on the extra interpolation, make the cap matrix smaller, and hopefully get the
-            # value right?
+            # total charge in environmental, scaled down to consider individual membrane regions:
+            sig_env = (self.rho_env * cells.ecm_vol) /(cells.mean_mems_per_envSquare)
+            # sig_env = (self.rho_env * cells.ecm_vol)
 
             # interpolate charge from environmental grid to the ecm_mids:
             Qecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
                                       sig_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
                                       fill_value = 0)
-
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
@@ -1495,9 +1490,8 @@ class Simulator(object):
         if p.sim_ECM is True:
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
-            # self.rho_cells = cells.integrator(self.rho_cells)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
-
+            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
             self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
 
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)

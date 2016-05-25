@@ -156,7 +156,7 @@ class Cells(object):
 
         self.calc_gj_vects(p)
 
-    def makeSeeds(self, p: 'Parameters', seed_type = 'hex') -> None:
+    def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:  # FIXME make a fib spiral one too!
         '''
         Creates the irregular scatter lattice of seed points defined on a 2D
         world space, with dimensions supplied by `p.wsx` in [m].
@@ -1285,13 +1285,6 @@ class Cells(object):
         then inverted, so that we can use it to solve for voltages
         knowing charges.
 
-        As the capacitance of the membrane far exceeds the self
-        capacitance of cell or ecm space, self capacitances can
-        be safely ignored.
-
-        This version of the Maxwell Capacitance Matrix does not zero voltage at
-        the boundary of the cell cluster -- there are no boundary conditions.
-
         """
 
         logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
@@ -1306,58 +1299,53 @@ class Cells(object):
 
         M_max_cap = np.zeros((data_length, data_length))
 
-        # first do cells -- index of maxwell vector equal to cell index
+        # first do cells -- where index of Maxwell vector is equal to cell index
         for cell_i in range(self.cell_range_a, self.cell_range_b):
 
             mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
 
-            cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
+            #cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
+
+            cm_sum = np.sum(p.cm * self.mem_sa[mem_i_set])  # sum up the net capacitance for cell diagonal term
+            cs_sum = np.sum(p.electrolyte_screening*self.mem_sa[mem_i_set]) # calculate self-capacitance
 
             # get the ecm spaces for each membrane
             # we must add on the cells data length to make these indices of the max cap vector and matrix:
             ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
 
             # set the diagonal element for cells:
-            M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
+            # M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
+            M_max_cap[cell_i,cell_i] = cm_sum + cs_sum # plus self-capacitance
+
             # set the off-diagonal elements for cells:
-            M_max_cap[cell_i,ecm_i_set] = -p.cm
+            # M_max_cap[cell_i,ecm_i_set] = -p.cm
+            M_max_cap[cell_i,ecm_i_set] = -p.cm*self.mem_sa[mem_i_set]
 
         # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
         for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
 
             ecm_i_o = ecm_i - len(self.cell_i)  # get the true ecm index wrt to the cell world
 
-            mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of membranes corresponding to each ecm space
+            mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of mem inds corresponding to each ecm space
 
-            cm = p.cm  # get the capacitance of the individual membrane (per unit surface area)
+            cm = p.cm*self.mem_sa[mem_pair[0]]  # get the capacitance of the individual membrane
+            cs = 2*p.electrolyte_screening*self.mem_sa[mem_pair[0]]  # get the self-capacitance of the ecm space
 
             cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
             cell_k = self.mem_to_cells[mem_pair[1]]
 
-            # get the true volume of the ecm space corresponding with membrane interspace:
-            # vol_ecm_i = true_ecm_vol[mem_pair[0]]
-
             if cell_j == cell_k:  # then we're on a boundary
 
-                M_max_cap[ecm_i,ecm_i] = cm + p.electrolyte_screening # plus self capacitance
+                M_max_cap[ecm_i,ecm_i] = cm + cs # plus self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
 
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm  + p.electrolyte_screening # plus self capacitance
-                # M_max_cap[ecm_i, ecm_i] = 2 * cm
+                M_max_cap[ecm_i,ecm_i] = 2*cm  + cs # plus self capacitance
                 M_max_cap[ecm_i,cell_j] = -cm
                 M_max_cap[ecm_i,cell_k] = -cm
 
-        vcells = (-25e-3)*np.ones(len(self.cell_i))
-        venv = (25e-3)*np.ones(len(self.ecm_mids))
-        v_vect = np.hstack((vcells,venv))
-
-        # initial charge density
-        self.init_Q = np.dot(M_max_cap,v_vect)
-        # gaussian filter at the same level used in sim:
-        # M_max_cap = gaussian_filter(M_max_cap, p.smooth_level)
-
+        # get the inverse of the matrix:
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         # self.M_max_cap = M_max_cap
 
