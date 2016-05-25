@@ -15,11 +15,11 @@ betse.util.type.types.is_sequence
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import types
+from collections.abc import Container, Iterable, Mapping, Sequence
 
 # ....................{ GETTERS                            }....................
 def get_items_satisfying(
-    sequence: "collections.Sequence", item_satisfier: callable) -> (
-    'collections.Sequence'):
+    sequence: Sequence, item_satisfier: callable) -> Sequence:
     '''
     Get a new non-string sequence containing only the proper subset of elements
     from the passed non-string sequence satisfying the passed callable.
@@ -59,11 +59,8 @@ def get_items_satisfying(
         if item_satisfier(item)
     )
 
-
 # ....................{ GETTERS ~ str                      }....................
-def get_items_prefixed_by(
-    sequence: "collections.Sequence", item_prefix: str) -> (
-    'collections.Sequence'):
+def get_items_prefixed_by(sequence: Sequence, item_prefix: str) -> Sequence:
     '''
     Get a new non-string sequence containing only the proper subset of elements
     from the passed non-string sequence that are strings prefixed by the passed
@@ -98,9 +95,7 @@ def get_items_prefixed_by(
     )
 
 # ....................{ OMITTERS                           }....................
-def omit_item(
-    sequence: "collections.Sequence", omit_item: object) -> (
-    'collections.Sequence'):
+def omit_item(sequence: Sequence, omit_item: object) -> Sequence:
     '''
     Get a new non-string sequence containing only the proper subset of elements
     from the first passed non-string sequence that do _not_ equal the passed
@@ -123,14 +118,11 @@ def omit_item(
 
     return omit_items(
         sequence=sequence,
-        omit_items=tuple(omit_item),
+        omit_items=(omit_item,),
     )
 
 
-def omit_items(
-    sequence: "collections.Sequence",
-    omit_items: "collections.Sequence") -> (
-    'collections.Sequence'):
+def omit_items(sequence: Sequence, omit_items: Container) -> Sequence:
     '''
     Get a new non-string sequence containing only the proper subset of elements
     from the first passed non-string sequence that do _not_ equal elements of
@@ -141,8 +133,8 @@ def omit_items(
     sequence : collections.Sequence
         Original sequence to return a proper subset of. For safety, this
         function does _not_ modify this sequence.
-    omit_items : collections.Sequences
-        Sequence containing all elements to be omitted from the returned
+    omit_items : collections.Container
+        Container containing all elements to be omitted from the returned
         sequence.
 
     Returns
@@ -151,20 +143,17 @@ def omit_items(
         Proper subset of the passed sequence. For efficiency, this new sequence
         is only a shallow rather than deep copy of the passed sequence.
     '''
-    assert types.is_sequence_nonstr(omit_items), (
-        types.assert_not_sequence_nonstr(omit_items))
+    assert types.is_container_nonstr(omit_items), (
+        types.assert_not_container_nonstr(omit_items))
 
     # Return a generator-based shallow copy of this sequence.
     return get_items_satisfying(
         sequence=sequence,
-        item_satisfier=lambda item: item in omit_items
+        item_satisfier=lambda item: item not in omit_items,
     )
 
 # ....................{ REPLACERS                          }....................
-def replace_items(
-    sequence: "collections.Sequence",
-    item_replacements: "collections.Mapping") -> (
-    'collections.Sequence'):
+def replace_items(sequence: Sequence, item_replacements: Mapping) -> Sequence:
     '''
     Get a new non-string sequence transformed from the passed non-string
     sequence by replacing all elements of the latter equalling any key of the
@@ -208,8 +197,7 @@ def replace_items(
     )
 
 # ....................{ SORTERS                            }....................
-def sort_lexicographic_ascending(
-    sequence: "collections.Sequence") -> 'collections.Sequence':
+def sort_lexicographic_ascending(sequence: Sequence) -> Sequence:
     '''
     Get a new non-string sequence sorted from the passed non-string sequence in
     **ascending lexicographic order** (i.e., traditional order of dead-tree

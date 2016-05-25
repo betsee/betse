@@ -17,8 +17,37 @@ from betse_test.mark.skip import skip
 #Ideally, we should construct a linear chain of tests, each exercising a
 #simulation phase (e.g., "seed", "init", "sim") depending on the success of the
 #prior test in this chain.
+#FIXME: Right. No. This is clearly a job for parametrization. Ideally, we only
+#want to declare a single test for each simulation configuration which accepts
+#the names of all CLI subcommands to be passed the configuration file. Perhaps
+#we want to replace the "betse_cli" fixture requested below with a new
+#"betse_cli_sim" fixture producing a class inheriting the class produced by the
+#former and adding support for parametrization? Consider it.
+#
+#Indeed, that's the way. However, we don't want tests themselves to specify
+#parameters. Instead, we want the new "betse_cli_sim" fixture to unconditionally
+#parametrize *ITSELF* by the in-order list of all CLI subcommands to be run:
+#e.g.,
+#
+#    (
+#        ('seed'), ('init'), ('sim'),
+#        ('plot', 'seed'), ('plot', 'init'), ('plot', 'sim'),
+#    )
+#
+#Why? A couple obvious reasons:
+#
+#1. We don't want to duplicate that list for every test. By centralizing that
+#   list into a single fixture, changes are dramatically simplified.
+#2. Tests may *THINK* they know which CLI subcommands they need run, but...
+#   really, they don't. Each new configuration really requires everything to be
+#   revalidated from scratch. This approach forces that.
+#3. By parametrizing the "betse_cli_sim" fixture, all tests requesting that
+#   fixture will themselves receive the same parameters -- which means that
+#   users can interactively test exact CLI subcommands for exact configurations
+#   by simply using "./test -k". Great!
+#
+#In short, this is the way forward.
 
-@skip(reason='Currently broken.')
 def test_cli_sim_default(
     betse_cli, betse_sim_config_default) -> None:
     '''

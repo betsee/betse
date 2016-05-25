@@ -170,9 +170,11 @@ def get_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
         # Name of this fixture.
         omit_fixture_name = get_fixture_name(request)
 
+        #FIXME: Refactor to remove this item from this list in-place rather
+        #than recreating this list from scratch.
+
         # Exclude this name from this list.
-        fixture_names = sequences.omit_item(
-            sequence=fixture_names, omit_item=omit_fixture_name)
+        fixture_names = sequences.omit_item(fixture_names, omit_fixture_name)
 
     # Return these fixture names.
     return fixture_names

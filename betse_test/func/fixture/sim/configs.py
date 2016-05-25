@@ -14,7 +14,7 @@ configurations, including:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.func.fixture.sim import _config
+from betse_test.func.fixture.sim import configapi
 from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
@@ -25,6 +25,10 @@ from pytest import fixture
 #* Forced use of the "request" and "tmpdir_factory" fixtures, as repeated below.
 #
 #Python decoration is non-trivial. This is left as an exercise for the reader.
+#Since py.test only supports callable- rather than class-based fixtures,
+#fixture inheritance is right out -- which is what we'd *REALLY* prefer. One
+#option could be to implement this as an xunit-style class-based fixture, which
+#(in theory) would permit inheritance. Anyway, a discourse for another time.
 
 @fixture(scope='session')
 def betse_sim_config_default(
@@ -58,7 +62,7 @@ def betse_sim_config_default(
     '''
 
     # Test-specific object encapsulating this simulation configuration file.
-    sim_config = _config.make(request, tmpdir_factory)
+    sim_config = configapi.make(request, tmpdir_factory)
 
     # Write the default configuration to disk with only the requisite
     # modifications performed by this fixture (e.g., disabling interactivity).

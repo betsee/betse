@@ -127,15 +127,6 @@ class test(Command):
         # List of all shell words to be passed as arguments to py.test.
         pytest_args = []
 
-        # Pass options passed to this subcommand to this py.test command,
-        # converting long option names specific to this subcommand (e.g.,
-        # "--no-capture") to short option names recognized by py.test (e.g.,
-        # "-s"). Sadly, py.test typically recognizes only the latter.
-        if self.no_capture is not None:
-            pytest_args.append('-s')
-        if self.match_name is not None:
-            pytest_args.extend(['-k', util.shell_quote(self.match_name)])
-
         # If the optional third-party "pytest-xdist" plugin is installed, pass
         # options specific to this plugin implicitly parallelizing tests to a
         # number of processors (hopefully) autodetected at runtime.
@@ -148,6 +139,28 @@ class test(Command):
                 'Optional py.test plugin "pytest-xdist" not found.')
             util.output_warning(
                 'Tests will *NOT* be parallelized across multiple processors.')
+
+        # Pass options passed to this subcommand to this py.test command,
+        # converting long option names specific to this subcommand (e.g.,
+        # "--no-capture") to short option names recognized by py.test (e.g.,
+        # "-s"). Sadly, py.test typically recognizes only the latter.
+        #
+        # Do this *AFTER* adding "pytest-xdist" options above. Why? Because
+        # "pytest-xdist" currently fails to respect:
+        #
+        # * Capture redirection (e.g., "-s", "--capture=no"). For details, see:
+        #   https://github.com/pytest-dev/pytest/issues/680
+        if self.no_capture is not None:
+            pytest_args.append('-s')
+            # pytest_args.append('--capture=no')
+
+            # If the "-n" option specific to "pytest-xdist" is passed, print a
+            # non-fatal warning notifying the user of this..
+            if '-n' in pytest_args:
+                util.output_warning(
+                    'Option "-s" unsupported by py.test plugin "pytest-xdist".')
+        if self.match_name is not None:
+            pytest_args.extend(['-k', util.shell_quote(self.match_name)])
 
         # py.test's top-level "main" module, providing programmatic access to
         # its CLI implementation. While py.test is also runnable as an external

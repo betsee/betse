@@ -17,7 +17,7 @@ objects).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import re
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Container, Iterable, Mapping, Sequence
 from enum import Enum, EnumMeta
 
 # ....................{ FORMATTER                          }....................
@@ -97,6 +97,15 @@ def is_char(obj: object) -> bool:
     return is_str(obj) and len(obj) == 1
 
 
+# ....................{ TESTERS ~ callable                 }....................
+def is_callable(obj: object) -> bool:
+    '''
+    `True` only if the passed object is **callable** (e.g., function, method,
+    class defining the special `__call__()` method).
+    '''
+    return callable(obj)
+
+# ....................{ TESTERS ~ collection               }....................
 def is_mapping(obj: object) -> bool:
     '''
     `True` only if the passed object is a **mapping** (i.e., indexable by
@@ -106,13 +115,93 @@ def is_mapping(obj: object) -> bool:
     '''
     return isinstance(obj, Mapping)
 
-# ....................{ TESTERS ~ callable                 }....................
-def is_callable(obj: object) -> bool:
+# ....................{ TESTERS ~ collection               }....................
+def is_container(obj: object) -> bool:
     '''
-    `True` only if the passed object is **callable** (e.g., function, method,
-    class defining the special `__call__()` method).
+    `True` only if the passed object is a **container** (i.e., implements the
+    `__contains__` special method returning `True` only if that container
+    contains the passed element).
+
+    Most collections of interest (e.g., `dict`, `list`, `set`) are containers.
     '''
-    return callable(obj)
+    return isinstance(obj, Container)
+
+
+def is_container_nonstr(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **non-string container** (i.e.,
+    implements the `__contains__` special method _and_ is not a string).
+    '''
+    return is_container(obj) and not is_str(obj)
+
+# ....................{ TESTERS ~ collection : iterable    }....................
+def is_iterable(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an **iterable**.
+
+    Iterables are objects capable of returning their members one at a time.
+    Equivalently, iterables implement the abstract base class
+    `collections.Iterable` and hence define the `__iter__()` method.
+    '''
+    return isinstance(obj, Iterable)
+
+
+def is_iterable_nonstr(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **non-string iterable** (i.e.,
+    implements the abstract base class `collections.Iterable` _and_ is not a
+    string).
+    '''
+    return is_iterable(obj) and not is_str(obj)
+
+# ....................{ TESTERS ~ sequence                 }....................
+def is_sequence(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **sequence**.
+
+    Sequences are iterables supporting efficient element access via integer
+    indices. Equivalently, sequences implement the abstract base class
+    `collections.Sequence` and hence define the `__getitem__()` and `__len__()`
+    methods (among numerous others).
+
+    While all sequences are iterables, not all iterables are sequences.
+    Generally speaking, sequences correspond to the proper subset of iterables
+    whose elements are ordered. `dict` and `OrderedDict` are the canonical
+    examples. `dict` implements `collections.Iterable` but _not_
+    `collections.Sequence`, due to _not_ supporting integer index-based lookup;
+    `OrderedDict` implements both, due to supporting such lookup.
+    '''
+    return isinstance(obj, Sequence)
+
+
+def is_sequence_nonstr(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **non-string sequence** (i.e.,
+    implements the abstract base class `collections.Sequence` _and_ is not a
+    string).
+
+    For generality, this functions returns `True` for both pure-Python
+    non-string sequences _and_ non-Pythonic Fortran-based `numpy` arrays and
+    matrices (which fail to subclass the `collections.abc.Sequence` API despite
+    implementing all methods defined by that subclass).
+    '''
+
+    # Let's do this.
+    return (
+        # Is this a pure-Python non-string sequence?
+        (is_sequence(obj) and not is_str(obj)) or
+        # Is this a non-Pythonic Fortran-based numpy array or matrix?
+        is_numpy_array(obj)
+    )
+
+
+def is_sequence_nonstr_nonempty(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **nonempty non-string sequence**
+    (i.e., implements the abstract base class `collections.Sequence`, is not a
+    string, _and_ contains at least one element).
+    '''
+    return is_sequence_nonstr(obj) and len(obj)
 
 # ....................{ TESTERS ~ enum                     }....................
 def is_enum(obj: object) -> bool:
@@ -138,26 +227,6 @@ def is_exception(obj: object) -> bool:
     `True` only if the passed object is an **exception**.
     '''
     return isinstance(obj, Exception)
-
-# ....................{ TESTERS ~ iterable                 }....................
-def is_iterable(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an **iterable**.
-
-    Iterables are objects capable of returning their members one at a time.
-    Equivalently, iterables implement the abstract base class
-    `collections.Iterable` and hence define the `__iter__()` method.
-    '''
-    return isinstance(obj, Iterable)
-
-
-def is_iterable_nonstr(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a **non-string iterable** (i.e.,
-    implements the abstract base class `collections.Iterable` _and_ is not a
-    string).
-    '''
-    return is_iterable(obj) and not is_str(obj)
 
 # ....................{ TESTERS ~ lib                      }....................
 def is_numpy_array(obj: object) -> bool:
@@ -261,55 +330,6 @@ def is_numeric(obj: object) -> bool:
     '''
     return isinstance(obj, (int, float))
 
-# ....................{ TESTERS ~ sequence                 }....................
-def is_sequence(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a **sequence**.
-
-    Sequences are iterables supporting efficient element access via integer
-    indices. Equivalently, sequences implement the abstract base class
-    `collections.Sequence` and hence define the `__getitem__()` and `__len__()`
-    methods (among numerous others).
-
-    While all sequences are iterables, not all iterables are sequences.
-    Generally speaking, sequences correspond to the proper subset of iterables
-    whose elements are ordered. `dict` and `OrderedDict` are the canonical
-    examples. `dict` implements `collections.Iterable` but _not_
-    `collections.Sequence`, due to _not_ supporting integer index-based lookup;
-    `OrderedDict` implements both, due to supporting such lookup.
-    '''
-    return isinstance(obj, Sequence)
-
-
-def is_sequence_nonstr(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a **non-string sequence** (i.e.,
-    implements the abstract base class `collections.Sequence` _and_ is not a
-    string).
-
-    For generality, this functions returns `True` for both pure-Python
-    non-string sequences _and_ non-Pythonic Fortran-based `numpy` arrays and
-    matrices (which fail to subclass the `collections.abc.Sequence` API despite
-    implementing all methods defined by that subclass).
-    '''
-
-    # Let's do this.
-    return (
-        # Is this a pure-Python non-string sequence?
-        (is_sequence(obj) and not is_str(obj)) or
-        # Is this a non-Pythonic Fortran-based numpy array or matrix?
-        is_numpy_array(obj)
-    )
-
-
-def is_sequence_nonstr_nonempty(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a **nonempty non-string sequence**
-    (i.e., implements the abstract base class `collections.Sequence`, is not a
-    string, _and_ contains at least one element).
-    '''
-    return is_sequence_nonstr(obj) and len(obj)
-
 # ....................{ TESTERS ~ science                  }....................
 def is_cells(obj: object) -> bool:
     '''
@@ -399,19 +419,60 @@ def assert_not_char(obj: object) -> str:
     '''
     return '"{}" not a character (i.e., string of length 1).'.format(trim(obj))
 
-
-def assert_not_mapping(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be a mapping.
-    '''
-    return '"{}" not a mapping (e.g., "dict", "OrderedDict").'.format(trim(obj))
-
 # ....................{ TESTERS ~ callable                 }....................
 def assert_not_callable(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be callable.
     '''
     return '"{}" not callable.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ collection             }....................
+def assert_not_mapping(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a mapping.
+    '''
+    return '"{}" not a mapping (e.g., "dict", "OrderedDict").'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ collection : container }....................
+def assert_not_container_nonstr(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a non-string container.
+    '''
+    return '"{}" not a non-string container (e.g., "dict", "set").'.format(
+        trim(obj))
+
+# ....................{ ASSERTERS ~ collection : iterable  }....................
+def assert_not_iterable_nonstr(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a non-string iterable.
+    '''
+    return '"{}" not a non-string iterable (e.g., "dict", "list").'.format(
+        trim(obj))
+
+
+def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
+    '''
+    String asserting the passed object categorized by the passed human-readable
+    label to _not_ be a nonempty non-string iterable.
+    '''
+    return assert_not_iterable_nonstr(obj) if not is_iterable_nonstr(
+        obj) else '{} empty.'.format(label.capitalize())
+
+# ....................{ ASSERTERS ~ collection : sequence  }....................
+def assert_not_sequence_nonstr(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a non-string sequence.
+    '''
+    return '"{}" not a non-string sequence (e.g., "list").'.format(trim(obj))
+
+
+def assert_not_sequence_nonstr_nonempty(obj: object, label: str) -> str:
+    '''
+    String asserting the passed object categorized by the passed human-readable
+    label to _not_ be a nonempty non-string sequence.
+    '''
+    return assert_not_sequence_nonstr(obj) if not is_sequence_nonstr(
+        obj) else '{} empty.'.format(label.capitalize())
 
 # ....................{ ASSERTERS ~ enum                   }....................
 def assert_not_enum(obj: object) -> str:
@@ -433,23 +494,6 @@ def assert_not_exception(obj: object) -> str:
     String asserting the passed object to _not_ be an exception.
     '''
     return '"{}" not an exception.'.format(trim(obj))
-
-# ....................{ ASSERTERS ~ iterable               }....................
-def assert_not_iterable_nonstr(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be a non-string iterable.
-    '''
-    return '"{}" not a non-string iterable (e.g., dict, list).'.format(
-        trim(obj))
-
-
-def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
-    '''
-    String asserting the passed object categorized by the passed human-readable
-    label to _not_ be a nonempty non-string iterable.
-    '''
-    return assert_not_iterable_nonstr(obj) if not is_iterable_nonstr(
-        obj) else '{} empty.'.format(label.capitalize())
 
 # ....................{ ASSERTERS ~ lib                    }....................
 def assert_not_numpy_array(obj: object) -> bool:
@@ -530,22 +574,6 @@ def assert_not_numeric(obj: object) -> str:
     '''
     return '"{}" not numeric (i.e., neither an integer nor float).'.format(
         trim(obj))
-
-# ....................{ ASSERTERS ~ sequence               }....................
-def assert_not_sequence_nonstr(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be a non-string sequence.
-    '''
-    return '"{}" not a non-string sequence (e.g., list).'.format(trim(obj))
-
-
-def assert_not_sequence_nonstr_nonempty(obj: object, label: str) -> str:
-    '''
-    String asserting the passed object categorized by the passed human-readable
-    label to _not_ be a nonempty non-string sequence.
-    '''
-    return assert_not_sequence_nonstr(obj) if not is_sequence_nonstr(
-        obj) else '{} empty.'.format(label.capitalize())
 
 # ....................{ ASSERTERS ~ science                }....................
 def assert_not_cells(obj: object) -> str:
