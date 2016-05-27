@@ -21,17 +21,6 @@ from betse.science import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
 
-# FIXME! There are two (somewhat) minor issues with the cell grid. The first, is that sometimes the grid
-# is built with a few neighbouring membranes that are not the same length (I have no idea how this
-# happens for a Voronoi diagram, but anyway...it is most likely that any charge/voltage high spots
-# that are developing (especially in larger grids) are the result of these anomolous grid elements.
-# To fix this, we need to define a hexagonal set of seed points and apply only a very small perturbation
-# to create some irregularity. There also needs to be a check function that compares each opposing membrane
-# set and ensures they are the same length. The second issue is that as the grid is irregular, the connecting
-# points between two cell centres are not necessarily the same as the membrane normal vectors. Therefore, the
-# graph Laplacian (and its inverse) need to have these in place as a correction factor (this is mentioned in the
-# graph Laplacian comment.
-
 
 class Cells(object):
     """
@@ -1127,7 +1116,7 @@ class Cells(object):
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-    def graphLaplacian(self,p):  # FIXME multiply by the membrane normal vectors!
+    def graphLaplacian(self,p):
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
         irregular Voronoi grid of the cell cluster.

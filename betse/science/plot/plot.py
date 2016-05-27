@@ -1037,13 +1037,13 @@ def exportData(cells,sim,p):
 
     dd_cell = np.asarray(dd_cell)
 
-    # #----Transmembrane currents--------------------------
-    # if p.sim_ECM is False:
-    #     Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
-    # else:
-    #     Imem = [memArray[cells.cell_to_mems[p.plot_cell][0]] for memArray in sim.I_mem_time]
-    #
-    # headr = headr + ',' + 'I_A/m2'
+    #----Transmembrane currents--------------------------
+    if p.sim_ECM is False:
+        Imem = [memArray[p.plot_cell] for memArray in sim.I_mem_time]
+    else:
+        Imem = [memArray[cells.cell_to_mems[p.plot_cell][0]] for memArray in sim.I_mem_time]
+
+    headr = headr + ',' + 'I_A/m2'
 
     #----Hydrostatic pressure--------
     p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]

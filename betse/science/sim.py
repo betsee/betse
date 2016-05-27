@@ -987,7 +987,8 @@ class Simulator(object):
             self.get_Efield(cells, p)  # FIXME update to also get a v_cell gradient
 
             # store charge in time vector:
-            self.charge_cells_time.append(self.rho_cells)
+            rho_cells_ave = np.dot(cells.M_sum_mems, self.rho_cells)/cells.num_mems
+            self.charge_cells_time.append(rho_cells_ave)
 
             if p.sim_ECM:
 
@@ -1214,6 +1215,8 @@ class Simulator(object):
 
         self.I_gj_x_time.append(self.J_gj_x[:])
         self.I_gj_y_time.append(self.J_gj_y[:])
+
+        self.I_mem_time.append(self.I_mem[:])
 
         self.vm_time.append(self.vm[:])
 

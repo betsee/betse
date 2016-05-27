@@ -13,9 +13,6 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 from betse.science import finitediff as fd
 
-# FIXME: we need to keep gj current  at the mids -- also, current is separate in GJ and env systems
-# FIXME: use the ion current to apply a polarization field to the cells using the integral of E = (1/sigma)J
-# FIXME: watch out when using those cell_nn_tx vectors -- they're not necessarily normal to the membrane!
 
 def get_current(sim, cells, p):
 
@@ -24,8 +21,7 @@ def get_current(sim, cells, p):
     for flux_array, zi in zip(sim.fluxes_mem, sim.zs):
         I_i = flux_array * zi * p.F * cells.mem_sa
 
-        sim.I_mem = sim.I_mem + I_i   # FIXME reimplement transmembrane current plots elsewhere..!
-
+        sim.I_mem = sim.I_mem + I_i
 
     # divide final result by membrane surface area to obtain a component of current density
     # component is negative as transmembrane fluxes point into the cell, but mem normals point out:
@@ -51,29 +47,57 @@ def get_current(sim, cells, p):
     sim.J_gj_x_o = J_gj_x_o  # FIXME clean up these numerous iterations of currents!
     sim.J_gj_y_o = J_gj_y_o
 
-    # total current density across the membranes:
+    # total current density across the membranes (uncorrected by Continuity Equation):
 
-    sim.J_mem_x = J_gj_x_o + J_trans_mem*cells.mem_vects_flat[:,2]
-    sim.J_mem_y = J_gj_y_o + J_trans_mem*cells.mem_vects_flat[:,3]
+    J_mem_xo = J_gj_x_o + J_trans_mem*cells.mem_vects_flat[:,2]
+    J_mem_yo = J_gj_y_o + J_trans_mem*cells.mem_vects_flat[:,3]
 
-    # net current through the cell:  # FIXME check these with plotting -- look oK?
-    sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x)/cells.num_mems
-    sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y)/cells.num_mems
+    # First calculate rate of change of charge in cell:
+    if len(sim.charge_cells_time) > 1:
+
+        d_rho_env = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
+
+    else:
+        d_rho_env = np.zeros(len(cells.cell_i))
+
+    # Next, calculate the divergence of cell current density:
+
+    # get the component normal to the membrane:
+    J_mem_n = J_mem_xo * cells.mem_vects_flat[:, 2] + J_mem_yo * cells.mem_vects_flat[:, 3]
+
+    # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+    div_Jmem = (np.dot(cells.M_sum_mems, J_mem_n * cells.mem_sa) / cells.cell_vol)
+
+    # calculate the reaction potential required to counter-balance the flow field:
+    V_react = np.dot(cells.lapGJ_P_inv, div_Jmem + d_rho_env)
+
+    # calculate its gradient:
+    gradV_react = (V_react[cells.cell_nn_i[:, 1]] - V_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+    gV_x = gradV_react * cells.mem_vects_flat[:, 2]
+    gV_y = gradV_react * cells.mem_vects_flat[:, 3]
+
+    # correct the current density by the reaction potential:
+    sim.J_mem_x = J_mem_xo - gV_x
+    sim.J_mem_y = J_mem_yo - gV_y
+
+    # average the components at cell centres:
+    sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x) / cells.num_mems
+    sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y) / cells.num_mems
 
 
     # interpolate these to the grid so we have something to plot. FIXME deal with these later, don't interp, plot
     # the actual J_mem at the membranes!
 
-    sim.J_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_gj_x_o,(cells.X,cells.Y),
+    sim.J_gj_x = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),sim.J_cell_x,(cells.X,cells.Y),
                                   method=p.interp_type,fill_value=0)
 
-    # sim.J_gj_x = np.multiply(sim.J_gj_x,cells.maskECM)
+    sim.J_gj_x = np.multiply(sim.J_gj_x,cells.maskECM)
 
-    sim.J_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_gj_y_o,(cells.X,cells.Y),
+    sim.J_gj_y = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),sim.J_cell_y,(cells.X,cells.Y),
                                   method=p.interp_type,fill_value=0)
 
-
-    # sim.J_gj_y = np.multiply(sim.J_gj_y,cells.maskECM)
+    sim.J_gj_y = np.multiply(sim.J_gj_y,cells.maskECM)
 
 
     if p.sim_ECM is True:

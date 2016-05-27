@@ -211,41 +211,41 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         #--------------------------------------------------------
 
-        # # Plot cell trans-membrane current vs time.
-        # figI = plt.figure()
-        # axI = plt.subplot(111)
-        #
-        # if p.sim_ECM is False:
-        #     Imem = [100*memArray[p.plot_cell] for memArray in sim.I_mem_time]
-        #
-        # else:
-        #     Imem = []  # initialize a total cell current storage vector
-        #     mems_for_plotcell = cells.cell_to_mems[p.plot_cell]  # get membranes for the plot cell
-        #
-        #     for t in range(len(sim.time)):
-        #         memArray = sim.I_mem_time[t]
-        #         # get the current components at each membrane (net current, not density)
-        #         Ixo = memArray[mems_for_plotcell]*cells.mem_vects_flat[mems_for_plotcell,2]*cells.mem_sa[mems_for_plotcell]
-        #         Iyo = memArray[mems_for_plotcell]*cells.mem_vects_flat[mems_for_plotcell,3]*cells.mem_sa[mems_for_plotcell]
-        #         # add components of current at each membrane (this takes account for in-out directionality)
-        #         Ix = np.sum(Ixo)
-        #         Iy = np.sum(Iyo)
-        #
-        #         # get the total magnitude of net current and divide by cell surface area to return to density:
-        #         Io = np.sqrt(Ix**2 + Iy**2)/cells.cell_sa[p.plot_cell]
-        #         Imem.append(100*Io)
-        #
-        # axI.plot(sim.time, Imem)
-        # axI.set_title('Transmembrane current density for cell ' + str(p.plot_cell) )
-        # axI.set_xlabel('Time [s]')
-        # axI.set_ylabel('Current density [uA/cm2]')
-        #
-        # if p.autosave is True:
-        #     savename = savedImg + 'Imem_time' + '.png'
-        #     plt.savefig(savename,dpi=300,format='png',transparent=True)
-        #
-        # if p.turn_all_plots_off is False:
-        #     plt.show(block=False)
+        # Plot cell trans-membrane current vs time.
+        figI = plt.figure()
+        axI = plt.subplot(111)
+
+        if p.sim_ECM is False:
+            Imem = [100*memArray[p.plot_cell] for memArray in sim.I_mem_time]
+
+        else:
+            Imem = []  # initialize a total cell current storage vector
+            mems_for_plotcell = cells.cell_to_mems[p.plot_cell]  # get membranes for the plot cell
+
+            for t in range(len(sim.time)):
+                memArray = sim.I_mem_time[t]
+                # get the current components at each membrane (net current, not density)
+                Ixo = memArray[mems_for_plotcell]*cells.mem_vects_flat[mems_for_plotcell,2]*cells.mem_sa[mems_for_plotcell]
+                Iyo = memArray[mems_for_plotcell]*cells.mem_vects_flat[mems_for_plotcell,3]*cells.mem_sa[mems_for_plotcell]
+                # add components of current at each membrane (this takes account for in-out directionality)
+                Ix = np.sum(Ixo)
+                Iy = np.sum(Iyo)
+
+                # get the total magnitude of net current and divide by cell surface area to return to density:
+                Io = np.sqrt(Ix**2 + Iy**2)/cells.cell_sa[p.plot_cell]
+                Imem.append(100*Io)
+
+        axI.plot(sim.time, Imem)
+        axI.set_title('Transmembrane current density for cell ' + str(p.plot_cell) )
+        axI.set_xlabel('Time [s]')
+        axI.set_ylabel('Current density [uA/cm2]')
+
+        if p.autosave is True:
+            savename = savedImg + 'Imem_time' + '.png'
+            plt.savefig(savename,dpi=300,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
 
         # optional 1D plots--------------------------------------------------------------------------------------------
 
