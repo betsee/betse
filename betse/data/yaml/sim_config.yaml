@@ -183,7 +183,10 @@ world options:
                               # recommended 26.0e-9 m for animal cells
                               # 1.0e-6 for plant cells and animal cells with ecm
 
-  lattice disorder: 0.0       # noise level for the lattice
+  lattice type: hex           # form of the base lattice (before adding lattice disorder)
+                              # options: 'hex' for hegagonal or 'rect' for rectilinear
+
+  lattice disorder: 0.5       # noise level for the lattice
                               # recommended range 0 to 0.8
                               # this randomizes lattice points from a
                               # hexagonal grid. If equal to 0 a perfect
@@ -594,8 +597,6 @@ variable settings:
     VATPase pump: False    # include the plasma membrane V-ATPase pump?
                               # only works for an ion profile with H+ ions (animal or invertebrate)
                               # options True or False (case sensitive)
-
-  calculate ion currents: True   # calculate ion currents?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -1085,11 +1086,16 @@ internal parameters:
 
   environment volume multiplier: 1.0    # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  environmental delay factor: 1.0e-1    # level to smooth environmental transport (needed to use larger time-steps) 0.1
+  cytosolic delay factor: 1.0e-1       # level to delay intracellular transport (needed for larger time-steps) 1.0
+
+  environmental delay factor: 1.0e-1    # level to delay environmental transport (needed to use larger time-steps) 1.0
 
   electrolyte screening factor: 0.86 # ~0.86 to 1.5 electrolyte double layer screening & self-capacitances [F/m5]
 
-  environmental screening factor: 1.0 # amount by which electrolyte screens cluster boundary (ratio to cell vol)
+  media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
+
+
+
 
 
 # Configuration file version that this file conforms to. For reliable

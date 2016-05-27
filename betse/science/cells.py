@@ -99,7 +99,7 @@ class Cells(object):
         # FIXME get rid of two worldtype cases!
 
         if self.worldtype is None or self.worldtype == 'full':
-            self.makeSeeds(p)    # Create the grid for the system (irregular)
+            self.makeSeeds(p,seed_type= p.lattice_type)    # Create the grid for the system (irregular)
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cleanVoronoi(p)  # clean the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
@@ -114,7 +114,7 @@ class Cells(object):
 
 
         elif self.worldtype == 'basic':
-            self.makeSeeds(p)    # Create the grid for the system (irregular)
+            self.makeSeeds(p, seed_type= p.lattice_type)    # Create the grid for the system (irregular)
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
             self.cleanVoronoi(p)  # clean the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
@@ -162,7 +162,6 @@ class Cells(object):
 
     def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:
 
-        # FIXME implement hex!!
         '''
         Creates the irregular scatter lattice of seed points defined on a 2D
         world space, with dimensions supplied by `p.wsx` in [m].
@@ -184,9 +183,10 @@ class Cells(object):
             Current simulation configuration.
         seed_type     'hex' produces a hexagonal lattice seed, while 'rect' produces a
                        rectangular grid. Both are perturbed by the lattice noise option p.nl
+
         '''
 
-        if seed_type is 'rect': # prepare a standard rectangular grid of points
+        if seed_type == 'rect': # prepare a standard rectangular grid of points
 
             # first begin with linear vectors which are the "ticks" of the x and y dimensions
             x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
@@ -205,7 +205,7 @@ class Cells(object):
 
             xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
 
-        elif seed_type is 'hex': # prepare a hexagonal grid of points
+        elif seed_type == 'hex': # prepare a hexagonal grid of points
 
             # recalculate the number of lattice sites * FIXME change this to option in params!
 
@@ -267,6 +267,12 @@ class Cells(object):
             y_2d = y_2d + y_rnd
 
             xypts = np.vstack((x_2d, y_2d)).T
+
+        else:
+
+            raise BetseExceptionParameters("You have chosen a world option lattice type that is "
+                                           "not available. Options are 'hex' and 'rect'."
+                                           " Please check your config file and try again.")
 
         # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
 

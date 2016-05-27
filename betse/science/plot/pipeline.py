@@ -418,7 +418,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         figX, axX, cbX = viz.plotPolyData(
             sim, cells, p,
-            zdata=(sim.rho_cells),
+            zdata=(sim.rho_cells_time[-1]),
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_rho,
             clrMin=p.rho_min_clr,
@@ -486,7 +486,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         else:
             figV, axV, cbV = viz.plotPolyData(
                 sim, cells, p,
-                zdata=1000*sim.vm_time[-1],
+                zdata=1000*sim.vcell_time[-1],
                 clrAutoscale=p.autoscale_Vmem,
                 clrMin=p.Vmem_min_clr,
                 clrMax=p.Vmem_max_clr,
@@ -641,7 +641,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             axVdye = plt.subplot(111)
 
             dyeEnv = sim.cDye_env*1e3
-            dyeCell = sim.cDye_cell*1e3
+            dyeCell = sim.cDye_time[-1]*1e3
 
             bkgPlot = axVdye.imshow(
                 dyeEnv.reshape(cells.X.shape),

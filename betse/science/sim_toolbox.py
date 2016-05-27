@@ -821,9 +821,6 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     cX_cell_o1, cX_env_o1 = update_Co(sim, cX_cell_o, cX_env_o, f_X_ED, cells, p)
 
-    # electrodiffuse intracellular concentrations
-    cX_cell_o1 = update_intra(sim, cells, cX_cell_o1, Do, z, p)
-
     # ------------------------------------------------------------
 
     # Update dye concentration in the gj connected cell network:
@@ -847,9 +844,6 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     # electroosmotic fluid velocity:
     if p.fluid_flow is True:
-
-        # ux = (sim.u_cells_x[cells.cell_nn_i[:, 0]] + sim.u_cells_x[cells.cell_nn_i[:, 1]]) / 2
-        # uy = (sim.u_cells_y[cells.cell_nn_i[:, 0]] + sim.u_cells_y[cells.cell_nn_i[:, 1]]) / 2
         ux = sim.u_gj_x
         uy = sim.u_gj_y
 
@@ -858,7 +852,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         uy = 0
 
     fgj_x_X, fgj_y_X = nernst_planck_flux(cX_mids, grad_cgj_x, grad_cgj_y, grad_vgj_x, grad_vgj_y, ux, uy,
-        Do * sim.gjopen, z, sim.T, p)
+        p.gj_surface*Do * sim.gjopen, z, sim.T, p)
 
     fgj_X = fgj_x_X * cells.mem_vects_flat[:,2] + fgj_y_X * cells.mem_vects_flat[:,3]
 
@@ -867,6 +861,8 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
     cX_cell_1 = cX_cell_o1 + p.dt * delta_cc
+
+    #------------------------------------------------------------------------------------------------------------
 
     # electrodiffuse intracellular concentrations
     cX_cell_1 = update_intra(sim, cells, cX_cell_1, Do, z, p)
@@ -1141,27 +1137,28 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     # grad_v = np.dot(cells.gradMem, sim.v_cell)
 
     # FIXME check this value
-    E_cell = 0.02 * sim.J_cell_x[cells.mem_to_cells] * tx + 0.02 * sim.J_cell_y[cells.mem_to_cells] * ty
+    E_cell = p.media_sigma * sim.J_cell_x[cells.mem_to_cells] * tx + \
+             p.media_sigma * sim.J_cell_y[cells.mem_to_cells] * ty
 
     # -----------------------------------------------------------------------------------------------------
 
     # calculate the total Nernst-Planck flux at each membrane:
 
-    flux_intra = -D_x * grad_c + u_tang * cX_cell + \
-                 ((zx * D_x * p.F) / (p.R * sim.T)) * cX_cell * E_cell
+    flux_intra = -D_x*p.cell_delay_const * grad_c + u_tang * c_at_verts + \
+                 ((zx * D_x*p.cell_delay_const * p.F) / (p.R * sim.T)) * c_at_verts * E_cell
 
     # divergence of the total flux:
 
     divF_intra_o = np.dot(cells.gradMem, -flux_intra)
 
     # map divergence to mids
-    divF_intra = np.dot(cells.matrixMap2Verts, divF_intra_o)
+    divF_intra = np.dot(divF_intra_o, cells.matrixMap2Verts)
 
     cX_cell = cX_cell + divF_intra * p.dt
 
     # ------------------------------------------------
-    # make sure nothing is non-zero:
-    fix_inds = (cX_cell < 0).nonzero()
-    cX_cell[fix_inds] = 0
+    # # make sure nothing is non-zero:
+    # fix_inds = (cX_cell < 0).nonzero()
+    # cX_cell[fix_inds] = 0
 
     return cX_cell

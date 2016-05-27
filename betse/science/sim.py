@@ -1092,6 +1092,7 @@ class Simulator(object):
         self.vm_ave_time = []   # data array holding average vm (averaged to cell centres) FIXME temp hack
         self.vm_GHK_time = [] # data array holding GHK vm estimates
         self.dvm_time = []  # data array holding derivative of voltage at time points
+        self.vcell_time = []
         self.time = []     # time values of the simulation
         self.gjopen_time = []   # stores the fractional gap junction open state at each time
         self.osmo_P_delta_time = []  # osmotic pressure difference between cell interior and exterior as func of time
@@ -1162,7 +1163,7 @@ class Simulator(object):
             self.fluxes_env_x = np.zeros(self.fluxes_env_x.shape)
             self.fluxes_env_y = np.zeros(self.fluxes_env_y.shape)
 
-            self.vcell_time = []
+
             self.venv_time = []
 
             self.charge_env_time = []
@@ -1216,12 +1217,19 @@ class Simulator(object):
 
         self.vm_time.append(self.vm[:])
 
-        # FIXME this is a temporary hack until I see if the new variable intracellular space works out..
+        v_cells_ave = np.dot(cells.M_sum_mems, self.v_cell[:]) / cells.num_mems
+        self.vcell_time.append(v_cells_ave)
+
+        # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
         vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
         self.vm_ave_time.append(vm_ave)
 
         self.dvm_time.append(self.dvm[:])
-        self.rho_cells_time.append(self.rho_cells[:])
+
+        # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
+        rho_cells_ave = np.dot(cells.M_sum_mems,self.rho_cells)/cells.num_mems
+        self.rho_cells_time.append(rho_cells_ave)
+
         self.rate_NaKATP_time.append(self.rate_NaKATP[:])
         self.P_cells_time.append(self.P_cells[:])
         self.F_hydro_x_time.append(self.F_hydro_x[:])
@@ -1261,7 +1269,9 @@ class Simulator(object):
             self.cIP3_time.append(self.cIP3[:])
 
         if p.voltage_dye ==1:
-            self.cDye_time.append(self.cDye_cell[:])
+            # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
+            cDye_ave = np.dot(cells.M_sum_mems, self.cDye_cell) / cells.num_mems
+            self.cDye_time.append(cDye_ave)
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
             self.cc_er_time.append(np.copy(self.cc_er[:]))
@@ -1280,7 +1290,9 @@ class Simulator(object):
             # self.cc_env_time.append(ecmsc)
             # ecmsc = None
 
-            self.vcell_time.append(self.v_cell[:])
+            # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
+
+
             self.venv_time.append(self.v_env[:])
 
             if p.fluid_flow is True and p.run_sim is True:
@@ -1831,15 +1843,15 @@ class Simulator(object):
         # FIXME put media conductivity into params file
 
         # get component of intracellular current at the membrane times media resistivity:
-        E_cell = 0.02*self.J_cell_x[cells.mem_to_cells]*tx + 0.02*self.J_cell_y[cells.mem_to_cells]*ty
+        E_cell = p.media_sigma*self.J_cell_x[cells.mem_to_cells]*tx + \
+                 p.media_sigma*self.J_cell_y[cells.mem_to_cells]*ty
         #-----------------------------------------------------------------------------------------------------
 
         # calculate the total Nernst-Planck flux at each membrane:
         # Fixme put slowing factor into params file
-        cytosol_slowing =  1.0e-1
 
-        flux_intra = -self.D_free[i] * cytosol_slowing* grad_c + u_tang * self.cc_cells[i] + \
-                    ((self.zs[i] *cytosol_slowing*self.D_free[i] * p.F) / (p.R * self.T)) * self.cc_cells[i] * E_cell
+        flux_intra = -self.D_free[i] * p.cell_delay_const* grad_c + u_tang * self.cc_cells[i] + \
+                    ((self.zs[i] *p.cell_delay_const*self.D_free[i] * p.F)/(p.R * self.T))*self.cc_cells[i]*E_cell
 
 
         # divergence of the total flux:

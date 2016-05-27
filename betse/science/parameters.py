@@ -129,6 +129,7 @@ class Parameters(object):
         self.wsy = self.wsx  # the y-dimension of the world space [m]
         self.rc = float(self.config['world options']['cell radius'])  # radius of single cell
         self.cell_height = float(self.config['world options']['cell height'])  # the height of a cell in the z-direction
+        self.lattice_type = self.config['world options']['lattice type']  # hex or rect lattice base
         self.cell_space = float(self.config['world options']['cell spacing'])  # the true cell-cell spacing
         self.nl = float(self.config['world options']['lattice disorder'])  # noise level for the lattice
 
@@ -513,7 +514,7 @@ class Parameters(object):
         self.T = float(self.config['variable settings']['temperature'])  # system temperature
 
         # current calculation---------------------------
-        self.calc_J = self.config['variable settings']['calculate ion currents']
+        self.calc_J = True # Fixme remove this parameter and boolean, currents not optional
 
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self.config['variable settings']['fluid flow']['include fluid flow']
@@ -870,6 +871,9 @@ class Parameters(object):
         self.smooth_level = float(iu['gaussian smoothing'])
 
         self.env_delay_const = float(iu['environmental delay factor'])
+        self.cell_delay_const = float(iu['cytosolic delay factor'])
+
+        self.media_sigma = float(iu['media resistivity'])
 
         self.electrolyte_screening = float(iu['electrolyte screening factor'])
 
