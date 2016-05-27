@@ -56,7 +56,7 @@ def get_current(sim, cells, p):
     sim.J_mem_x = J_gj_x_o + J_trans_mem*cells.mem_vects_flat[:,2]
     sim.J_mem_y = J_gj_y_o + J_trans_mem*cells.mem_vects_flat[:,3]
 
-    # net current through the cell:
+    # net current through the cell:  # FIXME check these with plotting -- look oK?
     sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x)/cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y)/cells.num_mems
 

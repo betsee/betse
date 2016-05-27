@@ -1129,24 +1129,33 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     else:
         u_tang = 0
 
+    # map concentration to vertices
+    c_at_verts = np.dot(cX_cell, cells.matrixMap2Verts)
+
     # get the gradient of rho concentration around each membrane:
-    grad_c = np.dot(cells.gradMem, cX_cell)
+    grad_c = np.dot(cells.gradMem, c_at_verts)
 
     # --------------------------------------------------------------------------------------------------------
 
     # get the tangential voltage gradient at each membrane from net intracellular current
-    grad_v = np.dot(cells.gradMem, sim.v_cell)
+    # grad_v = np.dot(cells.gradMem, sim.v_cell)
+
+    # FIXME check this value
+    E_cell = 0.02 * sim.J_cell_x[cells.mem_to_cells] * tx + 0.02 * sim.J_cell_y[cells.mem_to_cells] * ty
 
     # -----------------------------------------------------------------------------------------------------
 
     # calculate the total Nernst-Planck flux at each membrane:
 
-    flux_intra = -D_x * grad_c + u_tang * cX_cell - \
-                 ((zx * D_x * p.F) / (p.R * sim.T)) * cX_cell * grad_v
+    flux_intra = -D_x * grad_c + u_tang * cX_cell + \
+                 ((zx * D_x * p.F) / (p.R * sim.T)) * cX_cell * E_cell
 
     # divergence of the total flux:
 
-    divF_intra = np.dot(cells.gradMem, -flux_intra)
+    divF_intra_o = np.dot(cells.gradMem, -flux_intra)
+
+    # map divergence to mids
+    divF_intra = np.dot(cells.matrixMap2Verts, divF_intra_o)
 
     cX_cell = cX_cell + divF_intra * p.dt
 

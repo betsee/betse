@@ -160,7 +160,7 @@ class Cells(object):
 
         self.calc_gj_vects(p)
 
-    def makeSeeds(self, p: 'Parameters', seed_type = 'hex') -> None:
+    def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:
 
         # FIXME implement hex!!
         '''
@@ -418,7 +418,6 @@ class Cells(object):
         self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
 
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
-
 
     def cleanVoronoi(self,p):
 
@@ -1122,7 +1121,7 @@ class Cells(object):
             for i, ecm_index in enumerate(self.map_mem2ecm):
                 self.ecm_UpdateMatrix[i,ecm_index] = 1
 
-    def graphLaplacian(self,p):
+    def graphLaplacian(self,p):  # FIXME multiply by the membrane normal vectors!
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
         irregular Voronoi grid of the cell cluster.

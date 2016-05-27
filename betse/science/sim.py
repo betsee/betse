@@ -1468,9 +1468,8 @@ class Simulator(object):
             # v_env[cells.map_mem2ecm] = v_ecm_at_mem
             #
             # # smooth out the environmental voltage:
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level)
-            # v_env = fd.integrator(v_env.reshape(cells.X.shape))
-            v_env = v_env.ravel()
+            v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
+            # v_env = fd.integrator(v_env.reshape(cells.X.shape)).ravel()
 
             # # set the conditions for the global boundaries:
             v_env[cells.bBot_k] = self.bound_V['B']
@@ -1536,10 +1535,7 @@ class Simulator(object):
             # which yields number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/cells.ecm_vol
-
-            # delta_env = fd.integrator(delta_env.reshape(cells.X.shape)).ravel()
-            # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape),p.smooth_level).ravel()
+            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/(cells.ecm_vol)
 
             # update the concentrations
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
@@ -1562,7 +1558,6 @@ class Simulator(object):
         #     self.cc_cells[i] = stb.no_negs(arr)
         # for i, arr in enumerate(self.cc_env):
         #     self.cc_env[i] = stb.no_negs(arr)
-
 
 
     def acid_handler(self,cells,p):
@@ -1821,7 +1816,7 @@ class Simulator(object):
 
         # get values of concentration and voltage at the vertices
         c_at_verts = np.dot(self.cc_cells[i], cells.matrixMap2Verts)
-        vm_at_verts = np.dot(self.vm, cells.matrixMap2Verts)
+        # vm_at_verts = np.dot(self.vm, cells.matrixMap2Verts)
 
         # get the gradient of rho concentration around each membrane:
 
