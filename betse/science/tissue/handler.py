@@ -46,7 +46,7 @@ class TissueHandler(object):
         if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
         else:
-            self.data_length = len(cells.cell_i)
+            self.data_length = len(cells.mem_i)
 
     def runAllInit(
         self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
@@ -721,7 +721,7 @@ class TissueHandler(object):
             if p.sim_ECM is True:
                 self.data_length = len(cells.mem_i)
             else:
-                self.data_length = len(cells.cell_i)
+                self.data_length = len(cells.mem_i)
 
             self.tissueProfiles(sim, cells, p)
             cells.redo_gj(self, p, savecells=False)

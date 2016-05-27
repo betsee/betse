@@ -193,9 +193,17 @@ class AnimCellsWhileSolving(AnimCells):
         #
         #Phew! That'll do it. No significant changes to "sim" required, which
         #is a gargantuan relief.
-        if not self._p.sim_ECM:
-            self._cell_time_series = self._sim.vm_time
-            cell_data_current = self._sim.vm
+        if not self._p.sim_ECM:  # FIXME why the feck do you do this as a double negative???!?!?!?!?
+
+            # average the voltage to the cell centre
+            # FIXME this is a temp change until we get this right
+            vm_o = np.dot(self._cells.M_sum_mems,self._sim.vm)/self._cells.num_mems
+
+            # self._cell_time_series = self._sim.vm_time
+            self._cell_time_series = self._sim.vm_ave_time
+
+            # cell_data_current = self._sim.vm
+            cell_data_current = vm_o
         else:
             self._cell_time_series = self._sim.vm_Matrix
             cell_data_current = self._sim.vm_Matrix[0]

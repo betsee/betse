@@ -96,9 +96,12 @@ class Cells(object):
         Calls internal methods to set up the cell cluster.
         """
 
+        # FIXME get rid of two worldtype cases!
+
         if self.worldtype is None or self.worldtype == 'full':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
+            self.cleanVoronoi(p)  # clean the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices
             self.near_neigh(p)    # Calculate the nn array for each cell
@@ -113,6 +116,7 @@ class Cells(object):
         elif self.worldtype == 'basic':
             self.makeSeeds(p)    # Create the grid for the system (irregular)
             self.makeVoronoi(p)    # Make, close, and clip the Voronoi diagram
+            self.cleanVoronoi(p)  # clean the Voronoi diagram
             self.cell_index(p)            # Calculate the correct centre and index for each cell
             self.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
             self.near_neigh(p)    # Calculate the nn array for each cell
@@ -134,7 +138,7 @@ class Cells(object):
 
         self.M_sum_mem_to_ecm = None
 
-        self.gradMem = None
+        # self.gradMem = None
 
     def deformWorld(self,p):  # FIXME needs updating for sim_ecm case where boundary moves...
         """
@@ -147,7 +151,7 @@ class Cells(object):
         """
 
         self.cell_index(p)
-        self.short_cellVerts(p)
+        self.cellVerts(p)
 
         if p.sim_ECM is True:
 
@@ -156,7 +160,9 @@ class Cells(object):
 
         self.calc_gj_vects(p)
 
-    def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:  # FIXME make a fib spiral one too!
+    def makeSeeds(self, p: 'Parameters', seed_type = 'hex') -> None:
+
+        # FIXME implement hex!!
         '''
         Creates the irregular scatter lattice of seed points defined on a 2D
         world space, with dimensions supplied by `p.wsx` in [m].
@@ -201,9 +207,10 @@ class Cells(object):
 
         elif seed_type is 'hex': # prepare a hexagonal grid of points
 
-            # recalculate the number of lattice sites * FIXME change this in params!
+            # recalculate the number of lattice sites * FIXME change this to option in params!
 
-            r = (p.d_cell/2)*np.sqrt(3)
+            # r = (p.d_cell/2)*np.sqrt(3)
+            r = p.d_cell/2
 
             # blue and red simply refer to the different seed point arrays used to
             # create the hexagonal lattice.
@@ -251,7 +258,7 @@ class Cells(object):
             x_2d = np.hstack((x_2d_blue.ravel(), x_2d_red.ravel()))
             y_2d = np.hstack((y_2d_blue.ravel(), y_2d_red.ravel()))
 
-            # # now create a matrix of points that will add a +/- deviation to each point centre
+            # now create a matrix of points that will add a +/- deviation to each point centre
             x_rnd = p.nl * p.d_cell * (np.random.rand(len(x_2d)) - 0.5)  # create a mix of random deltas x dir
             y_rnd = p.nl * p.d_cell * (np.random.rand(len(y_2d)) - 0.5)  # create a mix of random deltas x dir
 
@@ -361,7 +368,6 @@ class Cells(object):
                             vor.regions[j] = sorted_region_b   # add sorted list to the regions structure
 
         # Clip the Voronoi cluster to the shape of the clipping bitmap -------------------------------------------------
-
         logs.log_info('Clipping Voronoi geometry to cluster shape...')
 
 
@@ -391,6 +397,8 @@ class Cells(object):
                 if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
                     self.ecm_verts.append(cell_polya) # This makes a jagged boundary of cells
 
+                    #FIXME which one do we want?
+
                 # if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
                 #     self.ecm_verts.append(cell_polya)   # this makes a more solid boundary of cells
 
@@ -411,50 +419,51 @@ class Cells(object):
 
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
-        #--------------------Remove small edges---------------------------------------------------
+
+    def cleanVoronoi(self,p):
+
         logs.log_info('Cleaning Voronoi geometry... ')
 
-        perm_cut = 2*math.pi*p.rc*p.merge_cut_off # the threshhold edge length
+        # first need to go through and make sure each patch has unique vertex points
 
+        #-----clipping out redundant points--------------------------------------------------------
+
+        # perm_cut = 2 * math.pi * p.rc * p.merge_cut_off  # the threshhold edge length
+        #
         ecm_verts_2 = []
-
-        for poly in self.ecm_verts: # step through each closed and clipped region of the Voronoi
+        #
+        for poly in self.ecm_verts:  # step through each closed and clipped region of the Voronoi
             hold_verts = []
 
-            if len(poly)<4:
+            for i, vert in enumerate(poly):
 
-                for vert in poly:
-                    hold_verts.append(vert)  # if the region has less than 5 verts, we can only append the points
+                xo = poly[i - 1][0]
+                yo = poly[i - 1][1]
+                x1 = vert[0]
+                y1 = vert[1]
 
-            elif len(poly) >= 4:      # if the region has greater than or equal to 5 vertices, then proceed
+                length = math.sqrt((x1 - xo) ** 2 + (y1 - yo) ** 2)
 
-                for i,vert in enumerate(poly):
+                if length > 0.0:
+                    hold_verts.append(poly[i - 1])
 
-                    xo = poly[i-1][0]
-                    yo = poly[i-1][1]
-                    x1 = vert[0]
-                    y1 = vert[1]
-
-                    length = math.sqrt((x1-xo)**2 + (y1 -yo)**2)
-
-                    if length > perm_cut:
-                        hold_verts.append(poly[i-1])
-
-            hold_verts = np.asarray(hold_verts)
+                # hold_verts = np.asarray(hold_verts)
 
             ecm_verts_2.append(hold_verts)
 
         self.ecm_verts = ecm_verts_2
 
+        #--------------------------------------------------------------------------------------------------------
+
         # next redefine the set of unique vertex points from ecm_verts arrangement
-        ecm_verts_flat,_,_ = tb.flatten(self.ecm_verts)
+        ecm_verts_flat, _, _ = tb.flatten(self.ecm_verts)
 
         ecm_verts_set = set()
 
         for vert in ecm_verts_flat:
             ptx = vert[0]
             pty = vert[1]
-            ecm_verts_set.add((ptx,pty))
+            ecm_verts_set.add((ptx, pty))
 
         self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
 
@@ -490,7 +499,7 @@ class Cells(object):
 
         self.cell_centres = np.delete(self.cell_centres, 0, 0)
 
-    def cellVerts(self,p):
+    def cellVerts(self,p):  # FIXME this function needs to be split up
         """
         Calculate the true vertices of each individual cell from the extracellular matrix (ecm) vertices
         of the closed & clipped Voronoi diagram.
@@ -574,7 +583,7 @@ class Cells(object):
                 surfa.append(lgth)
 
                 tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)
+                tang = tang_a/np.linalg.norm(tang_a)    # FIXME some tang_a are zero, which means some points are equal...
                 # normal = np.array([-tang[1],tang[0]])
                 normal = np.array([tang[1],-tang[0]])
                 cv_x.append(mid[0])
@@ -646,34 +655,36 @@ class Cells(object):
 
         self.cell_sa = np.asarray(self.cell_sa)
 
+
+
         #----------------MATRIX CALCULATIONs----------------------------------------
         logs.log_info('Creating computational matrices for cell-cell transfers... ')
 
         # define matrix for updating cells with fluxes from membranes:
-        if self.worldtype == 'full':
+        # if self.worldtype == 'full':
 
-            cellVertTree = sps.KDTree(self.mem_verts)
+        cellVertTree = sps.KDTree(self.mem_verts)
 
-            # first create a map from flattened mem midpoints to corresponding edge points of mem segment:
-            self.index_to_mem_verts = []
-            for cell_nest in mem_edges:
-                for mem_points in cell_nest:
-                    pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
-                    pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
-                    self.index_to_mem_verts.append([pt_ind1,pt_ind2])
-            self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
+        # first create a map from flattened mem midpoints to corresponding edge points of mem segment:
+        self.index_to_mem_verts = []
+        for cell_nest in mem_edges:
+            for mem_points in cell_nest:
+                pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
+                pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
+                self.index_to_mem_verts.append([pt_ind1,pt_ind2])
+        self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
 
-            # create a matrix that will map and interpolate data on mem mids to the mem verts
-            # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
-            self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
-            for i, indices in enumerate(self.index_to_mem_verts):
-                self.matrixMap2Verts[i,indices[0]]=1/2
-                self.matrixMap2Verts[i,indices[1]]=1/2
+        # create a matrix that will map and interpolate data on mem mids to the mem verts
+        # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
+        self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
+        for i, indices in enumerate(self.index_to_mem_verts):
+            self.matrixMap2Verts[i,indices[0]]=1/2
+            self.matrixMap2Verts[i,indices[1]]=1/2
 
-            self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
-
-            for i, cell_index in enumerate(self.mem_to_cells):
-                self.cell_UpdateMatrix[i,cell_index] = 1
+        # self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))  # FIXME we no longer need this!
+        #
+        # for i, cell_index in enumerate(self.mem_to_cells):
+        #     self.cell_UpdateMatrix[i,cell_index] = 1
 
         # matrix for summing property on membranes for each cell and a count of number of mems per cell:
         self.M_sum_mems = np.zeros((len(self.cell_i),len(self.mem_i)))
@@ -690,6 +701,10 @@ class Cells(object):
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
         self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
+
+        # construct pie-slice style volumes for each membrane:
+        self.mem_vol = (self.mem_sa / self.cell_sa[self.mem_to_cells]) * self.cell_vol[self.mem_to_cells]
+        # self.mem_vol = (1 / self.num_mems[self.mem_to_cells]) * self.cell_vol[self.mem_to_cells]
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
@@ -745,6 +760,30 @@ class Cells(object):
                         mem_nn[i] =[]
                         mem_nn[i].append(i)
                         mem_nn[i].append(i)
+
+
+        # mem_tx vectors aren't orthogonal to membranes, so need to be modified-----------------------------------------
+        # get normal component to membrane via dot product
+        txy = self.mem_tx * self.mem_vects_flat[:, 2] + self.mem_ty * self.mem_vects_flat[:, 3]
+
+        # reassign components as normal to membrane
+        txo = txy * self.mem_vects_flat[:, 2]
+        tyo = txy * self.mem_vects_flat[:, 3]
+
+        # renormalize the vector
+        t_norm = np.sqrt(txo ** 2 + tyo ** 2)
+
+        inds_zilch = (t_norm != 0.0).nonzero()
+
+        txo[inds_zilch] = txo[inds_zilch] / t_norm[inds_zilch]
+        tyo[inds_zilch] = tyo[inds_zilch] / t_norm[inds_zilch]
+
+        # reassign to mem_tx, mem_ty
+        self.mem_tx = txo[:]
+        self.mem_ty = tyo[:]
+
+
+        #---------------------------------------------------------------------------------------------------------------
 
         self.mem_nn = np.asarray(mem_nn)
 
@@ -825,114 +864,10 @@ class Cells(object):
         self.cell_number = self.cell_centres.shape[0]
         self.sim_ECM = p.sim_ECM
 
-    def short_cellVerts(self,p):
 
-        self.cell_verts = []
-
-        for centre,poly in zip(self.cell_centres,self.ecm_verts):
-
-            pt_scale = []
-            for vert in poly:
-                pt_zero = vert - centre
-                pt_scale.append(p.scale_cell*pt_zero + centre)
-            self.cell_verts.append(np.asarray(pt_scale))
-
-        self.cell_verts = np.asarray(self.cell_verts)
-
-        mem_edges = []  # storage for membrane edge points
-        mem_mids = []   # storage for membrane midpoints
-        self.mem_length = [] # storage for membrane length
-
-        # storage for various vector properties of membrane
-        cv_x=[]
-        cv_y=[]
-        cv_nx=[]
-        cv_ny=[]
-        cv_tx=[]
-        cv_ty=[]
-
-        for polyc in self.cell_verts:
-
-            # Next calculate individual membrane domains, midpoints, and vectors:
-            edge = []
-            mps = []
-            surfa = []
-
-            for i in range(0,len(polyc)):
-                pt1 = polyc[i-1]
-                pt2 = polyc[i]
-                pt1 = np.asarray(pt1)
-                pt2 = np.asarray(pt2)
-                edge.append([pt1,pt2])
-                mid = (pt1 + pt2)/2       # midpoint calculation
-                mps.append(mid.tolist())
-
-                lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
-                sa = lgth*p.cell_height    # surface area of membrane
-                surfa.append(lgth)
-
-                tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)
-                # normal = np.array([-tang[1],tang[0]])
-                normal = np.array([tang[1],-tang[0]])
-                cv_x.append(mid[0])
-                cv_y.append(mid[1])
-                cv_nx.append(normal[0])
-                cv_ny.append(normal[1])
-                cv_tx.append(tang[0])
-                cv_ty.append(tang[1])
-
-            mem_edges.append(edge)
-            mem_mids.append(mps)
-            self.mem_length.append(surfa)
-
-        self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
-
-        #---post processing and calculating peripheral structures-----------------------------------------------------
-
-        self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
-        self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
-
-        # convert mem_length into a flat vector
-        self.mem_length,_,_ = tb.flatten(self.mem_length)
-        self.mem_length = np.asarray(self.mem_length)
-
-        self.mem_sa = self.mem_length*p.cell_height
-
-        self.mem_edges_flat, _, _ = tb.flatten(mem_edges)
-        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
-
-        # create a flattened version of cell_verts that will serve as membrane verts:
-        self.mem_verts,_,_ = tb.flatten(self.cell_verts)
-        self.mem_verts = np.asarray(self.mem_verts)
-
-        # structures for plotting interpolated data and streamlines:
-        self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
-
-        #-----------------------------------------------------------------------------------------------------------
-
-        # if studying lateral movement of pumps and channels in membrane,
+        # ------------------------------------------------------------------------------------------------
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        if p.sim_eosmosis is True:
-            self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
-
-            for i, inds in enumerate(self.cell_to_mems):
-
-                inds = np.asarray(inds)
-
-                inds_p1 = np.roll(inds,1)
-                inds_n1 = np.roll(inds,-1)
-                inds_o = np.roll(inds,0)
-
-                dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
-                len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-                dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
-
-                tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
-                tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
-
-                self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
-                self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+        self.eosmo_tools(p)
 
     def near_neigh(self,p): # FIXME I think a problem with GJ lays here...
 
@@ -1159,14 +1094,6 @@ class Cells(object):
         #-----------------------------------------------------------
         # calculate the cluster masking matrix
         self.make_maskM(p)
-        #-------------------------------------------------------------------------
-        # if p.sim_ECM is True: FIXME we have new method and can hopefully delete this
-        #
-        #     # Create a matrix to update ecm from mem fluxes
-        #     self.ecm_UpdateMatrix = np.zeros((len(self.mem_i),len(self.xypts)))
-        #
-        #     for i, ecm_index in enumerate(self.map_mem2ecm):
-        #         self.ecm_UpdateMatrix[i,ecm_index] = 1
 
     def short_environment(self,p):
 
@@ -1214,7 +1141,8 @@ class Cells(object):
         '''
         # FIXME the connectors between cell centres are not always normal to the membrane segments for
         # the often highly irregular grid of BETSE. Therefore, need to multiply through by the membrane
-        # normal unit vectors, as defined in the supplement
+        # normal unit vectors, as defined in the supplement -- actually use mem_tx, mem_ty, the normals
+        # for the between cell fluxes!
 
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
@@ -1264,7 +1192,7 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
-    def maxwellCapMatrix(self,p):
+    def maxwellCapMatrix(self,p): # FIXME! Update this for new concs and vcell at mems method
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
@@ -1289,61 +1217,61 @@ class Cells(object):
 
         logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
 
-        data_length = len(self.cell_i) + len(self.ecm_mids)
+        data_length = len(self.mem_i) + len(self.ecm_mids)
         # define ranges within the total data length where we can
         # work with cell centres or ecm mids specifically:
-        self.cell_range_a = 0
-        self.cell_range_b = len(self.cell_i)
-        self.ecm_range_a = self.cell_range_b
-        self.ecm_range_b = len(self.ecm_mids) + len(self.cell_i)
+        self.mem_range_a = 0
+        self.mem_range_b = len(self.mem_i)
+        self.ecm_range_a = self.mem_range_b
+        self.ecm_range_b = len(self.ecm_mids) + len(self.mem_i)
 
         M_max_cap = np.zeros((data_length, data_length))
 
         # first do cells -- where index of Maxwell vector is equal to cell index
-        for cell_i in range(self.cell_range_a, self.cell_range_b):
+        for mem_i in range(self.mem_range_a, self.mem_range_b):
 
-            mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
+            # mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
 
             #cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
 
-            cm_sum = np.sum(p.cm * self.mem_sa[mem_i_set])  # sum up the net capacitance for cell diagonal term
-            cs_sum = np.sum(p.electrolyte_screening*self.mem_sa[mem_i_set]) # calculate self-capacitance
+            cm_mem = p.cm * self.mem_sa[mem_i]  # capacitance for cell diagonal term
+            cs_mem = p.electrolyte_screening*self.mem_sa[mem_i] # calculate self-capacitance
 
             # get the ecm spaces for each membrane
             # we must add on the cells data length to make these indices of the max cap vector and matrix:
-            ecm_i_set = self.mem_to_ecm_mids[mem_i_set] + len(self.cell_i)
+            ecm_i_set = self.mem_to_ecm_mids[mem_i] + len(self.mem_i)
 
             # set the diagonal element for cells:
             # M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
-            M_max_cap[cell_i,cell_i] = cm_sum + cs_sum # plus self-capacitance
+            M_max_cap[mem_i,mem_i] = cm_mem + cs_mem # membrane plus self-capacitance
 
             # set the off-diagonal elements for cells:
             # M_max_cap[cell_i,ecm_i_set] = -p.cm
-            M_max_cap[cell_i,ecm_i_set] = -p.cm*self.mem_sa[mem_i_set]
+            M_max_cap[mem_i,ecm_i_set] = -p.cm*self.mem_sa[mem_i]
 
         # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
         for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
 
-            ecm_i_o = ecm_i - len(self.cell_i)  # get the true ecm index wrt to the cell world
+            ecm_i_o = ecm_i - len(self.mem_i)  # get the true ecm index wrt to the cell world
 
             mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of mem inds corresponding to each ecm space
 
             cm = p.cm*self.mem_sa[mem_pair[0]]  # get the capacitance of the individual membrane
-            cs = 2*p.electrolyte_screening*self.mem_sa[mem_pair[0]]  # get the self-capacitance of the ecm space
+            cs = p.electrolyte_screening*self.mem_sa[mem_pair[0]]  # get the self-capacitance of the ecm space
 
-            cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
-            cell_k = self.mem_to_cells[mem_pair[1]]
+            # cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
+            # cell_k = self.mem_to_cells[mem_pair[1]]
 
-            if cell_j == cell_k:  # then we're on a boundary
+            if mem_pair[0] == mem_pair[1]:  # then we're on a boundary
 
                 M_max_cap[ecm_i,ecm_i] = cm + cs # plus self capacitance
-                M_max_cap[ecm_i,cell_j] = -cm
+                M_max_cap[ecm_i,mem_pair[0]] = -cm
 
 
             else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm  + cs # plus self capacitance
-                M_max_cap[ecm_i,cell_j] = -cm
-                M_max_cap[ecm_i,cell_k] = -cm
+                M_max_cap[ecm_i,ecm_i] = 2*cm  + 2*cs # plus self capacitance
+                M_max_cap[ecm_i,mem_pair[0]] = -cm
+                M_max_cap[ecm_i,mem_pair[1]] = -cm
 
         # get the inverse of the matrix:
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
@@ -1440,17 +1368,18 @@ class Cells(object):
         self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
 
         # calculate matrix for gj divergence of the flux calculation -- this is now simply a sum over nn values:
-        self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))
-
-        for cell_i, i_mem_set in enumerate(self.cell_to_mems):
-
-            for i_mem in i_mem_set:
-
-                j_mem = self.nn_i[i_mem]  # get the neighbouring membrane for this cell's membrane
-
-                if i_mem != j_mem: # if we're not on a neighbourless boundary membrane...
-
-                    self.gjMatrix[cell_i,i_mem] = 1
+        # # FIXME -- we won't need gjMatrix if we switch to membrane-specific concentrations and voltages
+        # self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))
+        #
+        # for cell_i, i_mem_set in enumerate(self.cell_to_mems):
+        #
+        #     for i_mem in i_mem_set:
+        #
+        #         j_mem = self.nn_i[i_mem]  # get the neighbouring membrane for this cell's membrane
+        #
+        #         if i_mem != j_mem: # if we're not on a neighbourless boundary membrane...
+        #
+        #             self.gjMatrix[cell_i,i_mem] = 1
 
         # the nnAveMatrix will take a property defined from two cells onto a single gap junction and average
         # the property to provide one unique result:
@@ -1929,14 +1858,17 @@ class Cells(object):
 
             dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
             len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-            dist_sign = np.sign(self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1])
 
-            tangx = (self.mem_vects_flat[inds_p1,4] + self.mem_vects_flat[inds_n1,4])/2
-            tangy = (self.mem_vects_flat[inds_p1,5] + self.mem_vects_flat[inds_n1,5])/2
+            tangx = self.mem_vects_flat[inds_o,4]
+            tangy = self.mem_vects_flat[inds_o,5]
 
-            if len_mem.all() != 0 and dist_sign.all() != 0:
 
-                self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign[:,0]) + 1*(tangy/dist_sign[:,1]))/len_mem
-                self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign[:,0]) - 1*(tangy/dist_sign[:,1]))/len_mem
+            dist_sign = np.sign(dist[:,0]*tangx + dist[:,1]*tangy)
+
+
+            # if len_mem.all() != 0 and dist_sign.all() != 0:
+
+            self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign) + 1*(tangy/dist_sign))/(len_mem.mean()/2)
+            self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign) - 1*(tangy/dist_sign))/(len_mem.mean()/2)
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------

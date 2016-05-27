@@ -24,7 +24,7 @@ def get_current(sim, cells, p):
     for flux_array, zi in zip(sim.fluxes_mem, sim.zs):
         I_i = flux_array * zi * p.F * cells.mem_sa
 
-        sim.I_mem = sim.I_mem + I_i
+        sim.I_mem = sim.I_mem + I_i   # FIXME reimplement transmembrane current plots elsewhere..!
 
 
     # divide final result by membrane surface area to obtain a component of current density
@@ -47,25 +47,29 @@ def get_current(sim, cells, p):
 
         J_gj_y_o = J_gj_y_o + J_i_y
 
-    # get the normal component to each cell membrane:
-    J_gj = J_gj_x_o * cells.mem_vects_flat[:, 2] + J_gj_y_o * cells.mem_vects_flat[:, 3]
 
-    # total current density for each cell membrane (positive current travels *out* of cell):
-    sim.J_mem = J_gj + J_trans_mem
+    sim.J_gj_x_o = J_gj_x_o  # FIXME clean up these numerous iterations of currents!
+    sim.J_gj_y_o = J_gj_y_o
 
-    # components:
-    J_mem_x = sim.J_mem * cells.mem_vects_flat[:,2]
-    J_mem_y = sim.J_mem * cells.mem_vects_flat[:,3]
+    # total current density across the membranes:
+
+    sim.J_mem_x = J_gj_x_o + J_trans_mem*cells.mem_vects_flat[:,2]
+    sim.J_mem_y = J_gj_y_o + J_trans_mem*cells.mem_vects_flat[:,3]
+
+    # net current through the cell:
+    sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x)/cells.num_mems
+    sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y)/cells.num_mems
+
 
     # interpolate these to the grid so we have something to plot. FIXME deal with these later, don't interp, plot
     # the actual J_mem at the membranes!
 
-    sim.J_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_mem_x,(cells.X,cells.Y),
+    sim.J_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_gj_x_o,(cells.X,cells.Y),
                                   method=p.interp_type,fill_value=0)
 
     # sim.J_gj_x = np.multiply(sim.J_gj_x,cells.maskECM)
 
-    sim.J_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_mem_y,(cells.X,cells.Y),
+    sim.J_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),J_gj_y_o,(cells.X,cells.Y),
                                   method=p.interp_type,fill_value=0)
 
 

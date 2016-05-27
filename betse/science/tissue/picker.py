@@ -106,7 +106,7 @@ class TissuePickerAll(TissuePicker):
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
         # If either not simulating *OR* ignoring extracellular spaces, get cell indices only
-        if p.sim_ECM is False or ignoreECM is True:
+        if ignoreECM is True:
             target_inds = cells.cell_i
 
         # Else, simulate extracellular spaces
@@ -199,7 +199,7 @@ class TissuePickerBitmap(TissuePicker):
         target_inds = bitmask.good_inds
 
         # If simulating electromagnetism and at least one cell matches...
-        if p.sim_ECM is True and ignoreECM is False and len(target_inds):
+        if ignoreECM is False and len(target_inds):
             target_inds = cells.cell_to_mems[target_inds]
             target_inds,_,_ = toolbox.flatten(target_inds)
 
@@ -262,7 +262,7 @@ class TissuePickerIndices(TissuePicker):
         assert types.is_bool(ignoreECM), types.assert_not_bool(ignoreECM)
 
         # If either not simulating *OR* ignoring extracellular spaces, get cell indices only.
-        if p.sim_ECM is False or ignoreECM is True:
+        if ignoreECM is True:
             target_inds = self.indices
 
         # Else, if simulating extracellular spaces get membrane indices as well.
@@ -320,7 +320,7 @@ class TissuePickerRandom(TissuePicker):
         target_inds_cell = [cells.cell_i[x] for x in range(0,data_fraction)]
 
         # If either not simulating *OR* ignoring extracellular spaces, get cell indices only:
-        if p.sim_ECM is False or ignoreECM is True:
+        if ignoreECM is True:
             target_inds = target_inds_cell
 
         # Else, if simulating extracellular spaces, get membrane indices:

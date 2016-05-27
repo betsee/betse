@@ -8,7 +8,7 @@ from scipy.ndimage.filters import gaussian_filter
 from betse.science import finitediff as fd
 
 
-def getFlow(sim, cells, p):
+def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     """
     Calculate the electroosmotic fluid flow in the cell and extracellular
     networks using Hagen–Poiseuille "pipe flow" equation.
@@ -138,7 +138,7 @@ def getFlow(sim, cells, p):
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
-    gP_x = gradP_react * cells.cell_nn_tx
+    gP_x = gradP_react * cells.cell_nn_tx  # FIXME is this pressure to cells.mem_tx or cell_nn_tx?
     gP_y = gradP_react * cells.cell_nn_ty
 
     sim.u_gj_x = u_gj_xo - gP_x

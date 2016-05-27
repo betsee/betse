@@ -618,38 +618,37 @@ def ghk_calculator(sim, cells, p):
 
     for i, z in enumerate(sim.zs):
 
+        # tag as anion or cation
         ion_type = np.sign(z)
+
+        # average values from membranes or environment to cell centres:
+        Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
+        conc_cells = np.dot(cells.M_sum_mems, sim.cc_cells[i]) / cells.num_mems
+
+        if p.sim_ECM is True:
+            # average entities from membranes to the cell centres:
+            conc_env = np.dot(cells.M_sum_mems, sim.cc_env[i][cells.map_mem2ecm]) / cells.num_mems
+
+        else:
+
+            conc_env = np.dot(cells.M_sum_mems, sim.cc_env[i]) / cells.num_mems
 
         if ion_type == -1:
 
-            if p.sim_ECM is True:
+            sum_PmAnion_in = sum_PmAnion_in + Dm * conc_cells * (1 / p.tm)
+            sum_PmAnion_out = sum_PmAnion_out + Dm * conc_env * (1 / p.tm)
 
-                Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
-
-                sum_PmAnion_in = sum_PmAnion_in + Dm * sim.cc_cells[i] * (1 / p.tm)
-                sum_PmAnion_out = sum_PmAnion_out + Dm * sim.cc_env[i][cells.map_cell2ecm] * (1 / p.tm)
-
-            else:
-                sum_PmAnion_in = sum_PmAnion_in + sim.Dm_cells[i] * sim.cc_cells[i] * (1 / p.tm)
-                sum_PmAnion_out = sum_PmAnion_out + sim.Dm_cells[i] * sim.cc_env[i] * (1 / p.tm)
 
         if ion_type == 1:
 
-            if p.sim_ECM is True:
+            sum_PmCation_in = sum_PmCation_in + Dm * conc_cells * (1 / p.tm)
+            sum_PmCation_out = sum_PmCation_out + Dm * conc_env * (1 / p.tm)
 
-                Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
-
-                sum_PmCation_in = sum_PmCation_in + Dm * sim.cc_cells[i] * (1 / p.tm)
-                sum_PmCation_out = sum_PmCation_out + Dm * sim.cc_env[i][cells.map_cell2ecm] * (1 / p.tm)
-
-            else:
-                sum_PmCation_in = sum_PmCation_in + sim.Dm_cells[i] * sim.cc_cells[i] * (1 / p.tm)
-                sum_PmCation_out = sum_PmCation_out + sim.Dm_cells[i] * sim.cc_env[i] * (1 / p.tm)
 
     sim.vm_GHK = ((p.R * sim.T) / p.F) * np.log(
         (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
 
-def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
+def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
                  Km_ATP=1.0):
 
 
@@ -699,7 +698,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, z=0, pump_into_cell =False
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_cell = cX_cell_o[cells.mem_to_cells]
+        cX_cell = cX_cell_o[:]
 
     else:
         cX_env = cX_env_o[:]
@@ -756,7 +755,11 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, z=0, pump_into_cell =False
 
         f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
-    cX_cell_1, cX_env_1 = sim.update_Co(cX_cell_o, cX_env_o, f_X, cells, p)
+    # update cell and environmental concentrations
+    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p)
+
+    # next electrodiffuse concentrations around the cell interior:
+    cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
 
     # ensure that there are no negative values
     cX_cell_1 = no_negs(cX_cell_1)
@@ -801,7 +804,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_cell = cX_cell_o[cells.mem_to_cells]
+        cX_cell = cX_cell_o[:]
 
 
     else:
@@ -816,7 +819,10 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     # update concentrations due to electrodiffusion:
 
-    cX_cell_o1, cX_env_o1 = sim.update_Co(cX_cell_o, cX_env_o, f_X_ED, cells, p)
+    cX_cell_o1, cX_env_o1 = update_Co(sim, cX_cell_o, cX_env_o, f_X_ED, cells, p)
+
+    # electrodiffuse intracellular concentrations
+    cX_cell_o1 = update_intra(sim, cells, cX_cell_o1, Do, z, p)
 
     # ------------------------------------------------------------
 
@@ -825,16 +831,16 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     # Intracellular voltage gradient:
     grad_vgj = sim.vgj / cells.gj_len
 
-    grad_vgj_x = grad_vgj * cells.cell_nn_tx
-    grad_vgj_y = grad_vgj * cells.cell_nn_ty
+    grad_vgj_x = grad_vgj * cells.mem_vects_flat[:,2]
+    grad_vgj_y = grad_vgj * cells.mem_vects_flat[:,3]
 
     # Intracellular concentration gradient for molecule X:
     cX_mems = cX_cell_o1[cells.mem_to_cells]
 
     grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
-    grad_cgj_x = grad_cgj * cells.cell_nn_tx
-    grad_cgj_y = grad_cgj * cells.cell_nn_ty
+    grad_cgj_x = grad_cgj * cells.mem_vects_flat[:,2]
+    grad_cgj_y = grad_cgj * cells.mem_vects_flat[:,3]
 
     # midpoint concentration:
     cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
@@ -854,12 +860,16 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     fgj_x_X, fgj_y_X = nernst_planck_flux(cX_mids, grad_cgj_x, grad_cgj_y, grad_vgj_x, grad_vgj_y, ux, uy,
         Do * sim.gjopen, z, sim.T, p)
 
-    fgj_X = fgj_x_X * cells.cell_nn_tx + fgj_y_X * cells.cell_nn_ty
+    fgj_X = fgj_x_X * cells.mem_vects_flat[:,2] + fgj_y_X * cells.mem_vects_flat[:,3]
 
     # divergence calculation for individual cells (finite volume expression)
-    delta_cc = np.dot(cells.gjMatrix * p.gj_surface * sim.gjopen, -fgj_X * cells.mem_sa) / cells.cell_vol
+    # delta_cc = np.dot(cells.gjMatrix, -fgj_X * cells.mem_sa) / cells.cell_vol
+    delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
     cX_cell_1 = cX_cell_o1 + p.dt * delta_cc
+
+    # electrodiffuse intracellular concentrations
+    cX_cell_1 = update_intra(sim, cells, cX_cell_1, Do, z, p)
 
     # Transport dye through environment, if p.sim_ECM is True-----------------------------------------------------
 
@@ -934,7 +944,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv, bounds=btag)
 
-        # calculate fluxes for electrodiffusive transport:
+        # calculate fluxes for electrodiffusive transport in environment:
 
         if p.fluid_flow is True:
 
@@ -1021,3 +1031,128 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         fenvy = 0
 
     return cX_cell_1, cX_env_1, f_X_ED, fgj_x_X, fgj_y_X, fenvx, fenvy
+
+
+def update_Co(sim, cX_cell, cX_env, flux, cells, p):
+    """
+
+    General updater for a concentration defined on
+    cells and in environment.
+
+    Parameters
+    --------------
+    cX_cell     Concentration inside cell  [mol/m3]
+    cX_env      Concentration in extracellular spaces [mol/m3]
+    flux        Flux of X, where into cell is +   [mol/m2 s]
+    cells       Instance of Cells
+    p           Instance of Parameters
+
+    Returns
+    --------------
+    cX_cell     Updated concentration in cell [mol/m3]
+    cX_env      Updated concentration in environment [mol/m3]
+
+    """
+
+    if p.sim_ECM is True:
+
+        delta_cells = flux * (cells.mem_sa / cells.mem_vol)
+
+        # delta_cells = np.dot(d_c_cells, cells.cell_UpdateMatrix)
+
+
+        # interpolate the flux from mem points to the ENV GRID:
+        flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
+            -flux, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+            fill_value=0)
+
+        # save values at the cluster boundary:
+        bound_vals = flux_env[cells.ecm_bound_k]
+
+        # set the values of the global environment to zero:
+        flux_env[cells.inds_env] = 0
+
+        # finally, ensure that the boundary values are restored:
+        flux_env[cells.ecm_bound_k] = bound_vals
+
+        # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
+        # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
+        # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
+
+        delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
+
+        # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
+
+        # update the concentrations:
+        cX_cell = cX_cell + delta_cells * p.dt
+        cX_env = cX_env + delta_env * p.dt
+
+    else:
+
+        delta_cells = flux * (cells.mem_sa / cells.mem_vol)
+        delta_env = -flux * (cells.mem_sa / p.vol_env)
+
+        cX_cell = cX_cell + delta_cells * p.dt
+
+        cX_env_o = cX_env + delta_env * p.dt
+
+        # assume auto-mixing of environmental concentrations:
+        cX_env[:] = cX_env_o.mean()
+
+    return cX_cell, cX_env
+
+
+def update_intra(sim, cells, cX_cell, D_x, zx, p):
+    """
+    Perform electrodiffusion on intracellular vertices
+    to update concentration around the cell interior
+    in response to interior voltage and concentration
+    gradients, in addition to any electroosmotic flows.
+
+    """
+
+    # x and y components of membrane tangent unit vectors
+    tx = cells.mem_vects_flat[:, 4]
+    ty = cells.mem_vects_flat[:, 5]
+
+    # tangential components of fluid flow velocity at the membrane, if applicable:
+    if p.fluid_flow is True and p.run_sim is True:
+        # get intracellular fluid flow tangent to membrane midpoints
+        # map total cell fluid flow vector (defined at cell centre) to
+        # each of the membrane midpoints:
+        ux_mem = sim.u_cells_x[cells.mem_to_cells]
+        uy_mem = sim.u_cells_y[cells.mem_to_cells]
+
+        # tangential component of fluid velocity at membrane:
+        u_tang = ux_mem * tx + uy_mem * ty
+
+    else:
+        u_tang = 0
+
+    # get the gradient of rho concentration around each membrane:
+    grad_c = np.dot(cells.gradMem, cX_cell)
+
+    # --------------------------------------------------------------------------------------------------------
+
+    # get the tangential voltage gradient at each membrane from net intracellular current
+    grad_v = np.dot(cells.gradMem, sim.v_cell)
+
+    # -----------------------------------------------------------------------------------------------------
+
+    # calculate the total Nernst-Planck flux at each membrane:
+
+    flux_intra = -D_x * grad_c + u_tang * cX_cell - \
+                 ((zx * D_x * p.F) / (p.R * sim.T)) * cX_cell * grad_v
+
+    # divergence of the total flux:
+
+    divF_intra = np.dot(cells.gradMem, -flux_intra)
+
+    cX_cell = cX_cell + divF_intra * p.dt
+
+    # ------------------------------------------------
+    # make sure nothing is non-zero:
+    fix_inds = (cX_cell < 0).nonzero()
+    cX_cell[fix_inds] = 0
+
+    return cX_cell
