@@ -14,7 +14,7 @@ configurations, including:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.func.fixture.sim import configapi
+from betse_test.func.fixture.sim import state
 from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
@@ -34,7 +34,7 @@ from pytest import fixture
 def betse_sim_config_default(
     request: '_pytest.python.FixtureRequest',
     tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> 'SimTestConfig':
+) -> 'SimTestState':
     '''
     Context manager-driven fixture creating a temporary default simulation
     configuration _and_ returning a test-specific object encapsulating this
@@ -52,7 +52,7 @@ def betse_sim_config_default(
 
     Returns
     ----------
-    SimTestConfig
+    SimTestState
         Test-specific object encapsulating this simulation configuration file.
 
     See Also
@@ -62,11 +62,11 @@ def betse_sim_config_default(
     '''
 
     # Test-specific object encapsulating this simulation configuration file.
-    sim_config = configapi.make(request, tmpdir_factory)
+    sim_state = state.make(request, tmpdir_factory)
 
     # Write the default configuration to disk with only the requisite
     # modifications performed by this fixture (e.g., disabling interactivity).
-    sim_config.config.overwrite()
+    sim_state.config.overwrite()
 
     # Return this encapsulation object.
-    return sim_config
+    return sim_state

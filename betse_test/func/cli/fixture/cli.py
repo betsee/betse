@@ -70,7 +70,7 @@ copies) into the current Python environment or not.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import objects
-from betse_test.func.cli.fixture.commandapi import CLITestRunner
+from betse_test.func.cli.fixture.cliapi import CLITestRunner
 from betse_test.util import requests
 from pytest import fixture
 

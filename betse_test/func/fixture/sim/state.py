@@ -20,7 +20,7 @@ from betse.util.type import strs, types
 from betse_test.util import requests
 
 # ....................{ CLASSES                            }....................
-class SimTestConfig(object):
+class SimTestState(object):
     '''
     Simulation configuration context encapsulating simulation configuration,
     state, and metadata.
@@ -93,23 +93,6 @@ class SimTestConfig(object):
         return dirs.current(self.config.dirname)
 
 # ....................{ MAKERS                             }....................
-#FIXME: Conditionally delete all temporary directories if and only if all
-#tests requiring those directories succeeded. Since we have idea how to safely
-#implement this, at the moment, temporary directories are *NOT* currently
-#automatically deleted. When the are, add the following documentation to the
-#fixture docstring below:
-#
-#    "This temporary directory will be recursively deleted on completion of this
-#     test session _without_ requiring manual intervention (e.g., via
-#     finalizers) from any other fixtures or tests."
-#
-#The simplest means of implementing this would probably be to redeclare the
-#"_betse_sim_config" fixture using the @pytest.yield_fixture decorator,
-#which is bar-none the simplest means of implementing this sort of "teardown"
-#logic safely and efficiently. See:
-#
-#    http://pytest.org/latest/yieldfixture.html
-
 # To force this fixture to return a new object for all parent fixtures, this
 # fixture is declared with default scope (i.e., test).
 
@@ -124,7 +107,7 @@ class SimTestConfig(object):
 def make(
     request: '_pytest.python.FixtureRequest',
     tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> 'SimTestConfig':
+) -> 'SimTestState':
     '''
     Create a temporary simulation configuration specific to the parent fixture
     _and_ return a test-specific object encapsulating this configuration.
@@ -167,7 +150,7 @@ def make(
 
     Returns
     ----------
-    SimTestConfig
+    SimTestState
         Test-specific object encapsulating a temporary simulation configuration
         file specific to the parent fixture.
 
@@ -207,4 +190,4 @@ def make(
     sim_config_filepath = sim_config_dirpath.join('sim_config.yaml')
 
     # Create and return a test-specific object encapsulating this file.
-    return SimTestConfig(config_filepath=sim_config_filepath)
+    return SimTestState(config_filepath=sim_config_filepath)

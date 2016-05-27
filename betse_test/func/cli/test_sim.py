@@ -47,6 +47,46 @@ from betse_test.mark.skip import skip
 #   by simply using "./test -k". Great!
 #
 #In short, this is the way forward.
+#FIXME: There are numerous issues with the parametrization approach, including:
+#* Interpameter dependencies. How do we ensure that a prior parameter is run
+#  before the current parameter to be run? For example, if the user runs "./test
+#  -k test_cli_sim_default[plot_sim]", then how do we ensure that the "sim"
+#  parameter is run first? While it probably would be feasible to extend hpk42's
+#  class-based approach to parameters, it hardly seems worthwhile.
+#* Phase xfailing. Under the parameter approach, how would be mark an individual
+#  phase of a simulation configuration -- say, "plot_sim", as xfailing? We have
+#  no idea.
+#
+#In short, a class approach appears to make considerably more sense.
+#FIXME: Let's a-go:
+#
+#* Define a new "CLISimTesterABC" base class inheriting
+#  "betse_test.util.testabc.SerialTestABC".
+#* In "CLISimTesterABC", define one method for each prospective phase requiring
+#  a "betse_cli" fixture: e.g.,
+#      def test_cli_sim_plot_sim(self, betse_cli) -> None:
+#  Each such method should access the new "self.sim_state" attribute. See below.
+#* Set "CLISimTesterABC.__test__ = False" to force these methods to be ignored.
+#* Define a new "CLISimDefaultTester" subclass inheriting "CLISimTesterABC".
+#* Set "CLISimDefaultTester.__test__ = True" to unignore these methods.
+#* The only question then becomes: what becomes of the
+#  "betse_sim_config_default" fixture? The simple solution might be to:
+#  * Refactor "betse_sim_config_default" into an autouse-style class fixture
+#    defined in "CLISimDefaultTester". On execution, this fixture should add a
+#    new "cls.sim_state" attribute refering to the returned fixture object. In
+#    theory, test methods may then access this attribute.
+#  * The only question then becomes: how does "CLITestRunner" inspect for the
+#    "betse_sim_config_default" fixture? Specifically, are fixtures that are
+#    implicitly run as autouse added to the "request.fixturenames" list? We
+#    strongly suspect the answer is *YES*, thank Odin.
+#FIXME: This is a fairly heavyweight approach. From that perspective, the
+#parameters- based approach would certainly be preferable. My reasoning for
+#preferring the class- to parameters-based approach were fairly flimsy, frankly.
+#The only question then becomes: can we refactor the existing
+#"betse_test.conftest" hooks to support parameters-based serial testing?
+#FIXME: Disable "betse_setup.test" integration with the "pytest-xdist" plugin,
+#which sadly fails to support isolation of tests to slaves (as required for
+#serial test execution).
 
 def test_cli_sim_default(
     betse_cli, betse_sim_config_default) -> None:
@@ -57,7 +97,7 @@ def test_cli_sim_default(
     ----------
     betse_cli : CLITestRunner
         Test-specific object encapsulating the BETSE CLI.
-    betse_sim_config : SimTestConfig
+    betse_sim_config : SimTestState
         Test-specific object encapsulating this simulation configuration file.
     '''
 

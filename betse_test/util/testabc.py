@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+
+'''
+Abstract base classes (ABCs) globally applicable to all tests.
+'''
+
+# ....................{ IMPORTS                            }....................
+from abc import ABCMeta  #, abstractmethod
+
+# ....................{ CLASSES                            }....................
+class SerialTestABC(metaclass=ABCMeta):
+    '''
+    Abstract base class running all test methods defined by this concrete
+    subclass **serially** (i.e., in the order in which this subclass declares
+    these test such that subsequently declared tests depend on the success of
+    all previously declared tests).
+
+    On the first failure of such a test, all subsequent such tests will be
+    automaticaly marked as xfailing (i.e., failing _without_ being run).
+
+    The majority of the black magic required by this class is implemented as
+    low-level py.test hooks in the top-level `betse_func.conftest` plugin.
+
+    Attributes
+    ----------
+    _first_failure_method_name : str
+        Unqualified name of the first failing test method (i.e., method whose
+        execution raised an exception) declared by this subclass for the current
+        test session if any such method failed _or_ `None` otherwise (i.e., if
+        no such methods have yet to fail).
+    '''
+
+
+    def __init__(self) -> None:
+        '''
+        Initialize this abstract base class.
+        '''
+
+        self._first_failure_method_name = None
+
+    # ..................{ INITIALIZERS                       }..................
+    @staticmethod
+    def is_test_serial(item: 'pytest.main.Item') -> bool:
+        '''
+        `True` only if the passed test callable is **serial** (i.e., a method of
+        a subclass of this class).
+
+        Serial methods are intended to be run in test method declaration order,
+        such that subsequently declared test methods depend on the success of
+        all previously declared test methods.
+
+        Parameters
+        ----------
+        item : pytest.main.Item
+            Metadata encapsulating this test callable (e.g., function, method).
+
+        Returns
+        ----------
+        bool
+            `True` only if this test is serial.
+        '''
+
+        # Class of this test callable if this callable is a method or "None".
+        test_class = item.parent.cls
+
+        # If this callable is a method intended to be run serially (i.e., in
+        # test method declaration order such that subsequently declared tests
+        # depend on the success of all previously declared tests)...
+        return not test_class is None and issubclass(test_class, SerialTestABC)

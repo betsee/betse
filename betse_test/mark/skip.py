@@ -22,8 +22,8 @@ from _pytest.runner import Skipped
 # ....................{ SKIP ~ alias                       }....................
 skip_if = pytest.mark.skipif
 '''
-Skip the decorated test with the passed human-readable justification if the
-passed boolean is `False`.
+Conditionally skip the decorated test with the passed human-readable
+justification if the passed boolean is `False`.
 
 Parameters
 ----------
@@ -36,7 +36,8 @@ reason : str
 # ....................{ SKIP ~ module                      }....................
 def skip(reason: str):
     '''
-    Skip the decorated test with the passed human-readable justification.
+    Unconditionally skip the decorated test with the passed human-readable
+    justification.
 
     This decorator is intended to be called both directly as a function _and_
     indirectly as a decorator, which differs from both:

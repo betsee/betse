@@ -13,4 +13,4 @@ may reference these fixtures without explicit imports.
 '''
 
 # ....................{ IMPORTS ~ fixture                  }....................
-from betse_test.func.cli.fixture.command import betse_cli
+from betse_test.func.cli.fixture.cli import betse_cli

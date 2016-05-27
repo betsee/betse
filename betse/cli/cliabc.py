@@ -20,7 +20,7 @@ from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
 from betse.util.type import types
 
-# ....................{ CLASS                              }....................
+# ....................{ CLASSES                            }....................
 class CLIABC(metaclass=ABCMeta):
     '''
     Abstract command line interface (CLI) suitable for use by both CLI and GUI

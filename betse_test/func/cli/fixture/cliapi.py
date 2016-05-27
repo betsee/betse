@@ -13,6 +13,7 @@ from betse.util.command import exits
 from betse.util.type import types
 
 # ....................{ CLASSES                            }....................
+#FIXME: Rename to "CLITester" for conciseness.
 class CLITestRunner(object):
     '''
     BETSE interface test runner, efficiently testing the external command for
