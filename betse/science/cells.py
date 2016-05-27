@@ -1844,6 +1844,8 @@ class Cells(object):
 
         # if studying lateral movement of pumps and channels in membrane,
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        # returns gradient tangent to cell membrane
+
         self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
         for i, inds in enumerate(self.cell_to_mems):
@@ -1851,22 +1853,12 @@ class Cells(object):
             inds = np.asarray(inds)
 
             inds_p1 = np.roll(inds,1)
-            inds_n1 = np.roll(inds,-1)
             inds_o = np.roll(inds,0)
 
-            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_n1]
+            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
             len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
 
-            tangx = self.mem_vects_flat[inds_o,4]
-            tangy = self.mem_vects_flat[inds_o,5]
-
-
-            dist_sign = np.sign(dist[:,0]*tangx + dist[:,1]*tangy)
-
-
-            # if len_mem.all() != 0 and dist_sign.all() != 0:
-
-            self.gradMem[inds_o,inds_p1] = (1*(tangx/dist_sign) + 1*(tangy/dist_sign))/(len_mem.mean()/2)
-            self.gradMem[inds_o,inds_n1] = (-1*(tangx/dist_sign) - 1*(tangy/dist_sign))/(len_mem.mean()/2)
+            self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
+            self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
 #-----------WASTELANDS-------------------------------------------------------------------------------------------------

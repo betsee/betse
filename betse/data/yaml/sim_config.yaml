@@ -1062,13 +1062,13 @@ internal parameters:
 
   # default free diffusion constants (cytoplasmic)
 
-  Do_Na:  1.33e-10       # free diffusion constant sodium [m2/s]
-  Do_K:  1.96e-10        # free diffusion constant potassium [m2/s]
-  Do_Cl:  2.03e-10       # free diffusion constant chloride [m2/s]
-  Do_Ca:  1.0e-11        # free diffusion constant calcium [m2/s]
-  Do_H:  2.5e-10         # free diffusion constant hydrogen [m2/s]
-  Do_M:  1.0e-10         # free diffusion constant mystery anchor ion [m2/s]
-  Do_P:  5.0e-11        # free diffusion constant protein [m2/s]
+  Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
+  Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
+  Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
+  Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
+  Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
+  Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
+  Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
 
   # pump parameters
 
@@ -1084,11 +1084,11 @@ internal parameters:
 
   gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.8 to 2.
 
-  environment volume multiplier: 1.0    # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
+  environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  cytosolic delay factor: 1.0e-1       # level to delay intracellular transport (needed for larger time-steps) 1.0
+  cytosolic delay factor: 1.0e-1       # level to delay intracellular transport (needed for larger time-steps) 0.1
 
-  environmental delay factor: 1.0e-1    # level to delay environmental transport (needed to use larger time-steps) 1.0
+  environmental delay factor: 1.0e-1    # level to diminish environmental E field (needed to use larger time-steps) 0.1
 
   electrolyte screening factor: 0.86 # ~0.86 to 1.5 electrolyte double layer screening & self-capacitances [F/m5]
 

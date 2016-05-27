@@ -32,9 +32,13 @@ def eosmosis(sim, cells, p):
     else:
         u_tang = 0
 
+    # map rho pump and rho channel to cell vertices:
+    pump_at_verts = np.dot(sim.rho_pump, cells.matrixMap2Verts)
+    channel_at_verts = np.dot(sim.rho_channel, cells.matrixMap2Verts)
+
     # get the gradient of rho concentration around each membrane:
-    grad_c_p =  np.dot(cells.gradMem, sim.rho_pump)
-    grad_c_ch = np.dot(cells.gradMem, sim.rho_channel)
+    grad_c_p =  np.dot(cells.gradMem, pump_at_verts)
+    grad_c_ch = np.dot(cells.gradMem, channel_at_verts)
 
     # get the tangential electric field at each membrane
     if p.sim_ECM is True:
@@ -58,10 +62,27 @@ def eosmosis(sim, cells, p):
                 ((p.z_channel * p.D_membrane * p.F) / (p.R * p.T)) * sim.rho_channel * E_tang
 
 
-    # divergence of the total flux:
+    # divergence of the total flux via dfx/dx + dfy/dy:
+    # components of flux in x and y directions, mapped to cell verts:
+    # pumps:
+    gfx_p = np.dot(-flux_pump * tx, cells.matrixMap2Verts)
+    gfy_p = np.dot(-flux_pump * ty, cells.matrixMap2Verts)
 
-    divF_pump = np.dot(cells.gradMem,flux_pump)
-    divF_chan = np.dot(cells.gradMem, flux_chan)
+    ddfx_p = np.dot(cells.gradMem, gfx_p) * tx
+    ddfy_p = np.dot(cells.gradMem, gfy_p) * ty
+
+    divF_pump = ddfx_p + ddfy_p
+
+
+    gfx_ch = np.dot(-flux_chan * tx, cells.matrixMap2Verts)
+    gfy_ch = np.dot(-flux_chan * ty, cells.matrixMap2Verts)
+
+    ddfx_ch = np.dot(cells.gradMem, gfx_ch) * tx
+    ddfy_ch = np.dot(cells.gradMem, gfy_ch) * ty
+
+    divF_chan = ddfx_ch + ddfy_ch
+
+
 
     sim.rho_pump = sim.rho_pump - divF_pump * p.dt
     sim.rho_channel = sim.rho_channel - divF_chan * p.dt

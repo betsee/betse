@@ -1840,11 +1840,10 @@ class Simulator(object):
         # get the tangential voltage gradient at each membrane from net intracellular current
         # grad_v = np.dot(cells.gradMem, vm_at_verts)
 
-        # FIXME put media conductivity into params file
-
         # get component of intracellular current at the membrane times media resistivity:
         E_cell = p.media_sigma*self.J_cell_x[cells.mem_to_cells]*tx + \
                  p.media_sigma*self.J_cell_y[cells.mem_to_cells]*ty
+
         #-----------------------------------------------------------------------------------------------------
 
         # calculate the total Nernst-Planck flux at each membrane:
@@ -1854,19 +1853,22 @@ class Simulator(object):
                     ((self.zs[i] *p.cell_delay_const*self.D_free[i] * p.F)/(p.R * self.T))*self.cc_cells[i]*E_cell
 
 
-        # divergence of the total flux:
+        # divergence of the total flux via dfx/dx + dfy/dy:
+        # components of flux in x and y directions, mapped to cell verts:
+        gfx = np.dot(-flux_intra * tx, cells.matrixMap2Verts)
+        gfy = np.dot(-flux_intra * ty, cells.matrixMap2Verts)
 
-        divF_intra_o = np.dot(cells.gradMem, -flux_intra)
+        ddfx = np.dot(cells.gradMem, gfx)*tx
+        ddfy = np.dot(cells.gradMem, gfy)*ty
 
-        # map divergence to mids
-        divF_intra = np.dot(cells.matrixMap2Verts, divF_intra_o)
+        divF_intra = ddfx + ddfy
 
         self.cc_cells[i] = self.cc_cells[i] + divF_intra * p.dt
 
         # ------------------------------------------------
         # make sure nothing is non-zero:
-        fix_inds = (self.cc_cells[i] < 0).nonzero()
-        self.cc_cells[i][fix_inds] = 0
+        # fix_inds = (self.cc_cells[i] < 0).nonzero()
+        # self.cc_cells[i][fix_inds] = 0
 
     def update_gj(self,cells,p,t,i):
 

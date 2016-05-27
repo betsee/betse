@@ -1147,12 +1147,15 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     flux_intra = -D_x*p.cell_delay_const * grad_c + u_tang * c_at_verts + \
                  ((zx * D_x*p.cell_delay_const * p.F) / (p.R * sim.T)) * c_at_verts * E_cell
 
-    # divergence of the total flux:
+    # divergence of the total flux via dfx/dx + dfy/dy:
+    # components of flux in x and y directions, mapped to cell verts:
+    gfx = np.dot(-flux_intra * tx, cells.matrixMap2Verts)
+    gfy = np.dot(-flux_intra * ty, cells.matrixMap2Verts)
 
-    divF_intra_o = np.dot(cells.gradMem, -flux_intra)
+    ddfx = np.dot(cells.gradMem, gfx) * tx
+    ddfy = np.dot(cells.gradMem, gfy) * ty
 
-    # map divergence to mids
-    divF_intra = np.dot(divF_intra_o, cells.matrixMap2Verts)
+    divF_intra = ddfx + ddfy
 
     cX_cell = cX_cell + divF_intra * p.dt
 
