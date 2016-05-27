@@ -1965,7 +1965,7 @@ class Simulator(object):
         cenv = self.cc_env[i][:]
         # denv = self.D_env[i][:]
 
-        v_env = self.v_env[:].reshape(cells.X.shape)
+        v_env = p.env_delay_const*self.v_env[:].reshape(cells.X.shape)
 
         # enforce voltage at boundary:
         v_env[:,0] = self.bound_V['L']

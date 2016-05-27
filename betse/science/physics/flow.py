@@ -138,7 +138,7 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
-    gP_x = gradP_react * cells.cell_nn_tx  # FIXME is this pressure to cells.mem_tx or cell_nn_tx?
+    gP_x = gradP_react * cells.cell_nn_tx  # FIXME is this pressure to cells.mem_vects_flat[:,2/3]?
     gP_y = gradP_react * cells.cell_nn_ty
 
     sim.u_gj_x = u_gj_xo - gP_x

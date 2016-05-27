@@ -1144,10 +1144,6 @@ class Cells(object):
         self.lapGJ_P_inv       Solver for Poisson equation with Neumann (zero gradient) boundary
 
         '''
-        # FIXME the connectors between cell centres are not always normal to the membrane segments for
-        # the often highly irregular grid of BETSE. Therefore, need to multiply through by the membrane
-        # normal unit vectors, as defined in the supplement -- actually use mem_tx, mem_ty, the normals
-        # for the between cell fluxes!
 
         # zero-value fixed boundary version (Dirchlet condition)
         lapGJ = np.zeros((len(self.cell_i,), len(self.cell_i)))
@@ -1186,9 +1182,6 @@ class Cells(object):
                 # lapGJ[cell_i,cell_i] = lapGJ[cell_i,cell_i] - ave_mem*(1/(2*p.rc))*(1/vol)   # for fixed boundary
                 # lapGJ_P[cell_i,cell_i] = lapGJ_P[cell_i,cell_i] - ave_mem*(1/(2*p.rc))*(1/vol)
 
-        # lapGJ = (1/2)*lapGJ
-        # lapGJ_P = (1/2)*lapGJ_P
-
         self.lapGJinv = np.linalg.pinv(lapGJ)
         self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 
@@ -1197,7 +1190,7 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
-    def maxwellCapMatrix(self,p): # FIXME! Update this for new concs and vcell at mems method
+    def maxwellCapMatrix(self,p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
