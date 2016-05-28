@@ -168,7 +168,7 @@ general options:
 
 world options:
 
-  world size: 250e-6      # dimension of the square world space [m]
+  world size: 100e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 

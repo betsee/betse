@@ -55,10 +55,10 @@ def get_current(sim, cells, p):
     # First calculate rate of change of charge in cell:
     if len(sim.charge_cells_time) > 1:
 
-        d_rho_env = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
+        d_rho_cells = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
 
     else:
-        d_rho_env = np.zeros(len(cells.cell_i))
+        d_rho_cells = np.zeros(len(cells.cell_i))
 
     # Next, calculate the divergence of cell current density:
 
@@ -69,7 +69,7 @@ def get_current(sim, cells, p):
     div_Jmem = (np.dot(cells.M_sum_mems, J_mem_n * cells.mem_sa) / cells.cell_vol)
 
     # calculate the reaction potential required to counter-balance the flow field:
-    V_react = np.dot(cells.lapGJ_P_inv, div_Jmem + d_rho_env)
+    V_react = np.dot(cells.lapGJ_P_inv, div_Jmem + d_rho_cells)
 
     # calculate its gradient:
     gradV_react = (V_react[cells.cell_nn_i[:, 1]] - V_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)

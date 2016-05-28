@@ -193,7 +193,7 @@ class AnimCellsWhileSolving(AnimCells):
         #
         #Phew! That'll do it. No significant changes to "sim" required, which
         #is a gargantuan relief.
-        if not self._p.sim_ECM:  # FIXME why the feck do you do this as a double negative???!?!?!?!?
+        if not self._p.sim_ECM:
 
             # average the voltage to the cell centre
             # FIXME this is a temp change until we get this right

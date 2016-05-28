@@ -1438,8 +1438,8 @@ class Simulator(object):
             # total charge in cells:
             Qcells = (self.rho_cells*cells.mem_vol)
 
-            # total charge in environmental, scaled down to consider individual membrane regions:
-            sig_env = (self.rho_env * cells.ecm_vol) /(cells.mean_mems_per_envSquare)
+            # total charge in environment:
+            sig_env = (self.rho_env * cells.ecm_vol)*cells.mems_per_envSquare
             # sig_env = (self.rho_env * cells.ecm_vol)
 
             # interpolate charge from environmental grid to the ecm_mids:
@@ -2073,8 +2073,8 @@ class Simulator(object):
             self.zs[i],self.T,p)
 
         # minimize (slow) fluxes in the environment, if necessary:
-        f_env_x = p.env_delay_const * f_env_x
-        f_env_y = p.env_delay_const * f_env_y
+        # f_env_x = p.env_delay_const * f_env_x
+        # f_env_y = p.env_delay_const * f_env_y
 
         f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms
         f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
