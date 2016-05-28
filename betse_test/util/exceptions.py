@@ -23,3 +23,10 @@ class BetseTestFixtureException(BetseTestException):
     Fixture-specific test exception.
     '''
     pass
+
+
+class BetseTestHookException(BetseTestException):
+    '''
+    Hook-specific test exception.
+    '''
+    pass

@@ -12,6 +12,7 @@ _all_ test modules.
 
 # ....................{ IMPORTS                            }....................
 import pytest
+from betse_test.util.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture                  }....................
@@ -38,17 +39,43 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
         Official py.test code snippet inspiring this implementation.
     '''
 
-    # If this test callable is a method intended to be run serially (i.e., in
-    # test method declaration order such that subsequently declared test methods
-    # depend on the success of all previously declared test methods)...
-    if SerialTestABC.is_test_serial(item):
+    # If this is a parametrized test intended to be run serially, do so.
+    if 'serial_parametrized' in item.keywords:
+        # If this test is *NOT* parametrized, raise an exception.
+        if not hasattr(item, '_genid'):
+            raise BetseTestHookException(
+                'Unparametrized test "{}" marked as serial.'.format(item.name))
+
+        # Test callable (i.e., underlying function or method object).
+        test_callable = item.obj
+
+        # Unique identifier of the first failing parameters passed to this test
+        # if any or "None" otherwise.
+        first_failing_param_id = getattr(
+            test_callable, '_betse_first_failing_param_id', None)
+
+        # If any parameters passed to this test failed, mark these subsequently
+        # passed parameters as also xfailing.
+        if first_failing_param_id is not None:
+            pytest.xfail(
+                'Prior serial test parametrization "{}" failed.'.format(
+                    first_failing_param_id))
+    #FIXME: This should *REALLY* simply be implemented as a new @serial
+    #decorator, much like @serial_parametrized above.
+    # If this is an unparametrized test intended to be run serially, do so.
+    elif SerialTestABC.is_test_serial(item):
         # Object to which this test method is bound.
         test_instance = item.parent
 
-        # If a previously declared test method in this test method's class
-        # failed, mark this subsequently declared test as xfailing.
-        if test_instance._first_failure_method_name is not None:
-            pytest.xfail('prior serial test failed ({})'.format(
+        # Name of the first previously declared test method to fail in this test
+        # method's class if any or "None" otherwise.
+        first_failure_method_name = getattr(
+            test_instance, '_first_failure_method_name', None)
+
+        # If a previously declared test failed, mark this subsequently declared
+        # test as also xfailing.
+        if first_failure_method_name is not None:
+            pytest.xfail('Prior serial test "{}" failed.'.format(
                 test_instance._first_failure_method_name))
 
 
@@ -75,15 +102,23 @@ def pytest_runtest_makereport(
         Official py.test code snippet inspiring this implementation.
     '''
 
-    # If this test callable is a method intended to be run serially (i.e., in
-    # test method declaration order such that subsequently declared test methods
-    # depend on the success of all previously declared test methods)...
-    if SerialTestABC.is_test_serial(item):
-        # If this test failed...
-        if call.excinfo is not None:
-            # Object to which this test method is bound.
-            test_instance = item.parent
+    # If this test failed...
+    if call.excinfo is not None:
+        # If this is a parametrized test intended to be run serially...
+        if 'serial_parametrized' in item.keywords:
+            # Test callable (i.e., underlying function or method object).
+            test_callable = item.obj
 
-            # Record the name of this test method for subsequent use by the
+            # Record the unique identifiers of these test parameters for
+            # subsequent use by the pytest_runtest_setup() hook.
+            test_callable._betse_first_failing_param_id = item._genid
+        #FIXME: This should *REALLY* simply be implemented as a new @serial
+        #decorator, much like @serial_parametrized above.
+        # If this is an unparametrized test intended to be run serially...
+        elif SerialTestABC.is_test_serial(item):
+            # Object to which this test method is bound.
+            test_parent = item.parent
+
+            # Record the name of this test for subsequent use by the
             # pytest_runtest_setup() hook.
-            test_instance._first_failure_method_name = item.name
+            test_parent._first_failure_method_name = item.name

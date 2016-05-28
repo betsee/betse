@@ -9,7 +9,7 @@ Functional tests for BETSE's CLI testing all simulation-specific subcommands
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.mark.skip import skip
+# from betse_test.mark.skip import skip
 
 # ....................{ TESTS                              }....................
 #FIXME: While useful, this should be split apart into its constituent steps,
@@ -84,9 +84,7 @@ from betse_test.mark.skip import skip
 #preferring the class- to parameters-based approach were fairly flimsy, frankly.
 #The only question then becomes: can we refactor the existing
 #"betse_test.conftest" hooks to support parameters-based serial testing?
-#FIXME: Disable "betse_setup.test" integration with the "pytest-xdist" plugin,
-#which sadly fails to support isolation of tests to slaves (as required for
-#serial test execution).
+#FIXME: Automatically coerce the "world size" configuration option to "75e-6".
 
 def test_cli_sim_default(
     betse_cli, betse_sim_config_default) -> None:

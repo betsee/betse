@@ -24,6 +24,9 @@ class SerialTestABC(metaclass=ABCMeta):
     The majority of the black magic required by this class is implemented as
     low-level py.test hooks in the top-level `betse_func.conftest` plugin.
 
+    FIXME: The following attribute is dynamically set on the py.test object
+    encapsulating this class instance rather than this actual class instance.
+
     Attributes
     ----------
     _first_failure_method_name : str
@@ -33,13 +36,6 @@ class SerialTestABC(metaclass=ABCMeta):
         no such methods have yet to fail).
     '''
 
-
-    def __init__(self) -> None:
-        '''
-        Initialize this abstract base class.
-        '''
-
-        self._first_failure_method_name = None
 
     # ..................{ INITIALIZERS                       }..................
     @staticmethod

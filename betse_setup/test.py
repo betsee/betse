@@ -131,14 +131,33 @@ class test(Command):
         # options specific to this plugin implicitly parallelizing tests to a
         # number of processors (hopefully) autodetected at runtime.
         if util.is_module('xdist'):
-            pytest_args.extend(['-n', 'auto'])
+            #FIXME: Remove after "pytest-xdist" adds support for isolating
+            #specific tests to the same slave.
+
+            # Serial functional tests assume that all tests to be serialized are
+            # run in the same Python process. "pytest-xdist" currently provides
+            # no means of doing so; instead, "pytest-xdist" assigns all tests
+            # to arbitrary test slaves and hence Python processes. Until
+            # "pytest-xdist" permits tests to be isolated to the same test
+            # slave, "pytest-xdist" must *NOT* be enabled.
+            util.output_warning(
+                'py.test plugin "pytest-xdist" fails to support serial tests.')
+            util.output_warning(
+                'Tests will *NOT* be parallelized across multiple processors.')
+
+            #FIXME: Uncomment after "pytest-xdist" adds support for isolating
+            #specific tests to the same slave.
+            # pytest_args.extend(['-n', 'auto'])
         # Else, print a non-fatal warning. Due to the cost of running tests,
         # parallelization is highly recommended.
         else:
-            util.output_warning(
-                'Optional py.test plugin "pytest-xdist" not found.')
-            util.output_warning(
-                'Tests will *NOT* be parallelized across multiple processors.')
+            pass
+            #FIXME: Uncomment after "pytest-xdist" adds support for isolating
+            #specific tests to the same slave.
+            # util.output_warning(
+            #     'Optional py.test plugin "pytest-xdist" not found.')
+            # util.output_warning(
+            #     'Tests will *NOT* be parallelized across multiple processors.')
 
         # Pass options passed to this subcommand to this py.test command,
         # converting long option names specific to this subcommand (e.g.,
