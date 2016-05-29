@@ -2,7 +2,7 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# FIXME create a few options for neat seed points: hexagonal or radial-spiral array
+# FIXME create a new option for seed points: Fibonacci radial-spiral array
 
 
 import math
@@ -196,7 +196,7 @@ class Cells(object):
 
         elif seed_type == 'hex': # prepare a hexagonal grid of points
 
-            # recalculate the number of lattice sites * FIXME change this to option in params!
+            # recalculate the number of lattice sites
 
             # r = (p.d_cell/2)*np.sqrt(3)
             r = p.d_cell/2
@@ -392,8 +392,6 @@ class Cells(object):
                 if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
                     self.ecm_verts.append(cell_polya) # This makes a jagged boundary of cells
 
-                    #FIXME which one do we want?
-
                 # if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
                 #     self.ecm_verts.append(cell_polya)   # this makes a more solid boundary of cells
 
@@ -577,7 +575,7 @@ class Cells(object):
                 surfa.append(lgth)
 
                 tang_a = pt2 - pt1       # tangent
-                tang = tang_a/np.linalg.norm(tang_a)    # FIXME some tang_a are zero, which means some points are equal...
+                tang = tang_a/np.linalg.norm(tang_a)
                 # normal = np.array([-tang[1],tang[0]])
                 normal = np.array([tang[1],-tang[0]])
                 cv_x.append(mid[0])
@@ -675,7 +673,7 @@ class Cells(object):
             self.matrixMap2Verts[i,indices[0]]=1/2
             self.matrixMap2Verts[i,indices[1]]=1/2
 
-        # self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))  # FIXME we no longer need this!
+        # self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
         #
         # for i, cell_index in enumerate(self.mem_to_cells):
         #     self.cell_UpdateMatrix[i,cell_index] = 1
@@ -863,7 +861,7 @@ class Cells(object):
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
         self.eosmo_tools(p)
 
-    def near_neigh(self,p): # FIXME I think a problem with GJ lays here...
+    def near_neigh(self,p):
 
         """
         Calculate the nearest neighbours for each cell centre in the cluster and return a numpy
@@ -1355,7 +1353,6 @@ class Cells(object):
         self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
 
         # calculate matrix for gj divergence of the flux calculation -- this is now simply a sum over nn values:
-        # # FIXME -- we won't need gjMatrix if we switch to membrane-specific concentrations and voltages
         # self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))
         #
         # for cell_i, i_mem_set in enumerate(self.cell_to_mems):

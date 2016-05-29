@@ -1136,7 +1136,6 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     # get the tangential voltage gradient at each membrane from net intracellular current
     # grad_v = np.dot(cells.gradMem, sim.v_cell)
 
-    # FIXME check this value
     E_cell = p.media_sigma * sim.J_cell_x[cells.mem_to_cells] * tx + \
              p.media_sigma * sim.J_cell_y[cells.mem_to_cells] * ty
 
