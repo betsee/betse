@@ -516,12 +516,12 @@ class Simulator(object):
         # load in the gap junction dynamics object:
         self.gj_funk = Gap_Junction(p)
 
-        # smooth the Voronoi --> Env grid weighting function to the same level used in sim:
-        cells.mems_per_envSquare = gaussian_filter(cells.mems_per_envSquare.reshape(cells.X.shape),
-                                                    p.smooth_level).ravel()
-
-        cells.memSa_per_envSquare = gaussian_filter(cells.memSa_per_envSquare.reshape(cells.X.shape),
-            p.smooth_level).ravel()
+        # # smooth the Voronoi --> Env grid weighting function to the same level used in sim:
+        # cells.mems_per_envSquare = gaussian_filter(cells.mems_per_envSquare.reshape(cells.X.shape),
+        #                                             p.smooth_level).ravel()
+        #
+        # cells.memSa_per_envSquare = gaussian_filter(cells.memSa_per_envSquare.reshape(cells.X.shape),
+        #     p.smooth_level).ravel()
 
         self.J_gj_x = np.zeros(len(cells.mem_i))
         self.J_gj_y = np.zeros(len(cells.mem_i))
@@ -1439,16 +1439,23 @@ class Simulator(object):
 
         else:
             # total charge in cells:
-            Qcells = (self.rho_cells*cells.mem_vol)
+            # Qcells = (self.rho_cells*cells.mem_vol)
+            #
+            # # total charge in environment:
+            # sig_env = (self.rho_env * cells.ecm_vol)
 
-            # total charge in environment:
-            sig_env = (self.rho_env * cells.ecm_vol)
+            Qcells = self.rho_cells * cells.mem_vol
+
+            # Qecm = self.rho_env[cells.envInds_inClust] * cells.ecm_vol * \
+            #        cells.mems_per_envSquare[cells.envInds_inClust]
+            Qecm = self.rho_env[cells.envInds_inClust] * cells.ecm_vol
+
             # sig_env = (self.rho_env * cells.ecm_vol)
 
             # interpolate charge from environmental grid to the ecm_mids:
-            Qecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
-                                      sig_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
-                                      fill_value = 0)
+            # Qecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
+            #                           sig_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
+            #                           fill_value = 0)
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
@@ -1458,15 +1465,15 @@ class Simulator(object):
 
             # separate voltages for cells and ecm spaces
             v_cell = v_max_vect[cells.mem_range_a:cells.mem_range_b]
-            v_ecm = v_max_vect[cells.ecm_range_a:cells.ecm_range_b]
+            v_ecm = v_max_vect[cells.env_range_a:cells.env_range_b]
 
             # # calculate vm directly between membrane and adjacent ecm space:
             # vm = v_cell[cells.mem_to_cells] - v_ecm[cells.mem_to_ecm_mids]
 
             # interpolate the v_env from ECM spaces to the ENV GRID:
-            v_env = interp.griddata((cells.ecm_mids[:, 0], cells.ecm_mids[:, 1]),
-                v_ecm, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
-                fill_value=0)
+            # v_env = interp.griddata((cells.ecm_mids[:, 0], cells.ecm_mids[:, 1]),
+            #     v_ecm, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
+            #     fill_value=0)
 
             # # save values at the cluster boundary:
             # bound_vals = v_env[cells.ecm_bound_k]
@@ -1486,6 +1493,9 @@ class Simulator(object):
             # v_env[cells.map_mem2ecm] = v_ecm_at_mem
             #
             # # smooth out the environmental voltage:
+            v_env = np.zeros(len(cells.xypts))
+            v_env[cells.envInds_inClust] = v_ecm
+
             v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
             # v_env = fd.integrator(v_env.reshape(cells.X.shape)).ravel()
 
@@ -2069,10 +2079,6 @@ class Simulator(object):
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
-
-        # minimize (slow) fluxes in the environment, if necessary:
-        # f_env_x = p.env_delay_const * f_env_x
-        # f_env_y = p.env_delay_const * f_env_y
 
         f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms
         f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms

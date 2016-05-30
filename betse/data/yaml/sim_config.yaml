@@ -168,7 +168,7 @@ general options:
 
 world options:
 
-  world size: 100e-6      # dimension of the square world space [m]
+  world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1500e-6 m
 
@@ -183,10 +183,10 @@ world options:
                               # recommended 26.0e-9 m for animal cells
                               # 1.0e-6 for plant cells and animal cells with ecm
 
-  lattice type: hex           # form of the base lattice (before adding lattice disorder)
+  lattice type: rect           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
 
-  lattice disorder: 0.5       # noise level for the lattice
+  lattice disorder: 0.8       # noise level for the lattice
                               # recommended range 0 to 0.8
                               # this randomizes lattice points from a
                               # hexagonal grid. If equal to 0 a perfect
@@ -1088,9 +1088,9 @@ internal parameters:
 
   cytosolic delay factor: 1.0e-1       # level to delay intracellular transport (needed for larger time-steps) 0.1
 
-  environmental delay factor: 1.0e-1    # level to diminish environmental E field (needed to use larger time-steps) 0.1
+  environmental delay factor: 1.0e-1    # level to diminish environmental E field transport effects 0.1
 
-  electrolyte screening factor: 0.86 # ~0.86 to 1.5 electrolyte double layer screening & self-capacitances [F/m5]
+  electrolyte screening factor: 0.86 # ~0.5 to 1.0 electrolyte double layer screening & self-capacitances [F/m2] 0.86
 
   media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
 

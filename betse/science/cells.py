@@ -103,11 +103,12 @@ class Cells(object):
         self.environment(p)  # define features of the ecm grid
         self.grid_len = len(self.xypts)
         self.make_maskM(p)
-        self.env_weighting(p)
+        # self.env_weighting(p)
 
         if p.sim_ECM is True:
 
             self.sim_ECM = True
+            logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
             logs.log_info('Creating environmental Poisson solver...')
             bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
@@ -1058,6 +1059,28 @@ class Cells(object):
         self.bL_k = list(self.points_tree.query(bL_pts))[1]
         self.bR_k = list(self.points_tree.query(bR_pts))[1]
 
+        # get a mapping specifying which mem mids an ecm space interacts with:
+        self.map_ecm2mem = [[] for ind in self.xypts]
+
+        for ind_mem, ind_ecm in enumerate(self.map_mem2ecm):
+            self.map_ecm2mem[ind_ecm].append(ind_mem)
+
+        # next, find out the total set of ecm spaces that interact with membranes
+        # and develop the "weight-paint" functions:
+        self.envInds_inClust = []
+        self.memSa_per_envSquare = np.zeros(len(self.xypts))
+        self.mems_per_envSquare = np.zeros(len(self.xypts))
+
+        for ind_ecm, lst in enumerate(self.map_ecm2mem):
+
+            if len(lst) > 0:
+                self.envInds_inClust.append(ind_ecm)
+                sas = np.sum(self.mem_sa[lst])
+                self.memSa_per_envSquare[ind_ecm] = sas
+                self.mems_per_envSquare[ind_ecm] = len(lst)
+
+        self.envInds_inClust = np.asarray(self.envInds_inClust)
+
     def graphLaplacian(self,p):
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the
@@ -1121,7 +1144,7 @@ class Cells(object):
         self.lapGJ = lapGJ
         self.lapGJ_P = lapGJ_P
 
-    def maxwellCapMatrix(self,p):
+    def maxwellCapMatrix(self, p):
         """
         This method defines the Maxwell Capacitance matrix
         for the collection of cells with their structured
@@ -1144,63 +1167,51 @@ class Cells(object):
 
         """
 
-        logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+        envLen = self.envInds_inClust
 
-        data_length = len(self.mem_i) + len(self.ecm_mids)
+        data_length = len(self.mem_i) + len(envLen)
         # define ranges within the total data length where we can
         # work with cell centres or ecm mids specifically:
         self.mem_range_a = 0
         self.mem_range_b = len(self.mem_i)
-        self.ecm_range_a = self.mem_range_b
-        self.ecm_range_b = len(self.ecm_mids) + len(self.mem_i)
+        self.env_range_a = self.mem_range_b
+        self.env_range_b = len(envLen) + len(self.mem_i)
 
         M_max_cap = np.zeros((data_length, data_length))
 
         # first do cells -- where index of Maxwell vector is equal to cell index
         for mem_i in range(self.mem_range_a, self.mem_range_b):
-
-            # mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
-
-            #cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
-
             cm_mem = p.cm * self.mem_sa[mem_i]  # capacitance for cell diagonal term
-            cs_mem = p.electrolyte_screening*self.mem_sa[mem_i] # calculate self-capacitance
+            cs_mem = p.electrolyte_screening * self.mem_sa[mem_i]  # calculate self-capacitance
 
-            # get the ecm spaces for each membrane
-            # we must add on the cells data length to make these indices of the max cap vector and matrix:
-            ecm_i_set = self.mem_to_ecm_mids[mem_i] + len(self.mem_i)
+            # get the raw env spaces for each membrane in Max Cap matrix index format:
+            raw_env_i = self.map_mem2ecm[mem_i]
+
+            # get the index of the environnmental square:
+            env_i_o = int((self.envInds_inClust == self.map_mem2ecm[raw_env_i]).nonzero()[0])
+
+            # convert the index to the Max Cap indexing format:
+            env_i = env_i_o + len(self.mem_i)
 
             # set the diagonal element for cells:
-            # M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
-            M_max_cap[mem_i,mem_i] = cm_mem + cs_mem # membrane plus self-capacitance
+            M_max_cap[mem_i, mem_i] = cm_mem + cs_mem  # membrane plus self-capacitance
 
             # set the off-diagonal elements for cells:
-            # M_max_cap[cell_i,ecm_i_set] = -p.cm
-            M_max_cap[mem_i,ecm_i_set] = -p.cm*self.mem_sa[mem_i]
+            M_max_cap[mem_i, env_i] = - cm_mem
 
         # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
-        for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
+        for env_i in range(self.env_range_a, self.env_range_b):
+            env_i_o = env_i - len(self.mem_i)  # get the ecm index wrt to the envInds_inClust
 
-            ecm_i_o = ecm_i - len(self.mem_i)  # get the true ecm index wrt to the cell world
+            raw_env_i = self.envInds_inClust[env_i_o]  # get the env index wrt to the Env Grid
 
-            mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of mem inds corresponding to each ecm space
+            mem_set = self.map_ecm2mem[raw_env_i]  # get the set of mem inds corresponding to each ecm space
 
-            cm = p.cm*self.mem_sa[mem_pair[0]]  # get the capacitance of the individual membrane
-            cs = p.electrolyte_screening*self.mem_sa[mem_pair[0]]  # get the self-capacitance of the ecm space
+            cm_set = p.cm * self.mem_sa[mem_set]  # get the capacitance of the individual membranes
+            cs_set = p.electrolyte_screening * self.mem_sa[mem_set]  # get the self-capacitance of the ecm spaces
 
-            # cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
-            # cell_k = self.mem_to_cells[mem_pair[1]]
-
-            if mem_pair[0] == mem_pair[1]:  # then we're on a boundary
-
-                M_max_cap[ecm_i,ecm_i] = cm + cs # plus self capacitance
-                M_max_cap[ecm_i,mem_pair[0]] = -cm
-
-
-            else:
-                M_max_cap[ecm_i,ecm_i] = 2*cm  + 2*cs # plus self capacitance
-                M_max_cap[ecm_i,mem_pair[0]] = -cm
-                M_max_cap[ecm_i,mem_pair[1]] = -cm
+            M_max_cap[env_i, env_i] = cm_set.sum() + cs_set.sum()  # plus self capacitance
+            M_max_cap[env_i, mem_set] = -cm_set
 
         # get the inverse of the matrix:
         self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
@@ -1504,43 +1515,6 @@ class Cells(object):
         self.inds_env = list(*(self.maskECM.ravel() == 0).nonzero())
         self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
 
-    def env_weighting(self,p):  # FIXME if this works, get rid of mems per square, switch to memSa per square
-
-        #----------------------------------------------------------------
-        # Method to create a source function to accurately map number of cell mem fluxes to env grid
-
-        # get the subset of points corresponding to the cluster:
-        ecm_clust_xy = self.xypts[self.inds_clust]
-
-        # get a search tree for the membrane mids:
-        memTree = sps.KDTree(self.mem_mids_flat)
-
-        # search within a slightly larger (i.e. 1.74 instead of 2.0 divisor) area than half grid space:
-        search_results = memTree.query_ball_point(ecm_clust_xy, self.delta / 1.738)
-
-        # find out how many membrane mids are located per unit of ecm square:
-        mems_per_square = []
-        # membrane surface area per square of Env Grid:
-        memSa_per_square = []
-
-        for lst in search_results:
-            num_mems = len(lst)
-            mem_sas = np.sum(self.mem_sa[lst])  # get the sum of the mem surface areas for this block
-            mems_per_square.append(num_mems)
-            memSa_per_square.append(mem_sas)
-
-        # create a new data structure that contains the spatially-preserved info:
-        self.mems_per_envSquare = np.zeros(len(self.xypts))
-        self.mems_per_envSquare[self.inds_clust] = mems_per_square
-
-        self.memSa_per_envSquare = np.zeros(len(self.xypts))
-        self.memSa_per_envSquare[self.inds_clust] = memSa_per_square
-
-        # as well as an average value
-        mems_per_square = np.asarray(mems_per_square)
-
-        self.mean_mems_per_envSquare = mems_per_square.mean()
-
     def quick_maskM(self,p):
 
         self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),self.voronoi_mask,
@@ -1817,3 +1791,130 @@ class Cells(object):
 #             # find the index of the duplicate point in the gj matrix:
 #             self.nnAveMatrix[i, j] = 1 / 2
 #             self.nnAveMatrix[j, i] = 1 / 2
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#   WASTELANDS
+#-----------------------------------------------------------------------------------------------------------------------
+
+            # def env_weighting(self,p):  #
+            #
+            #     #----------------------------------------------------------------
+            #     # Method to create a source function to accurately map number of cell mem fluxes to env grid
+            #
+            #     # get the subset of points corresponding to the cluster:
+            #     ecm_clust_xy = self.xypts[self.inds_clust]
+            #
+            #     # get a search tree for the membrane mids:
+            #     memTree = sps.KDTree(self.mem_mids_flat)
+            #
+            #     # search within a slightly larger (i.e. 1.74 instead of 2.0 divisor) area than half grid space:
+            #     search_results = memTree.query_ball_point(ecm_clust_xy, self.delta / 1.738)
+            #
+            #     # find out how many membrane mids are located per unit of ecm square:
+            #     mems_per_square = []
+            #     # membrane surface area per square of Env Grid:
+            #     memSa_per_square = []
+            #
+            #     for lst in search_results:
+            #         num_mems = len(lst)
+            #         mem_sas = np.sum(self.mem_sa[lst])  # get the sum of the mem surface areas for this block
+            #         mems_per_square.append(num_mems)
+            #         memSa_per_square.append(mem_sas)
+            #
+            #     # create a new data structure that contains the spatially-preserved info:
+            #     self.mems_per_envSquare = np.zeros(len(self.xypts))
+            #     self.mems_per_envSquare[self.inds_clust] = mems_per_square
+            #
+            #     self.memSa_per_envSquare = np.zeros(len(self.xypts))
+            #     self.memSa_per_envSquare[self.inds_clust] = memSa_per_square
+            #
+            #     # as well as an average value
+            #     mems_per_square = np.asarray(mems_per_square)
+            #
+            #     self.mean_mems_per_envSquare = mems_per_square.mean()
+
+
+    #----------------------------
+        #
+        # def maxwellCapMatrix_o(self, p):
+        #     """
+        #     This method defines the Maxwell Capacitance matrix
+        #     for the collection of cells with their structured
+        #     Voronoi lattice.
+        #
+        #     Each cell and respective extracellular space are
+        #     considered to be conductors separated by the insulating
+        #     region of the cell membrane.
+        #
+        #     Each cell interacts with its N nearest ecm spaces.
+        #     Likewise, each ecm space interacts with two neighbouring cells,
+        #     or if the ecm space is on an external boundary, with one
+        #     neighbouring cell.
+        #
+        #     The Maxwell Capacitance matrix is created by solving for the
+        #     charge in each cell or ecm space, given the voltages of the space
+        #     and the capacitive connections between spaces. The matrix is
+        #     then inverted, so that we can use it to solve for voltages
+        #     knowing charges.
+        #
+        #     """
+        #
+        #     data_length = len(self.mem_i) + len(self.ecm_mids)
+        #     # define ranges within the total data length where we can
+        #     # work with cell centres or ecm mids specifically:
+        #     self.mem_range_a = 0
+        #     self.mem_range_b = len(self.mem_i)
+        #     self.ecm_range_a = self.mem_range_b
+        #     self.ecm_range_b = len(self.ecm_mids) + len(self.mem_i)
+        #
+        #     M_max_cap = np.zeros((data_length, data_length))
+        #
+        #     # first do cells -- where index of Maxwell vector is equal to cell index
+        #     for mem_i in range(self.mem_range_a, self.mem_range_b):
+        #         # mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
+        #
+        #         # cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
+        #
+        #         cm_mem = p.cm * self.mem_sa[mem_i]  # capacitance for cell diagonal term
+        #         cs_mem = p.electrolyte_screening * self.mem_sa[mem_i]  # calculate self-capacitance
+        #
+        #         # get the ecm spaces for each membrane
+        #         # we must add on the cells data length to make these indices of the max cap vector and matrix:
+        #         ecm_i_set = self.mem_to_ecm_mids[mem_i] + len(self.mem_i)
+        #
+        #         # set the diagonal element for cells:
+        #         # M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
+        #         M_max_cap[mem_i, mem_i] = cm_mem + cs_mem  # membrane plus self-capacitance
+        #
+        #         # set the off-diagonal elements for cells:
+        #         # M_max_cap[cell_i,ecm_i_set] = -p.cm
+        #         M_max_cap[mem_i, ecm_i_set] = -p.cm * self.mem_sa[mem_i]
+        #
+        #     # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
+        #     for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
+        #
+        #         ecm_i_o = ecm_i - len(self.mem_i)  # get the true ecm index wrt to the cell world
+        #
+        #         mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of mem inds corresponding to each ecm space
+        #
+        #         cm = p.cm * self.mem_sa[mem_pair[0]]  # get the capacitance of the individual membrane
+        #         cs = p.electrolyte_screening * self.mem_sa[mem_pair[0]]  # get the self-capacitance of the ecm space
+        #
+        #         # cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
+        #         # cell_k = self.mem_to_cells[mem_pair[1]]
+        #
+        #         if mem_pair[0] == mem_pair[1]:  # then we're on a boundary
+        #
+        #             M_max_cap[ecm_i, ecm_i] = cm + cs  # plus self capacitance
+        #             M_max_cap[ecm_i, mem_pair[0]] = -cm
+        #
+        #
+        #         else:
+        #             M_max_cap[ecm_i, ecm_i] = 2 * cm + 2 * cs  # plus self capacitance
+        #             M_max_cap[ecm_i, mem_pair[0]] = -cm
+        #             M_max_cap[ecm_i, mem_pair[1]] = -cm
+        #
+        #     # get the inverse of the matrix:
+        #     self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
+        #     # self.M_max_cap = M_max_cap
