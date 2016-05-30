@@ -133,6 +133,65 @@ def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
     return request.fixturename
 
 
+def get_fixture_name_prefixed_by(
+    request: '_pytest.python.FixtureRequest',
+    fixture_name_prefix: str,
+) -> str:
+    '''
+    Name prefixed by the passed prefix of the single fixture transitively
+    requested by the current test, inspected from the passed `request` fixture
+    object.
+
+    If either no such fixture or more than one such fixture exist, an exception
+    is raised.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+    fixture_name_prefix: str
+        String prefixing the fixture name to be returned.
+
+    Returns
+    ----------
+    str
+        Such name.
+
+    See Also
+    ----------
+    get_fixture_names
+        Further details.
+    '''
+
+    # List of the names of all fixtures prefixed by this prefix.
+    prefixed_fixture_names = get_fixture_names_prefixed_by(
+        request, fixture_name_prefix)
+
+    # Number of such fixtures.
+    prefixed_fixture_count = len(prefixed_fixture_names)
+
+    # If either no or more than one such fixtures exist, raise an exception.
+    if prefixed_fixture_count != 1:
+        # Exception message to be raised.
+        exception_message = None
+
+        if prefixed_fixture_count == 0:
+            exception_message = (
+                'No fixture prefixed by "{}" requested by this test.'.format(
+                    fixture_name_prefix))
+        else:
+            exception_message = (
+                'Multiple fixtures prefixed by "{}" '
+                'requested by this test: {}'.format(
+                    fixture_name_prefix, prefixed_fixture_names))
+
+        # Raise this exception with this message.
+        raise BetseTestFixtureException(exception_message)
+
+    # Else, return the single such fixture name.
+    return prefixed_fixture_names[0]
+
+# ....................{ GETTERS ~ fixture : names          }....................
 def get_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
     '''
     List of the names of all fixtures transitively requested by the current test
@@ -170,11 +229,10 @@ def get_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
         # Name of this fixture.
         omit_fixture_name = get_fixture_name(request)
 
-        #FIXME: Refactor to remove this item from this list in-place rather
-        #than recreating this list from scratch.
-
-        # Exclude this name from this list.
+        # Exclude this name from this list *WITHOUT* modifying the original
+        # list, as doing so would subsequently raise "KeyError" exceptions.
         fixture_names = sequences.omit_item(fixture_names, omit_fixture_name)
+        # assert omit_fixture_name not in fixture_names
 
     # Return these fixture names.
     return fixture_names

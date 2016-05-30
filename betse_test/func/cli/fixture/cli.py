@@ -78,31 +78,6 @@ from pytest import fixture
 # To force these fixtures to return new objects for all parent fixtures and
 # tests, these fixtures is declared to have default scope (i.e., test).
 
-#FIXME: Implement me. See commentary preceding test_cli_sim_default().
-
-@fixture
-def betse_cli_sim(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
-    '''
-    Fixture returning an instance of the `CLITestRunner` class, suitable for
-    iteratively running _all_ simulation-specific BETSE CLI subcommands (e.g.,
-    `seed`, `init`) under the simulation configuration required by the current
-    fixture or test.
-
-    Parameters
-    ----------
-    request : _pytest.python.FixtureRequest
-        Builtin fixture parameter describing the parent fixture or test of this
-        fixture (and similar contextual metadata).
-
-    Returns
-    ----------
-    CLITestRunner
-        Object running _all_ simulation-specific BETSE CLI subcommands.
-    '''
-
-    raise ValueError('Not implemented yet.')
-
-
 @fixture
 def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
     '''
@@ -112,8 +87,7 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
     Parameters
     ----------
     request : _pytest.python.FixtureRequest
-        Builtin fixture parameter describing the parent fixture or test of this
-        fixture (and similar contextual metadata).
+        Builtin fixture describing this fixture's parent fixture or test.
 
     Returns
     ----------
@@ -121,8 +95,8 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
         Object running the BETSE CLI command.
     '''
 
-    # Names of all BETSE-specific fixtures required by the current test,
-    # excluding the current fixture.
+    # Names of all BETSE-specific fixtures (excluding this fixture) required by
+    # this test.
     betse_fixture_names = requests.get_fixture_names_prefixed_by(
         request=request, fixture_name_prefix='betse_')
 
@@ -134,8 +108,7 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
     # For the name of each such fixture...
     for betse_fixture_name in betse_fixture_names:
         # Fixture object returned by this fixture.
-        betse_fixture = requests.get_fixture(
-            request=request, fixture_name=betse_fixture_name)
+        betse_fixture = requests.get_fixture(request, betse_fixture_name)
 
         # get_command_context() method defined by this fixture object if any.
         betse_fixture_get_command_context = objects.get_method_or_none(

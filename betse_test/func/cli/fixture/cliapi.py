@@ -13,6 +13,10 @@ from betse.util.command import exits
 from betse.util.type import types
 
 # ....................{ CLASSES                            }....................
+#FIXME: Implement me!
+class CLIMultiTester(object):
+    pass
+
 #FIXME: Rename to "CLITester" for conciseness.
 class CLITestRunner(object):
     '''

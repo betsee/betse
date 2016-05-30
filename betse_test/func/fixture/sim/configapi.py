@@ -88,6 +88,10 @@ class SimTestState(object):
         Context manager changing the current working directory (CWD) of the
         current test to the directory containing this configuration file for the
         duration of this context.
+
+        This method is dynamically called by the `run()` method of the
+        `CLITestRunner` instance returned by the `betse_cli` fixture for the
+        current test.
         '''
 
         return dirs.current(self.config.dirname)

@@ -31,11 +31,11 @@ def get_method_or_none(obj: object, method_name: str) -> callable:
     assert types.is_str_nonempty(method_name), (
         types.assert_not_str_nonempty(method_name, 'Method name'))
 
-    # Attribute with this name in this object.
-    method = getattr(obj, method_name)
+    # Attribute with this name in this object if any or None otherwise.
+    method = getattr(obj, method_name, None)
 
     # If this attribute is a method, return this attribute; else, return None.
-    return method if callable(method) else None
+    return method if method is not None and callable(method) else None
 
 # ....................{ ITERATORS                          }....................
 def iter_fields_nonbuiltin(obj: object):

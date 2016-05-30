@@ -77,7 +77,7 @@ def trim(obj: object) -> str:
         # Reappend these delimiters.
         obj_synopsis += last_delimiters
 
-    # Get this synopsis.
+    # Return this synopsis.
     return obj_synopsis
 
 # ....................{ TESTERS                            }....................
@@ -218,6 +218,7 @@ def is_in_enum(obj: object, enum: Enum) -> bool:
     While trivial, this tester is provided for orthogonality with the
     `assert_not_in_enum()` function.
     '''
+
     assert is_enum(enum), assert_not_enum(enum)
     return obj in enum
 
@@ -226,25 +227,15 @@ def is_exception(obj: object) -> bool:
     '''
     `True` only if the passed object is an **exception**.
     '''
+
     return isinstance(obj, Exception)
-
-# ....................{ TESTERS ~ lib                      }....................
-def is_numpy_array(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a Numpy array or matrix.
-
-    This function returns true if the passed object is an instance of the
-    Numpy-specific `ndarray` superclass.
-    '''
-    # Avoid importing third-party packages at the top level.
-    from numpy import ndarray
-    return isinstance(obj, ndarray)
 
 # ....................{ TESTERS ~ lib : matplotlib         }....................
 def is_matplotlib_collection(obj: object) -> bool:
     '''
     `True` only if the passed object is a Matplotlib collection.
     '''
+
     # Avoid importing third-party packages at the top level.
     from matplotlib.collections import Collection
     return isinstance(obj, Collection)
@@ -254,6 +245,7 @@ def is_matplotlib_colormap(obj: object) -> bool:
     '''
     `True` only if the passed object is a Matplotlib colormap.
     '''
+
     # Avoid importing third-party packages at the top level.
     from matplotlib.colors import Colormap
     return isinstance(obj, Colormap)
@@ -263,6 +255,7 @@ def is_matplotlib_mappable(obj: object) -> bool:
     '''
     `True` only if the passed object is a Matplotlib mappable.
     '''
+
     # Avoid importing third-party packages at the top level.
     from matplotlib.cm import ScalarMappable
     return isinstance(obj, ScalarMappable)
@@ -273,6 +266,7 @@ def is_matplotlib_polycollection(obj: object) -> bool:
     `True` only if the passed object is a Matplotlib **polygon collection**
     (i.e., an instance of the `PolyCollection` class).
     '''
+
     # Avoid importing third-party packages at the top level.
     from matplotlib.collections import PolyCollection
     return isinstance(obj, PolyCollection)
@@ -283,6 +277,7 @@ def is_matplotlib_streamplot(obj: object) -> bool:
     `True` only if the passed object is a Matplotlib **streamplot** (i.e., an
     object returned by the `matplotlib.plt.streamplot()` function).
     '''
+
     # Avoid importing third-party packages at the top level.
     from matplotlib.streamplot import StreamplotSet
     return isinstance(obj, StreamplotSet)
@@ -291,20 +286,43 @@ def is_matplotlib_streamplot(obj: object) -> bool:
 def is_matplotlib_trimesh(obj: object) -> bool:
     '''
     `True` only if the passed object is a Matplotlib **triangle mesh** (i.e., an
-    instance of the `TriMesh` class).
+    instance of the `matplotlib.collections.TriMesh` class).
     '''
+
     # Avoid importing third-party packages at the top level.
     from matplotlib.collections import TriMesh
     return isinstance(obj, TriMesh)
+
+# ....................{ TESTERS ~ lib : numpy              }....................
+def is_numpy_array(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **Numpy array or matrix** (i.e.,
+    instance of the `numpy.ndarray` superclass).
+    '''
+
+    # Avoid importing third-party packages at the top level.
+    from numpy import ndarray
+    return isinstance(obj, ndarray)
 
 # ....................{ TESTERS ~ lib : py                 }....................
 def is_py_path_local(obj: object) -> bool:
     '''
     `True` only if the passed object is a `py.path.local` instance.
     '''
+
     # Avoid importing third-party packages at the top level.
     from py._path.local import LocalPath
     return isinstance(obj, LocalPath)
+
+# ....................{ TESTERS ~ lib : numpy              }....................
+def is_pytest_fixture(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a `py.test` fixture.
+    '''
+
+    # Avoid importing third-party packages at the top level.
+    from _pytest.python import FixtureFunctionMarker
+    return isinstance(obj, FixtureFunctionMarker)
 
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
@@ -495,13 +513,6 @@ def assert_not_exception(obj: object) -> str:
     '''
     return '"{}" not an exception.'.format(trim(obj))
 
-# ....................{ ASSERTERS ~ lib                    }....................
-def assert_not_numpy_array(obj: object) -> bool:
-    '''
-    String asserting the passed object to _not_ be a Numpy array or matrix.
-    '''
-    return '"{}" not a array or matrix.'.format(trim(obj))
-
 # ....................{ ASSERTERS ~ lib : matplotlib       }....................
 def assert_not_matplotlib_collection(obj: object) -> bool:
     '''
@@ -545,12 +556,26 @@ def assert_not_matplotlib_trimesh(obj: object) -> bool:
     '''
     return '"{}" not a Matplotlib triangle mesh.'.format(trim(obj))
 
+# ....................{ ASSERTERS ~ lib : numpy            }....................
+def assert_not_numpy_array(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a Numpy array or matrix.
+    '''
+    return '"{}" not a NumPy array or matrix.'.format(trim(obj))
+
 # ....................{ ASSERTERS ~ lib : py               }....................
 def assert_not_py_path_local(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be a `py.path.local` instance.
     '''
     return '"{}" not a "py.path.local" instance.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ lib : pytest           }....................
+def assert_not_pytest_fixture(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be a `py.test` fixture.
+    '''
+    return '"{}" not a py.test fixture.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ numeric                }....................
 def assert_not_int(obj: object) -> str:

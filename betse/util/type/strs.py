@@ -108,7 +108,7 @@ def join(*texts) -> str:
     This is a convenience function wrapping the standard `"".join((...))`
     method, whose syntax is arguably overly verbose.
     '''
-    return join_on(*texts, delimiter = '')
+    return join_on(*texts, delimiter='')
 
 
 def join_on_newline(*texts) -> str:
@@ -118,7 +118,7 @@ def join_on_newline(*texts) -> str:
     This is a convnience function wrapping the standard
     `"\n".join((...))` method, whose syntax is arguably overly verbose.
     '''
-    return join_on(*texts, delimiter = '\n')
+    return join_on(*texts, delimiter='\n')
 
 
 def join_on(*texts, delimiter: str) -> str:

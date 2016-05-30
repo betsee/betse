@@ -34,7 +34,7 @@ reason : str
 '''
 
 # ....................{ SKIP ~ module                      }....................
-def skip(reason: str):
+def skip(reason: str) -> callable:
     '''
     Unconditionally skip the decorated test with the passed human-readable
     justification.

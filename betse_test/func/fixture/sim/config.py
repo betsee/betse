@@ -14,7 +14,7 @@ configurations, including:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.func.fixture.sim import state
+from betse_test.func.fixture.sim import configapi
 from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
@@ -47,8 +47,9 @@ def betse_sim_config_default(
     Parameters
     ----------
     request : _pytest.python.FixtureRequest
+        Builtin fixture required by the `configapi.make()` factory function.
     tmpdir_factory : _pytest.tmpdir.tmpdir_factory
-        Fixture objects required by the `_config.make()` factory function.
+        Builtin fixture required by the `configapi.make()` factory function.
 
     Returns
     ----------
@@ -61,12 +62,13 @@ def betse_sim_config_default(
         For further details on return type and method of construction.
     '''
 
-    # Test-specific object encapsulating this simulation configuration file.
-    sim_state = state.make(request, tmpdir_factory)
+    # # Test-specific object encapsulating this simulation configuration file.
+    sim_state = configapi.make(request, tmpdir_factory)
 
     # Write the default configuration to disk with only the requisite
     # modifications performed by this fixture (e.g., disabling interactivity).
     sim_state.config.overwrite()
 
     # Return this encapsulation object.
+    # print('Here!!!!!!!!!!!!!')
     return sim_state

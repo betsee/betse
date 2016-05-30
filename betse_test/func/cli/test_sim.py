@@ -88,13 +88,14 @@ Functional tests for BETSE's CLI testing all simulation-specific subcommands
 
 def test_cli_sim_default(
     betse_cli, betse_sim_config_default) -> None:
+    # betse_cli_sim, betse_sim_config_default) -> None:
     '''
     Test the simulation of the default simulation configuration.
 
     Parameters
     ----------
-    betse_cli : CLITestRunner
-        Test-specific object encapsulating the BETSE CLI.
+    betse_cli_sim : CLITestRunner
+        Test-specific object encapsulating the simulation-specific BETSE CLI.
     betse_sim_config : SimTestState
         Test-specific object encapsulating this simulation configuration file.
     '''
@@ -103,3 +104,5 @@ def test_cli_sim_default(
     # testing that the "betse_sim_config_default" fixture has set the current
     # working directory (CWD) to the directory containing this file.
     betse_cli('sim', betse_sim_config_default.config.basename)
+    # betse_cli_sim.run()
+    pass

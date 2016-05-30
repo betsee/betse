@@ -8,16 +8,20 @@ Functional tests for BETSE's CLI testing all simulation-specific subcommands
 (e.g., `betse try`).
 '''
 
+#FIXME: Excise this module entirely, which is no longer relevant.
+
 # ....................{ IMPORTS                            }....................
-import pytest
-# from betse_test.mark.skip import skip
+from pytest import fixture
+from betse_test.mark.param import parametrize_fixture_serial
 
 # ....................{ TESTS                              }....................
-#FIXME: If this actually works, generalize into a parametrized fixture and try
-#again.
+@parametrize_fixture_serial
+@fixture(params=([(sum, int), (len, int)]), ids=['sum', 'len'])
+def serial(request):
+    return {
+        'func': request.param[0],
+        'cls': request.param[1],
+    }
 
-@pytest.mark.serial_parametrized
-# @pytest.mark.parametrize(('func', 'cls'), [(sum, list), (len, int)])
-@pytest.mark.parametrize(('func', 'cls'), [(sum, int), (len, int)])
-def test_serial(func, cls) -> None:
-    assert isinstance(func([1, 2]), cls)
+def test_serial(serial) -> None:
+    assert isinstance(serial['func']([1, 2]), serial['cls'])
