@@ -69,99 +69,47 @@ class SimRunner(object):
         p.I_overlay = False  # force the current overlay to be null
         sim = Simulator(p)   # create an instance of Simulator as it's needed by plotting objects
 
-        if p.sim_ECM is False:
+        cells = Cells(p)  # create an instance of the Cells object
+        logs.log_info('Cell cluster is being created...')
+        cells.makeWorld(p)  # call function to create the world
 
-            cells = Cells(p,worldtype='basic')  # create an instance of world
-            cells.containsECM = False
-            logs.log_info('Cell cluster is being created...')
-            cells.makeWorld(p)     # call function to create the world
+        # define the tissue and boundary profiles for plotting:
+        logs.log_info('Defining tissue and boundary profiles...')
+        sim.baseInit_all(cells, p)
+        dyna = TissueHandler(sim, cells, p)
+        dyna.tissueProfiles(sim, cells, p)
 
-            # define the tissue and boundary profiles for plotting:
-            logs.log_info('Defining tissue and boundary profiles...')
-            sim.baseInit_all(cells,p)
-            dyna = TissueHandler(sim,cells,p)
-            dyna.tissueProfiles(sim,cells,p)
+        cells.redo_gj(dyna, p)  # redo gap junctions to isolate different tissue types
 
-            cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
+        # make accessory matrices depending on user requirements:
+        if p.fluid_flow is True or p.deformation is True:
 
-            # make accessory matrices depending on user requirements:
+            # make a laplacian and solver for discrete transfers on closed, irregular cell network
+            logs.log_info('Creating cell network Poisson solver...')
+            cells.graphLaplacian(p)
 
-            if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
+            if p.deformation is True:
+                cells.deform_tools(p)
 
-                    # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                    logs.log_info('Creating cell network Poisson solver...')
-                    cells.graphLaplacian(p)
+            if p.td_deform is False:  # if time-dependent deformation is not required
 
-                    if p.deformation is True:
-                        cells.deform_tools(p)
+                cells.lapGJ = None
+                cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
-                    if p.td_deform is False:  # if time-dependent deformation is not required
+        if p.sim_eosmosis is True:
+            cells.eosmo_tools(p)
 
-                        cells.lapGJ = None
-                        cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
+        # finish up:
 
-            if p.sim_eosmosis is True:
+        cells.save_cluster(p)
 
-                cells.eosmo_tools(p)
+        logs.log_info('Cell cluster creation complete!')
 
+        if p.turn_all_plots_off is False:
+            logs.log_info('Close all plot windows to continue...')
+            self.plotWorld()
 
-            cells.save_cluster(p)
-
-            logs.log_info('Cell cluster creation complete!')
-
-            if p.turn_all_plots_off is False:
-                logs.log_info('Close all plot windows to continue...')
-                self.plotWorld()
-
-        else:
-
-            cells = Cells(p,worldtype='full')  # create an instance of world
-            cells.containsECM = True
-            logs.log_info('Cell cluster is being created...')
-            cells.makeWorld(p)     # call function to create the world
-
-            # define the tissue and boundary profiles for plotting:
-            logs.log_info('Defining tissue and boundary profiles...')
-            sim.baseInit_all(cells,p)
-            dyna = TissueHandler(sim,cells,p)
-            dyna.tissueProfiles(sim,cells,p)
-
-            cells.redo_gj(dyna,p)  # redo gap junctions to isolate different tissue types
-
-            if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
-
-                # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                logs.log_info('Creating cell network Poisson solver...')
-                cells.graphLaplacian(p)
-
-                if p.deformation is True:
-                    cells.deform_tools(p)
-
-                if p.td_deform is False:  # if time-dependent deformation is not required
-
-                    cells.lapGJ = None
-                    cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
-
-            if p.calc_J is True or p.fluid_flow is True:
-
-                logs.log_info('Creating environmental Poisson solver...')
-                bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-                cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
-
-                cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
-
-            if p.sim_eosmosis is True:
-                cells.eosmo_tools(p)
-
-            cells.save_cluster(p)
-
-            logs.log_info('Cell cluster creation complete!')
-
-            if p.turn_all_plots_off is False:
-                logs.log_info('Close all plot windows to continue...')
-                self.plotWorld()
-
-                plt.show()
+            plt.show()
 
         sim.sim_info_report(cells,p)
 
@@ -354,7 +302,7 @@ class SimRunner(object):
         p.I_overlay = False # force the current overlay to be false as there's no data for it
         sim = Simulator(p)
 
-        cells = Cells(p,worldtype='basic')
+        cells = Cells(p)
 
         # loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
         # loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')

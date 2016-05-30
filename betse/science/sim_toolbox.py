@@ -857,7 +857,6 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     fgj_X = fgj_x_X * cells.mem_vects_flat[:,2] + fgj_y_X * cells.mem_vects_flat[:,3]
 
     # divergence calculation for individual cells (finite volume expression)
-    # delta_cc = np.dot(cells.gjMatrix, -fgj_X * cells.mem_sa) / cells.cell_vol
     delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
     cX_cell_1 = cX_cell_o1 + p.dt * delta_cc
@@ -1129,7 +1128,7 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     c_at_verts = np.dot(cX_cell, cells.matrixMap2Verts)
 
     # get the gradient of rho concentration around each membrane:
-    grad_c = np.dot(cells.gradMem, c_at_verts)
+    grad_c = np.dot(cells.gradIntra, c_at_verts)
 
     # --------------------------------------------------------------------------------------------------------
 
@@ -1151,8 +1150,8 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     gfx = np.dot(-flux_intra * tx, cells.matrixMap2Verts)
     gfy = np.dot(-flux_intra * ty, cells.matrixMap2Verts)
 
-    ddfx = np.dot(cells.gradMem, gfx) * tx
-    ddfy = np.dot(cells.gradMem, gfy) * ty
+    ddfx = np.dot(cells.gradIntra, gfx) * tx
+    ddfy = np.dot(cells.gradIntra, gfy) * ty
 
     divF_intra = ddfx + ddfy
 

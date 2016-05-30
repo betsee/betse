@@ -1835,7 +1835,7 @@ class Simulator(object):
 
         # get the gradient of rho concentration around each membrane:
 
-        grad_c = np.dot(cells.gradMem, c_at_verts)
+        grad_c = np.dot(cells.gradIntra, c_at_verts)
 
 
         #--------------------------------------------------------------------------------------------------------
@@ -1861,8 +1861,8 @@ class Simulator(object):
         gfx = np.dot(-flux_intra * tx, cells.matrixMap2Verts)
         gfy = np.dot(-flux_intra * ty, cells.matrixMap2Verts)
 
-        ddfx = np.dot(cells.gradMem, gfx)*tx
-        ddfy = np.dot(cells.gradMem, gfy)*ty
+        ddfx = np.dot(cells.gradIntra, gfx)*tx
+        ddfy = np.dot(cells.gradIntra, gfy)*ty
 
         divF_intra = ddfx + ddfy
 
@@ -1946,12 +1946,7 @@ class Simulator(object):
         # component of flux tangent to gap junctions:
         fgj = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
-        # divergence calculation (finite volume expression) # FIXME this needs updating for concs at mems
-        # delta_cc = np.dot(cells.gjMatrix,-fgj*cells.mem_sa)/cells.cell_vol
-
         delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
-
-        # delta_cc = cells.integrator(delta_cc) # smooth the concentrations
 
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cc
 
