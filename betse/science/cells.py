@@ -1492,12 +1492,12 @@ class Cells(object):
 
         self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),
             self.voronoi_mask,(self.Xgrid,self.Ygrid),
-                             method='nearest',fill_value=0)
+                             method='linear',fill_value=0)
 
         self.maskM = ndimage.filters.gaussian_filter(self.maskM, 1, mode='nearest')
         self.maskM = np.round(self.maskM,0)
 
-        self.maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='nearest',fill_value=0)
+        self.maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
         self.maskECM = ndimage.filters.gaussian_filter(self.maskECM, 1, mode='nearest')
         self.maskECM = np.round(self.maskECM,0)
 
@@ -1516,7 +1516,7 @@ class Cells(object):
         memTree = sps.KDTree(self.mem_mids_flat)
 
         # search within a slightly larger (i.e. 1.74 instead of 2.0 divisor) area than half grid space:
-        search_results = memTree.query_ball_point(ecm_clust_xy, self.delta / 1.74)
+        search_results = memTree.query_ball_point(ecm_clust_xy, self.delta / 1.738)
 
         # find out how many membrane mids are located per unit of ecm square:
         mems_per_square = []

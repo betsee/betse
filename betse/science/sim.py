@@ -520,6 +520,9 @@ class Simulator(object):
         cells.mems_per_envSquare = gaussian_filter(cells.mems_per_envSquare.reshape(cells.X.shape),
                                                     p.smooth_level).ravel()
 
+        cells.memSa_per_envSquare = gaussian_filter(cells.memSa_per_envSquare.reshape(cells.X.shape),
+            p.smooth_level).ravel()
+
         self.J_gj_x = np.zeros(len(cells.mem_i))
         self.J_gj_y = np.zeros(len(cells.mem_i))
 
@@ -1439,7 +1442,7 @@ class Simulator(object):
             Qcells = (self.rho_cells*cells.mem_vol)
 
             # total charge in environment:
-            sig_env = (self.rho_env * cells.ecm_vol)*cells.mems_per_envSquare
+            sig_env = (self.rho_env * cells.ecm_vol)
             # sig_env = (self.rho_env * cells.ecm_vol)
 
             # interpolate charge from environmental grid to the ecm_mids:
@@ -2409,99 +2412,5 @@ class Simulator(object):
 #sound of love!
 
 
-# def get_current(self,cells,p):
-#
-#     # zero components of total current vector:
-#
-#     self.I_tot_x = np.zeros(cells.X.shape)
-#     self.I_tot_y = np.zeros(cells.X.shape)
-#
-#     # calculate current across gap junctions in x direction:
-#     I_gj_x = np.zeros(len(cells.mem_i))
-#
-#     for flux_array, zi in zip(self.fluxes_gj_x,self.zs):
-#
-#         I_i_x = flux_array*zi*p.F*cells.mem_sa
-#
-#         I_gj_x = I_gj_x + I_i_x
-#
-#     # calculate current across gap junctions in x direction:
-#     I_gj_y = np.zeros(len(cells.mem_i))
-#
-#     for flux_array, zi in zip(self.fluxes_gj_y,self.zs):
-#
-#         I_i_y = flux_array*zi*p.F*cells.mem_sa
-#
-#         I_gj_y = I_gj_y + I_i_y
-#
-#     # interpolate the gj current components to the grid:
-#     self.I_gj_x = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_x,(cells.X,cells.Y),
-#                                   method=p.interp_type,fill_value=0)
-#
-#     # self.I_gj_x = np.multiply(self.I_gj_x,cells.maskECM)
-#
-#     self.I_gj_y = interp.griddata((cells.mem_mids_flat[:,0],cells.mem_mids_flat[:,1]),I_gj_y,(cells.X,cells.Y),
-#                                   method=p.interp_type,fill_value=0)
-#
-#     self.I_gj_x = self.I_gj_x/(cells.delta*p.cell_height)
-#     self.I_gj_y = self.I_gj_y/(cells.delta*p.cell_height)
-#
-#     # self.I_gj_y = np.multiply(self.I_gj_y,cells.maskECM)
-#
-#     self.I_tot_x = self.I_tot_x + self.I_gj_x
-#     self.I_tot_y = self.I_tot_y + self.I_gj_y
-#
-#     # calculate current across cell membranes:
-#
-#     self.I_mem = np.zeros(len(cells.mem_i))
-#     for flux_array, zi in zip(self.fluxes_mem,self.zs):
-#
-#         I_i = flux_array*zi*p.F*cells.mem_sa
-#
-#         self.I_mem = self.I_mem + I_i
-#
-#         # components are negative as transmembrane fluxes point into the cell, but mem normals point out:
-#         I_mem_x = -self.I_mem*cells.mem_vects_flat[:,2]
-#         I_mem_y = -self.I_mem*cells.mem_vects_flat[:,3]
-#
-#      # interpolate the trans-membrane current components to the grid:
-#     self.I_mem_x = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_x,(cells.X,cells.Y),
-#                                   method=p.interp_type,fill_value=0)
-#     # self.I_mem_x = np.multiply(self.I_mem_x,cells.maskM)
-#
-#     self.I_mem_y = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),I_mem_y,(cells.X,cells.Y),
-#                                   method=p.interp_type,fill_value=0)
-#     # self.I_mem_y = np.multiply(self.I_mem_y,cells.maskM)
-#
-#     self.I_mem_x = self.I_mem_x/(cells.delta*p.cell_height)
-#     self.I_mem_y = self.I_mem_y/(cells.delta*p.cell_height)
-#
-#     # add membrane current to total current:
-#
-#     self.I_tot_x = self.I_tot_x + self.I_mem_x
-#     self.I_tot_y = self.I_tot_y + self.I_mem_y
-#
-#     if p.sim_ECM is True:
-#
-#         self.I_env_x = np.zeros(len(cells.xypts))
-#         self.I_env_y = np.zeros(len(cells.xypts))
-#
-#         for flux_array, zi in zip(self.fluxes_env_x,self.zs):
-#
-#             I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
-#
-#             self.I_env_x = self.I_env_x + I_i
-#
-#         for flux_array, zi in zip(self.fluxes_env_y,self.zs):
-#
-#             I_i = flux_array*zi*p.F*p.cell_space*p.cell_height
-#
-#             self.I_env_y = self.I_env_y + I_i
-#
-#         I_env_x = self.I_env_x.reshape(cells.X.shape)/(cells.delta*p.cell_height)
-#         I_env_y = self.I_env_y.reshape(cells.X.shape)/(cells.delta*p.cell_height)
-#
-#         self.I_tot_x = self.I_tot_x + I_env_x
-#         self.I_tot_y = self.I_tot_y + I_env_y
 
 

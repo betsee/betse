@@ -1074,7 +1074,9 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p):
         # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
         # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-        delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
+        # delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
+
+        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
         # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
 
