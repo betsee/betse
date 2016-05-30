@@ -489,7 +489,7 @@ def vertData(data, cells, p):
                                fill_value=0)
 
     # # smooth out the data a bit:
-    dat_grid = gaussian_filter(dat_grid,p.smooth_level)
+    # dat_grid = gaussian_filter(dat_grid,p.smooth_level)
 
     # get rid of values that bleed into the environment:
     # dat_grid = np.multiply(dat_grid,cells.maskM)

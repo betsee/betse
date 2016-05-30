@@ -1071,6 +1071,10 @@ class Cells(object):
         self.memSa_per_envSquare = np.zeros(len(self.xypts))
         self.mems_per_envSquare = np.zeros(len(self.xypts))
 
+        # create an array to hold the "true" extracellullar volume,
+        # and populate it initially with the environmental square volume:
+        self.true_ecm_vol = np.ones(len(self.xypts))*self.ecm_vol
+
         for ind_ecm, lst in enumerate(self.map_ecm2mem):
 
             if len(lst) > 0:
@@ -1078,6 +1082,9 @@ class Cells(object):
                 sas = np.sum(self.mem_sa[lst])
                 self.memSa_per_envSquare[ind_ecm] = sas
                 self.mems_per_envSquare[ind_ecm] = len(lst)
+
+                self.true_ecm_vol[ind_ecm] = sas*p.cell_space
+
 
         self.envInds_inClust = np.asarray(self.envInds_inClust)
 

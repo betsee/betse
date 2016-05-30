@@ -1448,7 +1448,7 @@ class Simulator(object):
 
             # Qecm = self.rho_env[cells.envInds_inClust] * cells.ecm_vol * \
             #        cells.mems_per_envSquare[cells.envInds_inClust]
-            Qecm = self.rho_env[cells.envInds_inClust] * cells.ecm_vol
+            Qecm = self.rho_env[cells.envInds_inClust] * cells.true_ecm_vol[cells.envInds_inClust]
 
             # sig_env = (self.rho_env * cells.ecm_vol)
 
@@ -1563,7 +1563,7 @@ class Simulator(object):
             # which yields number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/(cells.ecm_vol)
+            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/(cells.true_ecm_vol)
 
             # update the concentrations
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
@@ -1586,7 +1586,6 @@ class Simulator(object):
         #     self.cc_cells[i] = stb.no_negs(arr)
         # for i, arr in enumerate(self.cc_env):
         #     self.cc_env[i] = stb.no_negs(arr)
-
 
     def acid_handler(self,cells,p):
 
@@ -2080,8 +2079,8 @@ class Simulator(object):
             grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
-        f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms
-        f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
+        # f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms
+        # f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
 
         if p.closed_bound is False:
 
@@ -2166,8 +2165,8 @@ class Simulator(object):
             self.E_env_x = -genv_x.ravel()*cells.ave2ecmV
             self.E_env_y = -genv_y.ravel()*cells.ave2ecmV
 
-            self.E_env_x = gaussian_filter(self.E_env_x.reshape(cells.X.shape),p.smooth_level)
-            self.E_env_y = gaussian_filter(self.E_env_y.reshape(cells.X.shape),p.smooth_level)
+            # self.E_env_x = gaussian_filter(self.E_env_x.reshape(cells.X.shape),p.smooth_level)
+            # self.E_env_y = gaussian_filter(self.E_env_y.reshape(cells.X.shape),p.smooth_level)
 
         else:
 
