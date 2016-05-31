@@ -19,6 +19,7 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
 
 # ....................{ IMPORTS                            }....................
 import copy
+from _pytest.python import FixtureLookupError
 from betse.util.type import sequences, types
 from betse_test.util.exceptions import BetseTestFixtureException
 
@@ -93,13 +94,48 @@ def get_fixture(
     Returns
     ----------
     _pytest.python.FixtureDef
-        Such fixture.
+        This fixture.
+
+    Raises
+    ----------
+    _pytest.python.FixtureLookupError
+        If this fixture is either unavailable _or_ is available but
+        unretrievable (e.g., this fixture is the child of the current fixture).
     '''
     assert types.is_str_nonempty(fixture_name), (
         types.assert_not_str_nonempty(fixture_name, 'Fixture name'))
 
     # Terrible Function Names Part XIXI: the endless journey endures.
     return request.getfuncargvalue(fixture_name)
+
+
+def get_fixture_or_none(
+    request: '_pytest.python.FixtureRequest',
+    fixture_name: str,
+) -> '_pytest.python.FixtureDef':
+    '''
+    Fixture with the passed name transitively requested by the current test if
+    this fixture is both available and retrievable _or_ `None` otherwise,
+    inspected from the passed `request` fixture object.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+    fixture_name: str
+        Name of the fixture to return.
+
+    Returns
+    ----------
+    _pytest.python.FixtureDef, None
+        This fixture if this fixture is both available and retrievable _or_
+        `None` otherwise..
+    '''
+
+    try:
+        return get_fixture(request, fixture_name)
+    except FixtureLookupError:
+        return None
 
 # ....................{ GETTERS ~ fixture : name           }....................
 def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
@@ -232,7 +268,7 @@ def get_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
         # Exclude this name from this list *WITHOUT* modifying the original
         # list, as doing so would subsequently raise "KeyError" exceptions.
         fixture_names = sequences.omit_item(fixture_names, omit_fixture_name)
-        # assert omit_fixture_name not in fixture_names
+        assert omit_fixture_name not in fixture_names
 
     # Return these fixture names.
     return fixture_names

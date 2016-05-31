@@ -7,8 +7,8 @@
 Main entry point of `betse`'s command line interface (CLI).
 
 This module is a thin wrapper intended to be imported only from the command line
-(e.g., via `python -m betse`). This module is *not* imported by `setuptools`'s
-`entry_points` facility and hence is *not* imported by external scripts
+(e.g., via `python -m betse`). This module is _not_ imported by `setuptools`'s
+`entry_points` facility and hence is _not_ imported by external scripts
 managed by `setuptools` (e.g., `betse`).
 '''
 

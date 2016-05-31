@@ -107,8 +107,15 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
 
     # For the name of each such fixture...
     for betse_fixture_name in betse_fixture_names:
-        # Fixture object returned by this fixture.
-        betse_fixture = requests.get_fixture(request, betse_fixture_name)
+        # Fixture object returned by this fixture if this fixture is both
+        # available and retrievable or "None" otherwise.
+        betse_fixture = requests.get_fixture_or_none(
+            request, betse_fixture_name)
+
+        # If this fixture is unavailable, unretrievable, or actually intended to
+        # be "None", continue to the next fixture.
+        if betse_fixture is None:
+            continue
 
         # get_command_context() method defined by this fixture object if any.
         betse_fixture_get_command_context = objects.get_method_or_none(

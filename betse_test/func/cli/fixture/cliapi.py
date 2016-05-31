@@ -12,20 +12,16 @@ from contextlib import ExitStack
 from betse.util.command import exits
 from betse.util.type import types
 
-# ....................{ CLASSES                            }....................
-#FIXME: Implement me!
-class CLIMultiTester(object):
-    pass
-
+# ....................{ CLASSES ~ single                   }....................
 #FIXME: Rename to "CLITester" for conciseness.
 class CLITestRunner(object):
     '''
-    BETSE interface test runner, efficiently testing the external command for
-    either the official BETSE CLI (e.g., `betse`) in the active Python
-    interpreter.
+    BETSE CLI test runner, efficiently testing a single subcommand of the
+    official BETSE CLI (i.e., `betse`) in the active Python interpreter.
 
-    Functional test fixtures typically return instances of this class to other
-    functional test fixtures and tests testing BETSE's CLI.
+    Simple functional fixtures (e.g., `betse_cli`) typically return instances of
+    this class to other fixtures and tests exercising a single facet of the
+    BETSE CLI.
 
     Command Execution
     ----------
@@ -40,43 +36,41 @@ class CLITestRunner(object):
     Attributes
     ----------
     contexts : list
-        List of all context managers with which to call the
+        List of all context managers with which to subsequently call the
         `betse.cli.__main__.run()` method when this object's `run()` method is
         called.
     '''
 
 
-    # corresponding to the context managers returned by the optional
-    # get_command_context() methods defined by the instances of these fixtures.
-    def __init__(self, contexts: list) -> None:
+    def __init__(self, contexts: 'collections.Sequence') -> None:
         '''
         Initialize this test runner with the passed `request` fixture object.
 
         Parameters
         ----------
-        contexts : list
-            List of all context managers under which to subsequently call the
-            `betse.cli.__main__.run()` method when this object's `run()` method
+        contexts : collections.Sequence
+            List of all context managers with which to subsequently call the
+            `betse.cli.__main__.main()` method when this object's `run()` method
             is called.
         '''
         assert types.is_sequence_nonstr(contexts), (
             types.assert_not_sequence_nonstr(contexts))
 
+        # Classify the passed parameters.
         self._contexts = contexts
 
 
     def __call__(self, *args) -> None:
         '''
-        Call the entry point for this BETSE interface with the passed positional
-        arguments.
+        Run the BETSE CLI with the passed positional arguments.
 
         This special method is a convenience permitting this fixture to be
         called as is rather than via the `run()` method.
 
         See Also
         ----------
-        `run()`
-            For further details, which this special method internally defers to.
+        run
+            Method to which this special method internally defers.
         '''
 
         return self.run(*args)
@@ -84,8 +78,7 @@ class CLITestRunner(object):
 
     def run(self, *args) -> None:
         '''
-        Call the entry point for this BETSE interface with the passed positional
-        arguments.
+        Run the BETSE CLI with the passed positional arguments.
 
         To improve debuggability for failing tests, this function
         unconditionally passes these command-line options to this interface:
@@ -139,3 +132,82 @@ class CLITestRunner(object):
         assert exits.is_success(exit_status), (
             'BETSE CLI failed with exit status {} '
             'given argument list {}.'.format(exit_status, arg_list))
+
+# ....................{ CLASSES ~ multi                    }....................
+class CLITesterPreArged(object):
+    '''
+    BETSE CLI test runner, efficiently testing a single subcommand of the
+    official BETSE CLI (i.e., `betse`) in the active Python interpreter with an
+    argument list passed to this object's `__init__()` rather than `run()`
+    method.
+
+    Complex functional fixtures (e.g., `betse_cli_sim`) typically return
+    instances of this class to other fixtures and tests exercising a predefined
+    facet of the BETSE CLI.
+
+    Attributes
+    ----------
+    _cli : CLITestRunner
+        BETSE CLI test runner, testing a single subcommand of the official
+        BETSE CLI (i.e., `betse`) in the active Python interpreter.
+    _subcommand_args : collections.Sequence
+        Argument list comprising the BETSE CLI subcommand to be tested.
+
+    See Also
+    ----------
+    CLITestRunner
+        Further details on BETSE CLI execution.
+    '''
+
+    def __init__(
+        self,
+        cli: CLITestRunner,
+        subcommand_args: 'collections.Sequence'
+    ) -> None:
+        '''
+        Initialize this test runner with the passed `request` fixture object.
+
+        Parameters
+        ----------
+        cli : CLITestRunner
+            BETSE CLI test runner, testing a single subcommand of the official
+            BETSE CLI (i.e., `betse`) in the active Python interpreter.
+        subcommand_args : collections.Sequence
+            Argument list to be subsequently passed to the `cli.run()` method
+            when this object's `run()` method is called. These arguments should
+            comprise the BETSE CLI subcommand to be tested.
+        '''
+        assert isinstance(cli, CLITestRunner), (
+            'Object "{}" not a CLI test runner.'.format(cli))
+        assert types.is_sequence_nonstr(subcommand_args), (
+            types.assert_not_sequence_nonstr(subcommand_args))
+
+        # Classify the passed parameters.
+        self._cli = cli
+        self._subcommand_args = subcommand_args
+
+
+    def __call__(self, *args) -> None:
+        '''
+        Run the BETSE CLI with the argument list previously passed to the
+        `__init__()` method.
+
+        This special method is a convenience permitting this fixture to be
+        called as is rather than via the `run()` method.
+
+        See Also
+        ----------
+        run
+            Method to which this special method internally defers.
+        '''
+
+        return self.run(*args)
+
+
+    def run(self) -> None:
+        '''
+        Run the BETSE CLI with the argument list previously passed to the
+        `__init__()` method.
+        '''
+
+        self._cli(*self._subcommand_args)

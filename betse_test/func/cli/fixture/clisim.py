@@ -15,7 +15,8 @@ copies) into the current Python environment or not.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import strs
-from betse_test.func.cli.fixture.cliapi import CLIMultiTester
+from betse_test.func.cli.fixture.cliapi import CLITesterPreArged
+from betse_test.func.fixture.sim.configapi import SimTestState
 from betse_test.mark.param import parametrize_fixture_serial
 from betse_test.util import requests
 from pytest import fixture
@@ -30,8 +31,8 @@ _CLI_SIM_SUBCOMMANDS_ARGS = (
     ('plot', 'sim'),
 )
 '''
-List of all argument lists running simulation-specific BETSE CLI subcommands
-when passed to the BETSE CLI, used to parametrize the `betse_cli_sim` fixture.
+List of all argument lists running simulation-specific BETSE CLI subcommands,
+used to parametrize the `betse_cli_sim` fixture.
 
 **Order is significant.** These subcommands are run by this fixture in the
 listed order. Subcommands requiring the output of prior subcommands as input
@@ -51,19 +52,24 @@ list of the `_CLI_SIM_SUBCOMMANDS_ARGS` global, identifying the parameters
 accepted by the `betse_cli_sim` fixture.
 '''
 
+
+# @fixture
+# def betse_cli_sim(
+#     betse_cli: 'CLITestRunner',
+#     request: '_pytest.python.FixtureRequest',
+# ) -> CLITesterPreArged:
+#     return lambda: print('ok')
+
 # ....................{ FIXTURES                           }....................
 # To force these fixtures to return new objects for all parent fixtures and
 # tests, these fixtures is declared to have default scope (i.e., test).
 
-#FIXME: Implement me. See commentary preceding test_cli_sim_default().
-#FIXME: Define a new "CLIMultiTester" class.
-# @parametrize_fixture_serial
-# @fixture(params=_CLI_SIM_SUBCOMMANDS_ARGS, ids=_CLI_SIM_SUBCOMMANDS_ARGS_IDS)
-@fixture
+@parametrize_fixture_serial
+@fixture(params=_CLI_SIM_SUBCOMMANDS_ARGS, ids=_CLI_SIM_SUBCOMMANDS_ARGS_IDS)
 def betse_cli_sim(
     betse_cli: 'CLITestRunner',
     request: '_pytest.python.FixtureRequest',
-) -> CLIMultiTester:
+) -> CLITesterPreArged:
     '''
     Fixture returning an instance of the `CLITestMultiRunner` class, suitable
     for iteratively running _all_ simulation-specific BETSE CLI subcommands
@@ -79,9 +85,9 @@ def betse_cli_sim(
 
     Returns
     ----------
-    CLIMultiTester
-        Object running _all_ simulation-specific BETSE CLI subcommands with the
-        current simulation configuration.
+    CLITesterPreArged
+        Object running the simulation-specific BETSE CLI subcommand defined by
+        the current parametrization with the current simulation configuration.
     '''
 
     # Name of the simulation configuration fixture required by this test.
@@ -89,8 +95,19 @@ def betse_cli_sim(
         request=request, fixture_name_prefix='betse_sim_config_')
 
     # Simulation configuration fixture required by this test.
-    sim_config_fixture = requests.get_fixture(request, sim_config_fixture_name)
+    sim_state = requests.get_fixture(request, sim_config_fixture_name)
+    assert isinstance(sim_state, SimTestState), (
+        'Object "{}" not a simulation configuration fixture.'.format(sim_state))
 
-    #FIXME: Pass the list of command argument lists to be run, each appended by
-    #the absolute path of the simulation configuration inspected above.
-    return CLIMultiTester()
+    # Argument list comprising the currently parametrized BETSE CLI subcommand
+    # passed the basename of this simulation configuration file, validating that
+    # this simulation configuration fixture has changed the current working
+    # directory (CWD) to this file's directory.
+    subcommand_args = list(request.param)
+    subcommand_args.append(sim_state.config.basename)
+
+    # Return a new CLI runner specific to the current test.
+    return CLITesterPreArged(
+        cli=betse_cli,
+        subcommand_args=subcommand_args,
+    )

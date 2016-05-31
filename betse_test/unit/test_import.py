@@ -10,10 +10,21 @@ breaking by brute-force PyCharm refactorings).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.mark.skip import skip_unless_plugin_xdist
+from betse_test.mark.fail import xfail
+# from betse_test.mark.skip import skip_unless_plugin_xdist
 
 # ....................{ TESTS                              }....................
-@skip_unless_plugin_xdist
+#FIXME: Ugh! Ideally, this test should *NOT* require xdist support. This test
+#must be isolated to a subprocess. To do so, the simplest means is the xdist
+#"--boxed" CLI option. However, we'd only want *THIS* test to be isolated in
+#that manner -- not *EVERY* test! To do so, we'll probably want to examine the
+#xdist codebase, ascertain how "--boxed" is implemented, and provide a new
+#utility test function or decorator performing the equivalent. Alternately,
+#PyInstaller's testing framework already supports test isolation (probably using
+#the "subprocess" module), suggesting we could also examine that as a fallback.
+
+# @skip_unless_plugin_xdist
+@xfail('Test isolation unsupported.')
 def test_import_logs() -> None:
     '''
     Test the importability of BETSE's logging API.

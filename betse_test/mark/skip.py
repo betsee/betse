@@ -19,21 +19,7 @@ from betse.util.type import types
 # Sadly, the following imports require private modules and packages.
 from _pytest.runner import Skipped
 
-# ....................{ SKIP ~ alias                       }....................
-skip_if = pytest.mark.skipif
-'''
-Conditionally skip the decorated test with the passed human-readable
-justification if the passed boolean is `False`.
-
-Parameters
-----------
-boolean : bool
-    Boolean to be tested.
-reason : str
-    Human-readable message justifying the skipping of this test.
-'''
-
-# ....................{ SKIP ~ module                      }....................
+# ....................{ SKIP                               }....................
 def skip(reason: str) -> callable:
     '''
     Unconditionally skip the decorated test with the passed human-readable
@@ -60,6 +46,20 @@ def skip(reason: str) -> callable:
         types.assert_not_str_nonempty(reason, 'Reason'))
 
     return skip_if(True, reason=reason)
+
+
+skip_if = pytest.mark.skipif
+'''
+Conditionally skip the decorated test with the passed human-readable
+justification if the passed boolean is `False`.
+
+Parameters
+----------
+boolean : bool
+    Boolean to be tested.
+reason : str
+    Human-readable message justifying the skipping of this test.
+'''
 
 # ....................{ SKIP ~ module                      }....................
 def skip_unless_module(module_name: str, minimum_version: str = None):

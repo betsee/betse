@@ -7,6 +7,30 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
+#FIXME: Implement a new CLI option "-p" and "--profile" enabling CLI-driven
+#profiling. Python provides a phenomenal C-based profiler out-of-the-box named
+#"cProfile", an importable C extension emitting a cProfile dump when the
+#profile application halts as well as a command-line table of time spent in each
+#application function sorted via a variety of metrics. It's pretty much perfect.
+#A variety of upstream third-party utilities then exist to visualize cProfile
+#dumps, although the command-line table should suffice for a low-hanging fruit
+#implementation. To do so, it appears to suffice to:
+#
+#    import cProfile
+#    cProfile.run('main()', 'cprofile.dmp')
+#
+#After implementing cProfile support, consider also implementing support for:
+#
+#* "lineprof", a third-party C extension profiling each line (rather than
+#  function as cProfile does). Basically, cProfile on metric steroids.
+#* "statprof", a third-party C extension operating rather differently than
+#  either "lineprof" or cProfile. Rather than deterministically instrumenting
+#  each line or function call (respectively), "statprof" non-deterministically
+#  wakes up at predefined intervals, records a stack trace, and then goes back
+#  to sleep. On application completion, "statprof" then tallies up each stack
+#  trace and outpus a command-line table of the most expensive lines. Pretty
+#  sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
+
 #FIXME: Print a non-fatal warning if Numpy is linked against a non-multithreaded
 #BLAS implementation. Also, print the name of the BLAS implementation against
 #which Numpy is linked with similar "betse info" metadata.
@@ -16,7 +40,7 @@ High-level application initialization common to both the CLI and GUI.
 #established at this point. We can't really see it going away. See also:
 #
 #    https://stackoverflow.com/a/19350234/2809027
-#FIXME: Phenomenal Python code for profiling system metadata, including BLAS,
+#FIXME: Phenomenal Python code for obtaining system metadata, including BLAS,
 #LAPACK, Atlas, OpenBLAS, and numpy-specific system metadata:
 #
 #    https://gist.github.com/sandys/258707dae9b79308594b#file-system_info-py

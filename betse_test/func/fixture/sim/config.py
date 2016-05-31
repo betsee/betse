@@ -70,5 +70,4 @@ def betse_sim_config_default(
     sim_state.config.overwrite()
 
     # Return this encapsulation object.
-    # print('Here!!!!!!!!!!!!!')
     return sim_state

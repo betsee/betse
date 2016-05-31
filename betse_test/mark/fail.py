@@ -13,27 +13,30 @@ on whether the conditions signified by the passed parameters are satisfied
 
 # ....................{ IMPORTS                            }....................
 import pytest
+from betse.util.type import types
 
 # ....................{ FAIL ~ alias                       }....................
-xfail = pytest.mark.xfail
-'''
-Unconditionally mark the decorated test as ignorably known to fail with the
-passed human-readable justification.
+def xfail(reason: str) -> callable:
+    '''
+    Unconditionally mark the decorated test as ignorably known to fail with the
+    passed human-readable justification.
 
-py.test will neither run this test nor accumulate this failure. While
-superficially similar to tests unconditionally skipped via the `@skip()`
-decorator, this failure will be collected as an `XFAIL` by py.test reporting.
+    py.test will neither run this test nor accumulate this failure. While
+    superficially similar to tests unconditionally skipped via the `@skip()`
+    decorator, this failure will be collected as an `XFAIL` by py.test reporting.
 
-Parameters
-----------
-reason : str
-    Human-readable message justifying the failure of this test.
-'''
+    Parameters
+    ----------
+    reason : str
+        Human-readable message justifying the failure of this test.
+    '''
+
+    assert types.is_str_nonempty(reason), (
+        types.assert_not_str_nonempty(reason, 'Reason'))
+
+    return xfail_if(True, reason=reason)
 
 
-# Technically, the boolean parameter accepted by the pytest.mark.xfail()
-# decorator is optional. For clarity, we split these two cases into two
-# decorators: this and the @xfail decorator declared above.
 xfail_if = pytest.mark.xfail
 '''
 Conditionally mark the decorated test as ignorably known to fail with the
