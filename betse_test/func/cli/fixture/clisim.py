@@ -55,7 +55,7 @@ accepted by the `betse_cli_sim` fixture.
 
 # @fixture
 # def betse_cli_sim(
-#     betse_cli: 'CLITestRunner',
+#     betse_cli: 'CLITester',
 #     request: '_pytest.python.FixtureRequest',
 # ) -> CLITesterPreArged:
 #     return lambda: print('ok')
@@ -67,7 +67,7 @@ accepted by the `betse_cli_sim` fixture.
 @parametrize_fixture_serial
 @fixture(params=_CLI_SIM_SUBCOMMANDS_ARGS, ids=_CLI_SIM_SUBCOMMANDS_ARGS_IDS)
 def betse_cli_sim(
-    betse_cli: 'CLITestRunner',
+    betse_cli: 'CLITester',
     request: '_pytest.python.FixtureRequest',
 ) -> CLITesterPreArged:
     '''
@@ -78,7 +78,7 @@ def betse_cli_sim(
 
     Parameters
     ----------
-    betse_cli : CLITestRunner
+    betse_cli : CLITester
         Object running a single simulation-specific BETSE CLI subcommand.
     request : _pytest.python.FixtureRequest
         Builtin fixture describing this fixture's parent fixture or test.

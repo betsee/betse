@@ -15,7 +15,7 @@ def test_cli_sans_args(betse_cli) -> None:
 
     Parameters
     ----------
-    betse_cli : CLITestRunner
+    betse_cli : CLITester
         Test-specific object encapsulating the BETSE CLI.
     '''
 
@@ -28,7 +28,7 @@ def test_cli_info(betse_cli) -> None:
 
     Parameters
     ----------
-    betse_cli : CLITestRunner
+    betse_cli : CLITester
         Test-specific object encapsulating the BETSE CLI.
 '''
 

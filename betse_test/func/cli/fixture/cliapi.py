@@ -13,8 +13,7 @@ from betse.util.command import exits
 from betse.util.type import types
 
 # ....................{ CLASSES ~ single                   }....................
-#FIXME: Rename to "CLITester" for conciseness.
-class CLITestRunner(object):
+class CLITester(object):
     '''
     BETSE CLI test runner, efficiently testing a single subcommand of the
     official BETSE CLI (i.e., `betse`) in the active Python interpreter.
@@ -147,7 +146,7 @@ class CLITesterPreArged(object):
 
     Attributes
     ----------
-    _cli : CLITestRunner
+    _cli : CLITester
         BETSE CLI test runner, testing a single subcommand of the official
         BETSE CLI (i.e., `betse`) in the active Python interpreter.
     _subcommand_args : collections.Sequence
@@ -161,7 +160,7 @@ class CLITesterPreArged(object):
 
     def __init__(
         self,
-        cli: CLITestRunner,
+        cli: CLITester,
         subcommand_args: 'collections.Sequence'
     ) -> None:
         '''
@@ -169,7 +168,7 @@ class CLITesterPreArged(object):
 
         Parameters
         ----------
-        cli : CLITestRunner
+        cli : CLITester
             BETSE CLI test runner, testing a single subcommand of the official
             BETSE CLI (i.e., `betse`) in the active Python interpreter.
         subcommand_args : collections.Sequence
@@ -177,7 +176,7 @@ class CLITesterPreArged(object):
             when this object's `run()` method is called. These arguments should
             comprise the BETSE CLI subcommand to be tested.
         '''
-        assert isinstance(cli, CLITestRunner), (
+        assert isinstance(cli, CLITester), (
             'Object "{}" not a CLI test runner.'.format(cli))
         assert types.is_sequence_nonstr(subcommand_args), (
             types.assert_not_sequence_nonstr(subcommand_args))

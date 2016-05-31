@@ -19,7 +19,7 @@ def test_cli_sim_default(
 
     Parameters
     ----------
-    betse_cli_sim : CLITestRunner
+    betse_cli_sim : CLITester
         Test-specific object encapsulating the simulation-specific BETSE CLI.
     betse_sim_config : SimTestState
         Test-specific object encapsulating this simulation configuration file.

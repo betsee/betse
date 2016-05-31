@@ -90,7 +90,7 @@ class SimTestState(object):
         duration of this context.
 
         This method is dynamically called by the `run()` method of the
-        `CLITestRunner` instance returned by the `betse_cli` fixture for the
+        `CLITester` instance returned by the `betse_cli` fixture for the
         current test.
         '''
 

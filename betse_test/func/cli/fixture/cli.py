@@ -70,7 +70,7 @@ copies) into the current Python environment or not.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import objects
-from betse_test.func.cli.fixture.cliapi import CLITestRunner
+from betse_test.func.cli.fixture.cliapi import CLITester
 from betse_test.util import requests
 from pytest import fixture
 
@@ -79,7 +79,7 @@ from pytest import fixture
 # tests, these fixtures is declared to have default scope (i.e., test).
 
 @fixture
-def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
+def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITester:
     '''
     Fixture returning an instance of the `CLITestRunner` class, suitable for
     running the BETSE CLI command required by the current fixture or test.
@@ -91,7 +91,7 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
 
     Returns
     ----------
-    CLITestRunner
+    CLITester
         Object running the BETSE CLI command.
     '''
 
@@ -128,4 +128,4 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITestRunner:
                 betse_fixture_get_command_context())
 
     # Return a new CLI runner specific to the current test.
-    return CLITestRunner(contexts=betse_fixture_command_contexts)
+    return CLITester(contexts=betse_fixture_command_contexts)
