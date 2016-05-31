@@ -892,14 +892,13 @@ class Simulator(object):
             self.fluxes_mem[self.iNa] = self.rho_pump * fNa_NaK
             self.fluxes_mem[self.iK] = self.rho_pump * fK_NaK
 
-
             # update the concentrations of Na and K in cells and environment:
-            self.update_C(self.iNa, fNa_NaK, cells, p)   # FIXME switch this to update_Co
-            self.update_C(self.iK, fK_NaK, cells, p)
+            self.cc_cells[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_cells[self.iNa][:],
+                                                                        self.cc_env[self.iNa][:],fNa_NaK, cells, p)
 
-            # # update the intracellular concentrations:
-            # self.update_intra(cells, self.iNa, p)
-            # self.update_intra(cells, self.iK, p)
+            self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
+                self.cc_env[self.iK][:], fK_NaK, cells, p)
+
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells, p)
@@ -928,20 +927,20 @@ class Simulator(object):
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
                 # update ion concentrations in cell and ecm:
-                self.update_C(i, f_ED, cells, p)
 
-                # self.update_intra(cells, i, p)
+                self.cc_cells[i][:], self.cc_env[i][:] = stb.update_Co(self, self.cc_cells[i][:],
+                    self.cc_env[i][:], f_ED, cells, p)
 
                 # update flux between cells due to gap junctions
                 self.update_gj(cells, p, t, i)
 
-                self.update_intra(cells, i, p)
+                # self.update_intra(cells, i, p)
 
                 if p.sim_ECM:
                     #update concentrations in the extracellular spaces:
                     self.update_ecm(cells, p, t, i)
 
-                # # recalculate the net, unbalanced charge and voltage in each cell:
+            # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V(cells, p)
 
             # ----transport and handling of special ions---------------------------------------------------------------
@@ -970,10 +969,10 @@ class Simulator(object):
                                                                     alpha_max=p.pump_Dye_alpha, Km_X=1.0e-3,
                                                                     Km_ATP=1.0)
 
-
                 self.cDye_cell, self.cDye_env, _, _, _, _, _ = stb.molecule_mover(self,self.cDye_cell,
-                                                                    self.cDye_env,cells, p,p.z_Dye,p.Dm_Dye,
-                                                                    p.Do_Dye,self.c_dye_bound)
+                                                                    self.cDye_env,cells, p, z=p.z_Dye, Dm = p.Dm_Dye,
+                                                                    Do = p.Do_Dye, c_bound = self.c_dye_bound,
+                                                                    ignoreECM = True)
 
             # dynamic noise handling-----------------------------------------------------------------------------------
 
@@ -987,6 +986,9 @@ class Simulator(object):
 
             #-----forces, fields, and flow-----------------------------------------------------------------------------
 
+            # main update of voltage in cells:
+            # self.update_V(cells, p)  # Main update
+
             self.get_Efield(cells, p)  # FIXME update to also get a v_cell gradient
 
             # store charge in time vector:
@@ -994,8 +996,13 @@ class Simulator(object):
             self.charge_cells_time.append(rho_cells_ave)
 
             if p.sim_ECM:
+                # smooth the charge out as a derivative will be taken on it:
+                rho_env_sm = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
 
-                self.charge_env_time.append(self.rho_env)
+                # as flux is done in terms of env-grid squares, correct the volume density of charge:
+                rho_env_sm = (cells.true_ecm_vol/cells.ecm_vol)*rho_env_sm
+
+                self.charge_env_time.append(rho_env_sm)
 
             # get the current
             if p.calc_J:
@@ -1438,24 +1445,10 @@ class Simulator(object):
             v_env = 0
 
         else:
-            # total charge in cells:
-            # Qcells = (self.rho_cells*cells.mem_vol)
-            #
-            # # total charge in environment:
-            # sig_env = (self.rho_env * cells.ecm_vol)
 
             Qcells = self.rho_cells * cells.mem_vol
 
-            # Qecm = self.rho_env[cells.envInds_inClust] * cells.ecm_vol * \
-            #        cells.mems_per_envSquare[cells.envInds_inClust]
             Qecm = self.rho_env[cells.envInds_inClust] * cells.true_ecm_vol[cells.envInds_inClust]
-
-            # sig_env = (self.rho_env * cells.ecm_vol)
-
-            # interpolate charge from environmental grid to the ecm_mids:
-            # Qecm = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),
-            #                           sig_env, (cells.ecm_mids[:,0], cells.ecm_mids[:,1]), method='nearest',
-            #                           fill_value = 0)
 
             # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
             Q_max_vect = np.hstack((Qcells,Qecm))
@@ -1467,39 +1460,11 @@ class Simulator(object):
             v_cell = v_max_vect[cells.mem_range_a:cells.mem_range_b]
             v_ecm = v_max_vect[cells.env_range_a:cells.env_range_b]
 
-            # # calculate vm directly between membrane and adjacent ecm space:
-            # vm = v_cell[cells.mem_to_cells] - v_ecm[cells.mem_to_ecm_mids]
-
-            # interpolate the v_env from ECM spaces to the ENV GRID:
-            # v_env = interp.griddata((cells.ecm_mids[:, 0], cells.ecm_mids[:, 1]),
-            #     v_ecm, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
-            #     fill_value=0)
-
-            # # save values at the cluster boundary:
-            # bound_vals = v_env[cells.ecm_bound_k]
-            #
-            # # set the values of the global environment to zero:
-            # v_env[cells.inds_env] = 0
-            #
-            # # finally, ensure that the boundary values are restored:
-            # v_env[cells.ecm_bound_k] = bound_vals
-
-            #Map the environmental voltage to the regular grid:
-            # v_env = np.zeros(len(cells.xypts))
-            #
-            # # map the ecm voltage to membrane midpoints:
-            # v_ecm_at_mem = v_ecm[cells.mem_to_ecm_mids]
-            # # map it again to the environmental grid
-            # v_env[cells.map_mem2ecm] = v_ecm_at_mem
-            #
             # # smooth out the environmental voltage:
             v_env = np.zeros(len(cells.xypts))
             v_env[cells.envInds_inClust] = v_ecm
 
-            # v_env = fd.integrator(v_env.reshape(cells.X.shape)).ravel()
-
-            v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
-            # v_env = fd.integrator(v_env.reshape(cells.X.shape)).ravel()
+            # v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel() # FIXME might not need this later
 
             # # set the conditions for the global boundaries:
             v_env[cells.bBot_k] = self.bound_V['B']
@@ -1507,14 +1472,9 @@ class Simulator(object):
             v_env[cells.bL_k] = self.bound_V['L']
             v_env[cells.bR_k] = self.bound_V['R']
 
-            # v_cell = cells.integrator(v_cell)
-
             # calculate the vm
             vm = v_cell - v_env[cells.map_mem2ecm]
 
-            # null out charge and voltage in the environmental space:
-            # self.rho_env[cells.inds_env] = 0
-            # v_env[cells.inds_env] = 0
 
         return vm, v_cell, v_env
 
@@ -1528,57 +1488,11 @@ class Simulator(object):
             # self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
 
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
-
             # self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
 
         else:
              self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
              self.vm, self.v_cell, _ = self.get_Vall(cells,p)
-
-    def update_C(self,ion_i,flux,cells,p):
-
-        c_cells = self.cc_cells[ion_i][:]
-        c_env = self.cc_env[ion_i][:]
-
-        if p.sim_ECM is True:
-
-            delta_cells = flux*(cells.mem_sa/cells.mem_vol)
-
-            # interpolate the flux from mem points to the ENV GRID:
-            flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
-                -flux, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
-                fill_value=0)
-
-            # save values at the cluster boundary:
-            bound_vals = flux_env[cells.ecm_bound_k]
-
-            # set the values of the global environment to zero:
-            flux_env[cells.inds_env] = 0
-
-            # finally, ensure that the boundary values are restored:
-            flux_env[cells.ecm_bound_k] = bound_vals
-
-            # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
-            # which yields number of cells per unit env grid square, and then by cell surface area, and finally
-            # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
-
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-
-            # update the concentrations
-            self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
-            self.cc_env[ion_i] = c_env + delta_env*p.dt
-
-
-        else:
-
-            delta_cells = flux* (cells.mem_sa/cells.mem_vol)
-            delta_env = -flux*(cells.mem_sa/p.vol_env)
-
-            self.cc_cells[ion_i] = c_cells + delta_cells * p.dt
-
-            c_env = c_env + delta_env * p.dt
-            # assume auto-mixing of environmental concentrations:
-            self.cc_env[ion_i][:] = c_env.mean()
 
     def acid_handler(self,cells,p):
 
@@ -1608,7 +1522,9 @@ class Simulator(object):
             self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
 
         # update H+ in cells and environment, first in absence of bicarbonate buffering:
-        self.update_C(self.iH, f_H1, cells, p)
+
+        self.cc_cells[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_cells[self.iH][:],
+            self.cc_env[self.iH][:], f_H1, cells, p)
 
 
         # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1660,10 +1576,13 @@ class Simulator(object):
             # update bicarbonate instead of H+, assuming buffer action holds:
 
             # calculate the update to K+ in the cell and environment:
-            self.update_C(self.iK, f_K2, cells, p)
+
+            self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
+                self.cc_env[self.iK][:], f_K2, cells, p)
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
-            self.update_C(self.iM, -f_H2, cells, p)
+            self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
+                self.cc_env[self.iM][:], -f_H2, cells, p)
 
 
             # Calculate the new pH and H+ concentrations:
@@ -1704,7 +1623,8 @@ class Simulator(object):
                 self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3[cells.mem_to_cells]
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
-            self.update_C(self.iM, -f_H3, cells, p)
+            self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
+                self.cc_env[self.iM][:], -f_H3, cells, p)
 
             # Calculate the new pH and H+ concentration:
              # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1752,11 +1672,8 @@ class Simulator(object):
 
 
         # update calcium concentrations in cell and ecm:
-        self.update_C(self.iCa, f_CaATP, cells, p)
-
-        # perform intracellular electrodiffusion:
-        # self.update_intra(cells,self.iCa,p)
-
+        self.cc_cells[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_cells[self.iCa][:],
+            self.cc_env[self.iCa][:], f_CaATP, cells, p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V(cells, p)
@@ -2071,7 +1988,7 @@ class Simulator(object):
             grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
-        # f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms
+        # f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
         # f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
 
         if p.closed_bound is False:
@@ -2104,9 +2021,6 @@ class Simulator(object):
         d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
 
         delta_c = d_fenvx + d_fenvy
-
-        # delta_c = gaussian_filter(delta_c,p.smooth_level)  # smooth out the flux terms
-        # delta_c = fd.integrator(delta_c)
 
         #-----------------------
         cenv = cenv + delta_c*p.dt
@@ -2407,6 +2321,50 @@ class Simulator(object):
 #*AND* seemingly duplicate "p.plot_type" attribute, which should probably
 #receive similar treatment. Wonder temptress at the speed of light and the
 #sound of love!
+
+
+# def update_C(self,ion_i,flux,cells,p):
+#
+#     c_cells = self.cc_cells[ion_i][:]
+#     c_env = self.cc_env[ion_i][:]
+#
+#     if p.sim_ECM is True:
+#
+#         delta_cells = flux*(cells.mem_sa/cells.mem_vol)
+#
+#         # interpolate the flux from mem points to the ENV GRID:
+#         flux_env = -flux[cells.map_mem2ecm]
+#
+#         # save values at the cluster boundary:
+#         bound_vals = flux_env[cells.ecm_bound_k]
+#
+#         # set the values of the global environment to zero:
+#         flux_env[cells.inds_env] = 0
+#
+#         # finally, ensure that the boundary values are restored:
+#         flux_env[cells.ecm_bound_k] = bound_vals
+#
+#         # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
+#         # which yields number of cells per unit env grid square, and then by cell surface area, and finally
+#         # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
+#
+#         delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+#
+#         # update the concentrations
+#         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
+#         self.cc_env[ion_i] = c_env + delta_env*p.dt
+#
+#
+#     else:
+#
+#         delta_cells = flux* (cells.mem_sa/cells.mem_vol)
+#         delta_env = -flux*(cells.mem_sa/p.vol_env)
+#
+#         self.cc_cells[ion_i] = c_cells + delta_cells * p.dt
+#
+#         c_env = c_env + delta_env * p.dt
+#         # assume auto-mixing of environmental concentrations:
+#         self.cc_env[ion_i][:] = c_env.mean()
 
 
 

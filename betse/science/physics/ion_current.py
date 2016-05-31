@@ -109,13 +109,20 @@ def get_current(sim, cells, p):
         J_env_x_o = np.zeros(len(cells.xypts))
         J_env_y_o = np.zeros(len(cells.xypts))
 
+        # true_ecm_sa = np.ones(len(cells.xypts))*cells.ecm_sa
+        #
+        # inds_something = (cells.memSa_per_envSquare != 0.0).nonzero()
+        # true_ecm_sa[inds_something] = cells.memSa_per_envSquare[inds_something]
+
+
         for flux_array, zi in zip(sim.fluxes_env_x, sim.zs):
-            J_i = flux_array * zi * p.F*(cells.memSa_per_envSquare/cells.ecm_sa)
+
+            J_i = flux_array * zi * p.F
 
             J_env_x_o = J_env_x_o + J_i
 
         for flux_array, zi in zip(sim.fluxes_env_y, sim.zs):
-            J_i = flux_array * zi * p.F*(cells.memSa_per_envSquare/cells.ecm_sa)
+            J_i = flux_array * zi * p.F
 
             J_env_y_o = J_env_y_o + J_i
 

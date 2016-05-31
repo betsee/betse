@@ -759,7 +759,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p)
 
     # next electrodiffuse concentrations around the cell interior:
-    cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
+    # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
 
     # ensure that there are no negative values
     cX_cell_1 = no_negs(cX_cell_1)
@@ -776,7 +776,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6):
+def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6, ignoreECM = False):
     """
     Transports a generic molecule across the membrane,
     through gap junctions, and if p.sim_ECM is true,
@@ -819,7 +819,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     # update concentrations due to electrodiffusion:
 
-    cX_cell_o1, cX_env_o1 = update_Co(sim, cX_cell_o, cX_env_o, f_X_ED, cells, p)
+    cX_cell_o1, cX_env_o1 = update_Co(sim, cX_cell_o, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
 
     # ------------------------------------------------------------
 
@@ -864,7 +864,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     #------------------------------------------------------------------------------------------------------------
 
     # electrodiffuse intracellular concentrations
-    cX_cell_1 = update_intra(sim, cells, cX_cell_1, Do, z, p)
+    # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Do, z, p)
 
     # Transport dye through environment, if p.sim_ECM is True-----------------------------------------------------
 
@@ -1033,7 +1033,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     return cX_cell_1, cX_env_1, f_X_ED, fgj_x_X, fgj_y_X, fenvx, fenvy
 
 
-def update_Co(sim, cX_cell, cX_env, flux, cells, p):
+def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     """
 
     General updater for a concentration defined on
@@ -1072,11 +1072,17 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p):
         # finally, ensure that the boundary values are restored:
         flux_env[cells.ecm_bound_k] = bound_vals
 
-        # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
-        # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
-        # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
+        # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
+        # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
+        # to get the mol/s change in concentration (divergence):
 
-        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+        if ignoreECM is False:
+
+            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+
+        else:
+
+            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
         # update the concentrations:
         cX_cell = cX_cell + delta_cells * p.dt
