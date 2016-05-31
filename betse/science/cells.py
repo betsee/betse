@@ -991,8 +991,6 @@ class Cells(object):
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]
 
-
-
     def environment(self,p):
 
         """
@@ -1200,7 +1198,7 @@ class Cells(object):
             raw_env_i = self.map_mem2ecm[mem_i]
 
             # get the index of the environnmental square:
-            env_i_o = int((self.envInds_inClust == self.map_mem2ecm[raw_env_i]).nonzero()[0])
+            env_i_o = int((self.envInds_inClust == raw_env_i).nonzero()[0])
 
             # convert the index to the Max Cap indexing format:
             env_i = env_i_o + len(self.mem_i)

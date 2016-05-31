@@ -1465,6 +1465,8 @@ class Simulator(object):
             v_env[cells.envInds_inClust] = v_ecm
 
             # v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel() # FIXME might not need this later
+            v_cell_ave = np.dot(cells.M_sum_mems,v_cell)/cells.num_mems  # FIXME get rid of this when intra implemented
+            v_cell = v_cell_ave[cells.mem_to_cells]
 
             # # set the conditions for the global boundaries:
             v_env[cells.bBot_k] = self.bound_V['B']
