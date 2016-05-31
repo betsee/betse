@@ -991,13 +991,7 @@ class Cells(object):
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]
 
-        # properties of ecm spaces:
-        self.ecm_sa = 4*self.delta*p.cell_height # surface area of ecm space in direction of cell flux
-        # self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
-        self.ecm_vol = (p.cell_height*self.delta**2)  # volume of ecm space
 
-        # ratio of mean cell volume to ecm square volume (gives approx num cells per ecm square)
-        self.ratio_cell2ecm = self.ecm_vol/self.cell_vol.mean()
 
     def environment(self,p):
 
@@ -1020,6 +1014,17 @@ class Cells(object):
         Z[cells.map_ij2k[map_cell2ecm][:,0],cells.map_ij2k[map_cell2ecm][:,1]] = 10.0
 
         """
+
+
+        # global properties of ecm spaces:
+        self.ecm_sa = 4*self.delta*p.cell_height # surface area of ecm space in direction of cell flux
+        # self.ecm_vol = (p.cell_height*self.delta**2)*np.ones(len(self.xypts))  # volume of ecm space
+        self.ecm_vol = (p.cell_height*self.delta**2)  # volume of ecm space
+
+        # ratio of mean cell volume to ecm square volume (gives approx num cells per ecm square)
+        self.ratio_cell2ecm = self.ecm_vol/self.cell_vol.mean()
+
+        #-------------------------
 
         # first obtain a structure to map to total xypts vector index:
         self.points_tree = sps.KDTree(self.xypts)

@@ -489,7 +489,7 @@ def vertData(data, cells, p):
                                fill_value=0)
 
     # # smooth out the data a bit:
-    # dat_grid = gaussian_filter(dat_grid,p.smooth_level)
+    dat_grid = gaussian_filter(dat_grid,p.smooth_level)
 
     # get rid of values that bleed into the environment:
     # dat_grid = np.multiply(dat_grid,cells.maskM)
@@ -880,7 +880,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         cenv = cX_env_o1
         denv = Do * np.ones(len(cells.xypts))
 
-        v_env = sim.v_env.reshape(cells.X.shape)
+        v_env = p.env_delay_const*sim.v_env.reshape(cells.X.shape)
 
         v_env[:, 0] = sim.bound_V['L']
         v_env[:, -1] = sim.bound_V['R']
@@ -1006,6 +1006,11 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             cenv[0, :] = c_bound
             cenv[-1, :] = c_bound
 
+            cenv[:, -2] = c_bound
+            cenv[:, 1] = c_bound
+            cenv[1, :] = c_bound
+            cenv[-2, :] = c_bound
+
         # reshape the matrices into vectors:
         # self.v_env = self.v_env.ravel()
         cX_env_o1 = cenv.ravel()
@@ -1014,9 +1019,9 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         fenvx = (f_env_x_X[:, 1:] + f_env_x_X[:, 0:-1]) / 2
         fenvy = (f_env_y_X[1:, :] + f_env_y_X[0:-1, :]) / 2
 
-        # ensure that there are no negative values
-        cX_cell_1 = no_negs(cX_cell_o1)
-        cX_env_1 = no_negs(cX_env_o1)
+
+        cX_cell_1 = cX_cell_o1
+        cX_env_1 = cX_env_o1
 
     else:
         cX_env_temp = cX_env_o1.mean()
@@ -1053,9 +1058,6 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p):
 
         delta_cells = flux * (cells.mem_sa / cells.mem_vol)
 
-        # delta_cells = np.dot(d_c_cells, cells.cell_UpdateMatrix)
-
-
         # interpolate the flux from mem points to the ENV GRID:
         flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
             -flux, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
@@ -1074,11 +1076,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p):
         # which yeilds number of cells per unit env grid square, and then by cell surface area, and finally
         # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-        # delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean() / cells.ecm_vol
-
         delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
-
-        # delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
 
         # update the concentrations:
         cX_cell = cX_cell + delta_cells * p.dt

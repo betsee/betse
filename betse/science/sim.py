@@ -894,7 +894,7 @@ class Simulator(object):
 
 
             # update the concentrations of Na and K in cells and environment:
-            self.update_C(self.iNa, fNa_NaK, cells, p)
+            self.update_C(self.iNa, fNa_NaK, cells, p)   # FIXME switch this to update_Co
             self.update_C(self.iK, fK_NaK, cells, p)
 
             # # update the intracellular concentrations:
@@ -1496,6 +1496,8 @@ class Simulator(object):
             v_env = np.zeros(len(cells.xypts))
             v_env[cells.envInds_inClust] = v_ecm
 
+            # v_env = fd.integrator(v_env.reshape(cells.X.shape)).ravel()
+
             v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
             # v_env = fd.integrator(v_env.reshape(cells.X.shape)).ravel()
 
@@ -1523,11 +1525,11 @@ class Simulator(object):
             self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
             # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
-            self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
+            # self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
 
             self.vm, self.v_cell, self.v_env = self.get_Vall(cells,p)
 
-            self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
+            # self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
 
         else:
              self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
@@ -1541,9 +1543,6 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             delta_cells = flux*(cells.mem_sa/cells.mem_vol)
-
-            # divergence of cells:
-            # delta_cells =  np.dot(d_c_cells, cells.cell_UpdateMatrix)
 
             # interpolate the flux from mem points to the ENV GRID:
             flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
@@ -1563,7 +1562,7 @@ class Simulator(object):
             # which yields number of cells per unit env grid square, and then by cell surface area, and finally
             # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
 
-            delta_env = flux_env * cells.mems_per_envSquare * cells.mem_sa.mean()/(cells.true_ecm_vol)
+            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
 
             # update the concentrations
             self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
@@ -1580,12 +1579,6 @@ class Simulator(object):
             c_env = c_env + delta_env * p.dt
             # assume auto-mixing of environmental concentrations:
             self.cc_env[ion_i][:] = c_env.mean()
-
-        # ensure that there are no negative values in the cells or the extracellular spaces:
-        # for i, arr in enumerate(self.cc_cells):
-        #     self.cc_cells[i] = stb.no_negs(arr)
-        # for i, arr in enumerate(self.cc_env):
-        #     self.cc_env[i] = stb.no_negs(arr)
 
     def acid_handler(self,cells,p):
 
@@ -1762,7 +1755,7 @@ class Simulator(object):
         self.update_C(self.iCa, f_CaATP, cells, p)
 
         # perform intracellular electrodiffusion:
-        self.update_intra(cells,self.iCa,p)
+        # self.update_intra(cells,self.iCa,p)
 
 
         # recalculate the net, unbalanced charge and voltage in each cell:
@@ -1975,7 +1968,6 @@ class Simulator(object):
 
         # make v_env and cc_env into 2d matrices
         cenv = self.cc_env[i][:]
-        # denv = self.D_env[i][:]
 
         v_env = p.env_delay_const*self.v_env[:].reshape(cells.X.shape)
 

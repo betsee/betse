@@ -976,7 +976,7 @@ def removeCells(
     # get the corresponding flags to membrane entities
     target_inds_mem = cells.cell_to_mems[target_inds_cell]
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
-    target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
+    # target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
     if p.sim_ECM is True:
         # get environmental targets around each removed cell:
@@ -1000,20 +1000,20 @@ def removeCells(
             # old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
 
     # set up the situation to make world joined to cut world have more permeable membranes:
-    hurt_cells = np.zeros(len(cells.cell_i))
+    # hurt_cells = np.zeros(len(cells.cell_i))
 
-    # If we're creating a dangling gap junction situation...
-    if p.scheduled_options['cuts'].is_hurt_cells_leaky:
-        target_inds_gj_unique = np.unique(target_inds_gj)
-
-        for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
-            inds_array = np.asarray(inds)
-            inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
-
-            if len(inds_in_target):
-                hurt_cells[i] = 1  # flag the cell as a "hurt" cell
-
-        hurt_inds = (hurt_cells == 1).nonzero()
+    # # If we're creating a dangling gap junction situation...
+    # if p.scheduled_options['cuts'].is_hurt_cells_leaky:
+    #     target_inds_gj_unique = np.unique(target_inds_gj)
+    #
+    #     for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
+    #         inds_array = np.asarray(inds)
+    #         inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
+    #
+    #         if len(inds_in_target):
+    #             hurt_cells[i] = 1  # flag the cell as a "hurt" cell
+    #
+    #     hurt_inds = (hurt_cells == 1).nonzero()
 
         #FIXME: The following two conditional branches are suspiciously
         #similar. They appear to reduce to just:
@@ -1025,21 +1025,21 @@ def removeCells(
         #         p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
         #
         #Loamy-eyed surf and sandy-haired sun!
-
-        if p.sim_ECM is True:
-            mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
-
-            for i,dmat_a in enumerate(sim.Dm_cells):
-                sim.Dm_cells[i][mem_flags] = (
-                    p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-
-        else:
-            for i, dmat_a in enumerate(sim.Dm_cells):
-                sim.Dm_cells[i][hurt_inds] = (
-                    p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-
-        # copy the Dm to the base:
-        sim.Dm_base = np.copy(sim.Dm_cells)
+        #
+        # if p.sim_ECM is True:
+        #     mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
+        #
+        #     for i,dmat_a in enumerate(sim.Dm_cells):
+        #         sim.Dm_cells[i][mem_flags] = (
+        #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
+        #
+        # else:
+        #     for i, dmat_a in enumerate(sim.Dm_cells):
+        #         sim.Dm_cells[i][hurt_inds] = (
+        #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
+        #
+        # # copy the Dm to the base:
+        # sim.Dm_base = np.copy(sim.Dm_cells)
 
     # Names of all attributes in the current "Simulation" object.
     sim_names = list(sim.__dict__.keys())
@@ -1178,8 +1178,21 @@ def removeCells(
     #-----------------------------------------------------------------
     logs.log_info('Recalculating cluster variables for new configuration...')
 
+    cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
+    cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+    cells.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
+    cells.near_neigh(p)  # Calculate the nn array for each cell
+    cells.voronoiGrid(p)
+    cells.calc_gj_vects(p)
+    cells.environment(p)  # define features of the ecm grid
+    cells.make_maskM(p)
+    cells.grid_len = len(cells.xypts)
+
     if p.sim_ECM is True:
-        cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
+
+        logs.log_info('Recalculating Capacitance Matrix for new configuration...')
+
+        cells.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
         if open_TJ is True:
             # if desire for cut away space to lack tight junctions, remove new bflags from set:
@@ -1187,32 +1200,11 @@ def removeCells(
             original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
             cells.bflags_cells = original_pt_inds[:]
 
-        cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.calc_gj_vects(p)
-        cells.gj_matrix(p)      # Calculate extra stuff for gap junction work
-        cells.short_environment(p)   # define features of the ecm grid
-        cells.make_maskM(p)
-        cells.grid_len =len(cells.xypts)
-
-        cells.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
-
-        # if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
-        #     # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-        #     logs.log_info('Creating cell network Poisson solver...')
-        #     cells.graphLaplacian(p)
-        #     logs.log_info('Completed major world-building computations.')
-
         sim.initDenv(cells,p)
-
-    else:
-        cells.cellVerts(p)   # create individual cell polygon vertices and membrane specific data structures
-        cells.near_neigh(p)    # Calculate the nn array for each cell
-        cells.calc_gj_vects(p)
-        cells.gj_matrix(p)      # Calculate extra stuff for gap junction work
 
     if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-        logs.log_info('Creating cell network Poisson solver...')
+        logs.log_info('Re-creating cell network Poisson solver...')
         cells.graphLaplacian(p)
         logs.log_info('Completed major world-building computations.')
 
