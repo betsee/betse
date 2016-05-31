@@ -516,13 +516,6 @@ class Simulator(object):
         # load in the gap junction dynamics object:
         self.gj_funk = Gap_Junction(p)
 
-        # # smooth the Voronoi --> Env grid weighting function to the same level used in sim:
-        # cells.mems_per_envSquare = gaussian_filter(cells.mems_per_envSquare.reshape(cells.X.shape),
-        #                                             p.smooth_level).ravel()
-        #
-        # cells.memSa_per_envSquare = gaussian_filter(cells.memSa_per_envSquare.reshape(cells.X.shape),
-        #     p.smooth_level).ravel()
-
         self.J_gj_x = np.zeros(len(cells.mem_i))
         self.J_gj_y = np.zeros(len(cells.mem_i))
 
@@ -996,8 +989,13 @@ class Simulator(object):
             self.charge_cells_time.append(rho_cells_ave)
 
             if p.sim_ECM:
-                # smooth the charge out as a derivative will be taken on it:
-                rho_env_sm = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
+
+                if p.smooth_level > 0.0:
+                    # smooth the charge out as a derivative will be taken on it:
+                    rho_env_sm = gaussian_filter(self.rho_env[:].reshape(cells.X.shape),p.smooth_level).ravel()
+
+                else:
+                    rho_env_sm = self.rho_env[:]
 
                 # as flux is done in terms of env-grid squares, correct the volume density of charge:
                 rho_env_sm = (cells.true_ecm_vol/cells.ecm_vol)*rho_env_sm
@@ -1464,7 +1462,10 @@ class Simulator(object):
             v_env = np.zeros(len(cells.xypts))
             v_env[cells.envInds_inClust] = v_ecm
 
-            # v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel() # FIXME might not need this later
+            if p.smooth_level > 0.0:
+
+                v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
+
             v_cell_ave = np.dot(cells.M_sum_mems,v_cell)/cells.num_mems  # FIXME get rid of this when intra implemented
             v_cell = v_cell_ave[cells.mem_to_cells]
 
@@ -1888,7 +1889,7 @@ class Simulator(object):
         # make v_env and cc_env into 2d matrices
         cenv = self.cc_env[i][:]
 
-        v_env = p.env_delay_const*self.v_env[:].reshape(cells.X.shape)
+        v_env = self.v_env[:].reshape(cells.X.shape)
 
         # enforce voltage at boundary:
         v_env[:,0] = self.bound_V['L']
@@ -1990,8 +1991,15 @@ class Simulator(object):
             grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
-        # f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
-        # f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
+
+        # slow fluxes, if desired by user:
+        f_env_x = p.env_delay_const*f_env_x
+        f_env_y = p.env_delay_const*f_env_y
+
+        if p.smooth_level > 0.0:
+
+            f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
+            f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
 
         if p.closed_bound is False:
 
@@ -2021,6 +2029,8 @@ class Simulator(object):
 
         d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
         d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
+
+
 
         delta_c = d_fenvx + d_fenvy
 
@@ -2073,8 +2083,10 @@ class Simulator(object):
             self.E_env_x = -genv_x.ravel()*cells.ave2ecmV
             self.E_env_y = -genv_y.ravel()*cells.ave2ecmV
 
-            # self.E_env_x = gaussian_filter(self.E_env_x.reshape(cells.X.shape),p.smooth_level)
-            # self.E_env_y = gaussian_filter(self.E_env_y.reshape(cells.X.shape),p.smooth_level)
+            if p.smooth_level > 0.0:
+
+                self.E_env_x = gaussian_filter(self.E_env_x.reshape(cells.X.shape),p.smooth_level)
+                self.E_env_y = gaussian_filter(self.E_env_y.reshape(cells.X.shape),p.smooth_level)
 
         else:
 

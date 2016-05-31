@@ -664,7 +664,7 @@ variable settings:
                             # otherwise this is ignored.
 
 
-  tight junction scaling: 1.0e-7   # factor by which tight junctions scale
+  tight junction scaling: 1.0e-5   # factor by which tight junctions scale
                                    # free-diffusion
 
   tight junction relative diffusion:  # relative values for tight junction ion 
@@ -677,7 +677,7 @@ variable settings:
     M: 1
     P: 1
 
-  adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
+  adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
   cavity open: False  # do internally cut cavities have free env boundaries
@@ -1082,13 +1082,13 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
-  gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0 to 2.
+  gaussian smoothing: 0.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0 to 2.
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
   cytosolic delay factor: 1.0e-1       # level to delay intracellular transport (needed for larger time-steps) 0.1
 
-  environmental delay factor: 1.0e-1    # level to diminish environmental E field transport effects 0.1 FIXME not needed
+  environmental delay factor: 1.0    # level to diminish environmental E field transport effects 0.1 FIXME not needed
 
   electrolyte screening factor: 0.86 # ~0.5 to 1.0 electrolyte double layer screening & self-capacitances [F/m2] 0.86
 

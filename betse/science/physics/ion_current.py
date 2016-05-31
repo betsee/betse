@@ -10,7 +10,6 @@ from random import shuffle
 
 import numpy as np
 from scipy import interpolate as interp
-from scipy.ndimage.filters import gaussian_filter
 from betse.science import finitediff as fd
 
 

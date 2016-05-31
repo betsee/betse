@@ -1086,7 +1086,7 @@ class Cells(object):
                 self.memSa_per_envSquare[ind_ecm] = sas
                 self.mems_per_envSquare[ind_ecm] = len(lst)
 
-                self.true_ecm_vol[ind_ecm] = sas*p.cell_space
+                self.true_ecm_vol[ind_ecm] = sas*p.cell_space*(1/2)
 
 
         self.envInds_inClust = np.asarray(self.envInds_inClust)
