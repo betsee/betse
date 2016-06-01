@@ -52,23 +52,10 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     exp_alpha = np.exp(-alpha)
 
-    deno = 1 - exp_alpha   # calculate the denominator for the electrodiffusion equation,..
+    deno = 1 - exp_alpha + 1e-15  # calculate the denominator with small term in case it's equal to zero
 
-    izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
-    inotzero = (deno!=0).nonzero()
-
-    # initialize data matrices to the same shape as input data
-    flux = np.zeros(deno.shape)
-
-    if len(deno[izero]):   # if there's anything in the izero array:
-         # calculate the flux for those elements as standard diffusion [mol/m2s]:
-        flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
-
-    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
-
-        # calculate the flux for those elements:
-        flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
-                        cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
+    # calculate the flux for those elements:
+    flux = -((Dc*alpha)/d)*((cB - cA*exp_alpha)/deno)
 
     return flux
 
@@ -528,6 +515,33 @@ def nernst_planck_flux(c, gcx, gcy, gvx, gvy,ux,uy,D,z,T,p):
 
     return fx, fy
 
+def nernst_planck_vector(c, gc, gv,u,D,z,T,p):
+    """
+     Calculate the flux component of the Nernst-Planck equation
+     along a directional gradient (e.g. gap junction)
+
+     Parameters
+     ------------
+
+    c:     concentration
+    gc:   concentration gradient
+    gv:   voltage gradient
+    u:    fluid velocity
+    D:     diffusion constant, D
+    z:     ion charge
+    T:     temperature
+    p:     parameters object
+
+    Returns
+    --------
+    fx, fx        mass flux in x and y directions
+    """
+
+    alpha = (D*z*p.q)/(p.kb*T)
+    f =  -D*gc - alpha*gv*c + u*c
+
+    return f
+
 def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
     """
      Calculate the flux component of the Nernst-Planck equation on a MACs grid
@@ -815,7 +829,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     # Transmembrane: electrodiffuse molecule X between cell and extracellular space------------------------------
 
-    f_X_ED = electroflux(cX_env, cX_cell, Dm_vect, sim.tm, z, sim.vm, sim.T, p)
+    f_X_ED = electroflux(cX_env, cX_cell, Dm_vect, p.tm, z, sim.vm, sim.T, p)
 
     # update concentrations due to electrodiffusion:
 
@@ -1043,7 +1057,6 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     return cX_cell_1, cX_env_1, f_X_ED, fgj_x_X, fgj_y_X, fenvx, fenvy
 
-
 def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     """
 
@@ -1069,10 +1082,8 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
 
         delta_cells = flux * (cells.mem_sa / cells.mem_vol)
 
-        # interpolate the flux from mem points to the ENV GRID:
-        flux_env = interp.griddata((cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]),
-            -flux, (cells.xypts[:, 0], cells.xypts[:, 1]), method='nearest',
-            fill_value=0)
+        flux_env = np.zeros(sim.edl)
+        flux_env[cells.map_mem2ecm] = -flux
 
         # save values at the cluster boundary:
         bound_vals = flux_env[cells.ecm_bound_k]
@@ -1113,7 +1124,6 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
 
     return cX_cell, cX_env
 
-
 def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     """
     Perform electrodiffusion on intracellular vertices
@@ -1139,24 +1149,15 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     else:
         u = 0
 
-
     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
-
-    # # get the gradient of voltage for each cell centre wrt each membrane midpoint:
-    # grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
 
     # obtain an average concentration at the pie-slice midpoints:
     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
 
-    # # calculate the total Nernst-Planck flux at each pie-slice midpoint (positive flux into centroid):
-    # flux_intra = -D_x*p.cell_delay_const*grad_c + u*c_at_mids - \
-    #              ((zx*D_x*p.cell_delay_const*p.F)/(p.R*sim.T))*c_at_mids*grad_v
-
     flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
 
     # net flux across inner centroid surfaces of each cell:
-
     net_flux = flux_intra * (cells.mem_sa / 2)
 
     # sum of the flux entering each centroid region:

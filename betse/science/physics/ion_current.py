@@ -88,7 +88,7 @@ def get_current(sim, cells, p):
     sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y) / cells.num_mems
 
 
-    # interpolate these to the grid so we have something to plot. FIXME deal with these later, don't interp, plot
+    # interpolate these to the grid so we have something to plot. FIXME deal with these later, don't interp, plot!!!
     # the actual J_mem at the membranes!
 
     sim.J_gj_x = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),sim.J_cell_x,(cells.X,cells.Y),

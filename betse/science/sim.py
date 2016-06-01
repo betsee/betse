@@ -207,9 +207,9 @@ class Simulator(object):
             self.c_env_bound = []  # moving ion concentration at global boundary
             self.Dtj_rel = []  # relative diffusion constants for ions across tight junctions
 
-            # Initialize membrane thickness:
-            self.tm = np.zeros(len(cells.mem_i))
-            self.tm[:] = p.tm
+            # # Initialize membrane thickness:
+            # self.tm = np.zeros(len(cells.mem_i))
+            # self.tm[:] = p.tm
 
             # initialize environmental fluxes and current data stuctures:
             self.flx_env_i = np.zeros(self.edl)
@@ -222,9 +222,9 @@ class Simulator(object):
             self.envV = np.zeros(self.mdl)
             self.envV[:] = p.vol_env
 
-            # Initialize membrane thickness:
-            self.tm = np.zeros(self.mdl)
-            self.tm[:] = p.tm
+            # # Initialize membrane thickness:
+            # self.tm = np.zeros(self.mdl)
+            # self.tm[:] = p.tm
 
         if p.fluid_flow is True:
             # Electroosmosis Initialization:
@@ -510,7 +510,6 @@ class Simulator(object):
             self.cc_cells.append(c_cells)
 
         self.cc_cells = np.asarray(self.cc_cells)
-
 
     def init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -934,12 +933,12 @@ class Simulator(object):
                 if p.sim_ECM is True:
 
                     f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_mems[i],
-                        self.Dm_cells[i], self.tm, self.zs[i], self.vm, self.T, p,
+                        self.Dm_cells[i], p.tm, self.zs[i], self.vm, self.T, p,
                         rho=self.rho_channel)
 
                 else:
 
-                    f_ED = stb.electroflux(self.cc_env[i],self.cc_mems[i],self.Dm_cells[i],self.tm,self.zs[i],
+                    f_ED = stb.electroflux(self.cc_env[i],self.cc_mems[i],self.Dm_cells[i],p.tm,self.zs[i],
                                     self.vm,self.T,p,rho=self.rho_channel)
 
 
@@ -1566,7 +1565,7 @@ class Simulator(object):
                 self.cc_env[self.iH][cells.map_mem2ecm],
                 self.cc_mems[self.iH][cells.mem_to_cells],
                 self.Dm_cells[self.iH],
-                self.tm[cells.mem_to_cells],
+                p.tm,
                 self.zs[self.iH],
                 self.vm,
                 self.T,
@@ -1578,7 +1577,7 @@ class Simulator(object):
 
         else:
 
-            f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],self.tm,
+            f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],p.tm,
                 self.zs[self.iH],self.vm,self.T,p)
 
             self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
@@ -1774,12 +1773,12 @@ class Simulator(object):
 
             # electrodiffusion of ions between cell and endoplasmic reticulum
             f_Ca_ER = \
-                stb.electroflux(self.cc_mems[self.iCa], self.cc_er[0], self.Dm_er[0], self.tm, self.z_er[0],
+                stb.electroflux(self.cc_mems[self.iCa], self.cc_er[0], self.Dm_er[0], p.tm, self.z_er[0],
                     self.v_er, self.T, p)
 
             # Electrodiffusion of charge compensation anion
             f_M_ER = \
-                stb.electroflux(self.cc_mems[self.iM], self.cc_er[1], self.Dm_er[1], self.tm, self.z_er[1],
+                stb.electroflux(self.cc_mems[self.iM], self.cc_er[1], self.Dm_er[1], p.tm, self.z_er[1],
                     self.v_er, self.T, p)
 
             f_calcium = f_Ca_ER + f_Ca_ER_pump
@@ -1809,22 +1808,14 @@ class Simulator(object):
 
         self.vgj = self.v_cell[cells.nn_i]- self.v_cell[cells.mem_i]
 
-
         if p.v_sensitive_gj is True:
             # determine the open state of gap junctions:
-            # self.gjopen = self.gj_block*((1.0 - tb.step(abs(self.vgj),p.gj_vthresh,p.gj_vgrad) + 0.1))
-
-            # calculate the steady state value of gj conductivity for this voltage:
-
-            # gj_inf = ((1 - 0.04)/(1 + np.exp(0.217*(self.vgj*1e3 - p.gj_vthresh)))) + 0.04
-
             gmin = self.gj_funk.gmin
 
             alpha_gj = self.gj_funk.alpha_gj
             beta_gj = self.gj_funk.beta_gj_p
 
             vgj = np.abs(self.vgj)
-
 
             dgjopen_dt = (1 - self.gjopen)*alpha_gj(vgj) - (self.gjopen - gmin)*beta_gj(vgj)
 
@@ -1839,7 +1830,6 @@ class Simulator(object):
 
             self.gjopen = self.gj_block*self.gjopen
 
-
         else:
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
 
@@ -1847,47 +1837,44 @@ class Simulator(object):
         # voltage gradient:
         grad_vgj = self.vgj/cells.gj_len
 
-        grad_vgj_x = grad_vgj*cells.mem_vects_flat[:,2]
-        grad_vgj_y = grad_vgj*cells.mem_vects_flat[:,3]
 
         # concentration gradient for ion i:
-
         conc_mem = self.cc_mems[i]
         grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.gj_len
-
-        grad_cgj_x = grad_cgj*cells.mem_vects_flat[:,2]
-        grad_cgj_y = grad_cgj*cells.mem_vects_flat[:,3]
 
         # midpoint concentration:
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
-        # electroosmotic fluid velocity -- averaged at gap junctions:
+        # electroosmotic fluid velocity at gap junctions:
         if p.fluid_flow is True:
             ux = self.u_gj_x
             uy = self.u_gj_y
 
+            # get component of fluid tangent to gap junctions
+            ugj = ux*cells.mem_vects_flat[:,2] + uy*cells.mem_vects_flat[:,3]
+
         else:
-            ux = 0
-            uy =0
+            ugj = 0
 
-        fgj_x,fgj_y = stb.nernst_planck_flux(c,grad_cgj_x,grad_cgj_y,grad_vgj_x,grad_vgj_y,ux,uy,
+        # calculate nernst-planck flux tangent to gap junctions:
+        fgj = stb.nernst_planck_vector(c,grad_cgj,grad_vgj, ugj,
             p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
-
-        # component of flux tangent to gap junctions:
-        fgj = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
         delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
 
         self.cc_mems[i] = self.cc_mems[i] + p.dt * delta_cc
 
-        # update concentrations intracellularly:
-        self.cc_mems[i][:], self.cc_cells[i][:], _ = \
-            stb.update_intra(self, cells, self.cc_mems[i][:],
-                self.cc_cells[i][:],
-                self.D_free[i],
-                self.zs[i], p)
+        # # update concentrations intracellularly:
+        # self.cc_mems[i][:], self.cc_cells[i][:], _ = \
+        #     stb.update_intra(self, cells, self.cc_mems[i][:],
+        #         self.cc_cells[i][:],
+        #         self.D_free[i],
+        #         self.zs[i], p)
 
-        self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
+        fgj_x = fgj*cells.mem_vects_flat[:,2]
+        fgj_y = fgj*cells.mem_vects_flat[:,3]
+
+        self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion  # FIXME this should be just fgj storage
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
