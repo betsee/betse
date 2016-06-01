@@ -623,7 +623,7 @@ def ghk_calculator(sim, cells, p):
 
         # average values from membranes or environment to cell centres:
         Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
-        conc_cells = np.dot(cells.M_sum_mems, sim.cc_cells[i]) / cells.num_mems
+        conc_cells = np.dot(cells.M_sum_mems, sim.cc_mems[i]) / cells.num_mems
 
         if p.sim_ECM is True:
             # average entities from membranes to the cell centres:
@@ -853,6 +853,15 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     fgj_x_X, fgj_y_X = nernst_planck_flux(cX_mids, grad_cgj_x, grad_cgj_y, grad_vgj_x, grad_vgj_y, ux, uy,
         p.gj_surface*Do * sim.gjopen, z, sim.T, p)
+
+    # slow fluxes, if desired by user:
+    fgj_x_X = p.env_delay_const * fgj_x_X
+    fgj_y_X = p.env_delay_const * fgj_y_X
+
+    if p.smooth_level > 0.0:
+        fgj_x_X = gaussian_filter(fgj_x_X, p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
+        fgj_y_X = gaussian_filter(fgj_y_X, p.smooth_level)  # smooth out the flux terms
+
 
     fgj_X = fgj_x_X * cells.mem_vects_flat[:,2] + fgj_y_X * cells.mem_vects_flat[:,3]
 
@@ -1103,7 +1112,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     return cX_cell, cX_env
 
 
-def update_intra(sim, cells, cX_cell, D_x, zx, p):
+def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     """
     Perform electrodiffusion on intracellular vertices
     to update concentration around the cell interior
@@ -1113,59 +1122,43 @@ def update_intra(sim, cells, cX_cell, D_x, zx, p):
     """
 
     # x and y components of membrane tangent unit vectors
-    tx = cells.mem_vects_flat[:, 4]
-    ty = cells.mem_vects_flat[:, 5]
+    nx = cells.mem_vects_flat[:, 2]
+    ny = cells.mem_vects_flat[:, 3]
 
-    # tangential components of fluid flow velocity at the membrane, if applicable:
+
     if p.fluid_flow is True and p.run_sim is True:
-        # get intracellular fluid flow tangent to membrane midpoints
-        # map total cell fluid flow vector (defined at cell centre) to
-        # each of the membrane midpoints:
+        # get intracellular fluid flow vector
         ux_mem = sim.u_cells_x[cells.mem_to_cells]
         uy_mem = sim.u_cells_y[cells.mem_to_cells]
 
-        # tangential component of fluid velocity at membrane:
-        u_tang = ux_mem * tx + uy_mem * ty
+        # component of fluid flow velocity normal to the membrane:
+        u = ux_mem*nx + uy_mem*ny
 
     else:
-        u_tang = 0
+        u = 0
 
-    # map concentration to vertices
-    c_at_verts = np.dot(cX_cell, cells.matrixMap2Verts)
 
-    # get the gradient of rho concentration around each membrane:
-    grad_c = np.dot(cells.gradIntra, c_at_verts)
+    # get the gradient of rho concentration for each cell centre wrt to each membrane:
+    grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
 
-    # --------------------------------------------------------------------------------------------------------
+    # get the gradient of voltage for each cell centre wrt each membrane:
+    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells]) / cells.chords
 
-    # get the tangential voltage gradient at each membrane from net intracellular current
-    # grad_v = np.dot(cells.gradMem, sim.v_cell)
+    # obtain an average concentration at the pie-slice midpoints:
+    c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
 
-    E_cell = p.media_sigma * sim.J_cell_x[cells.mem_to_cells] * tx + \
-             p.media_sigma * sim.J_cell_y[cells.mem_to_cells] * ty
+    # calculate the total Nernst-Planck flux at each pie-slice midpoint:
+    flux_intra = -D_x*p.cell_delay_const * grad_c + u * c_at_mids - \
+                 ((zx * D_x*p.cell_delay_const * p.F) / (p.R * sim.T)) * c_at_mids * grad_v
 
-    # -----------------------------------------------------------------------------------------------------
+    # divergence of the total flux as a finite volume sum:
+    flux_sum = np.dot(cells.M_sum_mems, flux_intra * (cells.mem_sa / 2))
 
-    # calculate the total Nernst-Planck flux at each membrane:
+    divF_centroid = flux_sum/cells.centroid_vol
+    divF_mems = (-flux_intra*(cells.mem_sa/2))/cells.mem_vol
 
-    flux_intra = -D_x*p.cell_delay_const * grad_c + u_tang * c_at_verts + \
-                 ((zx * D_x*p.cell_delay_const * p.F) / (p.R * sim.T)) * c_at_verts * E_cell
+    cX_mems = cX_mems + divF_mems * p.dt
+    cX_cells = cX_cells + divF_centroid * p.dt
 
-    # divergence of the total flux via dfx/dx + dfy/dy:
-    # components of flux in x and y directions, mapped to cell verts:
-    gfx = np.dot(-flux_intra * tx, cells.matrixMap2Verts)
-    gfy = np.dot(-flux_intra * ty, cells.matrixMap2Verts)
 
-    ddfx = np.dot(cells.gradIntra, gfx) * tx
-    ddfy = np.dot(cells.gradIntra, gfy) * ty
-
-    divF_intra = ddfx + ddfy
-
-    cX_cell = cX_cell + divF_intra * p.dt
-
-    # ------------------------------------------------
-    # # make sure nothing is non-zero:
-    # fix_inds = (cX_cell < 0).nonzero()
-    # cX_cell[fix_inds] = 0
-
-    return cX_cell
+    return cX_mems, cX_cells

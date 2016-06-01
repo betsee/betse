@@ -222,11 +222,11 @@ def cagPotassium(dyna,sim,cells,p):
     # get data on cytosolic calcium levels in target cells
     if p.sim_ECM is False:
 
-        ca = sim.cc_cells[sim.iCa][dyna.targets_cagK]
+        ca = sim.cc_mems[sim.iCa][dyna.targets_cagK]
 
     else:
 
-        ca = sim.cc_cells[sim.iCa][cells.mem_to_cells][dyna.targets_cagK]
+        ca = sim.cc_mems[sim.iCa][cells.mem_to_cells][dyna.targets_cagK]
 
     # calculate different terms:
     t1 = 1 + ((ca*1e3)/10.22)

@@ -36,11 +36,11 @@ def electro_F(sim, cells, p):
 def osmotic_P(sim, cells, p):
     # initialize osmotic pressures in cells and env
 
-    sim.osmo_P_cell = np.zeros(len(sim.cc_cells[0]))
+    sim.osmo_P_cell = np.zeros(len(sim.cc_mems[0]))
     sim.osmo_P_env = np.zeros(len(sim.cc_env[0]))
 
     # calculate osmotic pressure in cells based on total molarity:
-    for c_ion in sim.cc_cells:
+    for c_ion in sim.cc_mems:
         sim.osmo_P_cell = c_ion * p.R * sim.T + sim.osmo_P_cell
 
     # calculate osmotic pressure in environment based on total molarity:
@@ -101,7 +101,7 @@ def osmotic_P(sim, cells, p):
 
     v1 = (1 + sim.delta_vol) * vo
 
-    sim.cc_cells = sim.cc_cells * (vo / v1)
+    sim.cc_mems = sim.cc_mems * (vo / v1)
 
     # reassign cell volume:
     cells.cell_vol = v1[:]

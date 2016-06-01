@@ -816,7 +816,7 @@ class TissueHandler(object):
                 term_Ca_reg = 1.0
 
             else:
-                term_Ca_reg = (np.exp(-((sim.cc_cells[sim.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
+                term_Ca_reg = (np.exp(-((sim.cc_mems[sim.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
 
             if len(p.Ca_dyn_options['CICR'][2]) == 0:
                 term_IP3_reg = 1.0
@@ -1050,6 +1050,7 @@ def removeCells(
     # Names of all such attributes to be repaired due to this cutting event.
     specials_list = [
         'cc_cells',
+        'cc_mems',
         'cc_env',
         'cc_er',
         'z_array',

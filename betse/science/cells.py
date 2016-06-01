@@ -665,6 +665,8 @@ class Cells(object):
                 self.index_to_mem_verts.append([pt_ind1,pt_ind2])
         self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
 
+
+
     def cellMatrices(self, p):
         """
         Creates the main matrices used in routine calculations on the Cell Grid.
@@ -702,16 +704,26 @@ class Cells(object):
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
         self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
-
-        # construct pie-slice style volumes for each membrane: -------------------------------------------------------
-        self.mem_vol = (self.mem_sa / self.cell_sa[self.mem_to_cells]) * self.cell_vol[self.mem_to_cells]
-        # self.mem_vol = (1 / self.num_mems[self.mem_to_cells]) * self.cell_vol[self.mem_to_cells]
-
         # ------------------------------------------------------------------------------------------------
         # create a matrix that will take a continuous gradient for a value on a cell membrane:
         self.intra_updater(p)    # FIXME this needs to be altered with new function!
 
         self.cell_number = self.cell_centres.shape[0]
+
+        # construct data structures for intracellular diffusion--------------------------------------------------------
+
+        # calculate cell chords
+        self.chords = []
+        for i, memMid in enumerate(self.mem_mids_flat):
+            # get cell index for the membrane:
+            celli = self.mem_to_cells[i]
+            dist = memMid - self.cell_centres[celli]
+            chrd = np.sqrt(dist[0] ** 2 + dist[1] ** 2)
+            self.chords.append(chrd)
+
+        self.chords = np.asarray(self.chords)
+        self.mem_vol = (1/3)*self.chords*self.mem_sa
+        self.centroid_vol = self.cell_vol - np.dot(self.M_sum_mems, self.mem_vol)
 
     def mem_processing(self,p):
         """
