@@ -1476,12 +1476,21 @@ class Simulator(object):
             # calculate the voltage for the system using the measured capacitance of the cell membrane:
 
             # the vm at each membrane segment of a cell:
-            vm = (1/(p.cm*cells.mem_sa))*self.rho_cells*cells.mem_vol
+            v_cello = (1/(p.cm*cells.mem_sa))*self.rho_cells*cells.mem_vol
 
-            # in this case, the voltage in the environment is assumed to be zero:
-            v_cell = vm
-            v_cell_ave = np.dot(cells.M_sum_mems, v_cell) / cells.num_mems
+            v_cell_aveo = np.dot(cells.M_sum_mems, v_cello) / cells.num_mems
+
             v_env = 0
+
+            # use finite volume method to integrate each region:
+            # values at centroid mids:
+            vcell_at_mids = (v_cello + v_cell_aveo[cells.mem_to_cells]) / 2
+
+            # finite volume integral of membrane pie-box values:
+            v_cell = np.dot(cells.M_int_mems, v_cello) + (1 / 2) * vcell_at_mids
+            v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
+
+            vm = v_cell
 
         else:
 
@@ -1496,10 +1505,20 @@ class Simulator(object):
             v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
 
             # separate voltages for cells and ecm spaces
-            v_cell = v_max_vect[cells.mem_range_a:cells.mem_range_b]
+            v_cello = v_max_vect[cells.mem_range_a:cells.mem_range_b]
             v_ecm = v_max_vect[cells.env_range_a:cells.env_range_b]
 
-            # # smooth out the environmental voltage:
+            # use finite volume method to integrate each region of intracellular voltage:
+            # values at centroid mids:
+            v_cell_aveo = np.dot(cells.M_sum_mems, v_cello) / cells.num_mems
+
+            vcell_at_mids = (v_cello + v_cell_aveo[cells.mem_to_cells]) / 2
+
+            # finite volume integral of membrane pie-box values:
+            v_cell = np.dot(cells.M_int_mems, v_cello) + (1 / 2) * vcell_at_mids
+            v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
+
+            # smooth out the environmental voltage:
             v_env = np.zeros(len(cells.xypts))
             v_env[cells.envInds_inClust] = v_ecm
 
@@ -1507,7 +1526,6 @@ class Simulator(object):
 
                 v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
 
-            v_cell_ave = np.dot(cells.M_sum_mems,v_cell)/cells.num_mems
             # v_cell = v_cell_ave[cells.mem_to_cells]
 
             # # set the conditions for the global boundaries:
@@ -1981,8 +1999,14 @@ class Simulator(object):
             uenvx = 0
             uenvy = 0
 
+        # distance over which electric field is active is affected by electrolyte screening. Therefore
+        # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
+        # which is assumed to be about 1 nm:
+
+        field_mod = (1e-9/cells.delta)*cells.mems_per_envSquare.mean()
+
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-            grad_V_env_x, grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
+            field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
 

@@ -986,8 +986,10 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             uenvx = 0
             uenvy = 0
 
+        field_mod = (1e-9 / cells.delta)*cells.mems_per_envSquare.mean()
+
         f_env_x_X, f_env_y_X = np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
-            grad_V_env_x, grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)
+            field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)
 
         # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
         d_fenvx = -(f_env_x_X[:, 1:] - f_env_x_X[:, 0:-1]) / cells.delta
@@ -1141,8 +1143,8 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
 
-    # get the gradient of voltage for each cell centre wrt each membrane midpoint:
-    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
+    # # get the gradient of voltage for each cell centre wrt each membrane midpoint:
+    # grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
 
     # obtain an average concentration at the pie-slice midpoints:
     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
@@ -1177,6 +1179,5 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     # finite volume integral of membrane pie-box values:
     cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
     cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
-
 
     return cX_mems, cX_cells, net_flux
