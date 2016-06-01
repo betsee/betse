@@ -1065,7 +1065,7 @@ internal parameters:
   Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
   Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
   Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
-  Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
+  Do_Ca:  1.0e-11        # free diffusion constant calcium [m2/s]
   Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
   Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
   Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
@@ -1074,7 +1074,7 @@ internal parameters:
 
   alpha_NaK:  2.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  5.0e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
   alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 
@@ -1086,9 +1086,9 @@ internal parameters:
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  cytosolic delay factor: 1.0e-1       # level to delay intracellular transport (needed for larger time-steps) 0.1
+  cytosolic delay factor: 1.0       # level to delay intracellular transport (needed for larger time-steps) 1.0
 
-  environmental delay factor: 1.0    # level to diminish environmental E field transport effects 0.1 FIXME not needed
+  environmental delay factor: 1.0    # level to diminish environmental E field transport effects 1.0
 
   electrolyte screening factor: 0.86 # ~0.5 to 1.0 electrolyte double layer screening & self-capacitances [F/m2] 0.86
 

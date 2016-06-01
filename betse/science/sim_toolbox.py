@@ -1138,27 +1138,45 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
         u = 0
 
 
-    # get the gradient of rho concentration for each cell centre wrt to each membrane:
+    # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
 
-    # get the gradient of voltage for each cell centre wrt each membrane:
-    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells]) / cells.chords
+    # get the gradient of voltage for each cell centre wrt each membrane midpoint:
+    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
 
     # obtain an average concentration at the pie-slice midpoints:
     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
 
-    # calculate the total Nernst-Planck flux at each pie-slice midpoint:
-    flux_intra = -D_x*p.cell_delay_const * grad_c + u * c_at_mids - \
-                 ((zx * D_x*p.cell_delay_const * p.F) / (p.R * sim.T)) * c_at_mids * grad_v
+    # # calculate the total Nernst-Planck flux at each pie-slice midpoint (positive flux into centroid):
+    # flux_intra = -D_x*p.cell_delay_const*grad_c + u*c_at_mids - \
+    #              ((zx*D_x*p.cell_delay_const*p.F)/(p.R*sim.T))*c_at_mids*grad_v
 
-    # divergence of the total flux as a finite volume sum:
-    flux_sum = np.dot(cells.M_sum_mems, flux_intra * (cells.mem_sa / 2))
+    flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
 
+    # net flux across inner centroid surfaces of each cell:
+
+    net_flux = flux_intra * (cells.mem_sa / 2)
+
+    # sum of the flux entering each centroid region:
+    flux_sum = np.dot(cells.M_sum_mems, net_flux)
+
+    # divergence of the flux wrt the centroid region:
     divF_centroid = flux_sum/cells.centroid_vol
-    divF_mems = (-flux_intra*(cells.mem_sa/2))/cells.mem_vol
 
-    cX_mems = cX_mems + divF_mems * p.dt
-    cX_cells = cX_cells + divF_centroid * p.dt
+    # divergence of the flux wrt each membrane region
+    divF_mems = net_flux/cells.mem_vol
+
+    # update concentrations with the appropriate divergence:
+    cX_memso = cX_mems + divF_mems * p.dt
+    cX_cellso = cX_cells - divF_centroid * p.dt
+
+    # use finite volume method to integrate each region:
+    # values at centroid mids:
+    c_at_mids = (cX_memso + cX_cellso[cells.mem_to_cells]) / 2
+
+    # finite volume integral of membrane pie-box values:
+    cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
+    cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
 
 
-    return cX_mems, cX_cells
+    return cX_mems, cX_cells, net_flux

@@ -626,8 +626,11 @@ class Simulator(object):
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
-            self.cIP3 = np.zeros(self.mdl)  # initialize a vector to hold IP3 concentrations
-            self.cIP3[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
+            self.cIP3_mems = np.zeros(self.mdl)  # initialize a vector to hold IP3 concentrations
+            self.cIP3_mems[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
+
+            self.cIP3_cells = np.zeros(self.cdl)  # initialize a vector to hold IP3 concentrations
+            self.cIP3_cells[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
 
             self.IP3_flux_x_gj = np.zeros(len(cells.nn_i))
             self.IP3_flux_y_gj = np.zeros(len(cells.nn_i))
@@ -647,8 +650,11 @@ class Simulator(object):
 
         if p.voltage_dye is True:
 
-            self.cDye_mems = np.zeros(self.mdl)   # initialize voltage sensitive dye array for cell and env't
+            self.cDye_mems = np.zeros(self.mdl)   # initialize voltage sensitive dye array for mem regions
             self.cDye_mems[:] = p.cDye_to_cell
+
+            self.cDye_cells = np.zeros(self.cdl)   # initialize voltage sensitive dye array for cell centroids
+            self.cDye_cells[:] = p.cDye_to_cell
 
             self.Dye_flux_x_gj = np.zeros(len(cells.nn_i))
             self.Dye_flux_y_gj = np.zeros(len(cells.nn_i))
@@ -899,6 +905,19 @@ class Simulator(object):
             self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
                 self.cc_env[self.iK][:], fK_NaK, cells, p)
 
+            # update the concentrations intra-cellularly:
+            self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
+                stb.update_intra(self, cells, self.cc_mems[self.iNa][:],
+                                 self.cc_cells[self.iNa][:],
+                                 self.D_free[self.iNa],
+                                 self.zs[self.iNa], p)
+
+            self.cc_mems[self.iK][:],  self.cc_cells[self.iK][:], _ = \
+                stb.update_intra(self, cells, self.cc_mems[self.iK][:],
+                                 self.cc_cells[self.iK][:],
+                                 self.D_free[self.iK],
+                                 self.zs[self.iK], p)
+
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells, p)
@@ -931,10 +950,15 @@ class Simulator(object):
                 self.cc_mems[i][:], self.cc_env[i][:] = stb.update_Co(self, self.cc_mems[i][:],
                     self.cc_env[i][:], f_ED, cells, p)
 
+                # update the ion concentration intra-cellularly:
+                self.cc_mems[i][:], self.cc_cells[i][:], _ = \
+                    stb.update_intra(self, cells, self.cc_mems[i][:],
+                        self.cc_cells[i][:],
+                        self.D_free[i],
+                        self.zs[i], p)
+
                 # update flux between cells due to gap junctions
                 self.update_gj(cells, p, t, i)
-
-                # self.update_intra(cells, i, p)
 
                 if p.sim_ECM:
                     #update concentrations in the extracellular spaces:
@@ -954,9 +978,16 @@ class Simulator(object):
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
-                self.cIP3, self.cIP3_env, _, _, _, _, _ = stb.molecule_mover(self, self.cIP3,
+                self.cIP3_mems, self.cIP3_env, _, _, _, _, _ = stb.molecule_mover(self, self.cIP3_mems,
                     self.cIP3_env, cells, p, p.z_IP3, p.Dm_IP3,
                     p.Do_IP3, 0)
+
+                # update concentrations intracellularly:
+                self.cIP3_mems, self.cIP3_cells, _ = \
+                    stb.update_intra(self, cells, self.cIP3_mems[:],
+                        self.cIP3_cells[:],
+                        p.Do_IP3,
+                        p.z_IP3, p)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             if p.voltage_dye == 1:
@@ -973,6 +1004,10 @@ class Simulator(object):
                                                                     self.cDye_env,cells, p, z=p.z_Dye, Dm = p.Dm_Dye,
                                                                     Do = p.Do_Dye, c_bound = self.c_dye_bound,
                                                                     ignoreECM = True)
+
+                # update concentrations intracellularly:
+                self.cDye_mems, self.cDye_cells, _ = \
+                    stb.update_intra(self, cells, self.cDye_mems, self.cDye_cells, p.Do_Dye, p.z_Dye, p)
 
             # dynamic noise handling-----------------------------------------------------------------------------------
 
@@ -1283,7 +1318,7 @@ class Simulator(object):
         self.time.append(t)
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            self.cIP3_time.append(self.cIP3[:])
+            self.cIP3_time.append(self.cIP3_mems[:])
 
         if p.voltage_dye ==1:
             # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
@@ -1531,7 +1566,6 @@ class Simulator(object):
             self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
 
         # update H+ in cells and environment, first in absence of bicarbonate buffering:
-
         self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
             self.cc_env[self.iH][:], f_H1, cells, p)
 
@@ -1609,6 +1643,20 @@ class Simulator(object):
                 self.cc_env[self.iM],
                 p)
 
+            # update concentrations intracellularly:
+            self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
+                stb.update_intra(self, cells, self.cc_mems[self.iH][:],
+                    self.cc_cells[self.iH][:],
+                    self.D_free[self.iH],
+                    self.zs[self.iH], p)
+
+            # update concentrations intracellularly:
+            self.cc_mems[self.iM][:], self.cc_cells[self.iM][:], _ = \
+                stb.update_intra(self, cells, self.cc_mems[self.iM][:],
+                    self.cc_cells[self.iM][:],
+                    self.D_free[self.iM],
+                    self.zs[self.iM], p)
+
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
 
@@ -1678,11 +1726,16 @@ class Simulator(object):
             # store the transmembrane flux for this ion
             self.fluxes_mem[self.iCa] = self.rho_pump*f_CaATP[cells.mem_to_cells]
 
-
-
         # update calcium concentrations in cell and ecm:
         self.cc_mems[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_mems[self.iCa][:],
             self.cc_env[self.iCa][:], f_CaATP, cells, p)
+
+        # update concentrations intracellularly:
+        self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
+            stb.update_intra(self, cells, self.cc_mems[self.iCa][:],
+                self.cc_cells[self.iCa][:],
+                self.D_free[self.iCa],
+                self.zs[self.iCa], p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V(cells, p)
@@ -1808,6 +1861,13 @@ class Simulator(object):
         delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
 
         self.cc_mems[i] = self.cc_mems[i] + p.dt * delta_cc
+
+        # update concentrations intracellularly:
+        self.cc_mems[i][:], self.cc_cells[i][:], _ = \
+            stb.update_intra(self, cells, self.cc_mems[i][:],
+                self.cc_cells[i][:],
+                self.D_free[i],
+                self.zs[i], p)
 
         self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion
         self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion

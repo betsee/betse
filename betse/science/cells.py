@@ -87,17 +87,25 @@ class Cells(object):
         logs.log_info('Creating Voronoi geometry... ')
         self.makeSeeds(p, seed_type=p.lattice_type)  # Create the grid for the system (irregular)
         self.makeVoronoi(p)  # Make, close, and clip the Voronoi diagram
+
         logs.log_info('Cleaning Voronoi geometry... ')
         self.cleanVoronoi(p)  # clean the Voronoi diagram of empty data structures
+
         logs.log_info('Defining cell-specific geometric properties... ')
         self.cell_index(p)  # Calculate the correct centre and index for each cell
         self.cellVerts(p)  # create individual cell polygon vertices
+
         logs.log_info('Creating computational matrices for cell-cell transfers... ')
         self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+        self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
+
+        self.cell_vols(p)   # calculate the volume of cell and its internal regions
+
         logs.log_info('Creating gap junctions... ')
         self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
         self.near_neigh(p)  # Calculate the nn array for each cell
         self.voronoiGrid(p)
+
         logs.log_info('Setting global environmental conditions... ')
         self.makeECM(p)  # create the ecm grid
         self.environment(p)  # define features of the ecm grid
@@ -541,7 +549,7 @@ class Cells(object):
 
         self.cell_verts = np.asarray(self.cell_verts)
 
-        self.cell_vol = []   # storage for cell volumes
+        # self.cell_vol = []   # storage for cell volumes
         self.cell_sa = []    # whole cell surface areas
         self.cell_area = []
 
@@ -558,9 +566,9 @@ class Cells(object):
         cv_ty=[]
 
         for polyc in self.cell_verts:
-            # First calculate individual cell volumes from cell vertices:
-            poly = [x for x in reversed(polyc)]
-            self.cell_vol.append(p.cell_height*tb.area(poly))
+            # # First calculate individual cell volumes from cell vertices:
+            # poly = [x for x in reversed(polyc)]
+            # self.cell_vol.append(p.cell_height*tb.area(poly))
 
             # Next calculate individual membrane domains, midpoints, and vectors:
             edge = []
@@ -608,9 +616,9 @@ class Cells(object):
 
         self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
 
-        self.cell_vol = np.asarray(self.cell_vol)
+        # self.cell_vol = np.asarray(self.cell_vol)
 
-        self.R = ((3/4)*(self.cell_vol/math.pi))**(1/3)    # effective radius of each cell
+
 
         # convert mem_length into a flat vector
         mem_length,_,_ = tb.flatten(mem_length)
@@ -665,8 +673,6 @@ class Cells(object):
                 self.index_to_mem_verts.append([pt_ind1,pt_ind2])
         self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
 
-
-
     def cellMatrices(self, p):
         """
         Creates the main matrices used in routine calculations on the Cell Grid.
@@ -704,13 +710,20 @@ class Cells(object):
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
         self.mem_distance = p.cell_space + 2*p.tm # distance between two adjacent intracellluar spaces
-        # ------------------------------------------------------------------------------------------------
-        # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        self.intra_updater(p)    # FIXME this needs to be altered with new function!
 
         self.cell_number = self.cell_centres.shape[0]
 
-        # construct data structures for intracellular diffusion--------------------------------------------------------
+    def cell_vols(self,p):
+        """
+        Each cell is divided into a spider-web like volume with an outer
+        "pie-box" region volume associated with each membrane, and a region
+        around the central point (centroid region).
+
+        This helper-functino calculates volumes of cell, membrane "pie-boxes" and centroids,
+        as well as associated parameters of cell chords, which are the distance between the
+        cell center and each membrane midpoint.
+
+        """
 
         # calculate cell chords
         self.chords = []
@@ -722,8 +735,25 @@ class Cells(object):
             self.chords.append(chrd)
 
         self.chords = np.asarray(self.chords)
-        self.mem_vol = (1/3)*self.chords*self.mem_sa
-        self.centroid_vol = self.cell_vol - np.dot(self.M_sum_mems, self.mem_vol)
+
+        # calculate the volume of each membrane's outer "pie-box":
+
+        self.mem_vol = (1 / 3) * self.chords * self.mem_sa
+
+        # each web of the cell also has a miniature triangle, which is
+        # part of the centroid region:
+        little_pie = (1/6)*self.chords*self.mem_sa
+
+        # calculate the volume of each cell's centroid region by summing up the "litte pie" slice triangles:
+        self.centroid_vol = np.dot(self.M_sum_mems, little_pie)
+
+        # each cell is split into a large triangle (by cutting along each vertex). Calculate its volume:
+        large_pie = (1/2)*self.chords*self.mem_sa
+
+        # calaculate cell volume by suming up the large pies:
+        self.cell_vol = np.dot(self.M_sum_mems, large_pie)
+
+        self.R = ((3 / 4) * (self.cell_vol / math.pi)) ** (1 / 3)  # effective radius of each cell
 
     def mem_processing(self,p):
         """
@@ -1736,25 +1766,29 @@ class Cells(object):
 
     def intra_updater(self,p):
         """
-        Calculates the matrix used for intracellular
-        concentration updates due to intracellular
-        diffusion.
+        Calculates a matrix that takes values on
+        membrane midpoints, interpolates them to cell vertices,
+        and adds them all together as half of a finite volume integration
+        for the pie-box regions. The other half will come from the centroid
+        region value.
+
 
         """
 
-        self.gradIntra = np.zeros((len(self.mem_i), len(self.mem_i)))
+        self.M_int_mems = np.zeros((len(self.mem_i), len(self.mem_i)))
 
         for i, inds in enumerate(self.cell_to_mems):
+
+            # get the set of indices for the cell:
             inds = np.asarray(inds)
 
             inds_p1 = np.roll(inds, 1)
             inds_o = np.roll(inds, 0)
+            inds_n1 = np.roll(inds, -1)
 
-            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
-            len_mem = np.sqrt(dist[:, 0] ** 2 + dist[:, 1] ** 2)
-
-            self.gradIntra[inds_o, inds_p1] = 1 / len_mem.mean()
-            self.gradIntra[inds_o, inds_o] = -1 / len_mem.mean()
+            self.M_int_mems[inds_o, inds_o] = (1/3)
+            self.M_int_mems[inds_o, inds_p1] = (1/12)
+            self.M_int_mems[inds_o, inds_n1] = (1/12)
 
     def eosmo_tools(self,p):
 
