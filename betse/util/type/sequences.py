@@ -15,14 +15,14 @@ betse.util.type.types.is_sequence
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import types
-from collections.abc import Container, Iterable, Mapping, Sequence
+from collections.abc import Container, Mapping, Sequence
 
 # ....................{ GETTERS                            }....................
 def get_items_satisfying(
     sequence: Sequence, item_satisfier: callable) -> Sequence:
     '''
-    Get a new non-string sequence containing only the proper subset of elements
-    from the passed non-string sequence satisfying the passed callable.
+    New non-string sequence containing only the proper subset of elements from
+    the passed non-string sequence satisfying the passed callable.
 
     This method effectively performs a general-purpose global search for
     sequence elements.
@@ -62,8 +62,8 @@ def get_items_satisfying(
 # ....................{ GETTERS ~ str                      }....................
 def get_items_prefixed_by(sequence: Sequence, item_prefix: str) -> Sequence:
     '''
-    Get a new non-string sequence containing only the proper subset of elements
-    from the passed non-string sequence that are strings prefixed by the passed
+    New non-string sequence containing only the proper subset of elements from
+    the passed non-string sequence that are strings prefixed by the passed
     string prefix.
 
     This method effectively performs a prefix-based global search for sequence
@@ -97,7 +97,7 @@ def get_items_prefixed_by(sequence: Sequence, item_prefix: str) -> Sequence:
 # ....................{ OMITTERS                           }....................
 def omit_item(sequence: Sequence, item: object) -> Sequence:
     '''
-    Get a new non-string sequence containing all elements of the first passed
+    New non-string sequence containing all elements of the first passed
     non-string sequence _not_ equalling the passed object.
 
     Parameters
@@ -120,8 +120,8 @@ def omit_item(sequence: Sequence, item: object) -> Sequence:
 
 def omit_items(sequence: Sequence, items: Container) -> Sequence:
     '''
-    Get a new non-string sequence containing all elements of the passed
-    non-string sequence _not_ contained in the passed non-string container.
+    New non-string sequence containing all elements of the passed non-string
+    sequence _not_ contained in the passed non-string container.
 
     Parameters
     ----------

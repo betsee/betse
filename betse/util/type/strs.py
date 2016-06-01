@@ -146,6 +146,7 @@ def add_prefix_unless_found(text: str, prefix: str) -> str:
     Prefix the passed string by the passed prefix unless such string is already
     prefixed by such prefix.
     '''
+
     return text if is_prefix(text, prefix) else prefix + text
 
 
@@ -154,15 +155,39 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
     Suffix the passed string by the passed suffix unless such string is already
     suffixed by such suffix.
     '''
+
     return text if is_suffix(text, suffix) else text + suffix
+
+# ....................{ REMOVERS                           }....................
+def remove_presuffix_whitespace(text: str) -> str:
+    '''
+    New string with all prefixing and suffixing whitespace removed from the
+    passed string.
+
+    If this string is neither prefixed nor suffixed by whitespace, this string
+    is returned as is.
+
+    Parameters
+    ----------
+    text : str
+        String to be examined. Since strings are immutable in Python, this
+        string remains unmodified.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
+    '''
+    assert types.is_str(text), types.assert_not_str(text)
+
+    return text.strip()
 
 # ....................{ REMOVERS ~ prefix                  }....................
 def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
     '''
-    Get a new string with the passed prefix removed from the passed string if
-    the former prefixes the latter _or_ raise an exception with the passed
-    message (defaulting to a message synthesized from the passed arguments)
-    otherwise.
+    New string with the passed prefix removed from the passed string if the
+    former prefixes the latter _or_ raise an exception with the passed message
+    (defaulting to a message synthesized from the passed arguments) otherwise.
 
     Parameters
     ----------
@@ -190,8 +215,8 @@ def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
 
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
-    Get a new string with the passed prefix removed from the passed string if
-    the former prefixes the latter _or_ the passed string as is otherwise.
+    New string with the passed prefix removed from the passed string if the
+    former prefixes the latter _or_ the passed string as is otherwise.
 
     Parameters
     ----------
@@ -212,8 +237,8 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
 # ....................{ REMOVERS ~ prefix                  }....................
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    Get a new string with the passed suffix removed from the passed string if
-    the former suffixes the latter _or_ the passed string as is otherwise.
+    New string with the passed suffix removed from the passed string if the
+    former suffixes the latter _or_ the passed string as is otherwise.
 
     Parameters
     ----------
@@ -245,9 +270,11 @@ def uppercase_first_char(text: str) -> str:
     remain unmodified.
     '''
     assert types.is_str(text), types.assert_not_str(text)
+
     return (
         text[0].upper() + (text[1:] if len(text) > 2 else '')
-        if len(text) else '')
+        if len(text) else ''
+    )
 
 # ....................{ QUOTERS                            }....................
 def shell_quote(text: str) -> str:

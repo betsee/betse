@@ -47,7 +47,7 @@ class CLICLI(CLIABC):
     def _get_arg_parser_top_kwargs(self):
         # Keyword arguments passed to the top-level argument parser.
         return {
-            'epilog': help.TEMPLATE_SUBCOMMANDS_SUFFIX,
+            'epilog': help.SUBCOMMANDS_SUFFIX,
         }
 
 
@@ -61,48 +61,50 @@ class CLICLI(CLIABC):
             title='subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMANDS_PREFIX),
+            description=self._format_help(
+                help.SUBCOMMANDS_PREFIX),
         )
 
+        #FIXME: Refactor all help strings into global string constants of the
+        #"betse.cli.help" module, simplifying localization and maintenance.
         self._add_arg_subparser_top_configured(
             name='config',
             help='create a new {} simulation configuration'.format(
                 metadata.NAME),
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_CONFIG),
+            description=self._format_help(
+                help.SUBCOMMAND_CONFIG),
         )
         self._add_arg_subparser_top_configured(
             name='seed',
             help='create the cell cluster defined by a config file',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SEED),
+            description=self._format_help(
+                help.SUBCOMMAND_SEED),
         )
         self._add_arg_subparser_top_configured(
             name='init',
             help='init the created cell cluster defined by a config file',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_INIT),
+            description=self._format_help(
+                help.SUBCOMMAND_INIT),
         )
         self._add_arg_subparser_top_configured(
             name='sim',
             help='simulate the initted cell cluster defined by a config file',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_SIM),
+            description=self._format_help(
+                help.SUBCOMMAND_SIM),
         )
         self._config_arg_parsing_plot()
         self._add_arg_subparser_top(
             name='info',
             help='show information about {} and the current system'.format(
                 metadata.NAME),
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_INFO),
+            description=self._format_help(
+                help.SUBCOMMAND_INFO),
         )
         self._add_arg_subparser_top(
             name='try',
             help='create, init, simulate, and plot a sample simulation',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_TRY),
+            description=self._format_help(
+                help.SUBCOMMAND_TRY),
         )
 
     # ..................{ SUPERCLASS ~ cli                   }..................
@@ -142,8 +144,8 @@ class CLICLI(CLIABC):
         self._arg_parser_plot = self._add_arg_subparser_top(
             name='plot',
             help='plot previously created, initted, or simulated simulations',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT),
+            description=self._format_help(
+                help.SUBCOMMAND_PLOT),
         )
 
         # Collection of all subcommands of this subcommand.
@@ -155,26 +157,26 @@ class CLICLI(CLIABC):
             title='plot subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMANDS_PREFIX),
+            description=self._format_help(
+                help.SUBCOMMANDS_PREFIX),
         )
         self._add_arg_subparser_plot_configured(
             name='seed',
             help='plot the created cell cluster defined by a config file',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT_SEED),
+            description=self._format_help(
+                help.SUBCOMMAND_PLOT_SEED),
         )
         self._add_arg_subparser_plot_configured(
             name='init',
             help='plot the initted cell cluster defined by a config file',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT_INIT),
+            description=self._format_help(
+                help.SUBCOMMAND_PLOT_INIT),
         )
         self._add_arg_subparser_plot_configured(
             name='sim',
             help='plot the simulated cell cluster defined by a config file',
-            description=self._format_help_template(
-                help.TEMPLATE_SUBCOMMAND_PLOT_SIM),
+            description=self._format_help(
+                help.SUBCOMMAND_PLOT_SIM),
         )
 
     # ..................{ SUBPARSER ~ top                    }..................

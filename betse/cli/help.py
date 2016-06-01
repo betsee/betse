@@ -8,14 +8,66 @@ Help strings printed by `betse`'s command line interface (CLI).
 '''
 
 # ....................{ TEMPLATES ~ subcommands            }....................
-TEMPLATE_SUBCOMMANDS_PREFIX = '''
+OPTION_VERSION = '''
+print program version and exit
+'''
+'''
+Help string template synopsizing the `--version` option.
+'''
+
+
+OPTION_VERBOSE = '''
+print low-level debugging messages
+'''
+'''
+Help string template synopsizing the `--verbose` option.
+'''
+
+
+OPTION_LOG_TYPE = '''
+type of logging to perform (defaults to "{default}"):
+;* "none", logging to stdout and stderr
+;* "file", logging to the "--log-file" file
+'''
+'''
+Help string template synopsizing the `--log-type` option.
+'''
+
+
+OPTION_LOG_FILE = '''
+file to log to if "--log-type" is "file" (defaults to "{default}")
+'''
+'''
+Help string template synopsizing the `--log-file` option.
+'''
+
+
+OPTION_PROFILE_TYPE = '''
+type of profiling to perform (defaults to "{default}"):
+;* "none", disabling profiling
+;* "call", profiling method and function calls
+'''
+'''
+Help string template synopsizing the `--profile-type` option.
+'''
+
+
+OPTION_PROFILE_FILE = '''
+file to profile to if "--profile-type" is "call" (defaults to "{default}")
+'''
+'''
+Help string template synopsizing the `--profile-file` option.
+'''
+
+# ....................{ TEMPLATES ~ subcommands            }....................
+SUBCOMMANDS_PREFIX = '''
 Exactly one of the following subcommands must be passed:
 '''
 '''
-Help string template for the set of subcommands.
+Help string template preceding the list of all subcommands.
 '''
 
-TEMPLATE_SUBCOMMANDS_SUFFIX = '''
+SUBCOMMANDS_SUFFIX = '''
 subcommand help:
 
 For help with specific subcommands, either pass the "-h" or "--help" argument to
@@ -31,7 +83,7 @@ Help string template for the **program epilog** (i.e., string printed after
 '''
 
 # ....................{ TEMPLATES ~ subcommand             }....................
-TEMPLATE_SUBCOMMAND_INFO = '''
+SUBCOMMAND_INFO = '''
 Print informational metadata in ":"-delimited key-value format, including:
 
 * Program name, version, and principal authors.
@@ -53,7 +105,8 @@ Print informational metadata in ":"-delimited key-value format, including:
 Help string template for the `info` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_TRY = '''
+
+SUBCOMMAND_TRY = '''
 Run a sample tissue simulation. This subcommand (A) creates a default YAML
 configuration file, (B) creates the cell cluster defined by that file, and
 (C) initializes, (D) simulates, and (E) plots the tissue simulation defined by
@@ -72,7 +125,8 @@ Equivalently, this subcommand is shorthand for the following:
 Help string template for the `try` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_CONFIG = '''
+
+SUBCOMMAND_CONFIG = '''
 Write a default tissue simulation configuration to the passed output file. While
 not strictly necessary, this file should have filetype ".yaml" . If this file
 already exists, an error will be printed.
@@ -85,7 +139,8 @@ containing this file.
 Help string template for the `config` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SEED = '''
+
+SUBCOMMAND_SEED = '''
 Create the cell cluster defined by the passed configuration file. The results
 will be saved to output files defined by this configuration.
 '''
@@ -93,7 +148,8 @@ will be saved to output files defined by this configuration.
 Help string template for the `seed` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_INIT = '''
+
+SUBCOMMAND_INIT = '''
 Initialize (i.e., calculate steady-state concentrations for) the previously
 created cell cluster defined by the passed configuration file. Initialization
 results will be saved to output files defined by this configuration, while the
@@ -104,7 +160,8 @@ configuration.
 Help string template for the `init` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_SIM = '''
+
+SUBCOMMAND_SIM = '''
 Simulate the previously initialized cell cluster defined by the passed
 configuration file. Simulation results will be saved to output files defined by
 this configuration, while the previously initialized cell cluster will be loaded
@@ -115,7 +172,7 @@ Help string template for the `sim` subcommand.
 '''
 
 # ....................{ TEMPLATES ~ subcommand : plot      }....................
-TEMPLATE_SUBCOMMAND_PLOT = '''
+SUBCOMMAND_PLOT = '''
 Run the passed plotting subcommand. For example, to plot the previous
 simulation defined by a configuration file "my_sim.yaml" in the current
 directory:
@@ -126,7 +183,8 @@ directory:
 Help string template for the `plot` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PLOT_SEED = '''
+
+SUBCOMMAND_PLOT_SEED = '''
 Plot the previously created cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously created cell cluster will be loaded from input files
@@ -136,7 +194,8 @@ defined by this configuration.
 Help string template for the `plot` subcommand's `seed` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PLOT_INIT = '''
+
+SUBCOMMAND_PLOT_INIT = '''
 Plot the previously initialized cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously initialized cell cluster will be loaded from input files
@@ -146,7 +205,8 @@ defined by this configuration.
 Help string template for the `plot` subcommand's `init` subcommand.
 '''
 
-TEMPLATE_SUBCOMMAND_PLOT_SIM = '''
+
+SUBCOMMAND_PLOT_SIM = '''
 Plot the previously simulated cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously simulated cell cluster will be loaded from input files

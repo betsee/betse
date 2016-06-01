@@ -8,17 +8,32 @@ Abstract command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
-import sys
+import cProfile, sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
-from betse.cli import info
+from betse.cli import help, info
 from betse.util.command import commands
 from betse.util.command.args import HelpFormatterParagraph
 from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
-from betse.util.type import types
+from betse.util.type import strs, types
+from enum import Enum
+
+# ....................{ ENUMS                              }....................
+ProfileType = Enum('ProfileType', ('NONE', 'CALL'))
+'''
+Enumeration of all possible types of profile to perform, corresponding exactly
+to the `--profile-type` CLI option.
+
+Attributes
+----------
+NONE : enum
+    Enumeration member disabling profiling.
+CALL : enum
+    Enumeration member profiling method and function calls.
+'''
 
 # ....................{ CLASSES                            }....................
 class CLIABC(metaclass=ABCMeta):
@@ -39,21 +54,33 @@ class CLIABC(metaclass=ABCMeta):
     _args : argparse.Namespace
         `argparse`-specific object of all passed command-line arguments. See
         "Attributes (_args)" below for further details.
+    _profile_filename : str
+        Absolute or relative path of the dumpfile to profile to if
+        `_profile_type` is `ProfileType.CALL` _or_ ignored otherwise.
+    _profile_type : ProfileType
+        Type of profiling to be performed if any.
     _script_basename : str
         Basename of the current process (e.g., `betse`).
 
-    Attributes (_args)
+    Attributes (of `_args`)
     ----------
     is_verbose : bool
         `True` only if low-level debugging messages are to be logged. Defaults
         to `False`.
     log_filename : str
         Absolute or relative path of the file to log to if `log_type` is `file`
-        _or_ ignored otherwise. Defaults to the absolute path of the default
-        user-specific logfile for `betse` on the current platform.
+        _or_ ignored otherwise. Defaults to the absolute path of BETSE's default
+        user-specific logfile.
     log_type : str
-        Type of logging if any to be performed. For simplicity, this is a
-        `LogType` enumeration member as a lowercase string. Defaults to `file`.
+        Type of logging to be performed if any, formatted as the lowercased
+        name of a `LogType` enumeration member. Defaults to `none`.
+    profile_filename : str
+        Absolute or relative path of the dumpfile to profile to if
+        `profile_type` is `call` _or_ ignored otherwise. Defaults to the
+        absolute path of BETSE's default user-specific profile dumpfile.
+    profile_type : str
+        Type of profiling to be performed if any, formatted as the lowercased
+        name of a `ProfileType` enumeration member. Defaults to `none`.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -79,10 +106,12 @@ class CLIABC(metaclass=ABCMeta):
             'formatter_class': HelpFormatterParagraph,
         }
 
-        # Initialize these fields to "None" to avoid subtle issues elsewhere.
+        # For safety, initialize all remaining attributes to "None".
         self._arg_list = None
         self._arg_parser = None
         self._args = None
+        self._profile_filename = None
+        self._profile_type = None
 
     # ..................{ PUBLIC                             }..................
     def run(self, arg_list: list = None) -> int:
@@ -125,8 +154,40 @@ class CLIABC(metaclass=ABCMeta):
             # logging of exceptions raised by this parsing.
             self._parse_args()
 
+            #FIXME: Implement support for the "self._profile_filename" option as
+            #well. Sadly, "cProfile" appears to be quite simplistic. To have
+            #profiling both printed *AND* dumped to disk, we'll need to:
+            #
+            #1. Instruct cProfile.run() to dump to disk.
+            #2. Import the standard "pstats" module.
+            #3. Instruct that module to load that dumpfile and print statistics.
+            #
+            #The logic for the latter two appears to resemble:
+            #
+            #    import pstats
+            #    p = pstats.Stats('restats')
+            #    p.strip_dirs().sort_stats(-1).print_stats()
+
             # Perform subclass-specific logic.
-            self._do()
+            #
+            # If profiling is enabled, profile this logic in the context of the
+            # current instance of this class.
+            if self._profile_type is not ProfileType.NONE:
+                cProfile.runctx(
+                    # Statement to be profiled.
+                    'self._do()',
+
+                    # Context to profile this statement under.
+                    globals=globals(),
+                    locals=locals(),
+
+                    # "pstat"-specific sort key to sort profile output by.
+                    sort='cumulative',
+                    # sort='time',
+                )
+            # Else, perform this logic unprofiled.
+            else:
+                self._do()
 
             # Exit with successful exit status from the current process.
             return SUCCESS
@@ -158,16 +219,16 @@ class CLIABC(metaclass=ABCMeta):
         '''
 
         # Configure argument parsing.
-        self._make_arg_parser()
+        self._init_arg_parser_top()
 
         # Parse unnamed string arguments into named, typed arguments.
         self._args = self._arg_parser.parse_args(self._arg_list)
 
         # Parse top-level options globally applicable to *ALL* subcommands.
-        self._parse_global_options()
+        self._parse_options_top()
 
 
-    def _make_arg_parser(self) -> None:
+    def _init_arg_parser_top(self) -> None:
         '''
         Create and classify the top-level argument parser.
         '''
@@ -191,13 +252,13 @@ class CLIABC(metaclass=ABCMeta):
         self._arg_parser = ArgumentParser(**arg_parser_kwargs)
 
         # Configure top-level options globally applicable to *ALL* subcommands.
-        self._config_global_options()
+        self._config_options_top()
 
         # Perform subclass-specific argument parsing configuration.
         self._config_arg_parsing()
 
     # ..................{ ARGS ~ options                     }..................
-    def _config_global_options(self) -> None:
+    def _config_options_top(self) -> None:
         '''
         Configure argument parsing for top-level options globally applicable to
         _all_ subcommands.
@@ -206,8 +267,22 @@ class CLIABC(metaclass=ABCMeta):
         # Default values for top-level options configured below, deferred until
         # *AFTER* the ignition.init() function setting these defaults has been
         # called above.
-        log_filename_default = pathtree.LOG_DEFAULT_FILENAME
         log_type_default = LogType.FILE.name.lower()
+        log_filename_default = pathtree.LOG_DEFAULT_FILENAME
+        profile_type_default = ProfileType.NONE.name.lower()
+        profile_filename_default = pathtree.PROFILE_DEFAULT_FILENAME
+
+        #FIXME: Generalize the construction of such tuples into a new
+        #betse.util.type.enums.get_names_lowercase() utility function: e.g.,
+        #
+        #    def get_names_lowercase(enum: Enum):
+        #        return tuple(enum_member.name.lower() for enum_member in enum)
+
+        # Permissible values for top-level enumerable options configured below.
+        log_types = tuple(
+            log_type.name.lower() for log_type in LogType)
+        profile_types = tuple(
+            profile_type.name.lower() for profile_type in ProfileType)
 
         # Program version specifier.
         program_version = '{} {}'.format(
@@ -218,42 +293,64 @@ class CLIABC(metaclass=ABCMeta):
             '-v', '--verbose',
             dest='is_verbose',
             action='store_true',
-            help='print low-level debugging messages',
+            help=self._format_help(help.OPTION_VERBOSE),
+        )
+        self._arg_parser.add_argument(
+            '-V', '--version',
+            action='version',
+            version=program_version,
+            help=self._format_help(help.OPTION_VERSION),
         )
         self._arg_parser.add_argument(
             '--log-type',
             dest='log_type',
             action='store',
-            choices=tuple(log_type.name.lower() for log_type in LogType),
+            choices=log_types,
             default=log_type_default,
-            help=(
-                'type of logging to perform (defaults to "{}"):\n'
-                ';* "none", logging to stdout and stderr\n'
-                ';* "file", logging to the "--log-file" file'.format(
-                    log_type_default)
-            ),
+            help=self._format_help(
+                help.OPTION_LOG_TYPE, default=log_type_default),
         )
         self._arg_parser.add_argument(
             '--log-file',
             dest='log_filename',
             action='store',
             default=log_filename_default,
-            help=(
-                'file to log to if "--log-type" is "file" '
-                '(defaults to "{}")'.format(log_filename_default)
-            ),
+            help=self._format_help(
+                help.OPTION_LOG_FILE, default=log_filename_default),
         )
         self._arg_parser.add_argument(
-            '-V', '--version',
-            action='version',
-            version=program_version,
-            help='print program version and exit',
+            '--profile-type',
+            dest='profile_type',
+            action='store',
+            choices=profile_types,
+            default=profile_type_default,
+            help=self._format_help(
+                help.OPTION_PROFILE_TYPE, default=profile_type_default),
+        )
+        self._arg_parser.add_argument(
+            '--profile-file',
+            dest='profile_filename',
+            action='store',
+            default=profile_filename_default,
+            help=self._format_help(
+                help.OPTION_PROFILE_FILE, default=profile_filename_default),
         )
 
 
-    def _parse_global_options(self) -> None:
+    def _parse_options_top(self) -> None:
         '''
-        Parse top-level options globally applicable to _all_ subcommands.
+        Parse top-level options globally applicable to all subcommands.
+        '''
+
+        # Configure logging options *BEFORE* all remaining options, ensuring
+        # proper logging of messages emitted by the latter.
+        self._parse_options_top_log()
+        self._parse_options_top_profile()
+
+
+    def _parse_options_top_log(self) -> None:
+        '''
+        Parse top-level logging options globally applicable to all subcommands.
         '''
 
         # Singleton logging configuration for the current Python process.
@@ -278,22 +375,46 @@ class CLIABC(metaclass=ABCMeta):
         # Log all string arguments passed to this command.
         logs.log_debug('Passed argument list {}.'.format(self._arg_list))
 
-    # ..................{ UTILITIES                          }..................
-    def _format_help_template(self, text: str) -> str:
+
+    def _parse_options_top_profile(self) -> None:
         '''
-        Format the passed help string template.
+        Parse top-level profiling options globally applicable to all
+        subcommands.
+        '''
 
-        Specifically, this method replaces all instances in this template of:
+        # Classify the passed profiling options, converting the profiling type
+        # from a raw lowercase string into a full-fledged enumeration member.
+        # See _parse_options_top_log() for further detail on this conversion.
+        self._profile_filename = self._args.profile_filename
+        self._profile_type = ProfileType[self._args.profile_type.upper()]
 
-        * `{script_basename}` by the basename of the current script (e.g.,
-          `betse`).
-        * `{program_name}` by the name of the current program (e.g., `BETSE`).
+        # If profiling is enabled, log this fact.
+        if self._profile_type is not ProfileType.NONE:
+            logs.log_debug('Profiling calls to "{}".'.format(
+                self._profile_filename))
+
+    # ..................{ UTILITIES                          }..................
+    def _format_help(self, text: str, **kwargs) -> str:
+        '''
+        Interpolate the passed keyword arguments into the passed help string
+        template, stripping all prefixing and suffixing whitespace from this
+        template..
+
+        For convenience, the following default keyword arguments are
+        unconditionally interpolated into this template:
+
+        * `{script_basename}`, expanding to the basename of the current script
+          (e.g., `betse`).
+        * `{program_name}`, expanding to this script's human-readable name
+          (e.g., `BETSE`).
         '''
         assert types.is_str(text), types.assert_not_str(text)
-        return text.format(
+
+        return strs.remove_presuffix_whitespace(text.format(
             program_name=metadata.NAME,
             script_basename=self._script_basename,
-        )
+            **kwargs
+        ))
 
     # ..................{ SUBCLASS ~ mandatory               }..................
     # The following methods *MUST* be implemented by subclasses.

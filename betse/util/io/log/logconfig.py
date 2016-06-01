@@ -15,7 +15,6 @@ log strictly more messages than) levels assigned larger integers: e.g.,
     # "DEBUG" is less than and hence more inclusive than "INFO".
     >>> logging.DEBUG < logging.INFO
     True
-
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -29,18 +28,14 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 # at any level, such circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging
-import os
-import sys
+import logging, os, sys
+from betse.exceptions import BetseExceptionFile
+from betse.util.type import types
 from collections import OrderedDict
 from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from os import path
-
-import betse.util.command.commands
-from betse.exceptions import BetseExceptionFile
-from betse.util.type import types
 
 # ....................{ CONSTANTS ~ int                    }....................
 # Originally, we attempted to dynamically copy such constants from the "logging"
@@ -53,25 +48,30 @@ DEBUG = logging.DEBUG
 Logging level suitable for debugging messages.
 '''
 
+
 INFO = logging.INFO
 '''
 Logging level suitable for informational messages.
 '''
+
 
 WARNING = logging.WARNING
 '''
 Logging level suitable for warning messages.
 '''
 
+
 ERROR = logging.ERROR
 '''
 Logging level suitable for error messages.
 '''
 
+
 CRITICAL = logging.CRITICAL
 '''
 Logging level suitable for critical messages.
 '''
+
 
 NONE = logging.CRITICAL + 1024
 '''
@@ -82,6 +82,7 @@ Since the `logging` module defines no constants encapsulating the concept of
 larger than the largest constant defined by that module.
 '''
 
+
 ALL = logging.NOTSET
 '''
 Logging level signifying all messages to be logged.
@@ -91,7 +92,7 @@ Since the `logging` module defines no constants encapsulating the concept of
 be smaller than the smallest constant defined by that module.
 '''
 
-# ....................{ ENUMERATIONS                       }....................
+# ....................{ ENUMS                              }....................
 LogType = Enum('LogType', ('NONE', 'FILE'))
 '''
 Enumeration of all possible types of logging to perform, corresponding exactly
@@ -99,13 +100,13 @@ to the `--log-type` CLI option.
 
 Attributes
 ----------
-none : enum
+NONE : enum
     Enumeration member redirecting all logging to standard file handles, in
     which case:
     * All `INFO` and `DEBUG` log messages will be printed to stdout.
     * All `ERROR` and `WARNING` log messages will be printed to stderr.
     * All uncaught exceptions will be printed to stderr.
-file : enum
+FILE : enum
     Enumeration member redirecting all logging to the current logfile.
 '''
 
@@ -256,7 +257,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.command import exits
+        from betse.util.command import commands
 
         # Initialize the stdout handler.
         #
@@ -289,7 +290,7 @@ class LogConfig(object):
         # Note that "{{" and "}}" substrings in format() strings escape literal
         # "{" and "}" characters, respectively.
         stream_format = '[{}] {{message}}'.format(
-            betse.util.command.commands.get_current_basename())
+            commands.get_current_basename())
 
         # Formatters for these formats.
         stream_formatter = LoggerFormatterStream(stream_format, style='{')
@@ -314,7 +315,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.command import exits
+        from betse.util.command import commands
         from betse.util.type import ints
 
         # Remove the previously registered file handler if any *BEFORE*
@@ -362,7 +363,7 @@ class LogConfig(object):
         file_format = (
             '[{{asctime}}] {} {{levelname}} '
             '({{module}}.py:{{funcName}}():{{lineno}}):\n'
-            '    {{message}}'.format(betse.util.command.commands.get_current_basename()))
+            '    {{message}}'.format(commands.get_current_basename()))
 
         # Format this file according to this format.
         file_formatter = LoggerFormatterStream(file_format, style='{')
