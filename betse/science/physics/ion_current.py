@@ -26,30 +26,22 @@ def get_current(sim, cells, p):
     # component is negative as transmembrane fluxes point into the cell, but mem normals point out:
     J_trans_mem = -sim.I_mem/cells.mem_sa
 
-    # calculate current density across gap junctions in x direction:
-    J_gj_x_o = np.zeros(len(cells.mem_i))
+    # calculate current density across gap junctions:
+    J_gj_o = np.zeros(len(cells.mem_i))
 
-    for flux_array, zi in zip(sim.fluxes_gj_x, sim.zs):
-        J_i_x = flux_array * zi * p.F
+    for flux_array, zi in zip(sim.fluxes_gj, sim.zs):
+        J_i = flux_array * zi * p.F
 
-        J_gj_x_o = J_gj_x_o + J_i_x
-
-    # calculate current density across gap junctions in y direction:
-    J_gj_y_o = np.zeros(len(cells.mem_i))
-
-    for flux_array, zi in zip(sim.fluxes_gj_y, sim.zs):
-        J_i_y = flux_array * zi * p.F
-
-        J_gj_y_o = J_gj_y_o + J_i_y
+        J_gj_o = J_gj_o + J_i
 
 
-    sim.J_gj_x_o = J_gj_x_o  # FIXME clean up these numerous iterations of currents!
-    sim.J_gj_y_o = J_gj_y_o
+    sim.J_gj_x = J_gj_o * cells.mem_vects_flat[:,2]  # FIXME clean up these numerous iterations of currents!
+    sim.J_gj_y = J_gj_o * cells.mem_vects_flat[:,3]
 
     # total current density across the membranes (uncorrected by Continuity Equation):
 
-    J_mem_xo = J_gj_x_o + J_trans_mem*cells.mem_vects_flat[:,2]
-    J_mem_yo = J_gj_y_o + J_trans_mem*cells.mem_vects_flat[:,3]
+    J_mem_xo = sim.J_gj_x + J_trans_mem * cells.mem_vects_flat[:,2]
+    J_mem_yo = sim.J_gj_y + J_trans_mem * cells.mem_vects_flat[:,3]
 
     # First calculate rate of change of charge in cell:
     if len(sim.charge_cells_time) > 1:
@@ -77,29 +69,15 @@ def get_current(sim, cells, p):
     gV_y = gradV_react * cells.mem_vects_flat[:, 3]
 
     # correct the current density by the reaction potential:
-    # sim.J_mem_x = J_mem_xo - gV_x
-    # sim.J_mem_y = J_mem_yo - gV_y
+    sim.J_mem_x = J_mem_xo - gV_x   # FIXME to correct or not correct, that is the question!
+    sim.J_mem_y = J_mem_yo - gV_y
 
-    sim.J_mem_x = 1*J_mem_xo
-    sim.J_mem_y = 1*J_mem_yo
+    # sim.J_mem_x = 1*J_mem_xo
+    # sim.J_mem_y = 1*J_mem_yo
 
     # average the components at cell centres:
     sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y) / cells.num_mems
-
-
-    # interpolate these to the grid so we have something to plot. FIXME deal with these later, don't interp, plot!!!
-    # the actual J_mem at the membranes!
-
-    sim.J_gj_x = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),sim.J_cell_x,(cells.X,cells.Y),
-                                  method=p.interp_type,fill_value=0)
-
-    sim.J_gj_x = np.multiply(sim.J_gj_x,cells.maskECM)
-
-    sim.J_gj_y = interp.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),sim.J_cell_y,(cells.X,cells.Y),
-                                  method=p.interp_type,fill_value=0)
-
-    sim.J_gj_y = np.multiply(sim.J_gj_y,cells.maskECM)
 
 
     if p.sim_ECM is True:
@@ -107,12 +85,6 @@ def get_current(sim, cells, p):
         # non divergence free current densities in the environment:
         J_env_x_o = np.zeros(len(cells.xypts))
         J_env_y_o = np.zeros(len(cells.xypts))
-
-        # true_ecm_sa = np.ones(len(cells.xypts))*cells.ecm_sa
-        #
-        # inds_something = (cells.memSa_per_envSquare != 0.0).nonzero()
-        # true_ecm_sa[inds_something] = cells.memSa_per_envSquare[inds_something]
-
 
         for flux_array, zi in zip(sim.fluxes_env_x, sim.zs):
 

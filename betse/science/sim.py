@@ -177,8 +177,7 @@ class Simulator(object):
         self.T = p.T  # set the base temperature for the simulation
 
         self.flx_gj_i = np.zeros(len(cells.nn_i))  # flux matrix across gj for individual ions
-        self.fluxes_gj_x = []
-        self.fluxes_gj_y = []
+        self.fluxes_gj = []
 
         self.J_gj_x = np.zeros(len(cells.nn_i))  # total current in the gj network
         self.J_gj_y = np.zeros(len(cells.nn_i))  # total current in the gj network
@@ -328,8 +327,7 @@ class Simulator(object):
                     self.D_gj.append(vars(self)[str_Dgj])
                     self.D_free.append(p.free_diff[name])
 
-                    self.fluxes_gj_x.append(self.flx_gj_i)
-                    self.fluxes_gj_y.append(self.flx_gj_i)
+                    self.fluxes_gj.append(self.flx_gj_i)
                     self.fluxes_mem.append(self.flx_mem_i)
 
                     if p.sim_ECM:
@@ -430,8 +428,7 @@ class Simulator(object):
             self.D_gj.append(DgjH)
             self.D_free.append(p.Do_H)
 
-            self.fluxes_gj_x.append(self.flx_gj_i)
-            self.fluxes_gj_y.append(self.flx_gj_i)
+            self.fluxes_gj.append(self.flx_gj)
             self.fluxes_mem.append(self.flx_mem_i)
 
             if p.sim_ECM is True:
@@ -469,8 +466,7 @@ class Simulator(object):
         self.D_gj = np.asarray(self.D_gj)
         self.molar_mass = np.asarray(self.molar_mass)
 
-        self.fluxes_gj_x = np.asarray(self.fluxes_gj_x)
-        self.fluxes_gj_y = np.asarray(self.fluxes_gj_y)
+        self.fluxes_gj = np.asarray(self.fluxes_gj)
         self.fluxes_mem = np.asarray(self.fluxes_mem)
 
         if p.ions_dict['Ca'] == 1:  # items specific for Calcium dynamics
@@ -1129,8 +1125,7 @@ class Simulator(object):
 
 
         # clear mass flux storage vectors:
-        self.fluxes_gj_x  = np.zeros(self.fluxes_gj_x.shape)
-        self.fluxes_gj_y = np.zeros(self.fluxes_gj_y.shape)
+        self.fluxes_gj  = np.zeros(self.fluxes_gj.shape)
         self.fluxes_mem = np.zeros(self.fluxes_mem.shape)
 
         self.cc_time = []  # data array holding the concentrations at time points
@@ -1871,11 +1866,7 @@ class Simulator(object):
         #         self.D_free[i],
         #         self.zs[i], p)
 
-        fgj_x = fgj*cells.mem_vects_flat[:,2]
-        fgj_y = fgj*cells.mem_vects_flat[:,3]
-
-        self.fluxes_gj_x[i] = fgj_x  # store gap junction flux for this ion  # FIXME this should be just fgj storage
-        self.fluxes_gj_y[i] = fgj_y  # store gap junction flux for this ion
+        self.fluxes_gj[i] = fgj  # store gap junction flux for this ion  # FIXME this should be just fgj storage
 
     def update_ecm(self,cells,p,t,i):
 
