@@ -540,6 +540,126 @@ class FiniteDiffSolver(object):
 
         return A, Ainv
 
+    def makeIntegrator(self):
+        """
+        Calculate a Finite Difference integration operator matrix for the
+        2D grid. Stencil takes 1/2 of central point and 1/8 of points interpolated
+        to the side of each imaginary grid square.
+
+        """
+
+        size_rows = self.cents_shape[0]
+        size_cols = self.cents_shape[1]
+
+        sze = size_rows*size_cols
+
+        A = np.zeros((sze,sze))
+
+        for k, (i, j) in enumerate(self.map_ij2k_cents):
+
+            # if we're not on a main boundary:
+            if i != 0 and j != 0 and i != size_rows - 1 and j != size_cols - 1:
+
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1, j])
+                k_in1_j = self.map_ij2k_cents.tolist().index([i - 1, j])
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i, j + 1])
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i, j - 1])
+
+                A[k, k_ip1_j] = 1 / 16
+                A[k, k_in1_j] = 1 / 16
+                A[k, k_i_jp1] = 1 / 16
+                A[k, k_i_jn1] = 1 / 16
+                A[k, k] = (1 / 2) + (1 / 4)
+
+
+            elif i == 0 and j != 0 and j != size_cols - 1:  # if on the bottom (South) boundary:
+
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1, j])
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i, j + 1])
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i, j - 1])
+
+                A[k, k_ip1_j] = 1 / 16
+                A[k, k_i_jp1] = 1 / 16
+                A[k, k_i_jn1] = 1 / 16
+
+                A[k, k] = (1 / 2) + (3 / 16)
+
+
+            elif i == size_rows - 1 and j != 0 and j != size_cols - 1:  # if on the top (North) boundary:
+
+                k_in1_j = self.map_ij2k_cents.tolist().index([i - 1, j])
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i, j + 1])
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i, j - 1])
+
+                A[k, k_in1_j] = 1 / 16
+                A[k, k_i_jp1] = 1 / 16
+                A[k, k_i_jn1] = 1 / 16
+
+                A[k, k] = (1 / 2) + (3 / 16)
+
+            elif j == 0 and i != 0 and i != size_rows - 1:  # if on the left (West) boundary:
+
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i, j + 1])
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1, j])
+                k_in1_j = self.map_ij2k_cents.tolist().index([i - 1, j])
+
+                A[k, k_i_jp1] = 1 / 16
+                A[k, k_ip1_j] = 1 / 16
+                A[k, k_in1_j] = 1 / 16
+
+                A[k, k] = (1 / 2) + (3 / 16)
+
+            elif j == size_cols - 1 and i != 0 and i != size_rows - 1:  # if on the right (East) boundary:
+
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i, j - 1])
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1, j])
+                k_in1_j = self.map_ij2k_cents.tolist().index([i - 1, j])
+
+                A[k, k_i_jn1] = 1 / 16
+                A[k, k_ip1_j] = 1 / 16
+                A[k, k_in1_j] = 1 / 16
+
+                A[k, k] = (1 / 2) + (3 / 16)
+
+            # corners:
+            elif i == 0 and j == 0:  # SW corner
+
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1, j])
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i, j + 1])
+
+                A[k, k_i_jp1] = 1 / 16
+                A[k, k_ip1_j] = 1 / 16
+                A[k, k] = (1 / 2) + (1 / 8)
+
+            elif i == size_rows - 1 and j == 0:  # NW corner
+
+                k_in1_j = self.map_ij2k_cents.tolist().index([i - 1, j])
+                k_i_jp1 = self.map_ij2k_cents.tolist().index([i, j + 1])
+
+                A[k, k_i_jp1] = 1 / 16
+                A[k, k_in1_j] = 1 / 16
+                A[k, k] = A[k, k] = (1 / 2) + (1 / 8)
+
+            elif i == 0 and j == size_cols - 1:  # SE corner
+
+                k_ip1_j = self.map_ij2k_cents.tolist().index([i + 1, j])
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i, j - 1])
+
+                A[k, k_i_jn1] = 1 / 16
+                A[k, k_ip1_j] = 1 / 16
+                A[k, k] = (1 / 2) + (1 / 8)
+
+            elif i == size_rows - 1 and j == size_cols - 1:  # NE corner
+
+                k_in1_j = self.map_ij2k_cents.tolist().index([i - 1, j])
+                k_i_jn1 = self.map_ij2k_cents.tolist().index([i, j - 1])
+
+                A[k, k_i_jn1] = 1 / 16
+                A[k, k_in1_j] = 1 / 16
+                A[k, k] = (1 / 2) + (1 / 8)
+
+        return A
+
     def stokes_kernel(self):
         """
         Calculate the linearized Navier-Stokes equations using
@@ -764,7 +884,6 @@ class FiniteDiffSolver(object):
         F_int[:,:] = F_int[:,:] + (1/8)*wP
 
         return F_int
-
 
 def jacobi(A,b,N=50,x=None):
     """
@@ -1064,10 +1183,10 @@ def integrator(P):
     sP = P[0:-1,:] # south midpoints
 
     F[:,:] = (1/2)*P
-    F[0:-1,:] = F[0:-1,:] + (1/8)*nP
-    F[1:,:] = F[1:,:] + (1/8)*sP
-    F[:,0:-1] = F[:,0:-1] + (1/8)*eP
-    F[:,1:] = F[:,1:] + (1/8)*wP
+    F[0:-1,:] = (1/16)*F[0:-1,:] + (1/16)*nP
+    F[1:,:] = (1/16)*F[1:,:] + (1/16)*sP
+    F[:,0:-1] = (1/16)*F[:,0:-1] + (1/16)*eP
+    F[:,1:] = (1/16)*F[:,1:] + (1/16)*wP
 
     return F
 

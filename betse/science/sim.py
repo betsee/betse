@@ -1512,10 +1512,14 @@ class Simulator(object):
             v_cell = np.dot(cells.M_int_mems, v_cell) + (1 / 2) * vcell_at_mids
             v_cell_ave = (1 / 2) * v_cell_ave + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
 
-            # smooth out the environmental voltage:
+            # define the full environmental voltage:
             v_env = np.zeros(len(cells.xypts))
             v_env[cells.envInds_inClust] = v_ecm
 
+            # finite volume integration of voltage:
+            v_env = np.dot(cells.gridInt, v_env)
+
+            # optional smoothing of voltage using gaussian:
             if p.smooth_level > 0.0:
 
                 v_env = gaussian_filter(v_env.reshape(cells.X.shape),p.smooth_level).ravel()
@@ -1995,7 +1999,6 @@ class Simulator(object):
             field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
-
         # slow fluxes, if desired by user:
         f_env_x = p.env_delay_const*f_env_x
         f_env_y = p.env_delay_const*f_env_y
@@ -2040,7 +2043,8 @@ class Simulator(object):
         cenv = cenv + delta_c*p.dt
 
         # finite volume integrator:
-        # cenv = gaussian_filter(cenv, 1)
+        # cenv = np.dot(cells.gridInt, cenv.ravel())
+        # cenv = cenv.reshape(cells.X.shape)
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
