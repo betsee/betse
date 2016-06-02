@@ -1379,7 +1379,6 @@ def env_stream(datax,datay,ax,cells,p):
     return streams, ax
 
 
-#FIXME: It'd be sweet if we could document this up. Streaming smiles underflow!
 def cell_mesh(data, ax, cells, p, clrmap):
 
     # If the data is defined on membrane midpoints, average to cell centres.
@@ -1398,6 +1397,44 @@ def cell_mesh(data, ax, cells, p, clrmap):
     )
 
     return msh, ax
+
+def pretty_patch_plot(data, ax, cells, p, clrmap, cmin=None, cmax=None):
+    """
+    Maps data on mem midpoints to vertices, and
+    uses tripcolor on every cell patch to create a
+    lovely gradient. Slow but beautiful!
+
+    data:   mem midpoint data for plotting (e.g vm)
+    ax:     plot axis
+    cells:  cells object
+    p:      parameters object
+    clrmap: colormap
+    cmin, cmax   clim values for the data's colormap
+
+    """
+
+    # data processing -- map to verts:
+    data_verts = np.dot(data, cells.matrixMap2Verts)
+
+    # colormap clim
+    if cmin == None:
+        amin = data_verts.min()
+
+    if cmax == None:
+        amax = data_verts.max()
+
+    # collection of cell patchs at vertices:
+    cell_faces = np.multiply(cells.cell_verts, p.um)
+
+    # Cell membrane (Vmem) plotter (slow but beautiful!)
+    for i in range(len(cell_faces)):
+        x = cell_faces[i][:, 0]
+        y = cell_faces[i][:, 1]
+        dati = data_verts[cells.cell_to_mems[i]]
+        col_cell = ax.tripcolor(x, y, dati, shading='gouraud', cmap=clrmap)
+        col_cell.set_clim(amin, amax)
+
+    return col_cell, ax
 
 
 def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
@@ -1434,9 +1471,6 @@ def env_mesh(data, ax, cells, p, clrmap, ignore_showCells=False):
     return mesh_plot, ax
 
 
-#FIXME: There's no discernable reason to return the same axes object as the
-#caller passed. Consider refactoring to only return the newly created
-#"PolyCollection" object. Quavering tide pools under the unwavering summer Sun!
 def cell_mosaic(
     data,
     ax: 'matplotlib.axes.Axes',

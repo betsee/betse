@@ -696,10 +696,8 @@ class PlotCells(object, metaclass=ABCMeta):
             assert types.is_matplotlib_trimesh(cell_plot), (
                 types.assert_not_matplotlib_trimesh(cell_plot))
 
-            #FIXME: Duplicated from below.
-            # Reshape this data onto this grid.
-            cell_data = np.zeros(len(self._cells.voronoi_centres))
-            cell_data[self._cells.cell_to_grid] = cell_data
+            # cell_data = np.zeros(len(self._cells.voronoi_centres))
+            # cell_data[self._cells.cell_to_grid] = cell_data
 
             # Update this plot with this gridded data.
             cell_plot.set_array(cell_data)
@@ -771,32 +769,7 @@ class PlotCells(object, metaclass=ABCMeta):
             assert types.is_matplotlib_trimesh(cell_plot), (
                 types.assert_not_matplotlib_trimesh(cell_plot))
 
-            #FIXME: We're fairly certain that this isn't actually necessary and
-            #that, consequently, the following two expensive statements are
-            #equivalent to this noop:
-            #
-            #    return cell_plot
-            #
-            #The reason why is that the _plot_cell_mesh() method triangulates
-            #from the Voronoi centres rather than edges of each cell -- and the
-            #centres don *NOT* appear to actually ever change. Hence, the same
-            #exact plot with possibly different cell data (which is trivially
-            #and efficiently settable elsewhere by calling
-            #"cell_plot.set_array(cell_data)") is returned. Tasty fudge sundaes!
 
-            # Remove this plot and create and return a new plot. Sadly, triangle
-            # meshes do *NOT* currently support in-place update. Note that we
-            # could technically break privacy encapsulation to update this plot
-            # in-place with the following code:
-            #
-            #     # ...where "triangular_grid" is as defined locally by the
-            #     # _plot_cell_mesh() method.
-            #     cell_plot._triangulation = triangular_grid
-            #     cell_plot._paths = None
-            #
-            # Doing so subverts the "TriMesh" API, however, and hence is likely
-            # to break on Matplotlib updates. While inefficient, the current
-            # approach is vastly more robust.
             cell_plot.remove()
             return self._plot_cell_mesh(cell_data=cell_data, *args, **kwargs)
 
@@ -840,8 +813,6 @@ class PlotCells(object, metaclass=ABCMeta):
         return mosaic_plot
 
 
-    #FIXME: Replace all calls to cell_mesh() with calls this method; then,
-    #excise cell_mesh() entirely.
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''
         Plot and return a mesh plot of all cells with colours corresponding to
@@ -874,6 +845,9 @@ class PlotCells(object, metaclass=ABCMeta):
         triangular_grid = np.zeros(len(self._cells.voronoi_centres))
         triangular_grid[self._cells.cell_to_grid] = cell_data
 
+        # cmin = cell_data.min()
+        # cmax = cell_data.max()
+
         # Create and add this plot to this figure's axes and return this plot.
         # Unfortunately, the tripcolor() function requires:
         #
@@ -882,9 +856,9 @@ class PlotCells(object, metaclass=ABCMeta):
         #
         # Behold! The ultimate examplar of nonsensical API design.
         return self._axes.tripcolor(
-            self._p.um*self._cells.voronoi_centres[:,0],
-            self._p.um*self._cells.voronoi_centres[:,1],
-            triangular_grid,
+            self._p.um*self._cells.cell_centres[:,0],
+            self._p.um*self._cells.cell_centres[:,1],
+            cell_data,
             shading='gouraud',
-            cmap=self._colormap,
+            cmap=self._colormap
         )

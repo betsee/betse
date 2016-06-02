@@ -35,11 +35,11 @@ def get_current(sim, cells, p):
         J_gj_o = J_gj_o + J_i
 
 
-    sim.J_gj_x = J_gj_o * cells.mem_vects_flat[:,2]  # FIXME clean up these numerous iterations of currents!
+    # raw current density through the gap junctions:
+    sim.J_gj_x = J_gj_o * cells.mem_vects_flat[:,2]
     sim.J_gj_y = J_gj_o * cells.mem_vects_flat[:,3]
 
     # total current density across the membranes (uncorrected by Continuity Equation):
-
     J_mem_xo = sim.J_gj_x + J_trans_mem * cells.mem_vects_flat[:,2]
     J_mem_yo = sim.J_gj_y + J_trans_mem * cells.mem_vects_flat[:,3]
 

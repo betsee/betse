@@ -88,9 +88,7 @@ class Simulator(object):
         Transmembrane voltage of each cell for the current time step.
     vm_time : np.ndarray
         Transmembrane voltage of each cell as a function of time.
-    vm_Matrix : np.ndarray
-        Transmembrane voltage of each cell as a function of time, resampled for
-        use in smooth visualization (e.g., streamplots).
+
     '''
 
     def __init__(self, p: 'Parameters'):
@@ -1021,8 +1019,8 @@ class Simulator(object):
 
             self.get_Efield(cells, p)  # FIXME update to also get a v_cell gradient
 
-            # store charge in time vector:
-            rho_cells_ave = np.dot(cells.M_sum_mems, self.rho_cells)/cells.num_mems
+            # get average charge in cell and store in time vector:
+            rho_cells_ave = np.dot(cells.M_sum_mems, self.rho_cells*cells.mem_vol)/cells.cell_vol
             self.charge_cells_time.append(rho_cells_ave)
 
             if p.sim_ECM:
@@ -1039,10 +1037,8 @@ class Simulator(object):
 
                 self.charge_env_time.append(rho_env_sm)
 
-            # get the current
-            if p.calc_J:
-                get_current(self, cells, p)
-
+            # get the currents
+            get_current(self, cells, p)
 
             # get forces from any hydrostatic (self.P_Cells) pressure:
             getHydroF(self,cells, p)
@@ -1083,7 +1079,6 @@ class Simulator(object):
             stb.check_v(self.vm)
 
             # ---------time sampling and data storage---------------------------------------------------
-
             if t in tsamples:
 
                 self.write2storage(t, cells, p)  # write data to time storage vectors
@@ -1133,7 +1128,7 @@ class Simulator(object):
 
         self.dd_time = []  # data array holding membrane permeabilites at time points
         self.vm_time = []  # data array holding voltage at time points
-        self.vm_ave_time = []   # data array holding average vm (averaged to cell centres) FIXME temp hack
+        self.vm_ave_time = []   # data array holding average vm (averaged to cell centres)
         self.vm_GHK_time = [] # data array holding GHK vm estimates
         self.dvm_time = []  # data array holding derivative of voltage at time points
         self.vcell_time = []
@@ -1143,9 +1138,10 @@ class Simulator(object):
 
         self.I_mem_time = []    # initialize membrane current time vector
 
-        self.vm_Matrix = []    # initialize matrices for resampled data sets (used in smooth plotting and streamlines)
         self.I_gj_x_time = []
         self.I_gj_y_time = []
+        self.I_cell_x_time = []
+        self.I_cell_y_time = []
         self.I_tot_x_time = []
         self.I_tot_y_time = []
 
@@ -1226,10 +1222,6 @@ class Simulator(object):
             self.rho_pump_time = []    # store pump and channel states as function of time...
             self.rho_channel_time = []
 
-            vm_dato = np.zeros(len(cells.mem_i))
-            dat_grid_vm = stb.vertData(vm_dato,cells,p)
-            self.vm_Matrix.append(dat_grid_vm[:])
-
             self.cDye_env_time = []
 
     def write2storage(self,t,cells,p):
@@ -1256,25 +1248,24 @@ class Simulator(object):
         self.dd_time.append(ddc)
         ddc = None
 
-        self.I_gj_x_time.append(self.J_gj_x[:])
+        self.I_gj_x_time.append(self.J_gj_x[:])  # FIXME eventually get rid of these, I think!
         self.I_gj_y_time.append(self.J_gj_y[:])
+
+        self.I_cell_x_time.append(self.J_cell_x[:])
+        self.I_cell_y_time.append(self.J_cell_y[:])
 
         self.I_mem_time.append(self.I_mem[:])
 
         self.vm_time.append(self.vm[:])
 
-        v_cells_ave = np.dot(cells.M_sum_mems, self.v_cell[:]) / cells.num_mems
-        self.vcell_time.append(v_cells_ave)
+        self.vcell_time.append(self.v_cell[:])
 
-        # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
         vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
         self.vm_ave_time.append(vm_ave)
 
         self.dvm_time.append(self.dvm[:])
 
-        # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
-        rho_cells_ave = np.dot(cells.M_sum_mems,self.rho_cells)/cells.num_mems
-        self.rho_cells_time.append(rho_cells_ave)
+        self.rho_cells_time.append(self.rho_cells[:])
 
         self.rate_NaKATP_time.append(self.rate_NaKATP[:])
         self.P_cells_time.append(self.P_cells[:])
@@ -1315,9 +1306,7 @@ class Simulator(object):
             self.cIP3_time.append(self.cIP3_mems[:])
 
         if p.voltage_dye ==1:
-            # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
-            cDye_ave = np.dot(cells.M_sum_mems, self.cDye_mems) / cells.num_mems
-            self.cDye_time.append(cDye_ave)
+            self.cDye_time.append(self.cDye_mems[:])
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
             self.cc_er_time.append(np.copy(self.cc_er[:]))
@@ -1331,24 +1320,16 @@ class Simulator(object):
             self.I_tot_x_time.append(self.J_env_x[:])
             self.I_tot_y_time.append(self.J_env_y[:])
 
-            # ecmsc = np.copy(self.cc_env[:])
-            # ecmsc.tolist()
-            # self.cc_env_time.append(ecmsc)
-            # ecmsc = None
-
-            # FIXME this is a temporary hack until I have a chance to redo plotting for intracellular space transport...
-
+            ecmsc = np.copy(self.cc_env[:])
+            ecmsc.tolist()
+            self.cc_env_time.append(ecmsc)
+            ecmsc = None
 
             self.venv_time.append(self.v_env[:])
 
             if p.fluid_flow is True and p.run_sim is True:
                 self.u_env_x_time.append(self.u_env_x[:])
                 self.u_env_y_time.append(self.u_env_y[:])
-
-            # calculate interpolated verts and midpoint data for Vmem:
-            dat_grid_vm = stb.vertData(self.vm[:],cells,p)
-
-            self.vm_Matrix.append(dat_grid_vm[:])
 
             if p.voltage_dye ==1:
                 self.cDye_env_time.append(self.cDye_env[:])
@@ -1858,6 +1839,11 @@ class Simulator(object):
         # calculate nernst-planck flux tangent to gap junctions:
         fgj = stb.nernst_planck_vector(c,grad_cgj,grad_vgj, ugj,
             p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
+
+        # update gap junction using GHK flux equation:
+        # fgj = stb.electroflux(conc_mem[cells.nn_i], conc_mem[cells.mem_i],
+        #                       p.gj_surface*self.gjopen*self.D_gj[i],
+        #                       cells.gj_len, 1, self.vgj, self.T, p)
 
         delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
 

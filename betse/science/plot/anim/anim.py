@@ -71,8 +71,8 @@ from betse.science.plot.plot import (
 
 class AnimCellsWhileSolving(AnimCells):
     '''
-    In-place animation of an arbitrary cell-centric time series (e.g., cell
-    voltage as a function of time), plotted over the cell cluster during rather
+    In-place animation of an arbitrary membrane-centric time series (e.g., cell
+    Vmem as a function of time), plotted over the cell cluster during rather
     than after simulation modelling.
 
     Attributes
@@ -152,61 +152,15 @@ class AnimCellsWhileSolving(AnimCells):
         # "True" only if the current frame being animated is the first.
         self._is_time_step_first = True
 
-        #FIXME: Pass as a new "cell_time_series" parameter instead.
-        #FIXME: Sadly, doing so will be slightly non-trivial. While the
-        #"sim.vm_Matrix" array is never reassigned, the "sim.vm" array appears
-        #to be reassigned each time step and hence *CANNOT* simply be passed as
-        #is. Instead, we'll probably need to pass a new "cell_time_series_name"
-        #parameter set by our caller to either "vm" or "vm_Matrix". Given that,
-        #we'll then need to "getattr(self._sim, cell_time_series_name)" to get
-        #the current value of this array. Hardly ideal, but it'll work.
-        #
-        #Ah! There *IS* a slightly less hacky approach. Let's revisit the
-        #"cell_time_series" approach. Suppose the "Simulator" class defined the
-        #following two new properties:
-        #
-        #    @property
-        #    def transmembrane_voltage_time_series_unsampled():
-        #        return self.vm
-        #
-        #    @property
-        #    def transmembrane_voltage_time_series_sampled():
-        #        return self.vm_Matrix
-        #
-        #Given that, we could then simply pass those properties as the values
-        #of a new "cell_time_series" parameter. Yes, we rather like it!
-        #FIXME: Actually, what we *REALLY* want here is "self._sim.vm_time".
-        #Unfortunately, "self._sim.vm_time" currently appears to be set in the
-        #"sim" module later than the _plot_loop() method is called. Ideally,
-        #"self._sim.vm_time" would be initialized in a similar manner to
-        #"self._sim.vm_Matrix".
-        #
-        #Ugh. No, it doesn't appear that we'll be able to safely refactor this.
-        #Too much large-scale change required on fragile code. That means the
-        #property approach is what we want. Note, however, these improvements:
-        #FIXME: Ah-ha! We have it. To implement this readily, we actually need
-        #this method to accept *TWO* new parameters:
-        #
-        #* "cell_time_series", set to either "sim.vm_time" or "sim.vm_Matrix".
-        #* "cell_data_current", set to either "sim.vm" or
-        #  "sim.vm_Matrix[0]".
-        #
-        #Phew! That'll do it. No significant changes to "sim" required, which
-        #is a gargantuan relief.
-        if not self._p.sim_ECM:
+        # average the voltage to the cell centre
+        # FIXME this is a temp change until we get this right
+        vm_o = np.dot(self._cells.M_sum_mems,self._sim.vm)/self._cells.num_mems
 
-            # average the voltage to the cell centre
-            # FIXME this is a temp change until we get this right
-            vm_o = np.dot(self._cells.M_sum_mems,self._sim.vm)/self._cells.num_mems
+        # self._cell_time_series = self._sim.vm_time
+        self._cell_time_series = self._sim.vm_ave_time
 
-            # self._cell_time_series = self._sim.vm_time
-            self._cell_time_series = self._sim.vm_ave_time
-
-            # cell_data_current = self._sim.vm
-            cell_data_current = vm_o
-        else:
-            self._cell_time_series = self._sim.vm_Matrix
-            cell_data_current = self._sim.vm_Matrix[0]
+        # cell_data_current = self._sim.vm
+        cell_data_current = vm_o
 
         # Upscaled cell data for the first frame.
         cell_data = plot.upscale_data(cell_data_current)
@@ -215,39 +169,11 @@ class AnimCellsWhileSolving(AnimCells):
         #
         # If *NOT* simulating extracellular spaces, only animate intracellular
         # spaces.
-        if not self._p.sim_ECM:
-            self._cell_data_plot = self._plot_cells_sans_ecm(
-                cell_data=cell_data)
-        # Else, extracellular spaces are simulated. Animate both intracellular
-        # and extracellular spaces.
-        else:
-            if self._p.plotMask:
-                cell_data = ma.masked_array(
-                    cell_data, np.logical_not(self._cells.maskM))
+        self._cell_data_plot = self._plot_cells_sans_ecm(
+            cell_data=cell_data)
 
-            self._cell_data_plot = self._plot_image(pixel_data=cell_data)
 
-            #FIXME: Shouldn't we be classifying the "coll" collection for
-            #subsequent updating as well?
-
-            if self._p.showCells:
-                #FIXME: Fairly certain that we can just pass "alpha=0.5" here.
-                self._cell_edges_plot = LineCollection(
-                    self._p.um * self._cells.mem_edges_flat,
-                    colors='black',
-                )
-                self._cell_edges_plot.set_alpha(0.5)
-                self._axes.add_collection(self._cell_edges_plot)
-
-        #FIXME: This is horrible. No idea why "vm_time" has to be used even
-        #for extracellular spaces when it's not used elsewhere. Does it
-        #have something to do with the masking performed above? Ah. We strongly
-        #suspect it does, as that would explain the maximum colorbar value
-        #being 0. Diamonds!
-        if not self._p.sim_ECM:
-            cell_data_vm = cell_data
-        else:
-            cell_data_vm = plot.upscale_data(self._sim.vm)
+        cell_data_vm = cell_data
 
         # Perform all superclass plotting preparation immediately *BEFORE*
         # plotting this animation's first frame.
@@ -281,12 +207,6 @@ class AnimCellsWhileSolving(AnimCells):
         #new _get_cell_data() method returning this array in a centralized
         #manner callable both here and above. Rays of deluded beaming sunspray!
 
-        # If simulating both intra- and extracellular spaces, mask away all
-        # environmental data (i.e., cell data *NOT* residing in the cluster).
-        # Such data will be displayed as transparent.
-        if self._p.sim_ECM and self._p.plotMask:
-            cell_data = ma.masked_array(
-                cell_data, np.logical_not(self._cells.maskM))
 
         # If the unique identifier for the array of cell vertices has *NOT*
         # changed, the cell cluster has *NOT* fundamentally changed and need
@@ -311,12 +231,8 @@ class AnimCellsWhileSolving(AnimCells):
         # Update the color bar with the content of the cell body plot *AFTER*
         # possibly recreating this plot above.
         if self._is_color_autoscaled:
-            #FIXME: Mostly duplicated from above. (Ugh.)
-            if not self._p.sim_ECM:
-                cell_data_vm = cell_data
-            else:
-                cell_data_vm = plot.upscale_data(
-                    self._sim.vm_time[self._time_step])
+
+            cell_data_vm = cell_data
 
             # If autoscaling this colorbar in a telescoping manner and this is
             # *NOT* the first time step, do so.
@@ -361,15 +277,9 @@ class AnimCellsWhileSolving(AnimCells):
         assert types.is_sequence_nonstr(cell_data), (
             types.assert_not_sequence_nonstr(cell_data))
 
-        # If simulating only intracellular spaces...
-        if not self._p.sim_ECM:
-            self._update_cell_plot_sans_ecm(
-                cell_plot=self._cell_data_plot,
-                cell_data=cell_data)
-        # Else, both intra- and extracellular spaces are being simulated.
-        else:
-            # Update the cell body plot with this data.
-            self._cell_data_plot.set_array(cell_data)
+        self._update_cell_plot_sans_ecm(
+            cell_plot=self._cell_data_plot,
+            cell_data=cell_data)
 
 
     def _revive_cell_plots(self, cell_data: np.ndarray) -> None:
@@ -390,38 +300,10 @@ class AnimCellsWhileSolving(AnimCells):
         assert types.is_sequence_nonstr(cell_data), (
             types.assert_not_sequence_nonstr(cell_data))
 
-        # If simulating only intracellular spaces...
-        if not self._p.sim_ECM:
-            self._cell_data_plot = self._revive_cell_plots_sans_ecm(
-                cell_plot=self._cell_data_plot,
-                cell_data=cell_data)
-        # Else, both intra- and extracellular spaces are being simulated.
-        else:
-            # Update the cell body plot with the passed data.
-            self._cell_data_plot.set_array(cell_data)
+        self._cell_data_plot = self._revive_cell_plots_sans_ecm(
+            cell_plot=self._cell_data_plot,
+            cell_data=cell_data)
 
-            # If displaying discrete cells, update the cell edges plot.
-            if self._p.showCells:
-                self._cell_edges_plot.set_segments(
-                    self._p.um * self._cells.mem_edges_flat)
-
-            # If the "apply external voltage" event both occurred and is to be
-            # plotted, plot this event. (This event requires extracellular
-            # spaces and hence is otherwise ignorable.)
-            if (self._p.extVPlot and
-                self._p.scheduled_options['extV'] is not None):
-                self.vext_plot = self._axes.scatter(
-                    self._p.um * self._cells.env_points[:,0],
-                    self._p.um * self._cells.env_points[:,1],
-                    c=plot.upscale_data(self._sim.v_env),
-                    cmap=self._colormap,
-
-                    #FIXME: This isn't the best. Text should still be displayed
-                    #above this. Ideally, this should be something like
-                    #"(ZORDER_LINE + ZORDER_STREAM) / 2" instead.
-                    zorder=10,
-                )
-                self.vext_plot.set_clim(self._color_min, self._color_max)
 
 # ....................{ CLASSES ~ after                    }....................
 class AnimCellsTimeSeries(AnimCells):
