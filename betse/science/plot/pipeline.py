@@ -416,9 +416,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-        figX, axX, cbX = viz.plotPolyData(
+        figX, axX, cbX = viz.plotPrettyPolyData(sim.rho_cells_time[-1],
             sim, cells, p,
-            zdata=(sim.rho_cells_time[-1]),
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_rho,
             clrMin=p.rho_min_clr,
@@ -441,9 +440,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             plt.show(block=False)
 
     if p.plot_vcell2d is True and p.sim_ECM is True:
-        figX, axX, cbX = viz.plotPolyData(
+        figX, axX, cbX = viz.plotPrettyPolyData(sim.vcell_time[-1]*1e3,
             sim, cells, p,
-            zdata=sim.vcell_time[-1]*1e3,
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_vcell,
             clrMin=p.vcell_min_clr,
@@ -468,33 +466,17 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #------------------------------------------------------------------------------------------------------------------
 
     if p.plot_vm2d is True:
-        if p.sim_ECM is True:
-            figV, axV, cbV = viz.plotHetMem(
-                sim, cells, p,
-                zdata=1000*sim.vm_Matrix[-1],
-                number_cells=p.enumerate_cells,
-                clrAutoscale=p.autoscale_Vmem,
-                clrMin=p.Vmem_min_clr,
-                clrMax=p.Vmem_max_clr,
-                clrmap=p.default_cm,
-                edgeOverlay=p.showCells,
-                number_ecm=p.enumerate_cells,
-                current_overlay=p.I_overlay,
-                plotIecm=p.IecmPlot,
-            )
 
-        else:
-            figV, axV, cbV = viz.plotPolyData(
-                sim, cells, p,
-                zdata=1000*sim.vcell_time[-1],
-                clrAutoscale=p.autoscale_Vmem,
-                clrMin=p.Vmem_min_clr,
-                clrMax=p.Vmem_max_clr,
-                number_cells=p.enumerate_cells,
-                clrmap=p.default_cm,
-                current_overlay=p.I_overlay,
-                plotIecm=p.IecmPlot,
-            )
+        figV, axV, cbV = viz.plotPrettyPolyData(1000*sim.vm_time[-1],
+            sim, cells, p,
+            clrAutoscale=p.autoscale_Vmem,
+            clrMin=p.Vmem_min_clr,
+            clrMax=p.Vmem_max_clr,
+            number_cells=p.enumerate_cells,
+            clrmap=p.default_cm,
+            current_overlay=p.I_overlay,
+            plotIecm=p.IecmPlot,
+        )
 
         figV.suptitle('Final Vmem',fontsize=14, fontweight='bold')
         axV.set_xlabel('Spatial distance [um]')
@@ -536,66 +518,16 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #-------------------------------------------------------------------------------------------------------------------
     if p.plot_ip32d is True and p.scheduled_options['IP3'] != 0 or \
        p.Ca_dyn != 0:
-        if p.sim_ECM is False:
-            figIP3, axIP3, cbIP3 = viz.plotPolyData(
-                sim, cells, p,
-                zdata=sim.cIP3_time[-1]*1e3,
-                number_cells=p.enumerate_cells,
-                clrAutoscale=p.autoscale_IP3,
-                clrMin=p.IP3_min_clr,
-                clrMax=p.IP3_max_clr,
-                clrmap=p.default_cm,
-            )
 
-        else:
-            figIP3 = plt.figure()
-            axIP3 = plt.subplot(111)
+        figIP3, axIP3, cbIP3 = viz.plotPrettyPolyData(sim.cIP3_time[-1]*1e3,
+            sim, cells, p,
+            number_cells=p.enumerate_cells,
+            clrAutoscale=p.autoscale_IP3,
+            clrMin=p.IP3_min_clr,
+            clrMax=p.IP3_max_clr,
+            clrmap=p.default_cm,
+        )
 
-            ip3Env = sim.cIP3_env*1e3
-            ip3Cell = sim.cIP3*1e3
-
-            bkgPlot = axIP3.imshow(ip3Env.reshape(cells.X.shape),origin='lower',
-                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,
-                p.um*cells.ymax],cmap=p.default_cm)
-
-            points = np.multiply(cells.cell_verts, p.um)
-
-            coll = PolyCollection(points, array=ip3Cell, cmap=p.default_cm, edgecolors='none')
-            axIP3.add_collection(coll)
-            axIP3.axis('equal')
-
-            # Add a colorbar for the PolyCollection
-            maxvala = np.max(ip3Cell,axis=0)
-            maxvalb = np.max(ip3Env,axis=0)
-            minvala = np.min(ip3Cell,axis=0)
-            minvalb = np.min(ip3Env,axis=0)
-
-            if maxvala > maxvalb:
-                maxval = maxvala
-            else:
-                maxval = maxvalb
-
-            if minvala < minvalb:
-                minval = minvala
-            else:
-                minval = minvalb
-
-            if p.autoscale_IP3 is True:
-                coll.set_clim(minval,maxval)
-                bkgPlot.set_clim(minval,maxval)
-                cbIP3 = figIP3.colorbar(coll)
-
-            else:
-                coll.set_clim(p.IP3_min_clr,p.IP3_max_clr)
-                bkgPlot.set_clim(p.IP3_min_clr,p.IP3_max_clr)
-                cbIP3 = figIP3.colorbar(coll)
-
-            xmin = cells.xmin*p.um
-            xmax = cells.xmax*p.um
-            ymin = cells.ymin*p.um
-            ymax = cells.ymax*p.um
-
-            axIP3.axis([xmin,xmax,ymin,ymax])
 
         axIP3.set_title('Final IP3 concentration')
         axIP3.set_xlabel('Spatial distance [um]')
@@ -611,11 +543,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    if p.plot_dye2d is True and p.voltage_dye == 1:
+    if p.plot_dye2d is True and p.voltage_dye == 1:  # FIXME make this into its own plot.
 
-        figVdye, axVdye, cbVdye = viz.plotPolyData(
+        figVdye, axVdye, cbVdye = viz.plotPrettyPolyData(sim.cDye_time[-1]*1e3,
             sim, cells, p,
-            zdata=sim.cDye_time[-1]*1e3,
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_Dye,
             clrMin=p.Dye_min_clr,
@@ -706,7 +637,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #-------------------------------------------------------------------------------------------------------------------
 
     if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
-        figCa, axCa, cbCa = viz.plotPolyData(sim,cells,p,zdata=sim.cc_time[-1][sim.iCa]*1e6,
+        figCa, axCa, cbCa = viz.plotPrettyPolyData(sim.cc_time[-1][sim.iCa]*1e6, sim,cells,p,
             number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
             clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
@@ -725,7 +656,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
         pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
 
-        figH, axH, cbH = viz.plotPolyData(sim,cells,p,zdata=pHdata,
+        figH, axH, cbH = viz.plotPrettyPolyData(sim,cells,p,zdata=pHdata,
             number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
             clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
 
@@ -763,7 +694,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if p.plot_I2d is True and p.calc_J is True:
 
         figI, axI, cbI = viz.plotStreamField(
-            100*sim.J_gj_x, 100*sim.J_gj_y,
+            100*sim.J_cell_x, 100*sim.J_cell_y,
             cells,
             p,
             plot_ecm = True,

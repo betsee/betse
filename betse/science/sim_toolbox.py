@@ -842,42 +842,24 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     # Intracellular voltage gradient:
     grad_vgj = sim.vgj / cells.gj_len
 
-    grad_vgj_x = grad_vgj * cells.mem_vects_flat[:,2]
-    grad_vgj_y = grad_vgj * cells.mem_vects_flat[:,3]
-
-    # Intracellular concentration gradient for molecule X:
-    cX_mems = cX_cell_o1[cells.mem_to_cells]
-
-    grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
-
-    grad_cgj_x = grad_cgj * cells.mem_vects_flat[:,2]
-    grad_cgj_y = grad_cgj * cells.mem_vects_flat[:,3]
+    grad_cgj = (cX_cell_o[cells.nn_i] - cX_cell_o[cells.mem_i]) / cells.gj_len
 
     # midpoint concentration:
-    cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
+    cX_mids = (cX_cell_o[cells.nn_i] + cX_cell_o[cells.mem_i]) / 2
 
     # electroosmotic fluid velocity:
     if p.fluid_flow is True:
         ux = sim.u_gj_x
         uy = sim.u_gj_y
 
+        # get component of fluid tangent to gap junctions
+        ugj = ux * cells.mem_vects_flat[:, 2] + uy * cells.mem_vects_flat[:, 3]
+
     else:
-        ux = 0
-        uy = 0
+        ugj = 0
 
-    fgj_x_X, fgj_y_X = nernst_planck_flux(cX_mids, grad_cgj_x, grad_cgj_y, grad_vgj_x, grad_vgj_y, ux, uy,
-        p.gj_surface*Do * sim.gjopen, z, sim.T, p)
-
-    # slow fluxes, if desired by user:
-    fgj_x_X = p.env_delay_const * fgj_x_X
-    fgj_y_X = p.env_delay_const * fgj_y_X
-
-    if p.smooth_level > 0.0:
-        fgj_x_X = gaussian_filter(fgj_x_X, p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
-        fgj_y_X = gaussian_filter(fgj_y_X, p.smooth_level)  # smooth out the flux terms
-
-
-    fgj_X = fgj_x_X * cells.mem_vects_flat[:,2] + fgj_y_X * cells.mem_vects_flat[:,3]
+    fgj_X = nernst_planck_vector(cX_mids, grad_cgj, grad_vgj, ugj,
+        p.gj_surface*sim.gjopen*Do, z, sim.T, p)
 
     # divergence calculation for individual cells (finite volume expression)
     delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
@@ -903,7 +885,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         cenv = cX_env_o1
         denv = Do * np.ones(len(cells.xypts))
 
-        v_env = p.env_delay_const*sim.v_env.reshape(cells.X.shape)
+        v_env = sim.v_env.reshape(cells.X.shape)
 
         v_env[:, 0] = sim.bound_V['L']
         v_env[:, -1] = sim.bound_V['R']
@@ -1005,6 +987,10 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         f_env_x_X, f_env_y_X = np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
             field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)
 
+        if p.smooth_level > 0.0:
+            fgj_x_X = gaussian_filter(f_env_x_X,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
+            fgj_y_X = gaussian_filter(f_env_y_X, p.smooth_level)  # smooth out the flux terms
+
         # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
         d_fenvx = -(f_env_x_X[:, 1:] - f_env_x_X[:, 0:-1]) / cells.delta
         d_fenvy = -(f_env_y_X[1:, :] - f_env_y_X[0:-1, :]) / cells.delta
@@ -1012,8 +998,6 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         delta_c = d_fenvx + d_fenvy
 
         cenv = cenv + delta_c * p.dt
-
-        cenv = fd.integrator(cenv)
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)
@@ -1055,7 +1039,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         fenvx = 0
         fenvy = 0
 
-    return cX_cell_1, cX_env_1, f_X_ED, fgj_x_X, fgj_y_X, fenvx, fenvy
+    return cX_cell_1, cX_env_1, f_X_ED, fgj_X, fenvx, fenvy
 
 def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     """

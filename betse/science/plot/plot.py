@@ -367,6 +367,98 @@ def plotPolyData(sim, cells, p, fig=None, ax=None, zdata = None, clrAutoscale = 
 
         return fig,ax,ax_cb
 
+def plotPrettyPolyData(data, sim, cells, p, fig=None, ax=None, clrAutoscale = True, clrMin = None, clrMax = None,
+    clrmap = None, number_cells=False, current_overlay = False,plotIecm=False):
+        """
+        Assigns color-data to each polygon mem-mid, vertex and cell centre in a cell cluster
+        diagram and returns a plot instance (fig, axes).
+
+        Parameters
+        ----------
+        cells : Cells
+            Data structure holding all world information about cell geometry.
+        data : [numpy.ndarray]
+            A data array with each scalar entry corresponding to a cell's data
+            value (for instance, concentration or voltage) at cell membranes. If zdata is not
+            supplied, the cells will be plotted with a uniform color; if zdata
+            is the string `random`, a random data set will be created and
+            plotted.
+        clrAutoscale : optional[bool]
+            If `True`, the colorbar is autoscaled to the max and min of zdata.
+        clrMin : optional[float]
+            Set the colorbar to a user-specified minimum value.
+        clrMax : optional[float]
+            Set the colorbar to a user-specified maximum value.
+        clrmap : optional[matplotlib.cm]
+            The colormap to use for plotting. Must be specified as cm.mapname.
+            A list of available mapnames is supplied at:
+            http://matplotlib.org/examples/color/colormaps_reference.html
+
+        Returns
+        -------
+        fig, ax
+            Matplotlib figure and axes instances for the plot.
+
+        Notes
+        -------
+        This method Uses `matplotlib.collections.PolyCollection`,
+        `matplotlib.cm`, `matplotlib.pyplot`, and numpy arrays and hence is
+        computationally slow. Avoid calling this method for large collectives
+        (e.g., larger than 500 x 500 um).
+        """
+
+        if fig is None:
+            fig = plt.figure()# define the figure and axes instances
+        if ax is None:
+            ax = plt.subplot(111)
+
+        # data processing -- map to verts:
+        data_verts = np.dot(data, cells.matrixMap2Verts)
+
+        # define colorbar limits for the PolyCollection
+
+        if clrAutoscale is True:
+            maxval = data_verts.max() - np.abs(data_verts.max())*0.10
+            minval = data_verts.min() + np.abs(data_verts.min())*0.10
+            # maxval = data_verts.max()
+            # minval = data_verts.min()
+
+        else:
+            maxval = clrMax
+            minval = clrMin
+
+
+        # Make the polygon collection and add it to the plot.
+        if clrmap is None:
+            clrmap = p.default_cm
+
+        if p.showCells is True:
+            coll, ax = pretty_patch_plot(data_verts,ax,cells,p,p.default_cm, cmin=minval, cmax=maxval)
+        else:
+            coll, ax = cell_mesh(data_verts,ax,cells,p,p.default_cm)
+
+        # add a colorbar
+        coll.set_clim(minval, maxval)
+        ax_cb = fig.colorbar(coll, ax=ax)
+
+        ax.axis('equal')
+
+        if number_cells is True:
+            for i,cll in enumerate(cells.cell_centres):
+                ax.text(p.um*cll[0],p.um*cll[1],i,ha='center',va='center')
+
+        if current_overlay is True:
+            streams, ax = I_overlay(sim,cells,p,ax,plotIecm)
+
+        xmin = cells.xmin*p.um
+        xmax = cells.xmax*p.um
+        ymin = cells.ymin*p.um
+        ymax = cells.ymax*p.um
+
+        ax.axis([xmin,xmax,ymin,ymax])
+
+        return fig,ax,ax_cb
+
 def plotVectField(Fx,Fy,cells,p,plot_ecm = False,title = 'Vector field',cb_title = 'Field [V/m]',
                     colorAutoscale = True, minColor = None, maxColor=None):
 
@@ -1142,12 +1234,12 @@ def I_overlay(sim,cells,p,ax,plotIecm = False):
 
     if p.sim_ECM is False or plotIecm is False:
 
-        Ix = sim.I_gj_x_time[-1]
-        Iy = sim.I_gj_y_time[-1]
+        Ix = sim.I_cell_x_time[-1]
+        Iy = sim.I_cell_y_time[-1]
 
         streams, ax = cell_stream(Ix, Iy,ax,cells,p)
 
-        ax.set_title('(gap junction current overlay)')
+        ax.set_title('(Intracellular current overlay)')
 
     elif plotIecm is True:
 
@@ -1156,7 +1248,7 @@ def I_overlay(sim,cells,p,ax,plotIecm = False):
 
         streams, ax = env_stream(Ix, Iy,ax,cells,p)
 
-        ax.set_title('(total current overlay)')
+        ax.set_title('(Environment current overlay)')
 
     return streams, ax
 
@@ -1398,7 +1490,7 @@ def cell_mesh(data, ax, cells, p, clrmap):
 
     return msh, ax
 
-def pretty_patch_plot(data, ax, cells, p, clrmap, cmin=None, cmax=None):
+def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None):
     """
     Maps data on mem midpoints to vertices, and
     uses tripcolor on every cell patch to create a
@@ -1413,15 +1505,17 @@ def pretty_patch_plot(data, ax, cells, p, clrmap, cmin=None, cmax=None):
 
     """
 
-    # data processing -- map to verts:
-    data_verts = np.dot(data, cells.matrixMap2Verts)
+
+    # data_verts = data
 
     # colormap clim
     if cmin == None:
         amin = data_verts.min()
-
-    if cmax == None:
         amax = data_verts.max()
+
+    else:
+        amin = cmin - 2.0
+        amax = cmax + 2.0
 
     # collection of cell patchs at vertices:
     cell_faces = np.multiply(cells.cell_verts, p.um)

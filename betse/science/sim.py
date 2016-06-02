@@ -971,7 +971,7 @@ class Simulator(object):
 
             if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
-                self.cIP3_mems, self.cIP3_env, _, _, _, _, _ = stb.molecule_mover(self, self.cIP3_mems,
+                self.cIP3_mems, self.cIP3_env, _, _, _, _ = stb.molecule_mover(self, self.cIP3_mems,
                     self.cIP3_env, cells, p, p.z_IP3, p.Dm_IP3,
                     p.Do_IP3, 0)
 
@@ -993,7 +993,7 @@ class Simulator(object):
                                                                     alpha_max=p.pump_Dye_alpha, Km_X=1.0e-3,
                                                                     Km_ATP=1.0)
 
-                self.cDye_mems, self.cDye_env, _, _, _, _, _ = stb.molecule_mover(self,self.cDye_mems,
+                self.cDye_mems, self.cDye_env, _, _, _, _ = stb.molecule_mover(self,self.cDye_mems,
                                                                     self.cDye_env,cells, p, z=p.z_Dye, Dm = p.Dm_Dye,
                                                                     Do = p.Do_Dye, c_bound = self.c_dye_bound,
                                                                     ignoreECM = True)
