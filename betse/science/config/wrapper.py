@@ -187,8 +187,20 @@ class SimConfigWrapper(object):
 
         sim_config.write(filename, self._config)
 
-
     # ..................{ DISABLERS                          }..................
+    #FIXME: The implementation of the following methods is fundamentally unsafe.
+    #If the structure of the underlying YAML file changes, these methods could
+    #silently fail (e.g., if the "plot while solving" option were renamed to
+    #"is plotting during"). To combat this, all attempts to directly modify the
+    #"self._config" dictionary below *MUST* instead defer to a newly defined
+    #set_config_option() method accepting one or more key names followed by the
+    #value to set such keys to: e.g.,
+    #
+    #    set_config_option(('results options', 'plot while solving'), False)
+    #
+    #If the passed configuration option does *NOT* already exist, that method
+    #should raise a human-readable exception. Inevitable future problem solved!
+
     def disable_interaction(self) -> None:
         '''
         Disable all simulation configuration options either requiring
@@ -202,3 +214,49 @@ class SimConfigWrapper(object):
         # Disable display of all mid- and post-simulation plots and animations.
         self._config['results options']['plot while solving'] = False
         self._config['results options']['plot after solving'] = False
+
+    # ..................{ MINIMIZERS                         }..................
+    def minify(self) -> None:
+        '''
+        Minimize the space and time costs associated with running the simulation
+        configured by this configuration while preserving all fundamental
+        configuration features.
+
+        Specifically, this method numerically reduces all configuration options
+        pertaining to either world size _or_ simulation time to their **minimum
+        permissible values** (i.e., the smallest values still preserving
+        simulation stability). This method is intended to be called only by test
+        automation.
+        '''
+
+        # Minify initialization time to exactly ten sampled time steps. For
+        # safety, permit currently defined options smaller than the minimums
+        # defined below to override these minimums.
+        init = self._config['init time settings']['custom init time profile']
+        # Duration of each time step in seconds.
+        init['time step'] = min(
+            float(init['time step']), 1.0e-3)
+        # Interval to sample such steps at in seconds.
+        init['sampling rate'] = min(
+            float(init['sampling rate']), init['time step'])
+        # Total simulation time in seconds.
+        init['total time'] = min(
+            float(init['total time']), 10.0e-3)
+
+        # Minify simulation time to the same durations.
+        sim = self._config['sim time settings']['custom sim time profile']
+        sim['time step'] = min(
+            float(sim['time step']), init['time step'])
+        sim['sampling rate'] = min(
+            float(sim['sampling rate']), sim['time step'])
+        sim['total time'] = min(
+            float(sim['total time']), init['total time'])
+
+        # Minify the physical dimensions of the cell cluster in meters.
+        world = self._config['world options']
+        world['world size'] = min(float(world['world size']), 75e-6)
+
+        # Minify ECM-specific grid size.
+        ecm = self._config['general options']
+        ecm['comp grid size'] = min(int(ecm['comp grid size']), 10)
+        ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)

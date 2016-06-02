@@ -77,10 +77,15 @@ class SimTestState(object):
         self.config = SimConfigWrapper.wrap_new_default(
             filename=str(config_filepath))
 
-        # Unconditionally disable configuration options either requiring
-        # interactive input *OR* displaying interactive output for all fixtures
-        # and tests.
+        # For all child fixtures and tests, unconditionally:
+        #
+        # * Disable configuration options either requiring interactive input
+        #   *OR* displaying interactive output.
+        # * Minimize the space and time costs associated with running the
+        #   simulation configured by this configuration while preserving all
+        #   fundamental configuration features.
         self.config.disable_interaction()
+        self.config.minify()
 
 
     def get_command_context(self) -> 'contextlib.contextmanager':
