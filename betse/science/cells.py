@@ -119,13 +119,13 @@ class Cells(object):
             logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-            logs.log_info('Creating environmental Poisson solver...')
-            bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-            self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
-            self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
+            logs.log_info('Creating environmental Poisson solver for currents...')
+            bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
+            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-            logs.log_info('Creating finite volume grid integrator...')
-            self.gridInt = self.grid_obj.makeIntegrator()
+            # logs.log_info('Creating finite volume grid integrator...')
+            # self.gridInt = self.grid_obj.makeIntegrator()
 
         else:
 
@@ -143,11 +143,11 @@ class Cells(object):
         self.lapGJ_P = None
 
         # Lapalcian inverses on the env grid
-        self.lapENVinv = None
+        self.lapENV_P_inv = None
 
         # other matrices
         self.M_sum_mem_to_ecm = None   # used for deformation
-        self.gradMem = None  # used for electroosmosis  FIXME set this to none later
+        self.gradMem = None  # used for electroosmosis
 
     def deformWorld(self,p):  # FIXME needs updating for sim_ecm case where boundary moves...
         """

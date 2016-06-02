@@ -34,7 +34,6 @@ def get_current(sim, cells, p):
 
         J_gj_o = J_gj_o + J_i
 
-
     # raw current density through the gap junctions:
     sim.J_gj_x = J_gj_o * cells.mem_vects_flat[:,2]
     sim.J_gj_y = J_gj_o * cells.mem_vects_flat[:,3]
@@ -60,7 +59,7 @@ def get_current(sim, cells, p):
     div_Jmem = (np.dot(cells.M_sum_mems, J_mem_n * cells.mem_sa) / cells.cell_vol)
 
     # calculate the reaction potential required to counter-balance the flow field:
-    V_react = np.dot(cells.lapGJ_P_inv, div_Jmem + d_rho_cells)
+    V_react = np.dot(cells.lapGJinv, div_Jmem + d_rho_cells)
 
     # calculate its gradient:
     gradV_react = (V_react[cells.cell_nn_i[:, 1]] - V_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
@@ -69,11 +68,8 @@ def get_current(sim, cells, p):
     gV_y = gradV_react * cells.mem_vects_flat[:, 3]
 
     # correct the current density by the reaction potential:
-    sim.J_mem_x = J_mem_xo - gV_x   # FIXME to correct or not correct, that is the question!
+    sim.J_mem_x = J_mem_xo - gV_x
     sim.J_mem_y = J_mem_yo - gV_y
-
-    # sim.J_mem_x = 1*J_mem_xo
-    # sim.J_mem_y = 1*J_mem_yo
 
     # average the components at cell centres:
     sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x) / cells.num_mems
@@ -115,7 +111,7 @@ def get_current(sim, cells, p):
         div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)
 
         # Find the value of the correcting potential field Phi:
-        Phi = np.dot(cells.lapENV_P_inv, div_J_env_o.ravel())
+        Phi = np.dot(cells.lapENVinv, div_J_env_o.ravel())
         Phi = Phi.reshape(cells.X.shape)
 
         # enforce zero normal gradient boundary conditions on P:
@@ -131,20 +127,23 @@ def get_current(sim, cells, p):
         sim.J_env_x = J_env_x_o.reshape(cells.X.shape) - gPhix
         sim.J_env_y = J_env_y_o.reshape(cells.X.shape) - gPhiy
 
-        # boundary conditions reinforced:
-        sim.J_env_x[:, 0] = 0
-        # right
-        sim.J_env_x[:, -1] = 0
-        # top
-        sim.J_env_x[-1, :] = 0
-        # bottom
-        sim.J_env_x[0, :] = 0
+        # sim.J_env_x = J_env_x_o.reshape(cells.X.shape)
+        # sim.J_env_y = J_env_y_o.reshape(cells.X.shape)
 
-        # left
-        sim.J_env_y[:, 0] = 0
-        # right
-        sim.J_env_y[:, -1] = 0
-        # top
-        sim.J_env_y[-1, :] = 0
-        # bottom
-        sim.J_env_y[0, :] = 0
+        # # boundary conditions reinforced:
+        # sim.J_env_x[:, 0] = 0
+        # # right
+        # sim.J_env_x[:, -1] = 0
+        # # top
+        # sim.J_env_x[-1, :] = 0
+        # # bottom
+        # sim.J_env_x[0, :] = 0
+        #
+        # # left
+        # sim.J_env_y[:, 0] = 0
+        # # right
+        # sim.J_env_y[:, -1] = 0
+        # # top
+        # sim.J_env_y[-1, :] = 0
+        # # bottom
+        # sim.J_env_y[0, :] = 0

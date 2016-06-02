@@ -790,7 +790,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6, ignoreECM = False):
+def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6, ignoreECM = False):
     """
     Transports a generic molecule across the membrane,
     through gap junctions, and if p.sim_ECM is true,
@@ -818,22 +818,22 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_cell = cX_cell_o[:]
+        cX_mems = cX_mems_o[:]
 
 
     else:
         cX_env = cX_env_o[:]
-        cX_cell = cX_cell_o[:]
+        cX_mems = cX_mems_o[:]
 
-    Dm_vect = np.ones(len(cX_cell))*Dm
+    Dm_vect = np.ones(len(cX_mems))*Dm
 
     # Transmembrane: electrodiffuse molecule X between cell and extracellular space------------------------------
 
-    f_X_ED = electroflux(cX_env, cX_cell, Dm_vect, p.tm, z, sim.vm, sim.T, p)
+    f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm, z, sim.vm, sim.T, p)
 
     # update concentrations due to electrodiffusion:
 
-    cX_cell_o1, cX_env_o1 = update_Co(sim, cX_cell_o, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
+    cX_mems, cX_env_o = update_Co(sim, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
 
     # ------------------------------------------------------------
 
@@ -842,10 +842,10 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     # Intracellular voltage gradient:
     grad_vgj = sim.vgj / cells.gj_len
 
-    grad_cgj = (cX_cell_o[cells.nn_i] - cX_cell_o[cells.mem_i]) / cells.gj_len
+    grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
     # midpoint concentration:
-    cX_mids = (cX_cell_o[cells.nn_i] + cX_cell_o[cells.mem_i]) / 2
+    cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
     # electroosmotic fluid velocity:
     if p.fluid_flow is True:
@@ -864,7 +864,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     # divergence calculation for individual cells (finite volume expression)
     delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
-    cX_cell_1 = cX_cell_o1 + p.dt * delta_cc
+    cX_mems = cX_mems + p.dt * delta_cc
 
     #------------------------------------------------------------------------------------------------------------
 
@@ -882,7 +882,7 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             btag = 'open'
 
         # make v_env and cc_env into 2d matrices
-        cenv = cX_env_o1
+        cenv = cX_env_o
         denv = Do * np.ones(len(cells.xypts))
 
         v_env = sim.v_env.reshape(cells.X.shape)
@@ -982,14 +982,14 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             uenvx = 0
             uenvy = 0
 
-        field_mod = (1e-9 / cells.delta)*cells.mems_per_envSquare.mean()
+        field_mod = (1e-9 / p.cell_space)
 
         f_env_x_X, f_env_y_X = np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
             field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)
 
-        if p.smooth_level > 0.0:
-            fgj_x_X = gaussian_filter(f_env_x_X,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
-            fgj_y_X = gaussian_filter(f_env_y_X, p.smooth_level)  # smooth out the flux terms
+        # if p.smooth_level > 0.0:
+        #     f_env_x_X = gaussian_filter(f_env_x_X,p.smooth_level)  # smooth out the flux terms
+        #     f_env_y_X = gaussian_filter(f_env_y_X, p.smooth_level)  # smooth out the flux terms
 
         # calculate the divergence of the total (negative) flux to obtain the total change per unit time:
         d_fenvx = -(f_env_x_X[:, 1:] - f_env_x_X[:, 0:-1]) / cells.delta
@@ -1022,24 +1022,21 @@ def molecule_mover(sim, cX_cell_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         # reshape the matrices into vectors:
         # self.v_env = self.v_env.ravel()
-        cX_env_o1 = cenv.ravel()
+        cX_env_o = cenv.ravel()
 
         # average flux at the midpoint of the MACs grid:
         fenvx = (f_env_x_X[:, 1:] + f_env_x_X[:, 0:-1]) / 2
         fenvy = (f_env_y_X[1:, :] + f_env_y_X[0:-1, :]) / 2
 
 
-        cX_cell_1 = cX_cell_o1
-        cX_env_1 = cX_env_o1
-
     else:
-        cX_env_temp = cX_env_o1.mean()
-        cX_env_1 = np.zeros(len(cX_env_o1))
-        cX_env_1[:] = cX_env_temp
+        cX_env_temp = cX_env_o.mean()
+        cX_env_o = np.zeros(len(cX_env_o))
+        cX_env_o[:] = cX_env_temp
         fenvx = 0
         fenvy = 0
 
-    return cX_cell_1, cX_env_1, f_X_ED, fgj_X, fenvx, fenvy
+    return cX_mems, cX_env_o, f_X_ED, fgj_X, fenvx, fenvy
 
 def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     """
@@ -1135,11 +1132,16 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
 
     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
+    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
+
+    # field-modulate the grad_v to account for screening (assumes motion primarily near the double layer):
+    grad_v = (1.0e-9/p.d_cell)*grad_v
 
     # obtain an average concentration at the pie-slice midpoints:
     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
 
-    flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
+    # flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
+    flux_intra = nernst_planck_vector(c_at_mids, grad_c, grad_v, u, D_x, zx, sim.T, p)
 
     # net flux across inner centroid surfaces of each cell:
     net_flux = flux_intra * (cells.mem_sa / 2)

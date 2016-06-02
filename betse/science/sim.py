@@ -692,35 +692,20 @@ class Simulator(object):
             self.u_gj_x = np.zeros(self.mdl)
             self.u_gj_y = np.zeros(self.mdl)
 
-        if p.calc_J is True:
-
             if cells.lapGJ_P_inv is None:
 
                 # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                logs.log_info('Creating cell network Poisson solver...')
+                logs.log_info('Creating cell network Poisson solver for fluids...')
                 cells.graphLaplacian(p)
 
             if p.sim_ECM is True and cells.lapENV_P_inv is None:
 
-                logs.log_info('Creating environmental Poisson solver...')
+                logs.log_info('Creating environmental Poisson solver for fluids...')
                 bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
                 cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
 
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-        elif p.fluid_flow is False and p.deformation is False and p.calc_J is False:
-            # if there's no physics calcs required, we're running an init
-            # get rid of all matrices rather than carry them around as large dead-weights
-
-            if cells.lapGJinv is not None:
-                cells.lapGJinv = None
-                cells.lapGJ_P_inv = None
-                cells.lapGJ = None
-                cells.lapGJ_P = None
-
-            if p.sim_ECM is True and cells.lapENV_P_inv is not None:
-                cells.lapENVinv = None
-                cells.lapENV_P_inv = None
 
 
         if p.run_sim is True:   # if we're running a simulation:
@@ -1025,12 +1010,14 @@ class Simulator(object):
 
             if p.sim_ECM:
 
-                if p.smooth_level > 0.0:
-                    # smooth the charge out as a derivative will be taken on it:
-                    rho_env_sm = gaussian_filter(self.rho_env[:].reshape(cells.X.shape),p.smooth_level).ravel()
+                # if p.smooth_level > 0.0:
+                #     # smooth the charge out as a derivative will be taken on it:
+                #     rho_env_sm = gaussian_filter(self.rho_env[:].reshape(cells.X.shape),p.smooth_level).ravel()
+                #
+                # else:
+                #     rho_env_sm = self.rho_env[:]
 
-                else:
-                    rho_env_sm = self.rho_env[:]
+                rho_env_sm = self.rho_env[:]
 
                 # as flux is done in terms of env-grid squares, correct the volume density of charge:
                 rho_env_sm = (cells.true_ecm_vol/cells.ecm_vol)*rho_env_sm
@@ -1498,7 +1485,8 @@ class Simulator(object):
             v_env[cells.envInds_inClust] = v_ecm
 
             # finite volume integration of voltage:
-            v_env = np.dot(cells.gridInt, v_env)
+            # v_env = np.dot(cells.gridInt, v_env)
+            # v_env = cells.grid_obj.grid_int(v_env.reshape(cells.X.shape), bounds='open').ravel()
 
             # optional smoothing of voltage using gaussian:
             if p.smooth_level > 0.0:
@@ -1525,11 +1513,13 @@ class Simulator(object):
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_mems, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
-            # self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
-            # self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
+
+            # if p.smooth_level > 0.0:
+            #     self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
+            self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
 
             self.vm, self.v_cell, self.v_cell_ave, self.v_env = self.get_Vall(cells,p)
-            # self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
+            self.v_env[cells.inds_env] = 0  # assumes charge screening in the bulk env
 
         else:
              self.rho_cells = stb.get_charge_density(self.cc_mems, self.z_array, p)
@@ -1979,7 +1969,7 @@ class Simulator(object):
         # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
         # which is assumed to be about 1 nm:
 
-        field_mod = (1e-9/cells.delta)*cells.mems_per_envSquare.mean()
+        field_mod = (1e-9/p.cell_space)
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
@@ -1989,10 +1979,10 @@ class Simulator(object):
         f_env_x = p.env_delay_const*f_env_x
         f_env_y = p.env_delay_const*f_env_y
 
-        if p.smooth_level > 0.0:
-
-            f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
-            f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
+        # if p.smooth_level > 0.0:
+        #
+        #     f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
+        #     f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
 
         if p.closed_bound is False:
 

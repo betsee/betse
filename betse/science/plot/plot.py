@@ -526,19 +526,19 @@ def plotStreamField(
 
     if plot_ecm is True:
         efield = np.sqrt(Fx**2 + Fy**2)
-        msh = ax.imshow(
-            efield,
-            origin='lower',
-            extent=[cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um, cells.ymax*p.um],
-            cmap=p.background_cm,
-        )
-        splot, ax = env_stream(Fx,Fy,ax,cells,p)
+        # msh = ax.imshow(
+        #     efield,
+        #     origin='lower',
+        #     extent=[cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um, cells.ymax*p.um],
+        #     cmap=p.background_cm,
+        # )
+        splot, ax = env_stream(Fx,Fy,ax,cells,p, cmap=p.background_cm)
         tit_extra = 'Extracellular'
 
     elif plot_ecm is False:
         efield = np.sqrt(Fx**2 + Fy**2)
-        msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
-        splot, ax = cell_stream(Fx,Fy,ax,cells,p,showing_cells=show_cells)
+        # msh, ax = cell_mesh(efield,ax,cells,p,p.background_cm)
+        splot, ax = cell_stream(Fx,Fy,ax,cells,p,showing_cells=show_cells,cmap=p.background_cm)
         tit_extra = 'Intracellular'
 
     ax.axis('equal')
@@ -551,9 +551,9 @@ def plotStreamField(
     ax.axis([xmin,xmax,ymin,ymax])
 
     if colorAutoscale is False:
-        msh.set_clim(minColor,maxColor)
+        splot.lines.set_clim(minColor,maxColor)
 
-    cb = fig.colorbar(msh)
+    cb = fig.colorbar(splot.lines)
 
     tit = title
     ax.set_title(tit)
@@ -1353,7 +1353,7 @@ def env_quiver(datax,datay,ax,cells,p):
 
     return vplot, ax
 
-def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
+def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
     """
     Sets up a streamline plot for cell-specific data on an existing axis.
 
@@ -1416,14 +1416,15 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False):
         Fx, Fy,
         density=p.stream_density,
         linewidth=lw,
-        color=p.vcolor,
+        color=Fmag,
         arrowsize=1.5,
+        cmap = cmap
     )
 
     return streams, ax
 
 
-def env_stream(datax,datay,ax,cells,p):
+def env_stream(datax,datay,ax,cells,p, cmap=None):
     """
     Sets up a streamline plot for environmental data on an existing axis.
 
@@ -1458,7 +1459,7 @@ def env_stream(datax,datay,ax,cells,p):
     # if datax.shape == cells.X.shape:
 
     streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy,density=p.stream_density,
-            linewidth=lw,color=p.vcolor,arrowsize=1.5)
+            linewidth=lw,color=Fmag,arrowsize=1.5,cmap=cmap)
 
     # elif datax.shape == cells.X.shape:
     #

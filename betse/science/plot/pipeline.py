@@ -572,7 +572,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             axVdye = plt.subplot(111)
 
             dyeEnv = sim.cDye_env*1e3
-            dyeCell = sim.cDye_time[-1]*1e3
+            # dyeCell = sim.cDye_time[-1]*1e3
+            dyeCell = np.dot(cells.M_sum_mems, sim.cDye_time[-1]*1e3)/cells.num_mems
 
             bkgPlot = axVdye.imshow(
                 dyeEnv.reshape(cells.X.shape),
@@ -697,8 +698,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             100*sim.J_cell_x, 100*sim.J_cell_y,
             cells,
             p,
-            plot_ecm = True,
-            title = 'Gap Junction Current Density',
+            plot_ecm = False,
+            title = 'Intracellular Current Density',
             cb_title = 'Current Density [uA/cm2]',
             show_cells = False,
             colorAutoscale = p.autoscale_I2d,
@@ -719,20 +720,24 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             plt.show(block=False)
 
         if p.sim_ECM is True:
-            figI2, axI2, cbI2 = viz.streamingCurrent(
-                sim, cells, p,
-                plot_Iecm=True,
-                clrAutoscale=p.autoscale_I2d,
-                clrMin=p.I_min_clr,
-                clrMax=p.I_max_clr,
-                clrmap=p.background_cm,
-                edgeOverlay=p.showCells,
-                number_cells=p.enumerate_cells,
+
+            figI2, axI2, cbI2 = viz.plotStreamField(
+                100 * sim.J_env_x, 100 * sim.J_env_y,
+                cells,
+                p,
+                plot_ecm=True,
+                title='Intracellular Current Density',
+                cb_title='Current Density [uA/cm2]',
+                show_cells=False,
+                colorAutoscale=p.autoscale_I2d,
+                minColor=p.I_min_clr,
+                maxColor=p.I_max_clr,
             )
+
 
             axI2.set_xlabel('Spatial distance [um]')
             axI2.set_ylabel('Spatial distance [um]')
-            cbI2.set_label('Current Density [uA/cm2]')
+            cbI2.set_label('Extracellular Current Density [uA/cm2]')
 
             if p.autosave is True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'

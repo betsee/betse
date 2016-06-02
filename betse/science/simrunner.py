@@ -81,20 +81,20 @@ class SimRunner(object):
 
         cells.redo_gj(dyna, p)  # redo gap junctions to isolate different tissue types
 
+        # make a laplacian and solver for discrete transfers on closed, irregular cell network
+        logs.log_info('Creating cell network Poisson solver...')
+        cells.graphLaplacian(p)
+
+        if p.td_deform is False:  # if time-dependent deformation is not required
+
+            cells.lapGJ = None
+            cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
+
         # make accessory matrices depending on user requirements:
         if p.fluid_flow is True or p.deformation is True:
 
-            # make a laplacian and solver for discrete transfers on closed, irregular cell network
-            logs.log_info('Creating cell network Poisson solver...')
-            cells.graphLaplacian(p)
-
             if p.deformation is True:
                 cells.deform_tools(p)
-
-            if p.td_deform is False:  # if time-dependent deformation is not required
-
-                cells.lapGJ = None
-                cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
         if p.sim_eosmosis is True:
             cells.eosmo_tools(p)
