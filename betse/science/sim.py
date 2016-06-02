@@ -1499,18 +1499,18 @@ class Simulator(object):
             v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
 
             # separate voltages for cells and ecm spaces
-            v_cello = v_max_vect[cells.mem_range_a:cells.mem_range_b]
+            v_cell = v_max_vect[cells.mem_range_a:cells.mem_range_b]
             v_ecm = v_max_vect[cells.env_range_a:cells.env_range_b]
 
             # use finite volume method to integrate each region of intracellular voltage:
             # values at centroid mids:
-            v_cell_aveo = np.dot(cells.M_sum_mems, v_cello) / cells.num_mems
+            v_cell_ave = np.dot(cells.M_sum_mems, v_cell) / cells.num_mems
 
-            vcell_at_mids = (v_cello + v_cell_aveo[cells.mem_to_cells]) / 2
+            vcell_at_mids = (v_cell + v_cell_ave[cells.mem_to_cells]) / 2
 
             # finite volume integral of membrane pie-box values:
-            v_cell = np.dot(cells.M_int_mems, v_cello) + (1 / 2) * vcell_at_mids
-            v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
+            v_cell = np.dot(cells.M_int_mems, v_cell) + (1 / 2) * vcell_at_mids
+            v_cell_ave = (1 / 2) * v_cell_ave + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
 
             # smooth out the environmental voltage:
             v_env = np.zeros(len(cells.xypts))
@@ -1830,12 +1830,12 @@ class Simulator(object):
 
 
         # voltage gradient:
-        grad_vgj = self.vgj/cells.gj_len
+        grad_vgj = self.vgj/(cells.gj_len)
 
 
         # concentration gradient for ion i:
         conc_mem = self.cc_mems[i]
-        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/cells.gj_len
+        grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
 
         # midpoint concentration:
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
@@ -1866,7 +1866,15 @@ class Simulator(object):
         #         self.D_free[i],
         #         self.zs[i], p)
 
-        self.fluxes_gj[i] = fgj  # store gap junction flux for this ion  # FIXME this should be just fgj storage
+        # use finite volume method to integrate each region:
+        # values at centroid mids:
+        # c_at_mids = (cc_memso + self.cc_cells[i][cells.mem_to_cells]) / 2
+        #
+        # # finite volume integral of membrane pie-box values:
+        # self.cc_mems[i] = np.dot(cells.M_int_mems, cc_memso) + (1 / 2) * c_at_mids
+        # self.cc_cells[i] = (1 / 2) * self.cc_cells[i] + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
+
+        self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
 
@@ -2030,6 +2038,9 @@ class Simulator(object):
 
         #-----------------------
         cenv = cenv + delta_c*p.dt
+
+        # finite volume integrator:
+        # cenv = gaussian_filter(cenv, 1)
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)

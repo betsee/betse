@@ -1062,24 +1062,12 @@ def integrator(P):
     wP = P[:,0:-1] # west midpoints
     nP = P[1:,:] # north midpoints
     sP = P[0:-1,:] # south midpoints
-    neP = P[1:,1:] # North east midpoints
-    nwP = P[1:,0:-1] # North west midpoints
-    swP = P[0:-1,0:-1] # South West midpoints
-    seP = P[0:-1,1:] # South East midpoints
 
-    # do the numerical integration:
-    F[:,:] = 16*P
-    F[0:-1,:] = F[0:-1,:] + 4*nP
-    F[1:,:] = F[1:,:] + 4*sP
-    F[:,0:-1] = F[:,0:-1] + 4*eP
-    F[:,1:] = F[:,1:] + 4*wP
-
-    F[1:,0:-1] = F[1:,0:-1] + neP
-    F[1:,1:] = F[1:,1:] + nwP
-    F[0:-1,0:-1] = F[0:-1,0:-1] + seP
-    F[0:-1,1:] = F[0:-1,1:] + swP
-
-    F = (1/36)*F
+    F[:,:] = (1/2)*P
+    F[0:-1,:] = F[0:-1,:] + (1/8)*nP
+    F[1:,:] = F[1:,:] + (1/8)*sP
+    F[:,0:-1] = F[:,0:-1] + (1/8)*eP
+    F[:,1:] = F[:,1:] + (1/8)*wP
 
     return F
 

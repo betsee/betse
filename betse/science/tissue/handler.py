@@ -1055,8 +1055,7 @@ def removeCells(
         'cc_er',
         'z_array',
         'z_array_er',
-        'fluxes_gj_x',
-        'fluxes_gj_y',
+        'fluxes_gj',
         'fluxes_mem',
         'Dm_base',
         'Dm_cells',
@@ -1181,6 +1180,8 @@ def removeCells(
 
     cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
     cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+    cells.intra_updater(p)  # creates matrix used for finite volume integration on cell patch
+    cells.cell_vols(p)  # calculate the volume of cell and its internal regions
     cells.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
     cells.near_neigh(p)  # Calculate the nn array for each cell
     cells.voronoiGrid(p)

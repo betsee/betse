@@ -1170,15 +1170,15 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     divF_mems = net_flux/cells.mem_vol
 
     # update concentrations with the appropriate divergence:
-    cX_memso = cX_mems + divF_mems * p.dt
-    cX_cellso = cX_cells - divF_centroid * p.dt
+    cX_mems = cX_mems + divF_mems * p.dt
+    cX_cells = cX_cells - divF_centroid * p.dt
 
-    # use finite volume method to integrate each region:
-    # values at centroid mids:
-    c_at_mids = (cX_memso + cX_cellso[cells.mem_to_cells]) / 2
-
-    # finite volume integral of membrane pie-box values:
-    cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
-    cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
+    # # use finite volume method to integrate each region:
+    # # values at centroid mids:
+    # c_at_mids = (cX_memso + cX_cellso[cells.mem_to_cells]) / 2
+    #
+    # # finite volume integral of membrane pie-box values:
+    # cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
+    # cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
 
     return cX_mems, cX_cells, net_flux

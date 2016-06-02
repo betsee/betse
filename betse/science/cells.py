@@ -1771,8 +1771,6 @@ class Cells(object):
         and adds them all together as half of a finite volume integration
         for the pie-box regions. The other half will come from the centroid
         region value.
-
-
         """
 
         self.M_int_mems = np.zeros((len(self.mem_i), len(self.mem_i)))

@@ -79,7 +79,6 @@ def get_current(sim, cells, p):
     sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, sim.J_mem_y) / cells.num_mems
 
-
     if p.sim_ECM is True:
 
         # non divergence free current densities in the environment:
