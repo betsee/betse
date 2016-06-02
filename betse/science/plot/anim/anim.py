@@ -54,7 +54,7 @@ from betse.util.type import types
 #these methods, which is rather nice.
 from betse.science.plot.plot import (
     _setup_file_saving, env_mesh, cell_mosaic, cell_mesh,
-    env_quiver, cell_quiver, cell_stream
+    env_quiver, cell_quiver, cell_stream, pretty_patch_plot,
 )
 
 # ....................{ CLASSES ~ while                    }....................
@@ -304,7 +304,6 @@ class AnimCellsWhileSolving(AnimCells):
             cell_plot=self._cell_data_plot,
             cell_data=cell_data)
 
-
 # ....................{ CLASSES ~ after                    }....................
 class AnimCellsTimeSeries(AnimCells):
     '''
@@ -358,44 +357,20 @@ class AnimCellsTimeSeries(AnimCells):
 
         # Cell data for the first frame.
         data_points = self._time_series[0]
+        data_verts = np.dot(self._cells.matrixMap2Verts, data_points)
 
         #FIXME: Rename "self.collection" to something more descriptive.
 
-        # If extracellular spaces are both simulated and requested, plot them.
-        if self._p.sim_ECM is True and self._is_ecm_ignored is False:
-            # Disambiguate this animation from identical animations with no
-            # extracellular space support.
-            self._type += '_ecm'
-            self.collection, self._axes = env_mesh(
-                data_points, self._axes, self._cells, self._p, self._colormap)
-        # Else if a cell mosaic is requested, plot that.
-        elif self._p.showCells is True:
-            self.collection, self._axes = cell_mosaic(
-                data_points, self._axes, self._cells, self._p, self._colormap)
+        if self._p.showCells is True:
+            self.collection, self._axes = pretty_patch_plot(
+                data_verts, self._axes, self._cells, self._p, self._colormap,
+                cmin=self._color_min, cmax=self._color_max)
+
         # Else, plot a smooth continuum approximating the cell cluster.
         else:
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
 
-
-        #FIXME: Is "frame_count=len(self._sim.time)," effectively *ALWAYS* the
-        #case, even for animations currently setting the frame count otherwise?
-        #We suspect this might be the case, but let's test this up. Winged sun!
-        #FIXME: Actually, it might be the case that the following logic in the
-        #superclass _animate() method would suffice:
-        #
-        #if color_series is not None:
-        #    frame_count = len(color_series)
-        #else:
-        #    frame_count = len(self._sim.time)
-        #
-        #Contemplate!
-        #FIXME: Actually, we appear to *ALWAYS* pass "color_series" below. We
-        #should probably require that by removing the "= None" default for
-        #this parameter from the _animate() method and, in the same method,
-        #setting:
-        #
-        #    frame_count = len(color_series)
 
         # Display and/or save this animation.
         self._animate(
@@ -404,26 +379,28 @@ class AnimCellsTimeSeries(AnimCells):
             color_series=scaling_series if scaling_series else self._time_series,
         )
 
-
     def _plot_frame_figure(self, frame_number: int):
         assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         zz = self._time_series[frame_number]
+        data_verts = np.dot(self._cells.matrixMap2Verts, zz)
 
-        #FIXME: This doesn't quite seem right. We don't test for
-        #"self._p.plotMask is True" above, for example.
-        if (self._p.sim_ECM is True and self._is_ecm_ignored is False and
-            self._p.plotMask is True):
-            dat_grid = ma.masked_array(
-                zz, np.logical_not(self._cells.maskM))
-            self.collection.set_data(dat_grid)
-        elif self._p.showCells is True:
-            self.collection.set_array(zz)
+        if self._p.showCells is True:
+            self._axes.cla()
+            self._axes.axis('equal')
+            self._axes.axis(self._axes_bounds)
+            self._axes.set_xlabel('Spatial distance [um]')
+            self._axes.set_ylabel('Spatial distance [um]')
+
+            # self.collection.set_array(zz)
+            self.collection, self._axes = pretty_patch_plot(
+                data_verts, self._axes, self._cells, self._p, self._colormap,
+                cmin=self._color_min, cmax=self._color_max)
+
         else:
             zz_grid = np.zeros(len(self._cells.voronoi_centres))
             zz_grid[self._cells.cell_to_grid] = zz
             self.collection.set_array(zz_grid)
-
 
 class AnimEnvTimeSeries(AnimCells):
     '''
@@ -484,9 +461,6 @@ class AnimEnvTimeSeries(AnimCells):
         # Environmental data meshplot for this frame.
         self._mesh_plot.set_data(self._time_series[frame_number])
 
-
-#FIXME: Can the gap junction-specific functionality simply be folded into the
-#"AnimCellTimeSeries" class and this class removed entirely?
 class AnimGapJuncTimeSeries(AnimCells):
     '''
     Animation of an arbitrary gap junction-centric time series (e.g., the gap
@@ -587,9 +561,6 @@ class AnimGapJuncTimeSeries(AnimCells):
         # Update the cell plot for this frame.
         self._cell_plot.set_array(zz_grid)
 
-
-#FIXME: Can the membrane-specific functionality simply be folded into the
-#"AnimCellTimeSeries" class and this class removed entirely?
 class AnimMembraneTimeSeries(AnimCells):
     '''
     Animation of an arbitrary cell membrane-specific time series (e.g.,
@@ -659,7 +630,6 @@ class AnimMembraneTimeSeries(AnimCells):
 
         # Update membrane edges colours for this frame.
         self._mem_edges.set_array(self._time_series[frame_number])
-
 
 class AnimMorphogenTimeSeries(AnimCells):
     '''
@@ -837,7 +807,6 @@ class AnimFieldIntracellular(AnimField):
 
         # Electric field magnitude meshplot for this frame.
         self._mesh_plot.set_array(emag_grid)
-
 
 class AnimFieldExtracellular(AnimField):
     '''
@@ -1024,7 +993,6 @@ class AnimVelocityIntracellular(AnimVelocity):
             self._color_max = vnorm
 
         return (vfield, vnorm)
-
 
 class AnimVelocityExtracellular(AnimVelocity):
     '''

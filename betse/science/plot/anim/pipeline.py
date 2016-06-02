@@ -29,11 +29,7 @@ from betse.science.plot import plot
 from betse.util.type import types
 
 # ....................{ PIPELINES                          }....................
-#FIXME: To improve memory consumption, split this monolithic function up into
-#one function per top-level animation if conditional. Doing so will prevent
-#large arrays specific to such conditionals from being retained for the duration
-#of the animation pipeline. Against, this really warrants refactoring into a
-#class (e.g., to avoid repassing "sim", "cells", and "p" everywhere). Summers!
+
 def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     '''
     Serially (i.e., in series) display and/or save all enabled animations for
@@ -130,13 +126,8 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     if p.ani_vm2d is True:
 
-        if p.sim_ECM is False:
-            vmplt = [1000*arr for arr in sim.vm_time]
-            scale_v = [1000*arr for arr in sim.vm_time]
-        else:
-            vmplt = [1000*arr for arr in sim.vm_Matrix]
-            scale_v = [1000*arr.ravel() for arr in sim.vm_Matrix]
-
+        vmplt = [1000*arr for arr in sim.vm_time]
+        scale_v = vmplt
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
@@ -153,9 +144,12 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:
+
+        vmplt = [1000 * arr for arr in sim.vm_ave_time]
+
         AnimGapJuncTimeSeries(
             sim=sim, cells=cells, p=p,
-            cell_time_series=_get_vmem_time_series(sim, p),
+            cell_time_series= vmplt,
             gapjunc_time_series=sim.gjopen_time,
             type='Vmem_gj',
             figure_title='Gap Junction State over Vmem',
@@ -181,16 +175,16 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if p.ani_I is True:
         # Always animate the gap junction current.
 
-        AnimCurrent(
-            sim=sim, cells=cells, p=p,
-            is_overlaying_current_gj_only=True,
-            type='current_gj',
-            figure_title='Intercellular Current',
-            colorbar_title='Current Density [uA/cm2]',
-            is_color_autoscaled=p.autoscale_I_ani,
-            color_min=p.I_ani_min_clr,
-            color_max=p.I_ani_max_clr,
-        )
+        # AnimCurrent(
+        #     sim=sim, cells=cells, p=p,
+        #     is_overlaying_current_gj_only=True,
+        #     type='current_gj',
+        #     figure_title='Intercellular Current',
+        #     colorbar_title='Current Density [uA/cm2]',
+        #     is_color_autoscaled=p.autoscale_I_ani,
+        #     color_min=p.I_ani_min_clr,
+        #     color_max=p.I_ani_max_clr,
+        # )
 
         # Also animate the extracellular spaces current if desired.
         if p.sim_ECM is True:
