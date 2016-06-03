@@ -252,11 +252,16 @@ class SimConfigWrapper(object):
         sim['total time'] = min(
             float(sim['total time']), init['total time'])
 
-        # Minify the physical dimensions of the cell cluster in meters.
+        # Minify the physical dimensions of the cell cluster in meters. By
+        # experimentation, the default simulation configuration exhibits
+        # instabilities (e.g., on performing the cutting event) raising fatal
+        # exceptions for physical dimensions less than that specified below.
+        # Hence, this appears to currently be a fairly hard minimum.
         world = self._config['world options']
-        world['world size'] = min(float(world['world size']), 75e-6)
+        world['world size'] = min(float(world['world size']), 100e-6)
 
-        # Minify ECM-specific grid size.
+        # Minify ECM-specific grid size. For similar reasons as above, the
+        # computational grid size specified below appears to be a hard minimum.
         ecm = self._config['general options']
-        ecm['comp grid size'] = min(int(ecm['comp grid size']), 10)
+        ecm['comp grid size'] = min(int(ecm['comp grid size']), 20)
         ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
