@@ -1419,15 +1419,26 @@ class Simulator(object):
 
             Qecm = self.rho_env[cells.envInds_inClust] * cells.true_ecm_vol[cells.envInds_inClust]
 
-            # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
-            Q_max_vect = np.hstack((Qcells,Qecm))
 
-           # original solver in terms of pseudo-inverse matrix:
-            v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
+            cs_ecm = p.electrolyte_screening*cells.memSa_per_envSquare[cells.envInds_inClust]
 
-            # separate voltages for cells and ecm spaces
-            v_cell = v_max_vect[cells.mem_range_a:cells.mem_range_b]
-            v_ecm = v_max_vect[cells.env_range_a:cells.env_range_b]
+            # voltages in terms of self-capacitances only:
+            v_ecm = (1/cs_ecm)*Qecm
+
+            # self-capacitances of the cell membranes:
+            cs_cells = p.electrolyte_screening*cells.mem_sa
+
+            v_cell = (1/cs_cells)*Qcells
+
+            # # original solver in terms of pseudo-inverse of Max Cap Matrix matrix:
+           #  # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
+           #  Q_max_vect = np.hstack((Qcells,Qecm))
+           #
+           #  v_max_vect = np.dot(cells.M_max_cap_inv, Q_max_vect)
+           #
+           #  # separate voltages for cells and ecm spaces
+           #  v_cell = v_max_vect[cells.mem_range_a:cells.mem_range_b]
+           #  v_ecm = v_max_vect[cells.env_range_a:cells.env_range_b]
 
             # use finite volume method to integrate each region of intracellular voltage:
             # values at centroid mids:

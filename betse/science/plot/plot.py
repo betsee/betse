@@ -1515,8 +1515,11 @@ def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None):
         amax = data_verts.max()
 
     else:
-        amin = cmin - 2.0
-        amax = cmax + 2.0
+        amin = cmin
+        amax = cmax
+
+    # amin = amin + 0.1 * np.abs(amin)
+    # amax = amax - 0.1 * np.abs(amax)
 
     # collection of cell patchs at vertices:
     cell_faces = np.multiply(cells.cell_verts, p.um)

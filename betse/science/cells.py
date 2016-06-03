@@ -116,8 +116,9 @@ class Cells(object):
         if p.sim_ECM is True:
 
             self.sim_ECM = True
-            logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
-            self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
+
+            # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
+            # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
             logs.log_info('Creating environmental Poisson solver for currents...')
             bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
