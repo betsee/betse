@@ -55,6 +55,7 @@ from betse.science.plot.abc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
+from scipy import interpolate
 
 #FIXME: Shift these functions into our superclass.
 from betse.science.plot.plot import (env_stream, cell_stream)
@@ -208,7 +209,7 @@ class AnimCells(PlotCells):
         # * Requested by the current simulation configuration via "p.I_overlay".
         # * This configuration is modelling currents via "p.calc_J".
         self._is_overlaying_current = (
-            is_current_overlayable and self._p.I_overlay and self._p.calc_J)
+            is_current_overlayable and self._p.I_overlay)
 
         # True if both saving and displaying animation frames.
         self._is_saving_shown_frames = self._is_showing and self._is_saving
@@ -587,8 +588,46 @@ class AnimCells(PlotCells):
 
         # Time series of all current density X and Y components.
         if self._is_overlaying_current_gj_only is True:
-            self._current_density_x_time_series = self._sim.I_gj_x_time
-            self._current_density_y_time_series = self._sim.I_gj_y_time
+
+            I_grid_x_time = []
+            I_grid_y_time = []
+
+            # need to interpolate data from cell centres to the xy-grid:
+            cell_centres = (
+                self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
+
+            cell_grid = (self._cells.X, self._cells.Y)
+
+            for i in range(0,len(self._sim.I_cell_x_time)):
+
+                I_gj_x = interpolate.griddata(
+                    cell_centres,
+                    self._sim.I_cell_x_time[i],
+                    cell_grid,
+                    fill_value=0,
+                    method=self._p.interp_type,
+                )
+
+                I_gj_x = self._cells.maskECM*I_gj_x
+
+                I_grid_x_time.append(I_gj_x)
+
+                I_gj_y = interpolate.griddata(
+                    cell_centres,
+                    self._sim.I_cell_y_time[i],
+                    cell_grid,
+                    fill_value=0,
+                    method=self._p.interp_type,
+                )
+
+                I_gj_y = self._cells.maskECM * I_gj_y
+
+                I_grid_y_time.append(I_gj_y)
+
+
+            self._current_density_x_time_series = I_grid_x_time
+            self._current_density_y_time_series = I_grid_y_time
+
         else:
             self._current_density_x_time_series = self._sim.I_tot_x_time
             self._current_density_y_time_series = self._sim.I_tot_y_time
@@ -597,7 +636,7 @@ class AnimCells(PlotCells):
         # here is where we multiply by 100 to obtain current density in units of uA/cm2
         self._current_density_magnitude_time_series = 100*np.sqrt(
             np.asarray(self._current_density_x_time_series) ** 2 +
-            np.asarray(self._current_density_y_time_series) ** 2) + 1e-30
+            np.asarray(self._current_density_y_time_series) ** 2) + 1e-15
 
 
     def _plot_current_density(self) -> None:
@@ -608,24 +647,24 @@ class AnimCells(PlotCells):
 
         # If animating only intracellular current, do so.
         if self._is_overlaying_current_gj_only:
-            self._axes_title = 'Gap Junction Current'
+            self._axes_title = 'Intracellular Current'
 
-            #FIXME: Is there any point to this? From what we can tell, the
-            #"self._current_density_stream_plot" will simply be outright
-            #replaced for the first and all subsequent frames. Galloping fish!
-            self._current_density_stream_plot, self._axes = cell_stream(
-                self._current_density_x_time_series[-1],
-                self._current_density_y_time_series[-1],
-                self._axes, self._cells, self._p)
+            # #FIXME: Is there any point to this? From what we can tell, the
+            # #"self._current_density_stream_plot" will simply be outright
+            # #replaced for the first and all subsequent frames. Galloping fish!
+            # self._current_density_stream_plot, self._axes = cell_stream(
+            #     self._current_density_x_time_series[-1],
+            #     self._current_density_y_time_series[-1],
+            #     self._axes, self._cells, self._p)
         # If animating both extracellular and intracellular current, do so.
         else:
             self._axes_title = 'Total Current Overlay'
 
-            #FIXME: Likewise.
-            self._current_density_stream_plot, self._axes = env_stream(
-                self._current_density_x_time_series[-1],
-                self._current_density_y_time_series[-1],
-                self._axes, self._cells, self._p)
+            # #FIXME: Likewise.
+            # self._current_density_stream_plot, self._axes = env_stream(
+            #     self._current_density_x_time_series[-1],
+            #     self._current_density_y_time_series[-1],
+            #     self._axes, self._cells, self._p)
 
 
     def _replot_current_density(self, frame_number: int) -> None:

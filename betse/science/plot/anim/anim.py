@@ -965,6 +965,9 @@ class AnimVelocityIntracellular(AnimVelocity):
             fill_value=0,
             method=self._p.interp_type,
         )
+
+        u_gj_x = self._cells.maskECM*u_gj_x
+
         u_gj_y = interpolate.griddata(
             cell_centres,
             self._sim.u_cells_y_time[frame_number],
@@ -972,6 +975,8 @@ class AnimVelocityIntracellular(AnimVelocity):
             fill_value=0,
             method=self._p.interp_type,
         )
+
+        u_gj_y = self._cells.maskECM * u_gj_y
 
         # Current velocity field magnitudes and the maximum such magnitude.
         vfield = np.sqrt(u_gj_x**2 + u_gj_y**2) * 1e9

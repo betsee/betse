@@ -1912,15 +1912,15 @@ class Simulator(object):
 
             # try adding it to the second layer to get proper diffusion in...
 
-            cenv_x[:,1] =  self.c_env_bound[i]
-            cenv_x[:,-2] =  self.c_env_bound[i]
-            cenv_x[1,:] =  self.c_env_bound[i]
-            cenv_x[-2,:] =  self.c_env_bound[i]
-
-            cenv_y[1,:] =  self.c_env_bound[i]
-            cenv_y[-2,:] =  self.c_env_bound[i]
-            cenv_y[:,1] =  self.c_env_bound[i]
-            cenv_y[:,-2] =  self.c_env_bound[i]
+            # cenv_x[:,1] =  self.c_env_bound[i]
+            # cenv_x[:,-2] =  self.c_env_bound[i]
+            # cenv_x[1,:] =  self.c_env_bound[i]
+            # cenv_x[-2,:] =  self.c_env_bound[i]
+            #
+            # cenv_y[1,:] =  self.c_env_bound[i]
+            # cenv_y[-2,:] =  self.c_env_bound[i]
+            # cenv_y[:,1] =  self.c_env_bound[i]
+            # cenv_y[:,-2] =  self.c_env_bound[i]
 
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
@@ -1969,10 +1969,10 @@ class Simulator(object):
         # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
         # which is assumed to be about 1 nm:
 
-        field_mod = (1e-9/p.cell_space)
+        self.field_mod = (1e-9/p.cell_space)
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-            field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
+            self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
         # slow fluxes, if desired by user:
@@ -2039,10 +2039,10 @@ class Simulator(object):
             cenv[0,:] = self.c_env_bound[i]
             cenv[-1,:] = self.c_env_bound[i]
 
-            cenv[:,-2] = self.c_env_bound[i]
-            cenv[:,1] = self.c_env_bound[i]
-            cenv[1,:] = self.c_env_bound[i]
-            cenv[-2,:] = self.c_env_bound[i]
+            # cenv[:,-2] = self.c_env_bound[i]
+            # cenv[:,1] = self.c_env_bound[i]
+            # cenv[1,:] = self.c_env_bound[i]
+            # cenv[-2,:] = self.c_env_bound[i]
 
         self.cc_env[i] = cenv.ravel()
 
@@ -2065,13 +2065,13 @@ class Simulator(object):
             venv = self.v_env.reshape(cells.X.shape)
             genv_x, genv_y = fd.gradient(venv, cells.delta)
 
-            self.E_env_x = -genv_x.ravel()*cells.ave2ecmV
-            self.E_env_y = -genv_y.ravel()*cells.ave2ecmV
+            self.E_env_x = -genv_x
+            self.E_env_y = -genv_y
 
             if p.smooth_level > 0.0:
 
-                self.E_env_x = gaussian_filter(self.E_env_x.reshape(cells.X.shape),p.smooth_level)
-                self.E_env_y = gaussian_filter(self.E_env_y.reshape(cells.X.shape),p.smooth_level)
+                self.E_env_x = gaussian_filter(self.E_env_x,p.smooth_level)
+                self.E_env_y = gaussian_filter(self.E_env_y,p.smooth_level)
 
         else:
 

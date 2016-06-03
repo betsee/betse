@@ -726,7 +726,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 cells,
                 p,
                 plot_ecm=True,
-                title='Intracellular Current Density',
+                title='Extracellular Current Density',
                 cb_title='Current Density [uA/cm2]',
                 show_cells=False,
                 colorAutoscale=p.autoscale_I2d,

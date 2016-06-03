@@ -29,8 +29,8 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
 
             Qenv = sim.rho_env.reshape(cells.X.shape)
 
-            Fe_x = Qenv * sim.E_env_x
-            Fe_y = Qenv * sim.E_env_y
+            Fe_x = Qenv * sim.E_env_x * sim.field_mod
+            Fe_y = Qenv * sim.E_env_y * sim.field_mod
 
         else:
 
@@ -49,7 +49,7 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
         div_uo = fd.divergence(ux_ecm_o, uy_ecm_o, cells.delta, cells.delta)
 
         # calculate the alpha-scaled internal pressure from the divergence of the force:
-        P = np.dot(cells.lapENV_P_inv, div_uo.ravel())
+        P = np.dot(cells.lapENVinv, div_uo.ravel())
         P = P.reshape(cells.X.shape)
 
         # enforce zero normal gradient boundary conditions on P:
@@ -90,12 +90,12 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 
     # calculate the inverse viscosity for the cell collection, which is scaled by gj state:
-    alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * 8e-10) ** 2)
+    # alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * 8e-10) ** 2)
 
     # approximate radius of gap junctions:
-    # gj_rad = np.sqrt((cells.mem_sa*p.gj_surface)/3.14)/5
-    #
-    # alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * gj_rad.mean()) ** 2)
+    gj_rad = np.sqrt((cells.mem_sa*p.gj_surface)/3.14)
+
+    alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * gj_rad) ** 2)
 
 
     if p.deform_electro is True:
@@ -138,7 +138,7 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
-    gP_x = gradP_react * cells.mem_vects_flat[:,2]  # FIXME is this pressure to cells.mem_vects_flat[:,2/3]?
+    gP_x = gradP_react * cells.mem_vects_flat[:,2]
     gP_y = gradP_react * cells.mem_vects_flat[:,3]
 
     sim.u_gj_x = u_gj_xo - gP_x
@@ -148,9 +148,9 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     sim.u_cells_x = np.dot(cells.M_sum_mems, sim.u_gj_x) / cells.num_mems
     sim.u_cells_y = np.dot(cells.M_sum_mems, sim.u_gj_y) / cells.num_mems
 
-    # enforce the boundary conditions:
-    sim.u_cells_x[cells.bflags_cells] = 0
-    sim.u_cells_y[cells.bflags_cells] = 0
+    # # enforce the boundary conditions:
+    # sim.u_cells_x[cells.bflags_cells] = 0
+    # sim.u_cells_y[cells.bflags_cells] = 0
 
 
 #--------WASTELANDS-----------------------------------------------------------------------------------------------

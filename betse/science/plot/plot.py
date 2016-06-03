@@ -1384,12 +1384,12 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
         Fx = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datax,(cells.X,cells.Y),
                                               fill_value=0,method=p.interp_type)
 
-        # Fx = Fx*cells.maskM
+        Fx = Fx*cells.maskECM
 
         Fy = interpolate.griddata((cells.cell_centres[:,0],cells.cell_centres[:,1]),datay,(cells.X,cells.Y),
                                               fill_value=0,method=p.interp_type)
 
-        # Fy = Fy*cells.maskM
+        Fy = Fy*cells.maskECM
 
     else:
 

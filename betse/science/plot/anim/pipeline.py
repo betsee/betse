@@ -135,7 +135,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             scaling_series=scale_v,
             is_ecm_ignored=False,
             type='Vmem',
-            figure_title='Cell Vmem',
+            figure_title='Transmembrane Voltage',
             colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_Vmem_ani,
             color_min=p.Vmem_ani_min_clr,
@@ -175,16 +175,16 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if p.ani_I is True:
         # Always animate the gap junction current.
 
-        # AnimCurrent(
-        #     sim=sim, cells=cells, p=p,
-        #     is_overlaying_current_gj_only=True,
-        #     type='current_gj',
-        #     figure_title='Intercellular Current',
-        #     colorbar_title='Current Density [uA/cm2]',
-        #     is_color_autoscaled=p.autoscale_I_ani,
-        #     color_min=p.I_ani_min_clr,
-        #     color_max=p.I_ani_max_clr,
-        # )
+        AnimCurrent(
+            sim=sim, cells=cells, p=p,
+            is_overlaying_current_gj_only=True,
+            type='current_gj',
+            figure_title='Intracellular Current',
+            colorbar_title='Current Density [uA/cm2]',
+            is_color_autoscaled=p.autoscale_I_ani,
+            color_min=p.I_ani_min_clr,
+            color_max=p.I_ani_max_clr,
+        )
 
         # Also animate the extracellular spaces current if desired.
         if p.sim_ECM is True:
@@ -192,7 +192,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 sim=sim, cells=cells, p=p,
                 is_overlaying_current_gj_only=False,
                 type='current_ecm',
-                figure_title='Total Current',
+                figure_title='Extracellular Current',
                 colorbar_title='Current Density [uA/cm2]',
                 is_color_autoscaled=p.autoscale_I_ani,
                 color_min=p.I_ani_min_clr,
@@ -206,7 +206,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             x_time_series=sim.efield_gj_x_time,
             y_time_series=sim.efield_gj_y_time,
             type='Efield_gj',
-            figure_title='Intercellular E Field',
+            figure_title='Intracellular E Field',
             colorbar_title='Electric Field [V/m]',
             is_color_autoscaled=p.autoscale_Efield_ani,
             color_min=p.Efield_ani_min_clr,
@@ -326,7 +326,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimVelocityIntracellular(
             sim=sim, cells=cells, p=p,
             type='Velocity_gj',
-            figure_title='Intercellular Fluid Velocity',
+            figure_title='Intracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
             is_color_autoscaled=p.autoscale_Velocity_ani,
             color_min=p.Velocity_ani_min_clr,

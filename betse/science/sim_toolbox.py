@@ -1015,10 +1015,10 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             cenv[0, :] = c_bound
             cenv[-1, :] = c_bound
 
-            cenv[:, -2] = c_bound
-            cenv[:, 1] = c_bound
-            cenv[1, :] = c_bound
-            cenv[-2, :] = c_bound
+            # cenv[:, -2] = c_bound
+            # cenv[:, 1] = c_bound
+            # cenv[1, :] = c_bound
+            # cenv[-2, :] = c_bound
 
         # reshape the matrices into vectors:
         # self.v_env = self.v_env.ravel()
