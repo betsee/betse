@@ -160,13 +160,19 @@ class Cells(object):
 
         """
 
-        self.cell_index(p)
+        # self.cell_index(p)
         self.cellVerts(p)
 
-        if p.sim_ECM is True:
+        self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+        self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
-            self.environment(p)
-            self.quick_maskM(p)
+        self.cell_vols(p)   # calculate the volume of cell and its internal regions
+
+        self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
+        self.near_neigh(p)  # Calculate the nn array for each cell
+
+        self.environment(p)  # define features of the ecm grid
+        self.make_maskM(p)
 
         self.calc_gj_vects(p)
 
@@ -1135,7 +1141,6 @@ class Cells(object):
 
                 self.true_ecm_vol[ind_ecm] = sas*p.cell_space*(1/2)
 
-
         self.envInds_inClust = np.asarray(self.envInds_inClust)
 
     def graphLaplacian(self,p):
@@ -1166,35 +1171,39 @@ class Cells(object):
         for cell_i, cell_inds in enumerate(self.cell_nn):
 
             vol = self.cell_vol[cell_i]
-            ave_mem = self.cell_sa[cell_i]/self.num_mems[cell_i]
 
             for cell_j in cell_inds:
 
                 # get the distance between the cell centres of the pair:
-                lx = self.cell_centres[cell_j,0] - self.cell_centres[cell_i,0]
-                ly = self.cell_centres[cell_j,1] - self.cell_centres[cell_i,1]
-                len_ij = np.sqrt(lx**2 + ly**2)
+                lx = self.cell_centres[cell_j, 0] - self.cell_centres[cell_i, 0]
+                ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
+                len_ij = np.sqrt(lx ** 2 + ly ** 2)
 
                 # find the shared membrane index for the pair:
-                mem_ij = cell_nn_pairs.index([cell_i,cell_j])
+                mem_ij = cell_nn_pairs.index([cell_i, cell_j])
 
                 # and the membrane surface area:
                 mem_sa = self.mem_sa[mem_ij]
 
-                lapGJ[cell_i,cell_i] = lapGJ[cell_i,cell_i] - mem_sa*(1/(len_ij))*(1/vol)
-                lapGJ[cell_i,cell_j] = lapGJ[cell_i,cell_j] + mem_sa*(1/(len_ij))*(1/vol)
+                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - mem_sa * (1 / (len_ij)) * (1 / vol)
 
-                lapGJ_P[cell_i,cell_i] = lapGJ_P[cell_i,cell_i] - mem_sa*(1/(len_ij))*(1/vol)
-                lapGJ_P[cell_i,cell_j] = lapGJ_P[cell_i,cell_j] + mem_sa*(1/(len_ij))*(1/vol)
+                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - mem_sa * (1 / (len_ij)) * (1 / vol)
+                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + mem_sa * (1 / (len_ij)) * (1 / vol)
 
-            # deal with boundary values --- this actually works to give proper values at fixed boundary!:
+                if cell_j not in self.bflags_cells:
+
+                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + mem_sa * (1 / (len_ij)) * (1 / vol)
+
+
+            # deal with boundary values:
             if cell_i in self.bflags_cells:
-                lapGJ[cell_i,cell_i] = 0
-                # lapGJ[cell_i,cell_i] = lapGJ[cell_i,cell_i] - ave_mem*(1/(2*p.rc))*(1/vol)   # for fixed boundary
-                # lapGJ_P[cell_i,cell_i] = lapGJ_P[cell_i,cell_i] - ave_mem*(1/(2*p.rc))*(1/vol)
 
-        self.lapGJinv = np.linalg.pinv(lapGJ)
-        self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
+                lapGJ[cell_i,cell_i] = 0
+
+        if p.deformation is False:
+            # (If running deform we will use scipy's lsmr solver)
+            self.lapGJinv = np.linalg.pinv(lapGJ)
+            self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 
         # if p.td_deform is True:
             # if time dependent deformation is selected, also save the direct Laplacian operator:
@@ -1707,67 +1716,88 @@ class Cells(object):
 
         logs.log_info('Creating computational tools for mechanical deformation... ')
 
-        # ---------Deformation matrices-----------------------------------------------------------------------------
+        # create a data structure that will allow us to repackage ecm_verts and re-build the
+        # cells world after deforming ecm_verts_unique:
 
-        # Create a matrix that will sum value from the membranes to the ecm midpoint:
-
-        self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids), len(self.mem_i)))
-
-        for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
-
-            if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
-
-                ind = ind_pair[0]
-                self.M_sum_mem_to_ecm[i_ecm, ind] = 1
-
-            else:
-                ind1 = ind_pair[0]
-                ind2 = ind_pair[1]
-                self.M_sum_mem_to_ecm[i_ecm, ind1] = 1 / 2
-                self.M_sum_mem_to_ecm[i_ecm, ind2] = 1 / 2
-
-        # create the deformation matrix, which will apply strain at mem mids to the vertices
-        # (np.dot(mem_verts,strain)):
-        # Calculate the deforM matrix to work with ecm rather than cell vertices:
-        midsTree = sps.KDTree(self.ecm_mids)
-        vertTree = sps.KDTree(self.ecm_verts_unique)
-
-        self.deforM = np.zeros((len(self.ecm_verts_unique), len(self.ecm_mids)))
-
-        for i_cell, ecm_verts in enumerate(self.ecm_verts):
-
-            mem_i_set = self.cell_to_mems[i_cell]
-
-            ecm_mids = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
-
-            if len(ecm_mids) == len(ecm_verts):
-                seq_i_verts = np.arange(0, len(ecm_mids))
-                seq_ip_mids = np.roll(seq_i_verts, 0)
-                seq_im_mids = np.roll(seq_i_verts, -1)
-
-                ecm_mids = np.asarray(ecm_mids)
-
-                vert_points = ecm_verts[seq_i_verts]
-                ecm_points_p = ecm_mids[seq_ip_mids]
-                ecm_points_m = ecm_mids[seq_im_mids]
-
-                # find these points in the flattened vectors:
-                vert_inds = list(vertTree.query(vert_points))[1]
-                ecm_inds_p = list(midsTree.query(ecm_points_p))[1]
-                ecm_inds_m = list(midsTree.query(ecm_points_m))[1]
-
-                self.deforM[vert_inds, ecm_inds_p] = 1
-                self.deforM[vert_inds, ecm_inds_m] = 1
-
-        # ---------------------------------------------------------------------
-
-        # Finally, build a list of inds (self.ecmInds) to map between unique and flattened ecm_verts vectors:
-        ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
-        ecm_verts_flat = np.asarray(ecm_verts_flat)
-
+        # first get the search-points tree:
         ecmTree = sps.KDTree(self.ecm_verts_unique)
 
-        self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
+        self.inds2ecmVerts = []
+
+        for verts in self.ecm_verts:
+
+            sublist = []
+
+            for v in verts:
+                ind = ecmTree.query(v)[1]
+                sublist.append(ind)
+            self.inds2ecmVerts.append(sublist)
+
+        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
+
+        # also need a data structure to map between environmental grid points and ecm_verts_unique:
+
+        # # ---------Deformation matrices-----------------------------------------------------------------------------
+        #
+        # # Create a matrix that will sum value from the membranes to the ecm midpoint:
+        #
+        # self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids), len(self.mem_i)))
+        #
+        # for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
+        #
+        #     if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
+        #
+        #         ind = ind_pair[0]
+        #         self.M_sum_mem_to_ecm[i_ecm, ind] = 1
+        #
+        #     else:
+        #         ind1 = ind_pair[0]
+        #         ind2 = ind_pair[1]
+        #         self.M_sum_mem_to_ecm[i_ecm, ind1] = 1 / 2
+        #         self.M_sum_mem_to_ecm[i_ecm, ind2] = 1 / 2
+        #
+        # # create the deformation matrix, which will apply strain at mem mids to the vertices
+        # # (np.dot(mem_verts,strain)):
+        # # Calculate the deforM matrix to work with ecm rather than cell vertices:
+        # midsTree = sps.KDTree(self.ecm_mids)
+        # vertTree = sps.KDTree(self.ecm_verts_unique)
+        #
+        # self.deforM = np.zeros((len(self.ecm_verts_unique), len(self.ecm_mids)))
+        #
+        # for i_cell, ecm_verts in enumerate(self.ecm_verts):
+        #
+        #     mem_i_set = self.cell_to_mems[i_cell]
+        #
+        #     ecm_mids = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
+        #
+        #     if len(ecm_mids) == len(ecm_verts):
+        #         seq_i_verts = np.arange(0, len(ecm_mids))
+        #         seq_ip_mids = np.roll(seq_i_verts, 0)
+        #         seq_im_mids = np.roll(seq_i_verts, -1)
+        #
+        #         ecm_mids = np.asarray(ecm_mids)
+        #
+        #         vert_points = ecm_verts[seq_i_verts]
+        #         ecm_points_p = ecm_mids[seq_ip_mids]
+        #         ecm_points_m = ecm_mids[seq_im_mids]
+        #
+        #         # find these points in the flattened vectors:
+        #         vert_inds = list(vertTree.query(vert_points))[1]
+        #         ecm_inds_p = list(midsTree.query(ecm_points_p))[1]
+        #         ecm_inds_m = list(midsTree.query(ecm_points_m))[1]
+        #
+        #         self.deforM[vert_inds, ecm_inds_p] = 1
+        #         self.deforM[vert_inds, ecm_inds_m] = 1
+        #
+        # # ---------------------------------------------------------------------
+        #
+        # # Finally, build a list of inds (self.ecmInds) to map between unique and flattened ecm_verts vectors:
+        # ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
+        # ecm_verts_flat = np.asarray(ecm_verts_flat)
+        #
+        # ecmTree = sps.KDTree(self.ecm_verts_unique)
+        #
+        # self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
 
     def intra_updater(self,p):
         """

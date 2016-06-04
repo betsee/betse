@@ -1093,8 +1093,8 @@ def removeCells(
                     elif len(data) == len(cells.mem_i):
                         data2 = np.delete(data,target_inds_mem)
 
-                    elif len(data) == len(cells.nn_i):
-                        data2 = np.delete(data,target_inds_gj)
+                    # elif len(data) == len(cells.nn_i):
+                    #     data2 = np.delete(data,target_inds_gj)
 
                 elif isinstance(data, list):
                     data2 = []
@@ -1108,10 +1108,10 @@ def removeCells(
                             del data[index]
                         data2.append(data[index])
 
-                    elif len(data) == len(cells.nn_i):
-                        for index in sorted(target_inds_gj, reverse=True):
-                            del data[index]
-                        data2.append(data[index])
+                    # elif len(data) == len(cells.nn_i):
+                    #     for index in sorted(target_inds_gj, reverse=True):
+                    #         del data[index]
+                    #     data2.append(data[index])
 
                 super_data2.append(data2)
 
@@ -1192,10 +1192,6 @@ def removeCells(
 
     if p.sim_ECM is True:
 
-        logs.log_info('Recalculating Capacitance Matrix for new configuration...')
-
-        cells.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
-
         if open_TJ is True:
             # if desire for cut away space to lack tight junctions, remove new bflags from set:
             searchTree = sps.KDTree(cells.cell_centres)
@@ -1204,10 +1200,11 @@ def removeCells(
 
         sim.initDenv(cells,p)
 
-    if p.fluid_flow is True or p.deformation is True or p.calc_J is True:
+    if p.fluid_flow is True or p.deformation is True:
         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
         logs.log_info('Re-creating cell network Poisson solver...')
         cells.graphLaplacian(p)
+        cells.deform_tools(p)
         logs.log_info('Completed major world-building computations.')
 
     if p.sim_eosmosis is True:

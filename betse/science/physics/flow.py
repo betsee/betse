@@ -6,6 +6,7 @@ import numpy as np
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 from betse.science import finitediff as fd
+from scipy.sparse.linalg import lsmr
 
 
 def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
@@ -133,7 +134,14 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     div_u = (np.dot(cells.M_sum_mems, u_gj * cells.mem_sa) / cells.cell_vol)
 
     # calculate the reaction pressure required to counter-balance the flow field:
-    P_react = np.dot(cells.lapGJ_P_inv, div_u)
+
+    if p.deformation is False:
+        # if we're not doing deformation, solve with dot product as it's much faster
+        P_react = np.dot(cells.lapGJ_P_inv, div_u)
+
+    else:
+        # if running deformation, solve with scipy's lsmr iterative solver:
+        P_react = lsmr(cells.lapGJ_P, div_u)[0]
 
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)

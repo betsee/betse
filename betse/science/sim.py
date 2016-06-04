@@ -692,13 +692,23 @@ class Simulator(object):
             self.u_gj_x = np.zeros(self.mdl)
             self.u_gj_y = np.zeros(self.mdl)
 
-            if cells.lapGJ_P_inv is None and p.run_sim is True:
+            if cells.lapGJ_P_inv is None and p.deformation is False and p.run_sim is True:
+
+                # make a laplacian and solver for discrete transfers on closed, irregular cell network
+                logs.log_info('Creating cell network Poisson solver for fluids...')
+                cells.graphLaplacian(p)
+
+            if cells.lapGJ_P is None and p.run_sim is True and p.deformation is True:
 
                 # make a laplacian and solver for discrete transfers on closed, irregular cell network
                 logs.log_info('Creating cell network Poisson solver for fluids...')
                 cells.graphLaplacian(p)
 
             if p.sim_ECM is True and cells.lapENV_P_inv is None and p.run_sim is True:
+
+                # initialize flow vectors:
+                self.u_env_x = np.zeros(cells.X.shape)
+                self.u_env_y = np.zeros(cells.X.shape)
 
                 logs.log_info('Creating environmental Poisson solver for fluids...')
                 bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
@@ -707,29 +717,15 @@ class Simulator(object):
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
 
-        if p.run_sim is True and p.deformation is True:  # if user desires fluid flow:
+        if p.run_sim is True and p.deformation is True:  # if user desires deformation:
 
-                if p.deformation is True:
-                    cells.deform_tools(p)
+                cells.deform_tools(p)
 
-                # # force electrostatic pressure:
-                # p.deform_electro = True
-
-                if cells.lapGJinv is None:
+                if cells.lapGJ is None or cells.lapGJ_P is None:
 
                     # make a laplacian and solver for discrete transfers on closed, irregular cell network
                     logs.log_info('Creating cell network Poisson solver...')
                     cells.graphLaplacian(p)
-
-                if p.sim_ECM is True:
-
-                    if cells.lapENV_P_inv is None:
-
-                        logs.log_info('Creating environmental Poisson solver...')
-                        bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-                        cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
-
-                        cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
         # if simulating electrodiffusive movement of membrane pumps and channels:-------------
         if p.sim_eosmosis is True:
@@ -1898,7 +1894,7 @@ class Simulator(object):
         grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
 
         # calculate fluxes for electrodiffusive transport:
-        if p.fluid_flow is True:
+        if p.fluid_flow is True and p.run_sim:
 
             uenvx = np.zeros(cells.grid_obj.u_shape)
             uenvy = np.zeros(cells.grid_obj.v_shape)

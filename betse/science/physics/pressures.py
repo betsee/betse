@@ -18,11 +18,11 @@ def electro_F(sim, cells, p):
     # Q_mem = (sim.rho_cells[cells.cell_nn_i[:, 1]] + sim.rho_cells[cells.cell_nn_i[:, 0]]) / 2
 
     # calculate force at each membrane:
-    sim.F_gj_x = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_x
-    sim.F_gj_y = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_y
+    sim.F_gj_x = sim.rho_cells * sim.E_gj_x
+    sim.F_gj_y = sim.rho_cells * sim.E_gj_y
 
     # calculate a shear electrostatic body force at the cell centre:
-    sim.F_electro_x = np.dot(cells.M_sum_mems, sim.F_gj_x) / cells.num_mems
+    sim.F_electro_x = np.dot(cells.M_sum_mems, sim.F_gj_x) / cells.num_mems  # FIXME we probably don't need these...
     sim.F_electro_y = np.dot(cells.M_sum_mems, sim.F_gj_y) / cells.num_mems
 
     sim.F_electro = np.sqrt(sim.F_electro_x ** 2 + sim.F_electro_y ** 2)
