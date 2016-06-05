@@ -38,10 +38,17 @@ def getDeformation(sim, cells, t, p):
     # Determine action forces
     #---------------------------------------------------------------------------------
 
-    # deformation by galvanotropism:  FIXME this will only work for sim_ECM!
+    # deformation by galvanotropism:
 
-    ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
-    uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
+    if p.sim_ECM is True:
+
+        ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
+        uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
+
+    else: # FIXME check for sim_ECM is false:
+
+        ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_x * p.galvanotropism
+        uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_y * p.galvanotropism
 
 
     # --calculate displacement field for incompressible medium------------------------------------------------

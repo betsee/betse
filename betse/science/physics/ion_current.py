@@ -25,7 +25,7 @@ def get_current(sim, cells, p):
 
     # divide final result by membrane surface area to obtain a component of current density
     # component is negative as transmembrane fluxes point into the cell, but mem normals point out:
-    # J_trans_mem = -sim.I_mem/cells.mem_sa
+    J_trans_mem = -sim.I_mem/cells.mem_sa
 
     # calculate current density across gap junctions:
     J_gj_o = np.zeros(len(cells.mem_i))
@@ -40,43 +40,51 @@ def get_current(sim, cells, p):
     sim.J_gj_y = J_gj_o * cells.mem_vects_flat[:,3]
 
     # total current density across the membranes (uncorrected by Continuity Equation):
-    # J_mem_xo = sim.J_gj_x + J_trans_mem * cells.mem_vects_flat[:,2]
-    # J_mem_yo = sim.J_gj_y + J_trans_mem * cells.mem_vects_flat[:,3]
+    J_mem_xo = sim.J_gj_x + J_trans_mem * cells.mem_vects_flat[:,2]
+    J_mem_yo = sim.J_gj_y + J_trans_mem * cells.mem_vects_flat[:,3]
 
-    J_mem_xo = sim.J_gj_x
-    J_mem_yo = sim.J_gj_y
+    # J_mem_xo = sim.J_gj_x
+    # J_mem_yo = sim.J_gj_y
 
-    # # First calculate rate of change of charge in cell:
-    # if len(sim.charge_cells_time) > 1:
-    #
-    #     d_rho_cells = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
-    #
-    # else:
-    #     d_rho_cells = np.zeros(len(cells.cell_i))
+    # First calculate rate of change of charge in cell:
+    if len(sim.charge_cells_time) > 1:
+
+        d_rho_cells = (sim.charge_cells_time[-1] - sim.charge_cells_time[-2]) / p.dt
+
+    else:
+        d_rho_cells = np.zeros(len(cells.cell_i))
 
     # Next, calculate the divergence of cell current density:
 
     # get the component normal to the membrane:
-    # J_mem_n = J_mem_xo * cells.mem_vects_flat[:, 2] + J_mem_yo * cells.mem_vects_flat[:, 3]
+    J_mem_n = J_mem_xo * cells.mem_vects_flat[:, 2] + J_mem_yo * cells.mem_vects_flat[:, 3]
 
-    # # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-    # div_Jmem = (np.dot(cells.M_sum_mems, J_mem_n * cells.mem_sa) / cells.cell_vol)
-    #
-    # # calculate the reaction potential required to counter-balance the flow field:
-    # V_react = np.dot(cells.lapGJ_P_inv, -div_Jmem - d_rho_cells)    # FIXME solve with lapGJ_P and lsmr
+    # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+    div_Jmem = (np.dot(cells.M_sum_mems, J_mem_n * cells.mem_sa) / cells.cell_vol)
 
-    # # calculate its gradient:
-    # gradV_react = (V_react[cells.cell_nn_i[:, 1]] - V_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-    #
-    # gV_x = gradV_react * cells.mem_vects_flat[:, 2]
-    # gV_y = gradV_react * cells.mem_vects_flat[:, 3]
+    # calculate the reaction potential required to counter-balance the flow field:
 
-    # correct the current density by the reaction potential:
-    # sim.J_mem_x = J_mem_xo - gV_x
-    # sim.J_mem_y = J_mem_yo - gV_y
+    if p.deformation is True:
 
-    sim.J_mem_x = J_mem_xo
-    sim.J_mem_y = J_mem_yo
+        b = -div_Jmem - d_rho_cells
+
+        V_react = lsmr(cells.lapGJ, b)[0]
+
+    else:
+        V_react = np.dot(cells.lapGJinv, -div_Jmem - d_rho_cells)
+
+    # calculate its gradient:
+    gradV_react = (V_react[cells.cell_nn_i[:, 1]] - V_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+    gV_x = gradV_react * cells.mem_vects_flat[:, 2]
+    gV_y = gradV_react * cells.mem_vects_flat[:, 3]
+
+    #correct the current density by the reaction potential:
+    sim.J_mem_x = J_mem_xo - gV_x
+    sim.J_mem_y = J_mem_yo - gV_y
+
+    # sim.J_mem_x = J_mem_xo
+    # sim.J_mem_y = J_mem_yo
 
     # average the components at cell centres:
     sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x) / cells.num_mems

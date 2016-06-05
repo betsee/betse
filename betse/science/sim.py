@@ -1294,6 +1294,8 @@ class Simulator(object):
         # save the init or sim:
 
         # get rid of the extra copy of cells
+        if p.deformation:
+            cells = copy.deepcopy(self.cellso)
         self.cellso = None
 
         if p.run_sim is False:

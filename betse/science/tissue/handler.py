@@ -1190,6 +1190,9 @@ def removeCells(
     cells.make_maskM(p)
     cells.grid_len = len(cells.xypts)
 
+    logs.log_info('Re-creating cell network Poisson solver...')
+    cells.graphLaplacian(p)
+
     if p.sim_ECM is True:
 
         if open_TJ is True:
@@ -1202,8 +1205,7 @@ def removeCells(
 
     if p.fluid_flow is True or p.deformation is True:
         # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-        logs.log_info('Re-creating cell network Poisson solver...')
-        cells.graphLaplacian(p)
+
         cells.deform_tools(p)
         logs.log_info('Completed major world-building computations.')
 
