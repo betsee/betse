@@ -720,12 +720,17 @@ class Simulator(object):
         if p.run_sim is True and p.deformation is True:  # if user desires deformation:
 
                 cells.deform_tools(p)
+                self.cellso = copy.deepcopy(cells)
 
                 if cells.lapGJ is None or cells.lapGJ_P is None:
 
                     # make a laplacian and solver for discrete transfers on closed, irregular cell network
                     logs.log_info('Creating cell network Poisson solver...')
                     cells.graphLaplacian(p)
+
+        else:
+
+            self.cellso = cells
 
         # if simulating electrodiffusive movement of membrane pumps and channels:-------------
         if p.sim_eosmosis is True:
@@ -1227,10 +1232,13 @@ class Simulator(object):
         if p.deformation is True and p.run_sim is True:
 
             # make a copy of cells to apply deformation to:
-            cellso = copy.deepcopy(cells)
-            implement_deform_timestep(self,cellso, t, p)
+            self.cellso = copy.deepcopy(cells)
+            implement_deform_timestep(self,self.cellso, t, p)
             self.dx_cell_time.append(self.d_cells_x[:])
             self.dy_cell_time.append(self.d_cells_y[:])
+
+        else:
+            self.cellso = cells
 
 
         if p.fluid_flow is True and p.run_sim is True:
@@ -1284,6 +1292,10 @@ class Simulator(object):
     def save_and_report(self,cells,p):
 
         # save the init or sim:
+
+        # get rid of the extra copy of cells
+        self.cellso = None
+
         if p.run_sim is False:
             datadump = [self, cells, p]
             fh.saveSim(self.savedInit, datadump)

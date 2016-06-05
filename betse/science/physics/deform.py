@@ -38,7 +38,7 @@ def getDeformation(sim, cells, t, p):
     # Determine action forces
     #---------------------------------------------------------------------------------
 
-    # deformation by galvanotropism:
+    # deformation by galvanotropism:  FIXME this will only work for sim_ECM!
 
     ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
     uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
@@ -76,12 +76,12 @@ def getDeformation(sim, cells, t, p):
     # calculate the reaction pressure required to counter-balance the deform field field:
     if p.fixed_cluster_bound is True:
 
-        # P_react = np.dot(cells.lapGJ_P_inv, div_u)   # FIXME solve with lapGJ_P and lsmr
+        # P_react = np.dot(cells.lapGJ_P_inv, div_u)
         P_react = lsmr(cells.lapGJ_P, div_u)[0]
 
     else:
 
-        # P_react = np.dot(cells.lapGJinv, div_u) # FIXME solve with lapGJ_P and lsmr
+        # P_react = np.dot(cells.lapGJinv, div_u) #
         P_react = lsmr(cells.lapGJ, div_u)[0]
 
     # calculate its gradient:

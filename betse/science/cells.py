@@ -150,7 +150,7 @@ class Cells(object):
         self.M_sum_mem_to_ecm = None   # used for deformation
         self.gradMem = None  # used for electroosmosis
 
-    def deformWorld(self,p):  # FIXME needs updating for sim_ecm case where boundary moves...
+    def deformWorld(self,p):
         """
         Runs necessary methods to recalculate essential world
         data structures after a mechanical deformation.
@@ -166,13 +166,13 @@ class Cells(object):
         # self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
         # self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
-        self.cell_vols(p)   # calculate the volume of cell and its internal regions
+        # self.cell_vols(p)   # calculate the volume of cell and its internal regions
 
         # self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
         # self.near_neigh(p)  # Calculate the nn array for each cell
         # self.voronoiGrid(p)
 
-        self.environment(p)  # define features of the ecm grid
+        # self.environment(p)  # define features of the ecm grid
         # self.make_maskM(p)
 
         # self.calc_gj_vects(p)
