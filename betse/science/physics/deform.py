@@ -298,12 +298,12 @@ def implement_deform_timestep(sim, cells, t, p):
     # rebuild essential portions of the cell world:
     cells.deformWorld(p)
 
+    # sim.initDenv(cells, p)
+
     # write data to time-storage vectors:
     sim.cell_centres_time.append(cells.cell_centres[:])
     sim.mem_mids_time.append(cells.mem_mids_flat[:])
-    sim.maskM_time.append(cells.maskM[:])
+    # sim.maskM_time.append(cells.maskM[:])
     sim.mem_edges_time.append(cells.mem_edges_flat[:])
     sim.cell_verts_time.append(cells.cell_verts[:])
 
-    sim.dx_cell_time.append(sim.d_cells_x[:])
-    sim.dy_cell_time.append(sim.d_cells_y[:])

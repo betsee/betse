@@ -1225,7 +1225,12 @@ class Simulator(object):
             self.P_electro_time.append(self.P_electro[:])
 
         if p.deformation is True and p.run_sim is True:
-            implement_deform_timestep(self,cells, t, p)
+
+            # make a copy of cells to apply deformation to:
+            cellso = copy.deepcopy(cells)
+            implement_deform_timestep(self,cellso, t, p)
+            self.dx_cell_time.append(self.d_cells_x[:])
+            self.dy_cell_time.append(self.d_cells_y[:])
 
 
         if p.fluid_flow is True and p.run_sim is True:

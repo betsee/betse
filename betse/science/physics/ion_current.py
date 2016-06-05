@@ -104,19 +104,19 @@ def get_current(sim, cells, p):
         # bulk electrolyte neutrality
 
         # First calculate rate of change of charge in environment:
-        # if len(sim.charge_env_time) > 1:
-        #
-        #     d_rho_env = (sim.charge_env_time[-1] - sim.charge_env_time[-2])/p.dt
-        #
-        # else:
-        #     d_rho_env = np.zeros(len(cells.xypts))
+        if len(sim.charge_env_time) > 1:
+
+            d_rho_env = (sim.charge_env_time[-1] - sim.charge_env_time[-2])/p.dt
+
+        else:
+            d_rho_env = np.zeros(len(cells.xypts))
 
         # Next, calculate the divergence of the environmental current density:
         div_J_env_o = fd.divergence(J_env_x_o.reshape(cells.X.shape), J_env_y_o.reshape(cells.X.shape),
             cells.delta, cells.delta)
 
         # add the rate of charge change to the divergence:
-        # div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)
+        div_J_env_o = div_J_env_o + d_rho_env.reshape(cells.X.shape)
 
         # Find the value of the correcting potential field Phi:
         Phi = np.dot(cells.lapENVinv, div_J_env_o.ravel())
@@ -134,9 +134,6 @@ def get_current(sim, cells, p):
         # subtract the potential term from the solution to yield a divergence-free flow field:
         sim.J_env_x = J_env_x_o.reshape(cells.X.shape) - gPhix
         sim.J_env_y = J_env_y_o.reshape(cells.X.shape) - gPhiy
-
-        # sim.J_env_x = J_env_x_o.reshape(cells.X.shape)
-        # sim.J_env_y = J_env_y_o.reshape(cells.X.shape)
 
         # Currents are not zero at the boundary, but for plotting purposes set them to zero
         sim.J_env_x[:, 0] = 0

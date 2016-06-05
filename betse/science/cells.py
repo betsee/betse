@@ -163,18 +163,19 @@ class Cells(object):
         # self.cell_index(p)
         self.cellVerts(p)
 
-        self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-        self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
+        # self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+        # self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
 
-        self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
-        self.near_neigh(p)  # Calculate the nn array for each cell
+        # self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
+        # self.near_neigh(p)  # Calculate the nn array for each cell
+        # self.voronoiGrid(p)
 
         self.environment(p)  # define features of the ecm grid
-        self.make_maskM(p)
+        # self.make_maskM(p)
 
-        self.calc_gj_vects(p)
+        # self.calc_gj_vects(p)
 
     def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:
 
@@ -627,10 +628,6 @@ class Cells(object):
 
         self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
 
-        # self.cell_vol = np.asarray(self.cell_vol)
-
-
-
         # convert mem_length into a flat vector
         mem_length,_,_ = tb.flatten(mem_length)
         mem_length = np.asarray(mem_length)
@@ -691,7 +688,6 @@ class Cells(object):
         """
 
         #----------------MATRIX CALCULATIONs----------------------------------------
-
 
         # create a matrix that will map and interpolate data on mem mids to the mem verts -----------------------------
         # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
@@ -855,45 +851,48 @@ class Cells(object):
 
         #------------------------------------
 
-        # define conversion between ecm midpoints and the membrane midpoints
-        ecmTree = sps.KDTree(self.ecm_mids)
-        self.mem_to_ecm_mids = list(ecmTree.query(self.mem_mids_flat,k=1))[1]
-
-        dist_mems = list(ecmTree.query(self.mem_mids_flat,k=1))[0]
-        dist_max = dist_mems.max()
-
-        # and converse conversion between membrane midpoints and the ecm midpoints
-        memTree = sps.KDTree(self.mem_mids_flat)
-
-        search = list(memTree.query(self.ecm_mids,k=2))
-        dist_ecms = search[0]
-        ecm_to_mem_inds = search[1]
-
-        ex = []
-        ey = []
-
-        for i, inds in enumerate(ecm_to_mem_inds):
-
-            dist = dist_ecms[i]
-            ind_i = inds[0]
-            ind_j = inds[1]
-
-            if dist[0] > dist_max: # check the distance between the found ecm and membrane midpoint
-
-                ind_pair = [ind_j,ind_j]
-
-            elif dist[1] > dist_max:
-
-                ind_pair = [ind_i, ind_i]
-
-            elif dist[0] <= dist_max and dist[1] <= dist_max:
-
-                ind_pair = [ind_i,ind_j]
-
-            ex.append(ind_pair[0])
-            ey.append(ind_pair[1])
-
-        self.ecm_to_mem_mids = np.column_stack((ex,ey))
+        # # define conversion between ecm midpoints and the membrane midpoints
+        # if self.ecmTree is None:
+        #
+        #     self.ecmTree = sps.KDTree(self.ecm_mids)
+        #
+        # self.mem_to_ecm_mids = list(self.ecmTree.query(self.mem_mids_flat,k=1))[1]
+        #
+        # dist_mems = list(self.ecmTree.query(self.mem_mids_flat,k=1))[0]
+        # dist_max = dist_mems.max()
+        #
+        # # and converse conversion between membrane midpoints and the ecm midpoints
+        # memTree = sps.KDTree(self.mem_mids_flat)
+        #
+        # search = list(memTree.query(self.ecm_mids,k=2))
+        # dist_ecms = search[0]
+        # ecm_to_mem_inds = search[1]
+        #
+        # ex = []
+        # ey = []
+        #
+        # for i, inds in enumerate(ecm_to_mem_inds):
+        #
+        #     dist = dist_ecms[i]
+        #     ind_i = inds[0]
+        #     ind_j = inds[1]
+        #
+        #     if dist[0] > dist_max: # check the distance between the found ecm and membrane midpoint
+        #
+        #         ind_pair = [ind_j,ind_j]
+        #
+        #     elif dist[1] > dist_max:
+        #
+        #         ind_pair = [ind_i, ind_i]
+        #
+        #     elif dist[0] <= dist_max and dist[1] <= dist_max:
+        #
+        #         ind_pair = [ind_i,ind_j]
+        #
+        #     ex.append(ind_pair[0])
+        #     ey.append(ind_pair[1])
+        #
+        # self.ecm_to_mem_mids = np.column_stack((ex,ey))
 
     def near_neigh(self,p):
 
