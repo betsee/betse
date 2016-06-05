@@ -50,6 +50,14 @@ def getDeformation(sim, cells, t, p):
         ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_x * p.galvanotropism
         uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_y * p.galvanotropism
 
+    if p.deform_osmo is True:
+
+        # u_osmo is negative as it's defined + into the cell in pressures.py
+        u_osmo = -sim.u_net
+
+    else:
+        u_osmo = np.zeros(sim.mdl)
+
 
     # --calculate displacement field for incompressible medium------------------------------------------------
 
@@ -78,7 +86,7 @@ def getDeformation(sim, cells, t, p):
     u_n = ux_galvo_mem * cells.mem_vects_flat[:, 2] + uy_galvo_mem * cells.mem_vects_flat[:, 3]
 
     # calculate divergence as the sum of this vector times each surface area, divided by cell volume:
-    div_u = (np.dot(cells.M_sum_mems, u_n * cells.mem_sa) / cells.cell_vol)
+    div_u = (np.dot(cells.M_sum_mems, u_n * cells.mem_sa) / cells.cell_vol) - sim.div_u_osmo
 
     # calculate the reaction pressure required to counter-balance the deform field field:
     if p.fixed_cluster_bound is True:
@@ -148,22 +156,22 @@ def timeDeform(sim, cells, t, p):
     F_hydro_y = sim.F_hydro_y
 
     # first determine body force components due to electrostatics, if desired:
-    if p.sim_ECM is True:
-        F_electro_x =  p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism*1e10
-        F_electro_y =  p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism*1e10
-
-    else:
-
-        F_electro_x =  p.media_sigma * sim.J_mem_x * p.galvanotropism*1e10
-        F_electro_y =  p.media_sigma * sim.J_mem_y * p.galvanotropism*1e10
-
-    # map to cell centers:
-    F_electro_x = np.dot(cells.M_sum_mems, F_electro_x) / cells.num_mems
-    F_electro_y = np.dot(cells.M_sum_mems, F_electro_y) / cells.num_mems
+    # if p.sim_ECM is True:
+    #     F_electro_x =  p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * sim.rho_env.ravel()[cells.map_mem2ecm]
+    #     F_electro_y =  p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * sim.rho_env.ravel()[cells.map_mem2ecm]
+    #
+    # else:
+    #
+    #     F_electro_x =  p.media_sigma * sim.J_mem_x * sim.rho_cells
+    #     F_electro_y =  p.media_sigma * sim.J_mem_y * sim.rho_cells
+    #
+    # # map to cell centers:
+    # F_electro_x = np.dot(cells.M_sum_mems, F_electro_x) / cells.num_mems
+    # F_electro_y = np.dot(cells.M_sum_mems, F_electro_y) / cells.num_mems
 
     # Take the total component of pressure from all contributions:
-    F_cell_x = F_electro_x + F_hydro_x
-    F_cell_y = F_electro_y + F_hydro_y
+    F_cell_x = F_hydro_x
+    F_cell_y = F_hydro_y
 
     # -------------------------------------------------------------------------------------------------
 
@@ -266,15 +274,20 @@ def timeDeform(sim, cells, t, p):
     sim.d_cells_x = sim.d_cells_x - gPx_cell
     sim.d_cells_y = sim.d_cells_y - gPy_cell
 
-    # FIXME we need some way to make sure the net displacement of the cluster is zero...
 
     if p.fixed_cluster_bound is True:  # enforce zero displacement boundary condition:
 
         sim.d_cells_x[cells.bflags_cells] = 0
         sim.d_cells_y[cells.bflags_cells] = 0
 
-        sim.d_cells_x[cells.nn_bound] = 0
-        sim.d_cells_y[cells.nn_bound] = 0
+        # sim.d_cells_x[cells.nn_bound] = 0
+        # sim.d_cells_y[cells.nn_bound] = 0
+
+    else: # create a single fixed point on the boundary to prevent it from floating away
+
+        sim.d_cells_x[cells.bflags_cells[0]] = 0
+        sim.d_cells_y[cells.bflags_cells[0]] = 0
+
 
     # check the displacement for NANs:
     stb.check_v(sim.d_cells_x)
@@ -293,7 +306,7 @@ def implement_deform_timestep(sim, cells, t, p):
     decm_x = cellinterp_x.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
     decm_y = cellinterp_y.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
 
-    # get the new ecm verts by appyling the deformation:
+    # get the new ecm verts by applying the deformation:
     ecm_x2 = cells.ecm_verts_unique[:, 0] + decm_x
     ecm_y2 = cells.ecm_verts_unique[:, 1] + decm_y
 
@@ -305,14 +318,10 @@ def implement_deform_timestep(sim, cells, t, p):
     for inds in cells.inds2ecmVerts:
         ecm_verts2.append(ecm_new[inds])
 
-    cells.ecm_verts = np.asarray(ecm_verts2)
+    # cells.ecm_verts = np.asarray(ecm_verts2)
 
     # rebuild essential portions of the cell world:
-    cells.deformWorld(p)
-
-    if p.sim_ECM is True:
-
-        sim.initDenv(cells, p)
+    cells.deformWorld(p, ecm_verts2)
 
     # write data to time-storage vectors:
     sim.cell_centres_time.append(cells.cell_centres[:])

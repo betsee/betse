@@ -150,7 +150,7 @@ class Cells(object):
         self.M_sum_mem_to_ecm = None   # used for deformation
         self.gradMem = None  # used for electroosmosis
 
-    def deformWorld(self,p):
+    def deformWorld(self,p, ecm_verts):
         """
         Runs necessary methods to recalculate essential world
         data structures after a mechanical deformation.
@@ -160,14 +160,135 @@ class Cells(object):
 
         """
 
-        self.cell_index(p)
-        self.quickVerts(p)
+        # begin by creating new cell centres from the passed Voronoi patch vertices:
+
+        self.cell_centres = np.array([0,0])
+
+        for poly in ecm_verts:
+            aa = np.asarray(poly)
+            aa = np.mean(aa,axis=0)
+            self.cell_centres = np.vstack((self.cell_centres,aa))
+
+        self.cell_centres = np.delete(self.cell_centres, 0, 0)
+
+        #---------------------------------------------------
+
+        # calculate basic properties such as volume, surface area, normals, etc for the cell array
+        self.cell_verts = []
+
+        for centre, poly in zip(self.cell_centres, ecm_verts):
+            pt_scale = []
+            for vert in poly:
+                pt_zero = vert - centre
+                pt_scale.append(p.scale_cell * pt_zero + centre)
+            self.cell_verts.append(np.asarray(pt_scale))
+
+        self.cell_verts = np.asarray(self.cell_verts)
+
+        mem_edges = []  # storage for membrane edge points
+        mem_length = []  # storage for membrane surface area values
+        mem_mids = []  # storage for membrane midpoints
+
+        # storage for various vector properties of membrane
+        cv_x = []
+        cv_y = []
+        cv_nx = []
+        cv_ny = []
+        cv_tx = []
+        cv_ty = []
+
+        for polyc in self.cell_verts:
+
+            # Calculate individual membrane domains, midpoints, and vectors:
+            edge = []
+            mps = []
+            surfa = []
+
+            for i in range(0, len(polyc)):
+                pt1 = polyc[i - 1]
+                pt2 = polyc[i]
+                pt1 = np.asarray(pt1)
+                pt2 = np.asarray(pt2)
+                edge.append([pt1, pt2])
+                mid = (pt1 + pt2) / 2  # midpoint calculation
+                mps.append(mid.tolist())
+
+                lgth = np.sqrt((pt2[0] - pt1[0]) ** 2 + (pt2[1] - pt1[1]) ** 2)  # length of membrane domain
+                sa = lgth * p.cell_height  # surface area of membrane
+                surfa.append(lgth)
+
+                tang_a = pt2 - pt1  # tangent
+                tang = tang_a / np.linalg.norm(tang_a)
+                # normal = np.array([-tang[1],tang[0]])
+                normal = np.array([tang[1], -tang[0]])
+                cv_x.append(mid[0])
+                cv_y.append(mid[1])
+                cv_nx.append(normal[0])
+                cv_ny.append(normal[1])
+                cv_tx.append(tang[0])
+                cv_ty.append(tang[1])
+
+            mem_edges.append(edge)
+            mem_mids.append(mps)
+            mem_length.append(surfa)
+
+        self.mem_vects_flat = np.array([cv_x, cv_y, cv_nx, cv_ny, cv_tx, cv_ty]).T
+
+        # ---post processing and calculating peripheral structures-----------------------------------------------------
+
+        self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
+        self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+
+        # Finish up by creating indices vectors and converting to Numpy arrays where needed:
+
+        self.cell_i = [x for x in range(0, len(self.cell_centres))]
+
+        self.mem_i = [x for x in range(0, len(self.mem_mids_flat))]
+
+        # convert mem_length into a flat vector
+        mem_length, _, _ = tb.flatten(mem_length)
+        mem_length = np.asarray(mem_length)
+
+        self.mem_sa = mem_length * p.cell_height
+
+        self.mem_edges_flat, _, _ = tb.flatten(mem_edges)
+        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
+        # create a flattened version of cell_verts that will serve as membrane verts:
+        self.mem_verts, _, _ = tb.flatten(self.cell_verts)
+        self.mem_verts = np.asarray(self.mem_verts)
+
+        # structures for plotting interpolated data and streamlines:
+        self.plot_xy = np.vstack((self.mem_mids_flat, self.mem_verts))
+
+        # cell surface area:
+        self.cell_sa = []
+        for grp in self.cell_to_mems:
+            cell_sa = sum(self.mem_sa[grp])
+            self.cell_sa.append(cell_sa)
+
+        self.cell_sa = np.asarray(self.cell_sa)
+
+        #------------------------------------------------------
+        # next obtain the set of *unique* vertex points from the total ecm_verts arrangement:
+        ecm_verts_flat,_,_ = tb.flatten(ecm_verts)
+
+        ecm_verts_set = set()
+
+        for vert in ecm_verts_flat:
+            ptx = vert[0]
+            pty = vert[1]
+            ecm_verts_set.add((ptx,pty))
+
+        ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
+
+        ecm_verts_unique = np.asarray(ecm_verts_unique)  # convert to numpy array
 
         # redo world boundaries used in plotting, if necessary:
-        xmin = np.min(self.ecm_verts_unique[:,0])
-        xmax = np.max(self.ecm_verts_unique[:,0])
-        ymin = np.min(self.ecm_verts_unique[:,1])
-        ymax = np.max(self.ecm_verts_unique[:,1])
+        xmin = np.min(ecm_verts_unique[:,0])
+        xmax = np.max(ecm_verts_unique[:,0])
+        ymin = np.min(ecm_verts_unique[:,1])
+        ymax = np.max(ecm_verts_unique[:,1])
 
         if xmin < self.xmin:
             self.xmin = xmin
@@ -181,19 +302,6 @@ class Cells(object):
         if ymax > self.ymax:
             self.ymax = ymax
 
-        # self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-        # self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
-
-        # self.cell_vols(p)   # calculate the volume of cell and its internal regions
-
-        # self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
-        # self.near_neigh(p)  # Calculate the nn array for each cell
-        # self.voronoiGrid(p)
-
-        # self.environment(p)  # define features of the ecm grid
-        # self.make_maskM(p)
-
-        # self.calc_gj_vects(p)
 
     def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:
 
@@ -699,8 +807,6 @@ class Cells(object):
         self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
 
     def quickVerts(self, p):
-
-        self.gj_len = p.cell_space + 2*p.tm      # distance between gap junction (as "pipe length")
 
         # calculate basic properties such as volume, surface area, normals, etc for the cell array
         self.cell_verts = []

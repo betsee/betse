@@ -4,7 +4,7 @@
 
 
 import numpy as np
-from betse.science import finitediff as fd
+from scipy.ndimage.filters import gaussian_filter
 
 
 def electro_F(sim, cells, p):
@@ -21,11 +21,11 @@ def electro_F(sim, cells, p):
 def osmotic_P(sim, cells, p):
     # initialize osmotic pressures in cells and env
 
-    sim.osmo_P_cell = np.zeros(len(sim.cc_mems[0]))
+    sim.osmo_P_cell = np.zeros(len(sim.cc_cells[0]))
     sim.osmo_P_env = np.zeros(len(sim.cc_env[0]))
 
     # calculate osmotic pressure in cells based on total molarity:
-    for c_ion in sim.cc_mems:
+    for c_ion in sim.cc_cells:
         sim.osmo_P_cell = c_ion * p.R * sim.T + sim.osmo_P_cell
 
     # calculate osmotic pressure in environment based on total molarity:
@@ -35,18 +35,15 @@ def osmotic_P(sim, cells, p):
 
     if p.sim_ECM is False:
 
-        sim.osmo_P_delta = sim.osmo_P_cell - sim.osmo_P_env
+        op_env = np.dot(cells.M_sum_mems, sim.osmo_P_env)
+
+        sim.osmo_P_delta = sim.osmo_P_cell - op_env
 
     else:
         # smooth out the environmental osmotic pressure:
-        sim.osmo_P_env = sim.osmo_P_env.reshape(cells.X.shape)
-        sim.osmo_P_env = fd.integrator(sim.osmo_P_env)
-        sim.osmo_P_env = sim.osmo_P_env.ravel()
+        sim.osmo_P_env = gaussian_filter(sim.osmo_P_env.reshape(cells.X.shape),p.smooth_level).ravel()
 
-        sim.osmo_P_delta = sim.osmo_P_cell[cells.mem_to_cells] - sim.osmo_P_env[cells.map_mem2ecm]
-
-        # average the pressure to individual cells
-        sim.osmo_P_delta = np.dot(cells.M_sum_mems, sim.osmo_P_delta) / cells.num_mems
+        sim.osmo_P_delta = sim.osmo_P_cell - sim.osmo_P_env[cells.map_cell2ecm]
 
     # Calculate the transmembrane flow of water due to osmotic pressure.
     # High, positive osmotic pressure leads to water flow into the cell. Existing pressure in the cell
@@ -56,16 +53,26 @@ def osmotic_P(sim, cells, p):
     # map osmotic influx to membranes:
     u_osmo = u_osmo_o[cells.mem_to_cells]
 
+    # u_osmo = interp.griddata((cells.cell_centres[:, 0], cells.cell_centres[:, 1]), sim.d_cells_x,
+    #     (cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]), fill_value=0)
+    #
+    # uy_mem = interp.griddata((cells.cell_centres[:, 0], cells.cell_centres[:, 1]), sim.d_cells_y,
+    #     (cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]), fill_value=0)
+
+
     # calculate the flow due to net mass flux into the cell due to selective active/passive ion transport:
     u_mass_flux = (1 / p.rho) * get_mass_flux(sim, cells, p)
 
-    u_net = u_osmo + u_mass_flux
+    sim.u_net = u_osmo + u_mass_flux
 
-    # obtain the divergence of the flow in a timestep, which yields the fractional volume change:
-    div_u_osmo = p.dt * np.dot(cells.M_sum_mems, u_net * cells.mem_sa) / cells.cell_vol
+    # obtain the divergence of the flow:
+    div_u_osmo = np.dot(cells.M_sum_mems, sim.u_net * cells.mem_sa) / cells.cell_vol
+
+    # the divergence is sequential/accumulative with each time step [???]:
+    sim.div_u_osmo = div_u_osmo
 
     # pressure developing in the cell depends on how much the volume can change:
-    P_react = (1 - (1 / p.youngMod)) * div_u_osmo
+    P_react = (1 - (1 / p.youngMod)) * sim.div_u_osmo
 
     # the inflow of mass adds to base pressure in cells
     # (this format is used to avoid conflict with pressure channels):
@@ -77,19 +84,25 @@ def osmotic_P(sim, cells, p):
 
     # ------------------------------------------------------------------------------------------------------------
     # actual volume change depends on the mechanical properties (young's modulus) of the
-    # tissue:
+    # tissue and the ability for cells to deform:
 
-    sim.delta_vol = (1 / p.youngMod) * div_u_osmo
+    sim.delta_vol = (1 / p.youngMod) * div_u_osmo * p.dt
 
     # update concentrations and volume in the cell:
     vo = cells.cell_vol[:]
 
     v1 = (1 + sim.delta_vol) * vo
 
-    sim.cc_mems = sim.cc_mems * (vo / v1)
+    vol_ratio = (vo/v1)
+
+    sim.cc_mems = sim.cc_mems * vol_ratio[cells.mem_to_cells]
+    sim.cc_cells = sim.cc_cells * vol_ratio
 
     # reassign cell volume:
     cells.cell_vol = v1[:]
+
+    # reassign mem volume:
+    cells.mem_vol = cells.mem_vol/vol_ratio[cells.mem_to_cells]
 
     # if p.sim_ECM is True:
     #     vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
@@ -99,12 +112,12 @@ def osmotic_P(sim, cells, p):
     #         sim.cc_env[i][cells.map_cell2ecm] = cc_array[cells.map_cell2ecm] * (vo_ecm / v1_ecm)
     #
     #     cells.ecm_vol[cells.map_cell2ecm] = v1_ecm
-
-    if p.voltage_dye is True:
-        sim.cDye_cell = sim.cDye_cell * (vo / v1)
-
-    if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-        sim.cIP3 = sim.cIP3 * (vo / v1)
+    #
+    # if p.voltage_dye is True:
+    #     sim.cDye_cell = sim.cDye_cell * vol_ratio
+    #
+    # if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
+    #     sim.cIP3 = sim.cIP3 * (vo / v1)
 
 def getHydroF(sim, cells, p):
     """

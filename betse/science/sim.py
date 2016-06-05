@@ -678,6 +678,10 @@ class Simulator(object):
                 self.Dye_env[:] = p.cDye_to
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
+        if p.deform_osmo is True:
+            # if considering osmotic water fluxes, initialize the divergence matrix:
+            self.div_u_osmo = np.zeros(self.cdl)
+            self.u_net = np.zeros(self.mdl)
 
         if p.fluid_flow is True: # If at any time fluid flow is true, initialize the flow vectors to zeros
             # initialize data structures for flow:
@@ -686,12 +690,6 @@ class Simulator(object):
 
             self.u_gj_x = np.zeros(self.mdl)
             self.u_gj_y = np.zeros(self.mdl)
-
-            if cells.lapGJ_P_inv is None and p.deformation is False and p.run_sim is True:
-
-                # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                logs.log_info('Creating cell network Poisson solver for fluids...')
-                cells.graphLaplacian(p)
 
             if p.sim_ECM is True and cells.lapENV_P_inv is None and p.run_sim is True:
 
