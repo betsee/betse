@@ -198,15 +198,10 @@ class Simulator(object):
             # vectors storing separate cell and env voltages
             self.v_env = np.zeros(len(cells.xypts))
 
-
             self.z_array_env = []  # ion valence array matched to env points
             self.D_env = []  # an array of diffusion constants for each ion defined on env grid
             self.c_env_bound = []  # moving ion concentration at global boundary
             self.Dtj_rel = []  # relative diffusion constants for ions across tight junctions
-
-            # # Initialize membrane thickness:
-            # self.tm = np.zeros(len(cells.mem_i))
-            # self.tm[:] = p.tm
 
             # initialize environmental fluxes and current data stuctures:
             self.flx_env_i = np.zeros(self.edl)
@@ -241,14 +236,14 @@ class Simulator(object):
             self.d_cells_x = np.zeros(self.cdl)
             self.d_cells_y = np.zeros(self.cdl)
 
-
-        if p.gj_flux_sensitive is True:
-
-            self.gj_rho = np.zeros(len(cells.nn_i))
-
-        else:
-
-            self.gj_rho = 0
+        #
+        # if p.gj_flux_sensitive is True:
+        #
+        #     self.gj_rho = np.zeros(len(cells.nn_i))
+        #
+        # else:
+        #
+        #     self.gj_rho = 0
 
 
         ion_names = list(p.ions_dict.keys())
@@ -698,12 +693,6 @@ class Simulator(object):
                 logs.log_info('Creating cell network Poisson solver for fluids...')
                 cells.graphLaplacian(p)
 
-            if cells.lapGJ_P is None and p.run_sim is True and p.deformation is True:
-
-                # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                logs.log_info('Creating cell network Poisson solver for fluids...')
-                cells.graphLaplacian(p)
-
             if p.sim_ECM is True and cells.lapENV_P_inv is None and p.run_sim is True:
 
                 # initialize flow vectors:
@@ -716,13 +705,13 @@ class Simulator(object):
 
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-
         if p.run_sim is True and p.deformation is True:  # if user desires deformation:
 
                 cells.deform_tools(p)
+                # create a copy of cells world, to apply deformations to for visualization purposes only:
                 self.cellso = copy.deepcopy(cells)
 
-                if cells.lapGJ is None or cells.lapGJ_P is None:
+                if p.td_deform is True and cells.lapGJ is None or cells.lapGJ_P is None:
 
                     # make a laplacian and solver for discrete transfers on closed, irregular cell network
                     logs.log_info('Creating cell network Poisson solver...')
@@ -776,7 +765,7 @@ class Simulator(object):
         #
         # * "tt", a time-steps vector appropriate for the current run.
         # * "tsamples", that vector resampled to save data at fewer times.
-        tt, tsamples = self._plot_loop(cells, p)
+        tt, tsamples = self._plot_loop(self.cellso, p)
 
         do_once = True  # a variable to time the loop only once
 
@@ -1222,23 +1211,23 @@ class Simulator(object):
         if p.deform_osmo is True:
             self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
-        if p.deform_electro is True:
-            self.F_electro_time.append(self.F_electro[:])
-            self.F_electro_x_time.append(self.F_electro_x[:])
-            self.F_electro_y_time.append(self.F_electro_y[:])
-
-            self.P_electro_time.append(self.P_electro[:])
+        # if p.deform_electro is True:
+        #     self.F_electro_time.append(self.F_electro[:])
+        #     self.F_electro_x_time.append(self.F_electro_x[:])
+        #     self.F_electro_y_time.append(self.F_electro_y[:])
+        #
+        #     self.P_electro_time.append(self.P_electro[:])
 
         if p.deformation is True and p.run_sim is True:
 
             # make a copy of cells to apply deformation to:
-            self.cellso = copy.deepcopy(cells)
+            # self.cellso = copy.deepcopy(cells)
             implement_deform_timestep(self,self.cellso, t, p)
             self.dx_cell_time.append(self.d_cells_x[:])
             self.dy_cell_time.append(self.d_cells_y[:])
 
-        else:
-            self.cellso = cells
+        # else:
+        #     self.cellso = cells
 
 
         if p.fluid_flow is True and p.run_sim is True:
@@ -1296,6 +1285,7 @@ class Simulator(object):
         # get rid of the extra copy of cells
         if p.deformation:
             cells = copy.deepcopy(self.cellso)
+
         self.cellso = None
 
         if p.run_sim is False:

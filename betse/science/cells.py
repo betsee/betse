@@ -160,8 +160,26 @@ class Cells(object):
 
         """
 
-        # self.cell_index(p)
-        self.cellVerts(p)
+        self.cell_index(p)
+        self.quickVerts(p)
+
+        # redo world boundaries used in plotting, if necessary:
+        xmin = np.min(self.ecm_verts_unique[:,0])
+        xmax = np.max(self.ecm_verts_unique[:,0])
+        ymin = np.min(self.ecm_verts_unique[:,1])
+        ymax = np.max(self.ecm_verts_unique[:,1])
+
+        if xmin < self.xmin:
+            self.xmin = xmin
+
+        if xmax > self.xmax:
+            self.xmax = xmax
+
+        if ymin < self.ymin:
+            self.ymin = ymin
+
+        if ymax > self.ymax:
+            self.ymax = ymax
 
         # self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
         # self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
@@ -642,7 +660,6 @@ class Cells(object):
         self.mem_verts = np.asarray(self.mem_verts)
 
         # structures for plotting interpolated data and streamlines:
-
         self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
 
         # define map allowing a dispatch from cell index to each respective membrane -------------------------------
@@ -680,6 +697,109 @@ class Cells(object):
                 pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
                 self.index_to_mem_verts.append([pt_ind1,pt_ind2])
         self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
+
+    def quickVerts(self, p):
+
+        self.gj_len = p.cell_space + 2*p.tm      # distance between gap junction (as "pipe length")
+
+        # calculate basic properties such as volume, surface area, normals, etc for the cell array
+        self.cell_verts = []
+
+        for centre,poly in zip(self.cell_centres,self.ecm_verts):
+            pt_scale = []
+            for vert in poly:
+                pt_zero = vert - centre
+                pt_scale.append(p.scale_cell*pt_zero + centre)
+            self.cell_verts.append(np.asarray(pt_scale))
+
+        self.cell_verts = np.asarray(self.cell_verts)
+
+        mem_edges = []  # storage for membrane edge points
+        mem_length = []   # storage for membrane surface area values
+        mem_mids = []   # storage for membrane midpoints
+
+        # storage for various vector properties of membrane
+        cv_x=[]
+        cv_y=[]
+        cv_nx=[]
+        cv_ny=[]
+        cv_tx=[]
+        cv_ty=[]
+
+        for polyc in self.cell_verts:
+            # # First calculate individual cell volumes from cell vertices:
+            # poly = [x for x in reversed(polyc)]
+            # self.cell_vol.append(p.cell_height*tb.area(poly))
+
+            # Next calculate individual membrane domains, midpoints, and vectors:
+            edge = []
+            mps = []
+            surfa = []
+
+            for i in range(0,len(polyc)):
+                pt1 = polyc[i-1]
+                pt2 = polyc[i]
+                pt1 = np.asarray(pt1)
+                pt2 = np.asarray(pt2)
+                edge.append([pt1,pt2])
+                mid = (pt1 + pt2)/2       # midpoint calculation
+                mps.append(mid.tolist())
+
+                lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
+                sa = lgth*p.cell_height    # surface area of membrane
+                surfa.append(lgth)
+
+                tang_a = pt2 - pt1       # tangent
+                tang = tang_a/np.linalg.norm(tang_a)
+                # normal = np.array([-tang[1],tang[0]])
+                normal = np.array([tang[1],-tang[0]])
+                cv_x.append(mid[0])
+                cv_y.append(mid[1])
+                cv_nx.append(normal[0])
+                cv_ny.append(normal[1])
+                cv_tx.append(tang[0])
+                cv_ty.append(tang[1])
+
+            mem_edges.append(edge)
+            mem_mids.append(mps)
+            mem_length.append(surfa)
+
+        self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
+
+        #---post processing and calculating peripheral structures-----------------------------------------------------
+
+        self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
+        self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
+
+        # Finish up by creating indices vectors and converting to Numpy arrays where needed:
+
+        self.cell_i = [x for x in range(0,len(self.cell_centres))]
+
+        self.mem_i = [x for x in range(0,len(self.mem_mids_flat))]
+
+        # convert mem_length into a flat vector
+        mem_length,_,_ = tb.flatten(mem_length)
+        mem_length = np.asarray(mem_length)
+
+        self.mem_sa = mem_length*p.cell_height
+
+        self.mem_edges_flat, _, _ = tb.flatten(mem_edges)
+        self.mem_edges_flat = np.asarray(self.mem_edges_flat)
+
+        # create a flattened version of cell_verts that will serve as membrane verts:
+        self.mem_verts,_,_ = tb.flatten(self.cell_verts)
+        self.mem_verts = np.asarray(self.mem_verts)
+
+        # structures for plotting interpolated data and streamlines:
+        self.plot_xy = np.vstack((self.mem_mids_flat,self.mem_verts))
+
+        # cell surface area:
+        self.cell_sa = []
+        for grp in self.cell_to_mems:
+            cell_sa = sum(self.mem_sa[grp])
+            self.cell_sa.append(cell_sa)
+
+        self.cell_sa = np.asarray(self.cell_sa)
 
     def cellMatrices(self, p):
         """
@@ -1193,21 +1313,18 @@ class Cells(object):
 
                     lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + mem_sa * (1 / (len_ij)) * (1 / vol)
 
-
             # deal with boundary values:
             if cell_i in self.bflags_cells:
 
                 lapGJ[cell_i,cell_i] = 0
 
-        if p.deformation is False:
-            # (If running deform we will use scipy's lsmr solver)
-            self.lapGJinv = np.linalg.pinv(lapGJ)
-            self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
+        self.lapGJinv = np.linalg.pinv(lapGJ)
+        self.lapGJ_P_inv = np.linalg.pinv(lapGJ_P)
 
-        # if p.td_deform is True:
-            # if time dependent deformation is selected, also save the direct Laplacian operator:
-        self.lapGJ = lapGJ
-        self.lapGJ_P = lapGJ_P
+        if p.td_deform is True:
+            # if time0dependent deformation is selected, also save the direct Laplacian operator:
+            self.lapGJ = lapGJ
+            self.lapGJ_P = lapGJ_P
 
     def maxwellCapMatrix(self, p):
         """

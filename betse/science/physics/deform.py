@@ -45,7 +45,7 @@ def getDeformation(sim, cells, t, p):
         ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
         uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
 
-    else: # FIXME check for sim_ECM is false:
+    else:
 
         ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_x * p.galvanotropism
         uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_y * p.galvanotropism
@@ -83,13 +83,13 @@ def getDeformation(sim, cells, t, p):
     # calculate the reaction pressure required to counter-balance the deform field field:
     if p.fixed_cluster_bound is True:
 
-        # P_react = np.dot(cells.lapGJ_P_inv, div_u)
-        P_react = lsmr(cells.lapGJ_P, div_u)[0]
+        P_react = np.dot(cells.lapGJ_P_inv, div_u)
+        # P_react = lsmr(cells.lapGJ_P, div_u)[0]
 
     else:
 
-        # P_react = np.dot(cells.lapGJinv, div_u) #
-        P_react = lsmr(cells.lapGJ, div_u)[0]
+        P_react = np.dot(cells.lapGJinv, div_u)
+        # P_react = lsmr(cells.lapGJ, div_u)[0]
 
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
@@ -148,22 +148,22 @@ def timeDeform(sim, cells, t, p):
     F_hydro_y = sim.F_hydro_y
 
     # first determine body force components due to electrostatics, if desired:
-    if p.deform_electro is True:
-        F_electro_x = sim.F_electro_x
-        F_electro_y = sim.F_electro_y
+    if p.sim_ECM is True:
+        F_electro_x =  p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism*1e10
+        F_electro_y =  p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism*1e10
 
     else:
 
-        F_electro_x = np.zeros(len(cells.cell_i))
-        F_electro_y = np.zeros(len(cells.cell_i))
+        F_electro_x =  p.media_sigma * sim.J_mem_x * p.galvanotropism*1e10
+        F_electro_y =  p.media_sigma * sim.J_mem_y * p.galvanotropism*1e10
+
+    # map to cell centers:
+    F_electro_x = np.dot(cells.M_sum_mems, F_electro_x) / cells.num_mems
+    F_electro_y = np.dot(cells.M_sum_mems, F_electro_y) / cells.num_mems
 
     # Take the total component of pressure from all contributions:
     F_cell_x = F_electro_x + F_hydro_x
     F_cell_y = F_electro_y + F_hydro_y
-
-    # integrate the forces:
-    F_cell_x = cells.integrator(F_cell_x)
-    F_cell_y = cells.integrator(F_cell_y)
 
     # -------------------------------------------------------------------------------------------------
 
@@ -200,7 +200,6 @@ def timeDeform(sim, cells, t, p):
                             sim.dy_time[-1]
 
 
-
     elif t > 0.0:
 
         # do the non-initial value, standard solution iteration:
@@ -228,9 +227,9 @@ def timeDeform(sim, cells, t, p):
                              (k_const / p.lame_mu) * F_cell_y + 2 * sim.dy_time[-1] - sim.dy_time[-2]
 
 
-            # calculate divergence of u  -----------------------------------------------------------------------
+    # calculate divergence of u  -----------------------------------------------------------------------
 
-            # first interpolate displacement field at membrane midpoints:
+    # first interpolate displacement field at membrane midpoints:
     ux_mem = interp.griddata((cells.cell_centres[:, 0], cells.cell_centres[:, 1]), sim.d_cells_x,
         (cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1]), fill_value=0)
 
@@ -243,17 +242,21 @@ def timeDeform(sim, cells, t, p):
     # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
     div_u = (np.dot(cells.M_sum_mems, u_n * cells.mem_sa) / cells.cell_vol)
 
-    # calculate the reaction pressure required to counter-balance the flow field:
+    if p.fixed_cluster_bound is True:
 
-    P_react = np.dot(cells.lapGJ_P_inv, 2 * div_u)  # FIXME why a two?
+        # calculate the reaction pressure required to counter-balance the flow field:
+        P_react = np.dot(cells.lapGJ_P_inv, div_u)
 
-    # self.P_cells = (p.lame_mu/k_const)*P_react[:]
+    else:
+
+        # calculate the reaction pressure required to counter-balance the flow field:
+        P_react = np.dot(cells.lapGJinv, div_u)
 
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
-    gP_x = gradP_react * cells.cell_nn_tx
-    gP_y = gradP_react * cells.cell_nn_ty
+    gP_x = gradP_react * cells.mem_vects_flat[:,2]
+    gP_y = gradP_react * cells.mem_vects_flat[:,3]
 
     # average the components of the reaction force field at cell centres and get boundary values:
     gPx_cell = np.dot(cells.M_sum_mems, gP_x) / cells.num_mems
@@ -262,6 +265,8 @@ def timeDeform(sim, cells, t, p):
     # calculate the displacement of cell centres under the applied force under incompressible conditions:
     sim.d_cells_x = sim.d_cells_x - gPx_cell
     sim.d_cells_y = sim.d_cells_y - gPy_cell
+
+    # FIXME we need some way to make sure the net displacement of the cluster is zero...
 
     if p.fixed_cluster_bound is True:  # enforce zero displacement boundary condition:
 
@@ -281,8 +286,8 @@ def implement_deform_timestep(sim, cells, t, p):
 
     """
     # create a smooth bivariate spline to interpolate deformation data from cells:
-    cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=2, ky=2)
-    cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=2, ky=2)
+    cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=3, ky=3)
+    cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=3, ky=3)
 
     # calculate deformations wrt the ecm using the smooth bivariate spline:
     decm_x = cellinterp_x.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
@@ -305,7 +310,9 @@ def implement_deform_timestep(sim, cells, t, p):
     # rebuild essential portions of the cell world:
     cells.deformWorld(p)
 
-    # sim.initDenv(cells, p)
+    if p.sim_ECM is True:
+
+        sim.initDenv(cells, p)
 
     # write data to time-storage vectors:
     sim.cell_centres_time.append(cells.cell_centres[:])

@@ -252,18 +252,18 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         )
 
     if p.ani_force is True:
-        if p.deform_electro is True:
-            AnimFieldIntracellular(
-                sim=sim, cells=cells, p=p,
-                x_time_series=[(1/p.um)*arr for arr in sim.F_electro_x_time],
-                y_time_series=[(1/p.um)*arr for arr in sim.F_electro_y_time],
-                type='ElectrostaticFfield',
-                figure_title='Electrostatic Body Force',
-                colorbar_title='Force [N/cm3]',
-                is_color_autoscaled=p.autoscale_force_ani,
-                color_min=p.force_ani_min_clr,
-                color_max=p.force_ani_max_clr,
-            )
+        # if p.deform_electro is True:
+        #     AnimFieldIntracellular(
+        #         sim=sim, cells=cells, p=p,
+        #         x_time_series=[(1/p.um)*arr for arr in sim.F_electro_x_time],
+        #         y_time_series=[(1/p.um)*arr for arr in sim.F_electro_y_time],
+        #         type='ElectrostaticFfield',
+        #         figure_title='Electrostatic Body Force',
+        #         colorbar_title='Force [N/cm3]',
+        #         is_color_autoscaled=p.autoscale_force_ani,
+        #         color_min=p.force_ani_min_clr,
+        #         color_max=p.force_ani_max_clr,
+        #     )
 
         if p.deform_osmo is True:
             AnimFieldIntracellular(

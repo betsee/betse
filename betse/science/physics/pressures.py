@@ -14,24 +14,9 @@ def electro_F(sim, cells, p):
 
     """
 
-    # # map charge in cell to the membrane, averaging between two cells:
-    # Q_mem = (sim.rho_cells[cells.cell_nn_i[:, 1]] + sim.rho_cells[cells.cell_nn_i[:, 0]]) / 2
-
-    # calculate force at each membrane:
+    # calculate force at each membrane across gap junctions:
     sim.F_gj_x = sim.rho_cells * sim.E_gj_x
     sim.F_gj_y = sim.rho_cells * sim.E_gj_y
-
-    # calculate a shear electrostatic body force at the cell centre:
-    sim.F_electro_x = np.dot(cells.M_sum_mems, sim.F_gj_x) / cells.num_mems  # FIXME we probably don't need these...
-    sim.F_electro_y = np.dot(cells.M_sum_mems, sim.F_gj_y) / cells.num_mems
-
-    sim.F_electro = np.sqrt(sim.F_electro_x ** 2 + sim.F_electro_y ** 2)
-
-    # define this in terms of pressure (force per unit area)
-    P_x = (sim.F_electro_x * cells.cell_vol) / cells.cell_sa
-    P_y = (sim.F_electro_y * cells.cell_vol) / cells.cell_sa
-
-    sim.P_electro = np.sqrt(P_x ** 2 + P_y ** 2)
 
 def osmotic_P(sim, cells, p):
     # initialize osmotic pressures in cells and env
@@ -122,14 +107,16 @@ def osmotic_P(sim, cells, p):
         sim.cIP3 = sim.cIP3 * (vo / v1)
 
 def getHydroF(sim, cells, p):
-    # ----Calculate body forces due to hydrostatic pressure gradients---------------------------------------------
+    """
+    Calculate body forces due to hydrostatic pressure gradients between cells
+
+    """
 
     # determine body force due to hydrostatic pressure gradient between cells:
-
     gPcells = -(sim.P_cells[cells.cell_nn_i[:, 1]] - sim.P_cells[cells.cell_nn_i[:, 0]]) / cells.nn_len
 
-    sim.F_hydro_x_gj = gPcells * cells.cell_nn_tx
-    sim.F_hydro_y_gj = gPcells * cells.cell_nn_ty
+    sim.F_hydro_x_gj = gPcells * cells.mem_vects_flat[:,2]
+    sim.F_hydro_y_gj = gPcells * cells.mem_vects_flat[:,3]
 
     # calculate a shear electrostatic body force at the cell centre:
     sim.F_hydro_x = np.dot(cells.M_sum_mems, sim.F_hydro_x_gj) / cells.num_mems

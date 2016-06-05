@@ -64,14 +64,14 @@ def get_current(sim, cells, p):
 
     # calculate the reaction potential required to counter-balance the flow field:
 
-    if p.deformation is True:
-
-        b = -div_Jmem - d_rho_cells
-
-        V_react = lsmr(cells.lapGJ, b)[0]
-
-    else:
-        V_react = np.dot(cells.lapGJinv, -div_Jmem - d_rho_cells)
+    # if p.deformation is True:
+    #
+    #     b = -div_Jmem - d_rho_cells
+    #
+    #     V_react = lsmr(cells.lapGJ, b)[0]
+    #
+    # else:
+    V_react = np.dot(cells.lapGJinv, -div_Jmem - d_rho_cells)
 
     # calculate its gradient:
     gradV_react = (V_react[cells.cell_nn_i[:, 1]] - V_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)

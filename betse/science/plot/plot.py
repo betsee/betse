@@ -1153,14 +1153,14 @@ def exportData(cells,sim,p):
     headr = headr + ',' + 'OsmoP_Pa'
 
     # electrostatic pressure -----------------------------------
-    if p.deform_electro is True:
-
-        p_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
-
-    else:
-        p_electro = np.zeros(len(sim.time))
-
-    headr = headr + ',' + 'ElectroP_Pa'
+    # if p.deform_electro is True:
+    #
+    #     p_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
+    #
+    # else:
+    #     p_electro = np.zeros(len(sim.time))
+    #
+    # headr = headr + ',' + 'ElectroP_Pa'
 
     # total deformation ---------------------------------------
     if p.deformation is True and sim.run_sim is True:
@@ -1188,7 +1188,7 @@ def exportData(cells,sim,p):
     fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
     dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,dye_time,Ca_er,dd_cell.T,
-                             p_hydro,p_osmo,p_electro,disp))
+                             p_hydro,p_osmo,disp))
 
     headr2 = 'frequency_Hz'
     headr2 = headr2 + ',' + 'FFT_Vmem'
@@ -1373,6 +1373,7 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
     """
 
 
+
     if showing_cells is True:
         cell_edges_flat = p.um*cells.mem_edges_flat
         coll = LineCollection(cell_edges_flat,colors='k')
@@ -1410,13 +1411,20 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
     else:
         lw = 3.0
 
+    if cmap is None:
+
+        stream_color = p.vcolor
+
+    else:
+        stream_color = Fmag
+
     streams = ax.streamplot(
         cells.X*p.um,
         cells.Y*p.um,
         Fx, Fy,
         density=p.stream_density,
         linewidth=lw,
-        color=Fmag,
+        color=stream_color,
         arrowsize=1.5,
         cmap = cmap
     )
@@ -1491,7 +1499,7 @@ def cell_mesh(data, ax, cells, p, clrmap):
 
     return msh, ax
 
-def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None):
+def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None, use_other_verts = None):
     """
     Maps data on mem midpoints to vertices, and
     uses tripcolor on every cell patch to create a
@@ -1522,7 +1530,12 @@ def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None):
     # amax = amax - 0.1 * np.abs(amax)
 
     # collection of cell patchs at vertices:
-    cell_faces = np.multiply(cells.cell_verts, p.um)
+    if use_other_verts is None:
+        cell_faces = np.multiply(cells.cell_verts, p.um)
+
+    else:
+        cell_faces = np.multiply(use_other_verts, p.um)
+
 
     # Cell membrane (Vmem) plotter (slow but beautiful!)
     for i in range(len(cell_faces)):

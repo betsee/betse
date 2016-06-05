@@ -1230,13 +1230,13 @@ class AnimDeformTimeSeries(AnimCells):
         dy = self._sim.dy_cell_time[frame_number]
 
         # Array of all cell Vmem values for this frame.
-        if self._p.ani_Deformation_type == 'Vmem':
+        if self._p.ani_Deformation_data == 'Vmem':
             if self._p.sim_ECM is False:
                 dd = self._sim.vm_time[frame_number] * 1e3
             else:
                 dd = self._sim.vcell_time[frame_number] * 1e3
         # Array of all cell deformation magnitudes for this frame.
-        elif self._p.ani_Deformation_type == 'Displacement':
+        elif self._p.ani_Deformation_data == 'Displacement':
             dd = 1e6 * np.sqrt(dx**2 + dy**2)
 
         # Reset the superclass colorbar mapping to this newly created mapping,
@@ -1278,7 +1278,7 @@ class AnimateDeformation(object):
         p,
         ani_repeat=True,
         save=True,
-        saveFolder='animation/Deformation',
+        saveFolder='anim/Deformation',
         saveFile='Deformation_',
     ):
 
@@ -1296,32 +1296,70 @@ class AnimateDeformation(object):
         if self.save is True:
             _setup_file_saving(self,p)
 
+
+        if p.autoscale_Deformation_ani is True:
+
+            if p.ani_Deformation_data == 'Displacement':
+                # first flatten the data (needed in case cells were cut)
+                all_z = []
+                for xarray, yarray in zip(sim.dx_cell_time,sim.dy_cell_time):
+                    zarray = np.sqrt(xarray**2 + yarray**2)
+                    for val in zarray:
+                        all_z.append(val*p.um)
+
+            elif p.ani_Deformation_data == 'Vmem':
+                all_z = []
+
+                for zarray in sim.vm_time:
+                    for val in zarray:
+                        all_z.append(val*1e3)
+
+            self.cmin = np.min(all_z)
+            self.cmax = np.max(all_z)
+
+        elif p.autoscale_Deformation_ani is False:
+
+            self.cmin = p.Deformation_ani_min_clr
+            self.cmax = p.Deformation_ani_max_clr
+
         dx = self.sim.dx_cell_time[0]
         dy = self.sim.dy_cell_time[0]
 
-        if self.p.ani_Deformation_type == 'Vmem':
-            if self.p.sim_ECM is False:
-                dd = self.sim.vm_time[0]*1e3
-            else:
-                dd = self.sim.vcell_time[0]*1e3
+        xyverts = self.sim.cell_verts_time[0]
+
+        if self.p.ani_Deformation_data == 'Vmem':
+            dd = self.sim.vm_time[0]*1e3
 
             self.specific_cmap = p.default_cm
-        elif self.p.ani_Deformation_type == 'Displacement':
-            dd = p.um*np.sqrt(dx**2 + dy**2)
-            self.specific_cmap = p.background_cm
+
+        elif self.p.ani_Deformation_data == 'Displacement':
+
+            self.specific_cmap = p.default_cm
+
+            dd = 1e6 * (dx[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 2] +
+                        dy[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 3])
+
         else:
+
             raise BetseExceptionParameters(
                 "Definition of 'data type' in deformation animation\n"
                 "must be either 'Vmem' or 'Displacement'.")
 
-        dd_collection, self.ax = cell_mesh(
-            dd,self.ax,cells,p,self.specific_cmap)
+        data_verts = np.dot(cells.matrixMap2Verts, dd)
+
+        dd_collection, self.ax = pretty_patch_plot(data_verts,self.ax,cells,p,self.specific_cmap,cmin=self.cmin,
+            cmax=self.cmax,use_other_verts=xyverts)
 
         if p.ani_Deformation_style == 'vector':
             vplot, self.ax = cell_quiver(dx,dy,self.ax,cells,p)
+
         elif p.ani_Deformation_style == 'streamline':
             vplot, self.ax = cell_stream(
-                dx,dy,self.ax,cells,p, showing_cells=p.showCells)
+                dx,dy,self.ax,cells,p, showing_cells=False)
+
+        elif p.ani_Deformation_style == 'None':
+            vplot = None
+
         else:
             raise BetseExceptionParameters(
                 "Definition of 'style' in deformation animation\n"
@@ -1336,42 +1374,19 @@ class AnimateDeformation(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if p.autoscale_Deformation_ani is True:
-            if p.ani_Deformation_type == 'Displacement':
-                # first flatten the data (needed in case cells were cut)
-                all_z = []
-                for xarray, yarray in zip(sim.dx_cell_time,sim.dy_cell_time):
-                    zarray = np.sqrt(xarray**2 + yarray**2)
-                    for val in zarray:
-                        all_z.append(val*p.um)
-
-            elif p.ani_Deformation_type == 'Vmem':
-                all_z = []
-
-                for zarray in sim.vm_time:
-                    for val in zarray:
-                        all_z.append(val*1e3)
-
-            self.cmin = np.min(all_z)
-            self.cmax = np.max(all_z)
-
-            dd_collection.set_clim(self.cmin,self.cmax)
-
-        elif p.autoscale_Deformation_ani is False:
-            dd_collection.set_clim(
-                p.Deformation_ani_min_clr, p.Deformation_ani_max_clr)
+        dd_collection.set_clim(self.cmin, self.cmax)
 
         cb = self.fig.colorbar(dd_collection)
 
-        self.tit = "Displacement Field and Deformation"
+        self.tit = "Deformation"
         self.ax.set_title(self.tit)
         self.ax.set_xlabel('Spatial distance [um]')
         self.ax.set_ylabel('Spatial distance [um]')
 
-        if self.p.ani_Deformation_type == 'Displacement':
+        if self.p.ani_Deformation_data == 'Displacement':
             cb.set_label('Displacement [um]')
 
-        elif self.p.ani_Deformation_type == 'Vmem':
+        elif self.p.ani_Deformation_data == 'Vmem':
             cb.set_label('Voltage [mV]')
 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BEGIN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1400,7 +1415,7 @@ class AnimateDeformation(object):
             # Path of the subdirectory to which these files will be saved, creating
             # this subdirectory and all parents thereof if needed.
             save_dirname = paths.join(
-                phase_dirname, 'animation', self._type)
+                phase_dirname, 'anim', self._type)
             save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
             save_frame_filetype = 'png'
 
@@ -1458,23 +1473,28 @@ class AnimateDeformation(object):
         dx = self.sim.dx_cell_time[i]
         dy = self.sim.dy_cell_time[i]
 
-        if self.p.ani_Deformation_type == 'Vmem':
-            if self.p.sim_ECM is False:
-                dd = self.sim.vm_time[i]*1e3
-            else:
-                dd = self.sim.vcell_time[i]*1e3
-        elif self.p.ani_Deformation_type == 'Displacement':
-            dd = 1e6*np.sqrt(dx**2 + dy**2)
+        xyverts = self.sim.cell_verts_time[i]
 
-        dd_collection, self.ax = cell_mesh(
-            dd, self.ax, self.cells, self.p, self.specific_cmap)
+        if self.p.ani_Deformation_data == 'Vmem':
+            dd = self.sim.vm_time[i]*1e3
+
+        elif self.p.ani_Deformation_data == 'Displacement':
+            # map displacement to membranes and get the component of displacement normal to membranes:
+            dd = 1e6*(dx[self.cells.mem_to_cells]*self.cells.mem_vects_flat[:,2] +
+                      dy[self.cells.mem_to_cells]*self.cells.mem_vects_flat[:,3])
+
+        data_verts = np.dot(self.cells.matrixMap2Verts, dd)
+
+        dd_collection, self.ax = pretty_patch_plot(data_verts,self.ax, self.cells, self.p, self.specific_cmap,
+                                cmin = self.cmin, cmax = self.cmax, use_other_verts = xyverts)
 
         if self.p.ani_Deformation_style == 'vector':
             vplot, self.ax = cell_quiver(dx,dy,self.ax,self.cells,self.p)
+
         elif self.p.ani_Deformation_style == 'streamline':
             vplot, self.ax = cell_stream(
                 dx, dy, self.ax, self.cells, self.p,
-                showing_cells=self.p.showCells)
+                showing_cells=False)
 
         self.ax.axis('equal')
 
@@ -1485,11 +1505,7 @@ class AnimateDeformation(object):
 
         self.ax.axis([xmin,xmax,ymin,ymax])
 
-        if self.p.autoscale_Deformation_ani is False:
-            dd_collection.set_clim(
-                self.p.Deformation_ani_min_clr,self.p.Deformation_ani_max_clr)
-        else:
-            dd_collection.set_clim(self.cmin,self.cmax)
+        dd_collection.set_clim(self.cmin,self.cmax)
 
         titani = self.tit + ' (simulation time' + ' ' + str(round(self.sim.time[i],3)) + ' ' + ' s)'
         self.ax.set_title(titani)
@@ -1498,12 +1514,12 @@ class AnimateDeformation(object):
 
         cb = self.fig.colorbar(dd_collection)
 
-        if self.p.ani_Deformation_type == 'Displacement':
+        if self.p.ani_Deformation_data == 'Displacement':
             cb.set_label('Displacement [um]')
-        elif self.p.ani_Deformation_type == 'Vmem':
+        elif self.p.ani_Deformation_data == 'Vmem':
             cb.set_label('Voltage [mV]')
 
-        if self.save is True:
-            self.fig.canvas.draw()
-            savename = self.savedAni + str(i) + '.png'
-            plt.savefig(savename,format='png')
+        # if self.save is True:
+        #     self.fig.canvas.draw()
+        #     savename = self.savedAni + str(i) + '.png'
+        #     plt.savefig(savename,format='png')
