@@ -64,23 +64,9 @@ results file saving:
 
 init time settings:
 
-  time profile: 'custom init'  # time profile for the init
-                               # choices are: 'initialize' or 'custom init'
-                               # settings for 'custom init' time-profile can be
-                               # edited below.
-
-  total time: 10               # time for the initialization run [s]
-                               # recommend 10s of initialization.
-                               # note this is overriden if you are using 'cutom init' with settings
-                               # defined below.
-
-  custom init time profile:     # set the following params for more control over init run
-                                # To use these over defaults call 'custom init' in time profile
-                                # setting above.
-
-    time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-    total time: 1.0             # end time [s] (recommend 5 seconds or more)
-    sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
+  time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
+  total time: 1.0             # end time [s] (recommend 5 seconds or more)
+  sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # SIMULATION SETTINGS
@@ -91,37 +77,23 @@ automatically run initialization: True     # If init file is not found, do you w
 
 sim time settings:
 
-  time profile: 'custom sim'    # time profile for the sim run
-                                # choices are 'simulate somatic', 'simulate excitable'
-                                # or 'custom sim'
-
-  total time: 5            # set the total time for the sim run [s]
-                           # recommend 1 s to 30 min for 'simulate_somatic' time profile and
-                           # 0.01 to 5 seconds for 'simulate_excitable' time profile.
-                           # Note this is over-ridden if you are using 'custom sim'
-
-
-  custom sim time profile:  # set the following params for more control over sim run
-                            # To use, call 'custom sim' in time profile setting above.
-
-    time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
-
-    total time: 1.0         # time to end sim run [s]
-
-    sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
+  time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
+  total time: 1.0         # time to end sim run [s]
+  sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
 # ---------------------------------------------------------------------------------------------------------------------
-# Specify general options to be used in the init and sim runs
+# Specify general options to be used in the init and sim runs.
+
 # File synch warning: you can't change any of these general options after running 'betse seed'.
 
 general options:
 
-  comp grid size: 40         # grid used in computation of environmental parameters (keep smaller than 50)
-  plot grid size: 100        # grid used for interpolated data plotting (recommend 50 to 250)
+  comp grid size: 40         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  plot grid size: 50        # grid used for interpolated data plotting (recommend 50 to 250)
 
-  simulate extracellular spaces: False    # include extracellular spaces and heterogeneous cell Vmem in sim?
+  simulate extracellular spaces: False    # include extracellular spaces and true environment simulation?
 
   ion profile: basic   # ion profile options:
                                 # 'basic' (Na+, K+, M-, and proteins-)
@@ -159,46 +131,53 @@ general options:
 # ---------------------------------------------------------------------------------------------------------------------
 # WORLD OPTIONS
 # ---------------------------------------------------------------------------------------------------------------------
-# The 'world' refers to cell geometric properties, the size of the cluster, and
-# the properties of the environment such as size and temperature.
-# These variables are common to both init and sim runs.
-# All of these world variables will be created in the init and apply
-# to all sims running from the init.
+# The 'world' refers to cell geometric properties, the size of the cluster, and the properties of the environment,
+# such as size and temperature. These variables are common to both init and sim runs. All of these world variables
+# will be created in the init and apply to all sims running from the init.
+
 # File sync warning: you can't change any of these 'world options' after running 'betse seed'.
 
 world options:
 
   world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
-                          # recommended range 80e-6 to 1500e-6 m
+                          # recommended range 80e-6 to 1000e-6 m
 
   cell radius: 5e-6       # radius of single cell [m]
                           # recommended range 3.5e-6 to 20e-6 m
 
-  cell height: 5.0e-6     # the height of a cell in the z-direction [m]
+  cell height: 10.0e-6     # the height of a cell in the z-direction [m]
                           # used in cell volume and surface area calculations
                           # recommended range 1.0e-6 to 10e-6 m
 
   cell spacing: 26.0e-9       # the spacing between cells [m]
                               # recommended 26.0e-9 m for animal cells
-                              # 1.0e-6 for plant cells and animal cells with ecm
+                              # 1.0e-6 for plant cells and animal cells with heavy extracellular matrix
 
   lattice type: rect           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
 
   lattice disorder: 0.8       # noise level for the lattice
                               # recommended range 0 to 0.8
-                              # this randomizes lattice points from a
-                              # hexagonal grid. If equal to 0 a perfect
-                              # hexagonal grid is created.
+                              # this randomizes lattice points from the rectangular or
+                              # hexagonal base grid. If equal to 0, a perfect
+                              # hexagonal or rectangular grid is created.
 
 #-----------------------------------------------------------------------------------------------------------------------
-# TISSUE DESIGNATION
+# TISSUE PROFILE DESIGNATION
 #-----------------------------------------------------------------------------------------------------------------------
-# Tissues are user-defined regions within the cluster to which specific base membrane diffusion profiles,
+# Tissue profiles are user-defined regions within the cluster to which specific base membrane diffusion profiles,
 # interventions, and individualized dynamics (e.g voltage gated channels) can be applied.
-# Tissues can be gap-junction connected or separated (isolated) from other tissues.
+# Tissue profiles can be gap-junction connected or separated (isolated) from other tissue profiles.
 # Cluster shape and individual tissues can be defined by bitmaps, or specified via various functional regimes.
+# When multiple profiles apply to the same cell, options defined by later profiles override options defined by
+# earlier profiles.
+
+# A profile's functionality is defined by the value of its "type" key:
+#
+# -> "type: tissue" associates profiled cells with the same parameters and events.
+# -> "type: cut" permanently removes all cells at the begining of a sim run.
+#                Cut profiles are ignored unless the cutting event defined below is also enabled.
 #
 # No File synch issues: Tissue profiles can be altered after the time of the 'betse seed' command.
 
@@ -210,16 +189,6 @@ tissue profile definition:
                                                   # if "None", clipping will be disabled
 
     profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
-
-    # Profiles are both applied and plotted in the order defined below.  When
-    # multiple profiles apply to the same cell, options defined by later
-    # profiles override options defined by earlier profiles.
-    #
-    # A profile's functionality is defined by the value of its "type" key:
-    #
-    # -> "type: tissue" associates profiled cells with the same parameters and events.
-    # -> "type: cut" permanently removes all cells at the begining of a sim run.
-    #                Cut profiles are ignored unless the cutting event defined below is also enabled.
 
     profiles:
         # Example default tissue profile applying to all cells.
@@ -236,7 +205,7 @@ tissue profile definition:
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
-          cell targets:   # cell population to which this profile applies
+          cell targets:   # cell population to which this profile applies.
               type: all   # "all", uniformly apply this tissue profile to all cells
                           # "bitmap", match cells falling in a bitmap's colored area
                           # "indices", match cells with the listed indices
@@ -313,11 +282,9 @@ tissue profile definition:
 # TARGETED INTERVENTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 # Targeted interventions are scheduled changes that can be applied to cells in the cluster by linking to a defined
-# tissue profile.
-# Targeted interventions only occur durring sim runs, not durring and init.
+# tissue profile. # Targeted interventions only occur durring sim runs, not durring an init.
 
-# No file synch issues: Targeted intervention settings can be altered between seed,
-# init and sim without affecting outcome (no synch issues).
+# No file synch issues: Targeted intervention settings can be altered after seed and init.
 
 change Na mem:       # Change the membrane permeability to Na+
     event happens: True        # turn the event on (True) or off (False)
@@ -555,10 +522,10 @@ block VATP pump:
 
 variable settings:
 
-  default tissue name: base   # name of cells to which no profile is applied
+  default tissue name: base   # name of cells to which no profile is applied (if applicable)
 
-  default tissue properties:     # specify the base membrane diffusion constants below
-                              # (this is an easy way to control resting Vmem of cells)
+  default tissue properties:     # specify the base membrane diffusion constants below (if applicable)
+
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
       Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
       Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
@@ -613,17 +580,16 @@ variable settings:
     water viscocity: 0.5      # viscocity of water [Pa s] (applies to ease of flow)
 
 
-  deformation:  # FIXME deformation is presently a work in-progress and not considered a functional feature
+  deformation:
 
-    turn on: False       # deformation of the structure under the action of osmotic and electrostatic pressure
-    galvanotropism: 0.1      # factor by which cells respond by shape changes to global electric field
+    turn on: False       # include deformation under the osmotic pressure influx and electric fields?
+    galvanotropism: 0.05      # factor by which cells change shape to global electric field (can be 0.0 or negative)
     viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
-    fixed cluster boundary: True   # are exterior cells of the cluster fixed (True) or free to move (False)?
+    fixed cluster boundary: False   # Exterior cells of the cluster are fixed (True) or free to move (False)
     young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
-    time dependent deformation: False  # deformation is time-dependent (True) or assumed to reach steady-state with each step (False)
-                              # upon simulation, will check for appropriate world size and time set for your parameters.
+    time dependent deformation: False  # deformation is time-dependent (True) or assumed to be fast change (False)
 
-  pressures:  # Note: flow and deformation won't work without a source of pressure/force!
+  pressures:
 
     include electrostatic pressure: True   # include electrostatic pressure in flow and deformation?
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
@@ -1082,19 +1048,13 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
-  gaussian smoothing: 0.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0 to 2.
+  gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0 to 2.
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
-
-  cytosolic delay factor: 1.0       # level to delay intracellular transport (needed for larger time-steps) 1.0
-
-  environmental delay factor: 1.0    # level to diminish environmental E field transport effects 1.0
 
   electrolyte screening factor: 0.86 # ~0.5 to 1.0 electrolyte double layer screening & self-capacitances [F/m2] 0.86
 
   media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
-
-
 
 
 

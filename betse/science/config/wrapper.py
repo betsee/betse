@@ -232,7 +232,7 @@ class SimConfigWrapper(object):
         # Minify initialization time to exactly ten sampled time steps. For
         # safety, permit currently defined options smaller than the minimums
         # defined below to override these minimums.
-        init = self._config['init time settings']['custom init time profile']
+        init = self._config['init time settings']
         # Duration of each time step in seconds.
         init['time step'] = min(
             float(init['time step']), 1.0e-3)
@@ -244,7 +244,7 @@ class SimConfigWrapper(object):
             float(init['total time']), 10.0e-3)
 
         # Minify simulation time to the same durations.
-        sim = self._config['sim time settings']['custom sim time profile']
+        sim = self._config['sim time settings']
         sim['time step'] = min(
             float(sim['time step']), init['time step'])
         sim['sampling rate'] = min(

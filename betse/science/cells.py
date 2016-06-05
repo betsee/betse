@@ -302,7 +302,6 @@ class Cells(object):
         if ymax > self.ymax:
             self.ymax = ymax
 
-
     def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:
 
         '''
@@ -1578,7 +1577,7 @@ class Cells(object):
         # calculate gap junction vectors
         self.calc_gj_vects(p)
 
-    def calc_gj_vects(self,p):  # FIXME now that we're doing gj with the mem vects, we need a way to exclude isolate cells
+    def calc_gj_vects(self,p):
 
         """
         Recalculate nearest neighbour (gap junction)

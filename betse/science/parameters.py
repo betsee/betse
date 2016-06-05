@@ -99,8 +99,8 @@ class Parameters(object):
         #---------------------------------------------------------------------------------------------------------------
 
         # set time profile from yaml
-        self.time_profile_init = self.config['init time settings']['time profile'] # time profile for initialization run
-        self.time_profile_sim = self.config['sim time settings']['time profile']   # time profile for sim run
+        self.time_profile_init = 'custom init' # time profile for initialization run
+        self.time_profile_sim = 'custom sim'   # time profile for sim run
 
         self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
         self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
@@ -871,8 +871,8 @@ class Parameters(object):
 
         self.smooth_level = float(iu['gaussian smoothing'])
 
-        self.env_delay_const = float(iu['environmental delay factor'])
-        self.cell_delay_const = float(iu['cytosolic delay factor'])
+        # self.env_delay_const = float(iu['environmental delay factor'])
+        # self.cell_delay_const = float(iu['cytosolic delay factor'])
 
         self.media_sigma = float(iu['media resistivity'])
 
@@ -1276,78 +1276,19 @@ class Parameters(object):
 
         """
 
-        if time_profile == 'simulate somatic':
-            if self.sim_ECM is False:
-                self.dt = 1e-3     # timestep-size [s]
-                self.sim_end = self.time4sim         # world time to end the simulation
-                self.resamp = 0.1         # time to resample in world time
-
-                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-            elif self.sim_ECM is True:
-                self.dt = 1.0e-3    # timestep-size [s]
-                self.sim_end = self.time4sim         # world time to end the simulation
-                self.resamp = 0.1         # time to resample in world time
-
-                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-        elif time_profile == 'simulate excitable':
-            if self.sim_ECM is False:
-                self.dt = 1.0e-4    # timestep-size [s]
-                self.sim_end = self.time4sim         # world time to end the simulation
-                self.resamp = 5e-4         # time to resample in world time
-
-                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-            elif self.sim_ECM is True:
-                self.dt = 1.0e-4     # timestep-size [s]
-                self.sim_end = self.time4sim         # world time to end the simulation
-                self.resamp = 5e-4         # time to resample in world time
-
-                self.sim_tsteps = self.sim_end/self.dt    # Number of timesteps for the simulation
-                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-        elif time_profile == 'initialize':
-            if self.sim_ECM is False:
-                self.dt = 5.0e-3    # timestep-size
-                self.init_end = self.time4init      # world time to end the initialization simulation time [s]
-                self.resamp = 0.1         # time to resample in world time
-
-                self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-
-            elif self.sim_ECM is True:
-                self.dt = 1.0e-3    # Simulation step-size [s] recommended range 1e-2 to 1e-3 for regular sims; 5e-5 for neural
-                self.init_end = self.time4init      # world time to end the initialization simulation time [s]
-                self.resamp = 0.1         # time to resample in world time
-
-                self.init_tsteps = self.init_end/self.dt # Number of timesteps for an initialization from scratch (range 50000 to 100000)
-                self.t_resample = self.resamp/self.dt         # resample the time vector every x steps
-                self.method = 0            # Solution method. For 'Euler' = 0, for 'RK4' = 1.
-
-
-        elif time_profile == 'custom init':
-            self.dt = float(self.config['init time settings']['custom init time profile']['time step'])
-            self.init_end = float(self.config['init time settings']['custom init time profile']['total time'])
+        if time_profile == 'custom init':
+            self.dt = float(self.config['init time settings']['time step'])
+            self.init_end = float(self.config['init time settings']['total time'])
             self.init_tsteps = self.init_end/self.dt
-            self.resample = float(self.config['init time settings']['custom init time profile']['sampling rate'])
+            self.resample = float(self.config['init time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
 
         elif time_profile == 'custom sim':
-            self.dt = float(self.config['sim time settings']['custom sim time profile']['time step'])
-            self.sim_end = float(self.config['sim time settings']['custom sim time profile']['total time'])
+            self.dt = float(self.config['sim time settings']['time step'])
+            self.sim_end = float(self.config['sim time settings']['total time'])
             self.sim_tsteps = self.sim_end/self.dt
-            self.resample = float(self.config['sim time settings']['custom sim time profile']['sampling rate'])
+            self.resample = float(self.config['sim time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
 

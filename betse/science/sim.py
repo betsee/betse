@@ -1949,8 +1949,8 @@ class Simulator(object):
             self.zs[i],self.T,p)
 
         # slow fluxes, if desired by user:
-        f_env_x = p.env_delay_const*f_env_x
-        f_env_y = p.env_delay_const*f_env_y
+        # f_env_x = p.env_delay_const*f_env_x
+        # f_env_y = p.env_delay_const*f_env_y
 
         # if p.smooth_level > 0.0:
         #
