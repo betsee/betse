@@ -542,15 +542,21 @@ class Simulator(object):
         self.Dm_scheduled = np.copy(Dm_cellsA)
         self.Dm_scheduled[:] = 0
 
-        # if tb.emptyDict(p.vg_options) is False:
-            # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
+        # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
         self.Dm_vg = np.copy(Dm_cellsA)
         self.Dm_vg[:] = 0
 
-        # if p.Ca_dyn is True:
+        # Initialize an array structure the will hold secondary vg channels (e.g. Kir 2.1 and persistent vgNa currents)
+        self.Dm_vg2 = np.copy(Dm_cellsA)
+        self.Dm_vg2[:] = 0
+
         # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
+
+        # initialize and array structure for "funny current" of HCN2 and HCN4 channels:
+        self.Dm_funny = np.copy(Dm_cellsA)
+        self.Dm_funny[:] = 0
 
         self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
         self.Dm_stretch[:] = 0
@@ -1658,7 +1664,6 @@ class Simulator(object):
                  self.cc_env[self.iM],
                  p)
 
-
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
 
@@ -1882,18 +1887,6 @@ class Simulator(object):
             cenv_y[-1,:] =  self.c_env_bound[i]
             cenv_y[:,0] =  self.c_env_bound[i]
             cenv_y[:,-1] =  self.c_env_bound[i]
-
-            # try adding it to the second layer to get proper diffusion in...
-
-            # cenv_x[:,1] =  self.c_env_bound[i]
-            # cenv_x[:,-2] =  self.c_env_bound[i]
-            # cenv_x[1,:] =  self.c_env_bound[i]
-            # cenv_x[-2,:] =  self.c_env_bound[i]
-            #
-            # cenv_y[1,:] =  self.c_env_bound[i]
-            # cenv_y[-2,:] =  self.c_env_bound[i]
-            # cenv_y[:,1] =  self.c_env_bound[i]
-            # cenv_y[:,-2] =  self.c_env_bound[i]
 
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')

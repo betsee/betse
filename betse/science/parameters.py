@@ -367,8 +367,7 @@ class Parameters(object):
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         # self.gated_targets = self.config['ion channel target cells']
 
-        # bool_vgNa = bool(self.config['voltage gated Na+']['turn on'])
-        bool_vgK = bool(self.config['voltage gated K+']['turn on'])
+
         bool_vgCa = bool(self.config['voltage gated Ca2+']['turn on'])
         bool_cagK = bool(self.config['calcium gated K+']['turn on'])
         bool_stretch = bool(self.config['stretch gated Na+']['turn on'])
@@ -376,7 +375,10 @@ class Parameters(object):
 
         # set specific character of gated ion channel dynamics:
         opNa = self.config['voltage gated Na+']
+        opNaP = self.config['persistent vg Na+']
         opK = self.config['voltage gated K+']
+        opKir = self.config['inward rectifying K+']
+        opFun = self.config['funny current']
         opCa = self.config['gated ion channel options']['voltage gated Ca']
         opcK = self.config['gated ion channel options']['calcium gated K']
         opStretch = self.config['gated ion channel options']['stretch gated Na']
@@ -387,11 +389,29 @@ class Parameters(object):
         self.vgNa_max = opNa['max value']
         self.vgNa_apply = opNa['apply to']
 
+        # persistent voltage gated sodium:
+        self.vgNaP_bool = opNaP['turn on']
+        self.vgNaP_type = opNaP['channel type']
+        self.vgNaP_max = opNaP['max value']
+        self.vgNaP_apply = opNaP['apply to']
+
         # voltage gated potassium:
         self.vgK_bool = opK['turn on']
         self.vgK_type = opK['channel type']
         self.vgK_max = opK['max value']
         self.vgK_apply = opK['apply to']
+
+        # inward rectifying voltage gated potassium:
+        self.vgKir_bool = opKir['turn on']
+        self.vgKir_type = opKir['channel type']
+        self.vgKir_max = opKir['max value']
+        self.vgKir_apply = opKir['apply to']
+
+        # funny current voltage gated potassium:
+        self.vgFun_bool = opFun['turn on']
+        self.vgFun_type = opFun['channel type']
+        self.vgFun_max = opFun['max value']
+        self.vgFun_apply = opFun['apply to']
 
         # voltage gated calcium
 

@@ -80,8 +80,6 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
 
 
-
-
     @abstractmethod
     def _init_state(self, V, dyna, sim, p):
         '''
@@ -98,7 +96,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
-class vgNa_Default(VgNaABC):
+class Nav1p2(VgNaABC):
     '''
     NaV model from Hammil et al 1991, derived from rat neocortical neurons.
 
@@ -120,7 +118,7 @@ class vgNa_Default(VgNaABC):
 
         """
 
-        logs.log_info('You are using the vgNa channel type: vgNa_Default')
+        logs.log_info('You are using the vgNa channel type: Nav1.2')
 
         mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
@@ -130,7 +128,7 @@ class vgNa_Default(VgNaABC):
         dyna.h_Na = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
 
         # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 3
+        self._mpower = 3  # FIXME 2 or 3 or user option?
         self._hpower = 1
 
 
@@ -154,17 +152,7 @@ class vgNa_Default(VgNaABC):
                 0.0091 * (-(V - 10.0) - 75.000123)) / (1 - (np.exp(-(-(V - 10) - 75.000123) / 5))))
 
 
-class vgNa_Rat(VgNaABC):
-
-    def _init_state(self, V, dyna, sim, p):
-        pass
-
-    def _calculate_state(self, V, dyna, sim, p):
-        pass
-
-
-
-class vgNa_NaV1p3(VgNaABC):
+class Nav1p3(VgNaABC):
 
     """
     Nav1.3 sodium channel TTX sensitive expressed in embryonic and neonatal tissue, rare in
@@ -188,7 +176,7 @@ class vgNa_NaV1p3(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
-        logs.log_info('You are using the vgNa channel type: vgNa_1p3')
+        logs.log_info('You are using the vgNa channel: Nav1p3')
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 3
@@ -213,27 +201,6 @@ class vgNa_NaV1p3(VgNaABC):
         self._hInf = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
         self._hTau = 0.40 + (0.265 * np.exp(-V / 9.47))
 
-
-class vgNa_NaV1p6(VgNaABC):
-
-    def _init_state(self, V, dyna, sim, p):
-
-        logs.log_info('You are using the vgNa channel type: vgNa_1p6')
-
-        self._mpower = 1.0
-        self._hpower = 0.0
-
-        dyna.m_Na = 1.0000 / (1 + np.exp(-0.03937 * 4.2 * (V - -17.000)))
-        dyna.h_Na = 1.0
-
-    def _calculate_state(self, V, dyna, sim, p):
-
-
-        self._mInf = 1.0000 / (1 + np.exp(-0.03937 * 4.2 * (V - -17.000)))
-        self._mTau = 1
-
-        self._hInf = 1.0
-        self._hTau = 1.0
 
 
 

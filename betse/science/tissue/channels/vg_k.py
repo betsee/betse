@@ -96,7 +96,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
-class vgK_Default(VgKABC):
+class Kv1p2(VgKABC):
     '''
     Kv1.2 model from  Sprunger et al.
 
@@ -119,7 +119,7 @@ class vgK_Default(VgKABC):
 
         """
 
-        logs.log_info('You are using the vgK channel type: vgK_Default (Kv1.2)')
+        logs.log_info('You are using the vgK channel: Kv1.2')
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_K = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
@@ -143,7 +143,7 @@ class vgK_Default(VgKABC):
         self._hInf = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
         self._hTau = 15000.0000/(1+ np.exp(-(V + 46.5600)/44.1479))
 
-class vgK_Kv1p1(VgKABC):
+class Kv1p1(VgKABC):
     '''
     Kv1.1 model from Christie et al, cloned from rat brain, studied in xenopus.
 
@@ -162,7 +162,7 @@ class vgK_Kv1p1(VgKABC):
 
         """
 
-        logs.log_info('You are using the vgK channel type: vgK_Kv1p1 ')
+        logs.log_info('You are using the vgK channel: Kv1p1 ')
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_K = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
@@ -186,7 +186,7 @@ class vgK_Kv1p1(VgKABC):
         self._hInf = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
         self._hTau = 15000.0000 / (1 + np.exp((V - -160.5600) / -100.0000))
 
-class vgK_Kv1p5(VgKABC):
+class Kv1p5(VgKABC):
     '''
     Kv1.5 model from
 
@@ -209,7 +209,7 @@ class vgK_Kv1p5(VgKABC):
 
         """
 
-        logs.log_info('You are using the vgK channel type: vgK_Kv1p5 ')
+        logs.log_info('You are using the vgK channel: Kv1p5 ')
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
         dyna.m_K = 1.0000 / (1 + np.exp((V - -6.0000) / -6.4000))

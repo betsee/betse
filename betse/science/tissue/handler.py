@@ -13,8 +13,11 @@ from scipy import spatial as sps
 from betse.science import toolbox as tb
 from betse.science.event import modulators as mod
 from betse.science.tissue.channels import vg_na as vgna
+from betse.science.tissue.channels import vg_nap as vgnap
 from betse.science.tissue.channels import vg_k as vgk
-from betse.science.tissue.channels_o import vgPotassium, cagPotassium, vgCalcium, vgPotassium_init, vgCalcium_init
+from betse.science.tissue.channels import vg_kir as vgkir
+from betse.science.tissue.channels import vg_funny as vgfun
+from betse.science.tissue.channels_o import cagPotassium, vgCalcium, vgCalcium_init
 from betse.util.io.log import logs
 from betse.util.type import types
 
@@ -363,12 +366,37 @@ class TissueHandler(object):
             self.targets_vgNa = np.asarray(self.targets_vgNa)
 
             # create the desired voltage gated sodium channel instance:
-            Na_class_ = getattr(vgna,p.vgNa_type,'vgNa_Default')
+            Na_class_ = getattr(vgna,p.vgNa_type,'Nav1p2')
             self.vgNa_object = Na_class_()
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium object
                 self.vgNa_object.init(self, sim, p)
+
+        # persistent voltage gated sodium channel:---------------------------------------------------------------------
+        if p.vgNaP_bool:
+
+            # Initialization of logic values for persistent voltage gated sodium channel
+            self.maxDmNaP = p.vgNaP_max
+
+            self.apply_vgNaP = p.vgNaP_apply
+
+            self.targets_vgNaP = []
+
+            for profile in self.apply_vgNaP:
+                targets = self.tissue_target_inds[profile]
+                self.targets_vgNaP.append(targets)
+
+            self.targets_vgNaP = [item for sublist in self.targets_vgNaP for item in sublist]
+            self.targets_vgNaP = np.asarray(self.targets_vgNaP)
+
+            # create the desired voltage gated sodium channel instance:
+            NaP_class_ = getattr(vgnap,p.vgNaP_type,'Nav1p6')
+            self.vgNaP_object = NaP_class_()
+
+            if p.run_sim is True:
+                # initialize the voltage-gated sodium object
+                self.vgNaP_object.init(self, sim, p)
 
         # voltage gated potassium channel ----------------------------------------------------------------------------
 
@@ -389,13 +417,63 @@ class TissueHandler(object):
             self.targets_vgK = np.asarray(self.targets_vgK)
 
             # create the desired voltage gated sodium channel instance:
-            K_class_ = getattr(vgk,p.vgK_type,'vgK_Default')
+            K_class_ = getattr(vgk,p.vgK_type,'Kv1p2')
             self.vgK_object = K_class_()
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium object
                 self.vgK_object.init(self, sim, p)
 
+        # Inward rectifying voltage gated potassium channel -----------------------------------------------------------
+
+        if p.vgKir_bool:
+
+            # Initialization of logic values for voltage gated potassium channel
+            self.maxDmKir = p.vgKir_max
+
+            self.apply_vgKir = p.vgKir_apply
+
+            self.targets_vgKir = []
+
+            for profile in self.apply_vgKir:
+                targets = self.tissue_target_inds[profile]
+                self.targets_vgKir.append(targets)
+
+            self.targets_vgKir = [item for sublist in self.targets_vgKir for item in sublist]
+            self.targets_vgKir = np.asarray(self.targets_vgKir)
+
+            # create the desired voltage gated sodium channel instance:
+            Kir_class_ = getattr(vgkir,p.vgKir_type,'Kir2p1')
+            self.vgKir_object = Kir_class_()
+
+            if p.run_sim is True:
+                # initialize the voltage-gated potassium object
+                self.vgKir_object.init(self, sim, p)
+
+        #-------Funny Current------------------------------------------------------------------------------------------
+        if p.vgFun_bool:
+
+            # Initialization of logic values for voltage gated potassium channel
+            self.maxDmFun = p.vgFun_max
+
+            self.apply_vgFun = p.vgFun_apply
+
+            self.targets_vgFun = []
+
+            for profile in self.apply_vgFun:
+                targets = self.tissue_target_inds[profile]
+                self.targets_vgFun.append(targets)
+
+            self.targets_vgFun = [item for sublist in self.targets_vgFun for item in sublist]
+            self.targets_vgFun = np.asarray(self.targets_vgFun)
+
+            # create the desired voltage gated sodium channel instance:
+            Fun_class_ = getattr(vgfun,p.vgFun_type,'HCN4')
+            self.vgFun_object = Fun_class_()
+
+            if p.run_sim is True:
+                # initialize the voltage-gated sodium/potassium object
+                self.vgFun_object.init(self, sim, p)
 
         if p.vg_options['Ca_vg'] !=0:
             # Initialization of logic values for voltage gated calcium channel
@@ -721,13 +799,24 @@ class TissueHandler(object):
         self.dvsign = np.sign(sim.dvm)
 
         if p.vgNa_bool:
-
             # update the voltage-gated sodium object
             self.vgNa_object.run(self, sim, p)
+
+        if p.vgNaP_bool:
+            # update the voltage-gated sodium object
+            self.vgNaP_object.run(self, sim, p)
 
         if p.vgK_bool:
             # update the voltage-gated potassium object
             self.vgK_object.run(self, sim, p)
+
+        if p.vgKir_bool:
+            # update the voltage-gated potassium object
+            self.vgKir_object.run(self, sim, p)
+
+        if p.vgFun_bool:
+            # update the voltage-gated funny current object
+            self.vgFun_object.run(self, sim, p)
 
         if p.vg_options['Ca_vg'] !=0 and p.ions_dict['Ca'] != 0:
 
@@ -902,7 +991,9 @@ class TissueHandler(object):
             sim.Dm_cag + \
             sim.Dm_morpho + \
             sim.Dm_stretch +\
-            sim.Dm_base
+            sim.Dm_base + \
+            sim.Dm_vg2 + \
+            sim.Dm_funny
 
         sim.P_cells = sim.P_mod + sim.P_base
 

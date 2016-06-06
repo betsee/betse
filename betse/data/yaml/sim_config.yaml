@@ -371,10 +371,6 @@ break ecm junctions:     # break extracellular junctions between cells
 # ignored unless the "cut profile" is also enabled.
 cutting event:
     event happens: True      # enable (True) or disable (False) this event?
-    membranes damaged: True  # do cell membranes adjacent to cut cells openly # FIXME this no longer a feature
-                             # diffuse to the environment (True) or not (False)?
-    membrane leakage: 1e-7   # value to multiply all free diffusion constants
-                             # for damaged membranes by
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
 
 
@@ -412,31 +408,50 @@ modulator function properties:   # set properties of modulating functions which 
 voltage gated Na+:
     turn on: False                 # voltage gated sodium channel?
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
-    channel type: vgNa_Default    # ion channel type: vgNa_Default, vgNa_1p3, vgNa_1p6
-    max value: 5.0e-14           # maximum diffusion constant when channel open
+    channel type: Nav1p2         # available types: 'vgNa_Nav1p2' (adult brain), 'vgNa_Nav1p3' (embryo)
+    max value: 5.0e-14             # maximum diffusion constant when channel open
 
-voltage gated K+:               # voltage gated potassium channel?
-    turn on: False
-    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: vgK_Default  # vgK_Default,
-    max value: 1.0e-15         # maximum diffusion constant when channel open
-
-voltage gated Ca2+:            # voltage gated calcium channel?
-    turn on: False
-    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    channel type: Ca_L
-    max value: 4.0e-14    # maximum diffusion constant when channel open
-
-calcium gated K+:              # calcium gated potassium channel ?
-    turn on: False
-    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    max value: 4.0e-14    # maximum diffusion constant when channel open
+persistent vg Na+:
+    turn on: False                 # voltage gated sodium channel with persistant current?
+    apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
+    channel type: Nav1p6         # available types: 'vgNa_Nav1p6' (persistent brain)
+    max value: 5.0e-14             # maximum diffusion constant when channel open
 
 stretch gated Na+:         # stretch activated depolarization (Na+) channel?
     turn on: False
     apply to: ['all']          # tissue profile(s) to apply to
-    max value: 4.0e-14    # maximum diffusion constant when channel open
+    max value: 1.0e-15         # maximum diffusion constant when channel open
 
+voltage gated K+:               # voltage gated potassium channel?
+    turn on: False
+    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    channel type: Kv1p2      # available types: 'Kv1p2' (brain), 'Kv1p5' (muscle), 'Kv1p1'
+    max value: 1.0e-15         # maximum diffusion constant when channel open
+
+inward rectifying K+:          # inward-rectifying voltage gated potassium channel?
+    turn on: False
+    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    channel type: Kir2p1   # available types: 'Kir2p1'
+    max value: 1.0e-15         # maximum diffusion constant when channel open
+
+calcium gated K+:              # calcium gated potassium channel ?
+    turn on: False
+    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+    max value: 1.0e-15        # maximum diffusion constant when channel open
+
+funny current:                 # "funny current" K+/Na+ channel?
+    turn on: False
+    apply to: ['all']
+    channel type: HCN4         # available types: 'HCN2' or 'HCN4'
+    max value: 1.0e-15         # maximum diffusion constant when channel is open
+
+voltage gated Ca2+:            # voltage gated calcium channel?
+    turn on: False
+    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
+    channel type: Ca_L        # available types: 'Ca_L'
+    max value: 1.0e-15        # maximum diffusion constant when channel open?
+
+# FIXME Ca dynamics is a work in progress -- currently not working!
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
     apply to: ['all']          # IP3-mediated calcium release from the ER
