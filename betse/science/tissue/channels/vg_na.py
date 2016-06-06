@@ -107,22 +107,22 @@ class vgNa_Default(VgNaABC):
 
         logs.log_info('You are using the vgNa channel type: vgNa_Default')
         # Find areas where the differential equation is intrinsically ill-behaved:
-        truth_inds_ha = V < -39
-        truth_inds_hb = V > -41
-
-        v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
-
-        truth_inds_ma = V < -24
-        truth_inds_mb = V > -26
-
-        v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
-
-        # define small correction constant on the voltage
-        self._corr_const = 1.0e-6
+        # truth_inds_ha = V < -39
+        # truth_inds_hb = V > -41
+        #
+        # v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
+        #
+        # truth_inds_ma = V < -24
+        # truth_inds_mb = V > -26
+        #
+        # v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
+        #
+        # # define small correction constant on the voltage
+        # self._corr_const = 1.0e-3
 
         # bump the V at nulclines with a small perturbation factor
-        V[v_inds_m] = V + self._corr_const
-        V[v_inds_h] = V + self._corr_const
+        # V[v_inds_m] = V + self._corr_const
+        # V[v_inds_h] = V + self._corr_const
 
         mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
@@ -132,8 +132,9 @@ class vgNa_Default(VgNaABC):
         dyna.h_Na = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
 
         # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 3
-        self._hpower = 1
+        self._mpower = 1.5   # FIXME these exponents have a profound effect on the dynamics
+        self._hpower = 1     # they technically should be mpower = 3, h power = 1 for vgNa, but
+                             # I'm finding these are just too non-linear to be of use.
 
 
     def _calculate_state(self, V, dyna, sim, p):
@@ -144,21 +145,21 @@ class vgNa_Default(VgNaABC):
 
         """
         # Find areas where the differential equation is intrinsically ill-behaved:
-        truth_inds_ha = V < -39
-        truth_inds_hb = V > -41
-
-        self._v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
-
-        truth_inds_ma = V < -24
-        truth_inds_mb = V > -26
-
-        self._v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
+        # truth_inds_ha = V < -39
+        # truth_inds_hb = V > -41
+        #
+        # self._v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
+        #
+        # truth_inds_ma = V < -24
+        # truth_inds_mb = V > -26
+        #
+        # self._v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
 
         # small correction constant on the voltage
         # self._corr_const = 1.0e-6
 
-        V[self._v_inds_m] = V + self._corr_const
-        V[self._v_inds_h] = V + self._corr_const
+        # V[self._v_inds_m] = V + self._corr_const
+        # V[self._v_inds_h] = V + self._corr_const
 
         mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
@@ -176,24 +177,27 @@ class vgNa_Default(VgNaABC):
         dyna.h_Na = ((self._hInf - dyna.h_Na) / self._hTau) * p.dt * 1e3 + dyna.h_Na
 
         # correction strategy for voltages (to prevent stalling at nullclines)----------
-        dyna.m_Na[self._v_inds_m] = dyna.m_Na * (1 + self._corr_const)
-        dyna.m_Na[self._v_inds_h] = dyna.m_Na * (1 + self._corr_const)
-        dyna.h_Na[self._v_inds_m] = dyna.h_Na * (1 + self._corr_const)
-        dyna.h_Na[self._v_inds_h] = dyna.h_Na * (1 + self._corr_const)
+        # dyna.m_Na[self._v_inds_m] = dyna.m_Na * (1 + self._corr_const)
+        # dyna.m_Na[self._v_inds_h] = dyna.m_Na * (1 + self._corr_const)
+        # dyna.h_Na[self._v_inds_m] = dyna.h_Na * (1 + self._corr_const)
+        # dyna.h_Na[self._v_inds_h] = dyna.h_Na * (1 + self._corr_const)
 
         # find indices where m or h are above or below the allowed 0 to 1 probability threshold:
-        inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-        inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-        inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-        inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-
-        dyna.m_Na[inds_mNa_over] = 1.0
-        dyna.m_Na[inds_mNa_under] = 0.0
-        dyna.h_Na[inds_hNa_over] = 1.0
-        dyna.h_Na[inds_hNa_under] = 0.0
+        # inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
+        # inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
+        # inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
+        # inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
+        #
+        # dyna.m_Na[inds_mNa_over] = 1.0
+        # dyna.m_Na[inds_mNa_under] = 0.0
+        # dyna.h_Na[inds_hNa_over] = 1.0
+        # dyna.h_Na[inds_hNa_under] = 0.0
 
         # calculate the open-probability of the channel:
         P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
+
+        #
+        # print(dyna.m_Na.max(),dyna.h_Na.max(),P.max())
 
         # Define ultimate activity of the vgNa channel:
         sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P

@@ -391,8 +391,8 @@ class Parameters(object):
         # vgNa.append(apply_vgNa)
 
         self.vgNa_bool = opNa['turn on']
-        self.vgNa_type = opNa.get('channel type', 'vgNa_Default')
-        self.vgNa_max = float(opNa.get('max value','2e-14'))
+        self.vgNa_type = opNa['channel type']
+        self.vgNa_max = opNa['max value']
         self.vgNa_apply = opNa['apply to']
 
         # voltage gated potassium

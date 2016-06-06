@@ -362,6 +362,7 @@ class TissueHandler(object):
             # self.vgNa_deadTimer = np.zeros(self.data_length) # sim time at which vgNa reactivates after inactivation
 
             self.targets_vgNa = []
+
             for profile in self.apply_vgNa:
                 targets = self.tissue_target_inds[profile]
                 self.targets_vgNa.append(targets)
@@ -1120,7 +1121,7 @@ def removeCells(
 
             setattr(sim, name, super_data2)
 
-        #FIXME: What does this "else" branch signify? Logarithmic love indulge!
+
         else:
             data = getattr(sim, name)
 

@@ -569,7 +569,7 @@ def vgPotassium(dyna,sim,cells,p):
     hInf = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
     hTau = 15000.0000/(1+ np.exp(-(V + 46.5600)/44.1479))
 
-    mexp = 1
+    mexp = 1.0
 
     # Kv1.5-------------------------------------------------
 
@@ -577,12 +577,21 @@ def vgPotassium(dyna,sim,cells,p):
     # inds_gt50 = (V>=50).nonzero()
     # inds_lt100 = (V<100).nonzero()
     # inds_gt100 = (V > 100).nonzero()
-
+    #
     # mInf = 1.0000/(1+ np.exp(-(V + 6.0000)/6.4000))
     # mTau = (-0.1163 * V) + 8.3300
-    # hInf = 1.0000/(1+ np.exp((V + 25.3000)/3.5000))
-    # hTau = (-15.5000 * V) + 1620.0000
     #
+    # mTau[inds_lt50] = (-0.1163 * V) + 8.3300
+    # mTau[inds_gt50] = 2
+    #
+    # hInf = 1.0000/(1+ np.exp((V + 25.3000)/3.5000))
+    #
+    # hTau = (-15.5000 * V) + 1620.0000
+    # hTau[inds_lt100] = (-15.5000 * V) + 1620.0000
+    # hTau[inds_gt100] = 50
+    #
+    # mexp = 1
+
 
     # need to redo this channel with the following:
     #		mInf = 1.0000/(1+ exp((v - -6.0000)/-6.4000))
@@ -612,7 +621,7 @@ def vgPotassium(dyna,sim,cells,p):
 
     #--K slow rat-------------------------------------------------------
 
-    # mInf = (1/(1 + np.exp(-(V+14)/14.6)))
+    # mInf = (1/(1 + np.exp(-(V+14)/14.6)))q
     # inds_lt50 = (V < -50).nonzero()
     # inds_gt50 = (V >= -50).nonzero()
     # mTau = np.zeros(len(V))
@@ -641,18 +650,21 @@ def vgPotassium(dyna,sim,cells,p):
     # dyna.h_K[inds_hK_under] = 0.0
 
     # open probability
-    P =  (dyna.m_K**mexp)*(dyna.h_K)
+    # P =  (dyna.m_K**mexp)*(dyna.h_K)
+    P = (dyna.m_K ** mexp) * (dyna.h_K)   # FIXME Behaviour of channels critically affected by exponents. May need mod
+
+    # print(dyna.m_K.max(),dyna.h_K.max(),P.max())
 
     # correction factors to push out of stall points:
     # v_inds5 = (np.round(V,0) == -5).nonzero()
     #
     # P[v_inds5] = P - 1.0e-6
     #
-    # inds_P_over = (P > 1.0).nonzero()
-    # P[inds_P_over] = 1.0
-    #
-    # inds_P_under = (P < 0.0).nonzero()
-    # P[inds_P_under] = 0.0
+    inds_P_over = (P > 1.0).nonzero()
+    P[inds_P_over] = 1.0
+
+    inds_P_under = (P < 0.0).nonzero()
+    P[inds_P_under] = 0.0
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = P*dyna.maxDmK
 
