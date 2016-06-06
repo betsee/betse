@@ -6,16 +6,17 @@
 Voltage-gated sodium channel classes.
 '''
 
-# ....................{ IMPORTS                            }....................
+# .................... IMPORTS                            ....................
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
 
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
+from betse.science import toolbox as tb
 
 
-# ....................{ BASE                               }....................
+# .................... BASE                               ....................
 class VgNaABC(ChannelsABC, metaclass=ABCMeta):
     '''
     Abstract base class of all Voltage-gated sodium channel classes.
@@ -23,19 +24,13 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
     Attributes
     ----------
     _mInf :
-        Document me.
+        Equillibrium value function for m-gates of channel
     _mTau :
-        Document me.
+        Time-constant function for m-gates of channel
     _hInf :
-        Document me.
+        Equillibrium value function for h-gates of channel
     _hTau :
-        Document me.
-    _v_inds_h :
-        Document me.
-    _v_inds_m :
-        Document me.
-    _corr_const :
-        Document me.
+        Time-constant function for h-gates of channel
     '''
 
     def init(self, dyna, sim, p):
@@ -67,6 +62,23 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
             V=sim.vm[dyna.targets_vgNa] * 1000,
             dyna=dyna, sim=sim, p=p)
 
+        self._implement_state(dyna,sim,p)
+
+    def _implement_state(self, dyna, sim, p):
+
+        # calculate m and h channel states using RK4:
+        dmNa = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
+        dhNa = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
+
+        dyna.m_Na = dmNa(dyna.m_Na, p.dt*1e3) + dyna.m_Na
+        dyna.h_Na = dhNa(dyna.h_Na, p.dt*1e3) + dyna.h_Na
+
+        # calculate the open-probability of the channel:
+        P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
+
+        # Define ultimate activity of the vgNa channel:
+        sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
+
 
 
 
@@ -93,6 +105,9 @@ class vgNa_Default(VgNaABC):
     This channel produces well behaved action-potentials with a variety of vgK channels. Good general-purpose
     vgNa channel.
 
+    Note, the model has been adapted to have m-power =2 instead of 3, as 3 was found to not work well to produce
+    action-potentials with the BETSE model.
+
     Reference: Hammil, OP et al. Patch-clamp studies of voltage-gated currents in identified neurons
     of the rat cerebral cortex. Cereb. Cortex, 1991, 1, 48-61
 
@@ -106,23 +121,6 @@ class vgNa_Default(VgNaABC):
         """
 
         logs.log_info('You are using the vgNa channel type: vgNa_Default')
-        # Find areas where the differential equation is intrinsically ill-behaved:
-        # truth_inds_ha = V < -39
-        # truth_inds_hb = V > -41
-        #
-        # v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
-        #
-        # truth_inds_ma = V < -24
-        # truth_inds_mb = V > -26
-        #
-        # v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
-        #
-        # # define small correction constant on the voltage
-        # self._corr_const = 1.0e-3
-
-        # bump the V at nulclines with a small perturbation factor
-        # V[v_inds_m] = V + self._corr_const
-        # V[v_inds_h] = V + self._corr_const
 
         mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
@@ -132,9 +130,8 @@ class vgNa_Default(VgNaABC):
         dyna.h_Na = 1.0 / (1 + np.exp((V - -65.0 - 10.0) / 6.2))
 
         # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 1.5   # FIXME these exponents have a profound effect on the dynamics
-        self._hpower = 1     # they technically should be mpower = 3, h power = 1 for vgNa, but
-                             # I'm finding these are just too non-linear to be of use.
+        self._mpower = 3
+        self._hpower = 1
 
 
     def _calculate_state(self, V, dyna, sim, p):
@@ -144,22 +141,6 @@ class vgNa_Default(VgNaABC):
         simulation Vmem.
 
         """
-        # Find areas where the differential equation is intrinsically ill-behaved:
-        # truth_inds_ha = V < -39
-        # truth_inds_hb = V > -41
-        #
-        # self._v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
-        #
-        # truth_inds_ma = V < -24
-        # truth_inds_mb = V > -26
-        #
-        # self._v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
-
-        # small correction constant on the voltage
-        # self._corr_const = 1.0e-6
-
-        # V[self._v_inds_m] = V + self._corr_const
-        # V[self._v_inds_h] = V + self._corr_const
 
         mAlpha = (0.182 * ((V - 10.0) - -35.0)) / (1 - (np.exp(-((V - 10.0) - -35.0) / 9)))
         mBeta = (0.124 * (-(V - 10.0) - 35.0)) / (1 - (np.exp(-(-(V - 10.0) - 35.0) / 9)))
@@ -172,36 +153,6 @@ class vgNa_Default(VgNaABC):
             (1 - (np.exp(-((V - 10.0) - -50.0) / 5))) + (
                 0.0091 * (-(V - 10.0) - 75.000123)) / (1 - (np.exp(-(-(V - 10) - 75.000123) / 5))))
 
-        # calculate m and h channel states:
-        dyna.m_Na = ((self._mInf - dyna.m_Na) / self._mTau) * p.dt * 1e3 + dyna.m_Na
-        dyna.h_Na = ((self._hInf - dyna.h_Na) / self._hTau) * p.dt * 1e3 + dyna.h_Na
-
-        # correction strategy for voltages (to prevent stalling at nullclines)----------
-        # dyna.m_Na[self._v_inds_m] = dyna.m_Na * (1 + self._corr_const)
-        # dyna.m_Na[self._v_inds_h] = dyna.m_Na * (1 + self._corr_const)
-        # dyna.h_Na[self._v_inds_m] = dyna.h_Na * (1 + self._corr_const)
-        # dyna.h_Na[self._v_inds_h] = dyna.h_Na * (1 + self._corr_const)
-
-        # find indices where m or h are above or below the allowed 0 to 1 probability threshold:
-        # inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-        # inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-        # inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-        # inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-        #
-        # dyna.m_Na[inds_mNa_over] = 1.0
-        # dyna.m_Na[inds_mNa_under] = 0.0
-        # dyna.h_Na[inds_hNa_over] = 1.0
-        # dyna.h_Na[inds_hNa_under] = 0.0
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
-
-        #
-        # print(dyna.m_Na.max(),dyna.h_Na.max(),P.max())
-
-        # Define ultimate activity of the vgNa channel:
-        sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
-
 
 class vgNa_Rat(VgNaABC):
 
@@ -212,97 +163,27 @@ class vgNa_Rat(VgNaABC):
         pass
 
 
-class vgNa_Squid(VgNaABC):
-    '''
-    Original Hodgkin-Huxley squid axon voltage gated sodium channel model.
 
-    Reference: Hodgkin, AL et al. A quantitative description of membrane current and its application
-    to conduction and excitation in nerve. 1952. Bull. Math. Biol., 1990, 52, 25-71.
-
-    '''
-
-    def _init_state(self, V, dyna, sim, p):
-
-        logs.log_info('You are using the vgNa channel type: vgNa_Squid')
-
-        # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 3
-        self._hpower = 1
-
-        # perturbation factor (prevents stalling)
-        self._corr_const = 1.0e-6
-
-        mAlpha = (0.1 * (25 - V)) / (np.exp((25 - V) / 10) - 1.0)
-        mBeta = 4.0 * (np.exp(-V / 18))
-        dyna.m_Na = mAlpha / (mAlpha + mBeta)
-
-        hAlpha = 0.07 * np.exp(-V / 20)
-        hBeta = 1 / (np.exp((30 - V) / 10) + 1.0)
-        dyna.h_Na = hAlpha / (hAlpha + hBeta)
-
-
-    def _calculate_state(self, V, dyna, sim, p):
-
-        # Find areas where the differential equation is intrinsically ill-behaved:
-        truth_inds_ha = V < -24
-        truth_inds_hb = V > -26
-
-        self._v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
-
-        truth_inds_ma = V < -24
-        truth_inds_mb = V > -26
-        #
-        self._v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
-
-        V[self._v_inds_m] = V + self._corr_const
-        V[self._v_inds_h] = V + self._corr_const
-
-        mAlpha = (0.1 * (25 - V)) / (np.exp((25 - V) / 10) - 1.0)
-        mBeta = 4.0 * (np.exp(-V / 18))
-        self._mInf = mAlpha / (mAlpha + mBeta)
-        self._mTau = 1 / (mAlpha + mBeta)
-
-        hAlpha = 0.07 * np.exp(-V / 20)
-        hBeta = 1 / (np.exp((30 - V) / 10) + 1.0)
-        self._hInf = hAlpha / (hAlpha + hBeta)
-        self._hTau = 1 / (hAlpha + hBeta)
-
-        # calculate m and h channel states:
-        dyna.m_Na = ((self._mInf - dyna.m_Na) / self._mTau) * p.dt * 1e3 + dyna.m_Na
-        dyna.h_Na = ((self._hInf - dyna.h_Na) / self._hTau) * p.dt * 1e3 + dyna.h_Na
-
-        # correction strategy for voltages (to prevent stalling at nullclines)----------
-        dyna.m_Na[self._v_inds_m] = dyna.m_Na * (1 + self._corr_const)
-        dyna.m_Na[self._v_inds_h] = dyna.m_Na * (1 + self._corr_const)
-        dyna.h_Na[self._v_inds_m] = dyna.h_Na * (1 + self._corr_const)
-        dyna.h_Na[self._v_inds_h] = dyna.h_Na * (1 + self._corr_const)
-
-        # find indices where m or h are above or below the allowed 0 to 1 probability threshold:
-        inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-        inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-        inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-        inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-
-        dyna.m_Na[inds_mNa_over] = 1.0
-        dyna.m_Na[inds_mNa_under] = 0.0
-        dyna.h_Na[inds_hNa_over] = 1.0
-        dyna.h_Na[inds_hNa_under] = 0.0
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
-
-        # Define ultimate activity of the vgNa channel:
-        sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
-
-class vgNa_1p3(VgNaABC):
+class vgNa_NaV1p3(VgNaABC):
 
     """
     Nav1.3 sodium channel TTX sensitive expressed in embryonic and neonatal tissue, rare in
     adults.
 
-    Cummins et al. Nav1.3 sodium channel: Rapid repriming and slow closed-state
+    It is thought that the fast activation and inactivation kinetics of Nav1.3, together with its rapid repriming
+    kinetics and persistent current component, contributes to the development of spontaneous ectopic
+    discharges and sustained rates of firing characteristics of injured sensory nerves
+
+    Nav1.3 is predominantly expressed during pre-myelination stages of development in somatodendritic and axonal
+    compartments of embryonic neurons. In rodents, the expression is attenuated after birth while in humans,
+    the channel is highly expressed in somatodendritic compartment of myelinated neurons. Axotomy or other forms of
+    nerve damage lead to the reexpression of NaV1.3 and the associated beta-3 subunit in sensory neurons,
+    but not in primary motor neurons
+
+    reference: Cummins et al. Nav1.3 sodium channel: Rapid repriming and slow closed-state
     inactivation display quantitative differences after expression in a mammalian
     cell line and in spinal sensory neurons. J. Neurosci., 2001, 21, 5952-61
+
     """
 
     def _init_state(self, V, dyna, sim, p):
@@ -313,9 +194,6 @@ class vgNa_1p3(VgNaABC):
         self._mpower = 3
         self._hpower = 1
 
-        # perturbation factor (prevents stalling)
-        self._corr_const = 1.0e-6
-
         mAlpha = (0.182 * ((V) - -26)) / (1 - (np.exp(-((V) - -26) / 9)))
 
         mBeta = (0.124 * (-(V) - 26)) / (1 - (np.exp(-(-(V) - 26) / 9)))
@@ -324,20 +202,6 @@ class vgNa_1p3(VgNaABC):
         dyna.h_Na = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
 
     def _calculate_state(self, V, dyna, sim, p):
-
-        # Find areas where the differential equation is intrinsically ill-behaved:
-        truth_inds_ha = V < -25
-        truth_inds_hb = V > -27
-
-        self._v_inds_h = (truth_inds_ha * truth_inds_hb).nonzero()
-
-        truth_inds_ma = V < -25
-        truth_inds_mb = V > -27
-        #
-        self._v_inds_m = (truth_inds_ma * truth_inds_mb).nonzero()
-
-        V[self._v_inds_m] = V + self._corr_const
-        V[self._v_inds_h] = V + self._corr_const
 
 
         mAlpha = (0.182 * ((V) - -26)) / (1 - (np.exp(-((V) - -26) / 9)))
@@ -349,34 +213,8 @@ class vgNa_1p3(VgNaABC):
         self._hInf = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
         self._hTau = 0.40 + (0.265 * np.exp(-V / 9.47))
 
-        # calculate m and h channel states:
-        dyna.m_Na = ((self._mInf - dyna.m_Na) / self._mTau) * p.dt * 1e3 + dyna.m_Na
-        dyna.h_Na = ((self._hInf - dyna.h_Na) / self._hTau) * p.dt * 1e3 + dyna.h_Na
 
-        # correction strategy for voltages (to prevent stalling at nullclines)----------
-        dyna.m_Na[self._v_inds_m] = dyna.m_Na * (1 + self._corr_const)
-        dyna.m_Na[self._v_inds_h] = dyna.m_Na * (1 + self._corr_const)
-        dyna.h_Na[self._v_inds_m] = dyna.h_Na * (1 + self._corr_const)
-        dyna.h_Na[self._v_inds_h] = dyna.h_Na * (1 + self._corr_const)
-
-        # find indices where m or h are above or below the allowed 0 to 1 probability threshold:
-        inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-        inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-        inds_hNa_under = (dyna.h_Na < 0.0).nonzero()
-        inds_hNa_over = (dyna.h_Na > 1.0).nonzero()
-
-        dyna.m_Na[inds_mNa_over] = 1.0
-        dyna.m_Na[inds_mNa_under] = 0.0
-        dyna.h_Na[inds_hNa_over] = 1.0
-        dyna.h_Na[inds_hNa_under] = 0.0
-
-        # calculate the open-probability of the channel:
-        P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
-
-        # Define ultimate activity of the vgNa channel:
-        sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
-
-class vgNa_1p6(VgNaABC):
+class vgNa_NaV1p6(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
@@ -385,15 +223,11 @@ class vgNa_1p6(VgNaABC):
         self._mpower = 1.0
         self._hpower = 0.0
 
-        self._corr_const  = 1.0e-6
-
         dyna.m_Na = 1.0000 / (1 + np.exp(-0.03937 * 4.2 * (V - -17.000)))
         dyna.h_Na = 1.0
 
     def _calculate_state(self, V, dyna, sim, p):
 
-        self._v_inds_m = []
-        self._v_inds_h = []
 
         self._mInf = 1.0000 / (1 + np.exp(-0.03937 * 4.2 * (V - -17.000)))
         self._mTau = 1
@@ -401,26 +235,6 @@ class vgNa_1p6(VgNaABC):
         self._hInf = 1.0
         self._hTau = 1.0
 
-        # calculate m and h channel states:
-        dyna.m_Na = ((self._mInf - dyna.m_Na) / self._mTau) * p.dt * 1e3 + dyna.m_Na
-        dyna.h_Na = 1
-
-        # correction strategy for voltages (to prevent stalling at nullclines)----------
-        dyna.m_Na[self._v_inds_m] = dyna.m_Na * (1 + self._corr_const)
-        dyna.m_Na[self._v_inds_h] = dyna.m_Na * (1 + self._corr_const)
-
-        # find indices where m or h are above or below the allowed 0 to 1 probability threshold:
-        inds_mNa_under = (dyna.m_Na < 0.0).nonzero()
-        inds_mNa_over = (dyna.m_Na > 1.0).nonzero()
-
-        dyna.m_Na[inds_mNa_over] = 1.0
-        dyna.m_Na[inds_mNa_under] = 0.0
-
-        # calculate the open-probability of the channel:
-        P = dyna.m_Na
-
-        # Define ultimate activity of the vgNa channel:
-        sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
 
 
 

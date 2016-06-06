@@ -5,6 +5,7 @@
 import numpy as np
 from betse.exceptions import BetseExceptionLambda
 from betse.util.type import types
+from betse.science import toolbox as tb
 
 
 
@@ -633,38 +634,17 @@ def vgPotassium(dyna,sim,cells,p):
     # mexp = 2
 
     #-------------------------------#
-    dyna.m_K = ((mInf - dyna.m_K)/mTau)*p.dt*1e3 + dyna.m_K
-    dyna.h_K = ((hInf - dyna.h_K)/hTau)*p.dt*1e3 + dyna.h_K
-    # dyna.h_K[:] = 1
+    # Solve using RK4 integrator
 
-    # inds_mK_over = (dyna.m_K > 1.0).nonzero()
-    # dyna.m_K[inds_mK_over] = 1.0
-    #
-    # inds_mK_under = (dyna.m_K < 0.0).nonzero()
-    # dyna.m_K[inds_mK_under] = 0.0
-    #
-    # inds_hK_over = (dyna.h_K > 1.0).nonzero()
-    # dyna.h_K[inds_hK_over] = 1.0
-    #
-    # inds_hK_under = (dyna.h_K < 0.0).nonzero()
-    # dyna.h_K[inds_hK_under] = 0.0
+    dmK = tb.RK4(lambda m: (mInf - m) / mTau)
+    dhK = tb.RK4(lambda h: (hInf - h) / hTau)
+
+    dyna.m_K = dmK(dyna.m_K, p.dt * 1e3) + dyna.m_K
+    dyna.h_K = dhK(dyna.h_K, p.dt * 1e3) + dyna.h_K
 
     # open probability
-    # P =  (dyna.m_K**mexp)*(dyna.h_K)
-    P = (dyna.m_K ** mexp) * (dyna.h_K)   # FIXME Behaviour of channels critically affected by exponents. May need mod
 
-    # print(dyna.m_K.max(),dyna.h_K.max(),P.max())
-
-    # correction factors to push out of stall points:
-    # v_inds5 = (np.round(V,0) == -5).nonzero()
-    #
-    # P[v_inds5] = P - 1.0e-6
-    #
-    inds_P_over = (P > 1.0).nonzero()
-    P[inds_P_over] = 1.0
-
-    inds_P_under = (P < 0.0).nonzero()
-    P[inds_P_under] = 0.0
+    P = (dyna.m_K ** mexp) * (dyna.h_K)
 
     sim.Dm_vg[sim.iK][dyna.targets_vgK] = P*dyna.maxDmK
 

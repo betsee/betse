@@ -376,32 +376,22 @@ class Parameters(object):
 
         # set specific character of gated ion channel dynamics:
         opNa = self.config['voltage gated Na+']
-        opK = self.config['gated ion channel options']['voltage gated K']
+        opK = self.config['voltage gated K+']
         opCa = self.config['gated ion channel options']['voltage gated Ca']
         opcK = self.config['gated ion channel options']['calcium gated K']
         opStretch = self.config['gated ion channel options']['stretch gated Na']
 
-        # voltage gated sodium
-
-        # vgNa = [float(opNa['max Dmem Na']),float(opNa['activation v']),float(opNa['inactivation v']),float(opNa['deactivation v']),
-        #     float(opNa['live time']),float(opNa['dead time'])]
-        #
-        # apply_vgNa = self.config['voltage gated Na+']['apply to']
-        #
-        # vgNa.append(apply_vgNa)
-
+        # voltage gated sodium:
         self.vgNa_bool = opNa['turn on']
         self.vgNa_type = opNa['channel type']
         self.vgNa_max = opNa['max value']
         self.vgNa_apply = opNa['apply to']
 
-        # voltage gated potassium
-
-        vgK = [float(opK['max Dmem K']),float(opK['activation v']),float(opK['deactivation v']),float(opK['live time'])]
-
-        apply_vgK = self.config['voltage gated K+']['apply to']
-
-        vgK.append(apply_vgK)
+        # voltage gated potassium:
+        self.vgK_bool = opK['turn on']
+        self.vgK_type = opK['channel type']
+        self.vgK_max = opK['max value']
+        self.vgK_apply = opK['apply to']
 
         # voltage gated calcium
 
@@ -430,16 +420,6 @@ class Parameters(object):
 
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
-
-        # if bool_vgNa is False:
-        #     self.vg_options['Na_vg'] = 0
-        # elif bool_vgNa is True:
-        #     self.vg_options['Na_vg'] = vgNa
-
-        if bool_vgK is False:
-            self.vg_options['K_vg'] = 0
-        elif bool_vgK is True:
-            self.vg_options['K_vg'] = vgK
 
         if bool_vgCa is False:
             self.vg_options['Ca_vg'] = 0

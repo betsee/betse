@@ -474,4 +474,41 @@ def makegrid(xpts,ypts,gridsize,cells):
     return X, Y, dx, dy
 
 
+def RK4(f):
+
+    """
+    This rather confusing looking function was obtained from
+    Rossetta Code's Python RK4 implementation.
+
+    It is modified for a differential equation that does not
+    depend on time in its rate equation.
+
+    As an example, suppose there is a differential equation
+    dc/dt = sqrt(c)
+
+    To solve using RK4, we would define:
+
+    dc = RK4(lambda c: sqrt(c))
+
+    And update it as:
+    c1 = co + dc(co,dt)
+
+    Where co is the original value, dt is the time-step
+
+    """
+    return lambda y, dt: (
+        lambda dy1: (
+            lambda dy2: (
+                lambda dy3: (
+                    lambda dy4: (dy1 + 2 * dy2 + 2 * dy3 + dy4) / 6
+                )(dt * f(y + dy3))
+            )(dt * f(y + dy2 / 2))
+        )(dt * f(y + dy1 / 2))
+    )(dt * f(y))
+
+
+
+
+
+
 

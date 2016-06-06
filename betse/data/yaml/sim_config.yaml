@@ -410,16 +410,16 @@ modulator function properties:   # set properties of modulating functions which 
 # No file synch issues: Dynamic ion channel settings can be altered between seed, init and sim.
 
 voltage gated Na+:
-    turn on: False             # voltage gated sodium channel?
-    apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
-    channel type: vgNa_Default   # specific ion channel type: vgNa_Default, vgNa_1p3, vgNa_1p6, vgNa_Squid
-    max value: 2.0e-14    # maximum diffusion constant when channel open
+    turn on: False                 # voltage gated sodium channel?
+    apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
+    channel type: vgNa_Default    # ion channel type: vgNa_Default, vgNa_1p3, vgNa_1p6
+    max value: 5.0e-14           # maximum diffusion constant when channel open
 
-voltage gated K+:              # voltage gated potassium channel?
+voltage gated K+:               # voltage gated potassium channel?
     turn on: False
-    apply to: ['all']       # name(s) of the tissue profile(s) to apply it to
-    channel type: vgK_slow
-    max value: 2.0e-14    # maximum diffusion constant when channel open
+    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    channel type: vgK_Default  # vgK_Default,
+    max value: 1.0e-15         # maximum diffusion constant when channel open
 
 voltage gated Ca2+:            # voltage gated calcium channel?
     turn on: False
@@ -968,13 +968,6 @@ results options:
 # BETSE requires these parameters for its internal use only.
 
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
-
-    voltage gated K:
-
-        max Dmem K: 2.5e-14           # maximum K+ membrane diffusion coefficient channel open [m2/s] 1e-14
-        activation v: -5e-3        # voltage threshold above which vgK is activated [V]    -10e-3
-        deactivation v: -70e-3      # voltage threshold below which vgK is deactivated [V] -65e-3
-        live time: 5e-3            # time activated state can exist [s]   5e-3
 
     voltage gated Ca:
 
