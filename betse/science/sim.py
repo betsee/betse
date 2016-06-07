@@ -587,6 +587,14 @@ class Simulator(object):
             if p.ions_dict['P'] == 1:
                 self.cc_mems[self.iP] = self.cc_mems[self.iP] * (1 + self.protein_noise_factor)
 
+            # balance the mass and charge for the system:
+            if p.sim_ECM is False:
+                self.cc_env[self.iP] = self.cc_env[self.iP] * (1 - self.protein_noise_factor)
+
+            else:
+                self.cc_env[self.iP][cells.map_mem2ecm] = self.cc_env[self.iP][cells.map_mem2ecm] \
+                                                          * (1 - self.protein_noise_factor)
+
         #--Blocks initialization--------------------
 
         if p.global_options['gj_block'] != 0:
@@ -943,6 +951,7 @@ class Simulator(object):
             # dynamic noise handling-----------------------------------------------------------------------------------
 
             if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
+
                 # add a random walk on protein concentration to generate dynamic noise:
                 self.protein_noise_factor = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
                 self.cc_mems[self.iP] = self.cc_mems[self.iP] * (1 + self.protein_noise_factor)
@@ -1935,7 +1944,8 @@ class Simulator(object):
         # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
         # which is assumed to be about 1 nm:
 
-        self.field_mod = (1e-9/p.cell_space)
+        # self.field_mod = (1e-9/p.cell_space)
+        self.field_mod = 0.1
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],

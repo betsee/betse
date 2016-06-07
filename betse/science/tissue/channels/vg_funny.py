@@ -75,6 +75,10 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_Fun ** self._mpower) * (dyna.h_Fun ** self._hpower)
 
+        # # Find inds that should be zero, but are "hanging" the system:
+        # Pcutoff = (P<0.01).nonzero()
+        # P[Pcutoff] = 0.0
+
         # Define ultimate activity of the funny current channel:
         sim.Dm_funny[sim.iK][dyna.targets_vgFun] = dyna.maxDmFun * P
         sim.Dm_funny[sim.iNa][dyna.targets_vgFun] = dyna.maxDmFun * P

@@ -41,8 +41,9 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         Channel model uses Hodgkin-Huxley kinetic model style
         for voltage gated channels.
         '''
+        self.v_corr = 0  # correction factor for voltages
 
-        V = sim.vm[dyna.targets_vgNa] * 1000
+        V = sim.vm[dyna.targets_vgNa] * 1000 + self.v_corr
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
@@ -59,7 +60,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         '''
 
         self._calculate_state(
-            V=sim.vm[dyna.targets_vgNa] * 1000,
+            V=sim.vm[dyna.targets_vgNa] * 1000 + self.v_corr,
             dyna=dyna, sim=sim, p=p)
 
         self._implement_state(dyna,sim,p)
@@ -75,6 +76,13 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
         # calculate the open-probability of the channel:
         P = (dyna.m_Na ** self._mpower) * (dyna.h_Na ** self._hpower)
+
+        # print(P.max())
+
+        # # Find inds that should be zero, but are "hanging" the system:
+        # Pcutoff = (P<0.0001).nonzero()
+        # dyna.m_Na[Pcutoff] = self._mInf[Pcutoff]
+        # dyna.h_Na[Pcutoff] = self._hInf[Pcutoff]
 
         # Define ultimate activity of the vgNa channel:
         sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
@@ -130,6 +138,8 @@ class Nav1p2(VgNaABC):
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 3  # FIXME 2 or 3 or user option?
         self._hpower = 1
+
+
 
 
     def _calculate_state(self, V, dyna, sim, p):

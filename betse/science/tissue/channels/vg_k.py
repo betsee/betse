@@ -36,14 +36,16 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
     def init(self, dyna, sim, p):
         '''
-        Initialize targeted voltage-gated sodium channels at the initial
+        Initialize targeted voltage-gated potassium channels at the initial
         time step of the simulation based on the initial cell Vmems.
 
         Channel model uses Hodgkin-Huxley kinetic model style
         for voltage gated channels.
         '''
 
-        V = sim.vm[dyna.targets_vgK] * 1000
+        self.v_corr = 0  # correction factor for voltages
+
+        V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
@@ -60,7 +62,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         '''
 
         self._calculate_state(
-            V=sim.vm[dyna.targets_vgK] * 1000,
+            V=sim.vm[dyna.targets_vgK] * 1000 + self.v_corr,
             dyna=dyna, sim=sim, p=p)
 
         self._implement_state(dyna, sim, p)
@@ -75,6 +77,8 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
         # calculate the open-probability of the channel:
         P = (dyna.m_K ** self._mpower) * (dyna.h_K ** self._hpower)
+
+        # print(P.mean(), P.min(), P.max())
 
         # Define ultimate activity of the vgNa channel:
         sim.Dm_vg[sim.iK][dyna.targets_vgK] = dyna.maxDmK * P
@@ -232,5 +236,97 @@ class Kv1p5(VgKABC):
         self._mTau = (-0.1163 * V) + 8.3300
         self._hInf = 1.0000 / (1 + np.exp((V - -25.3000) / 3.5000))
         self._hTau = (-15.5000 * V) + 1620.0000
+
+class K_Fast(VgKABC):
+    '''
+    "K Fast" model from Korngreen et al.
+
+    Reference: Korngreen A. et al. Voltage-gated K+ channels in layer 5 neocortical pyramidal
+    neurones from young rats: subtypes and gradients. J. Physiol. (Lond.), 2000 Jun 15 , 525 Pt 3 (621-39).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the vgK channel: K_Fast ')
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp(-(V + 47) / 29))
+        dyna.h_K = 1 / (1 + np.exp(-(V + 56) / -10))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+        self._mInf = 1 / (1 + np.exp(-(V + 47) / 29))
+        self._mTau = (0.34 + 0.92 * np.exp(-((V + 71) / 59)**2))
+        self._hInf = 1 / (1 + np.exp(-(V + 56) / -10))
+        self._hTau = (8 + 49 * np.exp(-((V + 73) / 23)**2))
+
+class K_Slow(VgKABC):
+    '''
+    "K Slow" model from Korngreen et al.
+
+    Reference: Korngreen A. et al. Voltage-gated K+ channels in layer 5 neocortical pyramidal
+    neurones from young rats: subtypes and gradients. J. Physiol. (Lond.), 2000 Jun 15 , 525 Pt 3 (621-39).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the vgK channel: K_Slow ')
+
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = (1 / (1 + np.exp(-(V + 14) / 14.6)))
+        dyna.h_K = 1 / (1 + np.exp(-(V + 54) / -11))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 2
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = (1 / (1 + np.exp(-(V + 14) / 14.6)))
+
+        inds_lt50 = (V < -50).nonzero()
+        inds_gt50 = (V >= -50).nonzero()
+
+        self._mTau = np.zeros(len(dyna.targets_vgK))
+
+        self._mTau[inds_lt50] = (1.25+175.03 * np.exp(-V * -0.026))
+        self._mTau[inds_gt50] = (1.25+13 * np.exp(-V * 0.026))
+
+        self._hInf = 1 / (1 + np.exp(-(V + 54) / -11))
+        self._hTau = 360 + (1010 + 24 * (V + 55)) * np.exp(-((V + 75) / 48)**2)
+
+
+
+
 
 

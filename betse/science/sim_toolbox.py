@@ -102,8 +102,8 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     alpha = block * p.alpha_NaK * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = ((cNai/p.KmNK_Na)) * ((cKo/p.KmNK_K)) * (cATP/p.KmNK_ATP)
-    denomo_E = (1 + (cNai/p.KmNK_Na))*(1+(cKo/p.KmNK_K))*(1+(cATP/p.KmNK_ATP))
+    numo_E = ((cNai/p.KmNK_Na)**3) * ((cKo/p.KmNK_K)**2) * (cATP/p.KmNK_ATP)
+    denomo_E = (1 + (cNai/p.KmNK_Na)**3)*(1+(cKo/p.KmNK_K)**2)*(1+(cATP/p.KmNK_ATP))
 
     f_Na = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
@@ -1117,7 +1117,6 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     # x and y components of membrane tangent unit vectors
     nx = cells.mem_vects_flat[:, 2]
     ny = cells.mem_vects_flat[:, 3]
-
 
     if p.fluid_flow is True and p.run_sim is True:
         # get intracellular fluid flow vector

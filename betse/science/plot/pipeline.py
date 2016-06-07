@@ -427,6 +427,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             plotIecm=p.IecmPlot,
         )
 
+
         figX.suptitle('Final Cell Charge Density',fontsize=14, fontweight='bold')
         axX.set_xlabel('Spatial distance [um]')
         axX.set_ylabel('Spatial distance [um]')
