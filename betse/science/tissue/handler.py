@@ -52,6 +52,7 @@ class TissueHandler(object):
         else:
             self.data_length = len(cells.mem_i)
 
+
     def runAllInit(
         self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -371,7 +372,7 @@ class TissueHandler(object):
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium object
-                self.vgNa_object.init(self, sim, p)
+                self.vgNa_object.init(self, sim, cells, p)
 
         # persistent voltage gated sodium channel:---------------------------------------------------------------------
         if p.vgNaP_bool:
@@ -396,7 +397,7 @@ class TissueHandler(object):
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium object
-                self.vgNaP_object.init(self, sim, p)
+                self.vgNaP_object.init(self, sim, cells, p)
 
         # voltage gated potassium channel ----------------------------------------------------------------------------
 
@@ -422,7 +423,7 @@ class TissueHandler(object):
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium object
-                self.vgK_object.init(self, sim, p)
+                self.vgK_object.init(self, sim, cells, p)
 
         # Inward rectifying voltage gated potassium channel -----------------------------------------------------------
 
@@ -448,7 +449,7 @@ class TissueHandler(object):
 
             if p.run_sim is True:
                 # initialize the voltage-gated potassium object
-                self.vgKir_object.init(self, sim, p)
+                self.vgKir_object.init(self, sim, cells, p)
 
         #-------Funny Current------------------------------------------------------------------------------------------
         if p.vgFun_bool:
@@ -473,7 +474,7 @@ class TissueHandler(object):
 
             if p.run_sim is True:
                 # initialize the voltage-gated sodium/potassium object
-                self.vgFun_object.init(self, sim, p)
+                self.vgFun_object.init(self, sim, cells, p)
 
         if p.vg_options['Ca_vg'] !=0:
             # Initialization of logic values for voltage gated calcium channel
@@ -800,23 +801,23 @@ class TissueHandler(object):
 
         if p.vgNa_bool:
             # update the voltage-gated sodium object
-            self.vgNa_object.run(self, sim, p)
+            self.vgNa_object.run(self, sim, cells, p)
 
         if p.vgNaP_bool:
             # update the voltage-gated sodium object
-            self.vgNaP_object.run(self, sim, p)
+            self.vgNaP_object.run(self, sim, cells, p)
 
         if p.vgK_bool:
             # update the voltage-gated potassium object
-            self.vgK_object.run(self, sim, p)
+            self.vgK_object.run(self, sim, cells, p)
 
         if p.vgKir_bool:
             # update the voltage-gated potassium object
-            self.vgKir_object.run(self, sim, p)
+            self.vgKir_object.run(self, sim, cells, p)
 
         if p.vgFun_bool:
             # update the voltage-gated funny current object
-            self.vgFun_object.run(self, sim, p)
+            self.vgFun_object.run(self, sim, cells, p)
 
         if p.vg_options['Ca_vg'] !=0 and p.ions_dict['Ca'] != 0:
 

@@ -14,6 +14,7 @@ import numpy as np
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
+from betse.science import sim_toolbox as stb
 
 
 # .................... BASE                               ....................
@@ -34,7 +35,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, p):
+    def init(self, dyna, sim, cells, p):
         '''
         Initialize targeted voltage-gated potassium channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -43,14 +44,14 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
-        self.v_corr = 0  # correction factor for voltages
+        self.v_corr = 10   # in experiments, the measurement junction voltage is about 10 mV
 
         V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
 
-        self._init_state(V=V, dyna=dyna, sim=sim, p=p)
+        self._init_state(V, dyna, sim, p)
 
 
-    def run(self, dyna, sim, p):
+    def run(self, dyna, sim, cells, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -61,13 +62,14 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        self._calculate_state(
-            V=sim.vm[dyna.targets_vgK] * 1000 + self.v_corr,
-            dyna=dyna, sim=sim, p=p)
+        V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
 
-        self._implement_state(dyna, sim, p)
+        self._calculate_state(V, dyna, sim, p)
 
-    def _implement_state(self, dyna, sim, p):
+        self._implement_state(V, dyna, sim, cells, p)
+
+    def _implement_state(self, V, dyna, sim, cells, p):
+
         # calculate m and h channel states using RK4:
         dmK = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
         dhK = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
@@ -78,10 +80,70 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_K ** self._mpower) * (dyna.h_K ** self._hpower)
 
-        # print(P.mean(), P.min(), P.max())
+        # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
+        # which is described by the original Hodgkin Huxley equation.
+
+        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
+        delta_Q = - (dyna.maxDmK*P*(V - self.vrev))/cells.mem_sa[dyna.targets_vgK]
+
+        # update the fluxes across the membrane to account for charge transfer from HH flux:
+        sim.fluxes_mem[sim.iK][dyna.targets_vgK] = delta_Q
+
+        # update the concentrations of K in cells and environment using HH flux delta_Q:
+        # first in cells:
+        sim.cc_mems[sim.iK][dyna.targets_vgK] = \
+            sim.cc_mems[sim.iK][dyna.targets_vgK] + \
+            delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
+
+
+        if p.sim_ECM is False:
+
+            # transfer charge directly to the environment:
+
+            sim.cc_env[sim.iK][dyna.targets_vgK] = \
+                sim.cc_env[sim.iK][dyna.targets_vgK] - \
+                delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
+
+            # assume auto-mixing of environmental concs
+            sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK].mean()
+
+        else:
+
+            flux_env = np.zeros(sim.edl)
+            flux_env[cells.map_mem2ecm][dyna.targets_vgK] = -delta_Q
+
+            # save values at the cluster boundary:
+            bound_vals = flux_env[cells.ecm_bound_k]
+
+            # set the values of the global environment to zero:
+            flux_env[cells.inds_env] = 0
+
+            # finally, ensure that the boundary values are restored:
+            flux_env[cells.ecm_bound_k] = bound_vals
+
+            # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
+            # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
+            # to get the mol/s change in concentration (divergence):
+            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+
+            # update the concentrations:
+            sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK][:] + delta_env * p.dt
+
+        # update the concentration intra-cellularly:
+        sim.cc_mems[sim.iK], sim.cc_cells[sim.iK], _ = \
+            stb.update_intra(sim, cells, sim.cc_mems[sim.iK],
+                sim.cc_cells[sim.iK],
+                sim.D_free[sim.iK],
+                sim.zs[sim.iK], p)
+
+        # recalculate the net, unbalanced charge and voltage in each cell:
+        sim.update_V(cells, p)
+
+
+
 
         # Define ultimate activity of the vgNa channel:
-        sim.Dm_vg[sim.iK][dyna.targets_vgK] = dyna.maxDmK * P
+        # sim.Dm_vg[sim.iK][dyna.targets_vgK] = dyna.maxDmK * P
 
 
     @abstractmethod
@@ -125,6 +187,12 @@ class Kv1p2(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1.2')
 
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
+
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_K = 1.0000/(1+ np.exp(-(V +21.0000)/11.3943))
         dyna.h_K = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
@@ -167,6 +235,12 @@ class Kv1p1(VgKABC):
         """
 
         logs.log_info('You are using the vgK channel: Kv1p1 ')
+
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_K = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
@@ -215,6 +289,12 @@ class Kv1p5(VgKABC):
 
         logs.log_info('You are using the vgK channel: Kv1p5 ')
 
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
+
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
         dyna.m_K = 1.0000 / (1 + np.exp((V - -6.0000) / -6.4000))
         dyna.h_K = 1.0000 / (1 + np.exp((V - -25.3000) / 3.5000))
@@ -255,6 +335,12 @@ class K_Fast(VgKABC):
 
         logs.log_info('You are using the vgK channel: K_Fast ')
 
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
+
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
         dyna.m_K = 1 / (1 + np.exp(-(V + 47) / 29))
         dyna.h_K = 1 / (1 + np.exp(-(V + 56) / -10))
@@ -293,6 +379,12 @@ class K_Slow(VgKABC):
         """
 
         logs.log_info('You are using the vgK channel: K_Slow ')
+
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
 
 
         # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:

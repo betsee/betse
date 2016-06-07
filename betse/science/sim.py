@@ -1944,8 +1944,8 @@ class Simulator(object):
         # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
         # which is assumed to be about 1 nm:
 
-        # self.field_mod = (1e-9/p.cell_space)
-        self.field_mod = 0.1
+        self.field_mod = (1e-9/p.cell_space)
+        # self.field_mod = 0.1
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],

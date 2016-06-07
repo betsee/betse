@@ -19,15 +19,15 @@ class ChannelsABC(object, metaclass=ABCMeta):
     '''
 
     @abstractmethod
-    def init(self, dyna,sim,p):
+    def init(self, dyna, sim, cells, p):
         '''
-        Do something.
+        Runs the initialization sequence for a voltage gated ion channel.
         '''
         pass
 
     @abstractmethod
-    def run(self, dyna,sim,p):
+    def run(self, dyna, sim, cells, p):
         '''
-        Do something.
+        Runs the voltage gated ion channel.
         '''
         pass

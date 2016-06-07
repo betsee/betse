@@ -15,6 +15,9 @@ from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
 
+# FIXME update with new formalism dealing with charge transfer
+# FIXME will need reversal potentials for Na and K
+
 # .................... BASE                               ....................
 class VgFunABC(ChannelsABC, metaclass=ABCMeta):
     '''
@@ -33,7 +36,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, p):
+    def init(self, dyna, sim, cells, p):
         '''
         Initialize targeted voltage-gated funny current channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -42,12 +45,13 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+
         V = sim.vm[dyna.targets_vgFun] * 1000
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
 
-    def run(self, dyna, sim, p):
+    def run(self, dyna, sim, cells, p):
         '''
         Handle all targeted voltage-gated funny current channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -62,9 +66,9 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
             V=sim.vm[dyna.targets_vgFun] * 1000,
             dyna=dyna, sim=sim, p=p)
 
-        self._implement_state(dyna, sim, p)
+        self._implement_state(dyna, sim, cells, p)
 
-    def _implement_state(self, dyna, sim, p):
+    def _implement_state(self, dyna, sim, cells, p):
         # calculate m and h channel states using RK4:
         dmFun = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
         dhFun = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
@@ -124,6 +128,8 @@ class HCN2(VgFunABC):
 
         logs.log_info('You are using the funny current channel: HCN2')
 
+        self.v_corr = 0
+
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V - -99) / 6.2))
         dyna.h_Fun = 1
@@ -170,6 +176,8 @@ class HCN4(VgFunABC):
         """
 
         logs.log_info('You are using the funny current channel: HCN4')
+
+        self.v_corr = 0
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V - -100) / 9.6))

@@ -15,6 +15,8 @@ from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
 
+# FIXME update with new formalism dealing with charge transfer
+
 
 # .................... BASE                               ....................
 class VgKABC(ChannelsABC, metaclass=ABCMeta):
@@ -34,7 +36,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
     '''
 
-    def init(self, dyna, sim, p):
+    def init(self, dyna, sim, cells, p):
         '''
         Initialize targeted voltage-gated inward rectifying channels at the initial
         time step of the simulation based on the initial cell Vmems.
@@ -48,7 +50,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
 
-    def run(self, dyna, sim, p):
+    def run(self, dyna, sim, cells, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
         user-specified parameters on the tissue simulation and cellular
@@ -63,9 +65,9 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
             V=sim.vm[dyna.targets_vgKir] * 1000,
             dyna=dyna, sim=sim, p=p)
 
-        self._implement_state(dyna, sim, p)
+        self._implement_state(dyna, sim, cells, p)
 
-    def _implement_state(self, dyna, sim, p):
+    def _implement_state(self, dyna, sim, cells, p):
         # calculate m and h channel states using RK4:
         dmKir = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
         dhKir = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
@@ -118,6 +120,12 @@ class Kir2p1(VgKABC):  # FIXME do we have to prefix these by vgK -- how about ju
         """
 
         logs.log_info('You are using the inward rectifying K+ channel: Kir2p1')
+
+        self.vrev = -70.6     # reversal voltage used in model [mV]
+        Texpt = 28    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_Kir = 1 / (1 + np.exp((V - (-96.48)) / 23.26))
