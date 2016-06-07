@@ -7,30 +7,6 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
-#FIXME: Implement a new CLI option "-p" and "--profile" enabling CLI-driven
-#profiling. Python provides a phenomenal C-based profiler out-of-the-box named
-#"cProfile", an importable C extension emitting a cProfile dump when the
-#profile application halts as well as a command-line table of time spent in each
-#application function sorted via a variety of metrics. It's pretty much perfect.
-#A variety of upstream third-party utilities then exist to visualize cProfile
-#dumps, although the command-line table should suffice for a low-hanging fruit
-#implementation. To do so, it appears to suffice to:
-#
-#    import cProfile
-#    cProfile.run('main()', 'cprofile.dmp')
-#
-#After implementing cProfile support, consider also implementing support for:
-#
-#* "lineprof", a third-party C extension profiling each line (rather than
-#  function as cProfile does). Basically, cProfile on metric steroids.
-#* "statprof", a third-party C extension operating rather differently than
-#  either "lineprof" or cProfile. Rather than deterministically instrumenting
-#  each line or function call (respectively), "statprof" non-deterministically
-#  wakes up at predefined intervals, records a stack trace, and then goes back
-#  to sleep. On application completion, "statprof" then tallies up each stack
-#  trace and outpus a command-line table of the most expensive lines. Pretty
-#  sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
-
 #FIXME: Print a non-fatal warning if Numpy is linked against a non-multithreaded
 #BLAS implementation. Also, print the name of the BLAS implementation against
 #which Numpy is linked with similar "betse info" metadata.
@@ -44,6 +20,24 @@ High-level application initialization common to both the CLI and GUI.
 #LAPACK, Atlas, OpenBLAS, and numpy-specific system metadata:
 #
 #    https://gist.github.com/sandys/258707dae9b79308594b#file-system_info-py
+
+#FIXME: Consider replacing bottleneck Numpy routines with routines imported from
+#the following third-party Numpy-like frameworks:
+#
+#* "bottleneck", providing optimized routines accepting Numpy arrays --
+#  implemented in Cython and hence faster than comparible Numpy routines.
+#* "numexpr", a Theano-like framework accepting Numpy arrays -- performing
+#  CPU-centric parallelization of expensive array operations. Whereas Theano
+#  permits such operations to be conveniently expressed in pure-Python, however,
+#  numexpr inconveniently requires such operations be expressed as... wait for
+#  it, raw strings. So, that sucks. Nonetheless, worth a possible look.
+#* "blaze", a purported second-gen Numpy replacement. We harbour sincere doubts,
+#  but everything deserves its millisecond to shine in the light. Ah. We see.
+#  Blaze is considerably more heavy-weight than Numpy, and largely serves a
+#  completely different marketshare: supercomputing. That's well beyond our
+#  means, at the moment. Numpy it is!
+#
+#In short, "bottleneck" is probably the only framework listed above of interest.
 
 #FIXME: Consider optimizing frequently used matrix and vector computations with
 #Theano, a general-purpose Python mathematical optimization framework. One

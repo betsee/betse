@@ -6,6 +6,21 @@
 '''
 Abstract command line interface (CLI).
 '''
+#FIXME: Support the following additional "--profile-type=" options:
+#
+#* "line", profiling in a line- rather than call-based manner. Sadly, Python
+#  does *NOT* provide an out-of-the-box solution for line-based profiling. To
+#  do so, either (...both?) of the following third-party packages will need to
+#  be dynamically detected, imported, and leveraged:
+#  * "lineprof", a third-party C extension profiling each line (rather than
+#    function as cProfile does). Basically, cProfile on metric steroids.
+#  * "statprof", a third-party C extension operating rather differently than
+#    either "lineprof" or cProfile. Rather than deterministically instrumenting
+#    each line or function call (respectively), "statprof" non-deterministically
+#    wakes up at predefined intervals, records a stack trace, and then goes back
+#    to sleep. On application completion, "statprof" then tallies up each stack
+#    trace and outpus a command-line table of the most expensive lines. Pretty
+#    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
 
 # ....................{ IMPORTS                            }....................
 import cProfile, sys
