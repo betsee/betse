@@ -409,47 +409,47 @@ voltage gated Na+:
     turn on: False                 # voltage gated sodium channel?
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: Nav1p2         # available types: 'vgNa_Nav1p2' (adult brain), 'vgNa_Nav1p3' (embryo)
-    max value: 5.0e-14             # maximum diffusion constant when channel open
+    max value: 1.0e-5             # maximum channel conductivity when channel fully open [S/m2]
 
 persistent vg Na+:
     turn on: False                 # voltage gated sodium channel with persistant current?
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: Nav1p6         # available types: 'vgNa_Nav1p6' (persistent brain)
-    max value: 5.0e-14             # maximum diffusion constant when channel open
+    max value: 1.0e-5             # maximum channel conductivity when channel fully open [S/m2]
 
 stretch gated Na+:         # stretch activated depolarization (Na+) channel?
     turn on: False
     apply to: ['all']          # tissue profile(s) to apply to
-    max value: 1.0e-15         # maximum diffusion constant when channel open
+    max value: 1.0e-5         # maximum channel conductivity when channel fully open [S/m2]
 
 voltage gated K+:               # voltage gated potassium channel?
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: Kv1p2      # available types: 'Kv1p2' (brain), 'Kv1p5' (muscle), 'Kv1p1'
-    max value: 1.0e-15         # maximum diffusion constant when channel open
+    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 inward rectifying K+:          # inward-rectifying voltage gated potassium channel?
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: Kir2p1   # available types: 'Kir2p1'
-    max value: 1.0e-15         # maximum diffusion constant when channel open
+    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 calcium gated K+:              # calcium gated potassium channel ?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    max value: 1.0e-15        # maximum diffusion constant when channel open
+    max value: 1.0e-6        # maximum channel conductivity when channel fully open [S/m2]
 
 funny current:                 # "funny current" K+/Na+ channel?
     turn on: False
     apply to: ['all']
     channel type: HCN4         # available types: 'HCN2' or 'HCN4'
-    max value: 1.0e-15         # maximum diffusion constant when channel is open
+    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 voltage gated Ca2+:            # voltage gated calcium channel?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
     channel type: Ca_L        # available types: 'Ca_L'
-    max value: 1.0e-15        # maximum diffusion constant when channel open?
+    max value: 1.0e-6        # maximum channel conductivity when channel fully open [S/m2]
 
 # FIXME Ca dynamics is a work in progress -- currently not working!
 Ca dynamics:                   # include full calcium dynamics in the situation?
@@ -619,8 +619,8 @@ variable settings:
     dynamic noise: False      # is dynamic noise desired? Options True or False
                               # simulated as random-walk on cellular protein concentrations
 
-    dynamic noise level: 1e-7     # level of dynamic noise
-                                  # appropriate range 0 to 1e-6
+    dynamic noise level: 1e-6     # level of dynamic noise
+                                  # appropriate range 0 (effect off) to 1e-5 (extremely high noise)
                                   # Note high values may cause simulation instability
 
   gap junctions:

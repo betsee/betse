@@ -84,7 +84,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # which is described by the original Hodgkin Huxley equation.
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = - (dyna.maxDmK*P*(V - self.vrev))/cells.mem_sa[dyna.targets_vgK]
+        delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
 
         # update the fluxes across the membrane to account for charge transfer from HH flux:
         sim.fluxes_mem[sim.iK][dyna.targets_vgK] = delta_Q

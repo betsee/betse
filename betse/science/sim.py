@@ -580,20 +580,20 @@ class Simulator(object):
 
         self.Dm_cells[self.iK] = (p.channel_noise_level * self.channel_noise_factor + 1) * self.Dm_cells[self.iK]
 
-        if p.dynamic_noise is True:
-            # add a random walk on protein concentration to generate dynamic noise:
-            self.protein_noise_factor = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
-
-            if p.ions_dict['P'] == 1:
-                self.cc_mems[self.iP] = self.cc_mems[self.iP] * (1 + self.protein_noise_factor)
-
-            # balance the mass and charge for the system:
-            if p.sim_ECM is False:
-                self.cc_env[self.iP] = self.cc_env[self.iP] * (1 - self.protein_noise_factor)
-
-            else:
-                self.cc_env[self.iP][cells.map_mem2ecm] = self.cc_env[self.iP][cells.map_mem2ecm] \
-                                                          * (1 - self.protein_noise_factor)
+        # if p.dynamic_noise is True:
+        #     # add a random walk on protein concentration to generate dynamic noise:
+        #     self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
+        #
+        #     if p.ions_dict['P'] == 1:
+        #         self.cc_mems[self.iP] = self.cc_mems[self.iP] * (1 + self.protein_noise_flux)
+        #
+        #     # balance the mass and charge for the system:
+        #     if p.sim_ECM is False:
+        #         self.cc_env[self.iP] = self.cc_env[self.iP] * (1 - self.protein_noise_flux)
+        #
+        #     else:
+        #         self.cc_env[self.iP][cells.map_mem2ecm] = self.cc_env[self.iP][cells.map_mem2ecm] \
+        #                                                   * (1 - self.protein_noise_flux)
 
         #--Blocks initialization--------------------
 
@@ -953,8 +953,18 @@ class Simulator(object):
             if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
 
                 # add a random walk on protein concentration to generate dynamic noise:
-                self.protein_noise_factor = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
-                self.cc_mems[self.iP] = self.cc_mems[self.iP] * (1 + self.protein_noise_factor)
+                self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
+
+                # update the concentration of P in cells and environment:
+                self.cc_mems[self.iP][:], self.cc_env[self.iP][:] = stb.update_Co(self, self.cc_mems[self.iP][:],
+                    self.cc_env[self.iP][:], self.protein_noise_flux, cells, p)
+
+                # update intracellularly:
+                self.cc_mems[self.iP][:], self.cc_cells[self.iP][:], _ = \
+                    stb.update_intra(self, cells, self.cc_mems[self.iP][:],
+                        self.cc_cells[self.iP][:],
+                        self.D_free[self.iP],
+                        self.zs[self.iP], p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V(cells, p)

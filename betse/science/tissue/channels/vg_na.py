@@ -83,12 +83,12 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         # which is described by the original Hodgkin Huxley equation.
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = -(dyna.maxDmNa*P*(V - self.vrev))/cells.mem_sa[dyna.targets_vgNa]
+        delta_Q = -(dyna.maxDmNa*P*(V - self.vrev))
 
         # the cube power in the vgNa expression is rather difficult mathematically, but necessary
         # clip the unreasonably high portions of the Na+ flux, so as not to overload the system:
-        inds_over = (delta_Q > 1.0e-4).nonzero()
-        delta_Q[inds_over] = 1.0e-4
+        # inds_over = (delta_Q > 1.0e-4).nonzero()
+        # delta_Q[inds_over] = 1.0e-4
 
         # update the fluxes across the membrane to account for charge transfer from HH flux:
         sim.fluxes_mem[sim.iNa][dyna.targets_vgNa] = delta_Q
