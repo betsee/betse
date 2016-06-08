@@ -17,7 +17,7 @@ from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science import sim_toolbox as stb
-from betse.science.tissue.channels_o import Gap_Junction
+from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.flow import getFlow
@@ -148,8 +148,12 @@ class Simulator(object):
         else:
             self.edl = len(cells.mem_i)
 
-        # load in the object that mathematically handles individual gap junction functionality:
-        self.gj_funk = Gap_Junction(p)
+        self.vgj = np.zeros(self.mdl)
+
+        self.gj_block = 1 # will update this according to user preferences in self.init_tissue()
+
+        # initialize the object that mathematically handles individual gap junction dynamic functionality:
+        self.gj_funk = Gap_Junction(self, cells, p)
 
         # Identity matrix to easily make matrices out of scalars
         self.id_mems = np.ones(self.mdl)
@@ -510,8 +514,8 @@ class Simulator(object):
         This method is called at the start of all simulations.
         '''
 
-        # load in the gap junction dynamics object:
-        self.gj_funk = Gap_Junction(p)
+        # # load in the gap junction dynamics object:
+        self.gj_funk = Gap_Junction(self, cells, p)
 
         self.J_gj_x = np.zeros(len(cells.mem_i))
         self.J_gj_y = np.zeros(len(cells.mem_i))
@@ -543,20 +547,20 @@ class Simulator(object):
         self.Dm_scheduled[:] = 0
 
         # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
-        self.Dm_vg = np.copy(Dm_cellsA)
-        self.Dm_vg[:] = 0
+        # self.Dm_vg = np.copy(Dm_cellsA)
+        # self.Dm_vg[:] = 0
 
         # Initialize an array structure the will hold secondary vg channels (e.g. Kir 2.1 and persistent vgNa currents)
-        self.Dm_vg2 = np.copy(Dm_cellsA)
-        self.Dm_vg2[:] = 0
+        # self.Dm_vg2 = np.copy(Dm_cellsA)
+        # self.Dm_vg2[:] = 0
 
         # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
 
         # initialize and array structure for "funny current" of HCN2 and HCN4 channels:
-        self.Dm_funny = np.copy(Dm_cellsA)
-        self.Dm_funny[:] = 0
+        # self.Dm_funny = np.copy(Dm_cellsA)
+        # self.Dm_funny[:] = 0
 
         self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
         self.Dm_stretch[:] = 0
@@ -1776,26 +1780,31 @@ class Simulator(object):
         self.vgj = self.v_cell[cells.nn_i]- self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
-            # determine the open state of gap junctions:
-            gmin = self.gj_funk.gmin
 
-            alpha_gj = self.gj_funk.alpha_gj
-            beta_gj = self.gj_funk.beta_gj_p
+            # run the gap junction dynamics object to update gj open state of sim:
+            self.gj_funk.run(self, cells, p)
 
-            vgj = np.abs(self.vgj)
 
-            dgjopen_dt = (1 - self.gjopen)*alpha_gj(vgj) - (self.gjopen - gmin)*beta_gj(vgj)
-
-            self.gjopen = self.gjopen + 1e3*dgjopen_dt*p.dt
-
-            # threshold to ensure 0 to 1 status
-            inds_gj_over = (self.gjopen > 1.0).nonzero()
-            self.gjopen[inds_gj_over] = 1.0
-
-            inds_gj_under = (self.gjopen < 0.0).nonzero()
-            self.gjopen[inds_gj_under] = 0.0
-
-            self.gjopen = self.gj_block*self.gjopen
+            # # determine the open state of gap junctions:
+            # gmin = self.gj_funk.gmin
+            #
+            # alpha_gj = self.gj_funk.alpha_gj
+            # beta_gj = self.gj_funk.beta_gj_p
+            #
+            # vgj = np.abs(self.vgj)
+            #
+            # dgjopen_dt = (1 - self.gjopen)*alpha_gj(vgj) - (self.gjopen - gmin)*beta_gj(vgj)
+            #
+            # self.gjopen = self.gjopen + 1e3*dgjopen_dt*p.dt
+            #
+            # # threshold to ensure 0 to 1 status
+            # inds_gj_over = (self.gjopen > 1.0).nonzero()
+            # self.gjopen[inds_gj_over] = 1.0
+            #
+            # inds_gj_under = (self.gjopen < 0.0).nonzero()
+            # self.gjopen[inds_gj_under] = 0.0
+            #
+            # self.gjopen = self.gj_block*self.gjopen
 
         else:
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))

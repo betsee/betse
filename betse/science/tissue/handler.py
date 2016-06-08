@@ -988,13 +988,10 @@ class TissueHandler(object):
 
         sim.Dm_cells = \
             sim.Dm_scheduled + \
-            sim.Dm_vg + \
             sim.Dm_cag + \
             sim.Dm_morpho + \
             sim.Dm_stretch +\
-            sim.Dm_base + \
-            sim.Dm_vg2 + \
-            sim.Dm_funny
+            sim.Dm_base
 
         sim.P_cells = sim.P_mod + sim.P_base
 

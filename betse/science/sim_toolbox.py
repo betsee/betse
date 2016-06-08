@@ -8,7 +8,6 @@ import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.science import finitediff as fd
 
 from betse.exceptions import BetseExceptionSimulation
 
