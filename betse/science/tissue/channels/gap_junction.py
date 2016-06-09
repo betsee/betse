@@ -13,7 +13,13 @@ class Gap_Junction(object):
     For Ambystoma Mexicanum (Axolotl!) early embryo gap junction gating.
 
     """
+
     def __init__(self, sim, cells, p):
+
+        self.init(sim, cells, p)
+
+
+    def init(self, sim, cells, p):
 
         """
         Initialize the gap junction object to its initial conditions
@@ -35,11 +41,14 @@ class Gap_Junction(object):
 
         # voltage-dependent time-constant for channel transitioning from closed to open (1/ms, V in mV):
         self.alpha1 = self.lamb*np.exp(-self.A1*(V1 - p.gj_vthresh))
-        self.alpha2 = self.lamb*np.exp(-self.A1 * (V2 - p.gj_vthresh))
+        self.alpha2 = self.lamb*np.exp(-self.A1*(V2 - p.gj_vthresh))
 
         # voltage-dependent time constant for channel transitioning from open to closed (1/ms, V in mV):
-        self.beta1 = self.lamb*np.exp(self.A2*(V1 - p.gj_vthresh))
-        self.beta2 = self.lamb*np.exp(self.A2*(V2 - p.gj_vthresh))
+        beta1 = self.lamb*np.exp(self.A2*(V1 - p.gj_vthresh))
+        beta2 = self.lamb*np.exp(self.A2*(V2 - p.gj_vthresh))
+
+        self.beta1 = beta1/(1+50*beta1)
+        self.beta2 = beta2/(1+50*beta2)
 
         # set the initial state to the steady-state conductivity ginf:
         self.n1_inf = self.alpha1/(self.alpha1 + self.beta1)
@@ -48,7 +57,12 @@ class Gap_Junction(object):
         self.n1 = self.n1_inf
         self.n2 = self.n2_inf
 
-        sim.gjopen = sim.gj_block*(self.n1*self.n2 + p.gj_min*(1 - self.n1)*(1 - self.n2))
+        gj1 =  self.n1 + p.gj_min*(1 - self.n1)
+        gj2 =  self.n2 + p.gj_min*(1 - self.n2)
+
+        gjr = (1/gj1) + (1/gj2)
+
+        sim.gjopen = sim.gj_block*(1/gjr)
 
     def run(self, sim, cells, p):
 
@@ -56,7 +70,7 @@ class Gap_Junction(object):
         # trans-junctional voltage cell 1 wrt 2 to mV units
         V1 = (sim.v_cell[cells.nn_i] - sim.v_cell[cells.mem_i])*1e3
 
-        # trans-junctional voltage cell 2 wrt 1 to mV units
+        # # trans-junctional voltage cell 2 wrt 1 to mV units
         V2 = (sim.v_cell[cells.mem_i] - sim.v_cell[cells.nn_i])*1e3
 
         # voltage-dependent time-constant for channel transitioning from closed to open (1/ms, V in mV):
@@ -64,8 +78,11 @@ class Gap_Junction(object):
         self.alpha2 = self.lamb*np.exp(-self.A1*(V2 - p.gj_vthresh))
 
         # voltage-dependent time constant for channel transitioning from open to closed (1/ms, V in mV):
-        self.beta1 = self.lamb*np.exp(self.A2*(V1 - p.gj_vthresh))
-        self.beta2 = self.lamb*np.exp(self.A2*(V2 - p.gj_vthresh))
+        beta1 = self.lamb*np.exp(self.A2*(V1 - p.gj_vthresh))
+        beta2 = self.lamb*np.exp(self.A2*(V2 - p.gj_vthresh))
+
+        self.beta1 = beta1/(1+50*beta1)
+        self.beta2 = beta2/(1+50*beta2)
 
         self.delta_n1 = self.alpha1*(1 - self.n1) - (self.n1 - p.gj_min)*self.beta1
         self.delta_n2 = self.alpha2*(1 - self.n2) - (self.n2 - p.gj_min)*self.beta2
@@ -87,9 +104,21 @@ class Gap_Junction(object):
         self.n2[inds_gj_under2] = 0.0
 
         # calculate the total channel conductance assuming two independent gj channels, and a gj leak (p.gj_min):
-        sim.gjopen = sim.gj_block*(self.n2*self.n1 + p.gj_min*(1 - self.n1)*(1 - self.n2))
+        gj1 = self.n1 + p.gj_min * (1 - self.n1)
+        gj2 = self.n2 + p.gj_min * (1 - self.n2)
 
-        print(sim.gjopen.mean(), sim.gjopen.max(), sim.gjopen.min())
+        # calculate the total (reciprocal) conductance of the channel in terms of the two reciprocal conductances:
+        gjr = (1 / gj1) + (1 / gj2)
+
+        # final conductance of the gap junction:
+        sim.gjopen = sim.gj_block * (1 / gjr)
+
+        #
+        # sim.gjopen = sim.gj_block*(self.n2*self.n1 + p.gj_min*(1 - self.n1)*(1 - self.n2))
+
+
+
+
 
 
 

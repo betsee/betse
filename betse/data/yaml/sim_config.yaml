@@ -627,7 +627,7 @@ variable settings:
 
     gap junction surface area: 5.0e-7 # surface area of gj as fraction of cell area (1.0e-5 extremely open, 1e-9 closed)
 
-    voltage sensitive gj: True    # gj close with voltage difference between cells?
+    voltage sensitive gj: True   # gj close with voltage difference between cells?
 
     gj voltage threshold: 15    # cell-cell voltage at which gj are half closed [mV]
                                  # suggested range from 10 mV to 80 mV

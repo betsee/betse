@@ -86,64 +86,63 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
         delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
 
-        # update the fluxes across the membrane to account for charge transfer from HH flux:
-        sim.fluxes_mem[sim.iK][dyna.targets_vgK] = delta_Q
+        self.clip_flux(delta_Q, threshold=1.0e-4)
 
-        # update the concentrations of K in cells and environment using HH flux delta_Q:
-        # first in cells:
-        sim.cc_mems[sim.iK][dyna.targets_vgK] = \
-            sim.cc_mems[sim.iK][dyna.targets_vgK] + \
-            delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
+        self.update_charge(sim.iK, delta_Q, dyna.targets_vgK, sim, cells, p)
 
+        # # update the fluxes across the membrane to account for charge transfer from HH flux:
+        # sim.fluxes_mem[sim.iK][dyna.targets_vgK] = delta_Q
+        #
+        # # update the concentrations of K in cells and environment using HH flux delta_Q:
+        # # first in cells:
+        # sim.cc_mems[sim.iK][dyna.targets_vgK] = \
+        #     sim.cc_mems[sim.iK][dyna.targets_vgK] + \
+        #     delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
+        #
+        #
+        # if p.sim_ECM is False:
+        #
+        #     # transfer charge directly to the environment:
+        #
+        #     sim.cc_env[sim.iK][dyna.targets_vgK] = \
+        #         sim.cc_env[sim.iK][dyna.targets_vgK] - \
+        #         delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
+        #
+        #     # assume auto-mixing of environmental concs
+        #     sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK].mean()
+        #
+        # else:
+        #
+        #     flux_env = np.zeros(sim.edl)
+        #     flux_env[cells.map_mem2ecm][dyna.targets_vgK] = -delta_Q
+        #
+        #     # save values at the cluster boundary:
+        #     bound_vals = flux_env[cells.ecm_bound_k]
+        #
+        #     # set the values of the global environment to zero:
+        #     flux_env[cells.inds_env] = 0
+        #
+        #     # finally, ensure that the boundary values are restored:
+        #     flux_env[cells.ecm_bound_k] = bound_vals
+        #
+        #     # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
+        #     # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
+        #     # to get the mol/s change in concentration (divergence):
+        #     delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+        #
+        #     # update the concentrations:
+        #     sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK][:] + delta_env * p.dt
+        #
+        # # update the concentration intra-cellularly:
+        # sim.cc_mems[sim.iK], sim.cc_cells[sim.iK], _ = \
+        #     stb.update_intra(sim, cells, sim.cc_mems[sim.iK],
+        #         sim.cc_cells[sim.iK],
+        #         sim.D_free[sim.iK],
+        #         sim.zs[sim.iK], p)
+        #
+        # # recalculate the net, unbalanced charge and voltage in each cell:
+        # sim.update_V(cells, p)
 
-        if p.sim_ECM is False:
-
-            # transfer charge directly to the environment:
-
-            sim.cc_env[sim.iK][dyna.targets_vgK] = \
-                sim.cc_env[sim.iK][dyna.targets_vgK] - \
-                delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
-
-            # assume auto-mixing of environmental concs
-            sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK].mean()
-
-        else:
-
-            flux_env = np.zeros(sim.edl)
-            flux_env[cells.map_mem2ecm][dyna.targets_vgK] = -delta_Q
-
-            # save values at the cluster boundary:
-            bound_vals = flux_env[cells.ecm_bound_k]
-
-            # set the values of the global environment to zero:
-            flux_env[cells.inds_env] = 0
-
-            # finally, ensure that the boundary values are restored:
-            flux_env[cells.ecm_bound_k] = bound_vals
-
-            # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
-            # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-            # to get the mol/s change in concentration (divergence):
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-
-            # update the concentrations:
-            sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK][:] + delta_env * p.dt
-
-        # update the concentration intra-cellularly:
-        sim.cc_mems[sim.iK], sim.cc_cells[sim.iK], _ = \
-            stb.update_intra(sim, cells, sim.cc_mems[sim.iK],
-                sim.cc_cells[sim.iK],
-                sim.D_free[sim.iK],
-                sim.zs[sim.iK], p)
-
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        sim.update_V(cells, p)
-
-
-
-
-        # Define ultimate activity of the vgNa channel:
-        # sim.Dm_vg[sim.iK][dyna.targets_vgK] = dyna.maxDmK * P
 
 
     @abstractmethod

@@ -62,13 +62,13 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        self._calculate_state(
-            V=sim.vm[dyna.targets_vgFun] * 1000,
-            dyna=dyna, sim=sim, p=p)
+        V = sim.vm[dyna.targets_vgFun] * 1000
 
-        self._implement_state(dyna, sim, cells, p)
+        self._calculate_state(V, dyna, sim, p)
 
-    def _implement_state(self, dyna, sim, cells, p):
+        self._implement_state(V, dyna, sim, cells, p)
+
+    def _implement_state(self, V, dyna, sim, cells, p):
         # calculate m and h channel states using RK4:
         dmFun = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
         dhFun = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
@@ -79,13 +79,13 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_Fun ** self._mpower) * (dyna.h_Fun ** self._hpower)
 
-        # # Find inds that should be zero, but are "hanging" the system:
-        # Pcutoff = (P<0.01).nonzero()
-        # P[Pcutoff] = 0.0
+        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
+        delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
 
-        # Define ultimate activity of the funny current channel:
-        sim.Dm_funny[sim.iK][dyna.targets_vgFun] = dyna.maxDmFun * P
-        sim.Dm_funny[sim.iNa][dyna.targets_vgFun] = dyna.maxDmFun * P
+        self.clip_flux(delta_Q, threshold=1.0e-4)
+
+        self.update_charge(sim.iNa, delta_Q, dyna.targets_vgFun, sim, cells, p)
+        self.update_charge(sim.iK, delta_Q, dyna.targets_vgFun, sim, cells, p)
 
 
     @abstractmethod
@@ -147,6 +147,8 @@ class HCN2(VgFunABC):
 
         """
 
+        self.vrev = -45  # reversal voltage used in model [mV]
+
         self._mInf = 1.0000 / (1 + np.exp((V - -99) / 6.2))
         self._mTau = 184.0000
         self._hInf = 1
@@ -195,6 +197,8 @@ class HCN4(VgFunABC):
         simulation Vmem.
 
         """
+
+        self.vrev = -45  # reversal voltage used in model [mV]
 
         self._mInf = 1.0000 / (1 + np.exp((V - -100) / 9.6))
         self._mTau = 461.0000

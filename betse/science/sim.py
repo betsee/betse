@@ -153,7 +153,7 @@ class Simulator(object):
         self.gj_block = 1 # will update this according to user preferences in self.init_tissue()
 
         # initialize the object that mathematically handles individual gap junction dynamic functionality:
-        self.gj_funk = Gap_Junction(self, cells, p)
+        # self.gj_funk = Gap_Junction(self, cells, p)
 
         # Identity matrix to easily make matrices out of scalars
         self.id_mems = np.ones(self.mdl)
@@ -515,7 +515,8 @@ class Simulator(object):
         '''
 
         # # load in the gap junction dynamics object:
-        self.gj_funk = Gap_Junction(self, cells, p)
+        if p.v_sensitive_gj:
+            self.gj_funk = Gap_Junction(self, cells, p)
 
         self.J_gj_x = np.zeros(len(cells.mem_i))
         self.J_gj_y = np.zeros(len(cells.mem_i))
@@ -1783,7 +1784,6 @@ class Simulator(object):
 
             # run the gap junction dynamics object to update gj open state of sim:
             self.gj_funk.run(self, cells, p)
-
 
             # # determine the open state of gap junctions:
             # gmin = self.gj_funk.gmin

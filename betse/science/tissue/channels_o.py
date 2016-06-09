@@ -8,7 +8,6 @@ from betse.util.type import types
 from betse.science import toolbox as tb
 
 
-
 class Gap_Junction(object):
     """
     Defines functions controling gap junction voltage gating characteristics.

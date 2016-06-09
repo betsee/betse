@@ -18,6 +18,7 @@ from betse.science.tissue.channels import vg_k as vgk
 from betse.science.tissue.channels import vg_kir as vgkir
 from betse.science.tissue.channels import vg_funny as vgfun
 from betse.science.tissue.channels_o import cagPotassium, vgCalcium, vgCalcium_init
+from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.util.io.log import logs
 from betse.util.type import types
 
@@ -1246,8 +1247,23 @@ def removeCells(
     cells.make_maskM(p)
     cells.grid_len = len(cells.xypts)
 
+    # update sim data lengths with new world values:
+    sim.mdl = len(cells.mem_mids_flat)  # mems-data-length
+    sim.cdl = len(cells.cell_centres)  # cells-data-length
+
+    if p.sim_ECM is True:  # set environnment data length
+        sim.edl = len(cells.xypts)
+
+    else:
+        sim.edl = len(cells.mem_mids_flat)
+
     logs.log_info('Re-creating cell network Poisson solver...')
     cells.graphLaplacian(p)
+
+    # if running voltage gated gap junctions, reinnitialize them:
+    if p.v_sensitive_gj:
+        sim.gj_funk.init(sim, cells, p)
+
 
     if p.sim_ECM is True:
 
