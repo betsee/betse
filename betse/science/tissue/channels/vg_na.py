@@ -49,8 +49,6 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
-
-
     def run(self, dyna, sim, cells, p):
         '''
         Handle all targeted voltage-gated sodium channels by working with the passed
@@ -222,7 +220,7 @@ class Nav1p3(VgNaABC):
         self._hInf = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
         self._hTau = 0.40 + (0.265 * np.exp(-V / 9.47))
 
-class NavRat1(VgNaABC):
+class NavRat2(VgNaABC):
 
     """
     Generic vgNa channel, slow to inactivate.
@@ -233,7 +231,7 @@ class NavRat1(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
-        logs.log_info('You are using the vgNa channel: NavRat1')
+        logs.log_info('You are using the vgNa channel: NavRat2')
 
         self.vrev = 50  # reversal voltage used in model [mV]
 
@@ -266,18 +264,18 @@ class NavRat1(VgNaABC):
         self._hInf = hAlpha / (hAlpha + hBeta)
         self._hTau = 1 / (hAlpha + hBeta)
 
-class NavRat2(VgNaABC):
+class NavRat1(VgNaABC):
 
     """
-    Generic vgNa channel, slow to inactivate.
+    Generic vgNa channel, good activity.
 
-    Reference:  	McCormick DA. et al. A model of the electrophysiological properties of
-    thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
+    Reference: Huguenard JR. et al. Developmental changes in Na+ conductances in rat neocortical neurons:
+     appearance of a slowly inactivating component. J. Neurophysiol., 1988 Mar , 59 (778-95).
     """
 
     def _init_state(self, V, dyna, sim, p):
 
-        logs.log_info('You are using the vgNa channel: NavRat2')
+        logs.log_info('You are using the vgNa channel: NavRat1')
 
         self.vrev = 50  # reversal voltage used in model [mV]
 
