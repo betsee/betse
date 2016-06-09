@@ -408,7 +408,8 @@ modulator function properties:   # set properties of modulating functions which 
 voltage gated Na+:
     turn on: False                 # voltage gated sodium channel?
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
-    channel type: Nav1p2         # available types: 'vgNa_Nav1p2' (adult brain), 'vgNa_Nav1p3' (embryo)
+    channel type: Nav1p2         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
+                                  # 'NavRat1', 'NaVRat2'
     max value: 1.0e-5             # maximum channel conductivity when channel fully open [S/m2]
 
 persistent vg Na+:
@@ -431,7 +432,7 @@ voltage gated K+:               # voltage gated potassium channel?
 inward rectifying K+:          # inward-rectifying voltage gated potassium channel?
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: Kir2p1   # available types: 'Kir2p1'
+    channel type: Kir2p1   # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
     max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 calcium gated K+:              # calcium gated potassium channel ?

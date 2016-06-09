@@ -43,7 +43,7 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
-        self.v_corr = 10  # offset of voltages in the model -- experimental junction voltage [mV]
+        self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
 
         V = sim.vm[dyna.targets_vgNaP] * 1000 + self.v_corr
 
@@ -88,56 +88,6 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
 
         self.update_charge(sim.iNa, delta_Q, dyna.targets_vgNaP, sim, cells, p)
 
-        # # update the fluxes across the membrane to account for charge transfer from HH flux:
-        # sim.fluxes_mem[sim.iNa][dyna.targets_vgNaP] = delta_Q
-        #
-        # # update the concentrations of Na in cells and environment using HH flux delta_Q:
-        #
-        # # first in cells:
-        # sim.cc_mems[sim.iNa][dyna.targets_vgNaP] = \
-        #     sim.cc_mems[sim.iNa][dyna.targets_vgNaP] + \
-        #     delta_Q * (cells.mem_sa[dyna.targets_vgNaP] / cells.mem_vol[dyna.targets_vgNaP]) * p.dt
-        #
-        # if p.sim_ECM is False:
-        #
-        #     # transfer charge directly to the environment:
-        #
-        #     sim.cc_env[sim.iNa][dyna.targets_vgNaP] = \
-        #         sim.cc_env[sim.iNa][dyna.targets_vgNaP] - \
-        #         delta_Q * (cells.mem_sa[dyna.targets_vgNaP] / cells.mem_vol[dyna.targets_vgNaP]) * p.dt
-        #
-        #     # assume auto-mixing of environmental concs
-        #     sim.cc_env[sim.iNa][:] = sim.cc_env[sim.iNa].mean()
-        #
-        # else:
-        #
-        #     flux_env = np.zeros(sim.edl)
-        #     flux_env[cells.map_mem2ecm][dyna.targets_vgNaP] = -delta_Q
-        #
-        #     # save values at the cluster boundary:
-        #     bound_vals = flux_env[cells.ecm_bound_k]
-        #
-        #     # set the values of the global environment to zero:
-        #     flux_env[cells.inds_env] = 0
-        #
-        #     # finally, ensure that the boundary values are restored:
-        #     flux_env[cells.ecm_bound_k] = bound_vals
-        #
-        #     # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
-        #     # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-        #     # to get the mol/s change in concentration (divergence):
-        #     delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-        #
-        #     # update the concentrations:
-        #     sim.cc_env[sim.iNa][:] = sim.cc_env[sim.iNa][:] + delta_env * p.dt
-        #
-        # # update the concentration intra-cellularly:
-        # sim.cc_mems[sim.iNa], sim.cc_cells[sim.iNa], _ = stb.update_intra(sim, cells, sim.cc_mems[sim.iNa],
-        #     sim.cc_cells[sim.iNa], sim.D_free[sim.iNa], sim.zs[sim.iNa], p)
-        #
-        # # recalculate the net, unbalanced charge and voltage in each cell:
-        # sim.update_V(cells, p)
-
 
     @abstractmethod
     def _init_state(self, V, dyna, sim, p):
@@ -157,6 +107,20 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
 # ....................{ SUBCLASS                           }....................
 
 class Nav1p6(VgNaPABC):
+
+    """
+    Nav1.6 was detected during the embryonic period in brain. This is the most abundantly expressed
+    NaV channel in the CNS during adulthood. Is the most abundant channel at mature nodes of Ranvier
+    in myelinated axons in the CNS. NaV1.6 is broadly expressed in the nervous system in a variety
+    of cells including Purkinje cells, motor neurons, pyramidal and granule neurons, glial cells and
+    Schwann cells and is enriched at the nodes of Ranvier.
+    Nav1.6 channels have been also detected in immune cells, such microglia and macrophagues
+     and in cultured microglia, Nav1.6 is the most prominently expressed sodium channel.
+
+     Reference: Smith MR. et al. Functional analysis of the mouse Scn8a sodium channel. \
+     J. Neurosci., 1998 Aug 15 , 18 (6093-102).
+
+    """
 
     def _init_state(self, V, dyna, sim, p):
 

@@ -43,7 +43,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
-        self.v_corr = 10  # offset of voltages in the model -- experimental junction voltage [mV]
+        self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
 
         V = sim.vm[dyna.targets_vgNa] * 1000 + self.v_corr
 
@@ -90,61 +90,6 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         self.clip_flux(delta_Q, threshold=1.0e-4)
 
         self.update_charge(sim.iNa, delta_Q, dyna.targets_vgNa, sim, cells, p)
-
-
-        # # update the fluxes across the membrane to account for charge transfer from HH flux:
-        # sim.fluxes_mem[sim.iNa][dyna.targets_vgNa] = delta_Q
-        #
-        # # update the concentrations of Na in cells and environment using HH flux delta_Q:
-        # # first in cells:
-        # sim.cc_mems[sim.iNa][dyna.targets_vgNa] = \
-        #     sim.cc_mems[sim.iNa][dyna.targets_vgNa] + \
-        #     delta_Q*(cells.mem_sa[dyna.targets_vgNa]/cells.mem_vol[dyna.targets_vgNa])*p.dt
-        #
-        #
-        # if p.sim_ECM is False:
-        #
-        #     # transfer charge directly to the environment:
-        #     sim.cc_env[sim.iNa][dyna.targets_vgNa] = \
-        #         sim.cc_env[sim.iNa][dyna.targets_vgNa] - \
-        #         delta_Q*(cells.mem_sa[dyna.targets_vgNa]/cells.mem_vol[dyna.targets_vgNa])*p.dt
-        #
-        #     # assume auto-mixing of environmental concs
-        #     sim.cc_env[sim.iNa][:] = sim.cc_env[sim.iNa].mean()
-        #
-        # else:
-        #
-        #     flux_env = np.zeros(sim.edl)
-        #     flux_env[cells.map_mem2ecm][dyna.targets_vgNa] = -delta_Q
-        #
-        #     # save values at the cluster boundary:
-        #     bound_vals = flux_env[cells.ecm_bound_k]
-        #
-        #     # set the values of the global environment to zero:
-        #     flux_env[cells.inds_env] = 0
-        #
-        #     # finally, ensure that the boundary values are restored:
-        #     flux_env[cells.ecm_bound_k] = bound_vals
-        #
-        #     # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
-        #     # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-        #     # to get the mol/s change in concentration (divergence):
-        #     delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-        #
-        #     # update the concentrations:
-        #     sim.cc_env[sim.iNa][:] = sim.cc_env[sim.iNa][:] + delta_env * p.dt
-        #
-        #
-        # # update the concentration intra-cellularly:
-        # sim.cc_mems[sim.iNa], sim.cc_cells[sim.iNa], _ = stb.update_intra(sim, cells, sim.cc_mems[sim.iNa],
-        #     sim.cc_cells[sim.iNa], sim.D_free[sim.iNa], sim.zs[sim.iNa], p)
-        #
-        # # recalculate the net, unbalanced charge and voltage in each cell:
-        # sim.update_V(cells, p)
-
-
-        # Define ultimate activity of the vgNa channel:
-        # sim.Dm_vg[sim.iNa][dyna.targets_vgNa] = dyna.maxDmNa * P
 
 
     @abstractmethod
@@ -280,6 +225,133 @@ class Nav1p3(VgNaABC):
         self._mTau = 1 / (mAlpha + mBeta)
         self._hInf = 1 / (1 + np.exp((V - (-65.0)) / 8.1))
         self._hTau = 0.40 + (0.265 * np.exp(-V / 9.47))
+
+class NavRat1(VgNaABC):
+
+    """
+    Generic vgNa channel, slow to inactivate.
+
+    Reference:  	McCormick DA. et al. A model of the electrophysiological properties of
+    thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
+    """
+
+    def _init_state(self, V, dyna, sim, p):
+
+        logs.log_info('You are using the vgNa channel: NavRat1')
+
+        self.vrev = 50  # reversal voltage used in model [mV]
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 3
+        self._hpower = 1
+
+        mAlpha = 0.091 * (V + 38) / (1 - np.exp((-V - 38) / 5))
+        mBeta = -0.062 * (V + 38) / (1 - np.exp((V + 38) / 5))
+
+        dyna.m_Na = mAlpha / (mAlpha + mBeta)
+
+        hAlpha = 0.016 * np.exp((-55 - V) / 15)
+        hBeta = 2.07 / (np.exp((17 - V) / 21) + 1)
+
+        dyna.h_Na = hAlpha / (hAlpha + hBeta)
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+        mAlpha = 0.091 * (V + 38) / (1 - np.exp((-V - 38) / 5))
+        mBeta = -0.062 * (V + 38) / (1 - np.exp((V + 38) / 5))
+
+        self._mInf = mAlpha / (mAlpha + mBeta)
+        self._mTau = 1 / (mAlpha + mBeta)
+
+        hAlpha = 0.016 * np.exp((-55 - V) / 15)
+        hBeta = 2.07 / (np.exp((17 - V) / 21) + 1)
+
+        self._hInf = hAlpha / (hAlpha + hBeta)
+        self._hTau = 1 / (hAlpha + hBeta)
+
+
+class NavRat2(VgNaABC):
+
+    """
+    Generic vgNa channel, slow to inactivate.
+
+    Reference:  	McCormick DA. et al. A model of the electrophysiological properties of
+    thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
+    """
+
+    def _init_state(self, V, dyna, sim, p):
+
+        logs.log_info('You are using the vgNa channel: NavRat2')
+
+        self.vrev = 50  # reversal voltage used in model [mV]
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 3
+        self._hpower = 1
+
+        mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
+        mBeta = (0.124 * (-V - 35)) / (1 - (np.exp(-(-V - 35) / 9)))
+
+        dyna.m_Na = mAlpha / (mAlpha + mBeta)
+        dyna.h_Na = 1.0 / (1 + np.exp((V - -65) / 6.2))
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+
+        mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
+        mBeta = (0.124 * (-V - 35)) / (1 - (np.exp(-(-V - 35) / 9)))
+
+        self._mInf = mAlpha / (mAlpha + mBeta)
+        self._mTau = 1 / (mAlpha + mBeta)
+
+        self._hInf = 1.0 / (1 + np.exp((V - -65) / 6.2))
+        self._hTau = 1 / ((0.024 * (V - -50)) / (1 - (np.exp(-(V - -50) / 5))) + (0.0091 * (-V - 75.000123)) / (
+        1 - (np.exp(-(-V - 75.000123) / 5))))
+
+
+class NavRat2(VgNaABC):
+
+    """
+    Generic vgNa channel, slow to inactivate.
+
+    Reference:  	McCormick DA. et al. A model of the electrophysiological properties of
+    thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
+    """
+
+    def _init_state(self, V, dyna, sim, p):
+
+        logs.log_info('You are using the vgNa channel: NavRat2')
+
+        self.vrev = 50  # reversal voltage used in model [mV]
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 3
+        self._hpower = 1
+
+        mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
+        mBeta = (0.124 * (-V - 35)) / (1 - (np.exp(-(-V - 35) / 9)))
+
+        dyna.m_Na = mAlpha / (mAlpha + mBeta)
+        dyna.h_Na = 1.0 / (1 + np.exp((V - -65) / 6.2))
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+
+        mAlpha = (0.182 * (V - -35)) / (1 - (np.exp(-(V - -35) / 9)))
+        mBeta = (0.124 * (-V - 35)) / (1 - (np.exp(-(-V - 35) / 9)))
+
+        self._mInf = mAlpha / (mAlpha + mBeta)
+        self._mTau = 1 / (mAlpha + mBeta)
+
+        self._hInf = 1.0 / (1 + np.exp((V - -65) / 6.2))
+        self._hTau = 1 / ((0.024 * (V - -50)) / (1 - (np.exp(-(V - -50) / 5))) + (0.0091 * (-V - 75.000123)) / (
+        1 - (np.exp(-(-V - 75.000123) / 5))))
+
+
+
 
 
 

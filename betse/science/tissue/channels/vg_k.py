@@ -44,7 +44,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
-        self.v_corr = 10   # in experiments, the measurement junction voltage is about 10 mV
+        self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
 
         V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
 
@@ -89,60 +89,6 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         self.clip_flux(delta_Q, threshold=1.0e-4)
 
         self.update_charge(sim.iK, delta_Q, dyna.targets_vgK, sim, cells, p)
-
-        # # update the fluxes across the membrane to account for charge transfer from HH flux:
-        # sim.fluxes_mem[sim.iK][dyna.targets_vgK] = delta_Q
-        #
-        # # update the concentrations of K in cells and environment using HH flux delta_Q:
-        # # first in cells:
-        # sim.cc_mems[sim.iK][dyna.targets_vgK] = \
-        #     sim.cc_mems[sim.iK][dyna.targets_vgK] + \
-        #     delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
-        #
-        #
-        # if p.sim_ECM is False:
-        #
-        #     # transfer charge directly to the environment:
-        #
-        #     sim.cc_env[sim.iK][dyna.targets_vgK] = \
-        #         sim.cc_env[sim.iK][dyna.targets_vgK] - \
-        #         delta_Q*(cells.mem_sa[dyna.targets_vgK]/cells.mem_vol[dyna.targets_vgK])*p.dt
-        #
-        #     # assume auto-mixing of environmental concs
-        #     sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK].mean()
-        #
-        # else:
-        #
-        #     flux_env = np.zeros(sim.edl)
-        #     flux_env[cells.map_mem2ecm][dyna.targets_vgK] = -delta_Q
-        #
-        #     # save values at the cluster boundary:
-        #     bound_vals = flux_env[cells.ecm_bound_k]
-        #
-        #     # set the values of the global environment to zero:
-        #     flux_env[cells.inds_env] = 0
-        #
-        #     # finally, ensure that the boundary values are restored:
-        #     flux_env[cells.ecm_bound_k] = bound_vals
-        #
-        #     # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
-        #     # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-        #     # to get the mol/s change in concentration (divergence):
-        #     delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-        #
-        #     # update the concentrations:
-        #     sim.cc_env[sim.iK][:] = sim.cc_env[sim.iK][:] + delta_env * p.dt
-        #
-        # # update the concentration intra-cellularly:
-        # sim.cc_mems[sim.iK], sim.cc_cells[sim.iK], _ = \
-        #     stb.update_intra(sim, cells, sim.cc_mems[sim.iK],
-        #         sim.cc_cells[sim.iK],
-        #         sim.D_free[sim.iK],
-        #         sim.zs[sim.iK], p)
-        #
-        # # recalculate the net, unbalanced charge and voltage in each cell:
-        # sim.update_V(cells, p)
-
 
 
     @abstractmethod
@@ -316,6 +262,43 @@ class Kv1p5(VgKABC):
         self._hInf = 1.0000 / (1 + np.exp((V - -25.3000) / 3.5000))
         self._hTau = (-15.5000 * V) + 1620.0000
 
+class Kv2p1(VgKABC):
+    """
+    Delayed rectifier potassium channel found widespread through many tissue types.
+
+    Reference: 	VanDongen AM. et al. Alteration and restoration of K+ channel function by deletions
+    at the N- and C-termini. Neuron, 1990 Oct , 5 (433-43).
+
+    """
+
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+        """
+        logs.log_info('You are using the vgK channel: Kv2p1 ')
+
+        self.vrev = -65  # reversal voltage used in model [mV]
+        Texpt = 20  # temperature of the model in degrees C
+        simT = sim.T - 273  # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0  # FIXME implement this!
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp(((V - (-9.200)) / (-6.600))))
+        dyna.h_K = 1 / (1 + np.exp(((V - (-19.000)) / (5.000))))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+        self._mInf = 1 / (1 + np.exp(((V - (-9.200)) / (-6.600))))
+        self._mTau = 100.000 / (1 + np.exp(((V - (-46.560)) / (44.140))))
+        self._hInf = 1 / (1 + np.exp(((V - (-19.000)) / (5.000))))
+        self._hTau = 10000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
+
 class K_Fast(VgKABC):
     '''
     "K Fast" model from Korngreen et al.
@@ -415,6 +398,8 @@ class K_Slow(VgKABC):
 
         self._hInf = 1 / (1 + np.exp(-(V + 54) / -11))
         self._hTau = 360 + (1010 + 24 * (V + 55)) * np.exp(-((V + 75) / 48)**2)
+
+
 
 
 

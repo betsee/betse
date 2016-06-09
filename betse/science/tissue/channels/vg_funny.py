@@ -204,3 +204,36 @@ class HCN4(VgFunABC):
         self._mTau = 461.0000
         self._hInf = 1
         self._hTau = 1
+
+class HCN1(VgFunABC):
+
+    """
+    Fastest activation of the HCN channels, the HCN1 channel is also implicated in sinus rhythm control
+    of the heart, brain activity, and in the retina.
+
+    Reference: 3] 	Moosmang S. et al. Cellular expression and functional characterization of four
+    hyperpolarization-activated pacemaker channels in cardiac and neuronal tissues.
+    Eur. J. Biochem., 2001 Mar , 268 (1646-52).
+    """
+
+    def _init_state(self, V, dyna, sim, p):
+
+        logs.log_info('You are using the funny current channel: HCN1')
+
+        # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
+        dyna.m_Fun = 1.0000 / (1 + np.exp((V - -94) / 8.1))
+        dyna.h_Fun = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 0
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+
+        self.vrev = -45  # reversal voltage used in model [mV]
+
+        self._mInf = 1.0000 / (1 + np.exp((V - -94) / 8.1))
+        self._mTau = 30.0000
+        self._hInf = 1
+        self._hTau = 1
