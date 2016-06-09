@@ -450,7 +450,7 @@ voltage gated Ca2+:            # voltage gated calcium channel?
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
     channel type: Ca_L        # available types: 'Ca_L'
-    max value: 1.0e-6        # maximum channel conductivity when channel fully open [S/m2]
+    max value: 5.0e-7        # maximum channel conductivity when channel fully open [S/m2]
 
 # FIXME Ca dynamics is a work in progress -- currently not working!
 Ca dynamics:                   # include full calcium dynamics in the situation?

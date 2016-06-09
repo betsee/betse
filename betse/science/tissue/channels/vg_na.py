@@ -115,9 +115,6 @@ class Nav1p2(VgNaABC):
     This channel produces well behaved action-potentials with a variety of vgK channels. Good general-purpose
     vgNa channel.
 
-    Note, the model has been adapted to have m-power =2 instead of 3, as 3 was found to not work well to produce
-    action-potentials with the BETSE model.
-
     Reference: Hammil, OP et al. Patch-clamp studies of voltage-gated currents in identified neurons
     of the rat cerebral cortex. Cereb. Cortex, 1991, 1, 48-61
 
@@ -311,10 +308,10 @@ class NavRat2(VgNaABC):
         1 - (np.exp(-(-V - 75.000123) / 5))))
 
 
-class NavRat2(VgNaABC):
+class NavRat3(VgNaABC):  # FIXME finish this!
 
     """
-    Generic vgNa channel, slow to inactivate.
+    Generic vgNa channel.
 
     Reference:  	McCormick DA. et al. A model of the electrophysiological properties of
     thalamocortical relay neurons. J. Neurophysiol., 1992 Oct , 68 (1384-400).
@@ -322,7 +319,7 @@ class NavRat2(VgNaABC):
 
     def _init_state(self, V, dyna, sim, p):
 
-        logs.log_info('You are using the vgNa channel: NavRat2')
+        logs.log_info('You are using the vgNa channel: NavRat3')
 
         self.vrev = 50  # reversal voltage used in model [mV]
 

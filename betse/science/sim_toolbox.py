@@ -144,7 +144,7 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-12
+    Qdenomo[inds_Z] = 1.0e-16
 
     Q = Qnumo / Qdenomo
 

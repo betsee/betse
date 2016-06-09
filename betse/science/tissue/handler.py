@@ -17,7 +17,8 @@ from betse.science.tissue.channels import vg_nap as vgnap
 from betse.science.tissue.channels import vg_k as vgk
 from betse.science.tissue.channels import vg_kir as vgkir
 from betse.science.tissue.channels import vg_funny as vgfun
-from betse.science.tissue.channels_o import cagPotassium, vgCalcium, vgCalcium_init
+from betse.science.tissue.channels import vg_ca as vgca
+from betse.science.tissue.channels_o import cagPotassium
 from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.util.io.log import logs
 from betse.util.type import types
@@ -350,7 +351,6 @@ class TissueHandler(object):
         '''
 
         # voltage gated sodium channel --------------------------------------------------------------------------------
-
         if p.vgNa_bool:
 
             # Initialization of logic values for voltage gated sodium channel
@@ -401,7 +401,6 @@ class TissueHandler(object):
                 self.vgNaP_object.init(self, sim, cells, p)
 
         # voltage gated potassium channel ----------------------------------------------------------------------------
-
         if p.vgK_bool:
 
             # Initialization of logic values forr voltage gated potassium channel
@@ -427,7 +426,6 @@ class TissueHandler(object):
                 self.vgK_object.init(self, sim, cells, p)
 
         # Inward rectifying voltage gated potassium channel -----------------------------------------------------------
-
         if p.vgKir_bool:
 
             # Initialization of logic values for voltage gated potassium channel
@@ -477,42 +475,33 @@ class TissueHandler(object):
                 # initialize the voltage-gated sodium/potassium object
                 self.vgFun_object.init(self, sim, cells, p)
 
-        if p.vg_options['Ca_vg'] !=0:
-            # Initialization of logic values for voltage gated calcium channel
-            self.maxDmCa = p.vg_options['Ca_vg'][0]
-            self.v_on_Ca = p.vg_options['Ca_vg'][1]
-            self.v_off_Ca = p.vg_options['Ca_vg'][2]
-            self.ca_upper_ca = p.vg_options['Ca_vg'][3]
-            self.ca_lower_ca = p.vg_options['Ca_vg'][4]
-            self.apply_vgCa = p.vg_options['Ca_vg'][5]
+        #-------Calcium Channels--------------------------------------------------------------------------------------
 
-            # Initialize matrices defining states of vgK channels for each cell membrane:
-            self.active_Ca = np.zeros(self.data_length)
+        if p.vgCa_bool and p.ions_dict['Ca'] != 0:
 
-            self.vgCa_state = np.zeros(self.data_length)   # state can be 0 = off, 1 = open
+            # Initialization of logic values for voltage gated sodium channel
+            self.maxDmCa = p.vgCa_max
+
+            self.apply_vgCa = p.vgCa_apply
 
             self.targets_vgCa = []
+
             for profile in self.apply_vgCa:
                 targets = self.tissue_target_inds[profile]
                 self.targets_vgCa.append(targets)
 
             self.targets_vgCa = [item for sublist in self.targets_vgCa for item in sublist]
-
             self.targets_vgCa = np.asarray(self.targets_vgCa)
 
-            self.target_mask_vgCa = np.zeros(self.data_length)
-            self.target_mask_vgCa[self.targets_vgCa] = 1
-
-            # self.m_Ca = np.zeros(self.data_length)
-            # self.h_Ca = np.zeros(self.data_length)
-            #
-            # self.m_Ca[:] = 1.0000/(1+ np.exp(-((sim.vm*1e3 - 10) + 30.000)/6))
-            # self.h_Ca[:] = 1.0000/(1+ np.exp(((sim.vm*1e3 - 10) + 80.000)/6.4))
+            # create the desired voltage gated sodium channel instance:
+            Ca_class_ = getattr(vgca, p.vgCa_type, 'Ca_L')
+            self.vgCa_object = Ca_class_()
 
             if p.run_sim is True:
+                # initialize the voltage-gated sodium object
+                self.vgCa_object.init(self, sim, cells, p)
 
-                vgCalcium_init(self,sim,p)
-
+        #--------------------------------------------------------------------------------------------------------------
         if p.vg_options['K_cag'] != 0:
             self.maxDmKcag = p.vg_options['K_cag'][0]
             self.Kcag_halfmax = p.vg_options['K_cag'][1]
@@ -820,9 +809,9 @@ class TissueHandler(object):
             # update the voltage-gated funny current object
             self.vgFun_object.run(self, sim, cells, p)
 
-        if p.vg_options['Ca_vg'] !=0 and p.ions_dict['Ca'] != 0:
-
-            vgCalcium(self,sim,cells,p)
+        if p.vgCa_bool and p.ions_dict['Ca'] != 0:
+            # update the voltage-gated calcium object
+            self.vgCa_object.run(self, sim, cells, p)
 
         if p.vg_options['K_cag'] != 0 and p.ions_dict['Ca'] != 0:
 

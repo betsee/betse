@@ -379,7 +379,7 @@ class Parameters(object):
         opK = self.config['voltage gated K+']
         opKir = self.config['inward rectifying K+']
         opFun = self.config['funny current']
-        opCa = self.config['gated ion channel options']['voltage gated Ca']
+        opCa = self.config['voltage gated Ca2+']
         opcK = self.config['gated ion channel options']['calcium gated K']
         opStretch = self.config['gated ion channel options']['stretch gated Na']
 
@@ -413,14 +413,12 @@ class Parameters(object):
         self.vgFun_max = opFun['max value']
         self.vgFun_apply = opFun['apply to']
 
-        # voltage gated calcium
+        # voltage gated Calcium:
+        self.vgCa_bool = opCa['turn on']
+        self.vgCa_type = opCa['channel type']
+        self.vgCa_max = opCa['max value']
+        self.vgCa_apply = opCa['apply to']
 
-        vgCa = [float(opCa['max Dmem Ca']),float(opCa['activation v']),float(opCa['inactivation v']),float(opCa['inactivation Ca']),
-            float(opCa['reactivation Ca'])]
-
-        apply_vgCa = self.config['voltage gated Ca2+']['apply to']
-
-        vgCa.append(apply_vgCa)
 
         # calcium gated K
 
@@ -440,11 +438,6 @@ class Parameters(object):
 
         # initialize dictionary holding options for dynamic channels:
         self.vg_options = {}
-
-        if bool_vgCa is False:
-            self.vg_options['Ca_vg'] = 0
-        elif bool_vgCa is True:
-            self.vg_options['Ca_vg'] = vgCa
 
         if bool_cagK is False:
             self.vg_options['K_cag'] = 0
