@@ -19,7 +19,6 @@ from betse.science.tissue.channels import vg_kir as vgkir
 from betse.science.tissue.channels import vg_funny as vgfun
 from betse.science.tissue.channels import vg_ca as vgca
 from betse.science.tissue.channels_o import cagPotassium
-from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.util.io.log import logs
 from betse.util.type import types
 

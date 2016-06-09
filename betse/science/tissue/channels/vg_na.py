@@ -167,7 +167,6 @@ class Nav1p2(VgNaABC):
             (1 - (np.exp(-((V - 10.0) - -50.0) / 5))) + (
                 0.0091 * (-(V - 10.0) - 75.000123)) / (1 - (np.exp(-(-(V - 10) - 75.000123) / 5)))))/self.qt
 
-
 class Nav1p3(VgNaABC):
 
     """
@@ -267,7 +266,6 @@ class NavRat1(VgNaABC):
         self._hInf = hAlpha / (hAlpha + hBeta)
         self._hTau = 1 / (hAlpha + hBeta)
 
-
 class NavRat2(VgNaABC):
 
     """
@@ -306,7 +304,6 @@ class NavRat2(VgNaABC):
         self._hInf = 1.0 / (1 + np.exp((V - -65) / 6.2))
         self._hTau = 1 / ((0.024 * (V - -50)) / (1 - (np.exp(-(V - -50) / 5))) + (0.0091 * (-V - 75.000123)) / (
         1 - (np.exp(-(-V - 75.000123) / 5))))
-
 
 class NavRat3(VgNaABC):  # FIXME finish this!
 
