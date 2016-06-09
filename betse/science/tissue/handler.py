@@ -367,12 +367,18 @@ class TissueHandler(object):
             self.targets_vgNa = np.asarray(self.targets_vgNa)
 
             # create the desired voltage gated sodium channel instance:
-            Na_class_ = getattr(vgna,p.vgNa_type,'Nav1p2')
-            self.vgNa_object = Na_class_()
+            for ind, type_string in enumerate(p.vgNa_type):
 
-            if p.run_sim is True:
-                # initialize the voltage-gated sodium object
-                self.vgNa_object.init(self, sim, cells, p)
+                Na_class = getattr(vgna,type_string,'Nav1p2')
+
+                object_name = 'vgNa_object' + str(ind)
+
+                setattr(self,object_name,Na_class())
+
+                if p.run_sim is True:
+                    # initialize the voltage-gated sodium object
+                    init_funk = getattr(self,object_name)
+                    init_funk.init(self, sim, cells, p)
 
         # persistent voltage gated sodium channel:---------------------------------------------------------------------
         if p.vgNaP_bool:
@@ -391,13 +397,28 @@ class TissueHandler(object):
             self.targets_vgNaP = [item for sublist in self.targets_vgNaP for item in sublist]
             self.targets_vgNaP = np.asarray(self.targets_vgNaP)
 
-            # create the desired voltage gated sodium channel instance:
-            NaP_class_ = getattr(vgnap,p.vgNaP_type,'Nav1p6')
-            self.vgNaP_object = NaP_class_()
+            # create the desired voltage gated sodium channel instances:
 
-            if p.run_sim is True:
-                # initialize the voltage-gated sodium object
-                self.vgNaP_object.init(self, sim, cells, p)
+            for ind, type_string in enumerate(p.vgNaP_type):
+
+                NaP_class = getattr(vgnap,type_string,'Nav1p6')
+
+                object_name = 'vgNaP_object' + str(ind)
+
+                setattr(self,object_name,NaP_class())
+
+                if p.run_sim is True:
+                    # initialize the voltage-gated sodium object
+                    init_funk = getattr(self,object_name)
+                    init_funk.init(self, sim, cells, p)
+
+
+            # NaP_class_ = getattr(vgnap,p.vgNaP_type,'Nav1p6')
+            # self.vgNaP_object = NaP_class_()
+            #
+            # if p.run_sim is True:
+            #     # initialize the voltage-gated sodium object
+            #     self.vgNaP_object.init(self, sim, cells, p)
 
         # voltage gated potassium channel ----------------------------------------------------------------------------
         if p.vgK_bool:
@@ -416,13 +437,27 @@ class TissueHandler(object):
             self.targets_vgK = [item for sublist in self.targets_vgK for item in sublist]
             self.targets_vgK = np.asarray(self.targets_vgK)
 
-            # create the desired voltage gated sodium channel instance:
-            K_class_ = getattr(vgk,p.vgK_type,'Kv1p2')
-            self.vgK_object = K_class_()
+            # create the desired voltage gated potassium channel instances:
+            for ind, type_string in enumerate(p.vgK_type):
 
-            if p.run_sim is True:
-                # initialize the voltage-gated sodium object
-                self.vgK_object.init(self, sim, cells, p)
+                K_class = getattr(vgk,type_string,'Kv1p2')
+
+                object_name = 'vgK_object' + str(ind)
+
+                setattr(self,object_name,K_class())
+
+                if p.run_sim is True:
+                    # initialize the voltage-gated sodium object
+                    init_funk = getattr(self,object_name)
+                    init_funk.init(self, sim, cells, p)
+
+
+            # K_class_ = getattr(vgk,p.vgK_type,'Kv1p2')
+            # self.vgK_object = K_class_()
+            #
+            # if p.run_sim is True:
+            #     # initialize the voltage-gated sodium object
+            #     self.vgK_object.init(self, sim, cells, p)
 
         # Inward rectifying voltage gated potassium channel -----------------------------------------------------------
         if p.vgKir_bool:
@@ -441,13 +476,26 @@ class TissueHandler(object):
             self.targets_vgKir = [item for sublist in self.targets_vgKir for item in sublist]
             self.targets_vgKir = np.asarray(self.targets_vgKir)
 
-            # create the desired voltage gated sodium channel instance:
-            Kir_class_ = getattr(vgkir,p.vgKir_type,'Kir2p1')
-            self.vgKir_object = Kir_class_()
+            # create the desired voltage gated potassium channel instances:
+            for ind, type_string in enumerate(p.vgKir_type):
 
-            if p.run_sim is True:
-                # initialize the voltage-gated potassium object
-                self.vgKir_object.init(self, sim, cells, p)
+                Kir_class = getattr(vgkir,type_string,'Kir2p1')
+
+                object_name = 'vgKir_object' + str(ind)
+
+                setattr(self,object_name,Kir_class())
+
+                if p.run_sim is True:
+                    # initialize the voltage-gated sodium object
+                    init_funk = getattr(self,object_name)
+                    init_funk.init(self, sim, cells, p)
+
+            # Kir_class_ = getattr(vgkir,p.vgKir_type,'Kir2p1')
+            # self.vgKir_object = Kir_class_()
+            #
+            # if p.run_sim is True:
+            #     # initialize the voltage-gated potassium object
+            #     self.vgKir_object.init(self, sim, cells, p)
 
         #-------Funny Current------------------------------------------------------------------------------------------
         if p.vgFun_bool:
@@ -466,13 +514,27 @@ class TissueHandler(object):
             self.targets_vgFun = [item for sublist in self.targets_vgFun for item in sublist]
             self.targets_vgFun = np.asarray(self.targets_vgFun)
 
-            # create the desired voltage gated sodium channel instance:
-            Fun_class_ = getattr(vgfun,p.vgFun_type,'HCN4')
-            self.vgFun_object = Fun_class_()
+            # create the desired funny current channel instances:
+            for ind, type_string in enumerate(p.vgFun_type):
 
-            if p.run_sim is True:
-                # initialize the voltage-gated sodium/potassium object
-                self.vgFun_object.init(self, sim, cells, p)
+                Fun_class = getattr(vgfun,type_string,'HCN4')
+
+                object_name = 'vgFun_object' + str(ind)
+
+                setattr(self,object_name,Fun_class())
+
+                if p.run_sim is True:
+                    # initialize the voltage-gated sodium object
+                    init_funk = getattr(self,object_name)
+                    init_funk.init(self, sim, cells, p)
+
+
+            # Fun_class_ = getattr(vgfun,p.vgFun_type,'HCN4')
+            # self.vgFun_object = Fun_class_()
+            #
+            # if p.run_sim is True:
+            #     # initialize the voltage-gated sodium/potassium object
+            #     self.vgFun_object.init(self, sim, cells, p)
 
         #-------Calcium Channels--------------------------------------------------------------------------------------
 
@@ -492,13 +554,28 @@ class TissueHandler(object):
             self.targets_vgCa = [item for sublist in self.targets_vgCa for item in sublist]
             self.targets_vgCa = np.asarray(self.targets_vgCa)
 
-            # create the desired voltage gated sodium channel instance:
-            Ca_class_ = getattr(vgca, p.vgCa_type, 'Ca_L')
-            self.vgCa_object = Ca_class_()
+            # create the desired voltage gated calcium channel instances:
+            for ind, type_string in enumerate(p.vgCa_type):
 
-            if p.run_sim is True:
-                # initialize the voltage-gated sodium object
-                self.vgCa_object.init(self, sim, cells, p)
+                Ca_class = getattr(vgca,type_string,'Ca_L')
+
+                object_name = 'vgCa_object' + str(ind)
+
+                setattr(self,object_name,Ca_class())
+
+                if p.run_sim is True:
+                    # initialize the voltage-gated sodium object
+                    init_funk = getattr(self,object_name)
+                    init_funk.init(self, sim, cells, p)
+
+
+
+            # Ca_class_ = getattr(vgca, p.vgCa_type, 'Ca_L')
+            # self.vgCa_object = Ca_class_()
+            #
+            # if p.run_sim is True:
+            #     # initialize the voltage-gated sodium object
+            #     self.vgCa_object.init(self, sim, cells, p)
 
         #--------------------------------------------------------------------------------------------------------------
         if p.vg_options['K_cag'] != 0:
@@ -789,28 +866,76 @@ class TissueHandler(object):
         self.dvsign = np.sign(sim.dvm)
 
         if p.vgNa_bool:
+
+            for ind, type_string in enumerate(p.vgNa_type):
+
+                object_name = 'vgNa_object' + str(ind)
+
+                init_funk = getattr(self, object_name)
+                init_funk.run(self, sim, cells, p)
+
+
             # update the voltage-gated sodium object
-            self.vgNa_object.run(self, sim, cells, p)
+            # self.vgNa_object.run(self, sim, cells, p)
 
         if p.vgNaP_bool:
-            # update the voltage-gated sodium object
-            self.vgNaP_object.run(self, sim, cells, p)
+            # update the voltage-gated sodium objects
+            for ind, type_string in enumerate(p.vgNaP_type):
+
+                object_name = 'vgNaP_object' + str(ind)
+
+                init_funk = getattr(self, object_name)
+                init_funk.run(self, sim, cells, p)
+
+
+            # self.vgNaP_object.run(self, sim, cells, p)
 
         if p.vgK_bool:
             # update the voltage-gated potassium object
-            self.vgK_object.run(self, sim, cells, p)
+            for ind, type_string in enumerate(p.vgK_type):
+
+                object_name = 'vgK_object' + str(ind)
+
+                init_funk = getattr(self, object_name)
+                init_funk.run(self, sim, cells, p)
+
+
+            # self.vgK_object.run(self, sim, cells, p)
 
         if p.vgKir_bool:
             # update the voltage-gated potassium object
-            self.vgKir_object.run(self, sim, cells, p)
+            for ind, type_string in enumerate(p.vgKir_type):
+
+                object_name = 'vgKir_object' + str(ind)
+
+                init_funk = getattr(self, object_name)
+                init_funk.run(self, sim, cells, p)
+
+
+            # self.vgKir_object.run(self, sim, cells, p)
 
         if p.vgFun_bool:
             # update the voltage-gated funny current object
-            self.vgFun_object.run(self, sim, cells, p)
+            for ind, type_string in enumerate(p.vgFun_type):
+
+                object_name = 'vgFun_object' + str(ind)
+
+                init_funk = getattr(self, object_name)
+                init_funk.run(self, sim, cells, p)
+
+
+            # self.vgFun_object.run(self, sim, cells, p)
 
         if p.vgCa_bool and p.ions_dict['Ca'] != 0:
             # update the voltage-gated calcium object
-            self.vgCa_object.run(self, sim, cells, p)
+
+            for ind, type_string in enumerate(p.vgCa_type):
+
+                object_name = 'vgCa_object' + str(ind)
+
+                init_funk = getattr(self, object_name)
+                init_funk.run(self, sim, cells, p)
+            # self.vgCa_object.run(self, sim, cells, p)
 
         if p.vg_options['K_cag'] != 0 and p.ions_dict['Ca'] != 0:
 

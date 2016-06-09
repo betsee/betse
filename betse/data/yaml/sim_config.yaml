@@ -408,14 +408,14 @@ modulator function properties:   # set properties of modulating functions which 
 voltage gated Na+:
     turn on: False                 # voltage gated sodium channel
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
-    channel type: Nav1p2         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
+    channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
                                   # 'NavRat1', 'NaVRat2'
     max value: 5.0e-5             # maximum channel conductivity when channel fully open [S/m2]
 
 persistent vg Na+:
     turn on: False                 # voltage gated sodium channel with persistant current
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
-    channel type: Nav1p6         # available types: 'Nav1p6' (persistent brain)
+    channel type: ['Nav1p6']         # available types: 'Nav1p6' (persistent brain)
     max value: 1.0e-5             # maximum channel conductivity when channel fully open [S/m2]
 
 stretch gated Na+:         # stretch activated depolarization (Na+) channel
@@ -426,14 +426,14 @@ stretch gated Na+:         # stretch activated depolarization (Na+) channel
 voltage gated K+:             # voltage gated potassium channel, delayed rectifyer
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: Kv1p2      # available types: 'Kv1p1', 'Kv1p2' (brain), 'Kv1p5' (muscle),
+    channel type: ['Kv1p2']      # available types: 'Kv1p1', 'Kv1p2' (brain), 'Kv1p5' (muscle),
                              # 'K_Slow', 'K_Fast', 'Kv2p1'
     max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 inward rectifying K+:          # Other types of K+ currents including inward-rectifying
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: Kir2p1      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
+    channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
     max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 calcium gated K+:              # calcium gated potassium channel
@@ -444,13 +444,13 @@ calcium gated K+:              # calcium gated potassium channel
 funny current:                 # "funny current" K+/Na+ channel
     turn on: False
     apply to: ['all']
-    channel type: HCN4         # available types: 'HCN1', 'HCN2' or 'HCN4'
+    channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
     max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 voltage gated Ca2+:            # voltage gated calcium channel
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    channel type: Ca_L        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
+    channel type: ['Ca_L']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
     max value: 5.0e-7        # maximum channel conductivity when channel fully open [S/m2]
 
 # FIXME Ca dynamics is a work in progress -- currently not working!
