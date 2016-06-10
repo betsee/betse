@@ -316,23 +316,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
                 if p.turn_all_plots_off is False:
                     plt.show(block=False)
 
-        # # osmotic and/or electrostatic pressure in cell
-        # if p.deform_electro is True:
-        #     f_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
-        #     figPE = plt.figure()
-        #     axPE = plt.subplot(111)
-        #     axPE.plot(sim.time, f_electro)
-        #     axPE.set_xlabel('Time [s]')
-        #     axPE.set_ylabel('Electrostatic Pressure [Pa]')
-        #     axPE.set_title('Electrostatic pressure in cell ' + str(p.plot_cell) )
-        #
-        #     if p.autosave is True:
-        #         savename = savedImg + 'ElectrostaticP_' + '.png'
-        #         plt.savefig(savename,dpi=300,format='png',transparent=True)
-        #
-        #     if p.turn_all_plots_off is False:
-        #         plt.show(block=False)
-
         if p.deform_osmo is True:
             p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
             figOP = plt.figure()
@@ -544,7 +527,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    # if p.plot_dye2d is True and p.voltage_dye == 1:  # FIXME make this into its own plot.
+    # if p.plot_dye2d is True and p.voltage_dye == 1:
     #
     #     figVdye, axVdye, cbVdye = viz.plotPrettyPolyData(sim.cDye_time[-1]*1e3,
     #         sim, cells, p,
@@ -595,8 +578,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     #         minvala = np.min(dyeCell, axis=0)
     #         minvalb = np.min(dyeEnv,  axis=0)
     #
-    #         #FIXME: Consider using Python's built-in min() and max() functions.
-    #         #Zebras spotted like leotard-wearing leopards!
     #         if maxvala > maxvalb:
     #             maxval = maxvala
     #         else:
@@ -820,47 +801,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
-
-    # if p.plot_osmoP is True and p.deform_electro is True:
-    #     osmo_P = sim.P_electro
-    #
-    #     figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-    #     clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr,
-    #         clrmap = p.default_cm)
-    #
-    #     axP.set_title('Final Electrostatic Pressure in Cell Network')
-    #     axP.set_xlabel('Spatial distance [um]')
-    #     axP.set_ylabel('Spatial distance [um]')
-    #     cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
-    #
-    #     if p.autosave is True:
-    #         savename13 = savedImg + 'final_electroP_2D' + '.png'
-    #         plt.savefig(savename13,format='png',transparent=True)
-    #
-    #     if p.turn_all_plots_off is False:
-    #         plt.show(block=False)
-
-    #---- Forces ------------------------------------------------------------
-
-    # if p.deform_electro is True:
-    #     viz.plotVectField(
-    #         (1/p.um)*sim.F_electro_x,
-    #         (1/p.um)*sim.F_electro_y,
-    #         cells, p,
-    #         plot_ecm=False,
-    #         title='Final Electrostatic Body Force',
-    #         cb_title='Body Force [N/cm3]',
-    #         colorAutoscale=p.autoscale_force,
-    #         minColor=p.force_min_clr,
-    #         maxColor=p.force_max_clr,
-    #     )
-    #
-    #     if p.autosave is True:
-    #         savename13 = savedImg + 'final_electroF_2D' + '.png'
-    #         plt.savefig(savename13,format='png',transparent=True)
-    #
-    #     if p.turn_all_plots_off is False:
-    #         plt.show(block=False)
 
     if p.deform_osmo is True:
         viz.plotVectField(

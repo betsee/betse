@@ -1091,13 +1091,6 @@ def exportData(cells,sim,p):
         IP3_time = np.zeros(len(sim.time))
         headr = headr + ',' + 'cell_cIP3_mmol/L'
 
-    # if p.voltage_dye ==1:
-    #     dye_time = [arr[ci] for arr in sim.cDye_time]
-    #     dye_time = np.asarray(dye_time)
-    #     headr = headr + ',' + 'cell_dye_mmol/L'
-    # else:
-    #     dye_time = np.zeros(len(sim.time))
-    #     headr = headr + ',' + 'cell_dye_mmol/L'
 
     if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
         Ca_er = [arr[0][ci] for arr in sim.cc_er_time]
