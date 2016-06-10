@@ -262,7 +262,7 @@ class SimRunner(object):
         if p.molecules_enabled and sim.molecules is not None:
 
             sim.molecules.init_saving(cells, p, plot_type = 'init')
-            # sim.molecules.export_data(sim, cells, p)
+            sim.molecules.export_all_data(sim, cells, p)
             sim.molecules.plot(sim, cells, p)
             sim.molecules.anim(sim, cells, p)
 
@@ -295,7 +295,7 @@ class SimRunner(object):
         if p.molecules_enabled and sim.molecules is not None:
 
             sim.molecules.init_saving(cells, p, plot_type = 'sim')
-            sim.molecules.export_data(sim, cells, p)
+            sim.molecules.export_all_data(sim, cells, p)
             sim.molecules.plot(sim, cells, p)
             sim.molecules.anim(sim, cells, p)
 

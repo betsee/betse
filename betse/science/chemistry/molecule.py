@@ -233,60 +233,28 @@ class MasterOfMolecules(object):
             logs.log_info('Final average concentration of ' + str(name) + ' in the environment: ' +
                                           str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
 
-    def export_data(self, sim, cells, p):
-        # FIXME export data is broken!
+    def export_all_data(self, sim, cells, p):
+
         """
 
         Exports concentration data from each molecule to a file for a single cell
         (plot cell defined in params) as a function of time.
 
         """
-
-        # os.makedirs(self.resultsPath, exist_ok=True)
-        savedData = os.path.join(self.resultsPath, 'Exported_Molecule_Data.csv')
-
-        ci = p.plot_cell  # index of cell to get time-dependent data for
-
-        # create the header, first entry will be time:
-        headr = 'time_s' + ','
-
-        # dataM = np.zeros((len(sim.time),2*len(self.molecule_names)))
-        #
-        # dataM[:,0] = sim.time
-        dataM = [[[],[]] for x in range(0, len(self.molecule_names) + 1)]
-
-        dataM[0][0] = sim.time
-
+        logs.log_info('Exporting raw data for auxiliary molecules...')
         # get the name of the specific substance:
-        for i, name in enumerate(self.molecule_names):
+        for name in self.molecule_names:
             obj = getattr(self, name)
 
-            ccell = [ccells[ci] for ccells in obj.c_cells_time]
-            headr = headr + 'Cell_Conc_' + name + '_mmol/L' + ','
-
-            if p.sim_ECM is True:
-
-                cenv = [obj_cenv[cells.map_cell2ecm][ci] for obj_cenv in obj.c_env_time]
-
-            else:
-
-                cenv = [np.dot(cells.M_sum_mems, obj_cenv)/cells.num_mems for obj_cenv in obj.c_env_time]
-
-            headr = headr + 'Env_Conc_' + name + '_mmol/L' + ','
-
-
-            dataM[i][0] = cenv
-            dataM[i][1] = cenv
-
-        dataM = np.asarray(dataM)
-
-        np.savetxt(savedData, dataM, delimiter=',', header=headr)
+            obj.export_data(sim, cells, p, self.resultsPath)
 
     def plot(self, sim, cells, p):
         """
         Creates plots for each molecule included in the simulation.
 
         """
+
+        logs.log_info('Plotting data for auxiliary molecules...')
 
         # get the name of the specific substance:
         for name in self.molecule_names:
@@ -310,6 +278,7 @@ class MasterOfMolecules(object):
 
         """
 
+        logs.log_info('Animating data for auxiliary molecules...')
         # get the name of the specific substance:
         for name in self.molecule_names:
             obj = getattr(self, name)
@@ -452,6 +421,39 @@ class Molecule(object):
 
             elif p.sim_ECM is True: # simulate addition of counter salt to maintain charge neutrality:
                 self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
+
+    def export_data(self, sim, cells, p, savePath):
+
+        saveName = 'ExportData_' + self.name + '.csv'
+
+        saveData = os.path.join(savePath, saveName)
+
+        ci = p.plot_cell  # index of cell to get time-dependent data for
+
+        # create the header, first entry will be time:
+        headr = 'time_s' + ','
+
+        ccell = [arr[ci] for arr in self.c_cells_time]
+
+        headr = headr + 'Cell_Conc_' + self.name + '_mmol/L' + ','
+
+        if p.sim_ECM is True:
+
+            cenv = [obj_cenv[cells.map_cell2ecm][ci] for obj_cenv in self.c_env_time]
+
+        else:
+
+            cenv = [np.dot(cells.M_sum_mems, obj_cenv) / cells.num_mems for obj_cenv in self.c_env_time]
+
+        headr = headr + 'Env_Conc_' + self.name + '_mmol/L' + ','
+
+        time = np.asarray(sim.time)
+        ccell = np.asarray(ccell)
+        cenv = np.asarray(cenv)
+
+        dataM = np.column_stack((time, ccell, cenv))
+
+        np.savetxt(saveData, dataM, delimiter=',', header=headr)
 
     def plot_1D(self, sim, p, saveImagePath):
         """
