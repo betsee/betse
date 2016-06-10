@@ -544,96 +544,96 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    if p.plot_dye2d is True and p.voltage_dye == 1:  # FIXME make this into its own plot.
-
-        figVdye, axVdye, cbVdye = viz.plotPrettyPolyData(sim.cDye_time[-1]*1e3,
-            sim, cells, p,
-            number_cells=p.enumerate_cells,
-            clrAutoscale=p.autoscale_Dye,
-            clrMin=p.Dye_min_clr,
-            clrMax=p.Dye_max_clr,
-            clrmap=p.default_cm,
-        )
-
-        axVdye.set_title('Final Morphogen Concentration in Cells')
-        axVdye.set_xlabel('Spatial distance [um]')
-        axVdye.set_ylabel('Spatial distance [um]')
-        cbVdye.set_label('Concentration umol/L')
-
-        if p.autosave is True:
-            savename = savedImg + 'final_morphogenCells_2D' + '.png'
-            plt.savefig(savename,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-        if p.sim_ECM is True:
-            # crazy dye plot
-            figVdye = plt.figure()
-            axVdye = plt.subplot(111)
-
-            dyeEnv = sim.cDye_env*1e3
-            # dyeCell = sim.cDye_time[-1]*1e3
-            dyeCell = np.dot(cells.M_sum_mems, sim.cDye_time[-1]*1e3)/cells.num_mems
-
-            bkgPlot = axVdye.imshow(
-                dyeEnv.reshape(cells.X.shape),
-                origin='lower',
-                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-                cmap=p.default_cm,
-            )
-
-            points = np.multiply(cells.cell_verts, p.um)
-            coll = PolyCollection(
-                points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
-            axVdye.add_collection(coll)
-            axVdye.axis('equal')
-
-            # Add a colorbar for the PolyCollection
-            maxvala = np.max(dyeCell, axis=0)
-            maxvalb = np.max(dyeEnv,  axis=0)
-            minvala = np.min(dyeCell, axis=0)
-            minvalb = np.min(dyeEnv,  axis=0)
-
-            #FIXME: Consider using Python's built-in min() and max() functions.
-            #Zebras spotted like leotard-wearing leopards!
-            if maxvala > maxvalb:
-                maxval = maxvala
-            else:
-                maxval = maxvalb
-
-            if minvala < minvalb:
-                minval = minvala
-            else:
-                minval = minvalb
-
-            if p.autoscale_Dye is True:
-                coll.set_clim(minval, maxval)
-                bkgPlot.set_clim(minval, maxval)
-                cbVdye = figVdye.colorbar(coll)
-            else:
-                coll.set_clim(p.Dye_min_clr, p.Dye_max_clr)
-                bkgPlot.set_clim(p.Dye_min_clr, p.Dye_max_clr)
-                cbVdye = figVdye.colorbar(coll)
-
-            xmin = cells.xmin*p.um
-            xmax = cells.xmax*p.um
-            ymin = cells.ymin*p.um
-            ymax = cells.ymax*p.um
-
-            axVdye.axis([xmin,xmax,ymin,ymax])
-
-        axVdye.set_title('Final Morphogen Concentration')
-        axVdye.set_xlabel('Spatial distance [um]')
-        axVdye.set_ylabel('Spatial distance [um]')
-        cbVdye.set_label('Concentration umol/L')
-
-        if p.autosave is True:
-            savename7 = savedImg + 'final_morphogen_2D' + '.png'
-            plt.savefig(savename7,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
+    # if p.plot_dye2d is True and p.voltage_dye == 1:  # FIXME make this into its own plot.
+    #
+    #     figVdye, axVdye, cbVdye = viz.plotPrettyPolyData(sim.cDye_time[-1]*1e3,
+    #         sim, cells, p,
+    #         number_cells=p.enumerate_cells,
+    #         clrAutoscale=p.autoscale_Dye,
+    #         clrMin=p.Dye_min_clr,
+    #         clrMax=p.Dye_max_clr,
+    #         clrmap=p.default_cm,
+    #     )
+    #
+    #     axVdye.set_title('Final Morphogen Concentration in Cells')
+    #     axVdye.set_xlabel('Spatial distance [um]')
+    #     axVdye.set_ylabel('Spatial distance [um]')
+    #     cbVdye.set_label('Concentration umol/L')
+    #
+    #     if p.autosave is True:
+    #         savename = savedImg + 'final_morphogenCells_2D' + '.png'
+    #         plt.savefig(savename,format='png',transparent=True)
+    #
+    #     if p.turn_all_plots_off is False:
+    #         plt.show(block=False)
+    #
+    #     if p.sim_ECM is True:
+    #         # crazy dye plot
+    #         figVdye = plt.figure()
+    #         axVdye = plt.subplot(111)
+    #
+    #         dyeEnv = sim.cDye_env*1e3
+    #         # dyeCell = sim.cDye_time[-1]*1e3
+    #         dyeCell = np.dot(cells.M_sum_mems, sim.cDye_time[-1]*1e3)/cells.num_mems
+    #
+    #         bkgPlot = axVdye.imshow(
+    #             dyeEnv.reshape(cells.X.shape),
+    #             origin='lower',
+    #             extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+    #             cmap=p.default_cm,
+    #         )
+    #
+    #         points = np.multiply(cells.cell_verts, p.um)
+    #         coll = PolyCollection(
+    #             points, array=dyeCell, cmap=p.default_cm, edgecolors='none')
+    #         axVdye.add_collection(coll)
+    #         axVdye.axis('equal')
+    #
+    #         # Add a colorbar for the PolyCollection
+    #         maxvala = np.max(dyeCell, axis=0)
+    #         maxvalb = np.max(dyeEnv,  axis=0)
+    #         minvala = np.min(dyeCell, axis=0)
+    #         minvalb = np.min(dyeEnv,  axis=0)
+    #
+    #         #FIXME: Consider using Python's built-in min() and max() functions.
+    #         #Zebras spotted like leotard-wearing leopards!
+    #         if maxvala > maxvalb:
+    #             maxval = maxvala
+    #         else:
+    #             maxval = maxvalb
+    #
+    #         if minvala < minvalb:
+    #             minval = minvala
+    #         else:
+    #             minval = minvalb
+    #
+    #         if p.autoscale_Dye is True:
+    #             coll.set_clim(minval, maxval)
+    #             bkgPlot.set_clim(minval, maxval)
+    #             cbVdye = figVdye.colorbar(coll)
+    #         else:
+    #             coll.set_clim(p.Dye_min_clr, p.Dye_max_clr)
+    #             bkgPlot.set_clim(p.Dye_min_clr, p.Dye_max_clr)
+    #             cbVdye = figVdye.colorbar(coll)
+    #
+    #         xmin = cells.xmin*p.um
+    #         xmax = cells.xmax*p.um
+    #         ymin = cells.ymin*p.um
+    #         ymax = cells.ymax*p.um
+    #
+    #         axVdye.axis([xmin,xmax,ymin,ymax])
+    #
+    #     axVdye.set_title('Final Morphogen Concentration')
+    #     axVdye.set_xlabel('Spatial distance [um]')
+    #     axVdye.set_ylabel('Spatial distance [um]')
+    #     cbVdye.set_label('Concentration umol/L')
+    #
+    #     if p.autosave is True:
+    #         savename7 = savedImg + 'final_morphogen_2D' + '.png'
+    #         plt.savefig(savename7,format='png',transparent=True)
+    #
+    #     if p.turn_all_plots_off is False:
+    #         plt.show(block=False)
 
 
     #-------------------------------------------------------------------------------------------------------------------

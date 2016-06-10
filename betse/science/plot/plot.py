@@ -1091,13 +1091,13 @@ def exportData(cells,sim,p):
         IP3_time = np.zeros(len(sim.time))
         headr = headr + ',' + 'cell_cIP3_mmol/L'
 
-    if p.voltage_dye ==1:
-        dye_time = [arr[ci] for arr in sim.cDye_time]
-        dye_time = np.asarray(dye_time)
-        headr = headr + ',' + 'cell_dye_mmol/L'
-    else:
-        dye_time = np.zeros(len(sim.time))
-        headr = headr + ',' + 'cell_dye_mmol/L'
+    # if p.voltage_dye ==1:
+    #     dye_time = [arr[ci] for arr in sim.cDye_time]
+    #     dye_time = np.asarray(dye_time)
+    #     headr = headr + ',' + 'cell_dye_mmol/L'
+    # else:
+    #     dye_time = np.zeros(len(sim.time))
+    #     headr = headr + ',' + 'cell_dye_mmol/L'
 
     if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
         Ca_er = [arr[0][ci] for arr in sim.cc_er_time]
@@ -1187,7 +1187,7 @@ def exportData(cells,sim,p):
     fft_data_o = np.fft.rfft(cell_data)
     fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
-    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,dye_time,Ca_er,dd_cell.T,
+    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,Ca_er,dd_cell.T,
                              p_hydro,p_osmo,disp))
 
     headr2 = 'frequency_Hz'

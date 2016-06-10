@@ -15,8 +15,6 @@ from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
 
-# FIXME update with new formalism dealing with charge transfer
-# FIXME will need reversal potentials for Na and K
 
 # .................... BASE                               ....................
 class VgFunABC(ChannelsABC, metaclass=ABCMeta):

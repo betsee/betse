@@ -106,12 +106,12 @@ class TissueHandler(object):
             self.t_change_Naenv = p.global_options['Na_env'][2]
             self.mem_mult_Naenv = p.global_options['Na_env'][3]
 
-        if p.global_options['Morph_env'] != 0:
-
-            self.t_on_MorphEnv = p.global_options['Morph_env'][0]
-            self.t_off_MorphEnv = p.global_options['Morph_env'][1]
-            self.t_change_MorphEnv = p.global_options['Morph_env'][2]
-            self.conc_MorphEnv = p.global_options['Morph_env'][3]
+        # if p.global_options['Morph_env'] != 0:
+        #
+        #     self.t_on_MorphEnv = p.global_options['Morph_env'][0]
+        #     self.t_off_MorphEnv = p.global_options['Morph_env'][1]
+        #     self.t_change_MorphEnv = p.global_options['Morph_env'][2]
+        #     self.conc_MorphEnv = p.global_options['Morph_env'][3]
 
         if p.global_options['T_change'] != 0:
 
@@ -141,7 +141,6 @@ class TissueHandler(object):
             mem_i_copy = np.copy(cells.mem_i[:])
             shuffle(mem_i_copy)
             self.targets_gj_block = [cells.mem_i[x] for x in range(0,data_fraction)]
-
 
         if p.global_options['NaKATP_block'] != 0:
             self.tonNK = p.global_options['NaKATP_block'][0]
@@ -702,15 +701,6 @@ class TissueHandler(object):
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
 
-        if p.global_options['Morph_env'] != 0 and p.voltage_dye is True:
-            effector_MorphEnv = tb.pulse(t,self.t_on_MorphEnv,self.t_off_MorphEnv,self.t_change_MorphEnv)
-
-            if p.sim_ECM is False:
-                sim.cDye_env[:] = self.conc_MorphEnv*effector_MorphEnv + sim.cDye_env*(1-effector_MorphEnv)
-
-            elif p.sim_ECM is True: # simulate addition of counter salt to maintain charge neutrality:
-                sim.c_dye_bound = self.conc_MorphEnv*effector_MorphEnv + p.cDye_to*(1-effector_MorphEnv)
-
         if p.global_options['T_change'] != 0:
             sim.T = self.multT*tb.pulse(t,self.tonT,self.toffT,self.trampT)*p.T + p.T
 
@@ -948,25 +938,6 @@ class TissueHandler(object):
         if p.Ca_dyn_options['CICR'] != 0 and p.ions_dict['Ca'] != 0:
 
             self.calciumDynamics(sim,cells,p)
-
-        # update membrane permeability if dye targets an ion channel:
-        if p.voltage_dye is True and sim.dye_target is not None:
-
-            if p.Dye_acts_extracell is False:
-
-                sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_cell,p.Dye_Hill_K,p.Dye_Hill_exp)
-
-                if p.sim_ECM is True:
-                    sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.mem_to_cells]
-
-                else:
-                    sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye
-
-            elif p.Dye_acts_extracell is True and p.sim_ECM is True:
-
-                sim.Dm_mod_dye = p.Dye_peak_channel*tb.hill(sim.cDye_env,p.Dye_Hill_K,p.Dye_Hill_exp)
-
-                sim.Dm_morpho[sim.dye_target] = sim.Dm_mod_dye[cells.map_mem2ecm]
 
     def stretchChannel(self,sim,cells,p,t):
 

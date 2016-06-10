@@ -426,19 +426,19 @@ class SimGrid(object):
             self.cIP3_env = np.zeros(len(cells.xypts))     # initialize IP3 concentration of the environment
             self.cIP3_env[:] = p.cIP3_to_env
 
-        if p.voltage_dye is True:
-
-            self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
-            self.cDye_cell[:] = p.cDye_to_cell
-
-            self.Dye_flux_gj_x = np.zeros(len(cells.xypts))
-            self.Dye_flux_gj_y = np.zeros(len(cells.xypts))
-            self.Dye_flux_mem = np.zeros(len(cells.cell_i))
-            self.Dye_flux_env_x = np.zeros(len(cells.xypts))
-            self.Dye_flux_env_y = np.zeros(len(cells.xypts))
-
-            self.cDye_env = np.zeros(len(cells.xypts))     # initialize Dye concentration in the environment
-            self.cDye_env[:] = p.cDye_to
+        # if p.voltage_dye is True:
+        #
+        #     self.cDye_cell = np.zeros(len(cells.cell_i))   # initialize voltage sensitive dye array for cell and env't
+        #     self.cDye_cell[:] = p.cDye_to_cell
+        #
+        #     self.Dye_flux_gj_x = np.zeros(len(cells.xypts))
+        #     self.Dye_flux_gj_y = np.zeros(len(cells.xypts))
+        #     self.Dye_flux_mem = np.zeros(len(cells.cell_i))
+        #     self.Dye_flux_env_x = np.zeros(len(cells.xypts))
+        #     self.Dye_flux_env_y = np.zeros(len(cells.xypts))
+        #
+        #     self.cDye_env = np.zeros(len(cells.xypts))     # initialize Dye concentration in the environment
+        #     self.cDye_env[:] = p.cDye_to
 
 
         # Initialize all user-specified interventions and dynamic channels.
@@ -490,15 +490,15 @@ class SimGrid(object):
         self.cc_er_time = []   # retains er concentrations as a function of time
         self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
 
-        if p.voltage_dye is True:
-
-            self.cDye_flux_env_x_time = []
-            self.cDye_flux_env_y_time = []
-            self.cDye_flux_gj_x_time = []
-            self.cDye_flux_gj_y_time = []
-            self.cDye_flux_mem_time = []
-            self.cDye_cell_time = []
-            self.cDye_env_time = []
+        # if p.voltage_dye is True:
+        #
+        #     self.cDye_flux_env_x_time = []
+        #     self.cDye_flux_env_y_time = []
+        #     self.cDye_flux_gj_x_time = []
+        #     self.cDye_flux_gj_y_time = []
+        #     self.cDye_flux_mem_time = []
+        #     self.cDye_cell_time = []
+        #     self.cDye_env_time = []
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
@@ -666,9 +666,9 @@ class SimGrid(object):
                self.update_ER(cells,p)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
-            if p.voltage_dye ==1:
-
-                self.update_Dye(cells,p)
+            # if p.voltage_dye ==1:
+            #
+            #     self.update_Dye(cells,p)
 
             if p.dynamic_noise == 1 and p.ions_dict['P']==1:
                 # add a random walk on protein concentration to generate dynamic noise:
@@ -760,10 +760,10 @@ class SimGrid(object):
                     self.cIP3_time.append(ccIP3)
                     ccIP3 = None
 
-                if p.voltage_dye ==1:
-                    ccDye_cells = self.cDye_cell[:]
-                    self.cDye_time.append(ccDye_cells)
-                    ccDye_cells = None
+                # if p.voltage_dye ==1:
+                #     ccDye_cells = self.cDye_cell[:]
+                #     self.cDye_time.append(ccDye_cells)
+                #     ccDye_cells = None
 
                 if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
                     ccer = self.cc_er[:]
@@ -844,16 +844,16 @@ class SimGrid(object):
             concmess = 'Final average ER concentration of'+ ' '+ label + ': '
             logs.log_info(concmess + str(endconc_er) + ' mmol/L')
 
-        if p.voltage_dye ==1:
-            dye_ecm_final = np.mean(self.cDye_ecm)
-            dye_cell_final = np.mean(self.cDye_cell)
-            logs.log_info('Final extracellular dye concentration: ' + str(np.round(dye_ecm_final, 6))
-                          + ' mmol/L')
-            logs.log_info('Final average dye concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
-                             ' mmol/L')
-
-        plt.close()
-        logs.log_info('Simulation completed successfully.')
+        # if p.voltage_dye ==1:
+        #     dye_ecm_final = np.mean(self.cDye_ecm)
+        #     dye_cell_final = np.mean(self.cDye_cell)
+        #     logs.log_info('Final extracellular dye concentration: ' + str(np.round(dye_ecm_final, 6))
+        #                   + ' mmol/L')
+        #     logs.log_info('Final average dye concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
+        #                      ' mmol/L')
+        #
+        # plt.close()
+        # logs.log_info('Simulation completed successfully.')
 
     def update_V(self,cells,p):
 

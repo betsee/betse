@@ -655,46 +655,46 @@ class Simulator(object):
                 self.cIP3_env = np.zeros(self.mdl)     # initialize IP3 concentration of the environment
                 self.cIP3_env[:] = p.cIP3_to_env
 
-        if p.voltage_dye is True:
-
-            self.cDye_mems = np.zeros(self.mdl)   # initialize voltage sensitive dye array for mem regions
-            self.cDye_mems[:] = p.cDye_to_cell
-
-            self.cDye_cells = np.zeros(self.cdl)   # initialize voltage sensitive dye array for cell centroids
-            self.cDye_cells[:] = p.cDye_to_cell
-
-            self.Dye_flux_x_gj = np.zeros(len(cells.nn_i))
-            self.Dye_flux_y_gj = np.zeros(len(cells.nn_i))
-            self.Dye_flux_mem = np.zeros(len(cells.mem_i))
-
-            self.c_dye_bound = p.cDye_to    # concentration of dye at the global boundaries
-
-            self.cDye_env = np.zeros(self.mdl)
-            self.cDye_env[:] = p.cDye_to
-
-            if p.Dye_target_channel != 'None':
-
-                # get the ion index of the target ion:
-                self.dye_target = self.get_ion(p.Dye_target_channel)
-
-                # make a copy of the appropriate ion list
-                self.Dm_mod_dye = np.copy(self.Dm_cells[self.dye_target][:])
-
-            else:
-
-                self.dye_target = None
-
-            if p.sim_ECM is True:
-
-                self.cDye_env = np.zeros(self.edl)
-                self.cDye_env[:] = p.cDye_to
-
-                self.Dye_flux_env_x = np.zeros(self.edl)
-                self.Dye_flux_env_y = np.zeros(self.edl)
-
-            else:
-                self.Dye_env = np.zeros(self.mdl)     # initialize Dye concentration in the environment
-                self.Dye_env[:] = p.cDye_to
+        # if p.voltage_dye is True:
+        #
+        #     self.cDye_mems = np.zeros(self.mdl)   # initialize voltage sensitive dye array for mem regions
+        #     self.cDye_mems[:] = p.cDye_to_cell
+        #
+        #     self.cDye_cells = np.zeros(self.cdl)   # initialize voltage sensitive dye array for cell centroids
+        #     self.cDye_cells[:] = p.cDye_to_cell
+        #
+        #     self.Dye_flux_x_gj = np.zeros(len(cells.nn_i))
+        #     self.Dye_flux_y_gj = np.zeros(len(cells.nn_i))
+        #     self.Dye_flux_mem = np.zeros(len(cells.mem_i))
+        #
+        #     self.c_dye_bound = p.cDye_to    # concentration of dye at the global boundaries
+        #
+        #     self.cDye_env = np.zeros(self.mdl)
+        #     self.cDye_env[:] = p.cDye_to
+        #
+        #     if p.Dye_target_channel != 'None':
+        #
+        #         # get the ion index of the target ion:
+        #         self.dye_target = self.get_ion(p.Dye_target_channel)
+        #
+        #         # make a copy of the appropriate ion list
+        #         self.Dm_mod_dye = np.copy(self.Dm_cells[self.dye_target][:])
+        #
+        #     else:
+        #
+        #         self.dye_target = None
+        #
+        #     if p.sim_ECM is True:
+        #
+        #         self.cDye_env = np.zeros(self.edl)
+        #         self.cDye_env[:] = p.cDye_to
+        #
+        #         self.Dye_flux_env_x = np.zeros(self.edl)
+        #         self.Dye_flux_env_y = np.zeros(self.edl)
+        #
+        #     else:
+        #         self.Dye_env = np.zeros(self.mdl)     # initialize Dye concentration in the environment
+        #         self.Dye_env[:] = p.cDye_to
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
         if p.deform_osmo is True:
@@ -934,24 +934,24 @@ class Simulator(object):
                         p.z_IP3, p)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
-            if p.voltage_dye == 1:
-
-                if p.pump_Dye is True:
-
-                    self.cDye_mems, self.cDye_env, fx = stb.molecule_pump(self, self.cDye_mems, self.cDye_env,
-                                                                    cells, p, Df=p.Do_Dye, z=p.z_Dye,
-                                                                    pump_into_cell=p.pump_Dye_in,
-                                                                    alpha_max=p.pump_Dye_alpha, Km_X=1.0e-3,
-                                                                    Km_ATP=1.0)
-
-                self.cDye_mems, self.cDye_env, _, _, _, _ = stb.molecule_mover(self,self.cDye_mems,
-                                                                    self.cDye_env,cells, p, z=p.z_Dye, Dm = p.Dm_Dye,
-                                                                    Do = p.Do_Dye, c_bound = self.c_dye_bound,
-                                                                    ignoreECM = True)
-
-                # update concentrations intracellularly:
-                self.cDye_mems, self.cDye_cells, _ = \
-                    stb.update_intra(self, cells, self.cDye_mems, self.cDye_cells, p.Do_Dye, p.z_Dye, p)
+            # if p.voltage_dye == 1:
+            #
+            #     if p.pump_Dye is True:
+            #
+            #         self.cDye_mems, self.cDye_env, fx = stb.molecule_pump(self, self.cDye_mems, self.cDye_env,
+            #                                                         cells, p, Df=p.Do_Dye, z=p.z_Dye,
+            #                                                         pump_into_cell=p.pump_Dye_in,
+            #                                                         alpha_max=p.pump_Dye_alpha, Km_X=1.0e-3,
+            #                                                         Km_ATP=1.0)
+            #
+            #     self.cDye_mems, self.cDye_env, _, _, _, _ = stb.molecule_mover(self,self.cDye_mems,
+            #                                                         self.cDye_env,cells, p, z=p.z_Dye, Dm = p.Dm_Dye,
+            #                                                         Do = p.Do_Dye, c_bound = self.c_dye_bound,
+            #                                                         ignoreECM = True)
+            #
+            #     # update concentrations intracellularly:
+            #     self.cDye_mems, self.cDye_cells, _ = \
+            #         stb.update_intra(self, cells, self.cDye_mems, self.cDye_cells, p.Do_Dye, p.z_Dye, p)
 
             # dynamic noise handling-----------------------------------------------------------------------------------
 
@@ -1147,8 +1147,8 @@ class Simulator(object):
             self.phi = np.zeros(self.mdl)
             self.phi_time = []
 
-        if p.voltage_dye is True:
-            self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
+        # if p.voltage_dye is True:
+        #     self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             self.cIP3_time = []    # retains IP3 concentration as a function of time
@@ -1277,8 +1277,8 @@ class Simulator(object):
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             self.cIP3_time.append(self.cIP3_mems[:])
 
-        if p.voltage_dye ==1:
-            self.cDye_time.append(self.cDye_mems[:])
+        # if p.voltage_dye ==1:
+        #     self.cDye_time.append(self.cDye_mems[:])
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
             self.cc_er_time.append(np.copy(self.cc_er[:]))
@@ -1303,8 +1303,8 @@ class Simulator(object):
                 self.u_env_x_time.append(self.u_env_x[:])
                 self.u_env_y_time.append(self.u_env_y[:])
 
-            if p.voltage_dye ==1:
-                self.cDye_env_time.append(self.cDye_env[:])
+            # if p.voltage_dye ==1:
+            #     self.cDye_env_time.append(self.cDye_env[:])
 
     def save_and_report(self,cells,p):
 
@@ -1370,13 +1370,13 @@ class Simulator(object):
             concmess = 'Final average ER concentration of'+ ' '+ label + ': '
             logs.log_info(concmess + str(endconc_er) + ' mmol/L')
 
-        if p.voltage_dye ==1:
-            dye_env_final = np.mean(self.cDye_env)
-            dye_cell_final = np.mean(self.cDye_mems)
-            logs.log_info('Final average morphogen concentration in the environment: ' + str(np.round(dye_env_final, 6))
-                          + ' mmol/L')
-            logs.log_info('Final average morphogen concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
-                             ' mmol/L')
+        # if p.voltage_dye ==1:
+        #     dye_env_final = np.mean(self.cDye_env)
+        #     dye_cell_final = np.mean(self.cDye_mems)
+        #     logs.log_info('Final average morphogen concentration in the environment: ' + str(np.round(dye_env_final, 6))
+        #                   + ' mmol/L')
+        #     logs.log_info('Final average morphogen concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
+        #                      ' mmol/L')
 
     def sim_info_report(self,cells,p):
 
@@ -2101,7 +2101,7 @@ class Simulator(object):
             ion = self.iCl
 
         else:
-            logs.warning('Oops! Morphogen gated ion channel target not found!')
+            logs.warning('Oops! Molecule gated ion channel target not found!')
             ion = []
 
         return ion
