@@ -258,6 +258,14 @@ class SimRunner(object):
 
         plot_all(cells, sim, p, plot_type='init')
 
+        # run the molecules plots:
+        if p.molecules_enabled and sim.molecules is not None:
+
+            sim.molecules.init_saving(cells, p, plot_type = 'init')
+            # sim.molecules.export_data(sim, cells, p)
+            sim.molecules.plot(sim, cells, p)
+            sim.molecules.anim(sim, cells, p)
+
         if p.turn_all_plots_off is False:
             plt.show()
 
@@ -272,10 +280,6 @@ class SimRunner(object):
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
         sim = Simulator(p)   # create an instance of Simulator
 
-        #FIXME: Didn't this used to work? It'd be sweet if we could just
-        #automatically run this simulation as needed beforehand rather than
-        #hard-failing. No biggie. Unicorns cavorting madly in the dawn forest!
-
         # If this simulation has yet to be run, fail.
         if not files.is_file(sim.savedSim):
             raise BetseExceptionFile(
@@ -286,6 +290,14 @@ class SimRunner(object):
         # Load the simulation from the cache.
         sim, cells, _ = fh.loadSim(sim.savedSim)
         plot_all(cells, sim, p, plot_type='sim')
+
+        # run the molecules plots:
+        if p.molecules_enabled and sim.molecules is not None:
+
+            sim.molecules.init_saving(cells, p, plot_type = 'sim')
+            sim.molecules.export_data(sim, cells, p)
+            sim.molecules.plot(sim, cells, p)
+            sim.molecules.anim(sim, cells, p)
 
         if p.turn_all_plots_off is False:
             plt.show()

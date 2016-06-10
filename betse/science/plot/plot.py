@@ -418,8 +418,8 @@ def plotPrettyPolyData(data, sim, cells, p, fig=None, ax=None, clrAutoscale = Tr
         # define colorbar limits for the PolyCollection
 
         if clrAutoscale is True:
-            maxval = data_verts.max() - np.abs(data_verts.max())*0.10
-            minval = data_verts.min() + np.abs(data_verts.min())*0.10
+            maxval = data_verts.max()
+            minval = data_verts.min()
             # maxval = data_verts.max()
             # minval = data_verts.min()
 

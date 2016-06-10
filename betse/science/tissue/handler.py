@@ -1289,6 +1289,12 @@ def removeCells(
                     data2.append(data[index])
                     setattr(sim, name, data2)
 
+    # delete data from molecules object
+
+    if p.molecules_enabled:
+
+        sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
 
 #-------------------------------Fix-up cell world ----------------------------------------------------------------------
     new_cell_centres = []

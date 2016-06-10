@@ -63,33 +63,30 @@ class MasterOfMolecules(object):
 
             # now set the attributes of that Molecule object with the cornucopia of variables:
 
-            Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
-            Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
-            z = mol_dic['z']  # charge (oxidation state)
-            c_env = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
-            c_cell = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
-            r_production = mol_dic['production rate']  # rate at which molecule is produced in the cytoplasm
-            r_decay = mol_dic['decay rate']  # rate at which molecule is consumed in the cytoplasm
-
             # get MasterOfMolecules.name
             obj = getattr(self, name)
 
-            # assign all properties
+            # assign general properties
             obj.name = name   # let object know who it is
-            obj.Dm = Dm
-            obj.Do = Do
-            obj.z = z
-            obj.c_envo = c_env
-            obj.c_cello = c_cell
-            obj.r_production = r_production
-            obj.r_decay = r_decay
+            obj.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
+            obj.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
+            obj.z = mol_dic['z']  # charge (oxidation state)
+            obj.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
+            obj.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
+
+            # factors involving auto-catalytic growth and decay in the cytoplasm
+            gad = mol_dic['growth and decay']
+
+            obj.r_production = gad['production rate']
+            obj.r_decay = gad['decay rate']
+            obj.Kgd = gad['Km']
 
             # assign ion channel gating properties
             icg = mol_dic['ion channel gating']
 
             gating_ion_o = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
 
-            if gating_ion_o is not None:
+            if gating_ion_o != 'None':
                 obj.use_gating_ligand = True
                 self.gating_ion = sim.get_ion(gating_ion_o)
 
@@ -145,14 +142,14 @@ class MasterOfMolecules(object):
             if p.autosave is True:
 
                 if plot_type == 'sim':
-                    images_path = p.sim_results
+                    results_path = os.path.join(p.sim_results, 'Molecules')
                     p.plot_type = 'sim'
 
                 elif plot_type == 'init':
-                    images_path = p.init_results
+                    results_path = os.path.join(p.init_results, 'Molecules')
                     p.plot_type = 'init'
 
-                self.resultsPath = os.path.expanduser(images_path)
+                self.resultsPath = os.path.expanduser(results_path)
                 os.makedirs(self.resultsPath, exist_ok=True)
 
                 self.imagePath = os.path.join(self.resultsPath, 'fig_')
@@ -164,7 +161,7 @@ class MasterOfMolecules(object):
                     'configuration file does not exist in your cluster. '
                     'Choose a plot cell number smaller than the maximum cell number.')
 
-    def run_loop(self, sim, cells, p):
+    def run_loop(self, t, sim, cells, p):
         """
         Runs the main simulation loop steps for each of the molecules included in the simulation.
 
@@ -178,12 +175,18 @@ class MasterOfMolecules(object):
             obj.pump(sim, cells, p)
             obj.transport(sim, cells, p)
             obj.updateIntra(sim, cells, p)
-            obj.reaction(sim, cells, p)
-
 
             if p.run_sim is True:
                 obj.gating(sim, cells, p)
-                obj.update_boundary(sim, cells, p)
+                obj.update_boundary(t, p)
+
+    def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
+
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+            obj = getattr(self, name)
+
+            obj.remove_cells(target_inds_cell, target_inds_mem, sim, cells, p)
 
     def clear_cache(self):
         """
@@ -224,13 +227,14 @@ class MasterOfMolecules(object):
 
             obj = getattr(self, name)
 
-            logs.log_info('Final average concentration of ', name , ' in the cell: ' +
-                                           str(np.round(obj.c_cells.mean(), 6)) + ' mmol/L')
+            logs.log_info('Final average concentration of ' + str(name) + ' in the cell: ' +
+                                           str(np.round(1.0e3*obj.c_cells.mean(), 4)) + ' umol/L')
 
-            logs.log_info('Final average concentration of ', name, ' in the environment: ' +
-                                          str(np.round(obj.c_env.mean(), 6)) + ' mmol/L')
+            logs.log_info('Final average concentration of ' + str(name) + ' in the environment: ' +
+                                          str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
 
     def export_data(self, sim, cells, p):
+        # FIXME export data is broken!
         """
 
         Exports concentration data from each molecule to a file for a single cell
@@ -245,7 +249,6 @@ class MasterOfMolecules(object):
 
         # create the header, first entry will be time:
         headr = 'time_s' + ','
-        time = np.asarray(sim.time)
 
         # dataM = np.zeros((len(sim.time),2*len(self.molecule_names)))
         #
@@ -291,7 +294,7 @@ class MasterOfMolecules(object):
 
             if p.plot_single_cell_graphs:
             # create line graphs for the substance
-                obj.plot1D(sim, p, self.imagePath)
+                obj.plot_1D(sim, p, self.imagePath)
 
             # create 2D maps for the substance
             obj.plot_cells(sim, cells, p, self.imagePath)
@@ -299,7 +302,7 @@ class MasterOfMolecules(object):
             # if there's a real environment, plot 2D concentration in the environment
             if p.sim_ECM:
 
-                obj.plot_env(p, self.imagePath)
+                obj.plot_env(sim, cells, p, self.imagePath)
 
     def anim(self, sim, cells, p):
         """
@@ -401,20 +404,35 @@ class Molecule(object):
 
     def reaction(self, sim, cells, p):
         """
-        Grows and/or decays the molecule concentration in the cell cytosol using a simple rate equation.
+        Grows and/or decays the molecule concentration in the cell cytosol using a simple rate equation
+        representing saturating autocatalytic production/decay via Michaelis-Menten kinetics.
 
         """
+        cc = self.c_cells/self.Kgd
 
-        pass
+        delta_cells = self.r_production*(cc/(1 + cc)) - self.r_decay*(cc/(1 + cc))
 
-    def remove_cells(self, dyna, sim, cells, p):
+        self.c_cells = self.c_cells + delta_cells*p.dt
+
+        # make sure the concs inside the cell are evenly mixed after production/decay:
+        self.updateIntra(sim, cells, p)
+
+    def remove_cells(self, target_inds_cell, target_inds_mem, sim, cells, p):
         """
         During a cutting event, removes the right cells from the simulation network,
         while preserving additional information.
 
         """
 
-        pass
+        # remove cells from the cell concentration list:
+        ccells2 = np.delete(self.c_cells, target_inds_cell)
+        # reassign the new data vector to the object:
+        self.c_cells = ccells2
+
+        # remove cells from the mems concentration list:
+        cmems2 = np.delete(self.c_mems, target_inds_mem)
+        # reassign the new data vector to the object:
+        self.c_mems = cmems2
 
     def update_boundary(self, t, p):
         """
@@ -442,17 +460,17 @@ class Molecule(object):
 
         """
 
-        c_cells = [arr[p.plot_cell] for arr in self.c_cells_time]
+        c_cells = [1.0e3*arr[p.plot_cell] for arr in self.c_cells_time]
         fig = plt.figure()
         ax = plt.subplot(111)
         ax.plot(sim.time, c_cells)
         ax.set_xlabel('Time [s]')
-        ax.set_ylabel('Concentration [mmol/L]')
+        ax.set_ylabel('Concentration [umol/L]')
         ax.set_title('Concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
 
         if p.autosave is True:
             savename = saveImagePath + 'CellConcentration_' + self.name + '.png'
-            plt.savefig(savename, dpi=300, format='png', transparent=True)
+            plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
@@ -469,8 +487,7 @@ class Molecule(object):
             clrAutoscale=self.plot_autoscale,
             clrMin=self.plot_min,
             clrMax=self.plot_max,
-            clrmap=p.default_cm,
-        )
+            clrmap=p.default_cm)
 
         ax.set_title('Final ' + self.name + ' Concentration in Cells')
         ax.set_xlabel('Spatial distance [um]')
@@ -479,7 +496,7 @@ class Molecule(object):
 
         if p.autosave is True:
             savename = saveImagePath + 'cell_conc_' + self.name + '.png'
-            plt.savefig(savename,format='png',dpi = '300', transparent=True)
+            plt.savefig(savename,format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
@@ -519,7 +536,7 @@ class Molecule(object):
 
         if p.autosave is True:
             savename = saveImagePath + 'env_conc_' + self.name + '.png'
-            plt.savefig(savename,format='png',dpi = 300, transparent=True)
+            plt.savefig(savename,format='png',dpi = 300.0, transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
@@ -532,16 +549,17 @@ class Molecule(object):
         """
 
         type_name = self.name + '_cells'
+        fig_tit = 'Cytosolic ' + self.name
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[1e3*arr[sim.iCa] for arr in sim.cc_time],
+            time_series=[1e3*arr for arr in self.c_mems_time],
             type=type_name,
-            figure_title='Cytosolic Ca2+',
+            figure_title=fig_tit,
             colorbar_title='Concentration [umol/L]',
-            is_color_autoscaled=p.autoscale_Ca_ani,
-            color_min=p.Ca_ani_min_clr,
-            color_max=p.Ca_ani_max_clr)
+            is_color_autoscaled=self.plot_autoscale,
+            color_min=self.plot_min,
+            color_max=self.plot_max)
 
     def anim_env(self, sim, cells, p):
 
@@ -551,16 +569,16 @@ class Molecule(object):
         """
 
         type_name = self.name + '_env'
+        fig_tit = 'Environmental ' + self.name
 
-        venv_time_series = [
-            venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
+        env_time_series = [env.reshape(cells.X.shape)*1e3 for env in self.c_env_time]
         AnimEnvTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=venv_time_series,
+            time_series=env_time_series,
             type=type_name,
-            figure_title='Environmental Voltage',
+            figure_title=fig_tit,
             colorbar_title='Concentration [umol/L]',
-            is_color_autoscaled=p.autoscale_venv_ani,
-            color_min=p.venv_min_clr,
-            color_max=p.venv_max_clr)
+            is_color_autoscaled=self.plot_autoscale,
+            color_min=self.plot_min,
+            color_max=self.plot_max)
 

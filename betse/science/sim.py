@@ -25,6 +25,7 @@ from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
+from betse.science.chemistry.molecule import MasterOfMolecules
 
 class Simulator(object):
     '''
@@ -631,6 +632,16 @@ class Simulator(object):
 
         # -----auxiliary molecules initialization -------------------------
 
+        # create and initialize the auxiliary-molecules handler for this simulation:
+        if p.molecules_enabled:
+            self.molecules = MasterOfMolecules(self,p.molecules_config,p)
+
+        else:
+            self.molecules = None
+
+
+        # FIXME IP3 will be a special keyword substance user-defined in MasterOfMolecules
+
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
 
             self.cIP3_mems = np.zeros(self.mdl)  # initialize a vector to hold IP3 concentrations
@@ -654,47 +665,6 @@ class Simulator(object):
             elif p.sim_ECM is False:
                 self.cIP3_env = np.zeros(self.mdl)     # initialize IP3 concentration of the environment
                 self.cIP3_env[:] = p.cIP3_to_env
-
-        # if p.voltage_dye is True:
-        #
-        #     self.cDye_mems = np.zeros(self.mdl)   # initialize voltage sensitive dye array for mem regions
-        #     self.cDye_mems[:] = p.cDye_to_cell
-        #
-        #     self.cDye_cells = np.zeros(self.cdl)   # initialize voltage sensitive dye array for cell centroids
-        #     self.cDye_cells[:] = p.cDye_to_cell
-        #
-        #     self.Dye_flux_x_gj = np.zeros(len(cells.nn_i))
-        #     self.Dye_flux_y_gj = np.zeros(len(cells.nn_i))
-        #     self.Dye_flux_mem = np.zeros(len(cells.mem_i))
-        #
-        #     self.c_dye_bound = p.cDye_to    # concentration of dye at the global boundaries
-        #
-        #     self.cDye_env = np.zeros(self.mdl)
-        #     self.cDye_env[:] = p.cDye_to
-        #
-        #     if p.Dye_target_channel != 'None':
-        #
-        #         # get the ion index of the target ion:
-        #         self.dye_target = self.get_ion(p.Dye_target_channel)
-        #
-        #         # make a copy of the appropriate ion list
-        #         self.Dm_mod_dye = np.copy(self.Dm_cells[self.dye_target][:])
-        #
-        #     else:
-        #
-        #         self.dye_target = None
-        #
-        #     if p.sim_ECM is True:
-        #
-        #         self.cDye_env = np.zeros(self.edl)
-        #         self.cDye_env[:] = p.cDye_to
-        #
-        #         self.Dye_flux_env_x = np.zeros(self.edl)
-        #         self.Dye_flux_env_y = np.zeros(self.edl)
-        #
-        #     else:
-        #         self.Dye_env = np.zeros(self.mdl)     # initialize Dye concentration in the environment
-        #         self.Dye_env[:] = p.cDye_to
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
         if p.deform_osmo is True:
@@ -933,6 +903,12 @@ class Simulator(object):
                         p.Do_IP3,
                         p.z_IP3, p)
 
+
+            # update the molecules handler:
+            if p.molecules_enabled:
+
+                self.molecules.run_loop(t, self,cells,p)
+
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             # if p.voltage_dye == 1:
             #
@@ -1147,8 +1123,9 @@ class Simulator(object):
             self.phi = np.zeros(self.mdl)
             self.phi_time = []
 
-        # if p.voltage_dye is True:
-        #     self.cDye_time = []    # retains voltage-sensitive dye concentration as a function of time
+        if p.molecules_enabled:
+
+            self.molecules.clear_cache()
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             self.cIP3_time = []    # retains IP3 concentration as a function of time
@@ -1277,8 +1254,9 @@ class Simulator(object):
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             self.cIP3_time.append(self.cIP3_mems[:])
 
-        # if p.voltage_dye ==1:
-        #     self.cDye_time.append(self.cDye_mems[:])
+        if p.molecules_enabled:
+
+            self.molecules.write_data(self, p)
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
             self.cc_er_time.append(np.copy(self.cc_er[:]))
@@ -1356,6 +1334,9 @@ class Simulator(object):
             final_pH_env = -np.log10(np.mean(1.0e-3*(self.cc_env_time[-1][self.iH])))
             logs.log_info('Final environmental pH ' + str(np.round(final_pH_env, 2)))
 
+        if p.molecules_enabled:
+
+            self.molecules.report(self, p)
 
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             IP3_env_final = np.mean(self.cIP3_env)
