@@ -426,11 +426,11 @@ stretch gated Na+:         # stretch activated depolarization (Na+) channel
 voltage gated K+:             # voltage gated potassium channel, delayed rectifyer
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Kv1p2']      # available types: 'Kv1p1', 'Kv1p2' (brain), 'Kv1p5' (muscle),
+    channel type: ['K_Slow','K_Fast']      # available types: 'Kv1p1', 'Kv1p2' (brain), 'Kv1p5' (muscle),
                              # 'K_Slow', 'K_Fast', 'Kv2p1'
     max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
-inward rectifying K+:          # Other types of K+ currents including inward-rectifying
+additional voltage gated K+:    # Other types of K+ currents including inward-rectifying
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)

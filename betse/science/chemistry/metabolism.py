@@ -38,7 +38,7 @@ class MasterOfMetabolism(object):
 
     def read_config(self, sim, p):
 
-        if p.metabolism_simulated:
+        if p.metabolism_enabled:
 
             # create the path to read the metabolism config file:
             self.configPath = os.path.expanduser(p.metabo_config_filename)
@@ -50,7 +50,8 @@ class MasterOfMetabolism(object):
             substances_config = self.config_dic['biomolecules']
             reactions_config = self.config_dic['reactions']
 
-            # initialize the substances of metabolism:
+            # initialize the substances of metabolism in a core field encapsulating
+            # Master of Molecules:
             self.core = MasterOfMolecules(sim, substances_config, p)
 
             # initialize the reactions of metabolism:

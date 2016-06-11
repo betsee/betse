@@ -364,7 +364,7 @@ class Parameters(object):
         opNa = self.config['voltage gated Na+']
         opNaP = self.config['persistent vg Na+']
         opK = self.config['voltage gated K+']
-        opKir = self.config['inward rectifying K+']
+        opKir = self.config['additional voltage gated K+']
         opFun = self.config['funny current']
         opCa = self.config['voltage gated Ca2+']
         opcK = self.config['gated ion channel options']['calcium gated K']

@@ -14,12 +14,9 @@ and plot.
 
 """
 
-import copy
 import os
 import os.path
-import time
 import numpy as np
-from betse.science import filehandling as fh
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
@@ -77,7 +74,7 @@ class MasterOfMolecules(object):
             # factors involving auto-catalytic growth and decay in the cytoplasm
             gad = mol_dic['growth and decay']
 
-            if gad != None:
+            if gad != 'None':
 
                 obj.simple_growth = True
 
@@ -175,25 +172,76 @@ class MasterOfMolecules(object):
             obj.name = name  # let object know who it is
 
             # set the main fields of the reaction object
-            obj.reactants_list = react_dic['reagents']
+            obj.reactants_list = react_dic['reactants']
+            obj.reactants_coeff = react_dic['reactant multipliers']
+
             obj.products_list = react_dic['products']
+            obj.products_coeff = react_dic['product multipliers']
+
             obj.Km_reactants_list = react_dic['Km reagents']
             obj.Km_products_list = react_dic['Km products']
             obj.vmax = react_dic['max rate']
 
             obj.delta_Go = react_dic['standard free energy']
 
-    def init_saving(self, cells, p, plot_type = 'init'):
+            obj.transfer_membrane = react_dic['transmembrane transfer']
+
+            if obj.transfer_membrane != 'None':
+                self.transfer_V_type = obj.transfer_membrane[0]
+                self.transfer_direction = obj.transfer_membrane[1]
+
+            else:
+                obj.transfer_membrane = None
+
+            # now we want to load the right concentration data arrays for reactants into the Reaction object:
+            for i, reactant_name in enumerate(obj.reactants_list):
+
+                try:
+                    obj_reactant = getattr(self,reactant_name)
+                    c_react = obj_reactant.c_cells
+                    obj.c_reactants.append(c_react)
+
+                    # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                    # and Km values at a later point:
+                    obj.inds_react.append(i)
+
+                except:
+
+                    raise BetseExceptionParameters('Name of reactant not a defined chemical.'
+                                                   'Please check biomolecule definitions '
+                                                   'and try again.')
+
+            # Now load the right concentration data arrays for products into the Reaction object:
+
+            for j, product_name in enumerate(obj.products_list):
+
+                try:
+                    obj_product = getattr(self, product_name)
+                    c_prod = obj_product.c_cells
+                    obj.c_products.append(c_prod)
+
+                    # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                    # and Km values at a later point:
+                    obj.inds_prod.append(j)
+
+                except:
+
+                    raise BetseExceptionParameters('Name of product not a defined chemical.'
+                                                   'Please check biomolecule definitions '
+                                                   'and try again.')
+
+
+    def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'Molecules'):
 
             # init files
             if p.autosave is True:
 
                 if plot_type == 'sim':
-                    results_path = os.path.join(p.sim_results, 'Molecules')
+                    results_path = os.path.join(p.sim_results, nested_folder_name)
                     p.plot_type = 'sim'
 
                 elif plot_type == 'init':
-                    results_path = os.path.join(p.init_results, 'Molecules')
+                    results_path = os.path.join(p.init_results, nested_folder_name)
                     p.plot_type = 'init'
 
                 self.resultsPath = os.path.expanduser(results_path)
@@ -677,13 +725,23 @@ class Reaction(object):
 
         self.name = None
         self.reactants_list = None
+        self.reactants_coeff = None
         self.products_list = None
-        self.Km_reactants = None
-        self.Km_products = None
+        self.products_coeff = None
+        self.Km_reactants_list = None
+        self.Km_products_list = None
         self.vmax = None
         self.delta_Go = None
+        self.transfer_membrane = None
+        self.transfer_V_type = None
+        self.transfer_direction = None
 
-    def compute_reaction(self):
+        self.c_reactants = []  # concentrations of reactions, defined on cell-centres
+        self.inds_react = []  # indices to each reactant, to keep their order
+        self.c_products = []  # concentrations of reactions, defined on cell-centres
+        self.inds_prod = []  # indices to each reactant, to keep their order
+
+    def compute_reaction(self, sim, cells, p):
 
         pass
 
